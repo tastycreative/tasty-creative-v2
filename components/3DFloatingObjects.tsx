@@ -26,7 +26,7 @@ export default function Floating3DObjects() {
     return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
 
-  // Generate consistent random values
+  // Generate consistent random values for micro bubbles
   const microBubbles = mounted
     ? Array.from({ length: 15 }, (_, i) => ({
         id: i,
@@ -40,12 +40,98 @@ export default function Floating3DObjects() {
       }))
     : [];
 
+  // Generate twinkling stars
+  const stars = mounted
+    ? Array.from({ length: 150 }, (_, i) => ({
+        id: i,
+        size: 1 + ((i * 2) % 4), // Stars between 1-4px
+        top: (i * 13) % 100,
+        left: (i * 19) % 100,
+        opacity: 0.3 + ((i * 7) % 70) / 100, // Opacity between 0.3-1.0
+        delay: (i * 0.3) % 6, // Stagger twinkle animations
+        duration: 2 + (i % 4), // Twinkle duration between 2-5s
+        brightness: 0.5 + ((i * 11) % 50) / 100, // Brightness variation
+      }))
+    : [];
+
+  // Generate larger constellation stars
+  const constellationStars = mounted
+    ? Array.from({ length: 25 }, (_, i) => ({
+        id: i,
+        size: 3 + ((i * 5) % 8), // Larger stars 3-10px
+        top: (i * 29) % 100,
+        left: (i * 37) % 100,
+        delay: (i * 0.8) % 8,
+        duration: 3 + (i % 5),
+        pulseIntensity: 0.6 + ((i * 13) % 40) / 100,
+      }))
+    : [];
+
   if (!mounted) {
     return null; // Prevent SSR mismatch
   }
 
   return (
     <>
+      {/* Twinkling Stars Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Small twinkling stars */}
+        {stars.map((star) => (
+          <div
+            key={`star-${star.id}`}
+            className="absolute rounded-full bg-white"
+            style={{
+              width: `${star.size}px`,
+              height: `${star.size}px`,
+              top: `${star.top}%`,
+              left: `${star.left}%`,
+              opacity: star.opacity,
+              animation: `twinkle ${star.duration}s ease-in-out infinite ${star.delay}s`,
+              boxShadow: `0 0 ${star.size * 3}px rgba(255, 255, 255, ${
+                star.brightness
+              })`,
+              transform: `translate(${mousePos.x * (2 + (star.id % 3))}px, ${
+                mousePos.y * (2 + (star.id % 3))
+              }px)`,
+            }}
+          />
+        ))}
+
+        {/* Larger constellation stars */}
+        {constellationStars.map((star) => (
+          <div
+            key={`constellation-${star.id}`}
+            className="absolute rounded-full bg-gradient-to-r from-blue-100 to-purple-100"
+            style={{
+              width: `${star.size}px`,
+              height: `${star.size}px`,
+              top: `${star.top}%`,
+              left: `${star.left}%`,
+              animation: `starPulse ${star.duration}s ease-in-out infinite ${star.delay}s`,
+              boxShadow: `0 0 ${star.size * 4}px rgba(147, 197, 253, ${
+                star.pulseIntensity
+              }), 0 0 ${star.size * 8}px rgba(196, 181, 253, ${
+                star.pulseIntensity * 0.5
+              })`,
+              transform: `translate(${mousePos.x * (1 + (star.id % 2))}px, ${
+                mousePos.y * (1 + (star.id % 2))
+              }px)`,
+            }}
+          />
+        ))}
+
+        {/* Shooting stars */}
+        <div className="absolute top-[10%] left-[20%] w-1 h-1 bg-white rounded-full animate-[shootingStar_8s_linear_infinite]">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent w-20 h-0.5 -translate-x-4 opacity-80"></div>
+        </div>
+        <div className="absolute top-[60%] right-[30%] w-1 h-1 bg-blue-200 rounded-full animate-[shootingStar_12s_linear_infinite_4s]">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-200 to-transparent w-16 h-0.5 -translate-x-3 opacity-70"></div>
+        </div>
+        <div className="absolute top-[30%] left-[70%] w-1 h-1 bg-purple-200 rounded-full animate-[shootingStar_15s_linear_infinite_7s]">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-200 to-transparent w-12 h-0.5 -translate-x-2 opacity-60"></div>
+        </div>
+      </div>
+
       {/* 3D Floating Objects */}
       <div ref={containerRef} className="absolute inset-0 overflow-hidden">
         {/* Large Bubble Cluster - Top Left */}
@@ -332,6 +418,49 @@ export default function Floating3DObjects() {
           50% {
             transform: scale(1.1);
             opacity: 1;
+          }
+        }
+
+        @keyframes twinkle {
+          0%,
+          100% {
+            opacity: 0.3;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.2);
+          }
+        }
+
+        @keyframes starPulse {
+          0%,
+          100% {
+            opacity: 0.6;
+            transform: scale(1);
+            filter: blur(0px);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.5);
+            filter: blur(1px);
+          }
+        }
+
+        @keyframes shootingStar {
+          0% {
+            transform: translateX(-100px) translateY(-100px);
+            opacity: 0;
+          }
+          10% {
+            opacity: 1;
+          }
+          90% {
+            opacity: 1;
+          }
+          100% {
+            transform: translateX(100vw) translateY(100vh);
+            opacity: 0;
           }
         }
       `}</style>

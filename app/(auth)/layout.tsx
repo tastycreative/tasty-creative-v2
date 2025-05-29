@@ -37,7 +37,7 @@ export default function AuthLayout({
       {/* Right side - Visual */}
       <div className="hidden lg:block relative w-0 flex-1 lg:w-1/2">
         {/* Background Image */}
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500">
+        <div className="absolute inset-0 bg-gradient-to-b from-indigo-950 via-purple-900 to-black">
           {/* Overlay pattern */}
           <div className="absolute inset-0 bg-black/20"></div>
 
