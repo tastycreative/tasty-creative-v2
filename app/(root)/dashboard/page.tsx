@@ -1,34 +1,56 @@
 import { auth, signOut } from "@/auth";
-import React from "react";
+import { redirect } from "next/navigation";
+import { ProtectedFeature } from "@/components/protected-feature";
 
-export const metadata = {
-  title: "Dashboard",
-  description: "Your personal dashboard",
-};
-
-const Dashboard = async () => {
+export default async function DashboardPage() {
   const session = await auth();
 
-  if (!session?.user) return null;
+  if (!session) {
+    redirect("/sign-in");
+  }
 
   return (
-    <div className="flex items-center gap-4">
-      <img
-        src={session.user.image || "/default-avatar.png"}
-        alt={session.user.name || "User"}
-        className="w-8 h-8 rounded-full"
-      />
-      <span>{session.user.name}</span>
-      <form
-        action={async () => {
-          "use server";
-          await signOut();
-        }}
-      >
-        <button type="submit">Sign Out</button>
-      </form>
+    <div className="container mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Basic features available to all logged-in users */}
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+          <form
+            action={async () => {
+              "use server";
+              await signOut();
+            }}
+          >
+            <button type="submit">Sign Out</button>
+          </form>
+          <h2 className="text-xl font-semibold mb-4">Profile Information</h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            Name: {session.user.name || "Not set"}
+          </p>
+          <p className="text-gray-600 dark:text-gray-400">
+            Email: {session.user.email}
+          </p>
+          <p className="text-gray-600 dark:text-gray-400">
+            Status:{" "}
+            {session.user.emailVerified ? (
+              <span className="text-green-600">Verified ✓</span>
+            ) : (
+              <span className="text-yellow-600">Unverified</span>
+            )}
+          </p>
+        </div>
+
+        {/* Protected features requiring verification */}
+        <ProtectedFeature>
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-4">Premium Features</h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              You have access to all premium features!
+            </p>
+          </div>
+        </ProtectedFeature>
+      </div>
     </div>
   );
-};
-
-export default Dashboard;
+}

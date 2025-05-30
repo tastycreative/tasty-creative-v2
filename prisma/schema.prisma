@@ -1,3 +1,4 @@
+// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,26 +8,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Update the Role enum to include GUEST
-enum Role {
-  GUEST
-  USER
-  MODERATOR
-  ADMIN
-}
-
 model User {
   id            String    @id @default(cuid())
-  email         String?   @unique
+  email         String    @unique
   emailVerified DateTime?
   name          String?
   image         String?
+  password      String?   // For email/password auth
   role          Role      @default(GUEST)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
   accounts      Account[]
   sessions      Session[]
+  verificationTokens VerificationToken[]
 }
 
 model Account {
@@ -57,9 +52,19 @@ model Session {
 }
 
 model VerificationToken {
-  identifier String
+  id         String   @id @default(cuid())
+  identifier String   // email address
   token      String   @unique
   expires    DateTime
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([identifier, token])
+}
+
+enum Role {
+  GUEST
+  USER
+  ADMIN
+  MODERATOR
 }
