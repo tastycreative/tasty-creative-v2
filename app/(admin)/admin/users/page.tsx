@@ -12,7 +12,7 @@ export default async function AdminUsersPage() {
   }
 
   // Fetch all users
-  const users = await prisma.user.findMany({
+  const users: User[] = await prisma.user.findMany({
     select: {
       id: true,
       email: true,
@@ -57,6 +57,7 @@ export default async function AdminUsersPage() {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     {user.image && (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         className="h-10 w-10 rounded-full mr-3"
                         src={user.image}
@@ -82,10 +83,10 @@ export default async function AdminUsersPage() {
                       user.role === "ADMIN"
                         ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
                         : user.role === "MODERATOR"
-                        ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                        : user.role === "USER"
-                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                        : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+                          ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                          : user.role === "USER"
+                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            : "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
                     }`}
                   >
                     {user.role}
@@ -97,7 +98,7 @@ export default async function AdminUsersPage() {
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <UserRoleForm
                     userId={user.id}
-                    currentRole={user.role}
+                    currentRole={user.role as Role}
                     userName={user.name || user.email || "User"}
                     isCurrentUser={user.id === session.user.id}
                   />

@@ -1,15 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Role } from "@prisma/client";
 import { updateUserRole } from "@/app/actions/admin";
-
-interface UserRoleFormProps {
-  userId: string;
-  currentRole: Role;
-  userName: string;
-  isCurrentUser: boolean;
-}
 
 export function UserRoleForm({
   userId,

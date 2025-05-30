@@ -5,11 +5,15 @@ export const metadata: Metadata = {
   title: "Verify Email",
 };
 
-export default function VerifyEmail({
+export default async function VerifyEmail({
   searchParams,
 }: {
-  searchParams?: { email?: string };
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  // Await the searchParams promise
+  const params = await searchParams;
+  const email = params.email as string | undefined;
+
   return (
     <div className="w-full max-w-md mx-auto">
       <div className="text-center">
@@ -32,7 +36,7 @@ export default function VerifyEmail({
         <p className="mt-2 text-gray-600 dark:text-gray-400">
           We&apos;ve sent a verification link to{" "}
           <span className="font-medium text-gray-900 dark:text-white">
-            {searchParams?.email || "your email address"}
+            {email || "your email address"}
           </span>
         </p>
         <p className="mt-4 text-sm text-gray-500 dark:text-gray-500">

@@ -20,7 +20,9 @@ export function SignInForm() {
     setError("");
     setLoading(true);
 
-    const result = await signInWithCredentials(formData);
+    const result = (await signInWithCredentials(
+      formData
+    )) as unknown as AuthResponse;
 
     if (result?.error) {
       setError(result.error);

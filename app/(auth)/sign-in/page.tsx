@@ -2,6 +2,7 @@ import { SignInForm } from "@/components/auth/sign-in-form";
 import SignInWithGoogle from "@/components/SignInWithGoogle";
 import { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "Sign In",
@@ -22,8 +23,15 @@ export default function SignIn() {
           create a new account
         </Link>
       </p>
-
-      <SignInForm />
+      <Suspense
+        fallback={
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
+          </div>
+        }
+      >
+        <SignInForm />
+      </Suspense>
 
       <div className="relative mt-6">
         <div className="absolute inset-0 flex items-center">
