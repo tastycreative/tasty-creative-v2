@@ -51,25 +51,49 @@ export default function Floating3DObjects() {
         delay: (i * 0.3) % 6, // Stagger twinkle animations
         duration: 2 + (i % 4), // Twinkle duration between 2-5s
         brightness: 0.5 + ((i * 11) % 50) / 100, // Brightness variation
+        rotation: (i * 45) % 360, // Random rotation angle
+        spikes: 4 + (i % 3), // 4, 5, or 6 spikes
       }))
     : [];
 
   // Generate larger constellation stars
-  const constellationStars = mounted
-    ? Array.from({ length: 25 }, (_, i) => ({
-        id: i,
-        size: 3 + ((i * 5) % 8), // Larger stars 3-10px
-        top: (i * 29) % 100,
-        left: (i * 37) % 100,
-        delay: (i * 0.8) % 8,
-        duration: 3 + (i % 5),
-        pulseIntensity: 0.6 + ((i * 13) % 40) / 100,
-      }))
-    : [];
+  // const constellationStars = mounted
+  //   ? Array.from({ length: 25 }, (_, i) => ({
+  //       id: i,
+  //       size: 3 + ((i * 5) % 8), // Larger stars 3-10px
+  //       top: (i * 29) % 100,
+  //       left: (i * 37) % 100,
+  //       delay: (i * 0.8) % 8,
+  //       duration: 3 + (i % 5),
+  //       pulseIntensity: 0.6 + ((i * 13) % 40) / 100,
+  //       rotation: (i * 60) % 360,
+  //       spikes: 6 + (i % 3), // 6, 7, or 8 spikes
+  //     }))
+  //   : [];
 
   if (!mounted) {
     return null; // Prevent SSR mismatch
   }
+
+  // Function to create star path
+  const createStarPath = (cx: number, cy: number, spikes: number, outerRadius: number, innerRadius: number) => {
+    let path = "";
+    const step = Math.PI / spikes;
+    
+    for (let i = 0; i < 2 * spikes; i++) {
+      const radius = i % 2 === 0 ? outerRadius : innerRadius;
+      const x = cx + Math.cos(i * step - Math.PI / 2) * radius;
+      const y = cy + Math.sin(i * step - Math.PI / 2) * radius;
+      
+      if (i === 0) {
+        path += `M ${x} ${y}`;
+      } else {
+        path += ` L ${x} ${y}`;
+      }
+    }
+    path += " Z";
+    return path;
+  };
 
   return (
     <>
@@ -77,58 +101,118 @@ export default function Floating3DObjects() {
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Small twinkling stars */}
         {stars.map((star) => (
-          <div
+          <svg
             key={`star-${star.id}`}
-            className="absolute rounded-full bg-white"
+            className="absolute"
             style={{
-              width: `${star.size}px`,
-              height: `${star.size}px`,
+              width: `${star.size * 4}px`,
+              height: `${star.size * 4}px`,
               top: `${star.top}%`,
               left: `${star.left}%`,
               opacity: star.opacity,
               animation: `twinkle ${star.duration}s ease-in-out infinite ${star.delay}s`,
-              boxShadow: `0 0 ${star.size * 3}px rgba(255, 255, 255, ${
-                star.brightness
-              })`,
-              transform: `translate(${mousePos.x * (2 + (star.id % 3))}px, ${
+              transform: `translate(-50%, -50%) rotate(${star.rotation}deg) translate(${mousePos.x * (2 + (star.id % 3))}px, ${
                 mousePos.y * (2 + (star.id % 3))
               }px)`,
+              filter: `drop-shadow(0 0 ${star.size * 2}px rgba(255, 255, 255, ${star.brightness}))`,
             }}
-          />
+            viewBox={`0 0 ${star.size * 4} ${star.size * 4}`}
+          >
+            <path
+              d={createStarPath(star.size * 2, star.size * 2, star.spikes, star.size * 2, star.size * 0.5)}
+              fill="white"
+            />
+          </svg>
         ))}
 
         {/* Larger constellation stars */}
-        {constellationStars.map((star) => (
-          <div
+        {/* {constellationStars.map((star) => (
+          <svg
             key={`constellation-${star.id}`}
-            className="absolute rounded-full bg-gradient-to-r from-blue-100 to-purple-100"
+            className="absolute"
             style={{
-              width: `${star.size}px`,
-              height: `${star.size}px`,
+              width: `${star.size * 4}px`,
+              height: `${star.size * 4}px`,
               top: `${star.top}%`,
               left: `${star.left}%`,
               animation: `starPulse ${star.duration}s ease-in-out infinite ${star.delay}s`,
-              boxShadow: `0 0 ${star.size * 4}px rgba(147, 197, 253, ${
-                star.pulseIntensity
-              }), 0 0 ${star.size * 8}px rgba(196, 181, 253, ${
-                star.pulseIntensity * 0.5
-              })`,
-              transform: `translate(${mousePos.x * (1 + (star.id % 2))}px, ${
+              transform: `translate(-50%, -50%) rotate(${star.rotation}deg) translate(${mousePos.x * (1 + (star.id % 2))}px, ${
                 mousePos.y * (1 + (star.id % 2))
               }px)`,
+              filter: `drop-shadow(0 0 ${star.size * 3}px rgba(147, 197, 253, ${
+                star.pulseIntensity
+              })) drop-shadow(0 0 ${star.size * 6}px rgba(196, 181, 253, ${
+                star.pulseIntensity * 0.5
+              }))`,
             }}
-          />
-        ))}
+            viewBox={`0 0 ${star.size * 4} ${star.size * 4}`}
+          >
+            <defs>
+              <linearGradient id={`starGrad-${star.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#93c5fd" stopOpacity="1" />
+                <stop offset="100%" stopColor="#c4b5fd" stopOpacity="1" />
+              </linearGradient>
+            </defs>
+            <path
+              d={createStarPath(star.size * 2, star.size * 2, star.spikes, star.size * 2, star.size * 0.4)}
+              fill={`url(#starGrad-${star.id})`}
+            />
+          </svg>
+        ))} */}
 
-        {/* Shooting stars */}
-        <div className="absolute top-[10%] left-[20%] w-1 h-1 bg-white rounded-full animate-[shootingStar_8s_linear_infinite]">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent w-20 h-0.5 -translate-x-4 opacity-80"></div>
+        {/* Shooting stars with star shapes */}
+        <div className="absolute top-[10%] left-[20%] animate-[shootingStar_8s_linear_infinite]">
+          <svg width="30" height="30" viewBox="0 0 30 30" className="relative animate-spin">
+            <defs>
+              <linearGradient id="shootingGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="transparent" />
+                <stop offset="50%" stopColor="white" stopOpacity="0.8" />
+                <stop offset="100%" stopColor="white" stopOpacity="1" />
+              </linearGradient>
+            </defs>
+            <path
+              d={createStarPath(15, 15, 5, 8, 3)}
+              fill="white"
+              filter="drop-shadow(0 0 6px rgba(255, 255, 255, 0.9))"
+            />
+            {/* <rect x="-60" y="12" width="70" height="6" fill="url(#shootingGrad1)" opacity="0.8" /> */}
+          </svg>
         </div>
-        <div className="absolute top-[60%] right-[30%] w-1 h-1 bg-blue-200 rounded-full animate-[shootingStar_12s_linear_infinite_4s]">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-200 to-transparent w-16 h-0.5 -translate-x-3 opacity-70"></div>
+        
+        <div className="absolute top-[60%] right-[30%] animate-[shootingStar_12s_linear_infinite_4s]">
+          <svg width="25" height="25" viewBox="0 0 25 25" className="relative animate-spin">
+            <defs>
+              <linearGradient id="shootingGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="transparent" />
+                <stop offset="50%" stopColor="#93c5fd" stopOpacity="0.7" />
+                <stop offset="100%" stopColor="#93c5fd" stopOpacity="1" />
+              </linearGradient>
+            </defs>
+            <path
+              d={createStarPath(12.5, 12.5, 6, 7, 2.5)}
+              fill="#93c5fd"
+              filter="drop-shadow(0 0 5px rgba(147, 197, 253, 0.8))"
+            />
+            {/* <rect x="-50" y="10" width="55" height="5" fill="url(#shootingGrad2)" opacity="0.7" /> */}
+          </svg>
         </div>
-        <div className="absolute top-[30%] left-[70%] w-1 h-1 bg-purple-200 rounded-full animate-[shootingStar_15s_linear_infinite_7s]">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-200 to-transparent w-12 h-0.5 -translate-x-2 opacity-60"></div>
+        
+        <div className="absolute top-[30%] left-[70%]  animate-[shootingStar_15s_linear_infinite_7s]">
+          <svg width="20" height="20" viewBox="0 0 20 20" className="relative animate-spin">
+            <defs>
+              <linearGradient id="shootingGrad3" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="transparent" />
+                <stop offset="50%" stopColor="#c4b5fd" stopOpacity="0.6" />
+                <stop offset="100%" stopColor="#c4b5fd" stopOpacity="1" />
+              </linearGradient>
+            </defs>
+            <path
+              d={createStarPath(10, 10, 4, 6, 2)}
+              fill="#c4b5fd"
+              filter="drop-shadow(0 0 4px rgba(196, 181, 253, 0.7))"
+            />
+            {/* <rect x="-40" y="8" width="45" height="4" fill="url(#shootingGrad3)" opacity="0.6" /> */}
+          </svg>
         </div>
       </div>
 
@@ -425,11 +509,11 @@ export default function Floating3DObjects() {
           0%,
           100% {
             opacity: 0.3;
-            transform: scale(1);
+            transform: scale(1) rotate(0deg);
           }
           50% {
             opacity: 1;
-            transform: scale(1.2);
+            transform: scale(1.2) rotate(180deg);
           }
         }
 
@@ -437,19 +521,19 @@ export default function Floating3DObjects() {
           0%,
           100% {
             opacity: 0.6;
-            transform: scale(1);
+            transform: scale(1) rotate(0deg);
             filter: blur(0px);
           }
           50% {
             opacity: 1;
-            transform: scale(1.5);
+            transform: scale(1.5) rotate(90deg);
             filter: blur(1px);
           }
         }
 
         @keyframes shootingStar {
           0% {
-            transform: translateX(-100px) translateY(-100px);
+            transform: translateX(-100px) translateY(-100px) rotate(-45deg);
             opacity: 0;
           }
           10% {
@@ -459,7 +543,7 @@ export default function Floating3DObjects() {
             opacity: 1;
           }
           100% {
-            transform: translateX(100vw) translateY(100vh);
+            transform: translateX(100vw) translateY(100vh) rotate(-45deg);
             opacity: 0;
           }
         }
