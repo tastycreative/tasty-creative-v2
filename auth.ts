@@ -93,6 +93,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return true;
       }
 
+      if (user?.email) {
+        const existingUser = await prisma.user.findUnique({
+          where: { email: user.email },
+        });
+
+        if (
+          existingUser &&
+          (existingUser.name !== user.name || existingUser.image !== user.image)
+        ) {
+          await prisma.user.update({
+            where: { email: user.email },
+            data: {
+              name: user.name,
+              image: user.image,
+            },
+          });
+        }
+      }
+
       // For credentials, we've already validated in authorize()
       return true;
     },
@@ -104,14 +123,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   events: {
     async linkAccount({ user, account }) {
-      if (
-        account.provider === "google" &&
-        !(user as { emailVerified?: Date | null }).emailVerified
-      ) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { emailVerified: new Date() },
-        });
+      if (account.provider === "google") {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const updates: Record<string, any> = {};
+
+        if (!(user as { emailVerified?: Date | null }).emailVerified) {
+          updates.emailVerified = new Date();
+        }
+
+        if (
+          (user.name && user.name !== null) ||
+          (user.image && user.image !== null)
+        ) {
+          updates.name = user.name;
+          updates.image = user.image;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: updates,
+          });
+        }
       }
     },
   },

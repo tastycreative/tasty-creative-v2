@@ -30,6 +30,7 @@ export function SignInForm() {
         password,
         redirect: false,
       });
+      
 
       if (result?.error) {
         switch (result.error) {
