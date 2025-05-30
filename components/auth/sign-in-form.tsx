@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { signInWithCredentials } from "@/app/actions/auth";
+import { redirect, useSearchParams } from "next/navigation";
+import { signIn } from "next-auth/react";
 
 export function SignInForm() {
   const searchParams = useSearchParams();
@@ -12,23 +12,41 @@ export function SignInForm() {
   // Check for verification success message
   const verified = searchParams.get("verified") === "true";
   const verificationError = searchParams.get("error");
-
   const errorParam = searchParams.get("error");
   const message = searchParams.get("message");
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     setError("");
     setLoading(true);
 
-    const result = (await signInWithCredentials(
-      formData
-    )) as unknown as AuthResponse;
+    const formData = new FormData(event.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
 
-    if (result?.error) {
-      setError(result.error);
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        switch (result.error) {
+          case "CredentialsSignin":
+            setError("Invalid email or password");
+            break;
+          default:
+            setError(result.error);
+        }
+      } else {
+        window.location.href = "/dashboard";
+      }
+    } catch {
+      setError("An unexpected error occurred");
+    } finally {
       setLoading(false);
     }
-    // If no error, the user will be redirected
   }
 
   return (
@@ -60,7 +78,7 @@ export function SignInForm() {
         </div>
       )}
 
-      <form action={handleSubmit} className="mt-8 space-y-6">
+      <form onSubmit={handleSubmit} className="mt-8 space-y-6">
         {error && (
           <div className="bg-red-50 dark:bg-red-900/50 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm">
             {error}

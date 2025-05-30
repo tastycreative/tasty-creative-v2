@@ -1,113 +1,118 @@
-// auth.ts
-import "server-only"
-import NextAuth from "next-auth"
-import Google from "next-auth/providers/google"
-import Credentials from "next-auth/providers/credentials"
-import { PrismaAdapter } from "@auth/prisma-adapter"
-import { prisma } from "@/lib/prisma"
-import bcrypt from "bcryptjs"
-import { Role } from "@prisma/client/edge"
-
+import "server-only";
+import NextAuth from "next-auth";
+import Google from "next-auth/providers/google";
+import Credentials from "next-auth/providers/credentials";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: {
-    strategy: "jwt"
+    strategy: "jwt",
   },
   providers: [
     Google({
       clientId: process.env.AUTH_GOOGLE_ID!,
       clientSecret: process.env.AUTH_GOOGLE_SECRET!,
-      allowDangerousEmailAccountLinking: true, // Allows linking Google to existing email account
+      allowDangerousEmailAccountLinking: true,
     }),
     Credentials({
       name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" }
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Invalid credentials")
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            return null;
+          }
+
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email as string },
+          });
+
+          if (!user) {
+            return null;
+          }
+
+          // For OAuth users who haven't set a password
+          if (!user.password) {
+            return null;
+          }
+
+          const isPasswordValid = await bcrypt.compare(
+            credentials.password as string,
+            user.password
+          );
+
+          if (!isPasswordValid) {
+            return null;
+          }
+
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+            role: user.role,
+            emailVerified: user.emailVerified,
+          };
+        } catch (error) {
+          console.error("Authorization error:", error);
+          throw error; // Re-throw to show error message to user
         }
-
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string }
-        })
-
-        if (!user || !user.password) {
-          throw new Error("Invalid credentials")
-        }
-
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password as string,
-          user.password
-        )
-
-        if (!isPasswordValid) {
-          throw new Error("Invalid credentials")
-        }
-
-        // REMOVED: Email verification check - we'll handle this in the app instead
-        // Return user even if not verified
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          image: user.image,
-          role: user.role,
-          emailVerified: user.emailVerified, // ADD: Include emailVerified
-        }
-      }
-    })
+      },
+    }),
   ],
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id
-        token.email = user.email
-        token.name = user.name
-        token.picture = user.image
-        token.role = user.role || "USER"
-        token.emailVerified = user.emailVerified // ADD: Store emailVerified in token
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+        token.picture = user.image;
+        token.role = user.role || "GUEST";
+        token.emailVerified = user.emailVerified;
       }
-      return token
+      return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string
-        session.user.role = token.role as Role
-        session.user.emailVerified = token.emailVerified as Date | null // ADD: Include in session
+        session.user.id = token.id as string;
+        session.user.role = token.role as Role;
+        session.user.emailVerified = token.emailVerified as Date | null;
+        // Add any other custom session properties here
       }
-      return session
+      return session;
     },
     async signIn({ user, account }) {
-      // ADD: Allow OAuth sign-ins without email verification
+      // Allow all OAuth sign-ins
       if (account?.provider !== "credentials") {
-        return true
+        return true;
       }
-      
-      // For credentials, always allow sign in - we'll handle verification in the app
-      return true
-    }
+
+      // For credentials, we've already validated in authorize()
+      return true;
+    },
   },
   pages: {
     signIn: "/sign-in",
-    error: "/sign-in",
+    error: "/sign-in", // Custom error page with error message display
     verifyRequest: "/verify-email",
   },
   events: {
     async linkAccount({ user, account }) {
-      // When a Google account is linked, mark email as verified
       if (
         account.provider === "google" &&
         !(user as { emailVerified?: Date | null }).emailVerified
       ) {
         await prisma.user.update({
           where: { id: user.id },
-          data: { emailVerified: new Date() }
-        })
+          data: { emailVerified: new Date() },
+        });
       }
-    }
-  }
-})
+    },
+  },
+});
