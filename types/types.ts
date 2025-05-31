@@ -21,3 +21,16 @@ interface UserRoleFormProps {
   userName: string;
   isCurrentUser: boolean;
 }
+
+interface NavigationMenuProps {
+  scrollToSection: (ref: React.RefObject<HTMLDivElement>) => void;
+  menuOpen: boolean;
+  setMenuOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  heroRef: React.RefObject<HTMLDivElement>;
+  aboutRef: React.RefObject<HTMLDivElement>;
+  servicesRef: React.RefObject<HTMLDivElement>;
+  workRef: React.RefObject<HTMLDivElement>;
+  contactRef: React.RefObject<HTMLDivElement>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  session: any;
+}

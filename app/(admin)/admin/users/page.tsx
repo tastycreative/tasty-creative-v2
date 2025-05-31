@@ -9,7 +9,7 @@ export default async function AdminUsersPage() {
   // Check if user is admin
   if (session?.user?.role !== "ADMIN") {
     redirect("/unauthorized");
-  }
+}
 
   // Fetch all users
   const users: User[] = await prisma.user.findMany({
