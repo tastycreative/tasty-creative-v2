@@ -117,7 +117,7 @@ const TastyCreativeLanding = ({ session }: { session: any }) => {
 
     // Scene setup
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x000514);
+    scene.background = null;
     sceneRef.current = scene;
 
     // Camera
@@ -476,7 +476,7 @@ const TastyCreativeLanding = ({ session }: { session: any }) => {
   };
 
   return (
-    <div className="relative bg-black text-white overflow-hidden h-screen">
+    <div className="relative bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-black dark:text-white overflow-hidden h-screen">
       {/* Custom Scroll Progress Bar */}
       <div className="fixed top-0 left-0 w-full h-1 bg-gray-900 z-50">
         <div
@@ -484,6 +484,7 @@ const TastyCreativeLanding = ({ session }: { session: any }) => {
           style={{ width: `${progress}%` }}
         />
       </div>
+
       <div className="absolute inset-0 z-10 overflow-hidden pointer-events-none">
         {/* Shooting stars with star shapes */}
         <div className="absolute top-[10%] left-[20%] animate-[shootingStar_8s_linear_infinite]">
@@ -614,7 +615,7 @@ const TastyCreativeLanding = ({ session }: { session: any }) => {
                   Tasty
                 </span>
                 <br />
-                <span className="text-white">Creative</span>
+                <span className="text-slate-800 dark:text-white">Creative</span>
               </h2>
               <p className="text-xl md:text-2xl text-gray-300 mb-8 opacity-0 animate-fadeInUp animation-delay-200">
                 Crafting Digital Experiences Beyond Imagination

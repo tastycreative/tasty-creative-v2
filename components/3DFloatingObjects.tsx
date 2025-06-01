@@ -76,15 +76,21 @@ export default function Floating3DObjects() {
   }
 
   // Function to create star path
-  const createStarPath = (cx: number, cy: number, spikes: number, outerRadius: number, innerRadius: number) => {
+  const createStarPath = (
+    cx: number,
+    cy: number,
+    spikes: number,
+    outerRadius: number,
+    innerRadius: number
+  ) => {
     let path = "";
     const step = Math.PI / spikes;
-    
+
     for (let i = 0; i < 2 * spikes; i++) {
       const radius = i % 2 === 0 ? outerRadius : innerRadius;
       const x = cx + Math.cos(i * step - Math.PI / 2) * radius;
       const y = cy + Math.sin(i * step - Math.PI / 2) * radius;
-      
+
       if (i === 0) {
         path += `M ${x} ${y}`;
       } else {
@@ -99,6 +105,16 @@ export default function Floating3DObjects() {
     <>
       {/* Twinkling Stars Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="fixed inset-0 overflow-hidden">
+          <div className="stars-container">
+            {/* Small stars */}
+            <div className="stars"></div>
+            {/* Medium stars */}
+            <div className="stars2"></div>
+            {/* Large stars */}
+            <div className="stars3"></div>
+          </div>
+        </div>
         {/* Small twinkling stars */}
         {stars.map((star) => (
           <svg
@@ -119,52 +135,34 @@ export default function Floating3DObjects() {
             viewBox={`0 0 ${star.size * 4} ${star.size * 4}`}
           >
             <path
-              d={createStarPath(star.size * 2, star.size * 2, star.spikes, star.size * 2, star.size * 0.5)}
+              d={createStarPath(
+                star.size * 2,
+                star.size * 2,
+                star.spikes,
+                star.size * 2,
+                star.size * 0.5
+              )}
               fill="white"
             />
           </svg>
         ))}
 
-        {/* Larger constellation stars */}
-        {/* {constellationStars.map((star) => (
-          <svg
-            key={`constellation-${star.id}`}
-            className="absolute"
-            style={{
-              width: `${star.size * 4}px`,
-              height: `${star.size * 4}px`,
-              top: `${star.top}%`,
-              left: `${star.left}%`,
-              animation: `starPulse ${star.duration}s ease-in-out infinite ${star.delay}s`,
-              transform: `translate(-50%, -50%) rotate(${star.rotation}deg) translate(${mousePos.x * (1 + (star.id % 2))}px, ${
-                mousePos.y * (1 + (star.id % 2))
-              }px)`,
-              filter: `drop-shadow(0 0 ${star.size * 3}px rgba(147, 197, 253, ${
-                star.pulseIntensity
-              })) drop-shadow(0 0 ${star.size * 6}px rgba(196, 181, 253, ${
-                star.pulseIntensity * 0.5
-              }))`,
-            }}
-            viewBox={`0 0 ${star.size * 4} ${star.size * 4}`}
-          >
-            <defs>
-              <linearGradient id={`starGrad-${star.id}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#93c5fd" stopOpacity="1" />
-                <stop offset="100%" stopColor="#c4b5fd" stopOpacity="1" />
-              </linearGradient>
-            </defs>
-            <path
-              d={createStarPath(star.size * 2, star.size * 2, star.spikes, star.size * 2, star.size * 0.4)}
-              fill={`url(#starGrad-${star.id})`}
-            />
-          </svg>
-        ))} */}
-
         {/* Shooting stars with star shapes */}
         <div className="absolute top-[10%] left-[20%] animate-[shootingStar_8s_linear_infinite]">
-          <svg width="30" height="30" viewBox="0 0 30 30" className="relative animate-spin">
+          <svg
+            width="30"
+            height="30"
+            viewBox="0 0 30 30"
+            className="relative animate-spin"
+          >
             <defs>
-              <linearGradient id="shootingGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
+              <linearGradient
+                id="shootingGrad1"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="0%"
+              >
                 <stop offset="0%" stopColor="transparent" />
                 <stop offset="50%" stopColor="white" stopOpacity="0.8" />
                 <stop offset="100%" stopColor="white" stopOpacity="1" />
@@ -178,11 +176,22 @@ export default function Floating3DObjects() {
             {/* <rect x="-60" y="12" width="70" height="6" fill="url(#shootingGrad1)" opacity="0.8" /> */}
           </svg>
         </div>
-        
+
         <div className="absolute top-[60%] right-[30%] animate-[shootingStar_12s_linear_infinite_4s]">
-          <svg width="25" height="25" viewBox="0 0 25 25" className="relative animate-spin">
+          <svg
+            width="25"
+            height="25"
+            viewBox="0 0 25 25"
+            className="relative animate-spin"
+          >
             <defs>
-              <linearGradient id="shootingGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+              <linearGradient
+                id="shootingGrad2"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="0%"
+              >
                 <stop offset="0%" stopColor="transparent" />
                 <stop offset="50%" stopColor="#93c5fd" stopOpacity="0.7" />
                 <stop offset="100%" stopColor="#93c5fd" stopOpacity="1" />
@@ -196,11 +205,22 @@ export default function Floating3DObjects() {
             {/* <rect x="-50" y="10" width="55" height="5" fill="url(#shootingGrad2)" opacity="0.7" /> */}
           </svg>
         </div>
-        
+
         <div className="absolute top-[30%] left-[70%]  animate-[shootingStar_15s_linear_infinite_7s]">
-          <svg width="20" height="20" viewBox="0 0 20 20" className="relative animate-spin">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 20 20"
+            className="relative animate-spin"
+          >
             <defs>
-              <linearGradient id="shootingGrad3" x1="0%" y1="0%" x2="100%" y2="0%">
+              <linearGradient
+                id="shootingGrad3"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="0%"
+              >
                 <stop offset="0%" stopColor="transparent" />
                 <stop offset="50%" stopColor="#c4b5fd" stopOpacity="0.6" />
                 <stop offset="100%" stopColor="#c4b5fd" stopOpacity="1" />
