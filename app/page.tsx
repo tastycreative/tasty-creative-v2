@@ -22,14 +22,11 @@ const HomePage = async () => {
             <p className="text-gray-600 dark:text-gray-400">
               {session.user.name || "Not set"}
             </p>
-            {session.user.role !== "GUEST" && (
-              <Link
-                href="/dashboard"
-                className="text-purple-500 hover:underline"
-              >
-                Dashboard
-              </Link>
-            )}
+
+            <Link href="/dashboard" className="text-purple-500 hover:underline">
+              Dashboard
+            </Link>
+
             {session.user.role === "ADMIN" && (
               <Link
                 href="/admin/users"
