@@ -1,10 +1,23 @@
-import { AppWindow, Calendar1, LayoutDashboard, Settings } from "lucide-react";
+import {
+  AppWindow,
+  Calendar1,
+  House,
+  LayoutDashboard,
+  Settings,
+} from "lucide-react";
 import Link from "next/link";
 
 const SideMenu = () => {
   return (
     <div className="flex-1 flex flex-col justify-between">
       <nav className="space-y-2">
+        <Link
+          href="/"
+          className="flex items-center gap-3 p-3 rounded-xl hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors group text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400"
+        >
+          <House className="w-5 h-5 text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
+          <span className="font-medium">Home</span>
+        </Link>
         <Link
           href="/dashboard"
           className="flex items-center gap-3 p-3 rounded-xl hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors group text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400"
