@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // Update your comfyui-implementation.js file with these additions for workflow support
 
 export const COMFY_UI_CONFIG = {

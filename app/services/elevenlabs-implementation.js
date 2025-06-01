@@ -351,6 +351,7 @@ export async function generateVoice(
       try {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to generate voice");
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
         // If not JSON, use status text
         throw new Error(`Failed to generate voice: ${response.statusText}`);

@@ -397,6 +397,7 @@ const TastyCreativeLanding = ({ session }: { session: any }) => {
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("mousemove", handleMouseMove);
       if (mountRef.current && renderer.domElement) {
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         mountRef.current.removeChild(renderer.domElement);
       }
       renderer.dispose();

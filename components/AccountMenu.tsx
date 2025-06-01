@@ -27,6 +27,7 @@ const AccountMenu = ({ session }: { session: Session }) => {
           <div className="relative">
             <div className="w-11 h-11 rounded-xl overflow-hidden bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-400 dark:to-indigo-500 flex items-center justify-center text-white text-sm font-semibold shadow-md">
               {image && !imgError ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={image}
                   alt="profile-picture"
