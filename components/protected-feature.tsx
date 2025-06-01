@@ -37,7 +37,7 @@ export function ProtectedFeature({
   if (session.user.role === "GUEST") {
     return (
       <div>
-        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 text-center">
+        <div className="flex-1 items-center justify-center rounded-lg p-6 text-center">
           <svg
             className="mx-auto h-12 w-12 text-gray-400 mb-4"
             fill="none"
@@ -65,7 +65,7 @@ export function ProtectedFeature({
 
   if (requireVerified && !session.user.emailVerified) {
     return (
-      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 text-center">
+      <div className="flex-1 items-center justify-center rounded-lg p-6 text-center">
         <svg
           className="mx-auto h-12 w-12 text-gray-400 mb-4"
           fill="none"

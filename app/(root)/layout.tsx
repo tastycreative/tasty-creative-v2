@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { EmailVerificationBanner } from "@/components/email-verification-banner";
+import { ProtectedFeature } from "@/components/protected-feature";
 import SideBar from "@/components/SideBar";
 import { redirect } from "next/navigation";
 
@@ -42,7 +43,9 @@ export default async function RootLayout({
             <div className="absolute inset-x-0 top-0 h-32 " />
 
             {/* Content */}
-            <div className="relative h-full p-6">{children}</div>
+            <ProtectedFeature>
+              <div className="relative h-full p-6">{children}</div>
+            </ProtectedFeature>
           </div>
         </div>
       </div>

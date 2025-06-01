@@ -1,6 +1,5 @@
 import { auth, signOut } from "@/auth";
 import { redirect } from "next/navigation";
-import { ProtectedFeature } from "@/components/protected-feature";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -40,16 +39,6 @@ export default async function DashboardPage() {
             )}
           </p>
         </div>
-
-        {/* Protected features requiring verification */}
-        <ProtectedFeature>
-          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">Premium Features</h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              You have access to all premium features!
-            </p>
-          </div>
-        </ProtectedFeature>
       </div>
     </div>
   );
