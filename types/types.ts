@@ -34,3 +34,55 @@ interface NavigationMenuProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   session: any;
 }
+
+interface CalendarEvent {
+  id?: string;
+  summary: string;
+  start: {
+    dateTime?: string;
+    date?: string;
+  };
+  end?: {
+    dateTime?: string;
+    date?: string;
+  };
+  location?: string;
+  description?: string;
+  creator?: {
+    email: string;
+    displayName?: string;
+  };
+  organizer?: {
+    email: string;
+    displayName?: string;
+  };
+  attendees?: EventAttendee[];
+  conferenceData?: EventConferenceData;
+  status?: string;
+  htmlLink?: string;
+  colorId?: string;
+}
+
+interface EventConferenceData {
+  conferenceId: string;
+  conferenceSolution?: {
+    key: {
+      type: string;
+    };
+    name: string;
+    iconUri: string;
+  };
+  entryPoints?: Array<{
+    entryPointType: string;
+    uri: string;
+    label?: string;
+  }>;
+}
+
+interface EventAttendee {
+  email: string;
+  displayName?: string;
+  responseStatus?: string;
+  organizer?: boolean;
+  self?: boolean;
+}

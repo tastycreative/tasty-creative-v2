@@ -11,7 +11,7 @@ export default async function RootLayout({
 }) {
   const session = await auth();
 
-  if (session?.user?.role === "GUEST") {
+  if (session?.user?.role === "GUEST" || !session) {
     redirect("/");
   }
 
