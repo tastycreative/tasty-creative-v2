@@ -2,7 +2,16 @@ import { auth } from "@/auth";
 import { EmailVerificationBanner } from "@/components/email-verification-banner";
 import { ProtectedFeature } from "@/components/protected-feature";
 import SideBar from "@/components/SideBar";
+import { Metadata } from "next";
 import { redirect } from "next/navigation";
+
+export const metadata: Metadata = {
+  title: {
+    template: "%s | Tasty Creative",
+    default: "Dashboard",
+  },
+  description: "Tasty Creative",
+};
 
 export default async function RootLayout({
   children,
