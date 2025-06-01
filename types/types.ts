@@ -86,3 +86,15 @@ interface EventAttendee {
   organizer?: boolean;
   self?: boolean;
 }
+
+interface NotificationData {
+  message: string;
+  timestamp: string;
+  editedBy: string;
+  editedData: {
+    [key: string]: string; // Assuming editedData contains key-value pairs where keys are strings and values are strings
+  };
+  model: string;
+  row: string;
+  sheet: string;
+}
