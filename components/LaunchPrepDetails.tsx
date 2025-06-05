@@ -79,7 +79,7 @@ const LaunchPrepDetails = ({
   return (
     <div
       className={cn(
-        "w-full bg-transparent backdrop-blur-sm border border-white/10 dark:border-gray-700/30 rounded-xl p-4 sm:p-6 transition-all duration-300 shadow-lg hover:shadow-xl",
+        "w-full bg-transparent backdrop-blur-sm border border-white/10 dark:border-gray-700/30 rounded-xl px-4 sm:px-6 pt-5 transition-all duration-300 shadow-lg hover:shadow-xl",
         className
       )}
     >
@@ -170,7 +170,7 @@ const LaunchPrepDetails = ({
                   <div className="absolute inset-0 bg-white/20 animate-pulse rounded-full"></div>
                 </div>
               </div>
-            </div>
+            </div>  
           </div>
 
           {/* Task grid */}

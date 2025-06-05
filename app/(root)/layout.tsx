@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   },
   description: "Tasty Creative",
 };
+
 export default async function RootLayout({
   children,
 }: {
@@ -26,29 +27,33 @@ export default async function RootLayout({
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden">
       {/* Animated Starry Background */}
-      <div className="fixed z-0">
+      <div className="fixed z-0 ">
         <div className="stars-container">
+          {/* Small stars */}
           <div className="stars"></div>
+          {/* Medium stars */}
           <div className="stars2"></div>
+          {/* Large stars */}
           <div className="stars3"></div>
         </div>
       </div>
 
       <EmailVerificationBanner />
 
-      {/* Change this container to have proper height and overflow */}
-      <div className="flex gap-6 flex-1 p-4 relative z-10 overflow-y-auto max-h-screen">
+      <div className="flex gap-6 flex-1 p-4 relative z-10">
         <SideBar />
 
-        <div className="flex-1 relative min-h-full">
-          <div className="h-full rounded-2xl backdrop-blur-[2px] shadow-xl border border-white/50 dark:border-slate-700/50 overflow-hidden">
+        <div className="flex-1 relative ml-76">
+          <div className="h-full rounded-2xl backdrop-blur-[2px] shadow-xl border border-white/50 dark:border-slate-700/50 overflow-hidden ">
+            {/* Subtle dot pattern */}
             <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.02]" />
-            <div className="absolute inset-x-0 top-0 h-32" />
 
+            {/* Gentle top gradient */}
+            <div className="absolute inset-x-0 top-0 h-32 " />
+
+            {/* Content */}
             <ProtectedFeature>
-              <div className="relative h-full p-6 overflow-y-auto">
-                {children}
-              </div>
+              <div className="relative h-full p-6">{children}</div>
             </ProtectedFeature>
           </div>
         </div>

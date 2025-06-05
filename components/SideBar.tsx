@@ -7,8 +7,8 @@ const SideBar = async () => {
   const session = await getSession();
 
   return (
-    <div className="w-72 h-full">
-      <div className="h-full rounded-2xl backdrop-blur-[2px] shadow-lg border border-white/60  p-6 flex flex-col">
+    <div className="w-72 fixed left-4 top-4 bottom-4 z-20">
+      <div className="h-full rounded-2xl backdrop-blur-[2px] shadow-lg border border-white/60 p-6 flex flex-col">
         <Logo />
         <AccountMenu session={session} />
         <SideMenu />
