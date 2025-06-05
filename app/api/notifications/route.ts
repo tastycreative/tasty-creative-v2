@@ -80,8 +80,27 @@ export async function GET() {
     console.log("Filtered notifications (within 1 week):", notifications);
 
     return NextResponse.json({ notifications });
-  } catch (error) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) { // Added :any to easily access error.code
     console.error("Error fetching notifications:", error);
-    return NextResponse.json({ message: "Error fetching notifications" }, { status: 500 });
+
+    // Check if the error is from Google API and has a 403 status
+    if (error.code === 403 && error.errors && error.errors.length > 0) {
+      // Log the specific Google error message for server-side diagnosis
+      console.error("Google API Permission Error (403):", error.errors[0].message);
+      return NextResponse.json(
+        {
+          error: "GooglePermissionDenied",
+          message: `Google API Error: ${error.errors[0].message || 'The authenticated Google account does not have permission for the Google Sheet.'}`
+        },
+        { status: 403 }
+      );
+    }
+
+    // For other types of errors, return a generic 500
+    return NextResponse.json(
+      { message: "An unexpected error occurred while fetching notifications." },
+      { status: 500 }
+    );
   }
 }
