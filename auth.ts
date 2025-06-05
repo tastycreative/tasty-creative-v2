@@ -67,7 +67,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
         token.email = user.email;
@@ -76,6 +76,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.role = user.role || "GUEST";
         token.emailVerified = user.emailVerified;
       }
+      // Add Google OAuth tokens to the JWT
+      if (account && account.provider === "google") {
+        token.accessToken = account.access_token;
+        token.refreshToken = account.refresh_token;
+        token.expiresAt = account.expires_at;
+      }
       return token;
     },
     async session({ session, token }) {
@@ -83,8 +89,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.id as string;
         session.user.role = token.role as Role;
         session.user.emailVerified = token.emailVerified as Date | null;
-        // Add any other custom session properties here
       }
+      // Add custom properties to session from token
+      session.accessToken = token.accessToken as string | undefined;
+      session.refreshToken = token.refreshToken as string | undefined;
+      session.expiresAt = token.expiresAt as number | undefined;
       return session;
     },
     async signIn({ user, account }) {

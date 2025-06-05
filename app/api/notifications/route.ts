@@ -1,21 +1,28 @@
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
-import { cookies } from "next/headers";
+import { auth } from "@/auth";
 
 export async function GET() {
   try {
     console.log("Starting GET request...");
 
-    const cookieStore = await cookies();
-    const tokensCookie = cookieStore.get("google_auth_tokens");
+    const session = await auth();
 
-    if (!tokensCookie) {
-      console.log("Not authenticated. No token found.");
+    if (!session || !session.user) {
+      console.log("Not authenticated. No session or user found.");
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const tokens = JSON.parse(tokensCookie.value);
-    console.log("Tokens retrieved:", tokens);
+    if (!session.accessToken) {
+      console.log("Not authenticated. No access token found in session.");
+      return NextResponse.json({ error: "Not authenticated. No access token." }, { status: 401 });
+    }
+    // It's also good practice to check for refreshToken if your OAuth flow provides it and it's essential for refreshing tokens.
+    // Depending on the Google API client library behavior, a missing refresh token might not be an immediate issue
+    // if the access token is still valid, but it will prevent refreshing the token later.
+    // For now, we'll proceed if accessToken is present, assuming the library handles refresh token absence gracefully if not strictly needed for this call.
+
+    console.log("Session retrieved:", session);
 
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
@@ -24,9 +31,9 @@ export async function GET() {
     );
 
     oauth2Client.setCredentials({
-      access_token: tokens.access_token,
-      refresh_token: tokens.refresh_token,
-      expiry_date: tokens.expiry_date,
+      access_token: session.accessToken,
+      refresh_token: session.refreshToken, // session.refreshToken should be available if scoped correctly
+      expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined, // Convert seconds to milliseconds
     });
 
     const sheets = google.sheets({ version: "v4", auth: oauth2Client });

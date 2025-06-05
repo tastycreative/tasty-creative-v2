@@ -8,6 +8,10 @@ declare module "next-auth" {
       role: Role
       emailVerified: Date | null
     } & DefaultSession["user"]
+    // Added for Google OAuth tokens
+    accessToken?: string;
+    refreshToken?: string;
+    expiresAt?: number;
   }
 
   interface User {
@@ -21,5 +25,9 @@ declare module "next-auth/jwt" {
     id: string
     role: Role
     emailVerified: Date | null
+    // Added for Google OAuth tokens
+    accessToken?: string;
+    refreshToken?: string;
+    expiresAt?: number;
   }
 }
