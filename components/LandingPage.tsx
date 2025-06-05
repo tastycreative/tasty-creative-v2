@@ -402,6 +402,7 @@ const TastyCreativeLanding = ({ session }: { session: any }) => {
       }
       renderer.dispose();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handle wheel event for automatic scrolling to sections with progress update

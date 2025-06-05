@@ -20,6 +20,7 @@ let hasAnimatedBefore = false;
 export default function AppsPage() {
   const router = useRouter();
   const [hoveredItem, setHoveredItem] = useState<number | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [shouldAnimate, setShouldAnimate] = useState(!hasAnimatedBefore);
   const isFirstRender = useRef(true);
 
