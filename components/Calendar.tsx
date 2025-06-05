@@ -151,7 +151,7 @@ const Calendar = () => {
 
   return (
     <>
-      <Card className="lg:col-span-2  backdrop-blur-md border-white/10 rounded-xl">
+      <Card className="lg:col-span-2 w-full bg-black/20 dark border border-white/10">
         {" "}
         <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -284,7 +284,7 @@ const Calendar = () => {
       </Card>
 
       {/* Right Panel - Events Panel */}
-      <Card className=" backdrop-blur-md border-white/10 rounded-xl">
+      <Card className=" bg-black/20 dark border  border-white/10 rounded-xl">
         <CardHeader>
           <CardTitle className="text-white">Events Panel</CardTitle>
           <CardDescription className="text-gray-400">

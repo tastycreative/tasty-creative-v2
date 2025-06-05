@@ -35,7 +35,7 @@ const LaunchPrepNotification = () => {
   return (
     <>
       {Array.isArray(notifications) && notifications && (
-        <div className="px-5">
+        <div className="">
           {notifications.map(
             (notification: NotificationData, index: number) => (
               <div className="py-1" key={index}>
