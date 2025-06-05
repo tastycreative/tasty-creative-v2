@@ -42,7 +42,7 @@ export default function GeneratePage() {
     { id: "gif", label: "GIF Maker", icon: Film, color: "from-green-500 to-emerald-500" },
   ];
 
-  const activeTabData = tabs.find(tab => tab.id === activeTab);
+  // const activeTabData = tabs.find(tab => tab.id === activeTab);
 
   return (
     <motion.div 
