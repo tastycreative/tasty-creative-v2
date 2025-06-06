@@ -38,6 +38,8 @@ const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
     fetchModels();
   }, []);
 
+  console.log(models,'models')
+
   return (
     <PermissionGoogle apiEndpoint="/api/models">
     <div className="flex flex-col">
