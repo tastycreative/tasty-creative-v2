@@ -18,6 +18,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       allowDangerousEmailAccountLinking: true,
   authorization: {
     params: {
+      access_type: "offline",
+      prompt: "consent", 
       scope: "openid profile email https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/spreadsheets"
     }
   }
