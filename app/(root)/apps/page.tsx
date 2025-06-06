@@ -35,7 +35,7 @@ export default function AppsPage() {
     {
       id: 1,
       name: "Generate",
-      path: "/apps/generate",
+      path: "/apps/generate/live",
       icon: Code,
       color: "from-blue-500 to-cyan-500",
       size: "col-span-2 row-span-2",

@@ -98,3 +98,72 @@ interface NotificationData {
   row: string;
   sheet: string;
 }
+
+
+type ModelsDropdownProps = {
+  formData: ModelFormData;
+  setFormData: React.Dispatch<React.SetStateAction<ModelFormData>>;
+  isLoading?: boolean;
+  isFetchingImage?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  webhookData?: any;
+  error?: string;
+  setFieldErrors?: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+};
+
+
+type ModelFormData = {
+  model?: string;
+  date?: string;
+  time?: string;
+  timezone?: string;
+  imageUrl?: string;
+  imageName?: string;
+  imageFile?: File;
+  paid?: boolean;
+  customImage?: boolean;
+  imageId?: string;
+  noOfTemplate?: number;
+  customRequest?: boolean;
+  customDetails?: string;
+  type?: string;
+  croppedImage?: string | null;
+  templatePosition?: string;
+  options?: string[];
+  header?: string;
+  tip?: number;
+  gets?: number;
+  croppedImageLeft?: string | null;
+  croppedImageRight?: string | null;
+  datetmz?: string | null;
+};
+
+type Model = {
+  name: string;
+  profile: string;
+  status: string;
+};
+
+interface DriveFile {
+  id: string;
+  name: string;
+  mimeType: string;
+  webViewLink: string;
+  thumbnailLink?: string;
+}
+
+type GoogleDriveFile = {
+  id: string;
+  name: string;
+  mimeType?: string;
+  isFolder?: boolean;
+  thumbnailLink?: string;
+  webViewLink?: string;
+};
+
+
+type WebhookResponse = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
+  error?: string;
+};
