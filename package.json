@@ -34,6 +34,7 @@
     "sonner": "^2.0.5",
     "tailwind-merge": "^3.3.0",
     "three": "^0.177.0",
+    "uuid": "^11.1.0",
     "zod": "^3.25.53"
   },
   "devDependencies": {

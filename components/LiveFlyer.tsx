@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { v4 as uuidv4 } from "uuid";
 import { useState, FormEvent, ChangeEvent, useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 
 import { TIMEZONES } from "@/lib/lib";
 import { toast } from "sonner";
@@ -23,49 +22,9 @@ import ServerOffline from "./ServerOffline";
 import { liveFlyerValidation } from "@/schema/zodValidationSchema";
 
 export default function LiveFlyer() {
-  const router = useRouter();
-
-  const searchParams = useSearchParams();
-  const tabValue = searchParams?.get("tab") || "live";
 
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const res = await fetch("/api/google/check-auth");
-        const data = await res.json();
-
-        if (!data.authenticated) {
-          // Get the current tab from URL or default to 'live'
-          const currentTab = tabValue || "live";
-
-          // Include the current tab in the auth request
-          const authRes = await fetch(
-            `/api/google/auth?tab=${encodeURIComponent(currentTab)}`
-          );
-          const authData = await authRes.json();
-
-          if (authData.authUrl) {
-            // Append the tab parameter to the auth URL
-            const authUrlWithTab = new URL(authData.authUrl);
-            authUrlWithTab.searchParams?.set(
-              "state",
-              JSON.stringify({ tab: currentTab })
-            );
-
-            window.location.href = authUrlWithTab.toString();
-          }
-        } else {
-          setIsLoading(false);
-        }
-      } catch (error) {
-        console.error("Authentication check failed", error);
-      }
-    };
-
-    checkAuth();
-  }, [router]);
   const [response, setResponse] = useState<WebhookResponse | null>(null);
 
   const [error, setError] = useState<string | null>(null);

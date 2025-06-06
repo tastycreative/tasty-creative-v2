@@ -63,6 +63,7 @@ export default function FlyerTemplates({
     if (type != "LIVE") {
       fetchFiles();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type]);
 
   const handleViewTemplates = () => {
