@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { liveFlyerValidation } from "@/schema/zodValidationSchema";
 import { useState, useEffect } from "react";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "./ui/select";
+import PermissionGoogle from "./PermissionGoogle";
 
 
 const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
@@ -38,6 +39,7 @@ const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
   }, []);
 
   return (
+    <PermissionGoogle apiEndpoint="/api/models">
     <div className="flex flex-col">
       <label htmlFor="model" className="text-sm text-gray-300 font-medium mb-1">
         Select Model
@@ -92,6 +94,7 @@ const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
         <p className="text-red-500 text-[12px] mt-2 ">Select a Model!</p>
       )}
     </div>
+    </PermissionGoogle>
   );
 };
 
