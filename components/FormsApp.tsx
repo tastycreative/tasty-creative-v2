@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -6,37 +7,14 @@ import { useSession } from "next-auth/react";
 import {
   FileText,
   Plus,
-  MoreVertical,
-  Eye,
   Edit3,
-  Trash2,
-  Copy,
   Users,
   Calendar,
   ChevronLeft,
   CheckCircle,
-  Circle,
-  Square,
-  ChevronDown,
   BarChart3,
-  PieChart,
   Download,
-  Filter,
-  Share2,
-  Settings,
-  Star,
-  Clock,
   Send,
-  GripVertical,
-  Type,
-  Hash,
-  Mail,
-  Phone,
-  Link2,
-  AlignLeft,
-  List,
-  ToggleLeft,
-  Upload,
   Loader2,
   AlertCircle,
   X,
@@ -80,7 +58,6 @@ export default function FormsApp() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hoveredForm, setHoveredForm] = useState<string | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Fetch forms from Google Drive folder
   useEffect(() => {
@@ -386,7 +363,7 @@ function FormView({ form, handleBack, session }: any) {
 
       alert('Form submitted successfully!');
       handleBack();
-    } catch (error) {
+    } catch {
       alert('Error submitting form');
     } finally {
       setSubmitting(false);
@@ -608,7 +585,7 @@ function ResultsView({ form, handleBack }: any) {
                 </tr>
               </thead>
               <tbody>
-                {responses.map((response, index) => (
+                {responses.map((response) => (
                   <tr key={response.id} className="border-b border-gray-200 dark:border-gray-700">
                     <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
                       {response.data.User}
@@ -686,7 +663,7 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
       if (!response.ok) throw new Error('Failed to save form');
 
       onSuccess();
-    } catch (error) {
+    } catch {
       alert('Error saving form');
     } finally {
       setSubmitting(false);
@@ -792,7 +769,7 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
           </div>
 
           <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-            Add " - required" to the end of a question to make it required
+            Add &quot; - required&quot; to the end of a question to make it required
           </p>
         </motion.div>
 
@@ -860,7 +837,7 @@ export function parseFormFromSpreadsheet(spreadsheet: any): Form {
   const fullTitle = spreadsheet.properties.title;
   const parts = fullTitle.split(' - ');
   const creatorEmail = parts[parts.length - 1];
-  const title = parts.slice(0, -1).join(' - ');
+  // const title = parts.slice(0, -1).join(' - ');
   
   return {
     id: spreadsheet.spreadsheetId,
