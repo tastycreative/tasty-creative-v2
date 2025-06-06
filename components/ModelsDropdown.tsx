@@ -20,6 +20,7 @@ const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
   const [loadingModels, setLoadingModels] = useState(true);
 
   useEffect(() => {
+    debugger
     const fetchModels = async () => {
       setLoadingModels(true);
       try {
