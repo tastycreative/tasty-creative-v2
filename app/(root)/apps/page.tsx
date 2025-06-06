@@ -10,7 +10,7 @@ import {
   MessageSquareHeart,
   VenetianMask,
   Package,
-  BookUser,
+  FileSpreadsheet,
   CalendarRange,
 } from "lucide-react";
 
@@ -88,12 +88,12 @@ export default function AppsPage() {
     },
     {
       id: 7,
-      name: "Staffs",
-      path: "/apps/staffs",
-      icon: BookUser,
+      name: "Forms",
+      path: "/apps/forms",
+      icon: FileSpreadsheet,
       color: "from-indigo-500 to-purple-500",
       size: "col-span-1 row-span-2",
-      description: "Staff management",
+      description: "Forms and Surveys",
     },
     {
       id: 8,
