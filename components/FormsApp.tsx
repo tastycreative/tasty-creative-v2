@@ -837,7 +837,7 @@ export function parseFormFromSpreadsheet(spreadsheet: any): Form {
   const fullTitle = spreadsheet.properties.title;
   const parts = fullTitle.split(' - ');
   const creatorEmail = parts[parts.length - 1];
-  // const title = parts.slice(0, -1).join(' - ');
+  // const title = parts.slice(0, -1).join(' - ')
   
   return {
     id: spreadsheet.spreadsheetId,
