@@ -20,12 +20,14 @@ const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
   const [loadingModels, setLoadingModels] = useState(true);
 
   useEffect(() => {
+    console.log("Fetching models..."); // Add this line for debugging
     debugger
     const fetchModels = async () => {
       setLoadingModels(true);
       try {
         const response = await fetch("/api/models");
         const data = await response.json();
+        console.log("Fetched models:", data);
         if (Array.isArray(data)) {
           setModels(data);
         }
