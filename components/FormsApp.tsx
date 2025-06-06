@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState } from "react";
@@ -6,36 +7,18 @@ import {
   FileText,
   Plus,
   MoreVertical,
-  Eye,
   Edit3,
-  Trash2,
-  Copy,
   Users,
   Calendar,
   ChevronLeft,
   CheckCircle,
-  Circle,
-  Square,
-  ChevronDown,
+
   BarChart3,
   PieChart,
   Download,
-  Filter,
   Share2,
-  Settings,
-  Star,
-  Clock,
+
   Send,
-  GripVertical,
-  Type,
-  Hash,
-  Mail,
-  Phone,
-  Link2,
-  AlignLeft,
-  List,
-  ToggleLeft,
-  Upload,
 } from "lucide-react";
 
 type ViewType = "list" | "form" | "results";
@@ -62,12 +45,6 @@ interface Form {
   theme: string;
 }
 
-interface FormResponse {
-  id: string;
-  formId: string;
-  submittedAt: Date;
-  answers: Record<string, any>;
-}
 
 export default function FormsApp() {
   const [currentView, setCurrentView] = useState<ViewType>("list");
