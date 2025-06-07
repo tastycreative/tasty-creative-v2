@@ -66,9 +66,7 @@ export default function FormsApp() {
     try {
       setLoading(true);
       // This would be your API call to fetch spreadsheets from the Google Drive folder
-      const response = await fetch(
-        `/api/forms/list`
-      );
+      const response = await fetch(`/api/forms/list`);
       const data = await response.json();
 
       if (data.error) {
@@ -540,7 +538,14 @@ function ResultsView({ form, handleBack }: any) {
         `/api/forms/responses?spreadsheetId=${form.spreadsheetId}`
       );
       const data = await response.json();
-      setResponses(data.responses || []);
+
+      const sortedResponses = (data.responses || []).sort((a: any, b: any) => {
+        return (
+          new Date(b.Timestamp).getTime() - new Date(a.Timestamp).getTime()
+        );
+      });
+
+      setResponses(sortedResponses);
     } catch (error) {
       console.error("Error fetching responses:", error);
     } finally {
