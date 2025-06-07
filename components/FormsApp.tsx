@@ -48,8 +48,7 @@ interface FormResponse {
   data: Record<string, any>;
 }
 
-const GOOGLE_DRIVE_FOLDER_ID =
-  process.env.NEXT_PUBLIC_GOOGLE_DRIVE_FORMS_FOLDER_ID;
+const GOOGLE_DRIVE_FOLDER_ID = "1Jjo19OEpSJC9dLWJxgqfs382Vv-UKwci";
 
 export default function FormsApp() {
   const { data: session } = useSession();
@@ -87,13 +86,13 @@ export default function FormsApp() {
   };
 
   const handleFormClick = (form: Form) => {
-    setSelectedForm(form);
-    setCurrentView("form");
+    // Navigate to form with ID in URL
+    window.location.href = `/apps/forms/${form.id}`;
   };
 
   const handleViewResults = (form: Form) => {
-    setSelectedForm(form);
-    setCurrentView("results");
+    // Navigate to results with ID in URL
+    window.location.href = `/apps/forms/${form.id}/results`;
   };
 
   const handleEdit = (form: Form) => {
@@ -216,18 +215,15 @@ function FormsList({
             Manage your Google Sheets forms
           </p>
         </div>
-        {(session?.user?.role === "ADMIN" ||
-          session?.user?.role === "MODERATOR") && (
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleCreateNew}
-            className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-medium hover:shadow-lg transition-shadow"
-          >
-            <Plus className="w-5 h-5" />
-            Create Form
-          </motion.button>
-        )}
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleCreateNew}
+          className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-medium hover:shadow-lg transition-shadow"
+        >
+          <Plus className="w-5 h-5" />
+          Create Form
+        </motion.button>
       </div>
 
       {/* Forms Grid */}
@@ -765,6 +761,9 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
             placeholder="Enter form title"
             required
           />
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Your email will be automatically added to the title
+          </p>
         </motion.div>
 
         {/* Headers/Questions */}
@@ -826,36 +825,39 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
         </motion.div>
 
         {/* Submit Button */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="flex justify-end gap-4"
-        >
-          <motion.button
-            type="button"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleBack}
-            className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+        {(session?.user?.role === "ADMIN" ||
+          session?.user?.role === "MODERATOR") && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="flex justify-end gap-4"
           >
-            Cancel
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            type="submit"
-            disabled={submitting}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-medium hover:shadow-lg transition-shadow disabled:opacity-50"
-          >
-            {submitting ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <CheckCircle className="w-5 h-5" />
-            )}
-            {submitting ? "Saving..." : form ? "Update Form" : "Create Form"}
-          </motion.button>
-        </motion.div>
+            <motion.button
+              type="button"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleBack}
+              className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+            >
+              Cancel
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              type="submit"
+              disabled={submitting}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-medium hover:shadow-lg transition-shadow disabled:opacity-50"
+            >
+              {submitting ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <CheckCircle className="w-5 h-5" />
+              )}
+              {submitting ? "Saving..." : form ? "Update Form" : "Create Form"}
+            </motion.button>
+          </motion.div>
+        )}
       </form>
     </motion.div>
   );
@@ -889,7 +891,7 @@ export function parseFormFromSpreadsheet(spreadsheet: any): Form {
   const fullTitle = spreadsheet.properties.title;
   const parts = fullTitle.split(" - ");
   const creatorEmail = parts[parts.length - 1];
-  // const title = parts.slice(0, -1).join(' - ')
+  // const title = parts.slice(0, -1).join(" - ");
 
   return {
     id: spreadsheet.spreadsheetId,
