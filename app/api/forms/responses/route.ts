@@ -16,7 +16,10 @@ export async function GET(request: Request) {
 
     if (!session.accessToken) {
       console.log("Not authenticated. No access token found in session.");
-      return NextResponse.json({ error: "Not authenticated. No access token." }, { status: 401 });
+      return NextResponse.json(
+        { error: "Not authenticated. No access token." },
+        { status: 401 }
+      );
     }
 
     const oauth2Client = new google.auth.OAuth2(
@@ -34,10 +37,13 @@ export async function GET(request: Request) {
     const sheets = google.sheets({ version: "v4", auth: oauth2Client });
 
     const { searchParams } = new URL(request.url);
-    const spreadsheetId = searchParams.get('spreadsheetId');
+    const spreadsheetId = searchParams.get("spreadsheetId");
 
     if (!spreadsheetId) {
-      return NextResponse.json({ error: "Spreadsheet ID is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Spreadsheet ID is required" },
+        { status: 400 }
+      );
     }
 
     console.log(`Fetching responses from spreadsheet: ${spreadsheetId}`);
@@ -45,7 +51,7 @@ export async function GET(request: Request) {
     // Get all data
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId,
-      range: 'A:Z',
+      range: "A:Z",
     });
 
     const rows = response.data.values || [];
@@ -59,11 +65,11 @@ export async function GET(request: Request) {
     const responses = rows.slice(1).map((row, index) => {
       const data: Record<string, any> = {};
       headers.forEach((header, colIndex) => {
-        data[header] = row[colIndex] || '';
+        data[header] = row[colIndex] || "";
         // Also add by column letter for form submission
-        data[String.fromCharCode(65 + colIndex)] = row[colIndex] || '';
+        data[String.fromCharCode(65 + colIndex)] = row[colIndex] || "";
       });
-      
+
       return {
         id: `response-${index + 1}`,
         formId: spreadsheetId,
@@ -72,19 +78,25 @@ export async function GET(request: Request) {
       };
     });
 
-    console.log(`Returning ${responses.length} responses`);
+    responses.sort(
+      (a, b) =>
+        new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+    );
 
+    console.log(`Returning ${responses.length} sorted responses`);
     return NextResponse.json({ responses });
-
   } catch (error: any) {
     console.error("Error fetching responses:", error);
 
     if (error.code === 403 && error.errors && error.errors.length > 0) {
-      console.error("Google API Permission Error (403):", error.errors[0].message);
+      console.error(
+        "Google API Permission Error (403):",
+        error.errors[0].message
+      );
       return NextResponse.json(
         {
           error: "GooglePermissionDenied",
-          message: `Google API Error: ${error.errors[0].message || 'The authenticated Google account does not have permission to read this spreadsheet.'}`
+          message: `Google API Error: ${error.errors[0].message || "The authenticated Google account does not have permission to read this spreadsheet."}`,
         },
         { status: 403 }
       );
