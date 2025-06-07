@@ -48,7 +48,8 @@ interface FormResponse {
   data: Record<string, any>;
 }
 
-const GOOGLE_DRIVE_FOLDER_ID = "1Jjo19OEpSJC9dLWJxgqfs382Vv-UKwci";
+const GOOGLE_DRIVE_FOLDER_ID =
+  process.env.NEXT_PUBLIC_GOOGLE_DRIVE_FORMS_FOLDER_ID;
 
 export default function FormsApp() {
   const { data: session } = useSession();
@@ -68,13 +69,15 @@ export default function FormsApp() {
     try {
       setLoading(true);
       // This would be your API call to fetch spreadsheets from the Google Drive folder
-      const response = await fetch(`/api/forms/list?folderId=${GOOGLE_DRIVE_FOLDER_ID}`);
+      const response = await fetch(
+        `/api/forms/list?folderId=${GOOGLE_DRIVE_FOLDER_ID}`
+      );
       const data = await response.json();
-      
+
       if (data.error) {
         throw new Error(data.error);
       }
-      
+
       setForms(data.forms);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch forms");
@@ -188,7 +191,9 @@ function FormsList({
     return (
       <div className="flex flex-col items-center justify-center h-full">
         <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
-        <p className="text-lg font-medium text-gray-800 dark:text-white mb-2">Error loading forms</p>
+        <p className="text-lg font-medium text-gray-800 dark:text-white mb-2">
+          Error loading forms
+        </p>
         <p className="text-gray-600 dark:text-gray-400">{error}</p>
       </div>
     );
@@ -211,23 +216,29 @@ function FormsList({
             Manage your Google Sheets forms
           </p>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={handleCreateNew}
-          className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-medium hover:shadow-lg transition-shadow"
-        >
-          <Plus className="w-5 h-5" />
-          Create Form
-        </motion.button>
+        {(session?.user?.role === "ADMIN" ||
+          session?.user?.role === "MODERATOR") && (
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleCreateNew}
+            className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-medium hover:shadow-lg transition-shadow"
+          >
+            <Plus className="w-5 h-5" />
+            Create Form
+          </motion.button>
+        )}
       </div>
 
       {/* Forms Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {forms.map((form: Form, index: number) => {
           const canEdit = session?.user?.email === form.creatorEmail;
-          const displayTitle = form.title.replace(` - ${form.creatorEmail}`, '');
-          
+          const displayTitle = form.title.replace(
+            ` - ${form.creatorEmail}`,
+            ""
+          );
+
           return (
             <motion.div
               key={form.id}
@@ -259,7 +270,7 @@ function FormsList({
                   {displayTitle}
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  Created by {form.creatorEmail.split('@')[0]}
+                  Created by {form.creatorEmail.split("@")[0]}
                 </p>
 
                 {/* Stats */}
@@ -271,33 +282,36 @@ function FormsList({
                     </div>
                     <div className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
-                      <span>{new Date(form.updatedAt).toLocaleDateString()}</span>
+                      <span>
+                        {new Date(form.updatedAt).toLocaleDateString()}
+                      </span>
                     </div>
                   </div>
                 </div>
 
                 {/* Hover Actions */}
-                <AnimatePresence>
-                  {hoveredForm === form.id && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      className="absolute bottom-6 left-6 right-6 flex gap-2"
-                    >
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleViewResults(form);
-                        }}
-                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-lg text-sm font-medium hover:bg-white dark:hover:bg-gray-800 transition-colors"
+                {canEdit && (
+                  <AnimatePresence>
+                    {hoveredForm === form.id && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className="absolute bottom-6 left-6 right-6 flex gap-2"
                       >
-                        <BarChart3 className="w-4 h-4" />
-                        Results
-                      </motion.button>
-                      {canEdit && (
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleViewResults(form);
+                          }}
+                          className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-lg text-sm font-medium hover:bg-white dark:hover:bg-gray-800 transition-colors"
+                        >
+                          <BarChart3 className="w-4 h-4" />
+                          Results
+                        </motion.button>
+
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
@@ -310,10 +324,10 @@ function FormsList({
                           <Edit3 className="w-4 h-4" />
                           Edit
                         </motion.button>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                )}
               </div>
             </motion.div>
           );
@@ -327,7 +341,7 @@ function FormsList({
 function FormView({ form, handleBack, session }: any) {
   const [responses, setResponses] = useState<Record<string, any>>({});
   const [submitting, setSubmitting] = useState(false);
-  const displayTitle = form.title.replace(` - ${form.creatorEmail}`, '');
+  const displayTitle = form.title.replace(` - ${form.creatorEmail}`, "");
 
   const handleInputChange = (questionId: string, value: any) => {
     setResponses((prev) => ({
@@ -338,33 +352,33 @@ function FormView({ form, handleBack, session }: any) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       setSubmitting(true);
-      
+
       // Add User (email and name) and Timestamp
       const formData = {
-        User: `${session?.user?.name || ''} (${session?.user?.email || ''})`,
+        User: `${session?.user?.name || ""} (${session?.user?.email || ""})`,
         Timestamp: new Date().toISOString(),
         ...responses,
       };
 
       // Submit to API
-      const response = await fetch('/api/forms/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/forms/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           spreadsheetId: form.spreadsheetId,
           data: formData,
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to submit form');
+      if (!response.ok) throw new Error("Failed to submit form");
 
-      alert('Form submitted successfully!');
+      alert("Form submitted successfully!");
       handleBack();
     } catch {
-      alert('Error submitting form');
+      alert("Error submitting form");
     } finally {
       setSubmitting(false);
     }
@@ -412,40 +426,62 @@ function FormView({ form, handleBack, session }: any) {
             <div className="mb-4">
               <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-1">
                 {question.title}
-                {question.required && <span className="text-red-500 ml-1">*</span>}
+                {question.required && (
+                  <span className="text-red-500 ml-1">*</span>
+                )}
               </h3>
             </div>
 
             {/* Dynamic Input based on question type */}
-            {question.title.toLowerCase().includes('email') ? (
+            {question.title.toLowerCase().includes("email") ? (
               <input
                 type="email"
                 required={question.required}
-                onChange={(e) => handleInputChange(question.title.replace(' - required', '').trim(), e.target.value)}
+                onChange={(e) =>
+                  handleInputChange(
+                    question.title.replace(" - required", "").trim(),
+                    e.target.value
+                  )
+                }
                 className="w-full px-4 py-3 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 placeholder="your@email.com"
               />
-            ) : question.title.toLowerCase().includes('phone') ? (
+            ) : question.title.toLowerCase().includes("phone") ? (
               <input
                 type="tel"
                 required={question.required}
-                onChange={(e) => handleInputChange(question.title.replace(' - required', '').trim(), e.target.value)}
+                onChange={(e) =>
+                  handleInputChange(
+                    question.title.replace(" - required", "").trim(),
+                    e.target.value
+                  )
+                }
                 className="w-full px-4 py-3 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 placeholder="Your phone number"
               />
-            ) : question.title.toLowerCase().includes('date') ? (
+            ) : question.title.toLowerCase().includes("date") ? (
               <input
                 type="date"
                 required={question.required}
-                onChange={(e) => handleInputChange(question.title.replace(' - required', '').trim(), e.target.value)}
+                onChange={(e) =>
+                  handleInputChange(
+                    question.title.replace(" - required", "").trim(),
+                    e.target.value
+                  )
+                }
                 className="w-full px-4 py-3 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
               />
-            ) : question.title.toLowerCase().includes('description') || 
-               question.title.toLowerCase().includes('comment') ||
-               question.title.toLowerCase().includes('message') ? (
+            ) : question.title.toLowerCase().includes("description") ||
+              question.title.toLowerCase().includes("comment") ||
+              question.title.toLowerCase().includes("message") ? (
               <textarea
                 required={question.required}
-                onChange={(e) => handleInputChange(question.title.replace(' - required', '').trim(), e.target.value)}
+                onChange={(e) =>
+                  handleInputChange(
+                    question.title.replace(" - required", "").trim(),
+                    e.target.value
+                  )
+                }
                 className="w-full px-4 py-3 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none"
                 rows={4}
                 placeholder="Your answer"
@@ -454,7 +490,12 @@ function FormView({ form, handleBack, session }: any) {
               <input
                 type="text"
                 required={question.required}
-                onChange={(e) => handleInputChange(question.title.replace(' - required', '').trim(), e.target.value)}
+                onChange={(e) =>
+                  handleInputChange(
+                    question.title.replace(" - required", "").trim(),
+                    e.target.value
+                  )
+                }
                 className="w-full px-4 py-3 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 placeholder="Your answer"
               />
@@ -481,7 +522,7 @@ function FormView({ form, handleBack, session }: any) {
             ) : (
               <Send className="w-5 h-5" />
             )}
-            {submitting ? 'Submitting...' : 'Submit'}
+            {submitting ? "Submitting..." : "Submit"}
           </motion.button>
         </motion.div>
       </form>
@@ -493,7 +534,7 @@ function FormView({ form, handleBack, session }: any) {
 function ResultsView({ form, handleBack }: any) {
   const [responses, setResponses] = useState<FormResponse[]>([]);
   const [loading, setLoading] = useState(true);
-  const displayTitle = form.title.replace(` - ${form.creatorEmail}`, '');
+  const displayTitle = form.title.replace(` - ${form.creatorEmail}`, "");
 
   useEffect(() => {
     fetchResponses();
@@ -501,11 +542,13 @@ function ResultsView({ form, handleBack }: any) {
 
   const fetchResponses = async () => {
     try {
-      const response = await fetch(`/api/forms/responses?spreadsheetId=${form.spreadsheetId}`);
+      const response = await fetch(
+        `/api/forms/responses?spreadsheetId=${form.spreadsheetId}`
+      );
       const data = await response.json();
       setResponses(data.responses || []);
     } catch (error) {
-      console.error('Error fetching responses:', error);
+      console.error("Error fetching responses:", error);
     } finally {
       setLoading(false);
     }
@@ -513,7 +556,7 @@ function ResultsView({ form, handleBack }: any) {
 
   const exportToCSV = () => {
     // Export functionality
-    console.log('Exporting to CSV...');
+    console.log("Exporting to CSV...");
   };
 
   return (
@@ -578,7 +621,10 @@ function ResultsView({ form, handleBack }: any) {
                     Timestamp
                   </th>
                   {form.questions.map((q: Question) => (
-                    <th key={q.id} className="px-6 py-4 text-left text-sm font-semibold text-gray-800 dark:text-white">
+                    <th
+                      key={q.id}
+                      className="px-6 py-4 text-left text-sm font-semibold text-gray-800 dark:text-white"
+                    >
                       {q.title}
                     </th>
                   ))}
@@ -586,7 +632,10 @@ function ResultsView({ form, handleBack }: any) {
               </thead>
               <tbody>
                 {responses.map((response) => (
-                  <tr key={response.id} className="border-b border-gray-200 dark:border-gray-700">
+                  <tr
+                    key={response.id}
+                    className="border-b border-gray-200 dark:border-gray-700"
+                  >
                     <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
                       {response.data.User}
                     </td>
@@ -594,8 +643,11 @@ function ResultsView({ form, handleBack }: any) {
                       {new Date(response.data.Timestamp).toLocaleString()}
                     </td>
                     {form.questions.map((q: Question) => (
-                      <td key={q.id} className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
-                        {response.data[q.column] || '-'}
+                      <td
+                        key={q.id}
+                        className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300"
+                      >
+                        {response.data[q.column] || "-"}
                       </td>
                     ))}
                   </tr>
@@ -611,14 +663,16 @@ function ResultsView({ form, handleBack }: any) {
 
 // Create/Edit Form Component
 function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
-  const [title, setTitle] = useState(form ? form.title.replace(` - ${form.creatorEmail}`, '') : '');
+  const [title, setTitle] = useState(
+    form ? form.title.replace(` - ${form.creatorEmail}`, "") : ""
+  );
   const [headers, setHeaders] = useState<string[]>(
-    form ? form.questions.map((q: Question) => q.title) : ['']
+    form ? form.questions.map((q: Question) => q.title) : [""]
   );
   const [submitting, setSubmitting] = useState(false);
 
   const addHeader = () => {
-    setHeaders([...headers, '']);
+    setHeaders([...headers, ""]);
   };
 
   const removeHeader = (index: number) => {
@@ -633,38 +687,38 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!title.trim()) {
-      alert('Please enter a form title');
+      alert("Please enter a form title");
       return;
     }
 
-    if (headers.filter(h => h.trim()).length === 0) {
-      alert('Please add at least one question');
+    if (headers.filter((h) => h.trim()).length === 0) {
+      alert("Please add at least one question");
       return;
     }
 
     try {
       setSubmitting(true);
-      
+
       const formData = {
         title: `${title} - ${session?.user?.email}`,
-        headers: ['User', 'Timestamp', ...headers.filter(h => h.trim())],
+        headers: ["User", "Timestamp", ...headers.filter((h) => h.trim())],
         folderId: GOOGLE_DRIVE_FOLDER_ID,
         spreadsheetId: form?.spreadsheetId,
       };
 
-      const response = await fetch('/api/forms/create', {
-        method: form ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/forms/create", {
+        method: form ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
-      if (!response.ok) throw new Error('Failed to save form');
+      if (!response.ok) throw new Error("Failed to save form");
 
       onSuccess();
     } catch {
-      alert('Error saving form');
+      alert("Error saving form");
     } finally {
       setSubmitting(false);
     }
@@ -690,7 +744,7 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
 
       {/* Form Header */}
       <h1 className="text-3xl font-bold text-gray-800 dark:text-white mb-8">
-        {form ? 'Edit Form' : 'Create New Form'}
+        {form ? "Edit Form" : "Create New Form"}
       </h1>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -711,9 +765,6 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
             placeholder="Enter form title"
             required
           />
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            Your email will be automatically added to the title
-          </p>
         </motion.div>
 
         {/* Headers/Questions */}
@@ -769,7 +820,8 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
           </div>
 
           <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-            Add &quot; - required&quot; to the end of a question to make it required
+            Add &quot; - required&quot; to the end of a question to make it
+            required
           </p>
         </motion.div>
 
@@ -801,7 +853,7 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
             ) : (
               <CheckCircle className="w-5 h-5" />
             )}
-            {submitting ? 'Saving...' : form ? 'Update Form' : 'Create Form'}
+            {submitting ? "Saving..." : form ? "Update Form" : "Create Form"}
           </motion.button>
         </motion.div>
       </form>
@@ -813,13 +865,13 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
 export function parseFormHeaders(headers: string[]): Question[] {
   // Skip User and Timestamp columns (A and B)
   const questions: Question[] = [];
-  const columnLetters = 'CDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-  
+  const columnLetters = "CDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
   headers.slice(2).forEach((header, index) => {
     if (header.trim()) {
-      const isRequired = header.includes(' - required');
-      const title = header.replace(' - required', '').trim();
-      
+      const isRequired = header.includes(" - required");
+      const title = header.replace(" - required", "").trim();
+
       questions.push({
         id: `q${index + 1}`,
         title,
@@ -828,17 +880,17 @@ export function parseFormHeaders(headers: string[]): Question[] {
       });
     }
   });
-  
+
   return questions;
 }
 
 // API helper to parse form from spreadsheet data
 export function parseFormFromSpreadsheet(spreadsheet: any): Form {
   const fullTitle = spreadsheet.properties.title;
-  const parts = fullTitle.split(' - ');
+  const parts = fullTitle.split(" - ");
   const creatorEmail = parts[parts.length - 1];
   // const title = parts.slice(0, -1).join(' - ')
-  
+
   return {
     id: spreadsheet.spreadsheetId,
     spreadsheetId: spreadsheet.spreadsheetId,
