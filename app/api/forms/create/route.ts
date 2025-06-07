@@ -16,7 +16,10 @@ export async function POST(request: Request) {
 
     if (!session.accessToken) {
       console.log("Not authenticated. No access token found in session.");
-      return NextResponse.json({ error: "Not authenticated. No access token." }, { status: 401 });
+      return NextResponse.json(
+        { error: "Not authenticated. No access token." },
+        { status: 401 }
+      );
     }
 
     const oauth2Client = new google.auth.OAuth2(
@@ -34,7 +37,11 @@ export async function POST(request: Request) {
     const sheets = google.sheets({ version: "v4", auth: oauth2Client });
     const drive = google.drive({ version: "v3", auth: oauth2Client });
 
-    const { title, headers, folderId } = await request.json();
+    const { title, headers } = await request.json();
+
+    const folderId =
+      process.env.GOOGLE_DRIVE_FORMS_FOLDER_ID ||
+      "1Jjo19OEpSJC9dLWJxgqfs382Vv-UKwci";
 
     console.log(`Creating spreadsheet: ${title}`);
 
@@ -47,7 +54,7 @@ export async function POST(request: Request) {
         sheets: [
           {
             properties: {
-              title: 'Responses',
+              title: "Responses",
             },
             data: [
               {
@@ -65,31 +72,35 @@ export async function POST(request: Request) {
       },
     });
 
-    console.log(`Spreadsheet created with ID: ${spreadsheet.data.spreadsheetId}`);
+    console.log(
+      `Spreadsheet created with ID: ${spreadsheet.data.spreadsheetId}`
+    );
 
     // Move to specified folder
     await drive.files.update({
       fileId: spreadsheet.data.spreadsheetId!,
       addParents: folderId,
-      fields: 'id, parents',
+      fields: "id, parents",
     });
 
     console.log(`Moved spreadsheet to folder: ${folderId}`);
 
-    return NextResponse.json({ 
-      success: true, 
-      spreadsheetId: spreadsheet.data.spreadsheetId 
+    return NextResponse.json({
+      success: true,
+      spreadsheetId: spreadsheet.data.spreadsheetId,
     });
-
   } catch (error: any) {
     console.error("Error creating form:", error);
 
     if (error.code === 403 && error.errors && error.errors.length > 0) {
-      console.error("Google API Permission Error (403):", error.errors[0].message);
+      console.error(
+        "Google API Permission Error (403):",
+        error.errors[0].message
+      );
       return NextResponse.json(
         {
           error: "GooglePermissionDenied",
-          message: `Google API Error: ${error.errors[0].message || 'The authenticated Google account does not have permission to create spreadsheets.'}`
+          message: `Google API Error: ${error.errors[0].message || "The authenticated Google account does not have permission to create spreadsheets."}`,
         },
         { status: 403 }
       );
@@ -115,7 +126,10 @@ export async function PUT(request: Request) {
 
     if (!session.accessToken) {
       console.log("Not authenticated. No access token found in session.");
-      return NextResponse.json({ error: "Not authenticated. No access token." }, { status: 401 });
+      return NextResponse.json(
+        { error: "Not authenticated. No access token." },
+        { status: 401 }
+      );
     }
 
     const oauth2Client = new google.auth.OAuth2(
@@ -146,7 +160,7 @@ export async function PUT(request: Request) {
               properties: {
                 title,
               },
-              fields: 'title',
+              fields: "title",
             },
           },
         ],
@@ -156,8 +170,8 @@ export async function PUT(request: Request) {
     // Update headers
     await sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: 'A1:Z1',
-      valueInputOption: 'RAW',
+      range: "A1:Z1",
+      valueInputOption: "RAW",
       requestBody: {
         values: [headers],
       },
@@ -166,16 +180,18 @@ export async function PUT(request: Request) {
     console.log("Spreadsheet updated successfully");
 
     return NextResponse.json({ success: true });
-
   } catch (error: any) {
     console.error("Error updating form:", error);
 
     if (error.code === 403 && error.errors && error.errors.length > 0) {
-      console.error("Google API Permission Error (403):", error.errors[0].message);
+      console.error(
+        "Google API Permission Error (403):",
+        error.errors[0].message
+      );
       return NextResponse.json(
         {
           error: "GooglePermissionDenied",
-          message: `Google API Error: ${error.errors[0].message || 'The authenticated Google account does not have permission to update this spreadsheet.'}`
+          message: `Google API Error: ${error.errors[0].message || "The authenticated Google account does not have permission to update this spreadsheet."}`,
         },
         { status: 403 }
       );

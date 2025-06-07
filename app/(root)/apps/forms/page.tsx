@@ -6,7 +6,7 @@ const page = () => {
   return (
     <div>
       <PermissionGoogle
-        apiEndpoint={`/api/forms/list?folderId=${process.env.NEXT_PUBLIC_GOOGLE_DRIVE_FORMS_FOLDER_ID}`}
+        apiEndpoint={`/api/forms/list`}
       >
         <FormsApp />
       </PermissionGoogle>

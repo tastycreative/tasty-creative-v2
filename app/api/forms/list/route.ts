@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { google } from "googleapis";
 import { auth } from "@/auth";
 
-export async function GET(request: Request) {
+export async function GET() {
   try {
     console.log("Starting forms list request...");
 
@@ -36,8 +36,7 @@ export async function GET(request: Request) {
     const drive = google.drive({ version: "v3", auth: oauth2Client });
     const sheets = google.sheets({ version: "v4", auth: oauth2Client });
 
-    const { searchParams } = new URL(request.url);
-    const folderId = searchParams.get('folderId') || "1Jjo19OEpSJC9dLWJxgqfs382Vv-UKwci";
+    const folderId = process.env.GOOGLE_DRIVE_FORMS_FOLDER_ID || "1Jjo19OEpSJC9dLWJxgqfs382Vv-UKwci";
 
     console.log(`Fetching spreadsheets from folder: ${folderId}`);
 

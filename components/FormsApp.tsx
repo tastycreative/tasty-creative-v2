@@ -48,8 +48,6 @@ interface FormResponse {
   data: Record<string, any>;
 }
 
-const GOOGLE_DRIVE_FOLDER_ID = "1Jjo19OEpSJC9dLWJxgqfs382Vv-UKwci";
-
 export default function FormsApp() {
   const { data: session } = useSession();
   const [currentView, setCurrentView] = useState<ViewType>("list");
@@ -69,7 +67,7 @@ export default function FormsApp() {
       setLoading(true);
       // This would be your API call to fetch spreadsheets from the Google Drive folder
       const response = await fetch(
-        `/api/forms/list?folderId=${GOOGLE_DRIVE_FOLDER_ID}`
+        `/api/forms/list`
       );
       const data = await response.json();
 
@@ -700,7 +698,6 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
       const formData = {
         title: `${title} - ${session?.user?.email}`,
         headers: ["User", "Timestamp", ...headers.filter((h) => h.trim())],
-        folderId: GOOGLE_DRIVE_FOLDER_ID,
         spreadsheetId: form?.spreadsheetId,
       };
 
