@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // app/apps/forms/[formId]/page.tsx
 "use client";
 
@@ -92,7 +93,7 @@ export default function FormViewPage() {
 
       alert('Form submitted successfully!');
       router.push('/apps/forms');
-    } catch (error) {
+    } catch  {
       alert('Error submitting form');
     } finally {
       setSubmitting(false);

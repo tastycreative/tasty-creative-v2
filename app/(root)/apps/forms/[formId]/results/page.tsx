@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // app/apps/forms/[formId]/results/page.tsx
 "use client";
 
@@ -174,7 +175,7 @@ export default function FormResultsPage() {
                 </tr>
               </thead>
               <tbody>
-                {responses.map((response, index) => (
+                {responses.map((response) => (
                   <tr key={response.id} className="border-b border-gray-200 dark:border-gray-700">
                     <td className="px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
                       {response.data.User}
