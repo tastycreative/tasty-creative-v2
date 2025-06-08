@@ -41,8 +41,7 @@ export async function GET(request: NextRequest) {
 
     // Parse search parameters
     const searchParams = request.nextUrl.searchParams;
-    const folderId =
-      searchParams?.get("folderId") || process.env.GOOGLE_DRIVE_BASE_FOLDER_ID!;
+    const folderId = process.env.GOOGLE_DRIVE_BASE_FOLDER_ID!;  
     let modelName = searchParams?.get("folderName");
     const includeVideos = searchParams?.get("includeVideos") === "true";
 
@@ -78,7 +77,7 @@ export async function GET(request: NextRequest) {
 
     // Get current folder details
     const currentFolder = await getCurrentFolderDetails(drive, folderId);
-    //console.log("Current folder details:", currentFolder);
+    console.log("Current folder details:", currentFolder);
 
     // Find target folder (navigate through folder hierarchy if needed)
     const targetFolder = await findTargetFolder(

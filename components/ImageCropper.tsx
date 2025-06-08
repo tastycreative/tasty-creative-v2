@@ -17,6 +17,7 @@ import ReactCrop, {
   makeAspectCrop,
 } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
+import PermissionGoogle from "./PermissionGoogle";
 
 interface GoogleDriveFile {
   id: string;
@@ -374,7 +375,8 @@ export default function ImageCropper({
             </label>
           </div>
         ) : (
-          <button
+          <PermissionGoogle apiEndpoint="/api/google-drive/list">
+            <button
             type="button"
             disabled={!model}
             onClick={handleGoogleDriveSelect}
@@ -406,6 +408,7 @@ export default function ImageCropper({
                 ? "Opening folder..."
                 : "Connecting to Google Drive"}
           </button>
+          </PermissionGoogle>
         )}
         {error && (
           <p className="text-red-500 text-[12px] mt-2 ">
