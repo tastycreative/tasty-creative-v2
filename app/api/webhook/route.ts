@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-// Store webhook data mapped to requestId
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const webhookResponses: Record<string, any> = {};
 
@@ -28,8 +28,6 @@ export async function GET(req: NextRequest) {
   }
 
   const response = webhookResponses[requestId] || null;
-
-  // Clear the stored response after retrieval
   delete webhookResponses[requestId];
 
   return NextResponse.json(response);
