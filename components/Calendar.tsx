@@ -72,9 +72,6 @@ const Calendar = () => {
 
   useEffect(() => {
     const loadCalendarEventsForMonth = async () => {
-      console.log(
-        `Month changed to ${selectedDate.toLocaleString("default", { month: "long", year: "numeric" })}, loading events...`
-      );
 
       // Clear events first to avoid stale data being displayed
       setCalendarEvents([]);
@@ -90,14 +87,9 @@ const Calendar = () => {
       endDate.setDate(0); // Last day of month
       endDate.setHours(23, 59, 59, 999); // End of day
 
-      console.log(
-        `Date range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`
-      );
-
       try {
         // Always use the public calendar API without checking authentication
         const events = await getPublicCalendarEvents(startDate, endDate);
-        console.log(`Received ${events.length} events from public API`);
 
         // Filter out events that have "Call" in the title
         const filteredEvents = events.filter(

@@ -6,17 +6,17 @@ import { auth } from "@/auth";
 
 export async function POST(request: Request) {
   try {
-    console.log("Starting form submission...");
+    //console.log("Starting form submission...");
 
     const session = await auth();
 
     if (!session || !session.user) {
-      console.log("Not authenticated. No session or user found.");
+      //console.log("Not authenticated. No session or user found.");
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     if (!session.accessToken) {
-      console.log("Not authenticated. No access token found in session.");
+      //console.log("Not authenticated. No access token found in session.");
       return NextResponse.json(
         { error: "Not authenticated. No access token." },
         { status: 401 }
@@ -41,10 +41,10 @@ export async function POST(request: Request) {
     const { spreadsheetId, formId, formTitle, creatorEmail, data } =
       await request.json();
 
-    console.log(`Submitting to spreadsheet: ${spreadsheetId}`);
-    console.log(`Form ID: ${formId}`);
-    console.log(`Form Title: ${formTitle}`);
-    console.log(`Creator Email: ${creatorEmail}`);
+    //console.log(`Submitting to spreadsheet: ${spreadsheetId}`);
+    //console.log(`Form ID: ${formId}`);
+    //console.log(`Form Title: ${formTitle}`);
+    //console.log(`Creator Email: ${creatorEmail}`);
 
     // Get headers to map data correctly
     const headerResponse = await sheets.spreadsheets.values.get({
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
       },
     });
 
-    console.log("Form submitted successfully to spreadsheet");
+    //console.log("Form submitted successfully to spreadsheet");
 
     // Send email notification to form creator
     try {
@@ -107,7 +107,7 @@ export async function POST(request: Request) {
         formResultsUrl: `${process.env.NEXTAUTH_URL}/apps/forms/${formId}/results`,
       });
 
-      console.log("Email notification sent successfully to:", creatorEmail);
+      //console.log("Email notification sent successfully to:", creatorEmail);
     } catch (emailError) {
       console.error("Error sending email notification:", emailError);
       // Don't fail the submission if email fails
@@ -131,10 +131,10 @@ export async function POST(request: Request) {
           },
         });
 
-        console.log(
-          "Confirmation email sent to submitter:",
-          session.user.email
-        );
+        //console.log(
+          // "Confirmation email sent to submitter:",
+        //   session.user.email
+        // );
       } catch (confirmError) {
         console.error("Error sending confirmation email:", confirmError);
         // Don't fail the submission if email fails

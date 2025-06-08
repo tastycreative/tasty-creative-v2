@@ -28,9 +28,9 @@ const PermissionGoogle: React.FC<PermissionGoogleProps> = ({
       return;
     }
     if (sessionStatus === "unauthenticated") {
-      console.log(
-        "Permission check: User is not authenticated (session). Skipping API call."
-      );
+      //console.log(
+      //   "Permission check: User is not authenticated (session). Skipping API call."
+      // );
       setHasPermission(false);
       setIsLoading(false);
       setError(null);
@@ -49,9 +49,9 @@ const PermissionGoogle: React.FC<PermissionGoogleProps> = ({
         setHasPermission(true);
       } else if (response.status === 401) {
         setHasPermission(false);
-        console.log(
-          `Permission check for ${apiEndpoint}: User not authorized (401).`
-        );
+        //console.log(
+        //   `Permission check for ${apiEndpoint}: User not authorized (401).`
+        // );
       } else if (response.status === 403) {
         let errorData;
         try {
@@ -67,9 +67,9 @@ const PermissionGoogle: React.FC<PermissionGoogleProps> = ({
         }
 
         if (errorData && errorData.error === "GooglePermissionDenied") {
-          console.log(
-            `Permission check for ${apiEndpoint}: GooglePermissionDenied (403). Message: ${errorData.message}`
-          );
+          //console.log(
+          //   `Permission check for ${apiEndpoint}: GooglePermissionDenied (403). Message: ${errorData.message}`
+          // );
           setError("You have insufficient permission for this feature");
         } else {
           console.error(

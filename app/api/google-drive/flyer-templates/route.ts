@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     // Authentication with auth.js
     const session = await auth();
     if (!session?.user || !session.accessToken) {
-      console.log("Authentication error: No valid session or access token found.");
+      //console.log("Authentication error: No valid session or access token found.");
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     const type = searchParams?.get("type");
     const flyer = searchParams?.get("flyer");
 
-    console.log("Request params - type:", type, "flyer:", flyer);
+    //console.log("Request params - type:", type, "flyer:", flyer);
 
     // Get folder ID based on parameters
     const folderId = getFolderIdByType(type, flyer);
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log("Using folder ID:", folderId);
+    //console.log("Using folder ID:", folderId);
 
     // Set up Google OAuth2 client
     const oauth2Client = new google.auth.OAuth2(
@@ -61,20 +61,25 @@ export async function GET(request: NextRequest) {
 
     // Fetch files from the specified folder
     const files = await getDriveFiles(drive, folderId);
-    console.log(`Found ${files.length} files in folder`);
+    //console.log(`Found ${files.length} files in folder`);
 
     return NextResponse.json({ files });
-
   } catch (error: any) {
     console.error("Google Drive API error:", error);
-    
+
     // Handle specific Google API errors
     if (error.code === 403 && error.errors?.length > 0) {
-      console.error("Google API Permission Error (403):", error.errors[0].message);
-      return NextResponse.json({
-        error: "GooglePermissionDenied",
-        message: `Google API Error: ${error.errors[0].message || 'Insufficient permissions for Google Drive access.'}`
-      }, { status: 403 });
+      console.error(
+        "Google API Permission Error (403):",
+        error.errors[0].message
+      );
+      return NextResponse.json(
+        {
+          error: "GooglePermissionDenied",
+          message: `Google API Error: ${error.errors[0].message || "Insufficient permissions for Google Drive access."}`,
+        },
+        { status: 403 }
+      );
     }
 
     return NextResponse.json(
@@ -84,7 +89,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function getFolderIdByType(type: string | null, flyer: string | null): string | null {
+function getFolderIdByType(
+  type: string | null,
+  flyer: string | null
+): string | null {
   // Handle LIVE type (no flyer needed)
   if (type === "LIVE") {
     return "1ykoRn82LsLjah0CXG346LInKV6rk03Ji";
@@ -111,7 +119,10 @@ function getFolderIdByType(type: string | null, flyer: string | null): string | 
   return folderMappings[flyer]?.[type] || null;
 }
 
-async function getDriveFiles(drive: any, folderId: string): Promise<DriveFile[]> {
+async function getDriveFiles(
+  drive: any,
+  folderId: string
+): Promise<DriveFile[]> {
   const response = await drive.files.list({
     q: `'${folderId}' in parents and trashed = false`,
     fields: "files(id, name, mimeType, webViewLink, thumbnailLink)",

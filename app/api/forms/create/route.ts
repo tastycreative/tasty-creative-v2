@@ -5,17 +5,17 @@ import { auth } from "@/auth";
 
 export async function POST(request: Request) {
   try {
-    console.log("Starting form creation...");
+    //console.log("Starting form creation...");
 
     const session = await auth();
 
     if (!session || !session.user || !session.user.email) {
-      console.log("Not authenticated. No session or user found.");
+      //console.log("Not authenticated. No session or user found.");
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     if (!session.accessToken) {
-      console.log("Not authenticated. No access token found in session.");
+      //console.log("Not authenticated. No access token found in session.");
       return NextResponse.json(
         { error: "Not authenticated. No access token." },
         { status: 401 }
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       process.env.GOOGLE_DRIVE_FORMS_FOLDER_ID ||
       "1Jjo19OEpSJC9dLWJxgqfs382Vv-UKwci";
 
-    console.log(`Creating spreadsheet: ${title}`);
+    //console.log(`Creating spreadsheet: ${title}`);
 
     // Create new spreadsheet
     const spreadsheet = await sheets.spreadsheets.create({
@@ -72,9 +72,9 @@ export async function POST(request: Request) {
       },
     });
 
-    console.log(
-      `Spreadsheet created with ID: ${spreadsheet.data.spreadsheetId}`
-    );
+    //console.log(
+    //   `Spreadsheet created with ID: ${spreadsheet.data.spreadsheetId}`
+    // );
 
     // Move to specified folder
     await drive.files.update({
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
       fields: "id, parents",
     });
 
-    console.log(`Moved spreadsheet to folder: ${folderId}`);
+    //console.log(`Moved spreadsheet to folder: ${folderId}`);
 
     return NextResponse.json({
       success: true,
@@ -115,17 +115,17 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    console.log("Starting form update...");
+    //console.log("Starting form update...");
 
     const session = await auth();
 
     if (!session || !session.user || !session.user.email) {
-      console.log("Not authenticated. No session or user found.");
+      //console.log("Not authenticated. No session or user found.");
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     if (!session.accessToken) {
-      console.log("Not authenticated. No access token found in session.");
+      //console.log("Not authenticated. No access token found in session.");
       return NextResponse.json(
         { error: "Not authenticated. No access token." },
         { status: 401 }
@@ -148,7 +148,7 @@ export async function PUT(request: Request) {
 
     const { spreadsheetId, title, headers } = await request.json();
 
-    console.log(`Updating spreadsheet: ${spreadsheetId}`);
+    //console.log(`Updating spreadsheet: ${spreadsheetId}`);
 
     // Update spreadsheet title
     await sheets.spreadsheets.batchUpdate({
@@ -177,7 +177,7 @@ export async function PUT(request: Request) {
       },
     });
 
-    console.log("Spreadsheet updated successfully");
+    //console.log("Spreadsheet updated successfully");
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

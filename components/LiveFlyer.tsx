@@ -22,7 +22,6 @@ import ServerOffline from "./ServerOffline";
 import { liveFlyerValidation } from "@/schema/zodValidationSchema";
 
 export default function LiveFlyer() {
-
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const [response, setResponse] = useState<WebhookResponse | null>(null);
@@ -197,7 +196,6 @@ export default function LiveFlyer() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  console.log(fieldErrors, "error");
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -278,7 +276,7 @@ export default function LiveFlyer() {
         body: formDataToSend, // Send as FormData (automatically sets correct headers)
       });
 
-      console.log(response, "response");
+      //console.log(response, "response");
 
       // Check for errors based on the status code
       if (!response.ok) {
@@ -348,7 +346,7 @@ export default function LiveFlyer() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(emailData),
         });
-        console.log("Email sent successfully");
+        //console.log("Email sent successfully");
       } catch (emailError) {
         console.error("Error sending email:", emailError);
       }

@@ -5,17 +5,17 @@ import { auth } from "@/auth";
 
 export async function GET(request: Request) {
   try {
-    console.log("Starting responses fetch...");
+    //console.log("Starting responses fetch...");
 
     const session = await auth();
 
     if (!session || !session.user) {
-      console.log("Not authenticated. No session or user found.");
+      //console.log("Not authenticated. No session or user found.");
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     if (!session.accessToken) {
-      console.log("Not authenticated. No access token found in session.");
+      //console.log("Not authenticated. No access token found in session.");
       return NextResponse.json(
         { error: "Not authenticated. No access token." },
         { status: 401 }
@@ -46,7 +46,7 @@ export async function GET(request: Request) {
       );
     }
 
-    console.log(`Fetching responses from spreadsheet: ${spreadsheetId}`);
+    //console.log(`Fetching responses from spreadsheet: ${spreadsheetId}`);
 
     // Get all data
     const response = await sheets.spreadsheets.values.get({
@@ -55,7 +55,7 @@ export async function GET(request: Request) {
     });
 
     const rows = response.data.values || [];
-    console.log(`Found ${rows.length} rows (including header)`);
+    //console.log(`Found ${rows.length} rows (including header)`);
 
     if (rows.length <= 1) {
       return NextResponse.json({ responses: [] });
@@ -83,7 +83,7 @@ export async function GET(request: Request) {
         new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
     );
 
-    console.log(`Returning ${responses.length} sorted responses`);
+    //console.log(`Returning ${responses.length} sorted responses`);
     return NextResponse.json({ responses });
   } catch (error: any) {
     console.error("Error fetching responses:", error);

@@ -610,7 +610,7 @@ function ResultsView({ form, handleBack }: any) {
 
   const exportToCSV = () => {
     // Export functionality
-    console.log("Exporting to CSV...");
+    //console.log("Exporting to CSV...");
   };
 
   return (

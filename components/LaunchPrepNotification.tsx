@@ -13,7 +13,6 @@ const LaunchPrepNotification = () => {
           const res = await fetch("/api/notifications");
           if (res.ok) {
             const data = await res.json();
-            console.log("Fetched Notifications:", data.notifications); // Log the fetched data
             setNotifications(data.notifications || []);
           }
         } catch (error) {

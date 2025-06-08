@@ -28,14 +28,14 @@ interface FolderInfo {
 
 export async function GET(request: NextRequest) {
   try {
-    console.log("Received request:", request.nextUrl.toString());
+    //console.log("Received request:", request.nextUrl.toString());
 
     // Authentication with auth.js
     const session = await auth();
     if (!session?.user || !session.accessToken) {
-      console.log(
-        "Authentication error: No valid session or access token found."
-      );
+      //console.log(
+      //   "Authentication error: No valid session or access token found."
+      // );
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
@@ -51,14 +51,14 @@ export async function GET(request: NextRequest) {
       modelName = "V";
     }
 
-    console.log(
-      "Search Params - folderId:",
-      folderId,
-      "modelName:",
-      modelName,
-      "includeVideos:",
-      includeVideos
-    );
+    //console.log(
+    //   "Search Params - folderId:",
+    //   folderId,
+    //   "modelName:",
+    //   modelName,
+    //   "includeVideos:",
+    //   includeVideos
+    // );
 
     // Set up Google OAuth2 client
     const oauth2Client = new google.auth.OAuth2(
@@ -73,12 +73,12 @@ export async function GET(request: NextRequest) {
       expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
     });
 
-    console.log("OAuth2 client set up successfully.");
+    //console.log("OAuth2 client set up successfully.");
     const drive = google.drive({ version: "v3", auth: oauth2Client });
 
     // Get current folder details
     const currentFolder = await getCurrentFolderDetails(drive, folderId);
-    console.log("Current folder details:", currentFolder);
+    //console.log("Current folder details:", currentFolder);
 
     // Find target folder (navigate through folder hierarchy if needed)
     const targetFolder = await findTargetFolder(
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
       modelName,
       folderId
     );
-    console.log("Target folder details:", targetFolder);
+    //console.log("Target folder details:", targetFolder);
 
     // Get files from target folder
     const files = await getFilesFromFolder(
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
       targetFolder.id!,
       includeVideos
     );
-    console.log("Files in folder:", files);
+    //console.log("Files in folder:", files);
 
     return NextResponse.json({
       files,
@@ -171,9 +171,9 @@ async function findTargetFolder(
     return targetFolder;
   }
 
-  console.log(
-    `Searching for folder "${modelName}" inside "${currentFolder.name}"`
-  );
+  //console.log(
+  //   `Searching for folder "${modelName}" inside "${currentFolder.name}"`
+  // );
 
   // Search for model folder
   const searchResponse = await drive.files.list({
@@ -187,7 +187,7 @@ async function findTargetFolder(
   });
 
   const matchingFolders = searchResponse.data.files || [];
-  console.log("Matching folders found:", matchingFolders);
+  //console.log("Matching folders found:", matchingFolders);
 
   if (matchingFolders.length === 0) {
     throw new Error(
@@ -230,7 +230,7 @@ async function navigateToVaultNew(
     return folder;
   }
 
-  console.log(`Automatically navigating to Vault New - ${modelName}`);
+  //console.log(`Automatically navigating to Vault New - ${modelName}`);
   let targetFolder: FolderInfo = {
     id: vaultNewFolder.id,
     name: vaultNewFolder.name,
@@ -253,7 +253,7 @@ async function navigateToVaultNew(
 
   const wallPostsFolder = wallPostsSearchResponse.data.files?.[0];
   if (wallPostsFolder) {
-    console.log("Automatically navigating to Wall Posts");
+    //console.log("Automatically navigating to Wall Posts");
     targetFolder = {
       id: wallPostsFolder.id,
       name: wallPostsFolder.name,
@@ -296,7 +296,7 @@ async function getFilesFromFolder(
   }
 
   fileQuery = `${fileQuery} and (${typeQuery})`;
-  console.log("File query:", fileQuery);
+  //console.log("File query:", fileQuery);
 
   const listResponse = await drive.files.list({
     q: fileQuery,

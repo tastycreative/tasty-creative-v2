@@ -26,9 +26,7 @@ export const extractDriveId = (url: string) => {
 
 // Function to generate thumbnail URL based on fileId
 export const getThumbnailUrl = (fileId: string | undefined) => {
-  console.log("File ID:", fileId); // Debugging line
   const extractedFileId = fileId ? extractDriveId(fileId) : "";
-  console.log("Extracted File ID:", extractedFileId); // Debugging line
   return fileId
     ? `https://lh3.googleusercontent.com/d/${extractedFileId}`
     : undefined;

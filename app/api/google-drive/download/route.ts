@@ -20,13 +20,16 @@ export async function GET(request: Request) {
     const skipConversion = searchParams?.get("skipConversion") === "true";
 
     if (!fileId) {
-      return NextResponse.json({ error: "File ID is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "File ID is required" },
+        { status: 400 }
+      );
     }
 
     // Authentication with auth.js
     const session = await auth();
     if (!session?.user || !session.accessToken) {
-      console.log("Authentication error: No valid session or access token found.");
+      //console.log("Authentication error: No valid session or access token found.");
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
@@ -47,53 +50,84 @@ export async function GET(request: Request) {
 
     // Get file metadata
     const fileMeta = await getFileMetadata(drive, fileId);
-    console.log(`Processing file: ${fileMeta.name}, Type: ${fileMeta.mimeType}, Size: ${fileMeta.size}`);
+    //console.log(`Processing file: ${fileMeta.name}, Type: ${fileMeta.mimeType}, Size: ${fileMeta.size}`);
 
     const mimeType = fileMeta.mimeType || "application/octet-stream";
     const fileName = fileMeta.name || "file";
 
     // Determine file type and processing strategy
     const fileType = determineFileType(mimeType, fileName);
-    
+
     // Handle different file types
     switch (fileType.category) {
-      case 'video':
+      case "video":
         return await streamVideoFile(drive, fileId, mimeType, fileName);
-      
-      case 'heic':
+
+      case "heic":
         if (skipConversion) {
-          return await streamFile(drive, fileId, mimeType, fileName, 'attachment');
+          return await streamFile(
+            drive,
+            fileId,
+            mimeType,
+            fileName,
+            "attachment"
+          );
         }
         return await convertAndDownloadHEIC(drive, fileId, fileName);
-      
-      case 'image':
+
+      case "image":
       default:
         if (skipConversion) {
-          const dispositionType = fileType.category === 'image' ? 'inline' : 'attachment';
-          return await streamFile(drive, fileId, mimeType, fileName, dispositionType);
+          const dispositionType =
+            fileType.category === "image" ? "inline" : "attachment";
+          return await streamFile(
+            drive,
+            fileId,
+            mimeType,
+            fileName,
+            dispositionType
+          );
         }
-        return await streamFile(drive, fileId, mimeType, fileName, 'attachment');
+        return await streamFile(
+          drive,
+          fileId,
+          mimeType,
+          fileName,
+          "attachment"
+        );
     }
-
   } catch (error: any) {
     console.error("API error:", error);
-    
+
     // Handle specific Google API errors
     if (error.code === 403 && error.errors?.length > 0) {
-      console.error("Google API Permission Error (403):", error.errors[0].message);
-      return NextResponse.json({
-        error: "GooglePermissionDenied",
-        message: `Google API Error: ${error.errors[0].message || 'Insufficient permissions for Google Drive access.'}`
-      }, { status: 403 });
+      console.error(
+        "Google API Permission Error (403):",
+        error.errors[0].message
+      );
+      return NextResponse.json(
+        {
+          error: "GooglePermissionDenied",
+          message: `Google API Error: ${error.errors[0].message || "Insufficient permissions for Google Drive access."}`,
+        },
+        { status: 403 }
+      );
     }
 
-    return NextResponse.json({
-      error: error instanceof Error ? error.message : "Failed to process request",
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to process request",
+      },
+      { status: 500 }
+    );
   }
 }
 
-async function getFileMetadata(drive: any, fileId: string): Promise<FileMetadata> {
+async function getFileMetadata(
+  drive: any,
+  fileId: string
+): Promise<FileMetadata> {
   const { data } = await drive.files.get({
     fileId,
     fields: "id,name,mimeType,size",
@@ -109,28 +143,34 @@ async function getFileMetadata(drive: any, fileId: string): Promise<FileMetadata
 }
 
 interface FileTypeInfo {
-  category: 'video' | 'heic' | 'image' | 'other';
+  category: "video" | "heic" | "image" | "other";
   isVideo: boolean;
   isHEIC: boolean;
 }
 
 function determineFileType(mimeType: string, fileName: string): FileTypeInfo {
   const isHEIC = mimeType === "image/heic" || mimeType === "image/heif";
-  
-  const videoExtensions = ['.mov', '.mp4', '.avi', '.wmv'];
-  const isVideo = mimeType.startsWith("video/") || 
-    videoExtensions.some(ext => fileName.toLowerCase().endsWith(ext));
 
-  let category: FileTypeInfo['category'] = 'other';
-  if (isVideo) category = 'video';
-  else if (isHEIC) category = 'heic';
-  else if (mimeType.startsWith('image/')) category = 'image';
+  const videoExtensions = [".mov", ".mp4", ".avi", ".wmv"];
+  const isVideo =
+    mimeType.startsWith("video/") ||
+    videoExtensions.some((ext) => fileName.toLowerCase().endsWith(ext));
+
+  let category: FileTypeInfo["category"] = "other";
+  if (isVideo) category = "video";
+  else if (isHEIC) category = "heic";
+  else if (mimeType.startsWith("image/")) category = "image";
 
   return { category, isVideo, isHEIC };
 }
 
-async function streamVideoFile(drive: any, fileId: string, mimeType: string, fileName: string): Promise<NextResponse> {
-  console.log(`Streaming video file: ${fileName} (${mimeType})`);
+async function streamVideoFile(
+  drive: any,
+  fileId: string,
+  mimeType: string,
+  fileName: string
+): Promise<NextResponse> {
+  //console.log(`Streaming video file: ${fileName} (${mimeType})`);
 
   const response = await drive.files.get(
     { fileId, alt: "media" },
@@ -147,13 +187,13 @@ async function streamVideoFile(drive: any, fileId: string, mimeType: string, fil
 }
 
 async function streamFile(
-  drive: any, 
-  fileId: string, 
-  mimeType: string, 
-  fileName: string, 
-  dispositionType: 'inline' | 'attachment'
+  drive: any,
+  fileId: string,
+  mimeType: string,
+  fileName: string,
+  dispositionType: "inline" | "attachment"
 ): Promise<NextResponse> {
-  console.log(`Streaming file: ${fileName} (${mimeType})`);
+  //console.log(`Streaming file: ${fileName} (${mimeType})`);
 
   const response = await drive.files.get(
     { fileId, alt: "media" },
@@ -168,8 +208,12 @@ async function streamFile(
   });
 }
 
-async function convertAndDownloadHEIC(drive: any, fileId: string, fileName: string): Promise<NextResponse> {
-  console.log(`Converting HEIC image: ${fileName}`);
+async function convertAndDownloadHEIC(
+  drive: any,
+  fileId: string,
+  fileName: string
+): Promise<NextResponse> {
+  //console.log(`Converting HEIC image: ${fileName}`);
 
   const response = await drive.files.get(
     { fileId, alt: "media" },
@@ -192,7 +236,7 @@ async function convertAndDownloadHEIC(drive: any, fileId: string, fileName: stri
   });
 
   const newFileName = fileName.replace(/\.\w+$/, ".jpg");
-  console.log(`Converted to JPEG: ${newFileName}`);
+  //console.log(`Converted to JPEG: ${newFileName}`);
 
   return new NextResponse(outputBuffer, {
     headers: {

@@ -10,21 +10,24 @@ const TARGET_SHEET_TITLE = "Client Info";
 
 export async function GET(): Promise<NextResponse> {
   try {
-    console.log("Starting GET request for models...");
-    
+    //console.log("Starting GET request for models...");
+
     // Get session using auth function
     const session = await auth();
     if (!session || !session.user) {
-      console.log("Not authenticated. No session or user found.");
+      //console.log("Not authenticated. No session or user found.");
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     if (!session.accessToken) {
-      console.log("Not authenticated. No access token found in session.");
-      return NextResponse.json({ error: "Not authenticated. No access token." }, { status: 401 });
+      //console.log("Not authenticated. No access token found in session.");
+      return NextResponse.json(
+        { error: "Not authenticated. No access token." },
+        { status: 401 }
+      );
     }
 
-    console.log("Session retrieved:", session);
+    //console.log("Session retrieved:", session);
 
     // Set up OAuth2 client with session credentials
     const oauth2Client = new google.auth.OAuth2(
@@ -44,7 +47,7 @@ export async function GET(): Promise<NextResponse> {
       auth: oauth2Client,
     });
 
-    console.log(`Fetching data from spreadsheetId: ${SPREADSHEET_ID}, sheet: ${TARGET_SHEET_TITLE}`);
+    //console.log(`Fetching data from spreadsheetId: ${SPREADSHEET_ID}, sheet: ${TARGET_SHEET_TITLE}`);
 
     // Get the sheet data
     const sheetData = await sheets.spreadsheets.values.get({
@@ -52,19 +55,19 @@ export async function GET(): Promise<NextResponse> {
       range: `${TARGET_SHEET_TITLE}!A:Z`,
     });
 
-    console.log("Fetched sheet data:", sheetData.data.values);
+    //console.log("Fetched sheet data:", sheetData.data.values);
 
     // Handle potentially null or undefined values
     const values = sheetData.data.values ?? [];
 
     if (values.length === 0) {
-      console.log("No data found in sheet.");
+      //console.log("No data found in sheet.");
       return NextResponse.json({ message: "No models found" });
     }
 
     // Find all column headers
     const headers: string[] = values[0] as string[];
-    console.log("Headers found:", headers);
+    //console.log("Headers found:", headers);
 
     // Get the indexes for name, profile, and status
     const nameIndex = headers.indexOf(MODEL_HEADER);
@@ -72,8 +75,10 @@ export async function GET(): Promise<NextResponse> {
     const statusIndex = headers.indexOf(MODEL_STATUS);
 
     if (nameIndex === -1 || profileIndex === -1 || statusIndex === -1) {
-      console.log(`Required headers not found. Name: ${nameIndex}, Profile: ${profileIndex}, Status: ${statusIndex}`);
-      return NextResponse.json({ message: "Required columns not found in sheet" });
+      //console.log(`Required headers not found. Name: ${nameIndex}, Profile: ${profileIndex}, Status: ${statusIndex}`);
+      return NextResponse.json({
+        message: "Required columns not found in sheet",
+      });
     }
 
     const models: { name: string; profile: string; status: string }[] = [];
@@ -89,20 +94,23 @@ export async function GET(): Promise<NextResponse> {
       }
     }
 
-    console.log("Processed models:", models);
+    //console.log("Processed models:", models);
     return NextResponse.json({ models });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("Error fetching models:", error);
 
     // Check if the error is from Google API and has a 403 status
     if (error.code === 403 && error.errors && error.errors.length > 0) {
-      console.error("Google API Permission Error (403):", error.errors[0].message);
+      console.error(
+        "Google API Permission Error (403):",
+        error.errors[0].message
+      );
       return NextResponse.json(
         {
           error: "GooglePermissionDenied",
-          message: `Google API Error: ${error.errors[0].message || 'The authenticated Google account does not have permission for the Google Sheet.'}`
+          message: `Google API Error: ${error.errors[0].message || "The authenticated Google account does not have permission for the Google Sheet."}`,
         },
         { status: 403 }
       );

@@ -30,7 +30,6 @@ const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
       try {
         const response = await fetch("/api/models");
         const data = await response.json();
-        console.log("Fetched models:", data);
         if (Array.isArray(data.models)) {
           setModels(data.models);
         }
