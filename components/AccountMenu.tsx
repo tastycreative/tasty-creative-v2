@@ -5,8 +5,8 @@ import { ChevronDown } from "lucide-react";
 import { handleLogout } from "@/app/actions/sign-out";
 import { Session } from "next-auth";
 
-const AccountMenu = ({ session }: { session: Session }) => {
-  const { name, image } = session.user || {};
+const AccountMenu = ({ session, collapsed }: { session: Session | null; collapsed?: boolean }) => {
+  const { name, image } = session?.user || {};
   const [imgError, setImgError] = useState(false);
 
   const initials = (name || "Guest")
@@ -15,6 +15,28 @@ const AccountMenu = ({ session }: { session: Session }) => {
     .slice(0, 2)
     .join("")
     .toUpperCase();
+
+  if (collapsed) {
+    return (
+      <div className="mb-6 flex justify-center">
+        <div className="relative">
+          <div className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-400 dark:to-indigo-500 flex items-center justify-center text-white text-sm font-semibold shadow-md">
+            {image && !imgError ? (
+              <img
+                src={image}
+                alt="profile-picture"
+                className="w-full h-full object-cover"
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              <span className="text-xs">{initials}</span>
+            )}
+          </div>
+          <div className="rounded-full bg-emerald-400 dark:bg-emerald-500 w-3 h-3 absolute -bottom-0.5 -right-0.5 border-2 border-white dark:border-slate-900 shadow-sm"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative mb-6">

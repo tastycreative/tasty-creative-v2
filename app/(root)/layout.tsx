@@ -1,11 +1,9 @@
-
-// Updated RootLayout.tsx
 import { auth } from "@/auth";
 import { EmailVerificationBanner } from "@/components/email-verification-banner";
-import { ProtectedFeature } from "@/components/protected-feature";
-import SideBar from "@/components/SideBar";
+import ContentLayout from "@/components/ContentLayout";
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { SidebarProvider } from "@/components/SidebarProvider";
 
 export const metadata: Metadata = {
   title: {
@@ -27,56 +25,24 @@ export default async function RootLayout({
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden">
-      {/* Animated Starry Background */}
-      <div className="fixed z-0">
-        <div className="stars-container">
-          {/* Small stars */}
-          <div className="stars"></div>
-          {/* Medium stars */}
-          <div className="stars2"></div>
-          {/* Large stars */}
-          <div className="stars3"></div>
-        </div>
-      </div>
-
-      <EmailVerificationBanner />
-
-      <div className="flex gap-6 flex-1 p-4 relative z-10">
-        <SideBar />
-
-        {/* Desktop Main Content */}
-        <div className="hidden lg:flex flex-1 relative ml-76">
-          <div className="w-full h-full rounded-2xl backdrop-blur-[2px] shadow-xl border border-white/50 dark:border-slate-700/50 overflow-hidden">
-            {/* Subtle dot pattern */}
-            <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.02]" />
-
-            {/* Gentle top gradient */}
-            <div className="absolute inset-x-0 top-0 h-32" />
-
-            {/* Content */}
-            <ProtectedFeature>
-              <div className="relative h-full p-6">{children}</div>
-            </ProtectedFeature>
+    <SidebarProvider>
+      <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden">
+        {/* Animated Starry Background */}
+        <div className="fixed z-0">
+          <div className="stars-container">
+            {/* Small stars */}
+            <div className="stars"></div>
+            {/* Medium stars */}
+            <div className="stars2"></div>
+            {/* Large stars */}
+            <div className="stars3"></div>
           </div>
         </div>
 
-        {/* Mobile/Tablet Main Content */}
-        <div className="lg:hidden flex-1 w-full pt-16">
-          <div className="h-full rounded-2xl backdrop-blur-[2px] shadow-xl border border-white/50 dark:border-slate-700/50 overflow-hidden">
-            {/* Subtle dot pattern */}
-            <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.02]" />
+        <EmailVerificationBanner />
 
-            {/* Gentle top gradient */}
-            <div className="absolute inset-x-0 top-0 h-32" />
-
-            {/* Content */}
-            <ProtectedFeature>
-              <div className="relative h-full p-4 sm:p-6">{children}</div>
-            </ProtectedFeature>
-          </div>
-        </div>
+        <ContentLayout>{children}</ContentLayout>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }

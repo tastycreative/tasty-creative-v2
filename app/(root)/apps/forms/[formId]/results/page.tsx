@@ -111,7 +111,7 @@ export default function FormResultsPage() {
   }
 
   const displayTitle = form.title.replace(` - ${form.creatorEmail}`, '');
-
+  
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
