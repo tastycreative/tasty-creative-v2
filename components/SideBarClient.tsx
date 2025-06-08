@@ -48,7 +48,7 @@ const SideBarClient = () => {
             )}>
               <Logo collapsed={isCollapsed} />
               <AccountMenu session={session} collapsed={isCollapsed} />
-              <SideMenu collapsed={isCollapsed} />
+              <SideMenu collapsed={isCollapsed} session={session} />
             </div>
           </div>
         </div>
@@ -109,7 +109,7 @@ const MobileSidebar = ({ session }: { session: Session | null }) => {
             </button>
           </div>
           <AccountMenu session={session} />
-          <SideMenu onItemClick={closeMobile} />
+          <SideMenu onItemClick={closeMobile} session={session} />
         </div>
       </div>
 

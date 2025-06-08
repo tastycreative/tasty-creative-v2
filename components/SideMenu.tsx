@@ -6,18 +6,21 @@ import {
   House,
   LayoutDashboard,
   Settings,
+  UserLock,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import clsx from "clsx";
+import { Session } from "next-auth";
 
 interface SideMenuProps {
   collapsed?: boolean;
   onItemClick?: () => void;
+  session: Session | null;
 }
 
-const SideMenu = ({ collapsed, onItemClick }: SideMenuProps) => {
+const SideMenu = ({ collapsed, onItemClick, session }: SideMenuProps) => {
   const pathname = usePathname();
   const [clickedPath, setClickedPath] = useState<string | null>(null);
 
@@ -34,7 +37,8 @@ const SideMenu = ({ collapsed, onItemClick }: SideMenuProps) => {
       "text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400",
       "hover:bg-blue-50 dark:hover:bg-slate-800",
       isActive(path) &&
-        "bg-blue-100 dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-sm"
+        "bg-blue-100 dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-sm",
+        session?.user?.role != "ADMIN" && path === "/admin/users" && "hidden"
     );
 
   const iconClass = (path: string) =>
@@ -55,6 +59,7 @@ const SideMenu = ({ collapsed, onItemClick }: SideMenuProps) => {
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/apps", icon: AppWindow, label: "Apps" },
     { href: "/calendar", icon: Calendar1, label: "Calendar" },
+    { href: "/admin/users", icon: UserLock, label: "Admin" },
   ];
 
   return (
