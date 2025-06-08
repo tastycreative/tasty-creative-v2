@@ -1159,7 +1159,7 @@ export default function LiveFlyer() {
                   )}
                 </div>
               </>
-            )
+            ) 
           )}
         </div>
       </div>
