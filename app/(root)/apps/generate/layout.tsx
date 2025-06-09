@@ -81,6 +81,7 @@ export default function GenerateLayout({ children }: GenerateLayoutProps) {
       animate={{ opacity: isReady ? 1 : 0 }}
       transition={{ duration: 0.3 }}
     >
+      <title>Generate</title>
       {/* Header */}
       <motion.div 
         className="mb-8"

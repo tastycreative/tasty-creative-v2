@@ -1,11 +1,7 @@
-"use client";
+'use client'
 
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
-import { Metadata } from "next";
-export const metadata: Metadata = {
-  title: "Generate",
-};
 
 export default function GeneratePage() {
   return (
