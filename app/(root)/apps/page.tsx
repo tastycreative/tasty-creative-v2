@@ -34,7 +34,7 @@ export default function AppsPage() {
   const appPages = [
     {
       id: 1,
-      name: "Generate",
+      name: "Generate Flyers",
       path: "/apps/generate/live",
       icon: Code,
       color: "from-blue-500 to-cyan-500",

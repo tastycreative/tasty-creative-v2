@@ -2,6 +2,10 @@
 
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
+import { Metadata } from "next";
+export const metadata: Metadata = {
+  title: "Generate",
+};
 
 export default function GeneratePage() {
   return (
@@ -19,7 +23,8 @@ export default function GeneratePage() {
           Live Stream Graphics
         </h2>
         <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-md">
-          Create eye-catching graphics for your live streams with animated overlays and alerts
+          Create eye-catching graphics for your live streams with animated
+          overlays and alerts
         </p>
         <button className="px-6 py-3 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 text-white font-medium hover:shadow-lg transform hover:scale-105 transition-all duration-200">
           Start Creating
