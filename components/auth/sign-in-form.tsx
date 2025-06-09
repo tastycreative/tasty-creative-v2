@@ -10,10 +10,10 @@ export function SignInForm() {
   const [loading, setLoading] = useState(false);
 
   // Check for verification success message
-  const verified = searchParams.get("verified") === "true";
-  const verificationError = searchParams.get("error");
-  const errorParam = searchParams.get("error");
-  const message = searchParams.get("message");
+  const verified = searchParams?.get("verified") === "true";
+  const verificationError = searchParams?.get("error");
+  const errorParam = searchParams?.get("error");
+  const message = searchParams?.get("message");
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

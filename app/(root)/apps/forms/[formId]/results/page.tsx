@@ -56,12 +56,12 @@ export default function FormResultsPage() {
 
   useEffect(() => {
     fetchFormAndResponses();
-  }, [params.formId]);
+  }, [params?.formId]);
 
   const fetchFormAndResponses = async () => {
     try {
       // Fetch form details
-      const formResponse = await fetch(`/api/forms/${params.formId}`);
+      const formResponse = await fetch(`/api/forms/${params?.formId}`);
       const formData = await formResponse.json();
       
       if (formData.error) {

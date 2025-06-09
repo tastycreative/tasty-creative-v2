@@ -168,4 +168,8 @@ type WebhookResponse = {
   error?: string;
 };
 
+type FolderInfo = {
+  id: string;
+  name: string;
+};
 
