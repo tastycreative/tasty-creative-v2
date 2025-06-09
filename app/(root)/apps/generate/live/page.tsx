@@ -21,11 +21,10 @@ export default function GeneratePage() {
             <Sparkles className="w-16 h-16 text-red-500" />
           </div>
           <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-white">
-            Live Stream Graphics
+            Live Flyers
           </h2>
           <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-md">
-            Create eye-catching graphics for your live streams with animated
-            overlays and alerts
+            Create eye-catching graphics for your model&apos;s live streams and events.
           </p>
           <button
             onClick={() => {
