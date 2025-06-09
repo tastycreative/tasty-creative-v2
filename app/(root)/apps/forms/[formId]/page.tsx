@@ -35,11 +35,11 @@ export default function FormViewPage() {
 
   useEffect(() => {
     fetchForm();
-  }, [params.formId]);
+  }, [params?.formId]);
 
   const fetchForm = async () => {
     try {
-      const response = await fetch(`/api/forms/${params.formId}`);
+      const response = await fetch(`/api/forms/${params?.formId}`);
       const data = await response.json();
       
       if (data.error) {
