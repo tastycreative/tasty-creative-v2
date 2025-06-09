@@ -1,5 +1,6 @@
 "use client";
 
+import FTTFlyer from "@/components/FTTPage";
 import { motion } from "framer-motion";
 import { Zap } from "lucide-react";
 import { useState } from "react";
@@ -42,7 +43,7 @@ export default function FTTPage() {
   if (startCreating) {
     return (
       <div>
-        <FTTPage />
+        <FTTFlyer />
       </div>
     );
   }

@@ -1,5 +1,6 @@
 "use client";
 
+import TwitterAdsPage from "@/components/TwitterAdsPage";
 import { motion } from "framer-motion";
 import { Twitter } from "lucide-react";
 import { useState } from "react";
@@ -42,7 +43,7 @@ export default function TwitterPage() {
   if (startCreating) {
     return (
       <div>
-        <TwitterPage />
+        <TwitterAdsPage />
       </div>
     );
   }
