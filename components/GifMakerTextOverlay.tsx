@@ -77,10 +77,12 @@ const GifMakerTextOverlay = ({
     font: string,
     fontSize: number
   ): number => {
-    if (!textMeasureRef.current) {
-      textMeasureRef.current = document.createElement("canvas");
+    let canvas = textMeasureRef.current;
+    if (!canvas) {
+      canvas = document.createElement("canvas");
+      (textMeasureRef as React.MutableRefObject<HTMLCanvasElement | null>).current = canvas;
     }
-    const ctx = textMeasureRef.current.getContext("2d");
+    const ctx = canvas.getContext("2d");
     if (!ctx) return 0;
 
     ctx.font = `${fontSize}px ${font}`;
@@ -784,9 +786,10 @@ const GifMakerTextOverlay = ({
 
 export default GifMakerTextOverlay;
 
-import TextStyleTemplates from "./TextStyleTemplates";
+
 
 import { Smile } from "lucide-react";
+import TextStyleTemplates from "./TextStyleTemplates";
 
 function DynamicFontLoader({ font }: { font: string }) {
   useEffect(() => {

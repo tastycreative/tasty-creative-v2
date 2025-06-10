@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Clock, UploadIcon, X } from "lucide-react";
+import { Clock, UploadIcon } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { useDrag } from "react-use-gesture";
 import GifVaultSelector from "./GifVaultSelector";
@@ -33,9 +33,9 @@ type GifMakerVideoCropperProps = {
     clips: VideoClip[] | ((prevClips: VideoClip[]) => VideoClip[])
   ) => void;
   setActiveVideoIndex: (index: number | null) => void;
-  videoRefs: React.RefObject<(HTMLVideoElement | null)[]>;
+  videoRefs: React.RefObject<(HTMLVideoElement)[]>;
   selectedTemplate: string;
-  outputGridRef: React.RefObject<HTMLDivElement | null>;
+  outputGridRef: React.RefObject<HTMLDivElement>;
   activeVideoIndex: number | null;
   setIsPlaying: (isPlaying: boolean) => void;
   handleVideoChange: (index: number, file: File | null) => void;
@@ -99,7 +99,7 @@ const GifMakerVideoCropper = ({
 
   // Handle video scaling with performance optimization
   const handleVideoScale = (index: number, newScale: number) => {
-    const videoElement = videoRefs.current[index]?.parentElement;
+    const videoElement = videoRefs.current?.[index]?.parentElement;
     if (videoElement) {
       videoElement.style.setProperty("--scale", newScale.toString());
     }
@@ -178,7 +178,7 @@ const GifMakerVideoCropper = ({
     const videoEls = videoRefs.current;
     const handlers: (() => void)[] = [];
 
-    videoEls.forEach((video, i) => {
+    videoEls?.forEach((video, i) => {
       if (!video || i === activeVideoIndex || !videoClips[i]) return;
 
       const clip = videoClips[i];
@@ -194,7 +194,7 @@ const GifMakerVideoCropper = ({
     });
 
     return () => {
-      videoRefs.current.forEach((video) => video?.pause());
+      videoRefs?.current?.forEach((video) => video?.pause());
       handlers.forEach((cleanup) => cleanup());
     };
   }, [videoRefs, videoClips, activeVideoIndex]);
@@ -259,7 +259,9 @@ const GifMakerVideoCropper = ({
                   }))
               );
               setActiveVideoIndex(null);
-              videoRefs.current = [];
+              if (videoRefs.current) {
+                videoRefs.current.length = 0;
+              }
             }}
             className={`flex flex-col items-center p-3 rounded-lg transition-colors ${
               selectedTemplate === key
@@ -328,7 +330,7 @@ const GifMakerVideoCropper = ({
                       >
                         <video
                           ref={(el) => {
-                            if (!el) return;
+                            if (!el || !videoRefs.current) return;
                             videoRefs.current[i] = el;
                           }}
                           src={videoUrls[i] || ""}

@@ -209,16 +209,16 @@ const GifMaker = () => {
     setGifSettings((prev) => ({ ...prev, quality: val }));
 
   // Refs
-  const canvasBlurRef = useRef<HTMLCanvasElement | null>(null);
+  const canvasBlurRef = useRef<HTMLCanvasElement>(null);
 
-  const maskCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const maskCanvasRef = useRef<HTMLCanvasElement>(null);
 
   // Canvas ref for capturing frames
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const [activeVideoIndex, setActiveVideoIndex] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(true);
-  const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const videoRefs = useRef<(HTMLVideoElement)[]>([]);
   // Additional ref for the output video grid
   const outputGridRef = useRef<HTMLDivElement>(null);
   const totalCells =
@@ -889,7 +889,7 @@ const GifMaker = () => {
   useEffect(() => {
     videoRefs.current = videoRefs.current.slice(0, totalCells);
     while (videoRefs.current.length < totalCells) {
-      videoRefs.current.push(null);
+      videoRefs.current.push();
     }
 
     // Reset GIF URL when template changes
