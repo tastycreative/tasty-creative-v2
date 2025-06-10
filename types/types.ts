@@ -173,3 +173,22 @@ type FolderInfo = {
   name: string;
 };
 
+type BlurSettings = {
+  blurType: "gaussian" | "pixelated" | "mosaic";
+  blurIntensity: number;
+  brushSize: number;
+};
+
+type GifSettings = {
+  maxDuration: number;
+  fps: number;
+  quality: number;
+};
+
+type Layout =
+  | "Single"
+  | "Side by Side"
+  | "Horizontal Triptych"
+  | "Vertical Triptych"
+  | "2x2 Grid";
+
