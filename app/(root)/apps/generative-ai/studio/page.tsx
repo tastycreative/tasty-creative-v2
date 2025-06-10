@@ -1,6 +1,6 @@
 "use client";
 
-import VIPFlyer from "@/components/VIPFlyer";
+import AIStudioPage from "@/components/AIStudioPage";
 import { motion } from "framer-motion";
 import { Crown } from "lucide-react";
 import { useState } from "react";
@@ -20,11 +20,10 @@ export default function VIPPage() {
             <Crown className="w-16 h-16 text-yellow-500" />
           </div>
           <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-white">
-            VIP Flyers
+            AI Studio
           </h2>
           <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-md">
-            Design premium content for your model&apos;s VIP members and
-            exclusive events.
+            Studio for creating premium content for your model&apos;s VIP members and exclusive events.
           </p>
           <button
             onClick={() => {
@@ -42,7 +41,7 @@ export default function VIPPage() {
   if (startCreating) {
     return (
       <div>
-        <VIPFlyer />
+        <AIStudioPage />
       </div>
     );
   }

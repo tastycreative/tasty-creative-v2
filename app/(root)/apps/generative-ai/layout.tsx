@@ -3,12 +3,9 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter, usePathname } from "next/navigation";
-import { 
-  Sparkles, 
+import { Sparkles, Crown } from "lucide-react";
 
-} from "lucide-react";
-
-type TabType = "voice";
+type TabType = "voice" | "studio";
 
 interface Tab {
   id: TabType;
@@ -26,7 +23,9 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isReady, setIsReady] = useState(false);
-  const [activeTabOverride, setActiveTabOverride] = useState<TabType | null>(null);
+  const [activeTabOverride, setActiveTabOverride] = useState<TabType | null>(
+    null
+  );
 
   useEffect(() => {
     // Small delay to ensure smooth transition
@@ -43,13 +42,24 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
   }, [pathname]);
 
   const tabs: Tab[] = [
-    { id: "voice", label: "AI Voice", icon: Sparkles, color: "from-red-500 to-pink-500", href: "/apps/generative-ai/voice" },
-    //  { id: "vip", label: "VIP", icon: Crown, color: "from-yellow-500 to-amber-500", href: "/apps/generate/vip" },
+    {
+      id: "voice",
+      label: "AI Voice",
+      icon: Sparkles,
+      color: "from-red-500 to-pink-500",
+      href: "/apps/generative-ai/voice",
+    },
+    {
+      id: "studio",
+      label: "AI Studio",
+      icon: Crown,
+      color: "from-yellow-500 to-amber-500",
+      href: "/apps/generate/vip",
+    },
     //     { id: "game", label: "Game", icon: Gamepad2, color: "from-purple-500 to-indigo-500", href: "/apps/generate/game" },
     //     { id: "ftt", label: "FTT", icon: Zap, color: "from-blue-500 to-cyan-500", href: "/apps/generate/ftt" },
     //     { id: "twitter", label: "Twitter Ads", icon: Twitter, color: "from-sky-500 to-blue-500", href: "/apps/generate/twitter" },
     //     { id: "gif", label: "GIF Maker", icon: Film, color: "from-green-500 to-emerald-500", href: "/apps/generate/gif" },
-
   ];
 
   // Get active tab based on current pathname
@@ -58,8 +68,8 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
     if (activeTabOverride) {
       return activeTabOverride;
     }
-    
-    const currentTab = tabs.find(tab => pathname === tab.href);
+
+    const currentTab = tabs.find((tab) => pathname === tab.href);
     return currentTab?.id || "voice";
   };
 
@@ -72,7 +82,7 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
   };
 
   return (
-    <motion.div 
+    <motion.div
       className="w-full h-full flex flex-col"
       initial={{ opacity: 0 }}
       animate={{ opacity: isReady ? 1 : 0 }}
@@ -80,7 +90,7 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
     >
       <title>Generate</title>
       {/* Header */}
-      <motion.div 
+      <motion.div
         className="mb-8"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: isReady ? 1 : 0, y: isReady ? 0 : -20 }}
@@ -90,12 +100,13 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
           Generate AI Content
         </h1>
         <p className="text-gray-600 dark:text-gray-300">
-          Create AI voices, images, and more with our powerful generative AI tools.
+          Create AI voices, images, and more with our powerful generative AI
+          tools.
         </p>
       </motion.div>
 
       {/* Tabs Navigation */}
-      <motion.div 
+      <motion.div
         className="relative mb-8"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: isReady ? 1 : 0, y: isReady ? 0 : -10 }}
@@ -106,14 +117,14 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
-            
+
             return (
               <motion.button
                 key={tab.id}
                 onClick={() => handleTabClick(tab)}
                 className={`relative flex items-center gap-2 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
-                  isActive 
-                    ? "text-white" 
+                  isActive
+                    ? "text-white"
                     : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
                 }`}
                 whileHover={{ scale: 1.05 }}
@@ -128,7 +139,7 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
                     transition={{
                       type: "spring",
                       stiffness: 300,
-                      damping: 30
+                      damping: 30,
                     }}
                   />
                 )}
@@ -156,7 +167,7 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
       </motion.div>
 
       {/* Tab Content */}
-      <motion.div 
+      <motion.div
         className="flex-1 relative overflow-hidden"
         initial={{ opacity: 0 }}
         animate={{ opacity: isReady ? 1 : 0 }}
