@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:is(.dark *));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -47,7 +51,8 @@
 
 :root {
   --radius: 0.625rem;
-
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.129 0.042 264.695);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.129 0.042 264.695);
   --popover: oklch(1 0 0);
@@ -79,7 +84,9 @@
   --sidebar-ring: oklch(0.704 0.04 256.788);}
 
   .dark {
-
+  --background: oklch(0 0 0 / 0.6);
+  --foreground: oklch(0.98 0 0);
+  
   --card: oklch(0.208 0.042 265.755);
   --card-foreground: oklch(0.984 0.003 247.858);
   --popover: oklch(0.208 0.042 265.755);
@@ -120,6 +127,15 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
   }
 }
 
