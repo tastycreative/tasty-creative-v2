@@ -54,7 +54,7 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
       label: "AI Studio",
       icon: Crown,
       color: "from-yellow-500 to-amber-500",
-      href: "/apps/generate/vip",
+      href: "/apps/generative-ai/studio",
     },
     //     { id: "game", label: "Game", icon: Gamepad2, color: "from-purple-500 to-indigo-500", href: "/apps/generate/game" },
     //     { id: "ftt", label: "FTT", icon: Zap, color: "from-blue-500 to-cyan-500", href: "/apps/generate/ftt" },
