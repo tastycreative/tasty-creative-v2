@@ -1,9 +1,5 @@
 @import "tailwindcss";
 
-@plugin "tailwindcss-animate";
-
-@custom-variant dark (&:is(.dark *));
-
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -81,12 +77,13 @@
   --sidebar-accent: oklch(0.968 0.007 247.896);
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);}
+  --sidebar-ring: oklch(0.704 0.04 256.788);
+}
 
-  .dark {
+.dark {
   --background: oklch(0 0 0 / 0.6);
   --foreground: oklch(0.98 0 0);
-  
+
   --card: oklch(0.208 0.042 265.755);
   --card-foreground: oklch(0.984 0.003 247.858);
   --popover: oklch(0.208 0.042 265.755);
@@ -145,7 +142,6 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-
 /* stars.css */
 .stars-container {
   position: absolute;
@@ -158,24 +154,57 @@ body {
   width: 1px;
   height: 1px;
   background: transparent;
-  box-shadow: 
-    779px 1331px #FFF, 324px 42px #FFF, 303px 586px #FFF,
-    1312px 276px #FFF, 451px 625px #FFF, 521px 1931px #FFF,
-    1087px 1871px #FFF, 36px 1546px #FFF, 132px 934px #FFF,
-    1698px 1712px #FFF, 1779px 1292px #FFF, 1426px 1594px #FFF,
-    1946px 1674px #FFF, 653px 960px #FFF, 334px 1364px #FFF,
-    961px 1484px #FFF, 1929px 1755px #FFF, 133px 83px #FFF,
-    1327px 1243px #FFF, 1301px 1111px #FFF, 274px 1586px #FFF,
-    1985px 1567px #FFF, 1437px 534px #FFF, 708px 470px #FFF,
-    1538px 1380px #FFF, 1362px 1652px #FFF, 1232px 1274px #FFF,
-    726px 1157px #FFF, 65px 291px #FFF, 646px 958px #FFF,
-    187px 712px #FFF, 1596px 1623px #FFF, 1889px 1608px #FFF,
-    744px 1285px #FFF, 1315px 1821px #FFF, 1786px 433px #FFF,
-    1124px 1034px #FFF, 92px 1967px #FFF, 1166px 895px #FFF,
-    257px 1501px #FFF, 671px 824px #FFF, 1764px 1061px #FFF,
-    873px 624px #FFF, 1949px 871px #FFF, 583px 546px #FFF,
-    1153px 1674px #FFF, 1147px 1848px #FFF, 1050px 1460px #FFF,
-    714px 660px #FFF, 1827px 638px #FFF;
+  box-shadow:
+    779px 1331px #fff,
+    324px 42px #fff,
+    303px 586px #fff,
+    1312px 276px #fff,
+    451px 625px #fff,
+    521px 1931px #fff,
+    1087px 1871px #fff,
+    36px 1546px #fff,
+    132px 934px #fff,
+    1698px 1712px #fff,
+    1779px 1292px #fff,
+    1426px 1594px #fff,
+    1946px 1674px #fff,
+    653px 960px #fff,
+    334px 1364px #fff,
+    961px 1484px #fff,
+    1929px 1755px #fff,
+    133px 83px #fff,
+    1327px 1243px #fff,
+    1301px 1111px #fff,
+    274px 1586px #fff,
+    1985px 1567px #fff,
+    1437px 534px #fff,
+    708px 470px #fff,
+    1538px 1380px #fff,
+    1362px 1652px #fff,
+    1232px 1274px #fff,
+    726px 1157px #fff,
+    65px 291px #fff,
+    646px 958px #fff,
+    187px 712px #fff,
+    1596px 1623px #fff,
+    1889px 1608px #fff,
+    744px 1285px #fff,
+    1315px 1821px #fff,
+    1786px 433px #fff,
+    1124px 1034px #fff,
+    92px 1967px #fff,
+    1166px 895px #fff,
+    257px 1501px #fff,
+    671px 824px #fff,
+    1764px 1061px #fff,
+    873px 624px #fff,
+    1949px 871px #fff,
+    583px 546px #fff,
+    1153px 1674px #fff,
+    1147px 1848px #fff,
+    1050px 1460px #fff,
+    714px 660px #fff,
+    1827px 638px #fff;
   animation: animStar 50s linear infinite;
 }
 
@@ -186,38 +215,84 @@ body {
   width: 1px;
   height: 1px;
   background: transparent;
-  box-shadow: 
-    779px 1331px #FFF, 324px 42px #FFF, 303px 586px #FFF,
-    1312px 276px #FFF, 451px 625px #FFF, 521px 1931px #FFF,
-    1087px 1871px #FFF, 36px 1546px #FFF, 132px 934px #FFF,
-    1698px 1712px #FFF, 1779px 1292px #FFF, 1426px 1594px #FFF,
-    1946px 1674px #FFF, 653px 960px #FFF, 334px 1364px #FFF,
-    961px 1484px #FFF, 1929px 1755px #FFF, 133px 83px #FFF,
-    1327px 1243px #FFF, 1301px 1111px #FFF, 274px 1586px #FFF,
-    1985px 1567px #FFF, 1437px 534px #FFF, 708px 470px #FFF,
-    1538px 1380px #FFF, 1362px 1652px #FFF, 1232px 1274px #FFF,
-    726px 1157px #FFF, 65px 291px #FFF, 646px 958px #FFF,
-    187px 712px #FFF, 1596px 1623px #FFF, 1889px 1608px #FFF,
-    744px 1285px #FFF, 1315px 1821px #FFF, 1786px 433px #FFF,
-    1124px 1034px #FFF, 92px 1967px #FFF, 1166px 895px #FFF,
-    257px 1501px #FFF, 671px 824px #FFF, 1764px 1061px #FFF,
-    873px 624px #FFF, 1949px 871px #FFF, 583px 546px #FFF,
-    1153px 1674px #FFF, 1147px 1848px #FFF, 1050px 1460px #FFF,
-    714px 660px #FFF, 1827px 638px #FFF;
+  box-shadow:
+    779px 1331px #fff,
+    324px 42px #fff,
+    303px 586px #fff,
+    1312px 276px #fff,
+    451px 625px #fff,
+    521px 1931px #fff,
+    1087px 1871px #fff,
+    36px 1546px #fff,
+    132px 934px #fff,
+    1698px 1712px #fff,
+    1779px 1292px #fff,
+    1426px 1594px #fff,
+    1946px 1674px #fff,
+    653px 960px #fff,
+    334px 1364px #fff,
+    961px 1484px #fff,
+    1929px 1755px #fff,
+    133px 83px #fff,
+    1327px 1243px #fff,
+    1301px 1111px #fff,
+    274px 1586px #fff,
+    1985px 1567px #fff,
+    1437px 534px #fff,
+    708px 470px #fff,
+    1538px 1380px #fff,
+    1362px 1652px #fff,
+    1232px 1274px #fff,
+    726px 1157px #fff,
+    65px 291px #fff,
+    646px 958px #fff,
+    187px 712px #fff,
+    1596px 1623px #fff,
+    1889px 1608px #fff,
+    744px 1285px #fff,
+    1315px 1821px #fff,
+    1786px 433px #fff,
+    1124px 1034px #fff,
+    92px 1967px #fff,
+    1166px 895px #fff,
+    257px 1501px #fff,
+    671px 824px #fff,
+    1764px 1061px #fff,
+    873px 624px #fff,
+    1949px 871px #fff,
+    583px 546px #fff,
+    1153px 1674px #fff,
+    1147px 1848px #fff,
+    1050px 1460px #fff,
+    714px 660px #fff,
+    1827px 638px #fff;
 }
 
 .stars2 {
   width: 2px;
   height: 2px;
   background: transparent;
-  box-shadow: 
-    240px 1547px #FFF, 1748px 678px #FFF, 1360px 1287px #FFF,
-    632px 362px #FFF, 1076px 377px #FFF, 872px 1410px #FFF,
-    1858px 88px #FFF, 958px 1338px #FFF, 1930px 1293px #FFF,
-    1677px 1154px #FFF, 1308px 734px #FFF, 1033px 1262px #FFF,
-    1757px 192px #FFF, 282px 1127px #FFF, 733px 599px #FFF,
-    835px 1220px #FFF, 1520px 1294px #FFF, 1999px 1426px #FFF,
-    634px 1784px #FFF, 1995px 1062px #FFF;
+  box-shadow:
+    240px 1547px #fff,
+    1748px 678px #fff,
+    1360px 1287px #fff,
+    632px 362px #fff,
+    1076px 377px #fff,
+    872px 1410px #fff,
+    1858px 88px #fff,
+    958px 1338px #fff,
+    1930px 1293px #fff,
+    1677px 1154px #fff,
+    1308px 734px #fff,
+    1033px 1262px #fff,
+    1757px 192px #fff,
+    282px 1127px #fff,
+    733px 599px #fff,
+    835px 1220px #fff,
+    1520px 1294px #fff,
+    1999px 1426px #fff,
+    634px 1784px #fff,
+    1995px 1062px #fff;
   animation: animStar 100s linear infinite;
 }
 
@@ -228,25 +303,44 @@ body {
   width: 2px;
   height: 2px;
   background: transparent;
-  box-shadow: 
-    240px 1547px #FFF, 1748px 678px #FFF, 1360px 1287px #FFF,
-    632px 362px #FFF, 1076px 377px #FFF, 872px 1410px #FFF,
-    1858px 88px #FFF, 958px 1338px #FFF, 1930px 1293px #FFF,
-    1677px 1154px #FFF, 1308px 734px #FFF, 1033px 1262px #FFF,
-    1757px 192px #FFF, 282px 1127px #FFF, 733px 599px #FFF,
-    835px 1220px #FFF, 1520px 1294px #FFF, 1999px 1426px #FFF,
-    634px 1784px #FFF, 1995px 1062px #FFF;
+  box-shadow:
+    240px 1547px #fff,
+    1748px 678px #fff,
+    1360px 1287px #fff,
+    632px 362px #fff,
+    1076px 377px #fff,
+    872px 1410px #fff,
+    1858px 88px #fff,
+    958px 1338px #fff,
+    1930px 1293px #fff,
+    1677px 1154px #fff,
+    1308px 734px #fff,
+    1033px 1262px #fff,
+    1757px 192px #fff,
+    282px 1127px #fff,
+    733px 599px #fff,
+    835px 1220px #fff,
+    1520px 1294px #fff,
+    1999px 1426px #fff,
+    634px 1784px #fff,
+    1995px 1062px #fff;
 }
 
 .stars3 {
   width: 3px;
   height: 3px;
   background: transparent;
-  box-shadow: 
-    1259px 1036px #FFF, 1085px 1926px #FFF, 1712px 1794px #FFF,
-    1221px 872px #FFF, 516px 1995px #FFF, 1876px 843px #FFF,
-    1554px 1664px #FFF, 1129px 327px #FFF, 784px 1892px #FFF,
-    1095px 1858px #FFF;
+  box-shadow:
+    1259px 1036px #fff,
+    1085px 1926px #fff,
+    1712px 1794px #fff,
+    1221px 872px #fff,
+    516px 1995px #fff,
+    1876px 843px #fff,
+    1554px 1664px #fff,
+    1129px 327px #fff,
+    784px 1892px #fff,
+    1095px 1858px #fff;
   animation: animStar 150s linear infinite;
 }
 
@@ -257,11 +351,17 @@ body {
   width: 3px;
   height: 3px;
   background: transparent;
-  box-shadow: 
-    1259px 1036px #FFF, 1085px 1926px #FFF, 1712px 1794px #FFF,
-    1221px 872px #FFF, 516px 1995px #FFF, 1876px 843px #FFF,
-    1554px 1664px #FFF, 1129px 327px #FFF, 784px 1892px #FFF,
-    1095px 1858px #FFF;
+  box-shadow:
+    1259px 1036px #fff,
+    1085px 1926px #fff,
+    1712px 1794px #fff,
+    1221px 872px #fff,
+    516px 1995px #fff,
+    1876px 843px #fff,
+    1554px 1664px #fff,
+    1129px 327px #fff,
+    784px 1892px #fff,
+    1095px 1858px #fff;
 }
 
 @keyframes animStar {
@@ -275,21 +375,23 @@ body {
 
 /* Dark mode adjustments */
 @media (prefers-color-scheme: dark) {
-  .stars, .stars:after {
+  .stars,
+  .stars:after {
     opacity: 0.6;
   }
-  .stars2, .stars2:after {
+  .stars2,
+  .stars2:after {
     opacity: 0.5;
   }
-  .stars3, .stars3:after {
+  .stars3,
+  .stars3:after {
     opacity: 0.4;
   }
 }
 
-
 @font-face {
-  font-family: 'Apple Color Emoji';
-  src: url('../fonts/AppleColorEmoji.ttf') format('truetype');
+  font-family: "Apple Color Emoji";
+  src: url("../fonts/AppleColorEmoji.ttf") format("truetype");
   font-display: swap;
 }
 
@@ -298,6 +400,7 @@ body {
   cursor: move;
   user-select: none;
   line-height: 1;
-  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  font-family:
+    "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
   transition: opacity 0.3s ease; /* mimic transition-opacity class */
 }
