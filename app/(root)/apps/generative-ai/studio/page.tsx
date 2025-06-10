@@ -31,7 +31,7 @@ export default function VIPPage() {
             }}
             className="px-6 py-3 rounded-xl bg-gradient-to-r from-yellow-500 to-amber-500 text-white font-medium hover:shadow-lg transform hover:scale-105 transition-all duration-200"
           >
-            Create VIP Flyer
+            View AI Studio
           </button>
         </motion.div>
       </div>
