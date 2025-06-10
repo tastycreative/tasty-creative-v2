@@ -44,6 +44,11 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
 
   const tabs: Tab[] = [
     { id: "voice", label: "AI Voice", icon: Sparkles, color: "from-red-500 to-pink-500", href: "/apps/generative-ai/voice" },
+    //  { id: "vip", label: "VIP", icon: Crown, color: "from-yellow-500 to-amber-500", href: "/apps/generate/vip" },
+    //     { id: "game", label: "Game", icon: Gamepad2, color: "from-purple-500 to-indigo-500", href: "/apps/generate/game" },
+    //     { id: "ftt", label: "FTT", icon: Zap, color: "from-blue-500 to-cyan-500", href: "/apps/generate/ftt" },
+    //     { id: "twitter", label: "Twitter Ads", icon: Twitter, color: "from-sky-500 to-blue-500", href: "/apps/generate/twitter" },
+    //     { id: "gif", label: "GIF Maker", icon: Film, color: "from-green-500 to-emerald-500", href: "/apps/generate/gif" },
 
   ];
 

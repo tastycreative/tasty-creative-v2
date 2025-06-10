@@ -45,7 +45,7 @@ export default function AppsPage() {
     {
       id: 2,
       name: "Generative AI",
-      path: "/apps/generative-ai",
+      path: "/apps/generative-ai/voice",
       icon: Palette,
       color: "from-purple-500 to-pink-500",
       size: "col-span-1 row-span-1 sm:col-span-2 lg:col-span-3",
