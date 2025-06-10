@@ -9,7 +9,7 @@ import {
   Mic,
   Clock,
 } from "lucide-react";
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Alert, AlertTitle, AlertDescription } from "./ui/alert";
 import { Button } from "./ui/button";
 import {
@@ -48,6 +48,7 @@ import {
   fetchHistoryFromElevenLabs,
   getHistoryAudio,
   getVoiceParameters,
+  getVoicesForProfile,
 } from "@/app/services/elevenlabs-implementation";
 import { truncateText, formatDate } from "@/lib/utils";
 
@@ -290,6 +291,44 @@ const AIVoicePage = () => {
       setTimeout(() => setGenerationStatus(""), 3000);
     }
   };
+
+   useEffect(() => {
+    const fetchApiData = async () => {
+      if (!selectedApiKeyProfile) return;
+
+
+      setVoiceError('');
+
+      try {
+        // Fetch balance
+        const balance = await checkApiKeyBalance(selectedApiKeyProfile);
+        setApiKeyBalance(balance);
+
+        // Get voices for the selected profile
+        const profileVoices = getVoicesForProfile(selectedApiKeyProfile);
+        setAvailableVoices(profileVoices);
+
+        // Reset selected voice when changing profiles
+        setSelectedVoice(profileVoices[0]?.voiceId || "");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (error: any) {
+        console.error("Error fetching API data:", error);
+        setApiKeyBalance({
+          character: {
+            limit: 0,
+            remaining: 0,
+            used: 0,
+          },
+          status: "error",
+        });
+        setVoiceError("There was an issue connecting to the API.");
+      } finally {
+
+      }
+    };
+
+    fetchApiData();
+  }, [selectedApiKeyProfile]);
 
   return (
     <div>
