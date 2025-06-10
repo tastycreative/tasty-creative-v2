@@ -326,3 +326,18 @@ export const formatDateTime = (
     minute: "2-digit",
   });
 };
+
+export const formatDate = (dateString: number) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleString();
+    } catch  {
+      return dateString.toString();
+    }
+  };
+
+export const truncateText = (text: string | undefined, maxLength = 30) => {
+    return text && text.length > maxLength
+      ? text.substring(0, maxLength) + '...'
+      : (text || '');
+  };

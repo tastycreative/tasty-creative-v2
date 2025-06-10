@@ -99,7 +99,6 @@ interface NotificationData {
   sheet: string;
 }
 
-
 type ModelsDropdownProps = {
   formData: ModelFormData;
   setFormData: React.Dispatch<React.SetStateAction<ModelFormData>>;
@@ -110,7 +109,6 @@ type ModelsDropdownProps = {
   error?: string;
   setFieldErrors?: React.Dispatch<React.SetStateAction<Record<string, string>>>;
 };
-
 
 type ModelFormData = {
   model?: string;
@@ -161,7 +159,6 @@ type GoogleDriveFile = {
   webViewLink?: string;
 };
 
-
 type WebhookResponse = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
@@ -191,4 +188,40 @@ type Layout =
   | "Horizontal Triptych"
   | "Vertical Triptych"
   | "2x2 Grid";
+
+interface ApiKeyBalance {
+  character?: {
+    limit: number;
+    remaining: number;
+    used: number;
+  };
+  status?: string;
+}
+
+
+interface Voice {
+  name: string;
+  voiceId: string;
+  category?: string;
+}
+
+interface HistoryItem {
+  history_item_id: string;
+  text: string;
+  date_unix: number;
+  voice_id: string;
+  voice_name?: string;
+}
+
+interface HistoryAudio {
+  audioUrl: string;
+  audioBlob: Blob;
+}
+
+interface GeneratedAudio {
+  audioUrl: string;
+  audioBlob: Blob;
+  profile?: string;
+  voiceName?: string;
+}
 

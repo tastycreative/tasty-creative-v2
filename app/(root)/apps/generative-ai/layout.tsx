@@ -1,0 +1,167 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { useRouter, usePathname } from "next/navigation";
+import { 
+  Sparkles, 
+
+} from "lucide-react";
+
+type TabType = "voice";
+
+interface Tab {
+  id: TabType;
+  label: string;
+  icon: React.ElementType;
+  color: string;
+  href: string;
+}
+
+interface GenerateLayoutProps {
+  children: React.ReactNode;
+}
+
+export default function GenerateAILayout({ children }: GenerateLayoutProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [isReady, setIsReady] = useState(false);
+  const [activeTabOverride, setActiveTabOverride] = useState<TabType | null>(null);
+
+  useEffect(() => {
+    // Small delay to ensure smooth transition
+    const timer = setTimeout(() => {
+      setIsReady(true);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Reset override when pathname actually changes
+  useEffect(() => {
+    setActiveTabOverride(null);
+  }, [pathname]);
+
+  const tabs: Tab[] = [
+    { id: "voice", label: "AI Voice", icon: Sparkles, color: "from-red-500 to-pink-500", href: "/apps/generative-ai/voice" },
+
+  ];
+
+  // Get active tab based on current pathname
+  const getActiveTab = (): TabType => {
+    // If we have an override (user clicked but page hasn't loaded), use that
+    if (activeTabOverride) {
+      return activeTabOverride;
+    }
+    
+    const currentTab = tabs.find(tab => pathname === tab.href);
+    return currentTab?.id || "voice";
+  };
+
+  const activeTab = getActiveTab();
+
+  const handleTabClick = (tab: Tab) => {
+    // Immediately update the active tab state for instant visual feedback
+    setActiveTabOverride(tab.id);
+    router.push(tab.href);
+  };
+
+  return (
+    <motion.div 
+      className="w-full h-full flex flex-col"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: isReady ? 1 : 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <title>Generate</title>
+      {/* Header */}
+      <motion.div 
+        className="mb-8"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: isReady ? 1 : 0, y: isReady ? 0 : -20 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+      >
+        <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">
+          Generate AI Content
+        </h1>
+        <p className="text-gray-600 dark:text-gray-300">
+          Create AI voices, images, and more with our powerful generative AI tools.
+        </p>
+      </motion.div>
+
+      {/* Tabs Navigation */}
+      <motion.div 
+        className="relative mb-8"
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: isReady ? 1 : 0, y: isReady ? 0 : -10 }}
+        transition={{ duration: 0.4, delay: 0.2 }}
+      >
+        {/* Tabs Container */}
+        <div className="flex gap-2 p-1 rounded-2xl bg-white/10 dark:bg-gray-800/30 backdrop-blur-md border border-white/20 dark:border-gray-700/30">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            
+            return (
+              <motion.button
+                key={tab.id}
+                onClick={() => handleTabClick(tab)}
+                className={`relative flex items-center gap-2 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
+                  isActive 
+                    ? "text-white" 
+                    : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                }`}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {/* Active Tab Background */}
+                {isActive && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className={`absolute inset-0 rounded-xl bg-gradient-to-r ${tab.color}`}
+                    initial={false}
+                    transition={{
+                      type: "spring",
+                      stiffness: 300,
+                      damping: 30
+                    }}
+                  />
+                )}
+
+                {/* Tab Content */}
+                <div className="relative z-10 flex items-center gap-2">
+                  <Icon className="w-4 h-4" />
+                  <span className="text-sm lg:text-base">{tab.label}</span>
+                </div>
+
+                {/* Hover Glow Effect */}
+                {isActive && (
+                  <motion.div
+                    className={`absolute inset-0 rounded-xl bg-gradient-to-r ${tab.color} blur-xl opacity-50`}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 0.5 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                  />
+                )}
+              </motion.button>
+            );
+          })}
+        </div>
+      </motion.div>
+
+      {/* Tab Content */}
+      <motion.div 
+        className="flex-1 relative overflow-hidden"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: isReady ? 1 : 0 }}
+        transition={{ duration: 0.4, delay: 0.3 }}
+      >
+        {/* Content Container */}
+        <div className="h-full rounded-2xl bg-white/5 dark:bg-gray-800/20 backdrop-blur-sm border border-white/10 dark:border-gray-700/20 p-6">
+          {children}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
