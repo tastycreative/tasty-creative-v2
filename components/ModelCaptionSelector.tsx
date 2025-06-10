@@ -109,7 +109,7 @@ const ModelCaptionSelector: React.FC<ModelCaptionSelectorProps> = ({
   }
 
   return (
-    <div className="w-full mx-auto p-6 bg-gray-900/60 rounded-xl shadow-lg border border-gray-700">
+    <div className="w-full max-w-3xl mx-auto p-6 bg-gray-900/60 rounded-xl shadow-lg border border-gray-700">
       {/* Day Selection */}
       <div className="mb-6">
         <div className="p-4 bg-gray-800 rounded-lg">
