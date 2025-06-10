@@ -6,7 +6,7 @@ import { Film } from "lucide-react";
 import { useState } from "react";
 
 export default function GIFPage() {
-  const [startCreating, setStartCreating] = useState(false);
+  const [startCreating, setStartCreating] = useState(true);
   if (!startCreating) {
     return (
       <div className="flex flex-col items-center justify-center h-full">
