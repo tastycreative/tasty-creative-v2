@@ -4,8 +4,8 @@ import GifMakerTextOverlay from "./GifMakerTextOverlay";
 
 type GifMakerEditorSelectorProps = {
   gifUrl: string;
-  canvasBlurRef: React.RefObject<HTMLCanvasElement | null>;
-  maskCanvasRef: React.RefObject<HTMLCanvasElement | null>;
+  canvasBlurRef: React.RefObject<HTMLCanvasElement>;
+  maskCanvasRef: React.RefObject<HTMLCanvasElement>;
   startDrawing: (e: React.MouseEvent | React.TouchEvent) => void;
   draw: (e: React.MouseEvent | React.TouchEvent) => void;
   stopDrawing: () => void;
