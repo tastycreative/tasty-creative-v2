@@ -84,17 +84,17 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
   return (
     <div
       className="w-full h-full flex flex-col"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: isReady ? 1 : 0 }}
-      transition={{ duration: 0.3 }}
+      //initial={{ opacity: 0 }}
+      //animate={{ opacity: isReady ? 1 : 0 }}
+      //transition={{ duration: 0.3 }}
     >
       <title>Generate</title>
       {/* Header */}
       <div
         className="mb-8"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: isReady ? 1 : 0, y: isReady ? 0 : -20 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
+        //initial={{ opacity: 0, y: -20 }}
+        //animate={{ opacity: isReady ? 1 : 0, y: isReady ? 0 : -20 }}
+        //transition={{ duration: 0.4, delay: 0.1 }}
       >
         <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">
           Generate AI Content
@@ -108,9 +108,9 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
       {/* Tabs Navigation */}
       <div
         className="relative mb-8"
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: isReady ? 1 : 0, y: isReady ? 0 : -10 }}
-        transition={{ duration: 0.4, delay: 0.2 }}
+        //initial={{ opacity: 0, y: -10 }}
+        //animate={{ opacity: isReady ? 1 : 0, y: isReady ? 0 : -10 }}
+        //transition={{ duration: 0.4, delay: 0.2 }}
       >
         {/* Tabs Container */}
         <div className="flex gap-2 p-1 rounded-2xl bg-white/10 dark:bg-gray-800/30 backdrop-blur-md border border-white/20 dark:border-gray-700/30">
@@ -127,20 +127,20 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
                     ? "text-white"
                     : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
                 }`}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                // //whileHover={{ scale: 1.05 }}
+                // //whileTap={{ scale: 0.95 }}
               >
                 {/* Active Tab Background */}
                 {isActive && (
                   <div
-                    layoutId="activeTab"
+                    // layoutId="activeTab"
                     className={`absolute inset-0 rounded-xl bg-gradient-to-r ${tab.color}`}
-                    initial={false}
-                    transition={{
-                      type: "spring",
-                      stiffness: 300,
-                      damping: 30,
-                    }}
+                    //initial={false}
+                    //transition={{
+                    //   type: "spring",
+                    //   stiffness: 300,
+                    //   damping: 30,
+                    // }}
                   />
                 )}
 
@@ -154,10 +154,10 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
                 {isActive && (
                   <div
                     className={`absolute inset-0 rounded-xl bg-gradient-to-r ${tab.color} blur-xl opacity-50`}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 0.5 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
+                    //initial={{ opacity: 0 }}
+                    //animate={{ opacity: 0.5 }}
+                    //exit={{ opacity: 0 }}
+                    //transition={{ duration: 0.3 }}
                   />
                 )}
               </button>
@@ -169,9 +169,9 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
       {/* Tab Content */}
       <div
         className="flex-1 relative overflow-hidden"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: isReady ? 1 : 0 }}
-        transition={{ duration: 0.4, delay: 0.3 }}
+        //initial={{ opacity: 0 }}
+        //animate={{ opacity: isReady ? 1 : 0 }}
+        //transition={{ duration: 0.4, delay: 0.3 }}
       >
         {/* Content Container */}
         <div className="h-full rounded-2xl bg-white/5 dark:bg-gray-800/20 backdrop-blur-sm border border-white/10 dark:border-gray-700/20 p-6">

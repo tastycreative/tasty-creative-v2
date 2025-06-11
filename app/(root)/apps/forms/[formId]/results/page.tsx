@@ -176,8 +176,8 @@ export default function FormResultsPage() {
             Form not found
           </p>
           <button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            //whileHover={{ scale: 1.05 }}
+            //whileTap={{ scale: 0.95 }}
             onClick={() => router.push("/apps/forms")}
             className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
           >
@@ -190,17 +190,17 @@ export default function FormResultsPage() {
 
   return (
     <div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
+      //initial={{ opacity: 0, x: 20 }}
+      //animate={{ opacity: 1, x: 0 }}
+      //exit={{ opacity: 0, x: -20 }}
       className="p-4 sm:p-6 min-h-screen"
     >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 space-y-4 sm:space-y-0">
         <div className="flex items-center gap-2 sm:gap-4">
           <button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            //whileHover={{ scale: 1.05 }}
+            //whileTap={{ scale: 0.95 }}
             onClick={() => router.push("/apps/forms")}
             className="p-2 rounded-lg hover:bg-white/10 transition-colors"
           >
@@ -220,8 +220,8 @@ export default function FormResultsPage() {
 
         {/* Export Button */}
         <button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          //whileHover={{ scale: 1.05 }}
+          //whileTap={{ scale: 0.95 }}
           onClick={exportToCSV}
           disabled={responses.length === 0}
           className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white/10 dark:bg-gray-800/30 backdrop-blur-sm rounded-lg hover:bg-white/20 dark:hover:bg-gray-800/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
@@ -264,9 +264,9 @@ export default function FormResultsPage() {
 
                 return (
                   <div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
+                    //initial={{ opacity: 0, y: 20 }}
+                    //animate={{ opacity: 1, y: 0 }}
+                    //transition={{ delay: index * 0.05 }}
                     className="bg-white/10 dark:bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-gray-700/30 p-4"
                   >
                     {/* Response Header */}
@@ -389,9 +389,9 @@ export default function FormResultsPage() {
                   {responses.map((response, index) => (
                     <tr
                       key={response.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.02 }}
+                      //initial={{ opacity: 0, y: 10 }}
+                      //animate={{ opacity: 1, y: 0 }}
+                      //transition={{ delay: index * 0.02 }}
                       className="border-b border-gray-200 dark:border-gray-700 hover:bg-white/5 dark:hover:bg-gray-700/20 transition-colors"
                     >
                       <td className="px-4 lg:px-6 py-4 text-sm text-gray-700 dark:text-gray-300 sticky left-0 bg-white/10 dark:bg-gray-800/30 backdrop-blur-sm">

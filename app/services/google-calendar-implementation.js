@@ -31,7 +31,7 @@ const TOKEN_EXPIRY_KEY = "tasty_calendar_token_expiry";
 let gapi = null;
 let tokenClient = null;
 let accessToken = null;
-let isGapiInitialized = false;
+let isGapiinitialized = false;
 let isGisLoaded = false;
 
 /**
@@ -134,16 +134,16 @@ const loadGisScript = async () => {
 };
 
 /**
- * Initialize the GAPI client library
+ * //initialize the GAPI client library
  */
 const initializeGapiClient = async () => {
-  if (isGapiInitialized) {
+  if (isGapiinitialized) {
     return true;
   }
 
   // Check if API key is available
   if (!API_KEY) {
-    console.error("Cannot initialize GAPI client: API key is missing");
+    console.error("Cannot //initialize GAPI client: API key is missing");
     return false;
   }
 
@@ -164,16 +164,16 @@ const initializeGapiClient = async () => {
       });
     });
 
-    // Initialize the client with API key
+    // //initialize the client with API key
     await gapi.client.init({
       apiKey: API_KEY,
       discoveryDocs: DISCOVERY_DOCS,
     });
 
-    isGapiInitialized = true;
+    isGapiinitialized = true;
     return true;
   } catch (error) {
-    console.error("Error initializing GAPI client:", error);
+    console.error("Error //initializing GAPI client:", error);
     return false;
   }
 };
@@ -201,11 +201,11 @@ const setupGapiWithToken = async () => {
 };
 
 /**
- * Initialize the Google API client with the new Identity Services library
+ * //initialize the Google API client with the new Identity Services library
  */
 export const initGoogleCalendarAuth = async () => {
   try {
-    //console.log("Starting Google Calendar initialization");
+    //console.log("Starting Google Calendar //initialization");
 
     // Check if required environment variables are set
     if (!API_KEY || !CLIENT_ID) {
@@ -226,10 +226,10 @@ export const initGoogleCalendarAuth = async () => {
 
     gapi = window.gapi;
 
-    // Initialize GAPI client
-    const clientInitialized = await initializeGapiClient();
-    if (!clientInitialized) {
-      throw new Error("Failed to initialize GAPI client");
+    // //initialize GAPI client
+    const clientinitialized = await initializeGapiClient();
+    if (!clientinitialized) {
+      throw new Error("Failed to //initialize GAPI client");
     }
 
     // If we have a stored token, try to set it up
@@ -243,9 +243,9 @@ export const initGoogleCalendarAuth = async () => {
       await loadGisScript();
     }
 
-    // Initialize the token client
+    // //initialize the token client
     if (window.google?.accounts?.oauth2) {
-      //console.log("Initializing token client");
+      //console.log("//initializing token client");
       tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: SCOPES,
@@ -271,10 +271,10 @@ export const initGoogleCalendarAuth = async () => {
       );
     }
 
-    //console.log("Google Calendar initialized successfully");
+    //console.log("Google Calendar //initialized successfully");
     return { success: true };
   } catch (error) {
-    console.error("Error initializing Google Calendar API:", error);
+    console.error("Error //initializing Google Calendar API:", error);
     console.error(
       "Error details:",
       error?.details || error?.message || "Unknown error"
@@ -330,11 +330,11 @@ export const signInWithGoogle = async () => {
   }
 
   if (!tokenClient) {
-    // Try to reinitialize if tokenClient is not available
+    // Try to re//initialize if tokenClient is not available
     await initGoogleCalendarAuth();
 
     if (!tokenClient) {
-      throw new Error("Google Auth not initialized properly");
+      throw new Error("Google Auth not //initialized properly");
     }
   }
 
@@ -448,11 +448,11 @@ export const signOutFromGoogle = async () => {
 };
 
 /**
- * Ensure the GAPI client is initialized and authenticated
+ * Ensure the GAPI client is //initialized and authenticated
  */
 const ensureAuthenticatedGapiClient = async () => {
-  // Make sure GAPI is initialized
-  if (!isGapiInitialized && gapi) {
+  // Make sure GAPI is //initialized
+  if (!isGapiinitialized && gapi) {
     await initializeGapiClient();
   }
 
@@ -480,7 +480,7 @@ export const getCalendarEvents = async (startDate, endDate) => {
   // );
 
   try {
-    // Ensure GAPI client is initialized and authenticated
+    // Ensure GAPI client is //initialized and authenticated
     if (!(await ensureAuthenticatedGapiClient())) {
       //console.log("GAPI client not authenticated, initiating sign-in process.");
       await signInWithGoogle();
@@ -507,7 +507,7 @@ export const getCalendarEvents = async (startDate, endDate) => {
   async function fetchEvents(calendarId, startDate, endDate) {
     try {
       if (!gapi?.client?.calendar) {
-        throw new Error("Google Calendar API client not initialized");
+        throw new Error("Google Calendar API client not //initialized");
       }
 
       const timeMin = startDate.toISOString();
@@ -549,7 +549,7 @@ export const getCalendarEvents = async (startDate, endDate) => {
  */
 export const getEventById = async (eventId) => {
   try {
-    // First ensure GAPI client is initialized and authenticated
+    // First ensure GAPI client is //initialized and authenticated
     if (!(await ensureAuthenticatedGapiClient())) {
       // If we couldn't authenticate with stored token, initiate sign-in
       await signInWithGoogle();
@@ -586,7 +586,7 @@ export const getEventById = async (eventId) => {
   async function fetchEvent() {
     try {
       if (!gapi?.client?.calendar) {
-        throw new Error("Google Calendar API client not initialized");
+        throw new Error("Google Calendar API client not //initialized");
       }
 
       const response = await gapi.client.calendar.events.get({
@@ -613,7 +613,7 @@ export const getEventById = async (eventId) => {
  */
 export const addCalendarEvent = async (eventDetails) => {
   try {
-    // First ensure GAPI client is initialized and authenticated
+    // First ensure GAPI client is //initialized and authenticated
     if (!(await ensureAuthenticatedGapiClient())) {
       // If we couldn't authenticate with stored token, initiate sign-in
       await signInWithGoogle();
@@ -650,7 +650,7 @@ export const addCalendarEvent = async (eventDetails) => {
   async function addEvent() {
     try {
       if (!gapi?.client?.calendar) {
-        throw new Error("Google Calendar API client not initialized");
+        throw new Error("Google Calendar API client not //initialized");
       }
 
       // Format event for API

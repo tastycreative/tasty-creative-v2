@@ -45,7 +45,7 @@ export const GifMakerVideoTimeline = ({
   const extractionAbortRef = useRef<AbortController | null>(null);
 
   const actualEndTime = endTime || duration;
-  const frameCount = 8; // Reduced for faster initial load
+  const frameCount = 8; // Reduced for faster //initial load
 
   // Format time helper
   const formatTime = (seconds: number) => {
@@ -258,8 +258,8 @@ export const GifMakerVideoTimeline = ({
       type === "start"
         ? startTime
         : type === "end"
-        ? actualEndTime
-        : currentTime
+          ? actualEndTime
+          : currentTime
     );
     e.preventDefault();
   };

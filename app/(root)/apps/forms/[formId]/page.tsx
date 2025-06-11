@@ -122,15 +122,15 @@ export default function FormViewPage() {
 
   return (
     <div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
+      //initial={{ opacity: 0, x: 20 }}
+      //animate={{ opacity: 1, x: 0 }}
+      //exit={{ opacity: 0, x: -20 }}
       className="max-w-3xl mx-auto p-6"
     >
       {/* Back Button */}
       <button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+        // //whileHover={{ scale: 1.05 }}
+        // //whileTap={{ scale: 0.95 }}
         onClick={() => router.push("/apps/forms")}
         className="flex items-center gap-2 mb-6 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors"
       >
@@ -140,9 +140,9 @@ export default function FormViewPage() {
 
       {/* Form Header */}
       <div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
+        //initial={{ opacity: 0, y: 20 }}
+        //animate={{ opacity: 1, y: 0 }}
+        //transition={{ delay: 0.1 }}
         className="rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 p-8 mb-6 text-white"
       >
         <h1 className="text-3xl font-bold mb-2">{displayTitle}</h1>
@@ -154,9 +154,9 @@ export default function FormViewPage() {
         {form.questions.map((question: Question, index: number) => (
           <div
             key={question.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 + index * 0.1 }}
+            //initial={{ opacity: 0, y: 20 }}
+            //animate={{ opacity: 1, y: 0 }}
+            //transition={{ delay: 0.2 + index * 0.1 }}
             className="bg-white/10 dark:bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-gray-700/30 p-6"
           >
             <div className="mb-4">
@@ -226,14 +226,14 @@ export default function FormViewPage() {
 
         {/* Submit Button */}
         <div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+          //initial={{ opacity: 0, y: 20 }}
+          //animate={{ opacity: 1, y: 0 }}
+          //transition={{ delay: 0.5 }}
           className="flex justify-end"
         >
           <button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            // //whileHover={{ scale: 1.05 }}
+            // //whileTap={{ scale: 0.95 }}
             type="submit"
             disabled={submitting}
             className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-medium hover:shadow-lg transition-shadow disabled:opacity-50"

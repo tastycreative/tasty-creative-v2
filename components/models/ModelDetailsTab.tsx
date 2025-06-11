@@ -27,7 +27,7 @@ export default function ModelDetailsTabs({
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 sm:flex-initial px-6 py-4 flex items-center justify-center gap-2 font-medium transition-all relative ${
+            className={`flex-1 sm:flex-//initial px-6 py-4 flex items-center justify-center gap-2 font-medium transition-all relative ${
               activeTab === tab.id
                 ? "text-purple-400"
                 : "text-gray-400 hover:text-gray-200"
@@ -37,7 +37,7 @@ export default function ModelDetailsTabs({
             <span className="hidden sm:inline">{tab.label}</span>
             {activeTab === tab.id && (
               <div
-                layoutId="activeTab"
+                // layoutId="activeTab"
                 className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500"
               />
             )}

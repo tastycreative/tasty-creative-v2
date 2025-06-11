@@ -158,7 +158,7 @@ export default function LiveFlyer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [webhookData]);
 
-  // Check for initial data on mount
+  // Check for //initial data on mount
 
   const stopChecking = () => {
     if (checkInterval.current) {
@@ -1159,7 +1159,7 @@ export default function LiveFlyer() {
                   )}
                 </div>
               </>
-            ) 
+            )
           )}
         </div>
       </div>

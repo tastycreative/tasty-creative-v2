@@ -29,7 +29,7 @@ const LaunchPrep = () => {
   const ITEMS_PER_PAGE = viewMode === "grid" ? 15 : 10;
   const model = searchParams?.get("model");
 
-  // Fetch all models initially
+  // Fetch all models //initially
   useEffect(() => {
     const fetchModels = async () => {
       try {

@@ -156,9 +156,9 @@ export default function AppsPage() {
 
       {/* Responsive Grid Navigation */}
       <div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
+        // variants={containerVariants}
+        //initial="hidden"
+        //animate="visible"
         className="grid gap-2 sm:gap-3 lg:gap-4 h-[calc(100%-4rem)] sm:h-[calc(100%-6rem)] lg:h-[calc(100%-8rem)]
                    grid-cols-2 grid-rows-8 auto-rows-fr
                    sm:grid-cols-4 sm:grid-rows-6
@@ -171,12 +171,12 @@ export default function AppsPage() {
           return (
             <button
               key={app.id}
-              variants={itemVariants}
-              whileHover={{
-                scale: 1.02,
-                transition: { type: "spring", stiffness: 400, damping: 10 },
-              }}
-              whileTap={{ scale: 0.98 }}
+              // variants={itemVariants}
+              // //whileHover={{
+              //   scale: 1.02,
+              //   transition: { type: "spring", stiffness: 400, damping: 10 },
+              // }}
+              // //whileTap={{ scale: 0.98 }}
               className={`${app.size} relative group overflow-hidden rounded-xl sm:rounded-2xl transition-shadow duration-300 hover:shadow-2xl min-h-[80px] sm:min-h-[100px] lg:min-h-[120px]`}
               onMouseEnter={() => setHoveredItem(app.id)}
               onMouseLeave={() => setHoveredItem(null)}
@@ -188,17 +188,17 @@ export default function AppsPage() {
               />
 
               {/* Animated Glow Effect - Hidden on mobile for performance */}
-              <AnimatePresence>
-                {isHovered && (
-                  <div
-                    className={`absolute inset-0 bg-gradient-to-br ${app.color} blur-xl hidden sm:block`}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 0.5 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                  />
-                )}
-              </AnimatePresence>
+              {/* <AnimatePresence> */}
+              {isHovered && (
+                <div
+                  className={`absolute inset-0 bg-gradient-to-br ${app.color} blur-xl hidden sm:block`}
+                  //initial={{ opacity: 0 }}
+                  //animate={{ opacity: 0.5 }}
+                  //exit={{ opacity: 0 }}
+                  //transition={{ duration: 0.3 }}
+                />
+              )}
+              {/* </AnimatePresence> */}
 
               {/* Glass Effect Overlay */}
               <div className="absolute inset-0 bg-white/10 dark:bg-black/10 backdrop-blur-sm" />
@@ -209,14 +209,14 @@ export default function AppsPage() {
               {/* Content - Responsive sizing */}
               <div className="relative z-10 h-full flex flex-col items-center justify-center p-2 sm:p-3 lg:p-4 text-white">
                 <div
-                  animate={{
-                    scale: isHovered ? 1.15 : 1,
-                    rotate: isHovered ? [0, -5, 5, 0] : 0,
-                  }}
-                  transition={{
-                    scale: { type: "spring", stiffness: 300, damping: 20 },
-                    rotate: { duration: 0.6, ease: "easeInOut" },
-                  }}
+                  //animate={{
+                  //   scale: isHovered ? 1.15 : 1,
+                  //   rotate: isHovered ? [0, -5, 5, 0] : 0,
+                  // }}
+                  //transition={{
+                  //   scale: { type: "spring", stiffness: 300, damping: 20 },
+                  //   rotate: { duration: 0.6, ease: "easeInOut" },
+                  // }}
                   className="mb-1 sm:mb-2 lg:mb-3"
                 >
                   <Icon className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 xl:w-12 xl:h-12" />
@@ -228,69 +228,69 @@ export default function AppsPage() {
 
                 {/* Description container - Only show on larger screens and when hovered */}
                 <div className="h-0 sm:h-6 lg:h-10 flex items-center justify-center">
-                  <AnimatePresence mode="wait">
-                    {isHovered && (
-                      <p
-                        className="text-xs sm:text-sm text-white/90 text-center line-clamp-2 hidden sm:block"
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 5 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        {app.description}
-                      </p>
-                    )}
-                  </AnimatePresence>
+                  {/* <AnimatePresence mode="wait"> */}
+                  {isHovered && (
+                    <p
+                      className="text-xs sm:text-sm text-white/90 text-center line-clamp-2 hidden sm:block"
+                      //initial={{ opacity: 0, y: 10 }}
+                      //animate={{ opacity: 1, y: 0 }}
+                      //exit={{ opacity: 0, y: 5 }}
+                      //transition={{ duration: 0.2 }}
+                    >
+                      {app.description}
+                    </p>
+                  )}
+                  {/* </AnimatePresence> */}
                 </div>
               </div>
 
               {/* Hover Animation Effects - Hidden on mobile for performance */}
-              <AnimatePresence>
-                {isHovered && (
-                  <>
-                    <div
-                      className="absolute top-0 left-0 w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32 bg-white/20 rounded-full blur-xl sm:blur-2xl hidden sm:block"
-                      initial={{ x: -8, y: -8, opacity: 0 }}
-                      animate={{
-                        x: [-8, -16, -8],
-                        y: [-8, -16, -8],
-                        opacity: [0, 1, 1],
-                      }}
-                      exit={{ opacity: 0 }}
-                      transition={{
-                        x: { duration: 3, repeat: Infinity, ease: "easeInOut" },
-                        y: { duration: 3, repeat: Infinity, ease: "easeInOut" },
-                        opacity: { duration: 0.5 },
-                      }}
-                    />
-                    <div
-                      className="absolute bottom-0 right-0 w-20 h-20 sm:w-30 sm:h-30 lg:w-40 lg:h-40 bg-white/10 rounded-full blur-2xl sm:blur-3xl hidden sm:block"
-                      initial={{ x: 10, y: 10, opacity: 0 }}
-                      animate={{
-                        x: [10, 20, 10],
-                        y: [10, 20, 10],
-                        opacity: [0, 1, 1],
-                      }}
-                      exit={{ opacity: 0 }}
-                      transition={{
-                        x: {
-                          duration: 3,
-                          repeat: Infinity,
-                          ease: "easeInOut",
-                          delay: 0.3,
-                        },
-                        y: {
-                          duration: 3,
-                          repeat: Infinity,
-                          ease: "easeInOut",
-                          delay: 0.3,
-                        },
-                        opacity: { duration: 0.5 },
-                      }}
-                    />
-                  </>
-                )}
-              </AnimatePresence>
+              {/* <AnimatePresence> */}
+              {isHovered && (
+                <>
+                  <div
+                    className="absolute top-0 left-0 w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32 bg-white/20 rounded-full blur-xl sm:blur-2xl hidden sm:block"
+                    //initial={{ x: -8, y: -8, opacity: 0 }}
+                    //animate={{
+                    //   x: [-8, -16, -8],
+                    //   y: [-8, -16, -8],
+                    //   opacity: [0, 1, 1],
+                    // }}
+                    //exit={{ opacity: 0 }}
+                    //transition={{
+                    //   x: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+                    //   y: { duration: 3, repeat: Infinity, ease: "easeInOut" },
+                    //   opacity: { duration: 0.5 },
+                    // }}
+                  />
+                  <div
+                    className="absolute bottom-0 right-0 w-20 h-20 sm:w-30 sm:h-30 lg:w-40 lg:h-40 bg-white/10 rounded-full blur-2xl sm:blur-3xl hidden sm:block"
+                    //initial={{ x: 10, y: 10, opacity: 0 }}
+                    //animate={{
+                    //   x: [10, 20, 10],
+                    //   y: [10, 20, 10],
+                    //   opacity: [0, 1, 1],
+                    // }}
+                    //exit={{ opacity: 0 }}
+                    //transition={{
+                    // x: {
+                    //   duration: 3,
+                    //   repeat: Infinity,
+                    //   ease: "easeInOut",
+                    //   delay: 0.3,
+                    // },
+                    // y: {
+                    //   duration: 3,
+                    //   repeat: Infinity,
+                    //   ease: "easeInOut",
+                    //   delay: 0.3,
+                    // },
+                    // opacity: { duration: 0.5 },
+                    // }}
+                  />
+                </>
+              )}
+              {/* </AnimatePresence> */}
             </button>
           );
         })}

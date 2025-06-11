@@ -36,8 +36,8 @@ export default function ModelsHeader({
         </div>
 
         <button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          //whileHover={{ scale: 1.05 }}
+          //whileTap={{ scale: 0.95 }}
           className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
@@ -48,9 +48,9 @@ export default function ModelsHeader({
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          //initial={{ opacity: 0, y: 20 }}
+          //animate={{ opacity: 1, y: 0 }}
+          //transition={{ delay: 0.1 }}
           className="bg-white/10 dark:bg-gray-800/30 backdrop-blur-md rounded-xl border border-white/20 dark:border-gray-700/30 p-6"
         >
           <div className="flex items-center justify-between">
@@ -69,9 +69,9 @@ export default function ModelsHeader({
         </div>
 
         <div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          //initial={{ opacity: 0, y: 20 }}
+          //animate={{ opacity: 1, y: 0 }}
+          //transition={{ delay: 0.2 }}
           className="bg-white/10 dark:bg-gray-800/30 backdrop-blur-md rounded-xl border border-white/20 dark:border-gray-700/30 p-6"
         >
           <div className="flex items-center justify-between">
@@ -90,9 +90,9 @@ export default function ModelsHeader({
         </div>
 
         <div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          //initial={{ opacity: 0, y: 20 }}
+          //animate={{ opacity: 1, y: 0 }}
+          //transition={{ delay: 0.3 }}
           className="bg-white/10 dark:bg-gray-800/30 backdrop-blur-md rounded-xl border border-white/20 dark:border-gray-700/30 p-6"
         >
           <div className="flex items-center justify-between">

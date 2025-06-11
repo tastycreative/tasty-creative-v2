@@ -187,9 +187,9 @@ export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
           filteredChatters.map((chatter, index) => (
             <div
               key={chatter.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              //initial={{ opacity: 0, y: 20 }}
+              //animate={{ opacity: 1, y: 0 }}
+              //transition={{ delay: index * 0.1 }}
               className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-6 hover:bg-white/10 transition-all"
             >
               <div className="flex items-center justify-between">

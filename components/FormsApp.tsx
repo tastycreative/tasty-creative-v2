@@ -196,9 +196,9 @@ function FormsList({
 
   return (
     <div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+      //initial={{ opacity: 0 }}
+      //animate={{ opacity: 1 }}
+      //exit={{ opacity: 0 }}
       className="p-4 sm:p-6 min-h-screen"
     >
       {/* Header */}
@@ -212,8 +212,8 @@ function FormsList({
           </p>
         </div>
         <button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          //whileHover={{ scale: 1.05 }}
+          //whileTap={{ scale: 0.95 }}
           onClick={handleCreateNew}
           className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-medium hover:shadow-lg transition-shadow w-full sm:w-auto"
         >
@@ -234,9 +234,9 @@ function FormsList({
           return (
             <div
               key={form.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              //initial={{ opacity: 0, y: 20 }}
+              //animate={{ opacity: 1, y: 0 }}
+              //transition={{ delay: index * 0.1 }}
               className="relative group"
               onMouseEnter={() => setHoveredForm(form.id)}
               onMouseLeave={() => setHoveredForm(null)}
@@ -321,14 +321,14 @@ function FormsList({
                   <AnimatePresence>
                     {hoveredForm === form.id && (
                       <div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
+                        //initial={{ opacity: 0, y: 10 }}
+                        //animate={{ opacity: 1, y: 0 }}
+                        //exit={{ opacity: 0, y: 10 }}
                         className="hidden sm:flex absolute bottom-4 sm:bottom-6 left-4 sm:left-6 right-4 sm:right-6 gap-2"
                       >
                         <button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
+                          //whileHover={{ scale: 1.05 }}
+                          //whileTap={{ scale: 0.95 }}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleViewResults(form);
@@ -340,8 +340,8 @@ function FormsList({
                         </button>
 
                         <button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
+                          //whileHover={{ scale: 1.05 }}
+                          //whileTap={{ scale: 0.95 }}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleEdit(form);
@@ -372,8 +372,8 @@ function FormsList({
             Create your first form to get started collecting responses
           </p>
           <button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            //whileHover={{ scale: 1.05 }}
+            //whileTap={{ scale: 0.95 }}
             onClick={handleCreateNew}
             className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-medium hover:shadow-lg transition-shadow"
           >
@@ -435,15 +435,15 @@ function FormView({ form, handleBack, session }: any) {
 
   return (
     <div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
+      //initial={{ opacity: 0, x: 20 }}
+      //animate={{ opacity: 1, x: 0 }}
+      //exit={{ opacity: 0, x: -20 }}
       className="w-full max-w-3xl mx-auto p-4 sm:p-6 min-h-screen"
     >
       {/* Back Button */}
       <button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+        //whileHover={{ scale: 1.05 }}
+        //whileTap={{ scale: 0.95 }}
         onClick={handleBack}
         className="flex items-center gap-2 mb-4 sm:mb-6 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors"
       >
@@ -454,9 +454,9 @@ function FormView({ form, handleBack, session }: any) {
 
       {/* Form Header */}
       <div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
+        //initial={{ opacity: 0, y: 20 }}
+        //animate={{ opacity: 1, y: 0 }}
+        //transition={{ delay: 0.1 }}
         className="rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 p-6 sm:p-8 mb-6 text-white"
       >
         <h1 className="text-2xl sm:text-3xl font-bold mb-2 leading-tight">
@@ -472,9 +472,9 @@ function FormView({ form, handleBack, session }: any) {
         {form.questions.map((question: Question, index: number) => (
           <div
             key={question.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 + index * 0.1 }}
+            //initial={{ opacity: 0, y: 20 }}
+            //animate={{ opacity: 1, y: 0 }}
+            //transition={{ delay: 0.2 + index * 0.1 }}
             className="bg-white/10 dark:bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-gray-700/30 p-4 sm:p-6"
           >
             <div className="mb-4">
@@ -559,14 +559,14 @@ function FormView({ form, handleBack, session }: any) {
 
         {/* Submit Button */}
         <div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+          //initial={{ opacity: 0, y: 20 }}
+          //animate={{ opacity: 1, y: 0 }}
+          //transition={{ delay: 0.5 }}
           className="flex justify-end"
         >
           <button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            //whileHover={{ scale: 1.05 }}
+            //whileTap={{ scale: 0.95 }}
             type="submit"
             disabled={submitting}
             className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-medium hover:shadow-lg transition-shadow disabled:opacity-50"
@@ -615,17 +615,17 @@ function ResultsView({ form, handleBack }: any) {
 
   return (
     <div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
+      //initial={{ opacity: 0, x: 20 }}
+      //animate={{ opacity: 1, x: 0 }}
+      //exit={{ opacity: 0, x: -20 }}
       className="p-4 sm:p-6 min-h-screen"
     >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 space-y-4 sm:space-y-0">
         <div className="flex items-center gap-2 sm:gap-4">
           <button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            //whileHover={{ scale: 1.05 }}
+            //whileTap={{ scale: 0.95 }}
             onClick={handleBack}
             className="p-2 rounded-lg hover:bg-white/10 transition-colors"
           >
@@ -643,8 +643,8 @@ function ResultsView({ form, handleBack }: any) {
         </div>
         <div className="flex gap-2">
           <button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            //whileHover={{ scale: 1.05 }}
+            //whileTap={{ scale: 0.95 }}
             onClick={exportToCSV}
             className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white/10 dark:bg-gray-800/30 backdrop-blur-sm rounded-lg hover:bg-white/20 dark:hover:bg-gray-800/50 transition-colors text-sm sm:text-base"
           >
@@ -825,15 +825,15 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
 
   return (
     <div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
+      //initial={{ opacity: 0, x: 20 }}
+      //animate={{ opacity: 1, x: 0 }}
+      //exit={{ opacity: 0, x: -20 }}
       className="w-full max-w-3xl mx-auto p-4 sm:p-6 min-h-screen"
     >
       {/* Back Button */}
       <button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+        //whileHover={{ scale: 1.05 }}
+        //whileTap={{ scale: 0.95 }}
         onClick={handleBack}
         className="flex items-center gap-2 mb-4 sm:mb-6 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors"
       >
@@ -850,8 +850,8 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
       <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
         {/* Form Title */}
         <div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          //initial={{ opacity: 0, y: 20 }}
+          //animate={{ opacity: 1, y: 0 }}
           className="bg-white/10 dark:bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-gray-700/30 p-4 sm:p-6"
         >
           <label className="block text-base sm:text-lg font-semibold text-gray-800 dark:text-white mb-4">
@@ -872,9 +872,9 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
 
         {/* Headers/Questions */}
         <div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          //initial={{ opacity: 0, y: 20 }}
+          //animate={{ opacity: 1, y: 0 }}
+          //transition={{ delay: 0.1 }}
           className="bg-white/10 dark:bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-gray-700/30 p-4 sm:p-6"
         >
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 space-y-2 sm:space-y-0">
@@ -883,8 +883,8 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
             </label>
             <button
               type="button"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              //whileHover={{ scale: 1.05 }}
+              //whileTap={{ scale: 0.95 }}
               onClick={addHeader}
               className="flex items-center gap-2 px-3 py-1.5 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors w-full sm:w-auto justify-center sm:justify-start"
             >
@@ -897,9 +897,9 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
             {headers.map((header, index) => (
               <div
                 key={index}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
+                //initial={{ opacity: 0, x: -20 }}
+                //animate={{ opacity: 1, x: 0 }}
+                //transition={{ delay: index * 0.05 }}
                 className="flex gap-2"
               >
                 <input
@@ -911,8 +911,8 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
                 />
                 <button
                   type="button"
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
+                  //whileHover={{ scale: 1.1 }}
+                  //whileTap={{ scale: 0.9 }}
                   onClick={() => removeHeader(index)}
                   className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors flex-shrink-0"
                 >
@@ -932,23 +932,23 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
         {(session?.user?.role === "ADMIN" ||
           session?.user?.role === "MODERATOR") && (
           <div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
+            //initial={{ opacity: 0, y: 20 }}
+            //animate={{ opacity: 1, y: 0 }}
+            //transition={{ delay: 0.2 }}
             className="flex flex-col sm:flex-row justify-end gap-4"
           >
             <button
               type="button"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              //whileHover={{ scale: 1.05 }}
+              //whileTap={{ scale: 0.95 }}
               onClick={handleBack}
               className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors order-2 sm:order-1"
             >
               Cancel
             </button>
             <button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              //whileHover={{ scale: 1.05 }}
+              //whileTap={{ scale: 0.95 }}
               type="submit"
               disabled={submitting}
               className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-medium hover:shadow-lg transition-shadow disabled:opacity-50 order-1 sm:order-2"

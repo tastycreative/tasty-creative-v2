@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import { auth } from "@/auth";
 
-// Utility to initialize Google Sheets API client
+// Utility to //initialize Google Sheets API client
 async function getSheetsClient() {
   const session = await auth();
 
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("GET: Error fetching chatting managers:", error);
-    
+
     // Check for Google API permission errors (403)
     if (error.code === 403 && error.errors && error.errors.length > 0) {
       console.error(
@@ -86,8 +86,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Handle authentication errors
-    const status = error.message === "Not authenticated" || 
-                   error.message === "Not authenticated. No access token." ? 401 : 500;
+    const status =
+      error.message === "Not authenticated" ||
+      error.message === "Not authenticated. No access token."
+        ? 401
+        : 500;
     return NextResponse.json({ error: error.message }, { status });
   }
 }
@@ -162,7 +165,7 @@ export async function PUT(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("PUT: Error updating/adding manager:", error);
-    
+
     // Check for Google API permission errors (403)
     if (error.code === 403 && error.errors && error.errors.length > 0) {
       console.error(
@@ -179,8 +182,11 @@ export async function PUT(request: NextRequest) {
     }
 
     // Handle authentication errors
-    const status = error.message === "Not authenticated" || 
-                   error.message === "Not authenticated. No access token." ? 401 : 500;
+    const status =
+      error.message === "Not authenticated" ||
+      error.message === "Not authenticated. No access token."
+        ? 401
+        : 500;
     return NextResponse.json({ error: error.message }, { status });
   }
 }

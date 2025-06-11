@@ -192,8 +192,7 @@ export default function FTTFlyer() {
     }, 2000);
   };
 
-
-  // Check for initial data on mount
+  // Check for //initial data on mount
 
   const stopChecking = () => {
     if (checkInterval.current) {
@@ -203,7 +202,7 @@ export default function FTTFlyer() {
     setIsFetchingImage(false);
   };
 
-    // Effect to stop checking when webhookData is updated
+  // Effect to stop checking when webhookData is updated
   useEffect(() => {
     const totalTemplates = Number(formData.noOfTemplate);
     if (itemReceived === totalTemplates) {
@@ -213,7 +212,6 @@ export default function FTTFlyer() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [webhookData]);
-
 
   const checkAuthStatus = async () => {
     try {

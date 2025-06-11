@@ -110,7 +110,7 @@ const TastyCreativeLanding = ({ session }: { session: any }) => {
     },
   ];
 
-  // Initialize Three.js scene
+  // //initialize Three.js scene
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -260,7 +260,7 @@ const TastyCreativeLanding = ({ session }: { session: any }) => {
     // Store reference for animation
     staticStarsRef.current = [staticStarField];
 
-    // Create constellation lines (initially invisible)
+    // Create constellation lines (//initially invisible)
     const constellationMaterial = new THREE.LineBasicMaterial({
       color: 0x6366f1,
       transparent: true,
@@ -402,7 +402,7 @@ const TastyCreativeLanding = ({ session }: { session: any }) => {
       }
       renderer.dispose();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handle wheel event for automatic scrolling to sections with progress update

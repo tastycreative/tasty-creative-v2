@@ -5,7 +5,7 @@ import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import ImageCropper from "./ImageCropper";
 import Image from "next/image";
 import ModelsDropdown from "./ModelsDropdown";
-import {  useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { POSITIONS } from "@/lib/lib";
 import { v4 as uuidv4 } from "uuid";
 import Link from "next/link";
@@ -15,7 +15,6 @@ import FlyerTemplates from "./FlyerTemplates";
 import { vipFlyerValidation } from "@/schema/zodValidationSchema";
 
 export default function FlyerGenerator() {
-
   const searchParams = useSearchParams();
   const reqId = searchParams?.get("reqId") || null;
   const [isLoading, setIsLoading] = useState(false);
@@ -121,7 +120,6 @@ export default function FlyerGenerator() {
 
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
-
 
   const handleCropComplete = (croppedImage: string) => {
     setFormData({
@@ -293,7 +291,7 @@ export default function FlyerGenerator() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [webhookData]);
 
-  // Check for initial data on mount
+  // Check for //initial data on mount
 
   const stopChecking = () => {
     if (checkInterval.current) {

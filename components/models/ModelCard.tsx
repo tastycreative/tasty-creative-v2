@@ -23,10 +23,10 @@ interface ModelCardProps {
 export default function ModelCard({ model, index, onClick }: ModelCardProps) {
   return (
     <div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
-      whileHover={{ y: -5 }}
+      //initial={{ opacity: 0, y: 20 }}
+      //animate={{ opacity: 1, y: 0 }}
+      //transition={{ delay: index * 0.1 }}
+      //whileHover={{ y: -5 }}
       onClick={onClick}
       className="bg-white/10 dark:bg-gray-800/30 backdrop-blur-md rounded-2xl border border-white/20 dark:border-gray-700/30 overflow-hidden cursor-pointer hover:shadow-xl transition-all group"
     >

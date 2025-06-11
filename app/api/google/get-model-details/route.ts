@@ -18,7 +18,7 @@ const FIELDS = [
   "Profile Link",
 ];
 
-// Utility to initialize Google Sheets API client
+// Utility to //initialize Google Sheets API client
 async function getSheetsClient(): Promise<sheets_v4.Sheets> {
   const session = await auth();
 
@@ -81,11 +81,14 @@ export async function GET(req: Request): Promise<NextResponse> {
 
     const headers: string[] = values[0] as string[];
 
-    const headerIndexes = FIELDS.reduce((acc, field) => {
-      const index = headers.indexOf(field);
-      acc[field] = index;
-      return acc;
-    }, {} as Record<string, number>);
+    const headerIndexes = FIELDS.reduce(
+      (acc, field) => {
+        const index = headers.indexOf(field);
+        acc[field] = index;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     const modelRow = values.find((row, index) => {
       if (index === 0) return false;
@@ -97,14 +100,14 @@ export async function GET(req: Request): Promise<NextResponse> {
     FIELDS.forEach((field) => {
       const index = headerIndexes[field];
       result[field] =
-        index !== -1 && modelRow ? modelRow[index]?.trim() ?? "" : "";
+        index !== -1 && modelRow ? (modelRow[index]?.trim() ?? "") : "";
     });
 
     return NextResponse.json(result, { status: 200 });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("❌ Error fetching model details:", error);
-    
+
     // Check for Google API permission errors (403)
     if (error.code === 403 && error.errors && error.errors.length > 0) {
       console.error(
@@ -121,8 +124,10 @@ export async function GET(req: Request): Promise<NextResponse> {
     }
 
     // Handle authentication errors
-    if (error.message === "Not authenticated" || 
-        error.message === "Not authenticated. No access token.") {
+    if (
+      error.message === "Not authenticated" ||
+      error.message === "Not authenticated. No access token."
+    ) {
       return NextResponse.json({ error: error.message }, { status: 401 });
     }
 

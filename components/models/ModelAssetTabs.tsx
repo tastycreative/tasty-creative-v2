@@ -165,9 +165,9 @@ export default function ModelAssetsTab({ modelId }: ModelAssetsTabProps) {
           {filteredAssets.map((asset, index) => (
             <div
               key={asset.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.05 }}
+              //initial={{ opacity: 0, scale: 0.9 }}
+              //animate={{ opacity: 1, scale: 1 }}
+              //transition={{ delay: index * 0.05 }}
               className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden group hover:border-purple-500/50 transition-all"
             >
               <div className="aspect-square bg-gray-800 relative">
@@ -201,9 +201,9 @@ export default function ModelAssetsTab({ modelId }: ModelAssetsTabProps) {
           {filteredAssets.map((asset, index) => (
             <div
               key={asset.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.05 }}
+              //initial={{ opacity: 0, x: -20 }}
+              //animate={{ opacity: 1, x: 0 }}
+              //transition={{ delay: index * 0.05 }}
               className="bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 p-4 flex items-center justify-between hover:bg-white/10 transition-colors"
             >
               <div className="flex items-center gap-4">

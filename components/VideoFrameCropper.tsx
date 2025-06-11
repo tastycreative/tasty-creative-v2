@@ -110,7 +110,7 @@ export default function VideoFrameCropper({
     const { width, height } = e.currentTarget;
     setImageSize({ width, height });
 
-    // Initialize with a centered crop of the correct aspect ratio
+    // //initialize with a centered crop of the correct aspect ratio
     setCrop(centerAspectCrop(width, height, 1 / 2));
   };
 

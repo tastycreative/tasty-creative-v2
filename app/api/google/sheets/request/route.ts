@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
   try {
     // Get session using Auth.js
     const session = await auth();
-    
+
     if (!session || !session.user) {
       console.log("Authentication error: No session or user found.");
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
 
     console.log("OAuth2 client set up successfully.");
 
-    // Initialize the Google Sheets API
+    // //initialize the Google Sheets API
     const sheets = google.sheets({ version: "v4", auth: oauth2Client });
 
     console.log(
@@ -226,13 +226,16 @@ export async function GET(request: NextRequest) {
       data: matchingRows,
       count: matchingRows.length,
     });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("Error fetching data from Google Sheets:", error);
-    
+
     // Handle Google API permission errors specifically
     if (error.code === 403 && error.errors && error.errors.length > 0) {
-      console.error("Google API Permission Error (403):", error.errors[0].message);
+      console.error(
+        "Google API Permission Error (403):",
+        error.errors[0].message
+      );
       return NextResponse.json(
         {
           error: "GooglePermissionDenied",
@@ -241,7 +244,7 @@ export async function GET(request: NextRequest) {
         { status: 403 }
       );
     }
-    
+
     return NextResponse.json(
       {
         error: "Failed to fetch data from Google Sheets",

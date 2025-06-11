@@ -28,7 +28,7 @@ export default function FontSelector({
         const data = await res.json();
         // Keep fonts in popularity order (API returns them sorted by popularity)
         setFonts(data.items);
-        setFilteredFonts(data.items.slice(0, 50)); // Show first 50 most popular initially
+        setFilteredFonts(data.items.slice(0, 50)); // Show first 50 most popular //initially
       } catch (err) {
         console.error("Failed to load fonts", err);
       }
@@ -123,7 +123,7 @@ export default function FontSelector({
     <div className="w-full mx-auto" ref={dropdownRef}>
       <div className="mb-6 rounded-md text-white">
         <label className="block text-sm font-medium mb-2 text-white">
-          Search & Select Font: (DISABLED FOR NOW - DEFAULT  BEBAS NEUE)
+          Search & Select Font: (DISABLED FOR NOW - DEFAULT BEBAS NEUE)
         </label>
 
         <div className="relative">

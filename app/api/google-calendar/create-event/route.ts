@@ -299,9 +299,9 @@ export async function POST(request: NextRequest) {
     if (!session.accessToken) {
       log("Authentication failed: No access token found in session");
       return NextResponse.json(
-        { 
-          message: "Not authenticated. No access token.", 
-          requireAuth: true 
+        {
+          message: "Not authenticated. No access token.",
+          requireAuth: true,
         },
         { status: 401 }
       );
@@ -350,7 +350,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initialize Google APIs
+    // //initialize Google APIs
     const calendar = google.calendar({ version: "v3", auth: oauth2Client });
     const drive = google.drive({ version: "v3", auth: oauth2Client });
     const sheets = google.sheets({ version: "v4", auth: oauth2Client });
@@ -663,7 +663,7 @@ export async function POST(request: NextRequest) {
           priceInfoIndex !== -1 ? priceInfoIndex : 0
         ) + 1
       ).fill("");
-      log("Initialized empty row values array", { rowValues });
+      log("//initialized empty row values array", { rowValues });
 
       // Populate with our data
       rowValues[timeColumnIndex] = formattedTime;
@@ -771,14 +771,12 @@ export async function POST(request: NextRequest) {
         sheetName,
         spreadsheetLink,
       });
-
     } catch (sheetsError: any) {
       log("Error updating spreadsheet:", sheetsError);
       // Return partial success - calendar worked but sheets failed
       return NextResponse.json(
         {
-          message:
-            "Event created on calendar but failed to update spreadsheet",
+          message: "Event created on calendar but failed to update spreadsheet",
           eventId: calendarSuccess.eventId,
           eventLink: calendarSuccess.eventLink,
           spreadsheetError:
@@ -789,10 +787,9 @@ export async function POST(request: NextRequest) {
         { status: 207 }
       ); // 207 Multi-Status
     }
-
   } catch (error: any) {
     log("Error processing request:", error);
-    
+
     // Handle specific error types
     if (error.name === "AuthenticationError" || error.status === 401) {
       return NextResponse.json(
@@ -802,9 +799,9 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { 
-        message: "Failed to process request", 
-        error: error.message 
+      {
+        message: "Failed to process request",
+        error: error.message,
       },
       { status: 500 }
     );

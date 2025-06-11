@@ -11,9 +11,9 @@ export default function GIFPage() {
     return (
       <div className="flex flex-col items-center justify-center h-full">
         <div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
+          //initial={{ scale: 0.9, opacity: 0 }}
+          //animate={{ scale: 1, opacity: 1 }}
+          //transition={{ duration: 0.3, delay: 0.1 }}
           className="text-center"
         >
           <div className="mb-6 p-6 rounded-full bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-sm">

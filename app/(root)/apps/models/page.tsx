@@ -68,15 +68,15 @@ export default function ModelsPage() {
     return matchesSearch && matchesStatus;
   });
 
-  const handleModelClick = (model: Model) => {
+  const handleModelClick = (model: ModelDetails) => {
     setSelectedModel(model);
     setShowDetailsModal(true);
   };
 
   return (
     <div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
+      //initial={{ opacity: 0 }}
+      //animate={{ opacity: 1 }}
       className="w-full max-w-7xl mx-auto p-4 lg:p-6"
     >
       <ModelsHeader

@@ -1,4 +1,4 @@
-import { getInitials } from "@/lib/utils";
+import { getinitials } from "@/lib/utils";
 import { ChevronRight, ChevronLeft } from "lucide-react";
 import React from "react";
 
@@ -58,7 +58,7 @@ const VaultClientList = ({
             }}
           >
             <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium">
-              {getInitials(client.email)}
+              {getinitials(client.email)}
             </div>
 
             {!sidebarCollapsed && (

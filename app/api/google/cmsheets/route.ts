@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import { auth } from "@/auth";
 
-// Utility to initialize Google Sheets API client
+// Utility to //initialize Google Sheets API client
 async function getSheetsClient() {
   const session = await auth();
 
@@ -46,7 +46,8 @@ export async function GET(request: NextRequest) {
       ranges: [`${tab}!A2:A`, `${tab}!H2:H`, `${tab}!J2:J`],
     });
 
-    const [clientsCol, managersCol, chattersCol] = response.data.valueRanges ?? [];
+    const [clientsCol, managersCol, chattersCol] =
+      response.data.valueRanges ?? [];
 
     const rowCount = Math.max(
       clientsCol.values?.length || 0,
@@ -80,7 +81,7 @@ export async function GET(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("Error fetching sheet data:", error);
-    
+
     // Check for Google API permission errors (403)
     if (error.code === 403 && error.errors && error.errors.length > 0) {
       console.error(
@@ -97,8 +98,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Handle authentication errors
-    if (error.message === "Not authenticated" || 
-        error.message === "Not authenticated. No access token.") {
+    if (
+      error.message === "Not authenticated" ||
+      error.message === "Not authenticated. No access token."
+    ) {
       return NextResponse.json({ error: error.message }, { status: 401 });
     }
 
@@ -181,7 +184,7 @@ export async function PUT(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("PUT: Error updating sheet data:", error);
-    
+
     // Check for Google API permission errors (403)
     if (error.code === 403 && error.errors && error.errors.length > 0) {
       console.error(
@@ -198,8 +201,10 @@ export async function PUT(request: NextRequest) {
     }
 
     // Handle authentication errors
-    if (error.message === "Not authenticated" || 
-        error.message === "Not authenticated. No access token.") {
+    if (
+      error.message === "Not authenticated" ||
+      error.message === "Not authenticated. No access token."
+    ) {
       return NextResponse.json({ error: error.message }, { status: 401 });
     }
 

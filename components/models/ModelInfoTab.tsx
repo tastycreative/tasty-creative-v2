@@ -5,11 +5,11 @@ import { Calendar, User, Tag, Smile, Instagram, Twitter, Users, DollarSign, Tren
 interface ModelInfoTabProps {
   model: ModelDetails;
   isEditing: boolean;
-  onModelChange: (model: Model) => void;
+  onModelChange: (model: ModelDetails) => void;
 }
 
 export default function ModelInfoTab({ model, isEditing, onModelChange }: ModelInfoTabProps) {
-  const handleInputChange = (field: keyof Model, value: any) => {
+  const handleInputChange = (field: keyof ModelDetails, value: any) => {
     onModelChange({ ...model, [field]: value });
   };
 
@@ -179,7 +179,7 @@ export default function ModelInfoTab({ model, isEditing, onModelChange }: ModelI
               />
             ) : (
               <a
-                href={`https://instagram.com/${model.instagram.replace('@', '')}`}
+                href={`https://instagram.com/${model?.instagram?.replace('@', '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-pink-400 hover:text-pink-300 transition-colors"
@@ -205,7 +205,7 @@ export default function ModelInfoTab({ model, isEditing, onModelChange }: ModelI
               />
             ) : (
               <a
-                href={`https://twitter.com/${model.twitter.replace('@', '')}`}
+                href={`https://twitter.com/${model?.twitter?.replace('@', '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-400 hover:text-blue-300 transition-colors"
@@ -231,7 +231,7 @@ export default function ModelInfoTab({ model, isEditing, onModelChange }: ModelI
               />
             ) : (
               <a
-                href={`https://tiktok.com/@${model.tiktok.replace('@', '')}`}
+                href={`https://tiktok.com/@${model?.tiktok?.replace('@', '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-white hover:text-gray-300 transition-colors"
