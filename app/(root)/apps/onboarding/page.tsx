@@ -1,11 +1,13 @@
+import LaunchPrep from '@/components/LaunchPrep'
 import React from 'react'
 
-const page = () => {
+
+const Onboarding = () => {
   return (
-    <div>
-      
+    <div className='bg-black/60 w-full dark rounded-md'>
+       <LaunchPrep />
     </div>
   )
 }
 
-export default page
+export default Onboarding

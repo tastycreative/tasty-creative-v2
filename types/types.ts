@@ -225,3 +225,51 @@ interface GeneratedAudio {
   voiceName?: string;
 }
 
+// types/models.ts
+type ModelStatus = "active" | "dropped";
+
+interface ModelDetails {
+  id: string;
+  name: string;
+  status: ModelStatus;
+  launchDate: string;
+  referrerName: string;
+  personalityType: string;
+  commonTerms: string[];
+  commonEmojis: string[];
+  instagram?: string;
+  twitter?: string;
+  tiktok?: string;
+  chattingManagers: string[];
+  profileImage?: string;
+  stats?: {
+    totalRevenue: number;
+    monthlyRevenue: number;
+    subscribers: number;
+    avgResponseTime: string;
+  };
+}
+
+interface ModelAsset {
+  id: string;
+  modelId: string;
+  type: "all" | "live" | "vip" | "ftt" | string;
+  name: string;
+  url: string;
+  thumbnailUrl?: string;
+  createdAt: string;
+  size?: number;
+}
+
+interface ModelChatter {
+  id: string;
+  modelId: string;
+  name: string;
+  username: string;
+  lastActive: string;
+  totalSpent: number;
+  messageCount: number;
+  status: "online" | "offline" | "away";
+  tier: "whale" | "regular" | "new";
+  notes?: string;
+}
