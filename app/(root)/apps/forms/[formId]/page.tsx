@@ -41,11 +41,11 @@ export default function FormViewPage() {
     try {
       const response = await fetch(`/api/forms/${params?.formId}`);
       const data = await response.json();
-      
+
       if (data.error) {
         throw new Error(data.error);
       }
-      
+
       setForm(data.form);
     } catch (error) {
       console.error("Error fetching form:", error);
@@ -65,21 +65,21 @@ export default function FormViewPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       setSubmitting(true);
-      
+
       // Add User (email and name) and Timestamp
       const formData = {
-        User: `${session?.user?.name || ''} (${session?.user?.email || ''})`,
+        User: `${session?.user?.name || ""} (${session?.user?.email || ""})`,
         Timestamp: new Date().toISOString(),
         ...responses,
       };
 
       // Submit to API
-      const response = await fetch('/api/forms/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/forms/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           spreadsheetId: form?.spreadsheetId,
           formId: form?.id,
@@ -89,12 +89,12 @@ export default function FormViewPage() {
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to submit form');
+      if (!response.ok) throw new Error("Failed to submit form");
 
-      alert('Form submitted successfully!');
-      router.push('/apps/forms');
-    } catch  {
-      alert('Error submitting form');
+      alert("Form submitted successfully!");
+      router.push("/apps/forms");
+    } catch {
+      alert("Error submitting form");
     } finally {
       setSubmitting(false);
     }
@@ -111,33 +111,35 @@ export default function FormViewPage() {
   if (!form) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-lg text-gray-600 dark:text-gray-400">Form not found</p>
+        <p className="text-lg text-gray-600 dark:text-gray-400">
+          Form not found
+        </p>
       </div>
     );
   }
 
-  const displayTitle = form.title.replace(` - ${form.creatorEmail}`, '');
+  const displayTitle = form.title.replace(` - ${form.creatorEmail}`, "");
 
   return (
-    <motion.div
+    <div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       className="max-w-3xl mx-auto p-6"
     >
       {/* Back Button */}
-      <motion.button
+      <button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        onClick={() => router.push('/apps/forms')}
+        onClick={() => router.push("/apps/forms")}
         className="flex items-center gap-2 mb-6 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors"
       >
         <ChevronLeft className="w-5 h-5" />
         Back to Forms
-      </motion.button>
+      </button>
 
       {/* Form Header */}
-      <motion.div
+      <div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
@@ -145,12 +147,12 @@ export default function FormViewPage() {
       >
         <h1 className="text-3xl font-bold mb-2">{displayTitle}</h1>
         <p className="text-white/90">Please fill out this form</p>
-      </motion.div>
+      </div>
 
       {/* Form Questions */}
       <form onSubmit={handleSubmit} className="space-y-6">
         {form.questions.map((question: Question, index: number) => (
-          <motion.div
+          <div
             key={question.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -160,40 +162,50 @@ export default function FormViewPage() {
             <div className="mb-4">
               <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-1">
                 {question.title}
-                {question.required && <span className="text-red-500 ml-1">*</span>}
+                {question.required && (
+                  <span className="text-red-500 ml-1">*</span>
+                )}
               </h3>
             </div>
 
             {/* Dynamic Input based on question type */}
-            {question.title.toLowerCase().includes('email') ? (
+            {question.title.toLowerCase().includes("email") ? (
               <input
                 type="email"
                 required={question.required}
-                onChange={(e) => handleInputChange(question.title, e.target.value)}
+                onChange={(e) =>
+                  handleInputChange(question.title, e.target.value)
+                }
                 className="w-full px-4 py-3 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 placeholder="your@email.com"
               />
-            ) : question.title.toLowerCase().includes('phone') ? (
+            ) : question.title.toLowerCase().includes("phone") ? (
               <input
                 type="tel"
                 required={question.required}
-                onChange={(e) => handleInputChange(question.title, e.target.value)}
+                onChange={(e) =>
+                  handleInputChange(question.title, e.target.value)
+                }
                 className="w-full px-4 py-3 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 placeholder="Your phone number"
               />
-            ) : question.title.toLowerCase().includes('date') ? (
+            ) : question.title.toLowerCase().includes("date") ? (
               <input
                 type="date"
                 required={question.required}
-                onChange={(e) => handleInputChange(question.title, e.target.value)}
+                onChange={(e) =>
+                  handleInputChange(question.title, e.target.value)
+                }
                 className="w-full px-4 py-3 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
               />
-            ) : question.title.toLowerCase().includes('description') || 
-               question.title.toLowerCase().includes('comment') ||
-               question.title.toLowerCase().includes('message') ? (
+            ) : question.title.toLowerCase().includes("description") ||
+              question.title.toLowerCase().includes("comment") ||
+              question.title.toLowerCase().includes("message") ? (
               <textarea
                 required={question.required}
-                onChange={(e) => handleInputChange(question.title, e.target.value)}
+                onChange={(e) =>
+                  handleInputChange(question.title, e.target.value)
+                }
                 className="w-full px-4 py-3 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none"
                 rows={4}
                 placeholder="Your answer"
@@ -202,22 +214,24 @@ export default function FormViewPage() {
               <input
                 type="text"
                 required={question.required}
-                onChange={(e) => handleInputChange(question.title, e.target.value)}
+                onChange={(e) =>
+                  handleInputChange(question.title, e.target.value)
+                }
                 className="w-full px-4 py-3 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 placeholder="Your answer"
               />
             )}
-          </motion.div>
+          </div>
         ))}
 
         {/* Submit Button */}
-        <motion.div
+        <div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
           className="flex justify-end"
         >
-          <motion.button
+          <button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             type="submit"
@@ -229,10 +243,10 @@ export default function FormViewPage() {
             ) : (
               <Send className="w-5 h-5" />
             )}
-            {submitting ? 'Submitting...' : 'Submit'}
-          </motion.button>
-        </motion.div>
+            {submitting ? "Submitting..." : "Submit"}
+          </button>
+        </div>
       </form>
-    </motion.div>
+    </div>
   );
 }

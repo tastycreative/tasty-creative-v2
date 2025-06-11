@@ -7,7 +7,6 @@ import ModelDetailsModal from "@/components/models/ModelDetailsModal";
 import ModelsList from "@/components/models/ModelList";
 import ModelsHeader from "@/components/models/ModelsHeader";
 
-
 export default function ModelsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<ModelStatus | "all">("all");
@@ -61,8 +60,11 @@ export default function ModelsPage() {
   ]);
 
   const filteredModels = models.filter((model) => {
-    const matchesSearch = model.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || model.status === statusFilter;
+    const matchesSearch = model.name
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    const matchesStatus =
+      statusFilter === "all" || model.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -72,7 +74,7 @@ export default function ModelsPage() {
   };
 
   return (
-    <motion.div
+    <div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="w-full max-w-7xl mx-auto p-4 lg:p-6"
@@ -83,13 +85,10 @@ export default function ModelsPage() {
         statusFilter={statusFilter}
         setStatusFilter={setStatusFilter}
         totalModels={models.length}
-        activeModels={models.filter(m => m.status === "active").length}
+        activeModels={models.filter((m) => m.status === "active").length}
       />
 
-      <ModelsList
-        models={filteredModels}
-        onModelClick={handleModelClick}
-      />
+      <ModelsList models={filteredModels} onModelClick={handleModelClick} />
 
       {showDetailsModal && selectedModel && (
         <ModelDetailsModal
@@ -101,6 +100,6 @@ export default function ModelsPage() {
           }}
         />
       )}
-    </motion.div>
+    </div>
   );
 }

@@ -82,7 +82,7 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
   };
 
   return (
-    <motion.div
+    <div
       className="w-full h-full flex flex-col"
       initial={{ opacity: 0 }}
       animate={{ opacity: isReady ? 1 : 0 }}
@@ -90,7 +90,7 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
     >
       <title>Generate</title>
       {/* Header */}
-      <motion.div
+      <div
         className="mb-8"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: isReady ? 1 : 0, y: isReady ? 0 : -20 }}
@@ -103,10 +103,10 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
           Create AI voices, images, and more with our powerful generative AI
           tools.
         </p>
-      </motion.div>
+      </div>
 
       {/* Tabs Navigation */}
-      <motion.div
+      <div
         className="relative mb-8"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: isReady ? 1 : 0, y: isReady ? 0 : -10 }}
@@ -119,7 +119,7 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
             const isActive = activeTab === tab.id;
 
             return (
-              <motion.button
+              <button
                 key={tab.id}
                 onClick={() => handleTabClick(tab)}
                 className={`relative flex items-center gap-2 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
@@ -132,7 +132,7 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
               >
                 {/* Active Tab Background */}
                 {isActive && (
-                  <motion.div
+                  <div
                     layoutId="activeTab"
                     className={`absolute inset-0 rounded-xl bg-gradient-to-r ${tab.color}`}
                     initial={false}
@@ -152,7 +152,7 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
 
                 {/* Hover Glow Effect */}
                 {isActive && (
-                  <motion.div
+                  <div
                     className={`absolute inset-0 rounded-xl bg-gradient-to-r ${tab.color} blur-xl opacity-50`}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 0.5 }}
@@ -160,14 +160,14 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
                     transition={{ duration: 0.3 }}
                   />
                 )}
-              </motion.button>
+              </button>
             );
           })}
         </div>
-      </motion.div>
+      </div>
 
       {/* Tab Content */}
-      <motion.div
+      <div
         className="flex-1 relative overflow-hidden"
         initial={{ opacity: 0 }}
         animate={{ opacity: isReady ? 1 : 0 }}
@@ -177,7 +177,7 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
         <div className="h-full rounded-2xl bg-white/5 dark:bg-gray-800/20 backdrop-blur-sm border border-white/10 dark:border-gray-700/20 p-6">
           {children}
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }

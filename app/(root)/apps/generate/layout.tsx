@@ -3,14 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter, usePathname } from "next/navigation";
-import { 
-  Sparkles, 
-  Crown, 
-  Gamepad2, 
-  Zap, 
-  Twitter, 
-  Film,
-} from "lucide-react";
+import { Sparkles, Crown, Gamepad2, Zap, Twitter, Film } from "lucide-react";
 
 type TabType = "live" | "vip" | "game" | "ftt" | "twitter" | "gif";
 
@@ -30,7 +23,9 @@ export default function GenerateLayout({ children }: GenerateLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [isReady, setIsReady] = useState(false);
-  const [activeTabOverride, setActiveTabOverride] = useState<TabType | null>(null);
+  const [activeTabOverride, setActiveTabOverride] = useState<TabType | null>(
+    null
+  );
 
   useEffect(() => {
     // Small delay to ensure smooth transition
@@ -47,12 +42,48 @@ export default function GenerateLayout({ children }: GenerateLayoutProps) {
   }, [pathname]);
 
   const tabs: Tab[] = [
-    { id: "live", label: "Live", icon: Sparkles, color: "from-red-500 to-pink-500", href: "/apps/generate/live" },
-    { id: "vip", label: "VIP", icon: Crown, color: "from-yellow-500 to-amber-500", href: "/apps/generate/vip" },
-    { id: "game", label: "Game", icon: Gamepad2, color: "from-purple-500 to-indigo-500", href: "/apps/generate/game" },
-    { id: "ftt", label: "FTT", icon: Zap, color: "from-blue-500 to-cyan-500", href: "/apps/generate/ftt" },
-    { id: "twitter", label: "Twitter Ads", icon: Twitter, color: "from-sky-500 to-blue-500", href: "/apps/generate/twitter" },
-    { id: "gif", label: "GIF Maker", icon: Film, color: "from-green-500 to-emerald-500", href: "/apps/generate/gif" },
+    {
+      id: "live",
+      label: "Live",
+      icon: Sparkles,
+      color: "from-red-500 to-pink-500",
+      href: "/apps/generate/live",
+    },
+    {
+      id: "vip",
+      label: "VIP",
+      icon: Crown,
+      color: "from-yellow-500 to-amber-500",
+      href: "/apps/generate/vip",
+    },
+    {
+      id: "game",
+      label: "Game",
+      icon: Gamepad2,
+      color: "from-purple-500 to-indigo-500",
+      href: "/apps/generate/game",
+    },
+    {
+      id: "ftt",
+      label: "FTT",
+      icon: Zap,
+      color: "from-blue-500 to-cyan-500",
+      href: "/apps/generate/ftt",
+    },
+    {
+      id: "twitter",
+      label: "Twitter Ads",
+      icon: Twitter,
+      color: "from-sky-500 to-blue-500",
+      href: "/apps/generate/twitter",
+    },
+    {
+      id: "gif",
+      label: "GIF Maker",
+      icon: Film,
+      color: "from-green-500 to-emerald-500",
+      href: "/apps/generate/gif",
+    },
   ];
 
   // Get active tab based on current pathname
@@ -61,8 +92,8 @@ export default function GenerateLayout({ children }: GenerateLayoutProps) {
     if (activeTabOverride) {
       return activeTabOverride;
     }
-    
-    const currentTab = tabs.find(tab => pathname === tab.href);
+
+    const currentTab = tabs.find((tab) => pathname === tab.href);
     return currentTab?.id || "live";
   };
 
@@ -75,7 +106,7 @@ export default function GenerateLayout({ children }: GenerateLayoutProps) {
   };
 
   return (
-    <motion.div 
+    <div
       className="w-full h-full flex flex-col"
       initial={{ opacity: 0 }}
       animate={{ opacity: isReady ? 1 : 0 }}
@@ -83,7 +114,7 @@ export default function GenerateLayout({ children }: GenerateLayoutProps) {
     >
       <title>Generate</title>
       {/* Header */}
-      <motion.div 
+      <div
         className="mb-8"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: isReady ? 1 : 0, y: isReady ? 0 : -20 }}
@@ -95,10 +126,10 @@ export default function GenerateLayout({ children }: GenerateLayoutProps) {
         <p className="text-gray-600 dark:text-gray-300">
           Create stunning visuals for your campaigns
         </p>
-      </motion.div>
+      </div>
 
       {/* Tabs Navigation */}
-      <motion.div 
+      <div
         className="relative mb-8"
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: isReady ? 1 : 0, y: isReady ? 0 : -10 }}
@@ -109,14 +140,14 @@ export default function GenerateLayout({ children }: GenerateLayoutProps) {
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
-            
+
             return (
-              <motion.button
+              <button
                 key={tab.id}
                 onClick={() => handleTabClick(tab)}
                 className={`relative flex items-center gap-2 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
-                  isActive 
-                    ? "text-white" 
+                  isActive
+                    ? "text-white"
                     : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
                 }`}
                 whileHover={{ scale: 1.05 }}
@@ -124,14 +155,14 @@ export default function GenerateLayout({ children }: GenerateLayoutProps) {
               >
                 {/* Active Tab Background */}
                 {isActive && (
-                  <motion.div
+                  <div
                     layoutId="activeTab"
                     className={`absolute inset-0 rounded-xl bg-gradient-to-r ${tab.color}`}
                     initial={false}
                     transition={{
                       type: "spring",
                       stiffness: 300,
-                      damping: 30
+                      damping: 30,
                     }}
                   />
                 )}
@@ -144,7 +175,7 @@ export default function GenerateLayout({ children }: GenerateLayoutProps) {
 
                 {/* Hover Glow Effect */}
                 {isActive && (
-                  <motion.div
+                  <div
                     className={`absolute inset-0 rounded-xl bg-gradient-to-r ${tab.color} blur-xl opacity-50`}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 0.5 }}
@@ -152,14 +183,14 @@ export default function GenerateLayout({ children }: GenerateLayoutProps) {
                     transition={{ duration: 0.3 }}
                   />
                 )}
-              </motion.button>
+              </button>
             );
           })}
         </div>
-      </motion.div>
+      </div>
 
       {/* Tab Content */}
-      <motion.div 
+      <div
         className="flex-1 relative overflow-hidden"
         initial={{ opacity: 0 }}
         animate={{ opacity: isReady ? 1 : 0 }}
@@ -169,7 +200,7 @@ export default function GenerateLayout({ children }: GenerateLayoutProps) {
         <div className="h-full rounded-2xl bg-white/5 dark:bg-gray-800/20 backdrop-blur-sm border border-white/10 dark:border-gray-700/20 p-6">
           {children}
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }

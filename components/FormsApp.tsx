@@ -195,7 +195,7 @@ function FormsList({
   }
 
   return (
-    <motion.div
+    <div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -211,7 +211,7 @@ function FormsList({
             Manage your Google Sheets forms
           </p>
         </div>
-        <motion.button
+        <button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={handleCreateNew}
@@ -219,7 +219,7 @@ function FormsList({
         >
           <Plus className="w-5 h-5" />
           <span className="whitespace-nowrap">Create Form</span>
-        </motion.button>
+        </button>
       </div>
 
       {/* Forms Grid */}
@@ -232,7 +232,7 @@ function FormsList({
           );
 
           return (
-            <motion.div
+            <div
               key={form.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -320,13 +320,13 @@ function FormsList({
                 {canEdit && (
                   <AnimatePresence>
                     {hoveredForm === form.id && (
-                      <motion.div
+                      <div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
                         className="hidden sm:flex absolute bottom-4 sm:bottom-6 left-4 sm:left-6 right-4 sm:right-6 gap-2"
                       >
-                        <motion.button
+                        <button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={(e) => {
@@ -337,9 +337,9 @@ function FormsList({
                         >
                           <BarChart3 className="w-4 h-4" />
                           Results
-                        </motion.button>
+                        </button>
 
-                        <motion.button
+                        <button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={(e) => {
@@ -350,13 +350,13 @@ function FormsList({
                         >
                           <Edit3 className="w-4 h-4" />
                           Edit
-                        </motion.button>
-                      </motion.div>
+                        </button>
+                      </div>
                     )}
                   </AnimatePresence>
                 )}
               </div>
-            </motion.div>
+            </div>
           );
         })}
       </div>
@@ -371,7 +371,7 @@ function FormsList({
           <p className="text-gray-600 dark:text-gray-400 text-center mb-6 px-4">
             Create your first form to get started collecting responses
           </p>
-          <motion.button
+          <button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleCreateNew}
@@ -379,10 +379,10 @@ function FormsList({
           >
             <Plus className="w-5 h-5" />
             Create Your First Form
-          </motion.button>
+          </button>
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }
 
@@ -434,14 +434,14 @@ function FormView({ form, handleBack, session }: any) {
   };
 
   return (
-    <motion.div
+    <div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       className="w-full max-w-3xl mx-auto p-4 sm:p-6 min-h-screen"
     >
       {/* Back Button */}
-      <motion.button
+      <button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={handleBack}
@@ -450,10 +450,10 @@ function FormView({ form, handleBack, session }: any) {
         <ChevronLeft className="w-5 h-5" />
         <span className="hidden sm:inline">Back to Forms</span>
         <span className="sm:hidden">Back</span>
-      </motion.button>
+      </button>
 
       {/* Form Header */}
-      <motion.div
+      <div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
@@ -465,12 +465,12 @@ function FormView({ form, handleBack, session }: any) {
         <p className="text-white/90 text-sm sm:text-base">
           Please fill out this form
         </p>
-      </motion.div>
+      </div>
 
       {/* Form Questions */}
       <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
         {form.questions.map((question: Question, index: number) => (
-          <motion.div
+          <div
             key={question.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -554,17 +554,17 @@ function FormView({ form, handleBack, session }: any) {
                 placeholder="Your answer"
               />
             )}
-          </motion.div>
+          </div>
         ))}
 
         {/* Submit Button */}
-        <motion.div
+        <div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
           className="flex justify-end"
         >
-          <motion.button
+          <button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             type="submit"
@@ -577,10 +577,10 @@ function FormView({ form, handleBack, session }: any) {
               <Send className="w-5 h-5" />
             )}
             {submitting ? "Submitting..." : "Submit"}
-          </motion.button>
-        </motion.div>
+          </button>
+        </div>
       </form>
-    </motion.div>
+    </div>
   );
 }
 
@@ -614,7 +614,7 @@ function ResultsView({ form, handleBack }: any) {
   };
 
   return (
-    <motion.div
+    <div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
@@ -623,14 +623,14 @@ function ResultsView({ form, handleBack }: any) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 space-y-4 sm:space-y-0">
         <div className="flex items-center gap-2 sm:gap-4">
-          <motion.button
+          <button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleBack}
             className="p-2 rounded-lg hover:bg-white/10 transition-colors"
           >
             <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
-          </motion.button>
+          </button>
           <div>
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 dark:text-white leading-tight">
               <span className="hidden sm:inline">{displayTitle} - Results</span>
@@ -642,7 +642,7 @@ function ResultsView({ form, handleBack }: any) {
           </div>
         </div>
         <div className="flex gap-2">
-          <motion.button
+          <button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={exportToCSV}
@@ -650,7 +650,7 @@ function ResultsView({ form, handleBack }: any) {
           >
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Export</span>
-          </motion.button>
+          </button>
         </div>
       </div>
 
@@ -757,7 +757,7 @@ function ResultsView({ form, handleBack }: any) {
           </div>
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }
 
@@ -824,14 +824,14 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
   };
 
   return (
-    <motion.div
+    <div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       className="w-full max-w-3xl mx-auto p-4 sm:p-6 min-h-screen"
     >
       {/* Back Button */}
-      <motion.button
+      <button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={handleBack}
@@ -840,7 +840,7 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
         <ChevronLeft className="w-5 h-5" />
         <span className="hidden sm:inline">Back to Forms</span>
         <span className="sm:hidden">Back</span>
-      </motion.button>
+      </button>
 
       {/* Form Header */}
       <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white mb-6 sm:mb-8">
@@ -849,7 +849,7 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
 
       <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
         {/* Form Title */}
-        <motion.div
+        <div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white/10 dark:bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-gray-700/30 p-4 sm:p-6"
@@ -868,10 +868,10 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
           <p className="mt-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
             Your email will be automatically added to the title
           </p>
-        </motion.div>
+        </div>
 
         {/* Headers/Questions */}
-        <motion.div
+        <div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -881,7 +881,7 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
             <label className="text-base sm:text-lg font-semibold text-gray-800 dark:text-white">
               Form Questions
             </label>
-            <motion.button
+            <button
               type="button"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -890,12 +890,12 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
             >
               <Plus className="w-4 h-4" />
               Add Question
-            </motion.button>
+            </button>
           </div>
 
           <div className="space-y-3">
             {headers.map((header, index) => (
-              <motion.div
+              <div
                 key={index}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -909,7 +909,7 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
                   className="flex-1 px-3 sm:px-4 py-2 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm sm:text-base"
                   placeholder={`Question ${index + 1} (add ' - required' for required fields)`}
                 />
-                <motion.button
+                <button
                   type="button"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
@@ -917,8 +917,8 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
                   className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors flex-shrink-0"
                 >
                   <X className="w-4 h-4 sm:w-5 sm:h-5" />
-                </motion.button>
-              </motion.div>
+                </button>
+              </div>
             ))}
           </div>
 
@@ -926,18 +926,18 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
             Add &quot; - required&quot; to the end of a question to make it
             required
           </p>
-        </motion.div>
+        </div>
 
         {/* Submit Button */}
         {(session?.user?.role === "ADMIN" ||
           session?.user?.role === "MODERATOR") && (
-          <motion.div
+          <div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
             className="flex flex-col sm:flex-row justify-end gap-4"
           >
-            <motion.button
+            <button
               type="button"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -945,8 +945,8 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
               className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-xl font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors order-2 sm:order-1"
             >
               Cancel
-            </motion.button>
-            <motion.button
+            </button>
+            <button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               type="submit"
@@ -959,11 +959,11 @@ function CreateEditForm({ form, handleBack, session, onSuccess }: any) {
                 <CheckCircle className="w-5 h-5" />
               )}
               {submitting ? "Saving..." : form ? "Update Form" : "Create Form"}
-            </motion.button>
-          </motion.div>
+            </button>
+          </div>
         )}
       </form>
-    </motion.div>
+    </div>
   );
 }
 

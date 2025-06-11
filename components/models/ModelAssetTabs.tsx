@@ -2,7 +2,17 @@
 "use client";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Image, FileText, Star, Upload, Download, Trash2, Plus, Grid, List } from "lucide-react";
+import {
+  Image,
+  FileText,
+  Star,
+  Upload,
+  Download,
+  Trash2,
+  Plus,
+  Grid,
+  List,
+} from "lucide-react";
 
 interface Asset {
   id: string;
@@ -19,8 +29,10 @@ interface ModelAssetsTabProps {
 
 export default function ModelAssetsTab({ modelId }: ModelAssetsTabProps) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [selectedType, setSelectedType] = useState<"all" | "liveFlyers" | "vipFlyers" | "fttFlyers">("all");
-  
+  const [selectedType, setSelectedType] = useState<
+    "all" | "liveFlyers" | "vipFlyers" | "fttFlyers"
+  >("all");
+
   // Mock data - replace with API call
   const [assets] = useState<Asset[]>([
     {
@@ -29,7 +41,7 @@ export default function ModelAssetsTab({ modelId }: ModelAssetsTabProps) {
       type: "liveFlyers",
       uploadDate: "2024-03-15",
       size: "2.4 MB",
-      preview: "/api/placeholder/200/200"
+      preview: "/api/placeholder/200/200",
     },
     {
       id: "2",
@@ -37,7 +49,7 @@ export default function ModelAssetsTab({ modelId }: ModelAssetsTabProps) {
       type: "vipFlyers",
       uploadDate: "2024-03-14",
       size: "1.8 MB",
-      preview: "/api/placeholder/200/200"
+      preview: "/api/placeholder/200/200",
     },
     {
       id: "3",
@@ -45,20 +57,36 @@ export default function ModelAssetsTab({ modelId }: ModelAssetsTabProps) {
       type: "fttFlyers",
       uploadDate: "2024-03-13",
       size: "3.1 MB",
-      preview: "/api/placeholder/200/200"
-    }
+      preview: "/api/placeholder/200/200",
+    },
   ]);
 
   const assetTypes = [
     { id: "all", label: "All Assets", icon: Image, count: assets.length },
-    { id: "liveFlyers", label: "Live Flyers", icon: FileText, count: assets.filter(a => a.type === "liveFlyers").length },
-    { id: "vipFlyers", label: "VIP Flyers", icon: Star, count: assets.filter(a => a.type === "vipFlyers").length },
-    { id: "fttFlyers", label: "FTT Flyers", icon: FileText, count: assets.filter(a => a.type === "fttFlyers").length },
+    {
+      id: "liveFlyers",
+      label: "Live Flyers",
+      icon: FileText,
+      count: assets.filter((a) => a.type === "liveFlyers").length,
+    },
+    {
+      id: "vipFlyers",
+      label: "VIP Flyers",
+      icon: Star,
+      count: assets.filter((a) => a.type === "vipFlyers").length,
+    },
+    {
+      id: "fttFlyers",
+      label: "FTT Flyers",
+      icon: FileText,
+      count: assets.filter((a) => a.type === "fttFlyers").length,
+    },
   ];
 
-  const filteredAssets = selectedType === "all" 
-    ? assets 
-    : assets.filter(asset => asset.type === selectedType);
+  const filteredAssets =
+    selectedType === "all"
+      ? assets
+      : assets.filter((asset) => asset.type === selectedType);
 
   return (
     <div className="space-y-6">
@@ -66,15 +94,17 @@ export default function ModelAssetsTab({ modelId }: ModelAssetsTabProps) {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h3 className="text-xl font-semibold text-white">Model Assets</h3>
-          <p className="text-gray-400 text-sm mt-1">Manage promotional materials and content</p>
+          <p className="text-gray-400 text-sm mt-1">
+            Manage promotional materials and content
+          </p>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <button
             onClick={() => setViewMode("grid")}
             className={`p-2 rounded-lg transition-colors ${
-              viewMode === "grid" 
-                ? "bg-purple-500/20 text-purple-400" 
+              viewMode === "grid"
+                ? "bg-purple-500/20 text-purple-400"
                 : "bg-white/5 text-gray-400 hover:bg-white/10"
             }`}
           >
@@ -83,14 +113,14 @@ export default function ModelAssetsTab({ modelId }: ModelAssetsTabProps) {
           <button
             onClick={() => setViewMode("list")}
             className={`p-2 rounded-lg transition-colors ${
-              viewMode === "list" 
-                ? "bg-purple-500/20 text-purple-400" 
+              viewMode === "list"
+                ? "bg-purple-500/20 text-purple-400"
                 : "bg-white/5 text-gray-400 hover:bg-white/10"
             }`}
           >
             <List className="w-5 h-5" />
           </button>
-          
+
           <button className="ml-4 px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2">
             <Upload className="w-4 h-4" />
             Upload Assets
@@ -133,7 +163,7 @@ export default function ModelAssetsTab({ modelId }: ModelAssetsTabProps) {
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filteredAssets.map((asset, index) => (
-            <motion.div
+            <div
               key={asset.id}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -158,16 +188,18 @@ export default function ModelAssetsTab({ modelId }: ModelAssetsTabProps) {
                 </div>
               </div>
               <div className="p-3">
-                <p className="text-white text-sm font-medium truncate">{asset.name}</p>
+                <p className="text-white text-sm font-medium truncate">
+                  {asset.name}
+                </p>
                 <p className="text-gray-400 text-xs">{asset.size}</p>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       ) : (
         <div className="space-y-2">
           {filteredAssets.map((asset, index) => (
-            <motion.div
+            <div
               key={asset.id}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -187,11 +219,12 @@ export default function ModelAssetsTab({ modelId }: ModelAssetsTabProps) {
                 <div>
                   <p className="text-white font-medium">{asset.name}</p>
                   <p className="text-gray-400 text-sm">
-                    {asset.size} • Uploaded {new Date(asset.uploadDate).toLocaleDateString()}
+                    {asset.size} • Uploaded{" "}
+                    {new Date(asset.uploadDate).toLocaleDateString()}
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <button className="p-2 hover:bg-white/10 rounded-lg transition-colors">
                   <Download className="w-4 h-4 text-gray-400" />
@@ -200,7 +233,7 @@ export default function ModelAssetsTab({ modelId }: ModelAssetsTabProps) {
                   <Trash2 className="w-4 h-4 text-red-400" />
                 </button>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       )}

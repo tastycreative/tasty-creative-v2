@@ -11,7 +11,7 @@ export default function GeneratePage() {
   if (!startCreating) {
     return (
       <div className="flex flex-col items-center justify-center h-full">
-        <motion.div
+        <div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.3, delay: 0.1 }}
@@ -24,7 +24,8 @@ export default function GeneratePage() {
             Live Flyers
           </h2>
           <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-md">
-            Create eye-catching graphics for your model&apos;s live streams and events.
+            Create eye-catching graphics for your model&apos;s live streams and
+            events.
           </p>
           <button
             onClick={() => {
@@ -34,7 +35,7 @@ export default function GeneratePage() {
           >
             Start Creating
           </button>
-        </motion.div>
+        </div>
       </div>
     );
   }

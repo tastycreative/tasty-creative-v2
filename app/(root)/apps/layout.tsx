@@ -22,7 +22,7 @@ export default function AppsLayout({
   return (
     <div className="relative w-full h-full">
       {/* Animated Background Gradient */}
-      <motion.div
+      <div
         className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-purple-50/50 to-pink-50/50 dark:from-blue-950/20 dark:via-purple-950/20 dark:to-pink-950/20"
         animate={{
           background: [
@@ -40,7 +40,7 @@ export default function AppsLayout({
 
       {/* Back Button - Only show on sub-pages */}
       {isSubPage && (
-        <motion.button
+        <button
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
@@ -52,27 +52,23 @@ export default function AppsLayout({
           <span className="font-medium text-gray-700 dark:text-gray-200">
             Back to Apps
           </span>
-        </motion.button>
+        </button>
       )}
 
       {/* Page Content */}
       <div className="relative w-full h-full">
         {/* Fluid Animation Overlay */}
-        <motion.div
+        <div
           className="absolute inset-0 pointer-events-none"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
         >
           <div className="absolute inset-0 bg-gradient-to-t from-transparent via-white/5 to-transparent" />
-        </motion.div>
+        </div>
 
         {/* Children Content */}
-        <div
-          className={`relative z-10 h-full ${
-            isSubPage ? "pt-12" : ""
-          }`}
-        >
+        <div className={`relative z-10 h-full ${isSubPage ? "pt-12" : ""}`}>
           {children}
         </div>
       </div>

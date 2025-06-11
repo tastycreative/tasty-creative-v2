@@ -9,7 +9,10 @@ interface ModelDetailsTabsProps {
   setActiveTab: (tab: "info" | "assets" | "chatters") => void;
 }
 
-export default function ModelDetailsTabs({ activeTab, setActiveTab }: ModelDetailsTabsProps) {
+export default function ModelDetailsTabs({
+  activeTab,
+  setActiveTab,
+}: ModelDetailsTabsProps) {
   const tabs = [
     { id: "info" as const, label: "Information", icon: Info },
     { id: "assets" as const, label: "Assets", icon: Image },
@@ -33,7 +36,7 @@ export default function ModelDetailsTabs({ activeTab, setActiveTab }: ModelDetai
             <Icon className="w-5 h-5" />
             <span className="hidden sm:inline">{tab.label}</span>
             {activeTab === tab.id && (
-              <motion.div
+              <div
                 layoutId="activeTab"
                 className="absolute bottom-0 left-0 right-0 h-0.5 bg-purple-500"
               />

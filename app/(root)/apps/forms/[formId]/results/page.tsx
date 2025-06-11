@@ -5,7 +5,16 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ChevronLeft, Download, Loader2, FileText, Calendar, User, Eye, EyeOff } from "lucide-react";
+import {
+  ChevronLeft,
+  Download,
+  Loader2,
+  FileText,
+  Calendar,
+  User,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 
 interface Form {
   id: string;
@@ -63,15 +72,17 @@ export default function FormResultsPage() {
       // Fetch form details
       const formResponse = await fetch(`/api/forms/${params?.formId}`);
       const formData = await formResponse.json();
-      
+
       if (formData.error) {
         throw new Error(formData.error);
       }
-      
+
       setForm(formData.form);
 
       // Fetch responses
-      const responsesResponse = await fetch(`/api/forms/responses?spreadsheetId=${formData.form.spreadsheetId}`);
+      const responsesResponse = await fetch(
+        `/api/forms/responses?spreadsheetId=${formData.form.spreadsheetId}`
+      );
       const responsesData = await responsesResponse.json();
       setResponses(responsesData.responses || []);
     } catch (error) {
@@ -102,35 +113,43 @@ export default function FormResultsPage() {
     if (!form || responses.length === 0) return;
 
     // Create CSV content
-    const headers = ['User', 'Timestamp', ...form.questions.map(q => q.title)];
+    const headers = [
+      "User",
+      "Timestamp",
+      ...form.questions.map((q) => q.title),
+    ];
     const csvContent = [
-      headers.join(','),
-      ...responses.map(response => 
-        headers.map(header => {
-          const value = response.data[header] || '';
-          // Escape commas and quotes in CSV
-          return `"${String(value).replace(/"/g, '""')}"`;
-        }).join(',')
-      )
-    ].join('\n');
+      headers.join(","),
+      ...responses.map((response) =>
+        headers
+          .map((header) => {
+            const value = response.data[header] || "";
+            // Escape commas and quotes in CSV
+            return `"${String(value).replace(/"/g, '""')}"`;
+          })
+          .join(",")
+      ),
+    ].join("\n");
 
     // Download CSV
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const blob = new Blob([csvContent], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `${form.title.replace(/ - .*/, '')}_responses_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `${form.title.replace(/ - .*/, "")}_responses_${new Date().toISOString().split("T")[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
-  const displayTitle = form ? form.title.replace(` - ${form.creatorEmail}`, '') : '';
+  const displayTitle = form
+    ? form.title.replace(` - ${form.creatorEmail}`, "")
+    : "";
 
   // Inject CSS for line-clamp
   useEffect(() => {
-    const styleSheet = document.createElement('style');
+    const styleSheet = document.createElement("style");
     styleSheet.textContent = styles;
     document.head.appendChild(styleSheet);
     return () => {
@@ -153,22 +172,24 @@ export default function FormResultsPage() {
       <div className="flex items-center justify-center h-screen px-4">
         <div className="text-center">
           <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <p className="text-lg text-gray-600 dark:text-gray-400">Form not found</p>
-          <motion.button
+          <p className="text-lg text-gray-600 dark:text-gray-400">
+            Form not found
+          </p>
+          <button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => router.push('/apps/forms')}
+            onClick={() => router.push("/apps/forms")}
             className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
           >
             Back to Forms
-          </motion.button>
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <motion.div
+    <div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
@@ -177,27 +198,28 @@ export default function FormResultsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 space-y-4 sm:space-y-0">
         <div className="flex items-center gap-2 sm:gap-4">
-          <motion.button
+          <button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => router.push('/apps/forms')}
+            onClick={() => router.push("/apps/forms")}
             className="p-2 rounded-lg hover:bg-white/10 transition-colors"
           >
             <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
-          </motion.button>
+          </button>
           <div className="min-w-0 flex-1">
             <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 dark:text-white leading-tight">
               <span className="hidden sm:inline">{displayTitle} - Results</span>
               <span className="sm:hidden truncate block">{displayTitle}</span>
             </h1>
             <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
-              {responses.length} {responses.length === 1 ? 'response' : 'responses'}
+              {responses.length}{" "}
+              {responses.length === 1 ? "response" : "responses"}
             </p>
           </div>
         </div>
-        
+
         {/* Export Button */}
-        <motion.button
+        <button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={exportToCSV}
@@ -206,7 +228,7 @@ export default function FormResultsPage() {
         >
           <Download className="w-4 h-4" />
           <span className="text-sm sm:text-base">Export CSV</span>
-        </motion.button>
+        </button>
       </div>
 
       {/* Results Content */}
@@ -226,8 +248,10 @@ export default function FormResultsPage() {
           <div className="block sm:hidden space-y-4">
             {responses.map((response, index) => {
               const MobileResponseCard = () => {
-                const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
-                
+                const [expandedQuestions, setExpandedQuestions] = useState<
+                  Set<string>
+                >(new Set());
+
                 const toggleQuestionExpansion = (questionId: string) => {
                   const newExpanded = new Set(expandedQuestions);
                   if (newExpanded.has(questionId)) {
@@ -237,9 +261,9 @@ export default function FormResultsPage() {
                   }
                   setExpandedQuestions(newExpanded);
                 };
-                
+
                 return (
-                  <motion.div
+                  <div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
@@ -251,18 +275,20 @@ export default function FormResultsPage() {
                         <div className="flex items-center gap-2 mb-1">
                           <User className="w-4 h-4 text-blue-500 flex-shrink-0" />
                           <span className="text-sm font-medium text-gray-800 dark:text-white truncate">
-                            {response.data.User || 'Anonymous'}
+                            {response.data.User || "Anonymous"}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Calendar className="w-3 h-3 text-gray-500 flex-shrink-0" />
                           <span className="text-xs text-gray-600 dark:text-gray-400">
-                            {new Date(response.data.Timestamp).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit'
+                            {new Date(
+                              response.data.Timestamp
+                            ).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
                             })}
                           </span>
                         </div>
@@ -276,23 +302,31 @@ export default function FormResultsPage() {
                     <div className="space-y-3">
                       {form.questions.map((question) => {
                         const answer = response.data[question.title];
-                        const isLongAnswer = answer && String(answer).length > 100;
+                        const isLongAnswer =
+                          answer && String(answer).length > 100;
                         const isExpanded = expandedQuestions.has(question.id);
-                        
+
                         return (
-                          <div key={question.id} className="border-t border-gray-200 dark:border-gray-700 pt-3 first:border-t-0 first:pt-0">
+                          <div
+                            key={question.id}
+                            className="border-t border-gray-200 dark:border-gray-700 pt-3 first:border-t-0 first:pt-0"
+                          >
                             <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 uppercase tracking-wide">
                               {question.title}
                             </div>
                             <div className="text-sm text-gray-800 dark:text-white">
                               {answer ? (
                                 <div className="space-y-2">
-                                  <div className={`${isLongAnswer && !isExpanded ? 'line-clamp-3' : ''} whitespace-pre-wrap break-words leading-relaxed`}>
+                                  <div
+                                    className={`${isLongAnswer && !isExpanded ? "line-clamp-3" : ""} whitespace-pre-wrap break-words leading-relaxed`}
+                                  >
                                     {String(answer)}
                                   </div>
                                   {isLongAnswer && (
                                     <button
-                                      onClick={() => toggleQuestionExpansion(question.id)}
+                                      onClick={() =>
+                                        toggleQuestionExpansion(question.id)
+                                      }
                                       className="flex items-center gap-1 text-blue-500 hover:text-blue-600 text-xs font-medium transition-colors"
                                     >
                                       {isExpanded ? (
@@ -310,17 +344,19 @@ export default function FormResultsPage() {
                                   )}
                                 </div>
                               ) : (
-                                <span className="text-gray-500 italic">No response</span>
+                                <span className="text-gray-500 italic">
+                                  No response
+                                </span>
                               )}
                             </div>
                           </div>
                         );
                       })}
                     </div>
-                  </motion.div>
+                  </div>
                 );
               };
-              
+
               return <MobileResponseCard key={response.id} />;
             })}
           </div>
@@ -338,8 +374,8 @@ export default function FormResultsPage() {
                       Timestamp
                     </th>
                     {form.questions.map((q: Question) => (
-                      <th 
-                        key={q.id} 
+                      <th
+                        key={q.id}
                         className="px-4 lg:px-6 py-4 text-left text-sm font-semibold text-gray-800 dark:text-white min-w-[150px] max-w-[250px]"
                       >
                         <div className="truncate" title={q.title}>
@@ -351,7 +387,7 @@ export default function FormResultsPage() {
                 </thead>
                 <tbody>
                   {responses.map((response, index) => (
-                    <motion.tr 
+                    <tr
                       key={response.id}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
@@ -364,8 +400,11 @@ export default function FormResultsPage() {
                             {index + 1}
                           </div>
                           <div className="min-w-0 flex-1">
-                            <div className="truncate font-medium" title={response.data.User}>
-                              {response.data.User || 'Anonymous'}
+                            <div
+                              className="truncate font-medium"
+                              title={response.data.User}
+                            >
+                              {response.data.User || "Anonymous"}
                             </div>
                           </div>
                         </div>
@@ -373,36 +412,45 @@ export default function FormResultsPage() {
                       <td className="px-4 lg:px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
                         <div className="whitespace-nowrap">
                           <div className="font-medium">
-                            {new Date(response.data.Timestamp).toLocaleDateString()}
+                            {new Date(
+                              response.data.Timestamp
+                            ).toLocaleDateString()}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {new Date(response.data.Timestamp).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit'
+                            {new Date(
+                              response.data.Timestamp
+                            ).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
                             })}
                           </div>
                         </div>
                       </td>
                       {form.questions.map((q: Question) => {
                         const answer = response.data[q.title];
-                        const isLongAnswer = answer && String(answer).length > 150;
+                        const isLongAnswer =
+                          answer && String(answer).length > 150;
                         // const cellKey = `${response.id}-${q.id}`;
                         const isExpanded = isCellExpanded(response.id, q.id);
-                        
+
                         return (
-                          <td 
-                            key={q.id} 
+                          <td
+                            key={q.id}
                             className="px-4 lg:px-6 py-4 text-sm text-gray-700 dark:text-gray-300 relative group"
                           >
                             <div className="max-w-[250px]">
                               {answer ? (
                                 <div className="space-y-1">
-                                  <div className={`${isLongAnswer && !isExpanded ? 'line-clamp-2' : ''} whitespace-pre-wrap break-words leading-relaxed`}>
+                                  <div
+                                    className={`${isLongAnswer && !isExpanded ? "line-clamp-2" : ""} whitespace-pre-wrap break-words leading-relaxed`}
+                                  >
                                     {String(answer)}
                                   </div>
                                   {isLongAnswer && (
                                     <button
-                                      onClick={() => toggleCellExpansion(response.id, q.id)}
+                                      onClick={() =>
+                                        toggleCellExpansion(response.id, q.id)
+                                      }
                                       className="flex items-center gap-1 text-blue-500 hover:text-blue-600 text-xs font-medium transition-colors mt-1"
                                     >
                                       {isExpanded ? (
@@ -420,13 +468,15 @@ export default function FormResultsPage() {
                                   )}
                                 </div>
                               ) : (
-                                <span className="text-gray-500 italic text-xs">No response</span>
+                                <span className="text-gray-500 italic text-xs">
+                                  No response
+                                </span>
                               )}
                             </div>
                           </td>
                         );
                       })}
-                    </motion.tr>
+                    </tr>
                   ))}
                 </tbody>
               </table>
@@ -459,6 +509,6 @@ export default function FormResultsPage() {
           </div>
         </>
       )}
-    </motion.div>
+    </div>
   );
 }

@@ -9,15 +9,20 @@ import ModelDetailsTabs from "./ModelDetailsTab";
 import ModelInfoTab from "./ModelInfoTab";
 import ModelChattersTab from "./tabs/ModelChattersTab";
 
-
 interface ModelDetailsModalProps {
   model: ModelDetails;
   isOpen: boolean;
   onClose: () => void;
 }
 
-export default function ModelDetailsModal({ model, isOpen, onClose }: ModelDetailsModalProps) {
-  const [activeTab, setActiveTab] = useState<"info" | "assets" | "chatters">("info");
+export default function ModelDetailsModal({
+  model,
+  isOpen,
+  onClose,
+}: ModelDetailsModalProps) {
+  const [activeTab, setActiveTab] = useState<"info" | "assets" | "chatters">(
+    "info"
+  );
   const [isEditing, setIsEditing] = useState(false);
   const [editedModel, setEditedModel] = useState(model);
 
@@ -32,7 +37,7 @@ export default function ModelDetailsModal({ model, isOpen, onClose }: ModelDetai
       {isOpen && (
         <>
           {/* Backdrop */}
-          <motion.div
+          <div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -41,7 +46,7 @@ export default function ModelDetailsModal({ model, isOpen, onClose }: ModelDetai
           />
 
           {/* Modal */}
-          <motion.div
+          <div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -57,11 +62,13 @@ export default function ModelDetailsModal({ model, isOpen, onClose }: ModelDetai
                     </span>
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-white">{model.name}</h2>
+                    <h2 className="text-2xl font-bold text-white">
+                      {model.name}
+                    </h2>
                     <p className="text-gray-400">{model.personalityType}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   {!isEditing ? (
                     <button
@@ -89,7 +96,10 @@ export default function ModelDetailsModal({ model, isOpen, onClose }: ModelDetai
             </div>
 
             {/* Tabs */}
-            <ModelDetailsTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+            <ModelDetailsTabs
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+            />
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6">
@@ -100,14 +110,12 @@ export default function ModelDetailsModal({ model, isOpen, onClose }: ModelDetai
                   onModelChange={setEditedModel}
                 />
               )}
-              {activeTab === "assets" && (
-                <ModelAssetsTab modelId={model.id} />
-              )}
+              {activeTab === "assets" && <ModelAssetsTab modelId={model.id} />}
               {activeTab === "chatters" && (
                 <ModelChattersTab modelId={model.id} />
               )}
             </div>
-          </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>

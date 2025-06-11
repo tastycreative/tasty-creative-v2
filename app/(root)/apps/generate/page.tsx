@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
@@ -6,7 +6,7 @@ import { Sparkles } from "lucide-react";
 export default function GeneratePage() {
   return (
     <div className="flex flex-col items-center justify-center h-full">
-      <motion.div
+      <div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.3, delay: 0.1 }}
@@ -25,7 +25,7 @@ export default function GeneratePage() {
         <button className="px-6 py-3 rounded-xl bg-gradient-to-r from-red-500 to-pink-500 text-white font-medium hover:shadow-lg transform hover:scale-105 transition-all duration-200">
           Start Creating
         </button>
-      </motion.div>
+      </div>
     </div>
   );
 }

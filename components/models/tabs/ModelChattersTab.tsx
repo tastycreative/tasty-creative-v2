@@ -2,7 +2,16 @@
 "use client";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { MessageSquare, User, Clock, DollarSign, TrendingUp, Search, Filter, MoreVertical } from "lucide-react";
+import {
+  MessageSquare,
+  User,
+  Clock,
+  DollarSign,
+  TrendingUp,
+  Search,
+  Filter,
+  MoreVertical,
+} from "lucide-react";
 
 interface Chatter {
   id: string;
@@ -22,7 +31,7 @@ interface ModelChattersTabProps {
 
 export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   // Mock data - replace with API call
   const [chatters] = useState<Chatter[]>([
     {
@@ -34,7 +43,7 @@ export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
       activeChats: 12,
       revenue: 8500,
       avgResponseTime: "1.2 mins",
-      lastActive: "2 mins ago"
+      lastActive: "2 mins ago",
     },
     {
       id: "2",
@@ -45,7 +54,7 @@ export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
       activeChats: 8,
       revenue: 6200,
       avgResponseTime: "2.5 mins",
-      lastActive: "15 mins ago"
+      lastActive: "15 mins ago",
     },
     {
       id: "3",
@@ -56,20 +65,24 @@ export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
       activeChats: 0,
       revenue: 12300,
       avgResponseTime: "1.8 mins",
-      lastActive: "2 hours ago"
-    }
+      lastActive: "2 hours ago",
+    },
   ]);
 
-  const filteredChatters = chatters.filter(chatter =>
+  const filteredChatters = chatters.filter((chatter) =>
     chatter.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "online": return "bg-green-500";
-      case "busy": return "bg-yellow-500";
-      case "offline": return "bg-gray-500";
-      default: return "bg-gray-500";
+      case "online":
+        return "bg-green-500";
+      case "busy":
+        return "bg-yellow-500";
+      case "offline":
+        return "bg-gray-500";
+      default:
+        return "bg-gray-500";
     }
   };
 
@@ -78,10 +91,14 @@ export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h3 className="text-xl font-semibold text-white">Assigned Chatters</h3>
-          <p className="text-gray-400 text-sm mt-1">{chatters.length} chatters managing this model</p>
+          <h3 className="text-xl font-semibold text-white">
+            Assigned Chatters
+          </h3>
+          <p className="text-gray-400 text-sm mt-1">
+            {chatters.length} chatters managing this model
+          </p>
         </div>
-        
+
         <button className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-medium transition-colors">
           Assign New Chatter
         </button>
@@ -114,7 +131,7 @@ export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-green-500/20 rounded-lg">
@@ -128,7 +145,7 @@ export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-500/20 rounded-lg">
@@ -140,7 +157,7 @@ export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-yellow-500/20 rounded-lg">
@@ -149,7 +166,10 @@ export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
             <div>
               <p className="text-gray-400 text-sm">Total Revenue</p>
               <p className="text-xl font-bold text-white">
-                ${chatters.reduce((sum, c) => sum + c.revenue, 0).toLocaleString()}
+                $
+                {chatters
+                  .reduce((sum, c) => sum + c.revenue, 0)
+                  .toLocaleString()}
               </p>
             </div>
           </div>
@@ -165,7 +185,7 @@ export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
           </div>
         ) : (
           filteredChatters.map((chatter, index) => (
-            <motion.div
+            <div
               key={chatter.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -178,26 +198,37 @@ export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
                   <div className="relative">
                     <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
                       <span className="text-white font-bold">
-                        {chatter.name.split(' ').map(n => n[0]).join('')}
+                        {chatter.name
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
                       </span>
                     </div>
-                    <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full ${getStatusColor(chatter.status)} border-2 border-gray-900`} />
+                    <div
+                      className={`absolute bottom-0 right-0 w-3 h-3 rounded-full ${getStatusColor(chatter.status)} border-2 border-gray-900`}
+                    />
                   </div>
 
                   {/* Info */}
                   <div>
                     <h4 className="text-white font-semibold flex items-center gap-2">
                       {chatter.name}
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        chatter.status === "online" ? "bg-green-500/20 text-green-400" :
-                        chatter.status === "busy" ? "bg-yellow-500/20 text-yellow-400" :
-                        "bg-gray-500/20 text-gray-400"
-                      }`}>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full ${
+                          chatter.status === "online"
+                            ? "bg-green-500/20 text-green-400"
+                            : chatter.status === "busy"
+                              ? "bg-yellow-500/20 text-yellow-400"
+                              : "bg-gray-500/20 text-gray-400"
+                        }`}
+                      >
                         {chatter.status}
                       </span>
                     </h4>
                     <p className="text-gray-400 text-sm">
-                      Assigned {new Date(chatter.assignedDate).toLocaleDateString()} • Last active {chatter.lastActive}
+                      Assigned{" "}
+                      {new Date(chatter.assignedDate).toLocaleDateString()} •
+                      Last active {chatter.lastActive}
                     </p>
                   </div>
                 </div>
@@ -211,19 +242,27 @@ export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
                 <div>
                   <p className="text-gray-400 text-sm">Total Chats</p>
-                  <p className="text-white font-semibold">{chatter.totalChats}</p>
+                  <p className="text-white font-semibold">
+                    {chatter.totalChats}
+                  </p>
                 </div>
                 <div>
                   <p className="text-gray-400 text-sm">Active Chats</p>
-                  <p className="text-white font-semibold">{chatter.activeChats}</p>
+                  <p className="text-white font-semibold">
+                    {chatter.activeChats}
+                  </p>
                 </div>
                 <div>
                   <p className="text-gray-400 text-sm">Revenue</p>
-                  <p className="text-white font-semibold">${chatter.revenue.toLocaleString()}</p>
+                  <p className="text-white font-semibold">
+                    ${chatter.revenue.toLocaleString()}
+                  </p>
                 </div>
                 <div>
                   <p className="text-gray-400 text-sm">Avg Response</p>
-                  <p className="text-white font-semibold">{chatter.avgResponseTime}</p>
+                  <p className="text-white font-semibold">
+                    {chatter.avgResponseTime}
+                  </p>
                 </div>
               </div>
 
@@ -234,13 +273,13 @@ export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
                   <TrendingUp className="w-4 h-4 text-green-400" />
                 </div>
                 <div className="w-full bg-white/10 rounded-full h-2">
-                  <div 
+                  <div
                     className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-500"
                     style={{ width: `${(chatter.revenue / 15000) * 100}%` }}
                   />
                 </div>
               </div>
-            </motion.div>
+            </div>
           ))
         )}
       </div>
