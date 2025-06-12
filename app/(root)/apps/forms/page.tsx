@@ -9,6 +9,7 @@ export const metadata: Metadata = {
 const page = () => {
   return (
     <div>
+      <title>Forms | Tasty Creative</title>
       <PermissionGoogle
         apiEndpoint={`/api/forms/list`}
       >

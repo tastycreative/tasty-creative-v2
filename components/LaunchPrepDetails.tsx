@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import React, { useEffect, useState } from "react";
 import CountUp from "react-countup";
 import { Checkbox } from "./ui/checkbox";
+import Link from "next/link";
 
 type LaunchPrepDetailsProps = {
   dashboard?: boolean;
@@ -124,7 +125,7 @@ const LaunchPrepDetails = ({
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-white">
                   {selectedModel || selectedModelData.Model}
                 </h1>
-                
+
                 <div className="flex items-center space-x-1 px-3 py-1 bg-gradient-to-r from-blue-100 to-purple-100 dark:from-blue-900/40 dark:to-purple-900/40 rounded-full border border-blue-200/50 dark:border-blue-700/50">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                   <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
@@ -132,22 +133,29 @@ const LaunchPrepDetails = ({
                   </span>
                 </div>
               </div>
-              
+
               {dashboard && (
-                <button
-                  onClick={() =>
-                    triggerTabChange &&
-                    triggerTabChange("onboarding", selectedModelData.Model)
-                  }
+                <Link
+                  href={`/apps/onboarding?model=${selectedModelData.Model}`}
                   className="inline-flex items-center space-x-1 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300  duration-200 group"
                 >
                   <span className="underline decoration-dotted underline-offset-2 group-hover:decoration-solid">
                     Click here for more details
                   </span>
-                  <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  <svg
+                    className="w-4 h-4 transition-transform group-hover:translate-x-1"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
                   </svg>
-                </button>
+                </Link>
               )}
             </div>
 
@@ -161,7 +169,7 @@ const LaunchPrepDetails = ({
                   <CountUp end={completedCount} /> of {totalCount} tasks
                 </span>
               </div>
-              
+
               <div className="relative h-3 bg-gray-200/50 dark:bg-gray-700/50 rounded-full overflow-hidden backdrop-blur-sm">
                 <div
                   className="absolute inset-y-0 left-0 bg-gradient-to-r from-purple-500 via-blue-500 to-cyan-500 rounded-full transition-all duration-700 ease-out shadow-sm"
@@ -170,14 +178,14 @@ const LaunchPrepDetails = ({
                   <div className="absolute inset-0 bg-white/20 animate-pulse rounded-full"></div>
                 </div>
               </div>
-            </div>  
+            </div>
           </div>
 
           {/* Task grid */}
           {!dashboard && (
             <>
               <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-600 to-transparent mb-6"></div>
-              
+
               <div className="grid grid-cols-1 xs:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {prepItems.map((item, index) => (
                   <div
@@ -206,7 +214,7 @@ const LaunchPrepDetails = ({
                           <div className="absolute -inset-1 bg-emerald-400/20 rounded-full animate-ping"></div>
                         )}
                       </div>
-                      
+
                       <label
                         htmlFor={`item-${index}`}
                         className={cn(
@@ -219,12 +227,14 @@ const LaunchPrepDetails = ({
                         {item.item}
                       </label>
                     </div>
-                    
+
                     {/* Status indicator */}
-                    <div className={cn(
-                      "absolute top-2 right-2 w-2 h-2 rounded-full",
-                      item.status === "Done" ? "bg-emerald-400" : "bg-red-400"
-                    )}></div>
+                    <div
+                      className={cn(
+                        "absolute top-2 right-2 w-2 h-2 rounded-full",
+                        item.status === "Done" ? "bg-emerald-400" : "bg-red-400"
+                      )}
+                    ></div>
                   </div>
                 ))}
               </div>
@@ -234,8 +244,18 @@ const LaunchPrepDetails = ({
       ) : (
         <div className="flex flex-col items-center justify-center h-40 space-y-4">
           <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center">
-            <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <svg
+              className="w-8 h-8 text-gray-400 dark:text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
             </svg>
           </div>
           <p className="text-gray-500 dark:text-gray-400 font-medium">
