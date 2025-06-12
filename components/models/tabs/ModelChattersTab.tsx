@@ -1,6 +1,6 @@
 // components/models/tabs/ModelChattersTab.tsx
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   MessageSquare,
@@ -26,52 +26,79 @@ interface Chatter {
 }
 
 interface ModelChattersTabProps {
-  modelId: string;
+  modelName: string;
 }
 
-export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
-  const [searchQuery, setSearchQuery] = useState("");
+interface ClientData {
+  clientName: string;
+  chatters: string;
+  chattingManagers: string;
+}
 
-  // Mock data - replace with API call
-  const [chatters] = useState<Chatter[]>([
-    {
-      id: "1",
-      name: "Sarah Johnson",
-      status: "online",
-      assignedDate: "2024-01-15",
-      totalChats: 156,
-      activeChats: 12,
-      revenue: 8500,
-      avgResponseTime: "1.2 mins",
-      lastActive: "2 mins ago",
-    },
-    {
-      id: "2",
-      name: "Mike Chen",
-      status: "busy",
-      assignedDate: "2024-02-01",
-      totalChats: 98,
-      activeChats: 8,
-      revenue: 6200,
-      avgResponseTime: "2.5 mins",
-      lastActive: "15 mins ago",
-    },
-    {
-      id: "3",
-      name: "Emily Davis",
-      status: "offline",
-      assignedDate: "2024-01-20",
-      totalChats: 203,
-      activeChats: 0,
-      revenue: 12300,
-      avgResponseTime: "1.8 mins",
-      lastActive: "2 hours ago",
-    },
-  ]);
+export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [modelData, setModelData] = useState<ClientData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchModelData = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/google/cmsheets?includeChatters=true&clientName=${encodeURIComponent(modelName)}`);
+        if (!res.ok) {
+          if (res.status === 401) {
+            throw new Error("Authentication required");
+          } else {
+            throw new Error(`Error: ${res.status}`);
+          }
+        }
+
+        const data = await res.json();
+        const sortedData = [...data].sort((a, b) =>
+          a.clientName.localeCompare(b.clientName)
+        );
+        setModelData(sortedData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to fetch client data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (modelName) {
+      fetchModelData();
+    }
+  }, [modelName]);
+
+  // Parse chatters from API data and add static values for missing data
+  const chatters: Chatter[] = modelData.length > 0 && modelData[0].chatters 
+    ? modelData[0].chatters.split(',').map((name, index) => ({
+        id: `chatter-${index}`,
+        name: name.trim(),
+        status: Math.random() > 0.6 ? "online" : Math.random() > 0.3 ? "busy" : "offline" as const,
+        assignedDate: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        totalChats: Math.floor(Math.random() * 200) + 50,
+        activeChats: Math.floor(Math.random() * 15),
+        revenue: Math.floor(Math.random() * 10000) + 5000,
+        avgResponseTime: `${(Math.random() * 3 + 1).toFixed(1)} mins`,
+        lastActive: Math.random() > 0.5 ? `${Math.floor(Math.random() * 60)} mins ago` : `${Math.floor(Math.random() * 24)} hours ago`,
+      }))
+    : [];
 
   const filteredChatters = chatters.filter((chatter) =>
     chatter.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const chattingManagers = modelData.length > 0 ? modelData[0].chattingManagers : "";
+
+  // Static values for stats (will be replaced with real API data later)
+  const staticStats = {
+    totalChats: 2847,
+    activeChats: 28,
+    avgResponse: "1.8 mins",
+    totalRevenue: 127500
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -86,6 +113,28 @@ export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6 text-center">
+        <p className="text-red-400">Error loading chatters: {error}</p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="mt-4 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -97,6 +146,11 @@ export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
           <p className="text-gray-400 text-sm mt-1">
             {chatters.length} chatters managing this model
           </p>
+          {chattingManagers && (
+            <p className="text-gray-500 text-xs mt-1">
+              Manager: {chattingManagers}
+            </p>
+          )}
         </div>
 
         <button className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-medium transition-colors">
@@ -126,7 +180,7 @@ export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
             <div>
               <p className="text-gray-400 text-sm">Total Chats</p>
               <p className="text-xl font-bold text-white">
-                {chatters.reduce((sum, c) => sum + c.totalChats, 0)}
+                {staticStats.totalChats.toLocaleString()}
               </p>
             </div>
           </div>
@@ -140,7 +194,7 @@ export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
             <div>
               <p className="text-gray-400 text-sm">Active Now</p>
               <p className="text-xl font-bold text-white">
-                {chatters.reduce((sum, c) => sum + c.activeChats, 0)}
+                {staticStats.activeChats}
               </p>
             </div>
           </div>
@@ -153,7 +207,7 @@ export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
             </div>
             <div>
               <p className="text-gray-400 text-sm">Avg Response</p>
-              <p className="text-xl font-bold text-white">1.8 mins</p>
+              <p className="text-xl font-bold text-white">{staticStats.avgResponse}</p>
             </div>
           </div>
         </div>
@@ -166,10 +220,7 @@ export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
             <div>
               <p className="text-gray-400 text-sm">Total Revenue</p>
               <p className="text-xl font-bold text-white">
-                $
-                {chatters
-                  .reduce((sum, c) => sum + c.revenue, 0)
-                  .toLocaleString()}
+                ${staticStats.totalRevenue.toLocaleString()}
               </p>
             </div>
           </div>
@@ -181,15 +232,17 @@ export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
         {filteredChatters.length === 0 ? (
           <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-12 text-center">
             <User className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-            <p className="text-gray-400">No chatters found</p>
+            <p className="text-gray-400">
+              {chatters.length === 0 ? "No chatters assigned to this model" : "No chatters found"}
+            </p>
           </div>
         ) : (
           filteredChatters.map((chatter, index) => (
-            <div
+            <motion.div
               key={chatter.id}
-              //initial={{ opacity: 0, y: 20 }}
-              //animate={{ opacity: 1, y: 0 }}
-              //transition={{ delay: index * 0.1 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
               className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-6 hover:bg-white/10 transition-all"
             >
               <div className="flex items-center justify-between">
@@ -201,7 +254,8 @@ export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
                         {chatter.name
                           .split(" ")
                           .map((n) => n[0])
-                          .join("")}
+                          .join("")
+                          .slice(0, 2)}
                       </span>
                     </div>
                     <div
@@ -266,7 +320,7 @@ export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
                 </div>
               </div>
 
-              {/* Performance Chart (Optional) */}
+              {/* Performance Chart */}
               <div className="mt-4 pt-4 border-t border-white/10">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs text-gray-400">Performance</span>
@@ -279,7 +333,7 @@ export default function ModelChattersTab({ modelId }: ModelChattersTabProps) {
                   />
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))
         )}
       </div>

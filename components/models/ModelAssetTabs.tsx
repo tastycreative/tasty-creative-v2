@@ -28,14 +28,10 @@ interface Asset {
 }
 
 interface ModelAssetsTabProps {
-  modelId: string;
   modelName: string;
 }
 
-export default function ModelAssetsTab({
-  modelId,
-  modelName,
-}: ModelAssetsTabProps) {
+export default function ModelAssetsTab({ modelName }: ModelAssetsTabProps) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedType, setSelectedType] = useState<
     "all" | "live" | "vip" | "ftt"
@@ -133,7 +129,10 @@ export default function ModelAssetsTab({
   // Debug logging
   console.log("Selected type:", selectedType);
   console.log("Filtered assets count:", filteredAssets.length);
-  console.log("Filtered assets:", filteredAssets.map(a => a.type));
+  console.log(
+    "Filtered assets:",
+    filteredAssets.map((a) => a.type)
+  );
 
   const getFileUrl = (asset: Asset, fileType: "Final Output" | "PSD File") => {
     const file = asset[fileType];
@@ -242,7 +241,7 @@ export default function ModelAssetsTab({
           </button>
         </div>
       ) : viewMode === "grid" ? (
-        <div 
+        <div
           key={`grid-${selectedType}-${filteredAssets.length}`}
           className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
         >
@@ -260,7 +259,9 @@ export default function ModelAssetsTab({
               >
                 <div className="aspect-square bg-gray-800 relative flex items-center justify-center">
                   <div className="text-center p-4">
-                     {asset["Final Output"] && typeof asset["Final Output"] === "object" && asset["Final Output"].formula ? (
+                    {asset["Final Output"] &&
+                    typeof asset["Final Output"] === "object" &&
+                    asset["Final Output"].formula ? (
                       <img
                         src={`/api/image-proxy?id=${extractDriveIdFromFormula(
                           asset["Final Output"].formula
@@ -324,7 +325,7 @@ export default function ModelAssetsTab({
           })}
         </div>
       ) : (
-        <div 
+        <div
           key={`list-${selectedType}-${filteredAssets.length}`}
           className="space-y-2"
         >
@@ -342,7 +343,9 @@ export default function ModelAssetsTab({
               >
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-gray-800 rounded-lg flex items-center justify-center">
-                    {asset["Final Output"] && typeof asset["Final Output"] === "object" && asset["Final Output"].formula ? (
+                    {asset["Final Output"] &&
+                    typeof asset["Final Output"] === "object" &&
+                    asset["Final Output"].formula ? (
                       <img
                         src={extractUrlFromFormula(
                           asset["Final Output"].formula

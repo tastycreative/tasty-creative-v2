@@ -188,9 +188,9 @@ export default function ModelDetailsModal({
                   onModelChange={setEditedModel}
                 />
               )}
-              {activeTab === "assets" && <ModelAssetsTab modelId={model.id} modelName={model.name} />}
+              {activeTab === "assets" && <ModelAssetsTab  modelName={model.name} />}
               {activeTab === "chatters" && (
-                <ModelChattersTab modelId={model.id} />
+                <ModelChattersTab modelName={model.name} />
               )}
             </div>
           </div>
