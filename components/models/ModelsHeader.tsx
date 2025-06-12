@@ -35,14 +35,14 @@ export default function ModelsHeader({
           </p>
         </div>
 
-        <button
+        {/* <button
           //whileHover={{ scale: 1.05 }}
           //whileTap={{ scale: 0.95 }}
           className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
         >
           <Plus className="w-5 h-5" />
           Add Model
-        </button>
+        </button> */}
       </div>
 
       {/* Stats Cards */}
