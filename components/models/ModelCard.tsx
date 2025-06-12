@@ -3,6 +3,7 @@
 
 import { motion } from "framer-motion";
 import Image from "next/image";
+import { useState } from "react";
 import {
   Calendar,
   User,
@@ -20,7 +21,56 @@ interface ModelCardProps {
   onClick: () => void;
 }
 
-export default function ModelCard({ model, index, onClick }: ModelCardProps) {
+function ImageWithFallback({ model }: { model: ModelDetails }) {
+  const [imageError, setImageError] = useState(false);
+  const [backgroundError, setBackgroundError] = useState(false);
+
+  if (imageError) {
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <div className="w-24 h-24 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+          <span className="text-white text-3xl font-bold">
+            {model.name.charAt(0).toUpperCase()}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full h-full flex items-center justify-center relative">
+      {/* Blurred background image - contained within header only */}
+      {!backgroundError && (
+        <div
+          className="absolute inset-0 bg-cover bg-center blur-xl opacity-30"
+          style={{
+            backgroundImage: `url(/api/image-proxy?id=${model.id})`,
+          }}
+          onError={() => setBackgroundError(true)}
+        />
+      )}
+
+      {/* Circular image container */}
+      <div className="relative w-24 h-24 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 p-1 flex items-center justify-center z-10">
+        <img
+          src={`/api/image-proxy?id=${model.id}`}
+          alt={model.name}
+          className="w-full h-full object-cover rounded-full"
+          loading="lazy"
+          onError={() => setImageError(true)}
+        />
+      </div>
+    </div>
+  );
+}
+
+interface ModelCardProps {
+  model: ModelDetails;
+  index: number;
+  onClick: () => void;
+}
+
+export default function ModelCard({ model, onClick }: ModelCardProps) {
   return (
     <div
       //initial={{ opacity: 0, y: 20 }}
@@ -31,7 +81,7 @@ export default function ModelCard({ model, index, onClick }: ModelCardProps) {
       className="bg-white/10 dark:bg-gray-800/30 backdrop-blur-md rounded-2xl border border-white/20 dark:border-gray-700/30 overflow-hidden cursor-pointer hover:shadow-xl transition-all group"
     >
       {/* Header with Image and Status */}
-      <div className="relative h-48 bg-gradient-to-br from-purple-500/20 to-pink-500/20">
+      <div className="relative h-48 bg-gradient-to-br from-purple-500/20 to-pink-500/20 overflow-hidden">
         <div className="absolute top-4 right-4 z-10">
           <span
             className={`px-3 py-1 rounded-full text-xs font-medium ${
@@ -44,13 +94,8 @@ export default function ModelCard({ model, index, onClick }: ModelCardProps) {
           </span>
         </div>
 
-        {model.profileImage ? (
-          <Image
-            src={model.profileImage}
-            alt={model.name}
-            fill
-            className="object-cover"
-          />
+        {model.id ? (
+          <ImageWithFallback model={model} />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <div className="w-24 h-24 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
@@ -62,12 +107,12 @@ export default function ModelCard({ model, index, onClick }: ModelCardProps) {
         )}
 
         {/* Overlay gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-20" />
 
         {/* Model name */}
-        <div className="absolute bottom-4 left-4 right-4">
+        <div className="absolute bottom-4 left-4 right-4 z-30">
           <h3 className="text-xl font-bold text-white">{model.name}</h3>
-          <p className="text-sm text-white/80">{model.personalityType}</p>
+          {/* <p className="text-sm text-white/80">{model.personalityType}</p> */}
         </div>
       </div>
 

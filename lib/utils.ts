@@ -345,22 +345,24 @@ export const truncateText = (text: string | undefined, maxLength = 30) => {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function transformRawModel(raw: any): ModelDetails {
   return {
-    id: raw["Profile Link"] || "", // Or generate an ID if needed
+    id: extractDriveId(raw["Profile Link"]) || "",
     name: raw["Client Name"] || "",
     status: normalizeStatus(raw["Status"]),
     launchDate: raw["Launch Date"] || "",
     referrerName: raw["Referrer Name"] || "",
     personalityType: raw["Personality Type"] || "",
-    commonTerms: raw["Common Terms"]?.split(",").map((s: string) => s.trim()) || [],
-    commonEmojis: raw["Common Emojis"]?.split(",").map((s: string) => s.trim()) || [],
+    commonTerms:
+      raw["Common Terms"]?.split(",").map((s: string) => s.trim()) || [],
+    commonEmojis:
+      raw["Common Emojis"]?.split(",").map((s: string) => s.trim()) || [],
     instagram: raw["Main Instagram @"] || "",
     twitter: raw["Main Twitter @"] || "",
     tiktok: raw["Main TikTok @"] || "",
     chattingManagers:
-      raw["General client notes/requests"]?.split(",").map((s: string) => s.trim()) ||
-      [],
+      raw["General client notes/requests"]
+        ?.split(",")
+        .map((s: string) => s.trim()) || [],
     profileImage: raw["Profile Picture"] || "",
-    // stats can be added later if available
   };
 }
 
