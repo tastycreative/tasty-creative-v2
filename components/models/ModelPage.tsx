@@ -81,13 +81,15 @@ export default function ModelsPage() {
         }
       />
 
-      <PermissionGoogle apiEndpoint="/api/models">
-        <ModelsList
-          key={`${searchQuery}-${statusFilter}-${filteredModels.length}`}
-          models={filteredModels}
-          onModelClick={handleModelClick}
-        />
-      </PermissionGoogle>
+      {!showDetailsModal && !selectedModel && (
+        <PermissionGoogle apiEndpoint="/api/models">
+          <ModelsList
+            key={`${searchQuery}-${statusFilter}-${filteredModels.length}`}
+            models={filteredModels}
+            onModelClick={handleModelClick}
+          />
+        </PermissionGoogle>
+      )}
 
       {showDetailsModal && selectedModel && (
         <ModelDetailsModal
