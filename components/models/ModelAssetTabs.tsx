@@ -347,9 +347,9 @@ export default function ModelAssetsTab({ modelName }: ModelAssetsTabProps) {
                     typeof asset["Final Output"] === "object" &&
                     asset["Final Output"].formula ? (
                       <img
-                        src={extractUrlFromFormula(
+                        src={`/api/image-proxy?id=${extractDriveIdFromFormula(
                           asset["Final Output"].formula
-                        )}
+                        )}`}
                         alt={`Asset ${asset["Request ID"]}`}
                         className="max-h-full object-contain"
                         loading="lazy"
