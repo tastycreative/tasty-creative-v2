@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Edit, Save, Maximize2 } from "lucide-react";
+import { X, Maximize2 } from "lucide-react";
 import ModelAssetsTab from "./ModelAssetTabs";
 import ModelDetailsTabs from "./ModelDetailsTab";
 import ModelInfoTab from "./ModelInfoTab";
@@ -32,7 +32,10 @@ function ModelImage({ model }: { model: ModelDetails }) {
 
   return (
     <>
-      <div className="relative group cursor-pointer" onClick={() => setShowFullscreen(true)}>
+      <div
+        className="relative group cursor-pointer"
+        onClick={() => setShowFullscreen(true)}
+      >
         <div className="w-16 h-16 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 p-0.5 flex items-center justify-center">
           <img
             src={`/api/image-proxy?id=${model.id}`}
@@ -48,51 +51,53 @@ function ModelImage({ model }: { model: ModelDetails }) {
       </div>
 
       {/* Fullscreen Modal - Rendered at document root using portal */}
-      {showFullscreen && typeof document !== 'undefined' && createPortal(
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={() => setShowFullscreen(false)}
-          className="fixed top-0 left-0 w-screen h-screen bg-black z-[9999] flex items-center justify-center"
-          style={{ 
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            width: '100vw',
-            height: '100vh',
-            margin: 0,
-            padding: 0
-          }}
-        >
-          {/* Close button */}
-          <button
+      {showFullscreen &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             onClick={() => setShowFullscreen(false)}
-            className="absolute top-6 right-6 p-3 bg-black/70 hover:bg-black/90 rounded-full transition-colors z-10"
-          >
-            <X className="w-6 h-6 text-white" />
-          </button>
-
-          {/* Image */}
-          <motion.img
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.8, opacity: 0 }}
-            src={`/api/image-proxy?id=${model.id}`}
-            alt={model.name}
-            className="w-screen h-screen object-contain"
-            onClick={(e) => e.stopPropagation()}
-            style={{ 
-              width: '100vw',
-              height: '100vh',
-              objectFit: 'contain'
+            className="fixed top-0 left-0 w-screen h-screen bg-black z-[9999] flex items-center justify-center"
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              width: "100vw",
+              height: "100vh",
+              margin: 0,
+              padding: 0,
             }}
-          />
-        </motion.div>,
-        document.body
-      )}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setShowFullscreen(false)}
+              className="absolute top-6 right-6 p-3 bg-black/70 hover:bg-black/90 rounded-full transition-colors z-10"
+            >
+              <X className="w-6 h-6 text-white" />
+            </button>
+
+            {/* Image */}
+            <motion.img
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              src={`/api/image-proxy?id=${model.id}`}
+              alt={model.name}
+              className="w-screen h-screen object-contain"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: "100vw",
+                height: "100vh",
+                objectFit: "contain",
+              }}
+            />
+          </motion.div>,
+          document.body
+        )}
     </>
   );
 }
@@ -105,14 +110,9 @@ export default function ModelDetailsModal({
   const [activeTab, setActiveTab] = useState<"info" | "assets" | "chatters">(
     "info"
   );
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isEditing, setIsEditing] = useState(false);
   const [editedModel, setEditedModel] = useState(model);
-
-  const handleSave = () => {
-    // TODO: Implement save functionality
-    console.log("Saving model:", editedModel);
-    setIsEditing(false);
-  };
 
   return (
     <AnimatePresence>
@@ -148,21 +148,6 @@ export default function ModelDetailsModal({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {!isEditing ? (
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                    >
-                      <Edit className="w-5 h-5 text-gray-400" />
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleSave}
-                      className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                    >
-                      <Save className="w-5 h-5 text-green-400" />
-                    </button>
-                  )}
                   <button
                     onClick={onClose}
                     className="p-2 hover:bg-white/10 rounded-lg transition-colors"
@@ -188,7 +173,9 @@ export default function ModelDetailsModal({
                   onModelChange={setEditedModel}
                 />
               )}
-              {activeTab === "assets" && <ModelAssetsTab  modelName={model.name} />}
+              {activeTab === "assets" && (
+                <ModelAssetsTab modelName={model.name} />
+              )}
               {activeTab === "chatters" && (
                 <ModelChattersTab modelName={model.name} />
               )}
