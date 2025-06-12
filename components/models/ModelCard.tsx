@@ -122,11 +122,11 @@ export default function ModelCard({ model, onClick }: ModelCardProps) {
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
             <Calendar className="w-4 h-4" />
-            <span>{new Date(model.launchDate).toLocaleDateString()}</span>
+            <span>{model.launchDate}</span>
           </div>
           <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
             <User className="w-4 h-4" />
-            <span className="truncate max-w-[100px]">{model.referrerName}</span>
+            <span className="truncate max-w-[100px]">{model.referrerName? model.referrerName:"-"}</span>
           </div>
         </div>
 
