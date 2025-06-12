@@ -231,7 +231,7 @@ type ModelStatus = "active" | "dropped";
 interface ModelDetails {
   id: string;
   name: string;
-  status: ModelStatus;
+  status: "Active" | "Inactive" | "Dropped" | "All"; // adjust as needed
   launchDate: string;
   referrerName: string;
   personalityType: string;
@@ -240,7 +240,7 @@ interface ModelDetails {
   instagram?: string;
   twitter?: string;
   tiktok?: string;
-  chattingManagers: string[];
+  chattingManagers: string[]; // From "General client notes/requests"? If not, default to []
   profileImage?: string;
   stats?: {
     totalRevenue: number;
@@ -249,6 +249,7 @@ interface ModelDetails {
     avgResponseTime: string;
   };
 }
+
 
 interface ModelAsset {
   id: string;

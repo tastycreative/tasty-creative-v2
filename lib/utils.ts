@@ -328,16 +328,38 @@ export const formatDateTime = (
 };
 
 export const formatDate = (dateString: number) => {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleString();
-    } catch  {
-      return dateString.toString();
-    }
-  };
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleString();
+  } catch {
+    return dateString.toString();
+  }
+};
 
 export const truncateText = (text: string | undefined, maxLength = 30) => {
-    return text && text.length > maxLength
-      ? text.substring(0, maxLength) + '...'
-      : (text || '');
+  return text && text.length > maxLength
+    ? text.substring(0, maxLength) + "..."
+    : text || "";
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function transformRawModel(raw: any): ModelDetails {
+  return {
+    id: raw["Profile Link"] || "", // Or generate an ID if needed
+    name: raw["Client Name"] || "",
+    status: raw["Status"] || "Inactive",
+    launchDate: raw["Launch Date"] || "",
+    referrerName: raw["Referrer Name"] || "",
+    personalityType: raw["Personality Type"] || "",
+    commonTerms: raw["Common Terms"]?.split(",").map((s) => s.trim()) || [],
+    commonEmojis: raw["Common Emojis"]?.split(",").map((s) => s.trim()) || [],
+    instagram: raw["Main Instagram @"] || "",
+    twitter: raw["Main Twitter @"] || "",
+    tiktok: raw["Main TikTok @"] || "",
+    chattingManagers:
+      raw["General client notes/requests"]?.split(",").map((s) => s.trim()) ||
+      [],
+    profileImage: raw["Profile Picture"] || "",
+    // stats can be added later if available
   };
+}

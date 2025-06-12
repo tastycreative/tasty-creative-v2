@@ -2,7 +2,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Search, Users, UserCheck, UserX, Plus, Filter } from "lucide-react";
+import { Search, Users, UserCheck, UserX, Plus } from "lucide-react";
 
 interface ModelsHeaderProps {
   searchQuery: string;

@@ -35,12 +35,12 @@ export default function ModelCard({ model, index, onClick }: ModelCardProps) {
         <div className="absolute top-4 right-4 z-10">
           <span
             className={`px-3 py-1 rounded-full text-xs font-medium ${
-              model.status === "active"
+              model.status.toLowerCase() === "active"
                 ? "bg-green-500/20 text-green-400 border border-green-500/30"
                 : "bg-red-500/20 text-red-400 border border-red-500/30"
             }`}
           >
-            {model.status === "active" ? "Active" : "Dropped"}
+            {model.status.toLowerCase() === "active" ? "Active" : "Dropped"}
           </span>
         </div>
 
