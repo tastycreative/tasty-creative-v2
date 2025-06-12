@@ -45,6 +45,12 @@ export const extractLinkFromFormula = (formula: string): string => {
   return match ? match[1] : "";
 };
 
+export function extractDriveIdFromFormula(formula: string): string {
+  const match = formula.match(/\/d\/([a-zA-Z0-9_-]{25,})/);
+  return match ? match[1] : "";
+}
+
+
 export async function blobUrlToBase64(blobUrl: string) {
   const response = await fetch(blobUrl);
   const blob = await response.blob();
@@ -373,3 +379,4 @@ function normalizeStatus(input: string): ModelStatus {
   console.warn("Unexpected status:", input);
   return "dropped";
 }
+

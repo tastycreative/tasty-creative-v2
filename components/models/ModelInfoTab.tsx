@@ -1,6 +1,18 @@
 // components/models/tabs/ModelInfoTab.tsx
 "use client";
-import { Calendar, User, Tag, Smile, Instagram, Twitter, Users, DollarSign, TrendingUp, Hash } from "lucide-react";
+import {
+  Calendar,
+  User,
+  Tag,
+  Smile,
+  Instagram,
+  Twitter,
+  Users,
+  DollarSign,
+  TrendingUp,
+  Hash,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface ModelInfoTabProps {
   model: ModelDetails;
@@ -8,15 +20,64 @@ interface ModelInfoTabProps {
   onModelChange: (model: ModelDetails) => void;
 }
 
-export default function ModelInfoTab({ model, isEditing, onModelChange }: ModelInfoTabProps) {
+export default function ModelInfoTab({
+  model,
+  isEditing,
+  onModelChange,
+}: ModelInfoTabProps) {
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [client, setClient] = useState<any[]>([]);
   const handleInputChange = (field: keyof ModelDetails, value: any) => {
     onModelChange({ ...model, [field]: value });
   };
 
-  const handleArrayInputChange = (field: "commonTerms" | "commonEmojis" | "chattingManagers", value: string) => {
-    const items = value.split(",").map(item => item.trim()).filter(item => item);
+  const handleArrayInputChange = (
+    field: "commonTerms" | "commonEmojis" | "chattingManagers",
+    value: string
+  ) => {
+    const items = value
+      .split(",")
+      .map((item) => item.trim())
+      .filter((item) => item);
     handleInputChange(field, items);
   };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await fetch(
+          `/api/google/cmsheets?clientName=${model.name}`
+        );
+
+        if (response.status === 401) {
+          setError("You need to authenticate first");
+          setLoading(false);
+          return;
+        }
+
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setClient(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to fetch data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (model.name) {
+      setLoading(true);
+      fetchData();
+    } else {
+      setClient([]);
+    }
+  }, [model.name]);
+
+  console.log(client, "client data");
 
   return (
     <div className="space-y-8">
@@ -34,19 +95,28 @@ export default function ModelInfoTab({ model, isEditing, onModelChange }: ModelI
               {isEditing ? (
                 <select
                   value={model.status}
-                  onChange={(e) => handleInputChange("status", e.target.value as "active" | "dropped")}
+                  onChange={(e) =>
+                    handleInputChange(
+                      "status",
+                      e.target.value as "active" | "dropped"
+                    )
+                  }
                   className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="active">Active</option>
                   <option value="dropped">Dropped</option>
                 </select>
               ) : (
-                <span className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
-                  model.status.toLowerCase() === "active" 
-                    ? "bg-green-500/20 text-green-400 border border-green-500/30" 
-                    : "bg-red-500/20 text-red-400 border border-red-500/30"
-                }`}>
-                  {model.status.toLowerCase() === "active" ? "Active" : "Dropped"}
+                <span
+                  className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
+                    model.status.toLowerCase() === "active"
+                      ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                      : "bg-red-500/20 text-red-400 border border-red-500/30"
+                  }`}
+                >
+                  {model.status.toLowerCase() === "active"
+                    ? "Active"
+                    : "Dropped"}
                 </span>
               )}
             </div>
@@ -61,11 +131,15 @@ export default function ModelInfoTab({ model, isEditing, onModelChange }: ModelI
                 <input
                   type="date"
                   value={model.launchDate}
-                  onChange={(e) => handleInputChange("launchDate", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("launchDate", e.target.value)
+                  }
                   className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               ) : (
-                <p className="text-white">{new Date(model.launchDate).toLocaleDateString()}</p>
+                <p className="text-white">
+                  {new Date(model.launchDate).toLocaleDateString()}
+                </p>
               )}
             </div>
 
@@ -79,7 +153,9 @@ export default function ModelInfoTab({ model, isEditing, onModelChange }: ModelI
                 <input
                   type="text"
                   value={model.referrerName}
-                  onChange={(e) => handleInputChange("referrerName", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("referrerName", e.target.value)
+                  }
                   className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               ) : (
@@ -98,12 +174,16 @@ export default function ModelInfoTab({ model, isEditing, onModelChange }: ModelI
           <div className="space-y-4">
             {/* Personality Type */}
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Personality Type</label>
+              <label className="block text-sm text-gray-400 mb-2">
+                Personality Type
+              </label>
               {isEditing ? (
                 <input
                   type="text"
                   value={model.personalityType}
-                  onChange={(e) => handleInputChange("personalityType", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("personalityType", e.target.value)
+                  }
                   className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               ) : (
@@ -113,19 +193,26 @@ export default function ModelInfoTab({ model, isEditing, onModelChange }: ModelI
 
             {/* Common Terms */}
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Common Terms</label>
+              <label className="block text-sm text-gray-400 mb-2">
+                Common Terms
+              </label>
               {isEditing ? (
                 <input
                   type="text"
                   value={model.commonTerms.join(", ")}
-                  onChange={(e) => handleArrayInputChange("commonTerms", e.target.value)}
+                  onChange={(e) =>
+                    handleArrayInputChange("commonTerms", e.target.value)
+                  }
                   placeholder="Enter terms separated by commas"
                   className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {model.commonTerms.map((term, index) => (
-                    <span key={index} className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm">
+                    <span
+                      key={index}
+                      className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm"
+                    >
                       {term}
                     </span>
                   ))}
@@ -143,7 +230,12 @@ export default function ModelInfoTab({ model, isEditing, onModelChange }: ModelI
                 <input
                   type="text"
                   value={model.commonEmojis.join(" ")}
-                  onChange={(e) => handleArrayInputChange("commonEmojis", e.target.value.split(" ").join(","))}
+                  onChange={(e) =>
+                    handleArrayInputChange(
+                      "commonEmojis",
+                      e.target.value.split(" ").join(",")
+                    )
+                  }
                   placeholder="Enter emojis separated by spaces"
                   className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                 />
@@ -161,7 +253,9 @@ export default function ModelInfoTab({ model, isEditing, onModelChange }: ModelI
 
       {/* Social Media */}
       <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Social Media Links</h3>
+        <h3 className="text-lg font-semibold text-white mb-4">
+          Social Media Links
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Instagram */}
           <div>
@@ -179,7 +273,7 @@ export default function ModelInfoTab({ model, isEditing, onModelChange }: ModelI
               />
             ) : (
               <a
-                href={`https://instagram.com/${model?.instagram?.replace('@', '')}`}
+                href={`https://instagram.com/${model?.instagram?.replace("@", "")}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-pink-400 hover:text-pink-300 transition-colors"
@@ -205,7 +299,7 @@ export default function ModelInfoTab({ model, isEditing, onModelChange }: ModelI
               />
             ) : (
               <a
-                href={`https://twitter.com/${model?.twitter?.replace('@', '')}`}
+                href={`https://twitter.com/${model?.twitter?.replace("@", "")}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-400 hover:text-blue-300 transition-colors"
@@ -231,7 +325,7 @@ export default function ModelInfoTab({ model, isEditing, onModelChange }: ModelI
               />
             ) : (
               <a
-                href={`https://tiktok.com/@${model?.tiktok?.replace('@', '')}`}
+                href={`https://tiktok.com/@${model?.tiktok?.replace("@", "")}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-white hover:text-gray-300 transition-colors"
@@ -251,24 +345,21 @@ export default function ModelInfoTab({ model, isEditing, onModelChange }: ModelI
             <Users className="w-5 h-5 text-purple-400" />
             Chatting Managers
           </h3>
-          {isEditing ? (
-            <input
-              type="text"
-              value={model.chattingManagers.join(", ")}
-              onChange={(e) => handleArrayInputChange("chattingManagers", e.target.value)}
-              placeholder="Enter managers separated by commas"
-              className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-            />
-          ) : (
-            <div className="space-y-2">
-              {model.chattingManagers.map((manager, index) => (
-                <div key={index} className="flex items-center gap-2 text-white">
-                  <div className="w-2 h-2 bg-purple-400 rounded-full" />
-                  {manager}
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-white">
+              <div className="w-2 h-2 bg-purple-400 rounded-full" />
+              {loading ? (
+                <div className="bg-purple-400 animate-pulse w-24 h-2 rounded"></div>
+              ) : (
+                <div>
+                  {client[0]?.chattingManagers
+                    ? client[0]?.chattingManagers
+                    : "-"}
                 </div>
-              ))}
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         {/* Statistics */}
