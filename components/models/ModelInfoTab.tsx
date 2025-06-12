@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // components/models/tabs/ModelInfoTab.tsx
 "use client";
 import {
@@ -8,7 +9,6 @@ import {
   Instagram,
   Twitter,
   Users,
-  DollarSign,
   TrendingUp,
   Hash,
 } from "lucide-react";
@@ -25,6 +25,7 @@ export default function ModelInfoTab({
   isEditing,
   onModelChange,
 }: ModelInfoTabProps) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [client, setClient] = useState<any[]>([]);

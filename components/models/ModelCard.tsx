@@ -1,19 +1,8 @@
 // components/models/ModelCard.tsx
 "use client";
 
-import { motion } from "framer-motion";
-import Image from "next/image";
 import { useState } from "react";
-import {
-  Calendar,
-  User,
-  DollarSign,
-  Users,
-  Clock,
-  Instagram,
-  Twitter,
-  MoreVertical,
-} from "lucide-react";
+import { Calendar, User, Instagram, Twitter, MoreVertical } from "lucide-react";
 
 interface ModelCardProps {
   model: ModelDetails;
@@ -126,7 +115,9 @@ export default function ModelCard({ model, onClick }: ModelCardProps) {
           </div>
           <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
             <User className="w-4 h-4" />
-            <span className="truncate max-w-[100px]">{model.referrerName? model.referrerName:"-"}</span>
+            <span className="truncate max-w-[100px]">
+              {model.referrerName ? model.referrerName : "-"}
+            </span>
           </div>
         </div>
 

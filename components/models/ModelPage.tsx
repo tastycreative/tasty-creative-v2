@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+
 import ModelDetailsModal from "@/components/models/ModelDetailsModal";
 import ModelsList from "@/components/models/ModelList";
 import ModelsHeader from "@/components/models/ModelsHeader";
@@ -14,6 +14,7 @@ export default function ModelsPage() {
   const [statusFilter, setStatusFilter] = useState<ModelStatus | "all">("all");
   const [selectedModel, setSelectedModel] = useState<ModelDetails | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isLoadingModels, setLoadingModels] = useState(false);
 
   const [models, setModels] = useState<ModelDetails[]>([]);

@@ -9,7 +9,6 @@ import {
   DollarSign,
   TrendingUp,
   Search,
-  Filter,
   MoreVertical,
 } from "lucide-react";
 
@@ -45,7 +44,9 @@ export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
     const fetchModelData = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/google/cmsheets?includeChatters=true&clientName=${encodeURIComponent(modelName)}`);
+        const res = await fetch(
+          `/api/google/cmsheets?includeChatters=true&clientName=${encodeURIComponent(modelName)}`
+        );
         if (!res.ok) {
           if (res.status === 401) {
             throw new Error("Authentication required");
@@ -60,7 +61,9 @@ export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
         );
         setModelData(sortedData);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to fetch client data");
+        setError(
+          err instanceof Error ? err.message : "Failed to fetch client data"
+        );
       } finally {
         setLoading(false);
       }
@@ -72,32 +75,46 @@ export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
   }, [modelName]);
 
   // Parse chatters from API data and add static values for missing data
-  const chatters: Chatter[] = modelData.length > 0 && modelData[0].chatters 
-    ? modelData[0].chatters.split(',').map((name, index) => ({
-        id: `chatter-${index}`,
-        name: name.trim(),
-        status: Math.random() > 0.6 ? "online" : Math.random() > 0.3 ? "busy" : "offline" as const,
-        assignedDate: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        totalChats: Math.floor(Math.random() * 200) + 50,
-        activeChats: Math.floor(Math.random() * 15),
-        revenue: Math.floor(Math.random() * 10000) + 5000,
-        avgResponseTime: `${(Math.random() * 3 + 1).toFixed(1)} mins`,
-        lastActive: Math.random() > 0.5 ? `${Math.floor(Math.random() * 60)} mins ago` : `${Math.floor(Math.random() * 24)} hours ago`,
-      }))
-    : [];
+  const chatters: Chatter[] =
+    modelData.length > 0 && modelData[0].chatters
+      ? modelData[0].chatters.split(",").map((name, index) => ({
+          id: `chatter-${index}`,
+          name: name.trim(),
+          status:
+            Math.random() > 0.6
+              ? "online"
+              : Math.random() > 0.3
+                ? "busy"
+                : ("offline" as const),
+          assignedDate: new Date(
+            Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000
+          )
+            .toISOString()
+            .split("T")[0],
+          totalChats: Math.floor(Math.random() * 200) + 50,
+          activeChats: Math.floor(Math.random() * 15),
+          revenue: Math.floor(Math.random() * 10000) + 5000,
+          avgResponseTime: `${(Math.random() * 3 + 1).toFixed(1)} mins`,
+          lastActive:
+            Math.random() > 0.5
+              ? `${Math.floor(Math.random() * 60)} mins ago`
+              : `${Math.floor(Math.random() * 24)} hours ago`,
+        }))
+      : [];
 
   const filteredChatters = chatters.filter((chatter) =>
     chatter.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const chattingManagers = modelData.length > 0 ? modelData[0].chattingManagers : "";
+  const chattingManagers =
+    modelData.length > 0 ? modelData[0].chattingManagers : "";
 
   // Static values for stats (will be replaced with real API data later)
   const staticStats = {
     totalChats: 2847,
     activeChats: 28,
     avgResponse: "1.8 mins",
-    totalRevenue: 127500
+    totalRevenue: 127500,
   };
 
   const getStatusColor = (status: string) => {
@@ -125,7 +142,7 @@ export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
     return (
       <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6 text-center">
         <p className="text-red-400">Error loading chatters: {error}</p>
-        <button 
+        <button
           onClick={() => window.location.reload()}
           className="mt-4 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors"
         >
@@ -207,7 +224,9 @@ export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
             </div>
             <div>
               <p className="text-gray-400 text-sm">Avg Response</p>
-              <p className="text-xl font-bold text-white">{staticStats.avgResponse}</p>
+              <p className="text-xl font-bold text-white">
+                {staticStats.avgResponse}
+              </p>
             </div>
           </div>
         </div>
@@ -233,7 +252,9 @@ export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
           <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-12 text-center">
             <User className="w-12 h-12 text-gray-500 mx-auto mb-4" />
             <p className="text-gray-400">
-              {chatters.length === 0 ? "No chatters assigned to this model" : "No chatters found"}
+              {chatters.length === 0
+                ? "No chatters assigned to this model"
+                : "No chatters found"}
             </p>
           </div>
         ) : (
