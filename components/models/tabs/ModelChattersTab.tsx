@@ -12,28 +12,6 @@ import {
   MoreVertical,
 } from "lucide-react";
 
-interface Chatter {
-  id: string;
-  name: string;
-  status: "online" | "offline" | "busy";
-  assignedDate: string;
-  totalChats: number;
-  activeChats: number;
-  revenue: number;
-  avgResponseTime: string;
-  lastActive: string;
-}
-
-interface ModelChattersTabProps {
-  modelName: string;
-}
-
-interface ClientData {
-  clientName: string;
-  chatters: string;
-  chattingManagers: string;
-}
-
 export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [modelData, setModelData] = useState<ClientData[]>([]);

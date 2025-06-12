@@ -15,21 +15,7 @@ import {
   Calendar,
   Eye,
 } from "lucide-react";
-import { extractDriveIdFromFormula, extractUrlFromFormula } from "@/lib/utils";
-
-interface Asset {
-  "Request ID": string;
-  "Final Output"?: string | { value: string; formula: string };
-  "PSD File"?: string | { value: string; formula: string };
-  Date?: string;
-  Model?: string;
-  "Created by"?: string;
-  type: "vip" | "live" | "ftt";
-}
-
-interface ModelAssetsTabProps {
-  modelName: string;
-}
+import { extractDriveIdFromFormula } from "@/lib/utils";
 
 export default function ModelAssetsTab({ modelName }: ModelAssetsTabProps) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");

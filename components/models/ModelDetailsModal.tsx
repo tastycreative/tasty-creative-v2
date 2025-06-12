@@ -10,12 +10,6 @@ import ModelDetailsTabs from "./ModelDetailsTab";
 import ModelInfoTab from "./ModelInfoTab";
 import ModelChattersTab from "./tabs/ModelChattersTab";
 
-interface ModelDetailsModalProps {
-  model: ModelDetails;
-  isOpen: boolean;
-  onClose: () => void;
-}
-
 function ModelImage({ model }: { model: ModelDetails }) {
   const [imageError, setImageError] = useState(false);
   const [showFullscreen, setShowFullscreen] = useState(false);

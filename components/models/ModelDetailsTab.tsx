@@ -1,13 +1,7 @@
 // components/models/ModelDetailsTabs.tsx
 "use client";
 
-import { motion } from "framer-motion";
 import { Info, Image, MessageSquare } from "lucide-react";
-
-interface ModelDetailsTabsProps {
-  activeTab: "info" | "assets" | "chatters";
-  setActiveTab: (tab: "info" | "assets" | "chatters") => void;
-}
 
 export default function ModelDetailsTabs({
   activeTab,

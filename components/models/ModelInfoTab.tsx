@@ -14,12 +14,6 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
-interface ModelInfoTabProps {
-  model: ModelDetails;
-  isEditing: boolean;
-  onModelChange: (model: ModelDetails) => void;
-}
-
 export default function ModelInfoTab({
   model,
   isEditing,

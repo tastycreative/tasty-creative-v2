@@ -198,7 +198,6 @@ interface ApiKeyBalance {
   status?: string;
 }
 
-
 interface Voice {
   name: string;
   voiceId: string;
@@ -231,7 +230,7 @@ type ModelStatus = "active" | "dropped";
 interface ModelDetails {
   id: string;
   name: string;
-  status: "active" |"dropped";
+  status: "active" | "dropped";
   launchDate: string;
   referrerName: string;
   personalityType: string;
@@ -249,7 +248,6 @@ interface ModelDetails {
     avgResponseTime: string;
   };
 }
-
 
 interface ModelAsset {
   id: string;
@@ -274,3 +272,78 @@ interface ModelChatter {
   tier: "whale" | "regular" | "new";
   notes?: string;
 }
+
+interface Asset {
+  "Request ID": string;
+  "Final Output"?: string | { value: string; formula: string };
+  "PSD File"?: string | { value: string; formula: string };
+  Date?: string;
+  Model?: string;
+  "Created by"?: string;
+  type: "vip" | "live" | "ftt";
+}
+
+interface ModelAssetsTabProps {
+  modelName: string;
+}
+
+interface ModelCardProps {
+  model: ModelDetails;
+  index: number;
+  onClick: () => void;
+}
+
+interface ModelDetailsModalProps {
+  model: ModelDetails;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+interface ModelDetailsTabsProps {
+  activeTab: "info" | "assets" | "chatters";
+  setActiveTab: (tab: "info" | "assets" | "chatters") => void;
+}
+
+interface ModelInfoTabProps {
+  model: ModelDetails;
+  isEditing: boolean;
+  onModelChange: (model: ModelDetails) => void;
+}
+
+interface ModelsListProps {
+  models: ModelDetails[];
+  onModelClick: (model: ModelDetails) => void;
+}
+
+interface ModelsHeaderProps {
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  statusFilter: ModelStatus | "all";
+  setStatusFilter: (status: ModelStatus | "all") => void;
+  totalModels: number;
+  activeModels: number;
+}
+
+
+interface Chatter {
+  id: string;
+  name: string;
+  status: "online" | "offline" | "busy";
+  assignedDate: string;
+  totalChats: number;
+  activeChats: number;
+  revenue: number;
+  avgResponseTime: string;
+  lastActive: string;
+}
+
+interface ModelChattersTabProps {
+  modelName: string;
+}
+
+interface ClientData {
+  clientName: string;
+  chatters: string;
+  chattingManagers: string;
+}
+  

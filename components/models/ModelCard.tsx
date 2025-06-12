@@ -4,12 +4,6 @@
 import { useState } from "react";
 import { Calendar, User, Instagram, Twitter, MoreVertical } from "lucide-react";
 
-interface ModelCardProps {
-  model: ModelDetails;
-  index: number;
-  onClick: () => void;
-}
-
 function ImageWithFallback({ model }: { model: ModelDetails }) {
   const [imageError, setImageError] = useState(false);
   const [backgroundError, setBackgroundError] = useState(false);

@@ -1,13 +1,7 @@
 // components/models/ModelsList.tsx
 "use client";
 
-import { motion } from "framer-motion";
 import ModelCard from "./ModelCard";
-
-interface ModelsListProps {
-  models: ModelDetails[];
-  onModelClick: (model: ModelDetails) => void;
-}
 
 export default function ModelsList({ models, onModelClick }: ModelsListProps) {
   if (models.length === 0) {

@@ -1,17 +1,6 @@
 // components/models/ModelsHeader.tsx
 "use client";
-
-import { motion } from "framer-motion";
-import { Search, Users, UserCheck, UserX, Plus } from "lucide-react";
-
-interface ModelsHeaderProps {
-  searchQuery: string;
-  setSearchQuery: (query: string) => void;
-  statusFilter: ModelStatus | "all";
-  setStatusFilter: (status: ModelStatus | "all") => void;
-  totalModels: number;
-  activeModels: number;
-}
+import { Search, Users, UserCheck, UserX } from "lucide-react";
 
 export default function ModelsHeader({
   searchQuery,
@@ -34,15 +23,6 @@ export default function ModelsHeader({
             Manage your OnlyFans models and their content
           </p>
         </div>
-
-        {/* <button
-          //whileHover={{ scale: 1.05 }}
-          //whileTap={{ scale: 0.95 }}
-          className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          Add Model
-        </button> */}
       </div>
 
       {/* Stats Cards */}
