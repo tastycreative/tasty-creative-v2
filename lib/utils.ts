@@ -347,7 +347,7 @@ export function transformRawModel(raw: any): ModelDetails {
   return {
     id: raw["Profile Link"] || "", // Or generate an ID if needed
     name: raw["Client Name"] || "",
-    status: raw["Status"] || "Inactive",
+    status: normalizeStatus(raw["Status"]),
     launchDate: raw["Launch Date"] || "",
     referrerName: raw["Referrer Name"] || "",
     personalityType: raw["Personality Type"] || "",
@@ -362,4 +362,12 @@ export function transformRawModel(raw: any): ModelDetails {
     profileImage: raw["Profile Picture"] || "",
     // stats can be added later if available
   };
+}
+
+function normalizeStatus(input: string): ModelStatus {
+  const cleaned = input?.trim().toLowerCase();
+  if (cleaned === "active") return "active";
+  if (cleaned === "dropped") return "dropped";
+  console.warn("Unexpected status:", input);
+  return "dropped";
 }

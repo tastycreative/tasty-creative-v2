@@ -231,7 +231,7 @@ type ModelStatus = "active" | "dropped";
 interface ModelDetails {
   id: string;
   name: string;
-  status: "Active" | "Inactive" | "Dropped" | "All"; // adjust as needed
+  status: "active" |"dropped";
   launchDate: string;
   referrerName: string;
   personalityType: string;

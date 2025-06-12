@@ -16,10 +16,7 @@ export default function ModelsPage() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [isLoadingModels, setLoadingModels] = useState(false);
 
-  // Mock data - replace with API call
   const [models, setModels] = useState<ModelDetails[]>([]);
-
-  console.log(models, "models");
 
   useEffect(() => {
     const fetchModels = async () => {
@@ -40,11 +37,25 @@ export default function ModelsPage() {
   }, []);
 
   const filteredModels = models.filter((model) => {
-    const matchesSearch = model.name
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase());
+    if (!model.name || typeof model.name !== "string") {
+      return false;
+    }
+
+    const matchesSearch =
+      searchQuery.trim() === "" ||
+      model.name
+        .toLowerCase()
+        .trim()
+        .includes(searchQuery.toLowerCase().trim());
+
+    if (!model.status || typeof model.status !== "string") {
+      return statusFilter === "all";
+    }
+
     const matchesStatus =
-      statusFilter === "all" || model.status.toLowerCase() === statusFilter;
+      statusFilter === "all" ||
+      model.status.toLowerCase().trim() === statusFilter.toLowerCase().trim();
+
     return matchesSearch && matchesStatus;
   });
 
@@ -52,8 +63,6 @@ export default function ModelsPage() {
     setSelectedModel(model);
     setShowDetailsModal(true);
   };
-
-  console.log(models.length, "models length");
 
   return (
     <div
@@ -73,7 +82,11 @@ export default function ModelsPage() {
       />
 
       <PermissionGoogle apiEndpoint="/api/models">
-        <ModelsList models={filteredModels} onModelClick={handleModelClick} />
+        <ModelsList
+          key={`${searchQuery}-${statusFilter}-${filteredModels.length}`}
+          models={filteredModels}
+          onModelClick={handleModelClick}
+        />
       </PermissionGoogle>
 
       {showDetailsModal && selectedModel && (
