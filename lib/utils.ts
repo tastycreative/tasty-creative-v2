@@ -351,13 +351,13 @@ export function transformRawModel(raw: any): ModelDetails {
     launchDate: raw["Launch Date"] || "",
     referrerName: raw["Referrer Name"] || "",
     personalityType: raw["Personality Type"] || "",
-    commonTerms: raw["Common Terms"]?.split(",").map((s) => s.trim()) || [],
-    commonEmojis: raw["Common Emojis"]?.split(",").map((s) => s.trim()) || [],
+    commonTerms: raw["Common Terms"]?.split(",").map((s: string) => s.trim()) || [],
+    commonEmojis: raw["Common Emojis"]?.split(",").map((s: string) => s.trim()) || [],
     instagram: raw["Main Instagram @"] || "",
     twitter: raw["Main Twitter @"] || "",
     tiktok: raw["Main TikTok @"] || "",
     chattingManagers:
-      raw["General client notes/requests"]?.split(",").map((s) => s.trim()) ||
+      raw["General client notes/requests"]?.split(",").map((s: string) => s.trim()) ||
       [],
     profileImage: raw["Profile Picture"] || "",
     // stats can be added later if available
