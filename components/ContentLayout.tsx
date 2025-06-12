@@ -20,10 +20,10 @@ const ContentLayout = ({ children  }: { children: React.ReactNode}) => {
       )}>
         <div className="w-full h-full rounded-2xl backdrop-blur-[2px] shadow-xl border border-white/50 dark:border-slate-700/50 overflow-hidden">
           {/* Subtle dot pattern */}
-          <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.02]" />
+          {/* <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.02]" /> */}
 
           {/* Gentle top gradient */}
-          <div className="absolute inset-x-0 top-0 h-32" />
+          {/* <div className="absolute inset-x-0 top-0 h-32" /> */}
 
           {/* Content */}
           <ProtectedFeature>
