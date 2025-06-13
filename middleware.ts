@@ -15,7 +15,7 @@ export function middleware(request: NextRequest) {
   const isAuthPage = authPages.some((page) => path.startsWith(page));
   const isVerifyPage = path.startsWith("/verify-email");
   const isApiAuth =
-    path.startsWith("/api/auth") || path.startsWith("/api/webhook");
+    path.startsWith("/api/auth") || path.startsWith("/api/webhook") || path.startsWith("/api/hubstaff");
 
   const publicPaths = ["/"];
   const isPublic = publicPaths.includes(path);
