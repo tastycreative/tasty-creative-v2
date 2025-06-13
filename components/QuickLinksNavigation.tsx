@@ -17,8 +17,11 @@ const QuicklinksNavigation = () => {
     setIsOpen(false);
   };
 
-  if (session?.user?.role === "GUEST") {
+  if (session?.user?.role === "GUEST" ) {
     return null;
+  }
+  if(!session) {
+    return null
   }
   if (pathName === "/sign-in" || pathName === "/sign-up") {
     return null;
