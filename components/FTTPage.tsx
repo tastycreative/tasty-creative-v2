@@ -14,7 +14,7 @@ import FlyerTemplates from "./FlyerTemplates";
 import { POSITIONS } from "@/lib/lib";
 import { fttFlyerValidation } from "@/schema/zodValidationSchema";
 
-export default function FTTFlyer() {
+export default function FTTFlyer({ modelName }: { modelName?: string }) {
   const router = useRouter();
 
   const searchParams = useSearchParams();
@@ -97,7 +97,7 @@ export default function FTTFlyer() {
   } | null>(null);
 
   const [formData, setFormData] = useState<ModelFormData>({
-    model: "",
+    model: modelName || "",
     customImage: false,
     templatePosition: "BOTTOM",
     imageId: "",

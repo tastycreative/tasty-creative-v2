@@ -14,7 +14,7 @@ import ServerOffline from "./ServerOffline";
 import FlyerTemplates from "./FlyerTemplates";
 import { vipFlyerValidation } from "@/schema/zodValidationSchema";
 
-export default function FlyerGenerator() {
+export default function VIPFlyer({modelName}:{modelName?: string}) {
   const searchParams = useSearchParams();
   const reqId = searchParams?.get("reqId") || null;
   const [isLoading, setIsLoading] = useState(false);
@@ -101,6 +101,7 @@ export default function FlyerGenerator() {
   }, [reqId]);
 
   const [formData, setFormData] = useState<ModelFormData>({
+    model: modelName || "",
     croppedImage: null,
     templatePosition: "BOTTOM",
     type: "VIP",

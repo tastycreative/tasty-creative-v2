@@ -1,7 +1,6 @@
 "use client";
 
 import VIPFlyer from "@/components/VIPFlyer";
-import { motion } from "framer-motion";
 import { Crown } from "lucide-react";
 import { useState } from "react";
 

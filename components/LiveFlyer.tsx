@@ -21,7 +21,7 @@ import FlyerTemplates from "./FlyerTemplates";
 import ServerOffline from "./ServerOffline";
 import { liveFlyerValidation } from "@/schema/zodValidationSchema";
 
-export default function LiveFlyer() {
+export default function LiveFlyer({ modelName }: { modelName?: string }) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const [response, setResponse] = useState<WebhookResponse | null>(null);
@@ -55,7 +55,7 @@ export default function LiveFlyer() {
   } | null>(null);
 
   const [formData, setFormData] = useState<ModelFormData>({
-    model: "",
+    model: modelName || "",
     date: "",
     time: "",
     timezone: "",
