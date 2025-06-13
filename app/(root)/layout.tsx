@@ -43,6 +43,7 @@ export default async function RootLayout({
 
         <ContentLayout>{children}</ContentLayout>
       </div>
+    
     </SidebarProvider>
   );
 }

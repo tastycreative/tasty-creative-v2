@@ -70,6 +70,7 @@ export default function AppsLayout({
           {children}
         </div>
       </div>
+
     </div>
   );
 }

@@ -1,6 +1,17 @@
 // This file contains the library functions for the app.
 // It is a good practice to keep the library functions in a separate file
 
+import {
+  Code,
+  Palette,
+  FileText,
+  MessageSquareHeart,
+  VenetianMask,
+  Package,
+  FileSpreadsheet,
+  CalendarRange,
+} from "lucide-react";
+
 export const TIMEZONES = [
   { name: "PST" },
   { name: "MST" },
@@ -180,3 +191,79 @@ export const MODELS_FINISHED_WEEKS_IDS = {
     free: "1IoLAClBot_sdroz_KoHo0KE6mClQfjkNtBKFfjkNtBKFfa2KU8M",
   },
 };
+
+export const appPages = [
+  {
+    id: 1,
+    name: "Generate Flyers",
+    path: "/apps/generate/live",
+    icon: Code,
+    color: "from-blue-500 to-cyan-500",
+    // Responsive sizing: mobile (1x2), tablet (2x1), desktop (2x2)
+    size: "col-span-1 row-span-2 sm:col-span-2 sm:row-span-1 lg:col-span-2 lg:row-span-2",
+    description: "Generate Flyers, Posters, and more",
+  },
+  {
+    id: 2,
+    name: "Generative AI",
+    path: "/apps/generative-ai/voice",
+    icon: Palette,
+    color: "from-purple-500 to-pink-500",
+    size: "col-span-1 row-span-1 sm:col-span-2 lg:col-span-3",
+    description: "Generate with AI",
+  },
+  {
+    id: 3,
+    name: "Onboarding",
+    path: "/apps/onboarding",
+    icon: FileText,
+    color: "from-green-500 to-emerald-500",
+    size: "col-span-1 row-span-1 sm:col-span-2 lg:col-span-2",
+    description: "Onboarding Clients",
+  },
+  {
+    id: 4,
+    name: "Chatting",
+    path: "/apps/chatting",
+    icon: MessageSquareHeart,
+    color: "from-gray-500 to-slate-500",
+    size: "col-span-1 row-span-1",
+    description: "Chatting Team Information",
+  },
+  {
+    id: 5,
+    name: "Models",
+    path: "/apps/models",
+    icon: VenetianMask,
+    color: "from-orange-500 to-red-500",
+    size: "col-span-1 row-span-2 sm:col-span-2 sm:row-span-1 lg:col-span-2 lg:row-span-2",
+    description: "Models Data Information",
+  },
+  {
+    id: 6,
+    name: "Vault",
+    path: "/apps/vault",
+    icon: Package,
+    color: "from-sky-500 to-blue-500",
+    size: "col-span-1 row-span-1 sm:col-span-2 lg:col-span-2",
+    description: "Model's OnlyFans Vault",
+  },
+  {
+    id: 7,
+    name: "Forms",
+    path: "/apps/forms",
+    icon: FileSpreadsheet,
+    color: "from-indigo-500 to-purple-500",
+    size: "col-span-1 row-span-2 sm:col-span-1 sm:row-span-1 lg:col-span-1 lg:row-span-2",
+    description: "Forms and Surveys",
+  },
+  {
+    id: 8,
+    name: "Timesheet",
+    path: "/apps/timesheet",
+    icon: CalendarRange,
+    color: "from-yellow-500 to-amber-500",
+    size: "col-span-1 row-span-1 sm:col-span-2 lg:col-span-2",
+    description: "Manage Timesheets",
+  },
+];
