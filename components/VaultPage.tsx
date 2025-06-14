@@ -46,7 +46,7 @@ const VaultPage = () => {
   }, []);
 
   return (
-    <div className="w-full h-screen  flex items-center justify-center overflow-hidden bg-black/60 rounded-lg text-white">
+    <div className="w-full h-full flex overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-black rounded-lg text-white shadow-2xl">
       <VaultClientList
         clientLoading={isLoading}
         sidebarCollapsed={sidebarCollapsed}
@@ -75,8 +75,11 @@ const VaultPage = () => {
         />
       )}
       {error && (
-        <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-black/90 text-red-500">
-          <p>{error}</p>
+        <div className="absolute inset-0 flex items-center justify-center bg-black/90 text-red-500 backdrop-blur-sm">
+          <div className="text-center p-8 bg-red-500/20 rounded-lg border border-red-500">
+            <p className="text-xl">{error}</p>
+            <p className="text-sm mt-2 opacity-75">Please try again later.</p>
+          </div>
         </div>
       )}
     </div>

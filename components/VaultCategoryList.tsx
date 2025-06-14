@@ -126,15 +126,15 @@ const VaultCategoryList = ({
   };
 
   return (
-    <div className="w-80 md:w-96 flex flex-col bg-gray-800 border-r border-gray-700">
+    <div className="w-80 md:w-96 h-full flex flex-col bg-gradient-to-b from-gray-800 to-gray-900 border-r border-gray-600/50 backdrop-blur-sm">
       {/* Sticky Header */}
-      <div className="sticky top-0 z-10 p-6 bg-gray-800 border-b border-gray-700 flex gap-3 justify-between items-center">
-        <h2 className="font-bold text-white text-lg">Categories</h2>
+      <div className="flex-shrink-0 p-6 bg-gradient-to-r from-gray-800 to-gray-700 border-b border-gray-600/50 flex gap-3 justify-between items-center shadow-lg">
+        <h2 className="font-bold text-white text-lg tracking-wide">Categories</h2>
         {selectedClient && selectedClient.email !== "Select a client" && (
           <button
             disabled={syncing}
             onClick={handleSync}
-            className="text-sm px-3 py-2 bg-yellow-400/40 hover:bg-yellow-400/60 rounded-md cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="text-sm px-4 py-2 bg-gradient-to-r from-yellow-400/40 to-yellow-500/40 hover:from-yellow-400/60 hover:to-yellow-500/60 rounded-lg cursor-pointer transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md font-medium"
           >
             {syncing ? "Syncing..." : "Sync"}
           </button>
@@ -142,32 +142,43 @@ const VaultCategoryList = ({
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
         {vaultCategories.length > 0 ? (
-          vaultCategories.map((category) => (
-            <div
-              key={category.id}
-              className={`p-4 cursor-pointer hover:bg-gray-700 border-l-4 transition-colors ${
-                selectedCategory?.id === category.id
-                  ? "border-blue-500 bg-gray-700 text-white"
-                  : "border-transparent text-gray-300 hover:text-white"
-              }`}
-              onClick={() => setSelectedCategory(category)}
-            >
-              <span className="text-base truncate">{category.tag}</span>
-            </div>
-          ))
+          <div className="p-2">
+            {vaultCategories.map((category) => (
+              <div
+                key={category.id}
+                className={`p-4 m-2 cursor-pointer rounded-lg border-l-4 transition-all duration-200 hover:shadow-lg ${
+                  selectedCategory?.id === category.id
+                    ? "border-blue-500 bg-gradient-to-r from-blue-500/20 to-blue-600/10 text-white shadow-lg transform scale-[1.02]"
+                    : "border-transparent text-gray-300 hover:text-white hover:bg-gradient-to-r hover:from-gray-700/50 hover:to-gray-600/30"
+                }`}
+                onClick={() => setSelectedCategory(category)}
+              >
+                <span className="text-base truncate font-medium">{category.tag}</span>
+              </div>
+            ))}
+          </div>
         ) : isLoading ? (
-          <div className="p-6 text-gray-400 italic">
-            Loading categories...
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+              <p className="text-gray-400 italic">Loading categories...</p>
+            </div>
           </div>
         ) : selectedClient?.email === "Select a client" ? (
-          <div className="p-6 text-gray-400 italic">
-            Please select a client to view categories
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center p-8">
+              <div className="text-4xl mb-4 opacity-50">📁</div>
+              <p className="text-gray-400 italic">Please select a client to view categories</p>
+            </div>
           </div>
         ) : (
-          <div className="p-6 text-gray-400 italic">
-            No categories found for this client
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center p-8">
+              <div className="text-4xl mb-4 opacity-50">📂</div>
+              <p className="text-gray-400 italic">No categories found for this client</p>
+            </div>
           </div>
         )}
 

@@ -161,24 +161,24 @@ const VaultCategoryItems = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-gray-800 overflow-hidden">
+    <div className="flex-1 h-full flex flex-col bg-gradient-to-b from-gray-800 to-gray-900 overflow-hidden">
       {selectedCategory ? (
         <>
           {/* Sticky Header */}
-          <div className="sticky top-0 z-10 bg-gray-800 border-b border-gray-700 p-6">
+          <div className="flex-shrink-0 bg-gradient-to-r from-gray-800 to-gray-700 border-b border-gray-600/50 p-6 shadow-lg">
             <div className="flex items-center justify-between">
-              <h2 className="font-bold text-white text-xl truncate mr-4">
+              <h2 className="font-bold text-white text-xl truncate mr-4 tracking-wide">
                 {selectedCategory.tag}
               </h2>
               <div className="flex items-center gap-3 flex-shrink-0">
                 <button
                   disabled={syncing}
                   onClick={handleSync}
-                  className="text-sm px-3 py-2 bg-yellow-400/40 hover:bg-yellow-400/60 rounded-md cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="text-sm px-4 py-2 bg-gradient-to-r from-yellow-400/40 to-yellow-500/40 hover:from-yellow-400/60 hover:to-yellow-500/60 rounded-lg cursor-pointer transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md font-medium"
                 >
                   {syncing ? "Syncing..." : "Sync"}
                 </button>
-                <p className="text-gray-500 text-sm hidden lg:block">
+                <p className="text-gray-400 text-sm hidden lg:block bg-gray-700/50 px-3 py-1 rounded-full">
                   last sync: {categoryItems[0]?.updatedAt}
                 </p>
               </div>
@@ -186,13 +186,13 @@ const VaultCategoryItems = ({
           </div>
 
           {/* Scrollable Grid */}
-          <div className="flex-1 overflow-y-auto p-6">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4  gap-6">
+          <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
               {categoryItems.length > 0 ? (
                 categoryItems.map((item) => (
                     <div
                       key={item.id}
-                      className="relative group cursor-pointer rounded-lg overflow-hidden bg-gray-700 hover:bg-gray-700 transition-colors"
+                      className="relative group cursor-pointer rounded-xl overflow-hidden bg-gradient-to-b from-gray-700 to-gray-800 hover:from-gray-600 hover:to-gray-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
                       onClick={() => setFullscreenItem(item)}
                     >
                       {item.type === "image" ? (
@@ -214,26 +214,30 @@ const VaultCategoryItems = ({
                             height={500}
                             loading="lazy"
                           />
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-90 group-hover:opacity-100 transition-opacity">
-                            <Play className="text-white" size={48} />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                            <div className="bg-white/20 rounded-full p-3 backdrop-blur-sm">
+                              <Play className="text-white" size={32} />
+                            </div>
                           </div>
                         </>
                       )}
 
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white p-3">
-                        <p className="truncate text-sm" title={item.name}>
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent text-white p-3">
+                        <p className="truncate text-sm font-medium" title={item.name}>
                           {item.name}
                         </p>
                       </div>
                     </div>
                 ))
               ) : isLoading ? (
-                <div className="col-span-full text-center text-gray-400 italic py-12 text-lg">
-                  Loading items...
+                <div className="col-span-full flex flex-col items-center justify-center py-20">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mb-6"></div>
+                  <p className="text-gray-400 italic text-lg">Loading items...</p>
                 </div>
               ) : (
-                <div className="col-span-full text-center text-gray-400 italic py-12 text-lg">
-                  No items found in this category
+                <div className="col-span-full flex flex-col items-center justify-center py-20">
+                  <div className="text-6xl mb-6 opacity-30">📭</div>
+                  <p className="text-gray-400 italic text-lg">No items found in this category</p>
                 </div>
               )}
             </div>
@@ -241,8 +245,11 @@ const VaultCategoryItems = ({
         </>
       ) : (
         <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
-          <ImageIcon className="mb-4" size={64} />
-          <p className="text-center text-xl">Select a category to view items</p>
+          <div className="text-center">
+            <ImageIcon className="mb-6 mx-auto opacity-30" size={80} />
+            <p className="text-xl font-medium">Select a category to view items</p>
+            <p className="text-sm mt-2 opacity-75">Choose from the categories on the left</p>
+          </div>
         </div>
       )}
 
