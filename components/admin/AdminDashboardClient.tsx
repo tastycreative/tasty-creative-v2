@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -98,11 +97,18 @@ export function AdminDashboardClient({ userStats }: { userStats: UserStats }) {
   }, []);
 
   const trafficData = [
-    { name: "Authenticated Users", value: userStats.activeUsers7d, color: "#0088FE" },
-    { 
-      name: "Anonymous Visitors", 
-      value: Math.max(0, (analytics?.uniqueVisitors || 0) - userStats.activeUsers7d), 
-      color: "#00C49F" 
+    {
+      name: "Authenticated Users",
+      value: userStats.activeUsers7d,
+      color: "#0088FE",
+    },
+    {
+      name: "Anonymous Visitors",
+      value: Math.max(
+        0,
+        (analytics?.uniqueVisitors || 0) - userStats.activeUsers7d,
+      ),
+      color: "#00C49F",
     },
   ];
 
@@ -111,8 +117,8 @@ export function AdminDashboardClient({ userStats }: { userStats: UserStats }) {
     const date = new Date();
     date.setMonth(date.getMonth() - (11 - i));
     return {
-      month: date.toLocaleDateString('en-US', { month: 'short' }),
-      users: Math.floor(Math.random() * 50) + (i * 10) + 20,
+      month: date.toLocaleDateString("en-US", { month: "short" }),
+      users: Math.floor(Math.random() * 50) + i * 10 + 20,
     };
   });
 
@@ -127,7 +133,7 @@ export function AdminDashboardClient({ userStats }: { userStats: UserStats }) {
       createdAt: new Date(),
     },
     {
-      id: "2", 
+      id: "2",
       name: "Jane Smith",
       email: "jane@example.com",
       role: "ADMIN",
@@ -154,7 +160,7 @@ export function AdminDashboardClient({ userStats }: { userStats: UserStats }) {
       name: role,
       value: count,
       color: ROLE_COLORS[role as keyof typeof ROLE_COLORS] || "#6b7280",
-    })
+    }),
   );
 
   const statCards = [
@@ -442,8 +448,12 @@ export function AdminDashboardClient({ userStats }: { userStats: UserStats }) {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-400">Active Users (24h)</p>
-                  <p className="text-2xl font-bold text-white">{userStats.activeUsers24h}</p>
+                  <p className="text-sm font-medium text-gray-400">
+                    Active Users (24h)
+                  </p>
+                  <p className="text-2xl font-bold text-white">
+                    {userStats.activeUsers24h}
+                  </p>
                 </div>
                 <div className="bg-green-900/20 p-3 rounded-full">
                   <Activity className="h-6 w-6 text-green-400" />
@@ -456,8 +466,12 @@ export function AdminDashboardClient({ userStats }: { userStats: UserStats }) {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-400">Unique Visitors (7d)</p>
-                  <p className="text-2xl font-bold text-white">{analytics?.uniqueVisitors || 0}</p>
+                  <p className="text-sm font-medium text-gray-400">
+                    Unique Visitors (7d)
+                  </p>
+                  <p className="text-2xl font-bold text-white">
+                    {analytics?.uniqueVisitors || 0}
+                  </p>
                 </div>
                 <div className="bg-purple-900/20 p-3 rounded-full">
                   <Globe className="h-6 w-6 text-purple-400" />
@@ -470,8 +484,12 @@ export function AdminDashboardClient({ userStats }: { userStats: UserStats }) {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-400">Page Views (7d)</p>
-                  <p className="text-2xl font-bold text-white">{analytics?.pageViews || 0}</p>
+                  <p className="text-sm font-medium text-gray-400">
+                    Page Views (7d)
+                  </p>
+                  <p className="text-2xl font-bold text-white">
+                    {analytics?.pageViews || 0}
+                  </p>
                 </div>
                 <div className="bg-orange-900/20 p-3 rounded-full">
                   <Eye className="h-6 w-6 text-orange-400" />
@@ -484,8 +502,12 @@ export function AdminDashboardClient({ userStats }: { userStats: UserStats }) {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-400">Active Users (30d)</p>
-                  <p className="text-2xl font-bold text-white">{userStats.activeUsers30d}</p>
+                  <p className="text-sm font-medium text-gray-400">
+                    Active Users (30d)
+                  </p>
+                  <p className="text-2xl font-bold text-white">
+                    {userStats.activeUsers30d}
+                  </p>
                 </div>
                 <div className="bg-pink-900/20 p-3 rounded-full">
                   <Clock className="h-6 w-6 text-pink-400" />
@@ -500,38 +522,45 @@ export function AdminDashboardClient({ userStats }: { userStats: UserStats }) {
           {/* Activity Timeline */}
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader>
-              <CardTitle className="text-white">Visitor Activity (30 Days)</CardTitle>
+              <CardTitle className="text-white">
+                Visitor Activity (30 Days)
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={activityData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                  <XAxis 
-                    dataKey="date" 
+                  <XAxis
+                    dataKey="date"
                     stroke="#9CA3AF"
                     fontSize={12}
-                    tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    tickFormatter={(value) =>
+                      new Date(value).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                      })
+                    }
                   />
                   <YAxis stroke="#9CA3AF" fontSize={12} />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: "#1F2937", 
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#1F2937",
                       border: "1px solid #374151",
                       borderRadius: "8px",
-                      color: "#F9FAFB"
+                      color: "#F9FAFB",
                     }}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="pageViews" 
-                    stroke="#60A5FA" 
+                  <Line
+                    type="monotone"
+                    dataKey="pageViews"
+                    stroke="#60A5FA"
                     strokeWidth={2}
                     name="Page Views"
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="uniqueVisitors" 
-                    stroke="#34D399" 
+                  <Line
+                    type="monotone"
+                    dataKey="uniqueVisitors"
+                    stroke="#34D399"
                     strokeWidth={2}
                     name="Unique Visitors"
                   />
@@ -543,7 +572,9 @@ export function AdminDashboardClient({ userStats }: { userStats: UserStats }) {
           {/* Traffic Sources */}
           <Card className="bg-gray-800 border-gray-700">
             <CardHeader>
-              <CardTitle className="text-white">User vs Anonymous Traffic</CardTitle>
+              <CardTitle className="text-white">
+                User vs Anonymous Traffic
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -553,7 +584,9 @@ export function AdminDashboardClient({ userStats }: { userStats: UserStats }) {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    label={({ name, percent }) =>
+                      `${name} ${(percent * 100).toFixed(0)}%`
+                    }
                     outerRadius={80}
                     fill="#8884d8"
                     dataKey="value"
@@ -562,12 +595,12 @@ export function AdminDashboardClient({ userStats }: { userStats: UserStats }) {
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: "#1F2937", 
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "#1F2937",
                       border: "1px solid #374151",
                       borderRadius: "8px",
-                      color: "#F9FAFB"
+                      color: "#F9FAFB",
                     }}
                   />
                 </PieChart>
@@ -579,26 +612,28 @@ export function AdminDashboardClient({ userStats }: { userStats: UserStats }) {
         {/* Top Pages */}
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white">Most Visited Pages (Last 7 Days)</CardTitle>
+            <CardTitle className="text-white">
+              Most Visited Pages (Last 7 Days)
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={400}>
               <BarChart data={topPages} layout="horizontal">
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis type="number" stroke="#9CA3AF" fontSize={12} />
-                <YAxis 
-                  dataKey="path" 
-                  type="category" 
-                  stroke="#9CA3AF" 
+                <YAxis
+                  dataKey="path"
+                  type="category"
+                  stroke="#9CA3AF"
                   fontSize={12}
                   width={150}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: "#1F2937", 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#1F2937",
                     border: "1px solid #374151",
                     borderRadius: "8px",
-                    color: "#F9FAFB"
+                    color: "#F9FAFB",
                   }}
                 />
                 <Bar dataKey="views" fill="#60A5FA" />
