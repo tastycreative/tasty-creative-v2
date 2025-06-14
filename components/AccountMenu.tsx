@@ -5,7 +5,13 @@ import { ChevronDown } from "lucide-react";
 import { handleLogout } from "@/app/actions/sign-out";
 import { Session } from "next-auth";
 
-const AccountMenu = ({ session, collapsed }: { session: Session | null; collapsed?: boolean }) => {
+const AccountMenu = ({
+  session,
+  collapsed,
+}: {
+  session: Session | null;
+  collapsed?: boolean;
+}) => {
   const { name, image } = session?.user || {};
   const [imgError, setImgError] = useState(false);
 
@@ -23,7 +29,7 @@ const AccountMenu = ({ session, collapsed }: { session: Session | null; collapse
           <div className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-400 dark:to-indigo-500 flex items-center justify-center text-white text-sm font-semibold shadow-md">
             {image && !imgError ? (
               <img
-                src={image}
+                src={`/api/image-proxy?url=${encodeURIComponent(image)}`}
                 alt="profile-picture"
                 className="w-full h-full object-cover"
                 onError={() => setImgError(true)}
@@ -50,7 +56,7 @@ const AccountMenu = ({ session, collapsed }: { session: Session | null; collapse
             <div className="w-10 h-10 lg:w-11 lg:h-11 rounded-xl overflow-hidden bg-gradient-to-br from-blue-500 to-indigo-600 dark:from-blue-400 dark:to-indigo-500 flex items-center justify-center text-white text-sm font-semibold shadow-md">
               {image && !imgError ? (
                 <img
-                  src={image}
+                  src={`/api/image-proxy?url=${encodeURIComponent(image)}`}
                   alt="profile-picture"
                   className="w-full h-full object-cover"
                   onError={() => setImgError(true)}
@@ -62,8 +68,12 @@ const AccountMenu = ({ session, collapsed }: { session: Session | null; collapse
             <div className="rounded-full bg-emerald-400 dark:bg-emerald-500 w-3 h-3 absolute -bottom-0.5 -right-0.5 border-2 border-white dark:border-slate-900 shadow-sm"></div>
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{name || "Guest"}</h1>
-            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Online</p>
+            <h1 className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">
+              {name || "Guest"}
+            </h1>
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+              Online
+            </p>
           </div>
         </div>
         <ChevronDown className="w-4 h-4 text-slate-500 dark:text-slate-400 transition-transform duration-200 peer-checked:rotate-180 flex-shrink-0" />

@@ -56,13 +56,19 @@ export default async function AdminUsersPage() {
               <tr key={user.id}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
-                    {user.image && (
+                    {user.image ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         className="h-10 w-10 rounded-full mr-3"
-                        src={user.image}
+                        src={`/api/image-proxy?url=${encodeURIComponent(user.image)}`}
                         alt={user.name || ""}
                       />
+                    ):(
+                      <div className="h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 mr-3 flex items-center justify-center">
+                        <span className="text-gray-500 dark:text-gray-300">
+                          {user.name ? user.name.charAt(0).toUpperCase() : "?"}
+                        </span>
+                      </div>
                     )}
                     <div>
                       <div className="text-sm font-medium text-gray-900 dark:text-white">

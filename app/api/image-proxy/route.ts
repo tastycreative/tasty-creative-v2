@@ -5,23 +5,40 @@ import { auth } from "@/auth";
 
 export async function GET(req: NextRequest) {
   const fileId = req.nextUrl.searchParams.get("id");
+  const imageUrl = req.nextUrl.searchParams.get("url");
+
+  // Proxy external image (e.g. Google profile pic)
+  if (imageUrl) {
+    try {
+      const res = await fetch(imageUrl);
+      if (!res.ok) {
+        return new Response("Failed to fetch external image", { status: res.status });
+      }
+
+      const contentType = res.headers.get("content-type") || "image/jpeg";
+      return new Response(res.body, {
+        headers: {
+          "Content-Type": contentType,
+          "Cache-Control": "public, max-age=3600",
+        },
+      });
+    } catch (err) {
+      console.error("External image proxy error:", err);
+      return new Response("Failed to fetch external image", { status: 500 });
+    }
+  }
+
+  // Proxy Google Drive image (default)
   if (!fileId) {
-    return new Response("Missing file ID", { status: 400 });
+    return new Response("Missing file ID or URL", { status: 400 });
   }
 
   try {
-    // Get session using Auth.js
     const session = await auth();
-    
-    if (!session || !session.user) {
+    if (!session || !session.user || !session.accessToken) {
       return new Response("Not authenticated", { status: 401 });
     }
 
-    if (!session.accessToken) {
-      return new Response("Not authenticated. No access token.", { status: 401 });
-    }
-
-    // Set up OAuth2 client with Auth.js session
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
@@ -54,25 +71,14 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error("Proxy fetch error:", error);
-    
-    // Handle Google API specific errors
-    if (error.code === 403 && error.errors && error.errors.length > 0) {
-      console.error(
-        "Google API Permission Error (403):",
-        error.errors[0].message
-      );
-      return new Response(
-        `Google API Error: ${error.errors[0].message || "The authenticated Google account does not have permission for Google Drive."}`,
-        { status: 403 }
-      );
-    }
+    console.error("Drive proxy error:", error);
 
-    // Handle file not found errors
+    if (error.code === 403 && error.errors?.length > 0) {
+      return new Response(`Google API Error: ${error.errors[0].message}`, { status: 403 });
+    }
     if (error.code === 404) {
       return new Response("File not found", { status: 404 });
     }
-
     return new Response("Failed to proxy image", { status: 500 });
   }
 }
