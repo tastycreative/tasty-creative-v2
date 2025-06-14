@@ -6,6 +6,49 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
+// TODO: Define a more specific type for the token object
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function refreshAccessToken(token: any) {
+  try {
+    const response = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        client_id: process.env.AUTH_GOOGLE_ID!,
+        client_secret: process.env.AUTH_GOOGLE_SECRET!,
+        refresh_token: token.refreshToken,
+        grant_type: "refresh_token",
+      }),
+    });
+
+    const refreshedTokens = await response.json();
+
+    if (!response.ok) {
+      console.error("Error refreshing access token:", refreshedTokens);
+      return {
+        ...token,
+        error: "RefreshAccessTokenError",
+      };
+    }
+
+    return {
+      ...token,
+      accessToken: refreshedTokens.access_token,
+      expiresAt: Math.floor(Date.now() / 1000 + refreshedTokens.expires_in),
+      // Keep the existing refresh token if a new one isn't provided
+      refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
+    };
+  } catch (error) {
+    console.error("Error refreshing access token:", error);
+    return {
+      ...token,
+      error: "RefreshAccessTokenError",
+    };
+  }
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: {
@@ -88,6 +131,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.refreshToken = account.refresh_token;
         token.expiresAt = account.expires_at;
       }
+
+      // If the access token has expired, try to refresh it
+      if (account?.provider === "google" && token.refreshToken && token.expiresAt) {
+        // Check if token is expired or about to expire (e.g., within the next 60 seconds)
+        const buffer = 60 * 1000; // 60 seconds buffer
+        if (Date.now() > (Number(token.expiresAt) * 1000) - buffer) {
+          console.log("Access token expired, attempting refresh...");
+          const refreshedToken = await refreshAccessToken(token);
+
+          if (refreshedToken.error) {
+            console.error("Failed to refresh access token:", refreshedToken.error);
+            // Invalidate the session by clearing token details if refresh fails
+            token.error = refreshedToken.error;
+            token.accessToken = undefined;
+            // We might want to keep the refresh token if the error was temporary,
+            // but for "invalid_grant" (which Google sends for revoked refresh tokens),
+            // we should clear it. For simplicity here, we clear it on any refresh error.
+            // token.refreshToken = undefined; // Consider specific error handling for this
+            return token; // Return token with error
+          }
+          console.log("Access token refreshed successfully.");
+          return refreshedToken;
+        }
+      }
       return token;
     },
     async session({ session, token }) {
@@ -100,6 +167,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.accessToken = token.accessToken as string | undefined;
       session.refreshToken = token.refreshToken as string | undefined;
       session.expiresAt = token.expiresAt as number | undefined;
+      // Propagate the error to the session if it exists
+      if (token.error) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (session as any).error = token.error;
+      }
       return session;
     },
     async signIn({ user, account }) {
