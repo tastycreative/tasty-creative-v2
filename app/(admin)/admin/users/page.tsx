@@ -3,6 +3,15 @@ import { UserRoleForm } from "@/components/admin/UserRoleForm";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 
+type User = {
+  id: string;
+  email: string | null;
+  name: string | null;
+  role: string;
+  image: string | null;
+  createdAt: Date;
+};
+
 export default async function AdminUsersPage() {
   const session = await auth();
 
@@ -27,8 +36,11 @@ export default async function AdminUsersPage() {
   });
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-8">User Management</h1>
+    <div className="p-6">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">User Management</h1>
+        <p className="text-gray-600 dark:text-gray-400">Manage user accounts and permissions</p>
+      </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">

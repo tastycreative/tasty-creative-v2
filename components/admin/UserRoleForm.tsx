@@ -3,6 +3,15 @@
 import { useState, useTransition } from "react";
 import { updateUserRole } from "@/app/actions/admin";
 
+type Role = "GUEST" | "USER" | "MODERATOR" | "ADMIN";
+
+interface UserRoleFormProps {
+  userId: string;
+  currentRole: Role;
+  userName: string;
+  isCurrentUser: boolean;
+}
+
 export function UserRoleForm({
   userId,
   currentRole,
