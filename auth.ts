@@ -1,4 +1,3 @@
-
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
@@ -11,17 +10,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: {
     strategy: "jwt",
   },
+  trustHost: true,
   providers: [
     Google({
       clientId: process.env.AUTH_GOOGLE_ID!,
       clientSecret: process.env.AUTH_GOOGLE_SECRET!,
       allowDangerousEmailAccountLinking: true,
-  authorization: {
-    params: {
-      access_type: "offline", 
-      scope: "openid profile email https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/spreadsheets"
-    }
-  }
+      authorization: {
+        params: {
+          access_type: "offline",
+          scope:
+            "openid profile email https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/spreadsheets",
+        },
+      },
     }),
     Credentials({
       name: "credentials",
@@ -50,7 +51,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           const isPasswordValid = await bcrypt.compare(
             credentials.password as string,
-            user.password
+            user.password,
           );
 
           if (!isPasswordValid) {
@@ -75,10 +76,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async redirect({ url, baseUrl }) {
       // Allows relative callback URLs
-      if (url.startsWith("/")) return `${baseUrl}${url}`
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
       // Allows callback URLs on the same origin
-      else if (new URL(url).origin === baseUrl) return url
-      return baseUrl
+      else if (new URL(url).origin === baseUrl) return url;
+      return baseUrl;
     },
     async jwt({ token, user, account }) {
       if (user) {
