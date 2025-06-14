@@ -2,7 +2,7 @@
 import { Clock, UploadIcon } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { useDrag } from "react-use-gesture";
-import GifVaultSelector from "./GifVaultSelector";
+import VaultSelector from "./VaultSelector";
 
 type Template = {
   cols: number;
@@ -224,7 +224,7 @@ const GifMakerVideoCropper = ({
 
   return (
     <div className="flex-1">
-      <GifVaultSelector
+      <VaultSelector
         isOpen={uploadModalOpen}
         onClose={() => setUploadModalOpen(false)}
         onUpload={handleModalUpload}

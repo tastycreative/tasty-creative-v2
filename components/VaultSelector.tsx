@@ -3,21 +3,24 @@ import { createPortal } from "react-dom";
 import VaultCategoryItems from "./VaultCategoryItems";
 import VaultCategoryList from "./VaultCategoryList";
 
-const GifVaultSelector = ({
+const VaultSelector = ({
   isOpen,
   onClose,
   onUpload,
   vaultName,
+  includeImage = false,
 }: {
   isOpen: boolean;
   onClose: () => void;
   onUpload: (file: File) => void;
   vaultName?: string;
+  includeImage?: boolean;
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
+  const [activeTab, setActiveTab] = useState<"video" | "image">("video");
 
   const [selectedClient, setSelectedClient] = useState<{
     id: number;
@@ -120,6 +123,33 @@ const GifVaultSelector = ({
     }
   };
 
+  // Helper to determine MIME type based on file extension
+  const getMimeType = (filename: string, type: "image" | "video"): string => {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    
+    if (type === "image") {
+      const imageMimes: { [key: string]: string } = {
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+        'svg': 'image/svg+xml',
+        'bmp': 'image/bmp',
+      };
+      return imageMimes[ext || ''] || 'image/jpeg';
+    } else {
+      const videoMimes: { [key: string]: string } = {
+        'mp4': 'video/mp4',
+      'webm': 'video/webm',
+        'ogg': 'video/ogg',
+        'mov': 'video/quicktime',
+        'avi': 'video/x-msvideo',
+      };
+      return videoMimes[ext || ''] || 'video/mp4';
+    }
+  };
+
   useEffect(() => {
     const fetchAndUploadFile = async () => {
       if (fullscreenItem) {
@@ -130,8 +160,11 @@ const GifVaultSelector = ({
           // Use stream download
           const blob = await downloadFileStream(fullscreenItem.src);
           
+          // Determine the appropriate MIME type
+          const mimeType = getMimeType(fullscreenItem.name, fullscreenItem.type);
+          
           const file = new File([blob], fullscreenItem.name, {
-            type: blob.type || 'application/octet-stream',
+            type: blob.type || mimeType,
           });
           
           onUpload(file);
@@ -171,6 +204,32 @@ const GifVaultSelector = ({
         </button>
       </div>
 
+      {/* Tab Selector - Only show if includeImage is true */}
+      {includeImage && selectedClient !== null && (
+        <div className="flex bg-gray-800 border-b border-gray-700">
+          <button
+            onClick={() => setActiveTab("video")}
+            className={`px-6 py-3 font-medium transition-colors ${
+              activeTab === "video"
+                ? "text-blue-400 border-b-2 border-blue-400"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            Videos
+          </button>
+          <button
+            onClick={() => setActiveTab("image")}
+            className={`px-6 py-3 font-medium transition-colors ${
+              activeTab === "image"
+                ? "text-blue-400 border-b-2 border-blue-400"
+                : "text-gray-400 hover:text-white"
+            }`}
+          >
+            Images
+          </button>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden rounded-b-lg">
         {selectedClient !== null ? (
@@ -185,7 +244,7 @@ const GifVaultSelector = ({
               selectedClient={selectedClient}
               selectedCategory={selectedCategory}
               setFullscreenItem={setFullscreenItem}
-              type="video"
+              type={activeTab}
             />
           </>
         ) : isLoading ? (
@@ -203,7 +262,9 @@ const GifVaultSelector = ({
       {isDownloading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
           <div className="bg-gray-800 px-8 py-6 rounded-lg shadow-2xl min-w-[400px]">
-            <div className="text-white text-xl mb-4">Downloading file...</div>
+            <div className="text-white text-xl mb-4">
+              Downloading {fullscreenItem?.type === "image" ? "image" : "video"}...
+            </div>
             
             {/* Watery progress bar container */}
             <div className="relative w-full h-20 bg-gray-900 rounded-2xl overflow-hidden shadow-inner">
@@ -342,4 +403,4 @@ const GifVaultSelector = ({
   return null;
 };
 
-export default GifVaultSelector;
+export default VaultSelector;
