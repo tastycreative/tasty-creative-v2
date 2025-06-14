@@ -101,13 +101,13 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="min-h-screen bg-gray-900 p-6 space-y-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+        <h1 className="text-3xl font-bold text-white">
           Admin Dashboard
         </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">
+        <p className="text-gray-300 mt-2">
           Monitor your application's performance and user activity
         </p>
       </div>
@@ -117,21 +117,21 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card key={index} className="overflow-hidden">
+            <Card key={index} className="bg-gray-800 border-gray-700 overflow-hidden hover:bg-gray-750 transition-colors">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="space-y-2">
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                    <p className="text-sm font-medium text-gray-400">
                       {stat.title}
                     </p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <p className="text-2xl font-bold text-white">
                       {stat.value}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-500">
+                    <p className="text-xs text-gray-500">
                       {stat.description}
                     </p>
                   </div>
-                  <div className={`${stat.bgColor} p-3 rounded-full`}>
+                  <div className={`${stat.bgColor} p-3 rounded-full bg-opacity-20`}>
                     <Icon className={`h-6 w-6 ${stat.color}`} />
                   </div>
                 </div>
@@ -144,41 +144,44 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* User Growth Chart */}
-        <Card>
+        <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Activity className="h-5 w-5" />
+            <CardTitle className="flex items-center space-x-2 text-white">
+              <Activity className="h-5 w-5 text-blue-400" />
               <span>User Growth (12 Months)</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={userGrowthData}>
-                <CartesianGrid strokeDasharray="3 3" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis 
                   dataKey="month" 
                   fontSize={12}
                   tickLine={false}
                   axisLine={false}
+                  tick={{ fill: '#9ca3af' }}
                 />
                 <YAxis 
                   fontSize={12}
                   tickLine={false}
                   axisLine={false}
+                  tick={{ fill: '#9ca3af' }}
                 />
                 <Tooltip 
                   contentStyle={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                    border: '1px solid #e5e7eb',
+                    backgroundColor: '#1f2937',
+                    border: '1px solid #374151',
                     borderRadius: '8px',
+                    color: '#fff'
                   }}
                 />
                 <Line
                   type="monotone"
                   dataKey="users"
-                  stroke="#3b82f6"
-                  strokeWidth={2}
-                  dot={{ fill: '#3b82f6' }}
+                  stroke="#60a5fa"
+                  strokeWidth={3}
+                  dot={{ fill: '#60a5fa', strokeWidth: 2 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -186,10 +189,10 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         </Card>
 
         {/* Users by Role Chart */}
-        <Card>
+        <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <UserCheck className="h-5 w-5" />
+            <CardTitle className="flex items-center space-x-2 text-white">
+              <UserCheck className="h-5 w-5 text-green-400" />
               <span>Users by Role</span>
             </CardTitle>
           </CardHeader>
@@ -210,7 +213,14 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: '#1f2937',
+                    border: '1px solid #374151',
+                    borderRadius: '8px',
+                    color: '#fff'
+                  }}
+                />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -218,10 +228,10 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       </div>
 
       {/* Recent Users Table */}
-      <Card>
+      <Card className="bg-gray-800 border-gray-700">
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Calendar className="h-5 w-5" />
+          <CardTitle className="flex items-center space-x-2 text-white">
+            <Calendar className="h-5 w-5 text-purple-400" />
             <span>Recent Users</span>
           </CardTitle>
         </CardHeader>
@@ -229,17 +239,17 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
+                <tr className="border-b border-gray-600">
+                  <th className="text-left py-3 px-4 font-medium text-gray-300">
                     User
                   </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
+                  <th className="text-left py-3 px-4 font-medium text-gray-300">
                     Email
                   </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
+                  <th className="text-left py-3 px-4 font-medium text-gray-300">
                     Role
                   </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600 dark:text-gray-400">
+                  <th className="text-left py-3 px-4 font-medium text-gray-300">
                     Joined
                   </th>
                 </tr>
@@ -248,7 +258,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                 {recentUsers.map((user) => (
                   <tr
                     key={user.id}
-                    className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                    className="border-b border-gray-700 hover:bg-gray-700/50 transition-colors"
                   >
                     <td className="py-3 px-4">
                       <div className="flex items-center space-x-3">
@@ -260,32 +270,32 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                             className="h-8 w-8 rounded-full object-cover"
                           />
                         ) : (
-                          <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
-                            <Users className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                          <div className="h-8 w-8 rounded-full bg-gray-600 flex items-center justify-center">
+                            <Users className="h-4 w-4 text-gray-300" />
                           </div>
                         )}
-                        <span className="font-medium text-gray-900 dark:text-white">
+                        <span className="font-medium text-white">
                           {user.name || "No name"}
                         </span>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
+                    <td className="py-3 px-4 text-gray-300">
                       {user.email}
                     </td>
                     <td className="py-3 px-4">
                       <Badge
                         variant="secondary"
                         className={`
-                          ${user.role === "ADMIN" ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" : ""}
-                          ${user.role === "MODERATOR" ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200" : ""}
-                          ${user.role === "USER" ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" : ""}
-                          ${user.role === "GUEST" ? "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200" : ""}
+                          ${user.role === "ADMIN" ? "bg-red-900/50 text-red-200 border-red-700" : ""}
+                          ${user.role === "MODERATOR" ? "bg-yellow-900/50 text-yellow-200 border-yellow-700" : ""}
+                          ${user.role === "USER" ? "bg-green-900/50 text-green-200 border-green-700" : ""}
+                          ${user.role === "GUEST" ? "bg-gray-700 text-gray-200 border-gray-600" : ""}
                         `}
                       >
                         {user.role}
                       </Badge>
                     </td>
-                    <td className="py-3 px-4 text-gray-600 dark:text-gray-400">
+                    <td className="py-3 px-4 text-gray-400">
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                   </tr>
