@@ -13,9 +13,7 @@ const nextConfig = {
     "79090bbb-5655-4e25-bdb0-2f1c07ec943f-00-2xajzclpwd3ig.pike.replit.dev",
     "https://79090bbb-5655-4e25-bdb0-2f1c07ec943f-00-2xajzclpwd3ig.pike.replit.dev",
   ],
-  experimental: {
-    turbo: false,
-  },
+  experimental: {},
   eslint: {
     ignoreDuringBuilds: true,
   },
