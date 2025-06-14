@@ -8,6 +8,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const nextConfig = {
+  allowedDevOrigins: [
+    "*.pike.replit.dev",
+    "79090bbb-5655-4e25-bdb0-2f1c07ec943f-00-2xajzclpwd3ig.pike.replit.dev",
+    "https://79090bbb-5655-4e25-bdb0-2f1c07ec943f-00-2xajzclpwd3ig.pike.replit.dev",
+  ],
   experimental: {
     turbo: false,
   },
@@ -65,7 +70,7 @@ const nextConfig = {
 
       const workerPath = path.resolve(
         __dirname,
-        "node_modules/gif.js/dist/gif.worker.js"
+        "node_modules/gif.js/dist/gif.worker.js",
       );
 
       config.plugins.push(
@@ -76,7 +81,7 @@ const nextConfig = {
               to: path.resolve(__dirname, "public/gif.worker.js"),
             },
           ],
-        })
+        }),
       );
     }
 
