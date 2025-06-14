@@ -1,6 +1,6 @@
 import { Play, Image as ImageIcon } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
-import Image from "next/image";
+
 import { v4 as uuidv4 } from "uuid";
 
 type VaultCategoryItemsProps = {
@@ -190,42 +190,38 @@ const VaultCategoryItems = ({
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4  gap-6">
               {categoryItems.length > 0 ? (
                 categoryItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="relative group cursor-pointer rounded-lg overflow-hidden bg-gray-700 hover:bg-gray-700 transition-colors"
-                      onClick={() => setFullscreenItem(item)}
-                    >
-                      {item.type === "image" ? (
-                        <Image
-                          src={item.src}
+                  <div
+                    key={item.id}
+                    className="relative group cursor-pointer rounded-lg overflow-hidden bg-gray-700 hover:bg-gray-700 transition-colors"
+                    onClick={() => setFullscreenItem(item)}
+                  >
+                    {item.type === "image" ? (
+                      <img
+                        src={item.src}
+                        alt={item.name}
+                        className="w-full h-40 lg:h-48 object-cover bg-black"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <>
+                        <img
+                          src={item.poster}
                           alt={item.name}
                           className="w-full h-40 lg:h-48 object-cover bg-black"
-                          width={500}
-                          height={500}
                           loading="lazy"
                         />
-                      ) : (
-                        <>
-                          <Image
-                            src={item.poster}
-                            alt={item.name}
-                            className="w-full h-40 lg:h-48 object-cover bg-black"
-                            width={500}
-                            height={500}
-                            loading="lazy"
-                          />
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-90 group-hover:opacity-100 transition-opacity">
-                            <Play className="text-white" size={48} />
-                          </div>
-                        </>
-                      )}
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 opacity-90 group-hover:opacity-100 transition-opacity">
+                          <Play className="text-white" size={48} />
+                        </div>
+                      </>
+                    )}
 
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white p-3">
-                        <p className="truncate text-sm" title={item.name}>
-                          {item.name}
-                        </p>
-                      </div>
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white p-3">
+                      <p className="truncate text-sm" title={item.name}>
+                        {item.name}
+                      </p>
                     </div>
+                  </div>
                 ))
               ) : isLoading ? (
                 <div className="col-span-full text-center text-gray-400 italic py-12 text-lg">
