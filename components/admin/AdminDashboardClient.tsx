@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from "react";
@@ -59,11 +58,13 @@ const ROLE_COLORS = {
 export function AdminDashboardClient({ data }: { data: DashboardData }) {
   const { stats, recentUsers, userGrowthData } = data;
 
-  const roleChartData = Object.entries(stats.usersByRole).map(([role, count]) => ({
-    name: role,
-    value: count,
-    color: ROLE_COLORS[role as keyof typeof ROLE_COLORS] || "#6b7280",
-  }));
+  const roleChartData = Object.entries(stats.usersByRole).map(
+    ([role, count]) => ({
+      name: role,
+      value: count,
+      color: ROLE_COLORS[role as keyof typeof ROLE_COLORS] || "#6b7280",
+    })
+  );
 
   const statCards = [
     {
@@ -87,8 +88,12 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       value: `${stats.userGrowthPercentage > 0 ? "+" : ""}${stats.userGrowthPercentage}%`,
       icon: TrendingUp,
       description: "vs last month",
-      color: stats.userGrowthPercentage >= 0 ? "text-green-600" : "text-red-600",
-      bgColor: stats.userGrowthPercentage >= 0 ? "bg-green-50 dark:bg-green-900/20" : "bg-red-50 dark:bg-red-900/20",
+      color:
+        stats.userGrowthPercentage >= 0 ? "text-green-600" : "text-red-600",
+      bgColor:
+        stats.userGrowthPercentage >= 0
+          ? "bg-green-50 dark:bg-green-900/20"
+          : "bg-red-50 dark:bg-red-900/20",
     },
     {
       title: "Admin Users",
@@ -104,11 +109,9 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     <div className="min-h-screen bg-gray-900 p-6 space-y-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">
-          Admin Dashboard
-        </h1>
+        <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
         <p className="text-gray-300 mt-2">
-          Monitor your application's performance and user activity
+          Monitor your application&apos;s performance and user activity
         </p>
       </div>
 
@@ -117,7 +120,10 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <Card key={index} className="bg-gray-800 border-gray-700 overflow-hidden hover:bg-gray-750 transition-colors">
+            <Card
+              key={index}
+              className="bg-gray-800 border-gray-700 overflow-hidden hover:bg-gray-750 transition-colors"
+            >
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="space-y-2">
@@ -127,11 +133,11 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                     <p className="text-2xl font-bold text-white">
                       {stat.value}
                     </p>
-                    <p className="text-xs text-gray-500">
-                      {stat.description}
-                    </p>
+                    <p className="text-xs text-gray-500">{stat.description}</p>
                   </div>
-                  <div className={`${stat.bgColor} p-3 rounded-full bg-opacity-20`}>
+                  <div
+                    className={`${stat.bgColor} p-3 rounded-full bg-opacity-20`}
+                  >
                     <Icon className={`h-6 w-6 ${stat.color}`} />
                   </div>
                 </div>
@@ -155,25 +161,25 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={userGrowthData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis 
-                  dataKey="month" 
+                <XAxis
+                  dataKey="month"
                   fontSize={12}
                   tickLine={false}
                   axisLine={false}
-                  tick={{ fill: '#9ca3af' }}
+                  tick={{ fill: "#9ca3af" }}
                 />
-                <YAxis 
+                <YAxis
                   fontSize={12}
                   tickLine={false}
                   axisLine={false}
-                  tick={{ fill: '#9ca3af' }}
+                  tick={{ fill: "#9ca3af" }}
                 />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{
-                    backgroundColor: '#1f2937',
-                    border: '1px solid #374151',
-                    borderRadius: '8px',
-                    color: '#fff'
+                    backgroundColor: "#1f2937",
+                    border: "1px solid #374151",
+                    borderRadius: "8px",
+                    color: "#fff",
                   }}
                 />
                 <Line
@@ -181,7 +187,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                   dataKey="users"
                   stroke="#60a5fa"
                   strokeWidth={3}
-                  dot={{ fill: '#60a5fa', strokeWidth: 2 }}
+                  dot={{ fill: "#60a5fa", strokeWidth: 2 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -204,7 +210,9 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) =>
+                    `${name} ${(percent * 100).toFixed(0)}%`
+                  }
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
@@ -213,12 +221,12 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip 
+                <Tooltip
                   contentStyle={{
-                    backgroundColor: '#1f2937',
-                    border: '1px solid #374151',
-                    borderRadius: '8px',
-                    color: '#fff'
+                    backgroundColor: "#1f2937",
+                    border: "1px solid #374151",
+                    borderRadius: "8px",
+                    color: "#fff",
                   }}
                 />
               </PieChart>
@@ -265,7 +273,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                         {user.image ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
-                            src={user.image}
+                            src={`/api/image-proxy?url=${encodeURIComponent(user.image)}`}
                             alt={user.name || ""}
                             className="h-8 w-8 rounded-full object-cover"
                           />
@@ -279,9 +287,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                         </span>
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-gray-300">
-                      {user.email}
-                    </td>
+                    <td className="py-3 px-4 text-gray-300">{user.email}</td>
                     <td className="py-3 px-4">
                       <Badge
                         variant="secondary"
