@@ -153,7 +153,7 @@ const NavigationMenu = ({
                 )}
                 {session.user.role === "ADMIN" && (
                   <Link
-                    href="/admin/users"
+                    href="/admin"
                     className="text-purple-500 hover:underline"
                   >
                     Admin
