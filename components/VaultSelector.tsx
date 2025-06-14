@@ -9,12 +9,14 @@ const VaultSelector = ({
   onUpload,
   vaultName,
   includeImage = false,
+  imageOnly = false,
 }: {
   isOpen: boolean;
   onClose: () => void;
   onUpload: (file: File) => void;
   vaultName?: string;
   includeImage?: boolean;
+  imageOnly?: boolean;
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
@@ -66,35 +68,35 @@ const VaultSelector = ({
   const downloadFileStream = async (url: string): Promise<Blob> => {
     try {
       const response = await fetch(url);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
-      const contentLength = response.headers.get('content-length');
+
+      const contentLength = response.headers.get("content-length");
       const total = contentLength ? parseInt(contentLength, 10) : 0;
-      
+
       if (!response.body) {
         // Fallback: just get the blob if no readable stream
         const blob = await response.blob();
         setDownloadProgress(100);
         return blob;
       }
-      
+
       // Create a reader from the response body stream
       const reader = response.body.getReader();
       const chunks: Uint8Array[] = [];
       let receivedLength = 0;
-      
+
       // Read the stream chunk by chunk
       while (true) {
         const { done, value } = await reader.read();
-        
+
         if (done) break;
-        
+
         chunks.push(value);
         receivedLength += value.length;
-        
+
         // Update progress if we know the total size
         if (total > 0) {
           const progress = Math.round((receivedLength / total) * 100);
@@ -104,7 +106,7 @@ const VaultSelector = ({
           setDownloadProgress(-1);
         }
       }
-      
+
       // Combine all chunks into a single Uint8Array
       const chunksAll = new Uint8Array(receivedLength);
       let position = 0;
@@ -112,41 +114,41 @@ const VaultSelector = ({
         chunksAll.set(chunk, position);
         position += chunk.length;
       }
-      
+
       // Set final progress
       setDownloadProgress(100);
-      
+
       return new Blob([chunksAll]);
     } catch (error) {
-      console.error('Stream download failed:', error);
+      console.error("Stream download failed:", error);
       throw error;
     }
   };
 
   // Helper to determine MIME type based on file extension
   const getMimeType = (filename: string, type: "image" | "video"): string => {
-    const ext = filename.split('.').pop()?.toLowerCase();
-    
+    const ext = filename.split(".").pop()?.toLowerCase();
+
     if (type === "image") {
       const imageMimes: { [key: string]: string } = {
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'png': 'image/png',
-        'gif': 'image/gif',
-        'webp': 'image/webp',
-        'svg': 'image/svg+xml',
-        'bmp': 'image/bmp',
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        png: "image/png",
+        gif: "image/gif",
+        webp: "image/webp",
+        svg: "image/svg+xml",
+        bmp: "image/bmp",
       };
-      return imageMimes[ext || ''] || 'image/jpeg';
+      return imageMimes[ext || ""] || "image/jpeg";
     } else {
       const videoMimes: { [key: string]: string } = {
-        'mp4': 'video/mp4',
-      'webm': 'video/webm',
-        'ogg': 'video/ogg',
-        'mov': 'video/quicktime',
-        'avi': 'video/x-msvideo',
+        mp4: "video/mp4",
+        webm: "video/webm",
+        ogg: "video/ogg",
+        mov: "video/quicktime",
+        avi: "video/x-msvideo",
       };
-      return videoMimes[ext || ''] || 'video/mp4';
+      return videoMimes[ext || ""] || "video/mp4";
     }
   };
 
@@ -155,18 +157,21 @@ const VaultSelector = ({
       if (fullscreenItem) {
         setIsDownloading(true);
         setDownloadProgress(0);
-        
+
         try {
           // Use stream download
           const blob = await downloadFileStream(fullscreenItem.src);
-          
+
           // Determine the appropriate MIME type
-          const mimeType = getMimeType(fullscreenItem.name, fullscreenItem.type);
-          
+          const mimeType = getMimeType(
+            fullscreenItem.name,
+            fullscreenItem.type
+          );
+
           const file = new File([blob], fullscreenItem.name, {
             type: blob.type || mimeType,
           });
-          
+
           onUpload(file);
           setIsDownloading(false);
           setDownloadProgress(0);
@@ -244,7 +249,7 @@ const VaultSelector = ({
               selectedClient={selectedClient}
               selectedCategory={selectedCategory}
               setFullscreenItem={setFullscreenItem}
-              type={activeTab}
+              type={imageOnly === true ? "image" : activeTab}
             />
           </>
         ) : isLoading ? (
@@ -263,23 +268,25 @@ const VaultSelector = ({
         <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
           <div className="bg-gray-800 px-8 py-6 rounded-lg shadow-2xl min-w-[400px]">
             <div className="text-white text-xl mb-4">
-              Downloading {fullscreenItem?.type === "image" ? "image" : "video"}...
+              Downloading {fullscreenItem?.type === "image" ? "image" : "video"}
+              ...
             </div>
-            
+
             {/* Watery progress bar container */}
             <div className="relative w-full h-20 bg-gray-900 rounded-2xl overflow-hidden shadow-inner">
               {/* Water fill */}
-              <div 
+              <div
                 className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-600 to-blue-400 transition-all duration-500 ease-out"
-                style={{ 
-                  height: downloadProgress === -1 ? '100%' : `${downloadProgress}%`,
-                  boxShadow: 'inset 0 0 20px rgba(59, 130, 246, 0.5)',
-                  opacity: downloadProgress === -1 ? 0.7 : 1
+                style={{
+                  height:
+                    downloadProgress === -1 ? "100%" : `${downloadProgress}%`,
+                  boxShadow: "inset 0 0 20px rgba(59, 130, 246, 0.5)",
+                  opacity: downloadProgress === -1 ? 0.7 : 1,
                 }}
               >
                 {/* Animated waves */}
                 <div className="absolute inset-0 overflow-hidden">
-                  <div 
+                  <div
                     className="absolute -inset-x-full h-full"
                     style={{
                       background: `
@@ -291,80 +298,93 @@ const VaultSelector = ({
                           rgba(255, 255, 255, 0.1) 20px
                         )
                       `,
-                      animation: downloadProgress === -1 ? 'wave 1s linear infinite' : 'wave 3s linear infinite',
+                      animation:
+                        downloadProgress === -1
+                          ? "wave 1s linear infinite"
+                          : "wave 3s linear infinite",
                     }}
                   />
                   <svg
                     className="absolute left-0 right-0 -top-2"
                     viewBox="0 0 1200 50"
                     preserveAspectRatio="none"
-                    style={{ height: '20px', width: '200%', left: '-50%' }}
+                    style={{ height: "20px", width: "200%", left: "-50%" }}
                   >
                     <path
                       d="M0,25 C200,45 400,5 600,25 C800,45 1000,5 1200,25 L1200,50 L0,50 Z"
                       fill="rgba(255, 255, 255, 0.1)"
                       style={{
-                        animation: 'wave-move 2s linear infinite',
+                        animation: "wave-move 2s linear infinite",
                       }}
                     />
                     <path
                       d="M0,25 C200,5 400,45 600,25 C800,5 1000,45 1200,25 L1200,50 L0,50 Z"
                       fill="rgba(255, 255, 255, 0.05)"
                       style={{
-                        animation: 'wave-move 3s linear infinite reverse',
+                        animation: "wave-move 3s linear infinite reverse",
                       }}
                     />
                   </svg>
                 </div>
-                
+
                 {/* Bubbles */}
                 <div className="absolute inset-0">
-                  <div 
+                  <div
                     className="absolute w-2 h-2 bg-white/20 rounded-full"
                     style={{
-                      left: '20%',
-                      animation: 'bubble 4s ease-in-out infinite',
-                      animationDelay: '0s'
+                      left: "20%",
+                      animation: "bubble 4s ease-in-out infinite",
+                      animationDelay: "0s",
                     }}
                   />
-                  <div 
+                  <div
                     className="absolute w-3 h-3 bg-white/15 rounded-full"
                     style={{
-                      left: '50%',
-                      animation: 'bubble 4s ease-in-out infinite',
-                      animationDelay: '1s'
+                      left: "50%",
+                      animation: "bubble 4s ease-in-out infinite",
+                      animationDelay: "1s",
                     }}
                   />
-                  <div 
+                  <div
                     className="absolute w-1 h-1 bg-white/25 rounded-full"
                     style={{
-                      left: '80%',
-                      animation: 'bubble 4s ease-in-out infinite',
-                      animationDelay: '2s'
+                      left: "80%",
+                      animation: "bubble 4s ease-in-out infinite",
+                      animationDelay: "2s",
                     }}
                   />
                 </div>
               </div>
-              
+
               {/* Progress percentage overlay */}
               <div className="absolute inset-0 flex items-center justify-center">
                 <span className="text-white text-2xl font-bold drop-shadow-lg">
-                  {downloadProgress === -1 ? 'Loading...' : `${downloadProgress}%`}
+                  {downloadProgress === -1
+                    ? "Loading..."
+                    : `${downloadProgress}%`}
                 </span>
               </div>
             </div>
-            
+
             <style jsx>{`
               @keyframes wave {
-                0% { transform: translateX(0); }
-                100% { transform: translateX(50%); }
+                0% {
+                  transform: translateX(0);
+                }
+                100% {
+                  transform: translateX(50%);
+                }
               }
-              
+
               @keyframes wave-move {
-                0% { transform: translateX(0); }
-                100% { transform: translateX(-600px); }
+                0% {
+                  transform: translateX(0);
+                }
+                100% {
+                  transform: translateX(-600px);
+                }
               }
-              
+
               @keyframes bubble {
                 0% {
                   bottom: 0;

@@ -36,6 +36,7 @@ interface ImageCropperProps {
   className?: string;
   id?: string;
   error?: string;
+  imageOnly?: boolean;
 }
 
 export default function ImageCropper({
@@ -47,6 +48,7 @@ export default function ImageCropper({
   className,
   id = "default",
   error,
+  imageOnly = false,
 }: ImageCropperProps) {
   // Image cropping states
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -839,6 +841,7 @@ export default function ImageCropper({
           onClose={() => setIsVaultOpen(false)}
           onUpload={handleUpload}
           vaultName={vaultName ?? undefined}
+          imageOnly={imageOnly}
         />
       )}
     </div>

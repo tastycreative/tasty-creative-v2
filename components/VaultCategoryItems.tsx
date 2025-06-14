@@ -233,7 +233,7 @@ const VaultCategoryItems = ({
                 </div>
               ) : (
                 <div className="col-span-full text-center text-gray-400 italic py-12 text-lg">
-                  No items found in this category
+                  No {type ? type : "items"} found in this category
                 </div>
               )}
             </div>

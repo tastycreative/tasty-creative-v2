@@ -2,7 +2,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ReactCrop, {
   centerCrop,
   Crop,
@@ -10,6 +10,7 @@ import ReactCrop, {
   PixelCrop,
 } from "react-image-crop";
 import GoogleDrivePicker from "./GoogleDrivePicker";
+import VaultSelector from "./VaultSelector";
 
 type VideoFrameCropperProps = {
   onCropComplete: (croppedImage: string) => void;
@@ -31,14 +32,23 @@ export default function VideoFrameCropper({
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const [isCustomInput, setIsCustomInput] = useState(false);
-
   const [crop, setCrop] = useState<Crop>();
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
 
   const [capturedFrame, setCapturedFrame] = useState<string | null>(null);
+
+  const [itemType, setItemType] = useState<"custom" | "vault" | null>(null);
+  const [isPaid, setIsPaid] = useState(false);
+  const [vaultName, setVaultName] = useState<string | null>(null);
+  const [isVaultOpen, setIsVaultOpen] = useState(false);
+
+  useEffect(() => {
+    if (model) {
+      setVaultName(model.toUpperCase() + "_FREE");
+    }
+  }, [model]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -73,6 +83,30 @@ export default function VideoFrameCropper({
       console.warn("Unsupported file type:", file.type);
     }
   };
+
+  // Handle file from VaultSelector
+  const handleUpload = async (file: File) => {
+    console.log("File from vault:", file);
+
+    // Check if it's an image or video based on file type
+    if (file.type.startsWith("image/")) {
+      // For images, create object URL and set as captured frame
+      const objectUrl = URL.createObjectURL(file);
+      setCapturedFrame(objectUrl);
+      // When an image is selected from vault, we want to use it directly
+      setUseFrame(true);
+    } else if (file.type.startsWith("video/")) {
+      // For videos, create object URL and set as video URL
+      const objectUrl = URL.createObjectURL(file);
+      setVideoUrl(objectUrl);
+      // Reset captured frame when new video is loaded
+      setCapturedFrame(null);
+      setUseFrame(false);
+    } else {
+      console.warn("Unsupported file type from vault:", file.type);
+    }
+  };
+
   const captureFrame = () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -149,32 +183,68 @@ export default function VideoFrameCropper({
     onCropComplete(croppedImageUrl);
   }, [completedCrop, onCropComplete]);
 
+  const handleToggleChange = (value: boolean) => {
+    setIsPaid(value);
+    setVaultName(
+      value ? `${model?.toUpperCase()}_PAID` : `${model?.toUpperCase()}_FREE`
+    );
+  };
+
+  const handleVaultSelect = () => {
+    setIsVaultOpen(true);
+  };
+
   return (
     <div className="space-y-6    ">
       <div className="flex flex-wrap gap-2">
         <div className="space-y-2">
           <label className="block text-sm font-medium">
-            {isCustomInput ? "Upload" : "Download"}
+            {itemType != null ? "Upload" : "Download"}
             {" and Crop Image/Video"}
           </label>
-          <div className="flex gap-2 ">
-            <input
-              type="checkbox"
-              id="customInput"
-              className="accent-purple-600 cursor-pointer"
-              checked={isCustomInput}
-              onChange={(e) => {
-                setIsCustomInput(e.target.checked);
-              }}
-            />
-            <label htmlFor="customInput" className="cursor-pointer">
-              Custom Image/Video
-            </label>
+
+          <div className="flex gap-2">
+            <div className="flex gap-2">
+              <input
+                type="checkbox"
+                id={`custom`}
+                className="accent-purple-600 cursor-pointer"
+                checked={itemType === "custom"}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setItemType("custom");
+                  } else {
+                    setItemType(null);
+                  }
+                }}
+              />
+              <label htmlFor={`custom`} className="cursor-pointer">
+                Custom Image/Video
+              </label>
+            </div>
+            <div className="flex gap-2">
+              <input
+                type="checkbox"
+                id={`vault`}
+                className="accent-purple-600 cursor-pointer"
+                checked={itemType === "vault"}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setItemType("vault");
+                  } else {
+                    setItemType(null);
+                  }
+                }}
+              />
+              <label htmlFor={`vault`} className="cursor-pointer">
+                Vault Selector
+              </label>
+            </div>
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row gap-4 w-full">
-          {isCustomInput ? (
-            <div className="w-full">
+        <div className="flex flex-col   w-full">
+          {itemType === "custom" ? (
+            <div className="w-full f">
               <label className="px-4 w-full py-2 bg-black/60 text-white rounded-lg flex items-center justify-center gap-2 cursor-pointer">
                 <input
                   type="file"
@@ -201,6 +271,67 @@ export default function VideoFrameCropper({
                 <span>Choose File</span>
               </label>
             </div>
+          ) : itemType === "vault" ? (
+            <>
+              <div className="mb-6">
+                <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <span
+                      className={`font-medium ${
+                        !isPaid ? "text-blue-400" : "text-gray-400"
+                      }`}
+                    >
+                      Free
+                    </span>
+                    <div
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out cursor-pointer ${
+                        isPaid ? "bg-blue-600" : "bg-gray-600"
+                      }`}
+                      onClick={() => handleToggleChange(!isPaid)}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out ${
+                          isPaid ? "translate-x-6" : "translate-x-1"
+                        }`}
+                      />
+                    </div>
+                    <span
+                      className={`font-medium ${
+                        isPaid ? "text-blue-400" : "text-gray-400"
+                      }`}
+                    >
+                      Paid
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={!model}
+                onClick={handleVaultSelect}
+                className={cn(
+                  "px-4 w-full py-2 bg-black/60 text-white rounded-lg flex items-center justify-center gap-2"
+                  // { "border border-red-500 text-red-500": error }
+                )}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
+                  <line x1="16" y1="5" x2="22" y2="5"></line>
+                  <line x1="16" y1="5" x2="12" y2="9"></line>
+                </svg>
+                {!model ? "Select a Model First" : `Select from ${model} vault`}
+              </button>
+            </>
           ) : (
             <GoogleDrivePicker
               id={"right-panel"}
@@ -280,7 +411,7 @@ export default function VideoFrameCropper({
 
       <canvas ref={canvasRef} className="hidden" />
 
-      {capturedFrame && (useFrame || isCustomInput) && (
+      {capturedFrame && (useFrame || itemType) && (
         <div className="flex flex-col w-full items-center gap-4">
           <p className="text-xs text-gray-300">
             Crop area will maintain a 1:2 (500x1000px)
@@ -365,6 +496,16 @@ export default function VideoFrameCropper({
             </div>
           </div>
         </div>
+      )}
+      {isVaultOpen && (
+        <VaultSelector
+          isOpen={isVaultOpen}
+          onClose={() => setIsVaultOpen(false)}
+          onUpload={handleUpload}
+          vaultName={vaultName ?? undefined}
+          includeImage={true} 
+          imageOnly={false}
+        />
       )}
     </div>
   );
