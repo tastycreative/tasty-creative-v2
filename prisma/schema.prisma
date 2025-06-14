@@ -14,12 +14,14 @@ model User {
   name               String?
   image              String?
   role               Role                @default(GUEST)
+  lastAccessedAt DateTime? @default(now())
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   password           String?
   accounts           Account[]
   sessions           Session[]
   verificationTokens VerificationToken[]
+  pageViews     PageView[]
 }
 
 model Account {
@@ -75,4 +77,34 @@ enum Role {
   ADMIN
   MODERATOR
   GUEST
+}
+
+model PageView {
+  id            String   @id @default(cuid())
+  sessionId     String
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipHash        String
+  userAgent     String?
+  path          String
+  referrer      String?
+  timestamp     DateTime @default(now())
+  sessionDuration Int?   // in seconds
+
+  @@index([sessionId])
+  @@index([userId])
+  @@index([timestamp])
+  @@index([path])
+}
+
+model Analytics {
+  id            String   @id @default(cuid())
+  date          DateTime @unique
+  uniqueVisitors Int     @default(0)
+  totalPageViews Int     @default(0)
+  authenticatedViews Int @default(0)
+  anonymousViews Int    @default(0)
+  createdAt     DateTime @default(now())
+
+  @@index([date])
 }
