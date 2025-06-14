@@ -1,4 +1,3 @@
-
 import { auth } from "@/auth";
 import { UserRoleForm } from "@/components/admin/UserRoleForm";
 import { prisma } from "@/lib/prisma";
@@ -40,9 +39,9 @@ export default async function AdminUsersPage() {
   });
 
   const totalUsers = users.length;
-  const adminCount = users.filter(u => u.role === "ADMIN").length;
-  const moderatorCount = users.filter(u => u.role === "MODERATOR").length;
-  const userCount = users.filter(u => u.role === "USER").length;
+  const adminCount = users.filter((u) => u.role === "ADMIN").length;
+  const moderatorCount = users.filter((u) => u.role === "MODERATOR").length;
+  const userCount = users.filter((u) => u.role === "USER").length;
 
   return (
     <div className="min-h-screen bg-gray-900 p-6">
@@ -50,8 +49,12 @@ export default async function AdminUsersPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">User Management</h1>
-            <p className="text-gray-300">Manage user accounts and permissions across your platform</p>
+            <h1 className="text-3xl font-bold text-white mb-2">
+              User Management
+            </h1>
+            <p className="text-gray-300">
+              Manage user accounts and permissions across your platform
+            </p>
           </div>
           <div className="flex gap-3 mt-4 md:mt-0">
             <button className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
@@ -71,7 +74,9 @@ export default async function AdminUsersPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-400">Total Users</p>
+                  <p className="text-sm font-medium text-gray-400">
+                    Total Users
+                  </p>
                   <p className="text-2xl font-bold text-white">{totalUsers}</p>
                 </div>
                 <div className="bg-blue-900/20 p-3 rounded-full">
@@ -85,7 +90,9 @@ export default async function AdminUsersPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-400">Administrators</p>
+                  <p className="text-sm font-medium text-gray-400">
+                    Administrators
+                  </p>
                   <p className="text-2xl font-bold text-white">{adminCount}</p>
                 </div>
                 <div className="bg-red-900/20 p-3 rounded-full">
@@ -99,8 +106,12 @@ export default async function AdminUsersPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-400">Moderators</p>
-                  <p className="text-2xl font-bold text-white">{moderatorCount}</p>
+                  <p className="text-sm font-medium text-gray-400">
+                    Moderators
+                  </p>
+                  <p className="text-2xl font-bold text-white">
+                    {moderatorCount}
+                  </p>
                 </div>
                 <div className="bg-yellow-900/20 p-3 rounded-full">
                   <Users className="h-6 w-6 text-yellow-400" />
@@ -113,7 +124,9 @@ export default async function AdminUsersPage() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-400">Regular Users</p>
+                  <p className="text-sm font-medium text-gray-400">
+                    Regular Users
+                  </p>
                   <p className="text-2xl font-bold text-white">{userCount}</p>
                 </div>
                 <div className="bg-green-900/20 p-3 rounded-full">
@@ -147,7 +160,9 @@ export default async function AdminUsersPage() {
         {/* Users Table */}
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-white">All Users ({totalUsers})</CardTitle>
+            <CardTitle className="text-white">
+              All Users ({totalUsers})
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
@@ -173,14 +188,17 @@ export default async function AdminUsersPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-700">
                   {users.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-700/50 transition-colors">
+                    <tr
+                      key={user.id}
+                      className="hover:bg-gray-700/50 transition-colors"
+                    >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           {user.image ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img
                               className="h-10 w-10 rounded-full object-cover mr-4"
-                              src={user.image}
+                              src={`/api/image-proxy?url=${encodeURIComponent(user.image)}`}
                               alt={user.name || ""}
                             />
                           ) : (
@@ -199,20 +217,23 @@ export default async function AdminUsersPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-300">{user.email}</div>
+                        <div className="text-sm text-gray-300">
+                          {user.email}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <Badge
                           variant="secondary"
                           className={`
                             font-medium
-                            ${user.role === "ADMIN" 
-                              ? "bg-red-900/50 text-red-200 border-red-700" 
-                              : user.role === "MODERATOR"
-                              ? "bg-yellow-900/50 text-yellow-200 border-yellow-700"
-                              : user.role === "USER"
-                              ? "bg-green-900/50 text-green-200 border-green-700"
-                              : "bg-gray-700 text-gray-200 border-gray-600"
+                            ${
+                              user.role === "ADMIN"
+                                ? "bg-red-900/50 text-red-200 border-red-700"
+                                : user.role === "MODERATOR"
+                                  ? "bg-yellow-900/50 text-yellow-200 border-yellow-700"
+                                  : user.role === "USER"
+                                    ? "bg-green-900/50 text-green-200 border-green-700"
+                                    : "bg-gray-700 text-gray-200 border-gray-600"
                             }
                           `}
                         >
@@ -220,10 +241,10 @@ export default async function AdminUsersPage() {
                         </Badge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                        {new Date(user.createdAt).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric'
+                        {new Date(user.createdAt).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
                         })}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">

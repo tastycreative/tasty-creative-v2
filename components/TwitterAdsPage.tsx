@@ -289,6 +289,7 @@ const TwitterAdsPage = () => {
               model={formData.model}
               customRequest={formData.customRequest}
               setFormData={setFormData}
+              imageOnly={true}
             />
           </div>
 

@@ -9,8 +9,8 @@ export async function GET() {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
   }
   
-  // Force a new sign-in to refresh the JWT token
+  // Inform that token refresh is automatic, but provide a fallback
   return NextResponse.json({ 
-    message: "Please sign out and sign back in to refresh your permissions" 
+    message: "Access token refresh is now handled automatically. If you are experiencing issues, please try signing out and signing back in." 
   })
 }

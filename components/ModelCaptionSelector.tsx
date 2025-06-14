@@ -109,7 +109,8 @@ const ModelCaptionSelector: React.FC<ModelCaptionSelectorProps> = ({
   }
 
   return (
-    <div className="w-full max-w-3xl mx-auto p-6 bg-gray-900/60 rounded-xl shadow-lg border border-gray-700">
+    <div className="w-full p-6 bg-gray-900/60 rounded-xl shadow-lg border border-gray-700">
+      {" "}
       {/* Day Selection */}
       <div className="mb-6">
         <div className="p-4 bg-gray-800 rounded-lg">
@@ -148,7 +149,6 @@ const ModelCaptionSelector: React.FC<ModelCaptionSelectorProps> = ({
           </div>
         </div>
       </div>
-
       {/* Toggle Switch */}
       <div className="mb-6">
         <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
@@ -185,7 +185,6 @@ const ModelCaptionSelector: React.FC<ModelCaptionSelectorProps> = ({
           </div>
         </div>
       </div>
-
       {/* Captions List */}
       {currentId && (
         <div className="mb-4">
@@ -223,7 +222,7 @@ const ModelCaptionSelector: React.FC<ModelCaptionSelectorProps> = ({
                       )}
                     </div>
                     <div className="w-full relative flex gap-2 justify-between ">
-                      <p className="text-gray-300 flex-1 w-full truncate text-nowrap pr-8">
+                      <p className="text-gray-300 flex-1 w-full truncate pr-8">
                         {caption}
                       </p>
                       {/* <Eye className="absolute right-5"/> */}
@@ -235,7 +234,6 @@ const ModelCaptionSelector: React.FC<ModelCaptionSelectorProps> = ({
           )}
         </div>
       )}
-
       {/* Selected Caption Display */}
       {selectedCaption && (
         <div

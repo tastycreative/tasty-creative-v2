@@ -18,6 +18,7 @@ import ReactCrop, {
 } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import PermissionGoogle from "./PermissionGoogle";
+import VaultSelector from "./VaultSelector";
 
 interface GoogleDriveFile {
   id: string;
@@ -35,6 +36,7 @@ interface ImageCropperProps {
   className?: string;
   id?: string;
   error?: string;
+  imageOnly?: boolean;
 }
 
 export default function ImageCropper({
@@ -46,6 +48,7 @@ export default function ImageCropper({
   className,
   id = "default",
   error,
+  imageOnly = false,
 }: ImageCropperProps) {
   // Image cropping states
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -68,7 +71,17 @@ export default function ImageCropper({
   const [isDownloading, startDownloadTransition] = useTransition();
   const [isListing, startListTransition] = useTransition();
 
-  const [isCustomImage, setIsCustomImage] = useState(false);
+  const [imageType, setImageType] = useState<null | "custom" | "vault">(null);
+  const [isVaultOpen, setIsVaultOpen] = useState(false);
+  const [isPaid, setIsPaid] = useState(false);
+
+  const [vaultName, setVaultName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (model) {
+      setVaultName(model.toUpperCase() + "_FREE");
+    }
+  }, [model]);
 
   useEffect(() => {
     const setData = async () => {
@@ -153,6 +166,10 @@ export default function ImageCropper({
     } finally {
       setIsGooglePickerLoading(false);
     }
+  };
+
+  const handleVaultSelect = () => {
+    setIsVaultOpen(true);
   };
 
   const handleOpenFolder = async (folder: GoogleDriveFile) => {
@@ -320,28 +337,81 @@ export default function ImageCropper({
     onCropComplete(croppedImageUrl);
   }, [completedCrop, onCropComplete]);
 
+  const handleUpload = (file: File) => {
+    // Create a FileReader to convert the file to base64
+    const reader = new FileReader();
+
+    reader.addEventListener("load", () => {
+      // Set the image as base64 string
+      setSelectedImage(reader.result as string);
+
+      // Reset crop when new image is loaded
+      setCrop(undefined);
+
+      // Update form data with the image
+      setFormData?.((prev) => ({
+        ...prev,
+        croppedImage: reader.result as string,
+      }));
+    });
+
+    // Read the file as data URL (base64)
+    reader.readAsDataURL(file);
+  };
+
+  const handleToggleChange = (value: boolean) => {
+    setIsPaid(value);
+    setVaultName(
+      value ? `${model?.toUpperCase()}_PAID` : `${model?.toUpperCase()}_FREE`
+    );
+  };
+
   return (
     <div className={cn("flex flex-col gap-2 w-full", className)}>
       <label className="block text-sm font-medium">
-        {isCustomImage ? "Upload" : "Download"}{" "}
+        {imageType !== null ? "Upload" : "Download"}{" "}
         {!customRequest ? "and Crop Image" : "Image to be sent"}
       </label>
-      <div className="flex gap-2 ">
-        <input
-          type="checkbox"
-          id={id}
-          className="accent-purple-600 cursor-pointer"
-          checked={isCustomImage}
-          onChange={(e) => {
-            setIsCustomImage(e.target.checked);
-          }}
-        />
-        <label htmlFor={id} className="cursor-pointer">
-          Custom Image
-        </label>
+      <div className="flex gap-2">
+        <div className="flex gap-2">
+          <input
+            type="checkbox"
+            id={`${id}-custom`}
+            className="accent-purple-600 cursor-pointer"
+            checked={imageType === "custom"}
+            onChange={(e) => {
+              if (e.target.checked) {
+                setImageType("custom");
+              } else {
+                setImageType(null);
+              }
+            }}
+          />
+          <label htmlFor={`${id}-custom`} className="cursor-pointer">
+            Custom Image
+          </label>
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="checkbox"
+            id={`${id}-vault`}
+            className="accent-purple-600 cursor-pointer"
+            checked={imageType === "vault"}
+            onChange={(e) => {
+              if (e.target.checked) {
+                setImageType("vault");
+              } else {
+                setImageType(null);
+              }
+            }}
+          />
+          <label htmlFor={`${id}-vault`} className="cursor-pointer">
+            Vault Selector
+          </label>
+        </div>
       </div>
       <div className="flex flex-col  ">
-        {isCustomImage ? (
+        {imageType === "custom" ? (
           <div className="w-full">
             <label
               className={cn(
@@ -374,40 +444,107 @@ export default function ImageCropper({
               <span>Choose File</span>
             </label>
           </div>
+        ) : imageType === "vault" ? (
+          <>
+            <div className="mb-6">
+              <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <span
+                    className={`font-medium ${
+                      !isPaid ? "text-blue-400" : "text-gray-400"
+                    }`}
+                  >
+                    Free
+                  </span>
+                  <div
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out cursor-pointer ${
+                      isPaid ? "bg-blue-600" : "bg-gray-600"
+                    }`}
+                    onClick={() => handleToggleChange(!isPaid)}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out ${
+                        isPaid ? "translate-x-6" : "translate-x-1"
+                      }`}
+                    />
+                  </div>
+                  <span
+                    className={`font-medium ${
+                      isPaid ? "text-blue-400" : "text-gray-400"
+                    }`}
+                  >
+                    Paid
+                  </span>
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              disabled={!model}
+              onClick={handleVaultSelect}
+              className={cn(
+                "px-4 w-full py-2 bg-black/60 text-white rounded-lg flex items-center justify-center gap-2",
+                { "border border-red-500 text-red-500": error }
+              )}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
+                <line x1="16" y1="5" x2="22" y2="5"></line>
+                <line x1="16" y1="5" x2="12" y2="9"></line>
+              </svg>
+              {!isListing
+                ? model
+                  ? `Select from ${model} vault`
+                  : "Select a Model First"
+                : isListing
+                  ? "Opening vault..."
+                  : "Connecting to vault"}
+            </button>
+          </>
         ) : (
           <PermissionGoogle apiEndpoint="/api/google-drive/list">
             <button
-            type="button"
-            disabled={!model}
-            onClick={handleGoogleDriveSelect}
-            className={cn(
-              "px-4 w-full py-2 bg-black/60 text-white rounded-lg flex items-center justify-center gap-2",
-              { "border border-red-500 text-red-500": error }
-            )}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+              type="button"
+              disabled={!model}
+              onClick={handleGoogleDriveSelect}
+              className={cn(
+                "px-4 w-full py-2 bg-black/60 text-white rounded-lg flex items-center justify-center gap-2",
+                { "border border-red-500 text-red-500": error }
+              )}
             >
-              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
-              <line x1="16" y1="5" x2="22" y2="5"></line>
-              <line x1="16" y1="5" x2="12" y2="9"></line>
-            </svg>
-            {!isListing
-              ? model
-                ? `Select from ${model} folder`
-                : "Select a Model First"
-              : isListing
-                ? "Opening folder..."
-                : "Connecting to Google Drive"}
-          </button>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
+                <line x1="16" y1="5" x2="22" y2="5"></line>
+                <line x1="16" y1="5" x2="12" y2="9"></line>
+              </svg>
+              {!isListing
+                ? model
+                  ? `Select from ${model} folder`
+                  : "Select a Model First"
+                : isListing
+                  ? "Opening folder..."
+                  : "Connecting to Google Drive"}
+            </button>
           </PermissionGoogle>
         )}
         {error && (
@@ -696,6 +833,16 @@ export default function ImageCropper({
             )}
           </div>
         </div>
+      )}
+
+      {isVaultOpen && (
+        <VaultSelector
+          isOpen={isVaultOpen}
+          onClose={() => setIsVaultOpen(false)}
+          onUpload={handleUpload}
+          vaultName={vaultName ?? undefined}
+          imageOnly={imageOnly}
+        />
       )}
     </div>
   );
