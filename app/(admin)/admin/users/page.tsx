@@ -13,7 +13,6 @@ type User = {
   role: string;
   image: string | null;
   createdAt: Date;
-  lastAccessedAt: Date | null;
 };
 
 export default async function AdminUsersPage() {
@@ -33,7 +32,6 @@ export default async function AdminUsersPage() {
       role: true,
       image: true,
       createdAt: true,
-      lastAccessedAt: true,
     },
     orderBy: {
       createdAt: "desc",
@@ -184,9 +182,6 @@ export default async function AdminUsersPage() {
                       Join Date
                     </th>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                      Last Access
-                    </th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -251,18 +246,6 @@ export default async function AdminUsersPage() {
                           month: "short",
                           day: "numeric",
                         })}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                        {user.lastAccessedAt 
-                          ? new Date(user.lastAccessedAt).toLocaleDateString("en-US", {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : "Never"
-                        }
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <UserRoleForm
