@@ -264,7 +264,7 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
 
       // Append the file if it exists
       if (formDataToSend.has("imageFile")) {
-        formDataToSend.delete("imageFile"); // Ensure only one instance
+        formDataToSend.delete("imageFile");  // Ensure only one instance
       }
       if (formData.imageFile && formData.customImage) {
         formDataToSend.append("imageFile", formData.imageFile);
