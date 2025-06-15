@@ -1,17 +1,16 @@
-
+// src/app/api/be/proxy/route.ts
 import { NextRequest } from "next/server";
-import path from "path";
 
 export async function GET(req: NextRequest) {
-  const encodedPath = req.nextUrl.searchParams.get("path"); // optional Base64 encoded
-  const rawUrl = req.nextUrl.searchParams.get("url"); // raw encodedURIComponent
+  const encodedPath = req.nextUrl.searchParams.get("path");
+
+  if (!encodedPath) {
+    return new Response("Missing 'path' parameter", { status: 400 });
+  }
 
   try {
-    const finalPath = encodedPath
-      ? decodeURIComponent(atob(encodedPath))
-      : decodeURIComponent(rawUrl || "").replace(/\//g, "\\");
-
-    const backendUrl = `https://be.tastycreative.xyz/media-viewer/stream?path=${encodeURIComponent(finalPath)}`;
+    const decodedPath = atob(encodedPath);
+    const backendUrl = `https://be.tastycreative.xyz/media-viewer/stream?path=${encodeURIComponent(decodedPath)}`;
 
     const fetchRes = await fetch(backendUrl, {
       headers: {
