@@ -4,12 +4,12 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token');
-    const { id } = params;
+    const { id } = await params; // Now properly await the params Promise
 
     console.log('Image proxy request:', { id, hasToken: !!token });
 
