@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const decodedPath = encodedPath ? atob(encodedPath) : null;
-    const backendUrl = `https://be.tastycreative.xyz/media-viewer/stream?path=${encodeURIComponent(encodedPath ? decodedPath : encodeURIComponent(encodedUrl || ""))}`;
+    const backendUrl = `https://be.tastycreative.xyz/media-viewer/stream?path=${encodeURIComponent(encodedPath ? decodedPath || "" : encodeURIComponent(encodedUrl || ""))}`;
 
     const fetchRes = await fetch(backendUrl, {
       headers: {
