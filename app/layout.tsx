@@ -17,6 +17,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Tasty Creative",
   description: "Crafting Digital Experiences Beyond Imagination",
+  icons: {
+    icon: "/tasty-logo.png",
+  },
 };
 
 export default function RootLayout({
