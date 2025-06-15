@@ -1,6 +1,6 @@
-import React from "react";
+import React from 'react';
 
-export default function Loading() {
+const Loader = () => {
   return (
     <div className="loader-container">
       <div className="rocket-wrapper">
@@ -20,7 +20,7 @@ export default function Loading() {
             strokeWidth="2.5"
             fill="none"
           />
-
+          
           {/* Rocket body center line */}
           <line
             className="rocket-detail-1"
@@ -32,7 +32,7 @@ export default function Loading() {
             strokeWidth="1.5"
             opacity="0.6"
           />
-
+          
           {/* Side boosters */}
           <path
             className="rocket-booster-left"
@@ -41,7 +41,7 @@ export default function Loading() {
             strokeWidth="2"
             fill="none"
           />
-
+          
           <path
             className="rocket-booster-right"
             d="M75 50 C80 50 82 52 82 55 L82 85 C82 88 80 90 78 90 L75 88 L75 50 Z"
@@ -49,7 +49,7 @@ export default function Loading() {
             strokeWidth="2"
             fill="none"
           />
-
+          
           {/* Fins */}
           <path
             className="rocket-fin-left"
@@ -58,7 +58,7 @@ export default function Loading() {
             strokeWidth="2"
             fill="none"
           />
-
+          
           <path
             className="rocket-fin-right"
             d="M65 85 L80 105 C82 107 82 109 80 109 L70 109 L65 100 Z"
@@ -66,7 +66,7 @@ export default function Loading() {
             strokeWidth="2"
             fill="none"
           />
-
+          
           {/* Window */}
           <circle
             className="rocket-window-outer"
@@ -77,7 +77,7 @@ export default function Loading() {
             strokeWidth="2"
             fill="none"
           />
-
+          
           <circle
             className="rocket-window-inner"
             cx="50"
@@ -88,7 +88,7 @@ export default function Loading() {
             fill="none"
             opacity="0.7"
           />
-
+          
           {/* Technical details */}
           <rect
             className="rocket-panel-1"
@@ -102,7 +102,7 @@ export default function Loading() {
             fill="none"
             opacity="0.5"
           />
-
+          
           <rect
             className="rocket-panel-2"
             x="42"
@@ -115,7 +115,7 @@ export default function Loading() {
             fill="none"
             opacity="0.5"
           />
-
+          
           {/* Engine nozzles */}
           <ellipse
             className="rocket-nozzle-main"
@@ -127,7 +127,7 @@ export default function Loading() {
             strokeWidth="2"
             fill="none"
           />
-
+          
           <ellipse
             className="rocket-nozzle-left"
             cx="22"
@@ -138,7 +138,7 @@ export default function Loading() {
             strokeWidth="1.5"
             fill="none"
           />
-
+          
           <ellipse
             className="rocket-nozzle-right"
             cx="78"
@@ -149,7 +149,7 @@ export default function Loading() {
             strokeWidth="1.5"
             fill="none"
           />
-
+          
           {/* Exhaust flames */}
           <path
             className="rocket-flame-main"
@@ -159,7 +159,7 @@ export default function Loading() {
             fill="none"
             opacity="0"
           />
-
+          
           <path
             className="rocket-flame-left"
             d="M22 93 C20 96 19 100 20 105 C21 108 22 111 22 111 C22 111 23 108 24 105 C25 100 24 96 22 93 Z"
@@ -168,7 +168,7 @@ export default function Loading() {
             fill="none"
             opacity="0"
           />
-
+          
           <path
             className="rocket-flame-right"
             d="M78 93 C76 96 75 100 76 105 C77 108 78 111 78 111 C78 111 79 108 80 105 C81 100 80 96 78 93 Z"
@@ -177,7 +177,7 @@ export default function Loading() {
             fill="none"
             opacity="0"
           />
-
+          
           {/* Gradient definitions */}
           <defs>
             <linearGradient id="bodyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -185,83 +185,50 @@ export default function Loading() {
               <stop offset="50%" stopColor="#c7d2fe" />
               <stop offset="100%" stopColor="#a5b4fc" />
             </linearGradient>
-
-            <linearGradient
-              id="boosterGradient"
-              x1="0%"
-              y1="0%"
-              x2="0%"
-              y2="100%"
-            >
+            
+            <linearGradient id="boosterGradient" x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor="#94a3b8" />
               <stop offset="100%" stopColor="#64748b" />
             </linearGradient>
-
-            <linearGradient
-              id="finGradient"
-              x1="0%"
-              y1="0%"
-              x2="100%"
-              y2="100%"
-            >
+            
+            <linearGradient id="finGradient" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#ef4444" />
               <stop offset="100%" stopColor="#dc2626" />
             </linearGradient>
-
-            <linearGradient
-              id="windowGradient"
-              x1="0%"
-              y1="0%"
-              x2="100%"
-              y2="100%"
-            >
+            
+            <linearGradient id="windowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#60a5fa" />
               <stop offset="100%" stopColor="#3b82f6" />
             </linearGradient>
-
-            <linearGradient
-              id="nozzleGradient"
-              x1="0%"
-              y1="0%"
-              x2="0%"
-              y2="100%"
-            >
+            
+            <linearGradient id="nozzleGradient" x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor="#475569" />
               <stop offset="100%" stopColor="#1e293b" />
             </linearGradient>
-
-            <linearGradient
-              id="flameGradient"
-              x1="0%"
-              y1="0%"
-              x2="0%"
-              y2="100%"
-            >
+            
+            <linearGradient id="flameGradient" x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor="#fbbf24" />
               <stop offset="30%" stopColor="#f59e0b" />
               <stop offset="60%" stopColor="#ef4444" />
               <stop offset="100%" stopColor="#3b82f6" />
             </linearGradient>
-
-            <linearGradient
-              id="flameGradient2"
-              x1="0%"
-              y1="0%"
-              x2="0%"
-              y2="100%"
-            >
+            
+            <linearGradient id="flameGradient2" x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor="#f59e0b" />
               <stop offset="50%" stopColor="#ef4444" />
               <stop offset="100%" stopColor="#60a5fa" />
             </linearGradient>
           </defs>
         </svg>
-
+        
         {/* Smoke particles */}
         <div className="smoke-particle smoke-1"></div>
         <div className="smoke-particle smoke-2"></div>
         <div className="smoke-particle smoke-3"></div>
       </div>
+ 
     </div>
   );
-}
+};
+
+export default Loader;
