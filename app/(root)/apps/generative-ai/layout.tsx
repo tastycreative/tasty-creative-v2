@@ -3,9 +3,26 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter, usePathname } from "next/navigation";
-import { Sparkles, Crown } from "lucide-react";
+import {
+  Sparkles,
+  Video,
+  GalleryThumbnails,
+  PenTool,
+  Database,
+  Archive,
+  Type,
+  RefreshCw,
+} from "lucide-react";
 
-type TabType = "voice" | "studio";
+type TabType =
+  | "voice"
+  | "video"
+  | "gallery"
+  | "prompt"
+  | "dataset"
+  | "vault"
+  | "text2image"
+  | "image2image";
 
 interface Tab {
   id: TabType;
@@ -50,11 +67,53 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
       href: "/apps/generative-ai/voice",
     },
     {
-      id: "studio",
-      label: "AI Studio",
-      icon: Crown,
-      color: "from-yellow-500 to-amber-500",
-      href: "/apps/generative-ai/studio",
+      id: "text2image",
+      label: "AI Text-2-Image",
+      icon: Type,
+      color: "from-violet-500 to-fuchsia-500",
+      href: "/apps/generative-ai/text2image",
+    },
+    {
+      id: "image2image",
+      label: "AI Image-2-Image",
+      icon: RefreshCw,
+      color: "from-cyan-500 to-blue-500",
+      href: "/apps/generative-ai/image2image",
+    },
+    {
+      id: "video",
+      label: "AI Video",
+      icon: Video,
+      color: "from-blue-500 to-purple-500",
+      href: "/apps/generative-ai/video",
+    },
+    {
+      id: "prompt",
+      label: "AI Prompt Generator",
+      icon: PenTool,
+      color: "from-indigo-500 to-cyan-500",
+      href: "/apps/generative-ai/prompt",
+    },
+    {
+      id: "dataset",
+      label: "Dataset",
+      icon: Database,
+      color: "from-orange-500 to-red-500",
+      href: "/apps/generative-ai/dataset",
+    },
+    {
+      id: "vault",
+      label: "Vault",
+      icon: Archive,
+      color: "from-emerald-500 to-lime-500",
+      href: "/apps/generative-ai/vault",
+    },
+    {
+      id: "gallery",
+      label: "Gallery",
+      icon: GalleryThumbnails,
+      color: "from-purple-500 to-pink-500",
+      href: "/apps/generative-ai/gallery",
     },
     //     { id: "game", label: "Game", icon: Gamepad2, color: "from-purple-500 to-indigo-500", href: "/apps/generate/game" },
     //     { id: "ftt", label: "FTT", icon: Zap, color: "from-blue-500 to-cyan-500", href: "/apps/generate/ftt" },
@@ -100,8 +159,8 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
           Generate AI Content
         </h1>
         <p className="text-gray-600 dark:text-gray-300">
-          Create AI voices, images, and more with our powerful generative AI
-          tools.
+          Create AI voices, images, videos, and more with our powerful
+          generative AI tools.
         </p>
       </div>
 
