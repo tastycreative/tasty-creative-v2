@@ -1,13 +1,15 @@
-// src/app/api/be/proxy/route.ts
 import { NextRequest } from "next/server";
 
 export async function GET(req: NextRequest) {
-  const encodedPath = req.nextUrl.searchParams.get("path");
-  const encodedUrl = req.nextUrl.searchParams.get("url");
+  const encodedPath = req.nextUrl.searchParams.get("path"); // optional Base64 encoded
+  const rawUrl = req.nextUrl.searchParams.get("url"); // raw encodedURIComponent
 
   try {
-    const decodedPath = encodedPath ? atob(encodedPath) : null;
-    const backendUrl = `https://be.tastycreative.xyz/media-viewer/stream?path=${encodeURIComponent(encodedPath ? decodedPath || "" : encodeURIComponent(encodedUrl || ""))}`;
+    const finalPath = encodedPath
+      ? decodeURIComponent(atob(encodedPath))
+      : decodeURIComponent(rawUrl || "");
+
+    const backendUrl = `https://be.tastycreative.xyz/media-viewer/stream?path=${encodeURIComponent(finalPath)}`;
 
     const fetchRes = await fetch(backendUrl, {
       headers: {
