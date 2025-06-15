@@ -68,14 +68,14 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
     },
     {
       id: "text2image",
-      label: "AI Text-2-Image",
+      label: "Text-2-Image",
       icon: Type,
       color: "from-violet-500 to-fuchsia-500",
       href: "/apps/generative-ai/text2image",
     },
     {
       id: "image2image",
-      label: "AI Image-2-Image",
+      label: "Image-2-Image",
       icon: RefreshCw,
       color: "from-cyan-500 to-blue-500",
       href: "/apps/generative-ai/image2image",
@@ -89,7 +89,7 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
     },
     {
       id: "prompt",
-      label: "AI Prompt Generator",
+      label: "Prompt Gen",
       icon: PenTool,
       color: "from-indigo-500 to-cyan-500",
       href: "/apps/generative-ai/prompt",
@@ -115,10 +115,6 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
       color: "from-purple-500 to-pink-500",
       href: "/apps/generative-ai/gallery",
     },
-    //     { id: "game", label: "Game", icon: Gamepad2, color: "from-purple-500 to-indigo-500", href: "/apps/generate/game" },
-    //     { id: "ftt", label: "FTT", icon: Zap, color: "from-blue-500 to-cyan-500", href: "/apps/generate/ftt" },
-    //     { id: "twitter", label: "Twitter Ads", icon: Twitter, color: "from-sky-500 to-blue-500", href: "/apps/generate/twitter" },
-    //     { id: "gif", label: "GIF Maker", icon: Film, color: "from-green-500 to-emerald-500", href: "/apps/generate/gif" },
   ];
 
   // Get active tab based on current pathname
@@ -141,99 +137,155 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
   };
 
   return (
-    <div
-      className="w-full h-full flex flex-col"
-      //initial={{ opacity: 0 }}
-      //animate={{ opacity: isReady ? 1 : 0 }}
-      //transition={{ duration: 0.3 }}
-    >
+    <div className="w-full h-full flex flex-col min-h-screen">
       <title>Generative AI | Tasty Creative</title>
+
       {/* Header */}
-      <div
-        className="mb-8"
-        //initial={{ opacity: 0, y: -20 }}
-        //animate={{ opacity: isReady ? 1 : 0, y: isReady ? 0 : -20 }}
-        //transition={{ duration: 0.4, delay: 0.1 }}
-      >
-        <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">
+      <div className="mb-4 sm:mb-6 lg:mb-8 px-4 sm:px-6 lg:px-0">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 dark:text-white mb-1 sm:mb-2">
           Generate AI Content
         </h1>
-        <p className="text-gray-600 dark:text-gray-300">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 leading-relaxed">
           Create AI voices, images, videos, and more with our powerful
           generative AI tools.
         </p>
       </div>
 
       {/* Tabs Navigation */}
-      <div
-        className="relative mb-8"
-        //initial={{ opacity: 0, y: -10 }}
-        //animate={{ opacity: isReady ? 1 : 0, y: isReady ? 0 : -10 }}
-        //transition={{ duration: 0.4, delay: 0.2 }}
-      >
-        {/* Tabs Container */}
-        <div className="flex gap-2 p-1 rounded-2xl bg-white/10 dark:bg-gray-800/30 backdrop-blur-md border border-white/20 dark:border-gray-700/30">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
+      <div className="relative mb-4 sm:mb-6 lg:mb-8">
+        {/* Mobile: Horizontal Scroll */}
+        <div className="block sm:hidden">
+          <div className="flex gap-2 px-4 overflow-x-auto scrollbar-hide">
+            <div className="flex gap-2 p-1 rounded-2xl bg-white/10 dark:bg-gray-800/30 backdrop-blur-md border border-white/20 dark:border-gray-700/30 min-w-max">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
 
-            return (
-              <button
-                key={tab.id}
-                onClick={() => handleTabClick(tab)}
-                className={`relative flex items-center gap-2 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
-                  isActive
-                    ? "text-white"
-                    : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-                }`}
-                // //whileHover={{ scale: 1.05 }}
-                // //whileTap={{ scale: 0.95 }}
-              >
-                {/* Active Tab Background */}
-                {isActive && (
-                  <div
-                    // layoutId="activeTab"
-                    className={`absolute inset-0 rounded-xl bg-gradient-to-r ${tab.color}`}
-                    //initial={false}
-                    //transition={{
-                    //   type: "spring",
-                    //   stiffness: 300,
-                    //   damping: 30,
-                    // }}
-                  />
-                )}
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabClick(tab)}
+                    className={`relative flex items-center gap-1.5 px-3 py-2.5 rounded-xl font-medium transition-all duration-200 whitespace-nowrap ${
+                      isActive
+                        ? "text-white"
+                        : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                    }`}
+                  >
+                    {/* Active Tab Background */}
+                    {isActive && (
+                      <div
+                        className={`absolute inset-0 rounded-xl bg-gradient-to-r ${tab.color}`}
+                      />
+                    )}
 
-                {/* Tab Content */}
-                <div className="relative z-10 flex items-center gap-2">
-                  <Icon className="w-4 h-4" />
-                  <span className="text-sm lg:text-base">{tab.label}</span>
-                </div>
+                    {/* Tab Content */}
+                    <div className="relative z-10 flex items-center gap-1.5">
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                      <span className="text-xs font-medium">{tab.label}</span>
+                    </div>
 
-                {/* Hover Glow Effect */}
-                {isActive && (
-                  <div
-                    className={`absolute inset-0 rounded-xl bg-gradient-to-r ${tab.color} blur-xl opacity-50`}
-                    //initial={{ opacity: 0 }}
-                    //animate={{ opacity: 0.5 }}
-                    //exit={{ opacity: 0 }}
-                    //transition={{ duration: 0.3 }}
-                  />
-                )}
-              </button>
-            );
-          })}
+                    {/* Hover Glow Effect */}
+                    {isActive && (
+                      <div
+                        className={`absolute inset-0 rounded-xl bg-gradient-to-r ${tab.color} blur-xl opacity-50`}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Tablet: Wrap Layout */}
+        <div className="hidden sm:block lg:hidden px-4 sm:px-6">
+          <div className="flex flex-wrap gap-2 p-1 rounded-2xl bg-white/10 dark:bg-gray-800/30 backdrop-blur-md border border-white/20 dark:border-gray-700/30">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabClick(tab)}
+                  className={`relative flex items-center gap-2 px-3 py-2.5 rounded-xl font-medium transition-all duration-200 ${
+                    isActive
+                      ? "text-white"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                  }`}
+                >
+                  {/* Active Tab Background */}
+                  {isActive && (
+                    <div
+                      className={`absolute inset-0 rounded-xl bg-gradient-to-r ${tab.color}`}
+                    />
+                  )}
+
+                  {/* Tab Content */}
+                  <div className="relative z-10 flex items-center gap-2">
+                    <Icon className="w-4 h-4" />
+                    <span className="text-sm">{tab.label}</span>
+                  </div>
+
+                  {/* Hover Glow Effect */}
+                  {isActive && (
+                    <div
+                      className={`absolute inset-0 rounded-xl bg-gradient-to-r ${tab.color} blur-xl opacity-50`}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Desktop: Full Layout */}
+        <div className="hidden lg:block">
+          <div className="flex gap-2 p-1 rounded-2xl bg-white/10 dark:bg-gray-800/30 backdrop-blur-md border border-white/20 dark:border-gray-700/30">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabClick(tab)}
+                  className={`relative flex items-center gap-2 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
+                    isActive
+                      ? "text-white"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                  }`}
+                >
+                  {/* Active Tab Background */}
+                  {isActive && (
+                    <div
+                      className={`absolute inset-0 rounded-xl bg-gradient-to-r ${tab.color}`}
+                    />
+                  )}
+
+                  {/* Tab Content */}
+                  <div className="relative z-10 flex items-center gap-2">
+                    <Icon className="w-4 h-4" />
+                    <span className="text-sm lg:text-base">{tab.label}</span>
+                  </div>
+
+                  {/* Hover Glow Effect */}
+                  {isActive && (
+                    <div
+                      className={`absolute inset-0 rounded-xl bg-gradient-to-r ${tab.color} blur-xl opacity-50`}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
       {/* Tab Content */}
-      <div
-        className="flex-1 relative overflow-hidden"
-        //initial={{ opacity: 0 }}
-        //animate={{ opacity: isReady ? 1 : 0 }}
-        //transition={{ duration: 0.4, delay: 0.3 }}
-      >
+      <div className="flex-1 relative overflow-hidden px-4 sm:px-6 lg:px-0">
         {/* Content Container */}
-        <div className="h-full rounded-2xl bg-white/5 dark:bg-gray-800/20 backdrop-blur-sm border border-white/10 dark:border-gray-700/20 p-6">
+        <div className="h-full rounded-xl sm:rounded-2xl bg-white/5 dark:bg-gray-800/20 backdrop-blur-sm border border-white/10 dark:border-gray-700/20 p-3 sm:p-4 lg:p-6">
           {children}
         </div>
       </div>
