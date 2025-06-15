@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
 
 // const webhookUrl = process.env.WEBHOOK_URL!;
 const webhookUrl =
@@ -11,8 +12,12 @@ const vipWebhookUrl =
   "https://n8n.tastycreative.xyz/webhook/fc87dd15-0df9-4ee1-8947-2a82d961fed4";
 const fttWebhookUrl =
   "https://n8n.tastycreative.xyz/webhook/4713ce33-501e-49b0-a6c6-38a907e1651b";
+
 export async function POST(request: NextRequest) {
   try {
+    // Get the session using Auth.js
+    const session = await auth();
+    
     const formData = await request.formData();
 
     // Get isCustomRequest from form data
@@ -39,16 +44,18 @@ export async function POST(request: NextRequest) {
       forwardData.append("data", imageFile, imageFile.name);
     }
 
-    // 🧠 Extract google_user from cookie
-    const userCookie = request.cookies.get("google_user")?.value;
-    if (userCookie) {
-      try {
-        const user = JSON.parse(userCookie);
-        if (user?.name) forwardData.append("user_name", user.name);
-        if (user?.email) forwardData.append("user_email", user.email);
-      } catch (err) {
-        console.error("Failed to parse google_user cookie:", err);
+    // 🧠 Extract user info from Auth.js session
+    if (session?.user) {
+      if (session.user.name) {
+        forwardData.append("user_name", session.user.name);
       }
+      if (session.user.email) {
+        forwardData.append("user_email", session.user.email);
+      }
+    } else {
+      console.warn("No authenticated session found");
+      // Optionally, you might want to return an error if authentication is required
+      // return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }
 
     // Determine which URL to use
