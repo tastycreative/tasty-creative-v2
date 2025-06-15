@@ -1,4 +1,6 @@
+
 import { NextRequest } from "next/server";
+import path from "path";
 
 export async function GET(req: NextRequest) {
   const encodedPath = req.nextUrl.searchParams.get("path"); // optional Base64 encoded
@@ -7,7 +9,7 @@ export async function GET(req: NextRequest) {
   try {
     const finalPath = encodedPath
       ? decodeURIComponent(atob(encodedPath))
-      : decodeURIComponent(rawUrl || "");
+      : decodeURIComponent(rawUrl || "").replace(/\//g, "\\");
 
     const backendUrl = `https://be.tastycreative.xyz/media-viewer/stream?path=${encodeURIComponent(finalPath)}`;
 
