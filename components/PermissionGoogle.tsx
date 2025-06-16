@@ -162,7 +162,7 @@ const PermissionGoogle: React.FC<PermissionGoogleProps> = ({
             <span className="truncate">Grant Google Access</span>
           </Button>
           
-          {error !== missingApiEndpointError && (
+          {/* {error !== missingApiEndpointError && (
             <Button
               onClick={checkPermission}
               variant="outline"
@@ -174,7 +174,7 @@ const PermissionGoogle: React.FC<PermissionGoogleProps> = ({
               <span className="hidden sm:inline">Retry</span>
               <span className="sm:hidden">↻</span>
             </Button>
-          )}
+          )} */}
         </div>
       </div>
     );
