@@ -12,6 +12,7 @@ const nextConfig = {
     "*.pike.replit.dev",
     "79090bbb-5655-4e25-bdb0-2f1c07ec943f-00-2xajzclpwd3ig.pike.replit.dev",
     "https://79090bbb-5655-4e25-bdb0-2f1c07ec943f-00-2xajzclpwd3ig.pike.replit.dev",
+    "https://058bf6d3-6042-48a3-97e4-0a6aceb2bfa4-00-3ljqmwct17w2s.pike.replit.dev"
   ],
   experimental: {},
   eslint: {
