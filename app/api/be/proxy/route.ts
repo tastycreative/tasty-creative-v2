@@ -18,10 +18,16 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const headers = new Headers(fetchRes.headers);
+    const contentType = fetchRes.headers.get("content-type") || "application/octet-stream";
+
     return new Response(fetchRes.body, {
       status: fetchRes.status,
-      headers,
+      headers: {
+        "Content-Type": contentType,
+        "Access-Control-Allow-Origin": "*",
+        "Content-Disposition": "inline",
+        "Cache-Control": "public, max-age=3600",
+      },
     });
   } catch (err) {
     console.error("Proxy error:", err);
