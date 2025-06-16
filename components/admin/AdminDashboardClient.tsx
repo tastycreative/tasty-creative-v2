@@ -23,6 +23,12 @@ import {
   Shield,
   UserCheck,
   Calendar,
+  DollarSign,
+  FileText,
+  Star,
+  BarChart3,
+  Target,
+  Percent,
 } from "lucide-react";
 
 interface DashboardData {
@@ -44,6 +50,32 @@ interface DashboardData {
     month: string;
     users: number;
   }>;
+  vnSales: {
+    vnSalesToday: number;
+    vnSalesGrowth: number;
+    totalVnCount: number;
+    newVnToday: number;
+    loyaltyPointsEarned: number;
+    loyaltyPointsGrowth: number;
+    averageVnPrice: number;
+    priceIncrease: number;
+    salesByModel: Array<{
+      name: string;
+      sales: number;
+      revenue: number;
+      loyaltyPoints: number;
+    }>;
+  };
+  analytics: {
+    activeCampaigns: number;
+    newCampaignsThisWeek: number;
+    conversionRate: number;
+    conversionGrowth: number;
+    totalRevenue: number;
+    revenueGrowth: number;
+    roi: number;
+    roiGrowth: number;
+  };
 }
 
 const ROLE_COLORS = {
@@ -54,7 +86,7 @@ const ROLE_COLORS = {
 };
 
 export function AdminDashboardClient({ data }: { data: DashboardData }) {
-  const { stats, recentUsers, userGrowthData } = data;
+  const { stats, recentUsers, userGrowthData, vnSales, analytics } = data;
 
   const roleChartData = Object.entries(stats.usersByRole).map(
     ([role, count]) => ({
@@ -74,32 +106,60 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       bgColor: "bg-blue-50 dark:bg-blue-900/20",
     },
     {
-      title: "New This Month",
-      value: stats.totalUsersThisMonth.toLocaleString(),
-      icon: UserPlus,
-      description: "Users joined this month",
+      title: "VN Sales Today",
+      value: `$${vnSales.vnSalesToday}`,
+      icon: DollarSign,
+      description: `+${vnSales.vnSalesGrowth}% from yesterday`,
       color: "text-green-600",
       bgColor: "bg-green-50 dark:bg-green-900/20",
     },
     {
-      title: "Growth Rate",
-      value: `${stats.userGrowthPercentage > 0 ? "+" : ""}${stats.userGrowthPercentage}%`,
-      icon: TrendingUp,
-      description: "vs last month",
-      color:
-        stats.userGrowthPercentage >= 0 ? "text-green-600" : "text-red-600",
-      bgColor:
-        stats.userGrowthPercentage >= 0
-          ? "bg-green-50 dark:bg-green-900/20"
-          : "bg-red-50 dark:bg-red-900/20",
+      title: "Total VN Count",
+      value: vnSales.totalVnCount.toLocaleString(),
+      icon: FileText,
+      description: `${vnSales.newVnToday} new today`,
+      color: "text-blue-600",
+      bgColor: "bg-blue-50 dark:bg-blue-900/20",
     },
     {
-      title: "Admin Users",
-      value: (stats.usersByRole.ADMIN || 0).toLocaleString(),
-      icon: Shield,
-      description: "Administrative access",
-      color: "text-red-600",
-      bgColor: "bg-red-50 dark:bg-red-900/20",
+      title: "Active Campaigns",
+      value: analytics.activeCampaigns.toLocaleString(),
+      icon: Target,
+      description: `${analytics.newCampaignsThisWeek} new this week`,
+      color: "text-purple-600",
+      bgColor: "bg-purple-50 dark:bg-purple-900/20",
+    },
+    {
+      title: "Conversion Rate",
+      value: `${analytics.conversionRate}%`,
+      icon: Percent,
+      description: `+${analytics.conversionGrowth}% from last week`,
+      color: "text-green-600",
+      bgColor: "bg-green-50 dark:bg-green-900/20",
+    },
+    {
+      title: "Total Revenue",
+      value: `$${analytics.totalRevenue.toLocaleString()}`,
+      icon: TrendingUp,
+      description: `+${analytics.revenueGrowth}% from last week`,
+      color: "text-green-600",
+      bgColor: "bg-green-50 dark:bg-green-900/20",
+    },
+    {
+      title: "Loyalty Points",
+      value: vnSales.loyaltyPointsEarned.toLocaleString(),
+      icon: Star,
+      description: `+${vnSales.loyaltyPointsGrowth}% this week`,
+      color: "text-yellow-600",
+      bgColor: "bg-yellow-50 dark:bg-yellow-900/20",
+    },
+    {
+      title: "ROI",
+      value: `${analytics.roi}%`,
+      icon: BarChart3,
+      description: `+${analytics.roiGrowth}% from last week`,
+      color: "text-purple-600",
+      bgColor: "bg-purple-50 dark:bg-purple-900/20",
     },
   ];
 
@@ -114,7 +174,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-6">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
@@ -306,6 +366,41 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                 ))}
               </tbody>
             </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* VN Sales by Model */}
+      <Card className="bg-gray-800 border-gray-700">
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2 text-white">
+            <FileText className="h-5 w-5 text-orange-400" />
+            <span>VN Sales by Model</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {vnSales.salesByModel.map((model, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg"
+              >
+                <div>
+                  <h3 className="font-medium text-white">{model.name}</h3>
+                  <p className="text-sm text-gray-400">{model.sales} VN sales</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-semibold text-green-400">${model.revenue}</p>
+                  <p className="text-sm text-gray-400">{model.loyaltyPoints} loyalty pts</p>
+                </div>
+              </div>
+            ))}
+            <div className="text-center text-gray-400 py-4">
+              <p className="text-sm">
+                Average VN Price: <span className="text-orange-400 font-semibold">${vnSales.averageVnPrice}</span>
+                {" "}(+${vnSales.priceIncrease} from last week)
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>

@@ -20,6 +20,7 @@ export default async function AdminDashboardPage() {
     usersByRole,
     recentUsers,
     userGrowthData,
+    // VN Sales and Analytics data (mock data for now)
   ] = await Promise.all([
     // Total users
     prisma.user.count(),
@@ -96,6 +97,34 @@ export default async function AdminDashboardPage() {
     ? ((totalUsersThisMonth - totalUsersLastMonth) / totalUsersLastMonth) * 100 
     : 0;
 
+  // Mock VN Sales data (replace with actual database queries)
+  const vnSalesData = {
+    vnSalesToday: 890,
+    vnSalesGrowth: 15,
+    totalVnCount: 247,
+    newVnToday: 12,
+    loyaltyPointsEarned: 3450,
+    loyaltyPointsGrowth: 8,
+    averageVnPrice: 25.50,
+    priceIncrease: 2.50,
+    salesByModel: [
+      { name: "Model A", sales: 45, revenue: 1125, loyaltyPoints: 890 },
+      { name: "Model B", sales: 32, revenue: 800, loyaltyPoints: 640 },
+    ]
+  };
+
+  // Mock Analytics data (replace with actual database queries)
+  const analyticsData = {
+    activeCampaigns: 12,
+    newCampaignsThisWeek: 3,
+    conversionRate: 3.8,
+    conversionGrowth: 0.5,
+    totalRevenue: 12340,
+    revenueGrowth: 25,
+    roi: 285,
+    roiGrowth: 15,
+  };
+
   const dashboardData = {
     stats: {
       totalUsers,
@@ -108,6 +137,8 @@ export default async function AdminDashboardPage() {
     },
     recentUsers,
     userGrowthData,
+    vnSales: vnSalesData,
+    analytics: analyticsData,
   };
 
   return <AdminDashboardClient data={dashboardData} />;
