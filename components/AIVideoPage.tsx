@@ -16,6 +16,10 @@ import {
   Clock,
   Film,
   Settings,
+  Wand2,
+  Image as ImageLucide,
+  Info,
+  ZapOff,
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { Alert, AlertTitle, AlertDescription } from "./ui/alert";
@@ -1257,258 +1261,338 @@ const AIVideoPage = () => {
   };
 
   return (
-    <div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
-          <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <CardTitle className="text-white">AI Video Generation</CardTitle>
-              <CardDescription className="text-gray-400">
-                Transform images into dynamic videos using AI
-              </CardDescription>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header Section */}
+        <div className="text-center space-y-4">
+          <h1 className="text-4xl font-bold text-white mb-2">
+            AI Video Generation
+          </h1>
+          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+            Transform static images into dynamic videos using advanced AI
+          </p>
+        </div>
 
-            {/* Connection Status */}
-            <div className="min-w-48">
-              {isConnected ? (
-                <div className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-green-900/30 text-green-300 border border-green-500/30">
-                  <Check size={10} className="mr-1" />
-                  Connected
-                </div>
-              ) : (
-                <div className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-red-900/30 text-red-300 border border-red-500/30">
-                  <X size={10} className="mr-1" />
-                  Disconnected
+        {/* Status Bar */}
+        <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+          <CardContent className="p-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex items-center space-x-4">
+                {isConnected ? (
+                  <>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
+                      <span className="text-green-400 font-medium">
+                        ComfyUI Connected
+                      </span>
+                    </div>
+                    <div className="text-gray-400 text-sm">
+                      {availableModels.length} models available
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                      <span className="text-red-400 font-medium">
+                        ComfyUI Offline
+                      </span>
+                    </div>
+                    <div className="text-gray-400 text-sm">
+                      Check connection
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {videoGenerating && (
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2 text-purple-400">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm font-medium">
+                      {videoProgress}%
+                    </span>
+                  </div>
+                  {currentStage && (
+                    <span className="text-xs text-gray-400">
+                      {currentStage}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
-          </CardHeader>
+          </CardContent>
+        </Card>
 
-          <CardContent className="space-y-5">
-            {/* Image Upload Section */}
-            <div className="space-y-4">
-              <Label className="text-gray-300 text-base font-medium">
-                Source Image
-              </Label>
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          {/* Generation Panel */}
+          <div className="space-y-6">
+            {/* Image Upload */}
+            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-white flex items-center">
+                  <Upload className="w-5 h-5 mr-3" />
+                  Source Image
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Upload an image to animate with AI
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div
+                  className={`relative border-2 border-dashed rounded-xl p-8 transition-all cursor-pointer hover:border-purple-400/50 ${
+                    dragActive
+                      ? "border-purple-400 bg-purple-400/10"
+                      : imagePreview
+                        ? "border-green-400/50 bg-green-400/5"
+                        : "border-white/20 bg-black/40"
+                  }`}
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileInputChange}
+                    className="hidden"
+                  />
 
-              {/* Upload Area */}
-              <div
-                className={`relative border-2 border-dashed rounded-lg p-6 transition-all cursor-pointer hover:border-purple-400/50 ${
-                  dragActive
-                    ? "border-purple-400 bg-purple-400/10"
-                    : imagePreview
-                      ? "border-green-400/50 bg-green-400/5"
-                      : "border-white/20 bg-black/40"
-                }`}
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileInputChange}
-                  className="hidden"
-                />
-
-                {imagePreview ? (
-                  <div className="relative">
-                    <img
-                      src={imagePreview}
-                      alt="Source image preview"
-                      className="max-w-full max-h-64 mx-auto rounded-lg object-contain"
-                    />
-                    <div className="absolute top-2 right-2 flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="bg-red-600/80 border-red-500 text-white hover:bg-red-700"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          clearImage();
-                        }}
-                      >
-                        <X size={14} />
-                      </Button>
-                    </div>
-                    <div className="mt-2 text-center">
-                      <p className="text-green-400 text-sm font-medium">
-                        ✓ Image loaded: {imageFile?.name}
-                      </p>
-                      <p className="text-gray-400 text-xs">
-                        Click to change image
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center">
-                    <div className="flex flex-col items-center">
-                      <div className="w-16 h-16 bg-purple-600/20 rounded-full flex items-center justify-center mb-4">
-                        <Camera size={32} className="text-purple-400" />
+                  {imagePreview ? (
+                    <div className="relative">
+                      <img
+                        src={imagePreview}
+                        alt="Source image preview"
+                        className="max-w-full max-h-64 mx-auto rounded-lg object-contain"
+                      />
+                      <div className="absolute top-2 right-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="bg-red-600/80 border-red-500 text-white hover:bg-red-700"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            clearImage();
+                          }}
+                        >
+                          <X size={14} />
+                        </Button>
                       </div>
-                      <h3 className="text-white text-lg font-medium mb-2">
+                      <div className="mt-4 text-center">
+                        <p className="text-green-400 text-sm font-medium">
+                          ✓ Image loaded: {imageFile?.name}
+                        </p>
+                        <p className="text-gray-400 text-xs">
+                          Click to change image
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <div className="w-20 h-20 bg-purple-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Camera size={40} className="text-purple-400" />
+                      </div>
+                      <h3 className="text-white text-xl font-medium mb-2">
                         Upload Source Image
                       </h3>
-                      <p className="text-gray-400 text-sm mb-4">
+                      <p className="text-gray-400 mb-4">
                         Drag and drop an image here, or click to browse
                       </p>
-                      <div className="flex items-center space-x-4 text-xs text-gray-500">
+                      <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
                         <span>Supports: PNG, JPG, JPEG, WEBP</span>
                         <span>•</span>
                         <span>Max size: 10MB</span>
                       </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
-            {/* Prompt Section */}
-            <div className="space-y-4">
-              <div>
-                <Label
-                  htmlFor="video-prompt"
-                  className="text-gray-300 mb-2 block"
-                >
+            {/* Motion Prompt */}
+            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-white flex items-center">
+                  <Wand2 className="w-5 h-5 mr-3" />
                   Motion Prompt
-                </Label>
-                <Textarea
-                  id="video-prompt"
-                  placeholder="The woman is swaying her hips from side to side..."
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  className="bg-black/60 border-white/10 text-white rounded-lg min-h-24"
-                  rows={4}
-                />
-                <p className="text-gray-500 text-xs mt-1">
+                </CardTitle>
+                <CardDescription className="text-gray-400">
                   Describe the motion or movement you want to see
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="relative">
+                  <Textarea
+                    placeholder="The woman is swaying her hips from side to side, her hair flowing gently in the breeze..."
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    className="bg-black/40 border-white/20 text-white rounded-xl min-h-[120px] resize-none focus:border-purple-400/50 focus:ring-purple-400/20 transition-all text-base leading-relaxed"
+                    rows={5}
+                  />
+                </div>
+                <p className="text-gray-500 text-sm">
+                  Be specific about the type of movement, direction, and style
+                  you want to see in your video
                 </p>
-              </div>
-            </div>
-
-            {/* Size Presets */}
-            <div>
-              <Label className="text-gray-300 mb-2 block">Animation Size</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {presetSizes.map((preset) => (
-                  <Button
-                    key={preset.name}
-                    variant="outline"
-                    size="sm"
-                    className={`bg-black/60 border-white/10 text-white hover:bg-white/10 ${
-                      width === preset.width && height === preset.height
-                        ? "bg-purple-600/30 border-purple-400"
-                        : ""
-                    }`}
-                    onClick={() => {
-                      setWidth(preset.width);
-                      setHeight(preset.height);
-                    }}
-                  >
-                    {preset.name}
-                    <br />
-                    <span className="text-xs opacity-60">
-                      {preset.width}×{preset.height}
-                    </span>
-                  </Button>
-                ))}
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
             {/* Video Settings */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label className="text-gray-300 mb-2 block">
-                  Length: {frameCount}f ({calculateDuration(frameCount, fps)}s)
-                </Label>
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {frameCountPresets.map((count) => (
-                    <Button
-                      key={count}
-                      variant="outline"
-                      size="sm"
-                      className={`text-xs ${
-                        frameCount === count
-                          ? "bg-purple-600/30 border-purple-400"
-                          : "bg-black/60 border-white/10"
-                      } text-white hover:bg-white/10`}
-                      onClick={() => setFrameCount(count)}
-                    >
-                      {count}f ({calculateDuration(count, fps)}s)
-                    </Button>
-                  ))}
+            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-white flex items-center">
+                  <Settings className="w-5 h-5 mr-3" />
+                  Video Settings
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Configure video dimensions and animation parameters
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Size Presets */}
+                <div>
+                  <Label className="text-gray-300 text-sm font-medium mb-3 block">
+                    Video Dimensions
+                  </Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {presetSizes.map((preset) => (
+                      <Button
+                        key={preset.name}
+                        variant="outline"
+                        className={`h-16 p-3 border-2 transition-all duration-200 ${
+                          width === preset.width && height === preset.height
+                            ? "bg-purple-600/30 border-purple-400 text-purple-300"
+                            : "bg-black/40 border-white/20 text-gray-300 hover:bg-white/10 hover:border-white/30"
+                        }`}
+                        onClick={() => {
+                          setWidth(preset.width);
+                          setHeight(preset.height);
+                        }}
+                      >
+                        <div className="text-center">
+                          <div className="font-medium text-sm">
+                            {preset.name}
+                          </div>
+                          <div className="text-xs opacity-70">
+                            {preset.width}×{preset.height}
+                          </div>
+                        </div>
+                      </Button>
+                    ))}
+                  </div>
                 </div>
-                <Slider
-                  value={[frameCount]}
-                  min={25}
-                  max={97}
-                  step={8}
-                  onValueChange={(value) => setFrameCount(value[0])}
-                  className="py-2"
-                />
-              </div>
 
-              <div>
-                <Label className="text-gray-300 mb-2 block">
-                  Frame Rate: {fps} FPS
-                </Label>
-                <div className="flex flex-wrap gap-1 mb-2">
-                  {fpsPresets.map((f) => (
-                    <Button
-                      key={f}
-                      variant="outline"
-                      size="sm"
-                      className={`text-xs ${
-                        fps === f
-                          ? "bg-purple-600/30 border-purple-400"
-                          : "bg-black/60 border-white/10"
-                      } text-white hover:bg-white/10`}
-                      onClick={() => setFps(f)}
-                    >
-                      {f}fps
-                    </Button>
-                  ))}
+                {/* Animation Length & FPS */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <div className="flex justify-between items-center mb-3">
+                      <Label className="text-gray-300 text-sm font-medium">
+                        Animation Length
+                      </Label>
+                      <span className="text-purple-400 text-sm font-mono">
+                        {frameCount}f ({calculateDuration(frameCount, fps)}s)
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {frameCountPresets.map((count) => (
+                        <Button
+                          key={count}
+                          variant="outline"
+                          size="sm"
+                          className={`text-xs h-8 ${
+                            frameCount === count
+                              ? "bg-purple-600/30 border-purple-400 text-purple-300"
+                              : "bg-black/40 border-white/20 text-gray-300 hover:bg-white/10"
+                          }`}
+                          onClick={() => setFrameCount(count)}
+                        >
+                          {count}f ({calculateDuration(count, fps)}s)
+                        </Button>
+                      ))}
+                    </div>
+                    <Slider
+                      value={[frameCount]}
+                      min={25}
+                      max={97}
+                      step={8}
+                      onValueChange={(value) => setFrameCount(value[0])}
+                      className="py-2"
+                    />
+                    <p className="text-xs text-gray-400 mt-2">
+                      More frames = longer video, but slower generation
+                    </p>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-3">
+                      <Label className="text-gray-300 text-sm font-medium">
+                        Frame Rate
+                      </Label>
+                      <span className="text-purple-400 text-sm font-mono">
+                        {fps} FPS
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {fpsPresets.map((f) => (
+                        <Button
+                          key={f}
+                          variant="outline"
+                          size="sm"
+                          className={`text-xs h-8 ${
+                            fps === f
+                              ? "bg-purple-600/30 border-purple-400 text-purple-300"
+                              : "bg-black/40 border-white/20 text-gray-300 hover:bg-white/10"
+                          }`}
+                          onClick={() => setFps(f)}
+                        >
+                          {f}fps
+                        </Button>
+                      ))}
+                    </div>
+                    <Slider
+                      value={[fps]}
+                      min={8}
+                      max={30}
+                      step={1}
+                      onValueChange={(value) => setFps(value[0])}
+                      className="py-2"
+                    />
+                    <p className="text-xs text-gray-400 mt-2">
+                      Higher FPS = smoother motion, but longer processing
+                    </p>
+                  </div>
                 </div>
-                <Slider
-                  value={[fps]}
-                  min={8}
-                  max={30}
-                  step={1}
-                  onValueChange={(value) => setFps(value[0])}
-                  className="py-2"
-                />
-              </div>
+              </CardContent>
+            </Card>
+
+            {/* Error & Warning Messages */}
+            <div className="space-y-4">
+              {error && (
+                <Alert className="bg-red-900/20 border-red-500/30 text-red-200">
+                  <ZapOff className="h-4 w-4" />
+                  <AlertTitle>Generation Error</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              {!isConnected && (
+                <Alert className="bg-amber-900/20 border-amber-500/30 text-amber-200">
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>Connection Required</AlertTitle>
+                  <AlertDescription>
+                    Please ensure ComfyUI is running and accessible to generate
+                    videos.
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
 
-            {/* Connection Status Alert */}
-            {!isConnected && (
-              <Alert className="bg-red-900/20 border-red-500/30 text-red-200">
-                <WifiOff className="h-4 w-4" />
-                <AlertTitle>Connection Issue</AlertTitle>
-                <AlertDescription>
-                  Cannot connect to AI service for video generation. Please
-                  check your connection and try again.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {/* Error Display */}
-            {error && (
-              <Alert
-                variant="destructive"
-                className="bg-red-900/20 border-red-500/30 text-red-200"
-              >
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-          </CardContent>
-
-          <CardFooter>
+            {/* Generate Button */}
             <Button
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg py-3 text-lg font-medium"
+              className="w-full h-16 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl text-lg font-semibold shadow-lg transition-all duration-200 disabled:opacity-50"
               onClick={handleGenerate}
               disabled={
                 videoGenerating || !prompt.trim() || !imageFile || !isConnected
@@ -1516,280 +1600,332 @@ const AIVideoPage = () => {
             >
               {videoGenerating ? (
                 <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  <Loader2 className="w-5 h-5 mr-3 animate-spin" />
                   Creating Video... {videoProgress}%
-                  {currentStage && (
-                    <span className="ml-1 text-sm">({currentStage})</span>
-                  )}
                 </>
               ) : (
                 <>
-                  <Video className="w-5 h-5 mr-2" />
+                  <Video className="w-5 h-5 mr-3" />
                   Generate Video ({calculateDuration(frameCount, fps)}s)
                 </>
               )}
             </Button>
-          </CardFooter>
-        </Card>
+          </div>
 
-        {/* Preview card with history */}
-        <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
-          <CardHeader>
-            <CardTitle className="text-white flex justify-between items-center">
-              <span>Video Preview</span>
-              <div className="flex space-x-2">
-                {!isLoadingVideos && generatedVideos.length > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-black/60 border-white/10 text-white hover:bg-black/80 flex items-center h-7 px-2"
-                    onClick={() => setShowHistory(!showHistory)}
-                  >
-                    <Clock size={12} className="mr-1" />
-                    {showHistory ? "Hide History" : "Show History"}
-                  </Button>
-                )}
-              </div>
-            </CardTitle>
-            <CardDescription className="text-gray-400">
-              Preview and download generated videos
-            </CardDescription>
-          </CardHeader>
+          {/* Preview Panel */}
+          <div className="space-y-6">
+            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-white flex items-center">
+                      <Film className="w-5 h-5 mr-3" />
+                      Video Preview
+                    </CardTitle>
+                    <CardDescription className="text-gray-400">
+                      {isLoadingVideos
+                        ? "Loading..."
+                        : `${generatedVideos.length} videos created`}
+                    </CardDescription>
+                  </div>
 
-          <CardContent className="flex flex-col h-96">
-            {/* Active preview section */}
-            {isLoadingVideos ? (
-              <div className="bg-black/50 rounded-lg border border-white/10 flex items-center justify-center py-32">
-                <div className="text-center">
-                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-purple-400" />
-                  <p className="text-gray-300">Loading videos...</p>
-                </div>
-              </div>
-            ) : videoGenerating ? (
-              <div className="bg-black/50 rounded-lg border border-white/10 flex items-center justify-center py-32">
-                <div className="text-center">
-                  <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-purple-400" />
-                  <p className="text-gray-300">Creating video...</p>
-                  <p className="text-sm text-gray-400">{videoProgress}%</p>
-                  {currentStage && (
-                    <p className="text-xs text-gray-500 mt-1">{currentStage}</p>
+                  {!isLoadingVideos && generatedVideos.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-black/40 border-white/20 text-white hover:bg-white/10"
+                      onClick={() => setShowHistory(!showHistory)}
+                    >
+                      {showHistory ? (
+                        <>
+                          <Video className="w-4 h-4 mr-2" />
+                          Preview
+                        </>
+                      ) : (
+                        <>
+                          <Clock className="w-4 h-4 mr-2" />
+                          History
+                        </>
+                      )}
+                    </Button>
                   )}
-                  <div className="mt-3 bg-gray-700 rounded-full h-2 w-full">
-                    <div
-                      className="bg-purple-600 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${videoProgress}%` }}
-                    ></div>
-                  </div>
                 </div>
-              </div>
-            ) : generatedVideos.length > 0 ? (
-              <div className="w-full text-center mb-4">
-                <div className="bg-black/50 backdrop-blur-sm rounded-xl p-4 mb-4 border border-white/10">
-                  <div className="bg-black/50 rounded-lg border border-white/10 overflow-hidden relative group mb-3">
-                    <EnhancedVideoDisplay
-                      video={generatedVideos[0]}
-                      className="w-full h-auto object-contain"
-                      autoPlay={true}
-                      muted={true}
-                      loop={true}
-                      onLoadedData={() =>
-                        console.log(
-                          `Preview video loaded: ${generatedVideos[0].videoUrl}`
-                        )
-                      }
-                    />
-                  </div>
-                  <p className="text-white mb-1 font-medium">
-                    Latest Generation
-                  </p>
-                  <p className="text-sm text-gray-400 line-clamp-2">
-                    {generatedVideos[0].prompt.length > 60
-                      ? generatedVideos[0].prompt.substring(0, 60) + "..."
-                      : generatedVideos[0].prompt}
-                  </p>
-                  <div className="mt-2 text-xs text-gray-400 space-y-1">
-                    <div className="flex justify-between">
-                      <span>Duration:</span>
-                      <span>{formatDuration(generatedVideos[0].duration)}</span>
+              </CardHeader>
+
+              <CardContent>
+                <div className="h-[600px] flex items-center justify-center">
+                  {/* Loading State */}
+                  {isLoadingVideos ? (
+                    <div className="text-center space-y-6">
+                      <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+                        <Loader2 className="w-10 h-10 text-white animate-spin" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-semibold text-white mb-2">
+                          Loading Videos
+                        </h3>
+                        <p className="text-gray-400">
+                          Retrieving your video gallery...
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Resolution:</span>
-                      <span>
-                        {generatedVideos[0].settings.width}×
-                        {generatedVideos[0].settings.height}
-                      </span>
+                  ) : videoGenerating ? (
+                    <div className="text-center space-y-6">
+                      <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+                        <Loader2 className="w-10 h-10 text-white animate-spin" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-semibold text-white mb-2">
+                          Creating Video
+                        </h3>
+                        <p className="text-gray-400 mb-2">
+                          {videoProgress}% complete
+                        </p>
+                        {currentStage && (
+                          <p className="text-gray-500 text-sm">
+                            {currentStage}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  ) : !showHistory && generatedVideos.length > 0 ? (
+                    <div className="w-full max-w-md space-y-6">
+                      <div className="aspect-video rounded-xl overflow-hidden border border-white/10">
+                        <EnhancedVideoDisplay
+                          video={generatedVideos[0]}
+                          className="aspect-video"
+                          autoPlay={true}
+                          muted={true}
+                          loop={true}
+                          onLoadedData={() =>
+                            console.log(
+                              `Preview video loaded: ${generatedVideos[0].videoUrl}`
+                            )
+                          }
+                        />
+                      </div>
 
-                <div className="flex justify-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-white/5 border-white/10 hover:bg-white/10"
-                    onClick={handlePlayVideo}
-                  >
-                    <Play size={14} className="mr-1" /> Play
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-white/5 border-white/10 hover:bg-white/10"
-                    onClick={handleStopVideo}
-                  >
-                    <X size={14} className="mr-1" /> Stop
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-white/5 border-white/10 hover:bg-white/10"
-                    onClick={() => downloadVideo(generatedVideos[0])}
-                  >
-                    <Download size={14} className="mr-1" /> Download
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-white/5 border-white/10 hover:bg-white/10"
-                    onClick={() => toggleBookmark(generatedVideos[0].id)}
-                  >
-                    <Star
-                      size={14}
-                      className={`mr-1 ${
-                        generatedVideos[0].isBookmarked
-                          ? "fill-yellow-400 text-yellow-400"
-                          : ""
-                      }`}
-                    />
-                    Favorite
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center text-gray-400 p-8">
-                <Video size={48} className="mx-auto mb-3 opacity-50" />
-                <p>Generated video will appear here</p>
-                <p className="text-xs text-gray-500 mt-2">
-                  Upload an image and enter a prompt to start
-                </p>
-              </div>
-            )}
+                      <div className="text-center space-y-4">
+                        <div>
+                          <h3 className="text-xl font-semibold text-white mb-2">
+                            Latest Creation
+                          </h3>
+                          <p className="text-gray-400 text-sm line-clamp-3 leading-relaxed">
+                            {generatedVideos[0].prompt}
+                          </p>
+                        </div>
 
-            {/* Video History Section - now toggleable and scrollable */}
-            {!isLoadingVideos && generatedVideos.length > 0 && showHistory && (
-              <div className="flex-1 mt-4">
-                <div className="flex items-center mb-2">
-                  <Clock size={14} className="mr-2 text-gray-400" />
-                  <h3 className="text-sm font-medium text-gray-300">
-                    Video History ({generatedVideos.length})
-                  </h3>
-                </div>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="bg-black/20 rounded-lg p-3">
+                            <div className="text-gray-400">Duration</div>
+                            <div className="text-white font-medium">
+                              {formatDuration(generatedVideos[0].duration)}
+                            </div>
+                          </div>
+                          <div className="bg-black/20 rounded-lg p-3">
+                            <div className="text-gray-400">Resolution</div>
+                            <div className="text-white font-medium">
+                              {generatedVideos[0].settings.width}×
+                              {generatedVideos[0].settings.height}
+                            </div>
+                          </div>
+                        </div>
 
-                {/* Scrollable history list */}
-                <div className="overflow-y-auto max-h-56 border border-white/10 rounded-lg bg-black/40 p-2">
-                  {generatedVideos.length > 0 ? (
-                    <Accordion type="single" collapsible className="w-full">
-                      {generatedVideos.map((video) => (
-                        <AccordionItem
-                          key={video.id}
-                          value={video.id}
-                          className="border-white/10"
+                        <div className="flex justify-center gap-3">
+                          <Button
+                            variant="outline"
+                            className="bg-black/40 border-white/20 hover:bg-white/10 text-white px-4"
+                            onClick={handlePlayVideo}
+                          >
+                            <Play size={16} className="mr-2" />
+                            Play
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="bg-black/40 border-white/20 hover:bg-white/10 text-white px-4"
+                            onClick={() => downloadVideo(generatedVideos[0])}
+                          >
+                            <Download size={16} className="mr-2" />
+                            Download
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="bg-black/40 border-white/20 hover:bg-white/10 text-white px-4"
+                            onClick={() =>
+                              toggleBookmark(generatedVideos[0].id)
+                            }
+                          >
+                            <Star
+                              size={16}
+                              className={`mr-2 ${
+                                generatedVideos[0].isBookmarked
+                                  ? "fill-yellow-400 text-yellow-400"
+                                  : ""
+                              }`}
+                            />
+                            Favorite
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : showHistory && generatedVideos.length > 0 ? (
+                    <div className="w-full h-full flex flex-col">
+                      <div className="flex-1 overflow-y-auto">
+                        <Accordion
+                          type="single"
+                          collapsible
+                          className="w-full space-y-2"
                         >
-                          <AccordionTrigger className="text-sm hover:no-underline py-2">
-                            <div className="flex items-center text-left w-full">
-                              <span className="truncate max-w-[120px] text-xs text-gray-300">
-                                {video.prompt.length > 30
-                                  ? video.prompt.substring(0, 30) + "..."
-                                  : video.prompt}
-                              </span>
-                              <span className="ml-auto text-xs text-gray-500">
-                                {formatDuration(video.duration)}
-                              </span>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <div className="bg-black/20 p-2 rounded-md space-y-2 text-xs">
-                              <p className="text-gray-300">{video.prompt}</p>
-                              <p className="text-gray-400">
-                                Generated:{" "}
-                                {video.timestamp.toLocaleDateString()}
-                              </p>
-                              <div className="text-gray-400">
-                                <div className="flex justify-between">
-                                  <span>Size:</span>
-                                  <span>
-                                    {video.settings.width}×
-                                    {video.settings.height}
-                                  </span>
+                          {generatedVideos.map((video) => (
+                            <AccordionItem
+                              key={video.id}
+                              value={video.id}
+                              className="border-white/10 bg-black/20 rounded-lg px-4"
+                            >
+                              <AccordionTrigger className="hover:no-underline py-4">
+                                <div className="flex items-center justify-between w-full text-left">
+                                  <div className="flex-1 mr-4">
+                                    <p className="text-sm text-gray-300 truncate">
+                                      {video.prompt.length > 40
+                                        ? video.prompt.substring(0, 40) + "..."
+                                        : video.prompt}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {video.isBookmarked && (
+                                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                    )}
+                                    <span className="text-xs text-gray-500">
+                                      {formatDuration(video.duration)}
+                                    </span>
+                                  </div>
                                 </div>
-                                <div className="flex justify-between">
-                                  <span>FPS:</span>
-                                  <span>{video.settings.fps}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span>Frames:</span>
-                                  <span>{video.settings.frameCount}</span>
-                                </div>
-                              </div>
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                <div className="bg-black/30 p-4 rounded-lg space-y-4">
+                                  <p className="text-sm text-gray-300 leading-relaxed">
+                                    {video.prompt}
+                                  </p>
 
-                              <div className="flex flex-wrap gap-1 mt-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="bg-white/5 border-white/10 hover:bg-white/10 text-xs h-7 px-2"
-                                  onClick={() => downloadVideo(video)}
-                                >
-                                  <Download size={10} className="mr-1" /> DL
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="bg-white/5 border-white/10 hover:bg-white/10 text-xs h-7 px-2"
-                                  onClick={() => toggleBookmark(video.id)}
-                                >
-                                  <Star
-                                    size={10}
-                                    className={`mr-1 ${
-                                      video.isBookmarked
-                                        ? "fill-yellow-400 text-yellow-400"
-                                        : ""
-                                    }`}
-                                  />
-                                  {video.isBookmarked ? "★" : "☆"}
-                                </Button>
-                              </div>
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      ))}
-                    </Accordion>
+                                  <div className="grid grid-cols-2 gap-4 text-xs text-gray-400">
+                                    <div>
+                                      <span className="text-gray-500">
+                                        Size:
+                                      </span>
+                                      <span className="text-white ml-1">
+                                        {video.settings.width}×
+                                        {video.settings.height}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <span className="text-gray-500">
+                                        FPS:
+                                      </span>
+                                      <span className="text-white ml-1">
+                                        {video.settings.fps}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <span className="text-gray-500">
+                                        Frames:
+                                      </span>
+                                      <span className="text-white ml-1">
+                                        {video.settings.frameCount}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <span className="text-gray-500">
+                                        Created:
+                                      </span>
+                                      <span className="text-white ml-1">
+                                        {video.timestamp.toLocaleDateString()}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex flex-wrap gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="bg-white/5 border-white/10 hover:bg-white/10 text-white"
+                                      onClick={() => downloadVideo(video)}
+                                    >
+                                      <Download size={12} className="mr-1" />
+                                      Download
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="bg-white/5 border-white/10 hover:bg-white/10 text-white"
+                                      onClick={() => toggleBookmark(video.id)}
+                                    >
+                                      <Star
+                                        size={12}
+                                        className={`mr-1 ${
+                                          video.isBookmarked
+                                            ? "fill-yellow-400 text-yellow-400"
+                                            : ""
+                                        }`}
+                                      />
+                                      {video.isBookmarked
+                                        ? "Unfavorite"
+                                        : "Favorite"}
+                                    </Button>
+                                  </div>
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          ))}
+                        </Accordion>
+                      </div>
+                    </div>
                   ) : (
-                    <div className="text-center py-6 text-gray-400">
-                      <p>No videos generated yet.</p>
-                      <p className="text-xs mt-2">
-                        Generate some videos to see them in your history.
-                      </p>
+                    <div className="text-center space-y-6">
+                      <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-gray-600 to-gray-700 flex items-center justify-center">
+                        <Video className="w-10 h-10 text-gray-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-semibold text-white mb-2">
+                          No Videos Yet
+                        </h3>
+                        <p className="text-gray-400">
+                          {!isConnected
+                            ? "Connect to ComfyUI to start generating"
+                            : !imageFile
+                              ? "Upload an image to begin"
+                              : "Enter a motion prompt and generate your first video"}
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Generation Status */}
-      {generationStatus && !error && (
-        <div className="mt-4 p-4 bg-black/40 backdrop-blur-md rounded-md border border-white/10">
-          <h3 className="font-medium mb-2 text-white">Generation Status</h3>
-          <p className="text-gray-300">{generationStatus}</p>
-          {!isLoadingVideos && generatedVideos.length > 0 && (
-            <p className="text-green-400 text-sm mt-1">
-              ✅ {generatedVideos.length} videos saved to gallery
-            </p>
-          )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      )}
+
+        {/* Success Status */}
+        {generationStatus && !error && (
+          <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <div>
+                  <h3 className="font-medium text-white mb-1">
+                    Generation Status
+                  </h3>
+                  <p className="text-gray-300">{generationStatus}</p>
+                  {!isLoadingVideos && generatedVideos.length > 0 && (
+                    <p className="text-green-400 text-sm mt-1">
+                      ✅ {generatedVideos.length} videos saved to gallery
+                    </p>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* Hidden video ref for controls */}
       <video ref={videoRef} className="hidden" />

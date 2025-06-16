@@ -33,6 +33,13 @@ import {
   Eye,
   Clock,
   Settings,
+  Zap,
+  Stars,
+  Search,
+  Layers,
+  Palette,
+  Camera,
+  Download,
 } from "lucide-react";
 
 interface GeneratedImage {
@@ -513,102 +520,132 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header Card */}
+    <div className="space-y-8">
+      {/* Header Section */}
+      <div className="text-center space-y-4">
+        <h1 className="text-4xl font-bold text-white mb-2">
+          AI Prompt Generator
+        </h1>
+        <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+          Analyze images and generate detailed prompts using advanced AI vision
+          models
+        </p>
+      </div>
+
+      {/* Stats Bar */}
       <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
-        <CardHeader>
-          <div className="flex justify-between items-start">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-gradient-to-r from-indigo-600/20 to-cyan-600/20 rounded-lg">
-                <Brain className="text-indigo-400" size={28} />
+        <CardContent className="p-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-2">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
+                  <Target className="w-6 h-6 text-white" />
+                </div>
               </div>
-              <div>
-                <CardTitle className="text-2xl font-bold text-white">
-                  AI Prompt Generator
-                </CardTitle>
-                <CardDescription className="text-gray-300">
-                  Analyze images and generate detailed prompts using AI
-                </CardDescription>
-              </div>
+              <p className="text-2xl font-bold text-green-400">
+                {results.length}
+              </p>
+              <p className="text-sm text-gray-400">Prompts Generated</p>
             </div>
 
-            {/* Quick Stats */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-indigo-400">
-                  {results.length}
-                </p>
-                <p className="text-xs text-gray-400">Analyzed</p>
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-2">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center">
+                  <Activity className="w-6 h-6 text-white" />
+                </div>
               </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold text-cyan-400">
-                  {pendingRequests.length}
-                </p>
-                <p className="text-xs text-gray-400">Processing</p>
+              <p className="text-2xl font-bold text-amber-400">
+                {pendingRequests.length}
+              </p>
+              <p className="text-sm text-gray-400">Processing</p>
+            </div>
+
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-2">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
+                  <ImageIcon className="w-6 h-6 text-white" />
+                </div>
               </div>
+              <p className="text-2xl font-bold text-blue-400">
+                {receivedImages.length}
+              </p>
+              <p className="text-sm text-gray-400">Gallery Images</p>
+            </div>
+
+            <div className="text-center">
+              <div className="flex items-center justify-center mb-2">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+                  <Upload className="w-6 h-6 text-white" />
+                </div>
+              </div>
+              <p className="text-2xl font-bold text-purple-400">
+                {selectedFiles.length}
+              </p>
+              <p className="text-sm text-gray-400">Uploaded Files</p>
             </div>
           </div>
-        </CardHeader>
+        </CardContent>
       </Card>
 
-      {/* Configuration Card */}
+      {/* Configuration Section */}
       <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
-        <CardHeader>
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-gray-600/20 rounded">
-              <Settings className="text-gray-400" size={20} />
-            </div>
-            <div>
-              <CardTitle className="text-white">Configuration</CardTitle>
-              <CardDescription className="text-gray-400">
-                Configure your webhook URL for AI processing
-              </CardDescription>
-            </div>
-          </div>
+        <CardHeader className="pb-4">
+          <CardTitle className="text-white flex items-center">
+            <Settings className="w-6 h-6 mr-3 text-indigo-400" />
+            AI Configuration
+          </CardTitle>
+          <CardDescription className="text-gray-400">
+            Configure your AI processing endpoint for image analysis
+          </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="webhook-url" className="text-gray-300 mb-2 block">
-              Webhook URL
+            <Label
+              htmlFor="webhook-url"
+              className="text-gray-300 text-sm font-medium mb-3 block"
+            >
+              Webhook Endpoint URL
             </Label>
             <Input
               id="webhook-url"
               value={webhookUrl}
               onChange={(e) => setWebhookUrl(e.target.value)}
-              placeholder="Enter your N8N webhook URL"
-              className="bg-black/60 border-white/10 text-white rounded-lg"
+              placeholder="Enter your N8N webhook URL for AI processing"
+              className="bg-black/40 border-white/20 text-white rounded-xl h-12 text-base focus:border-indigo-400/50 focus:ring-indigo-400/20 transition-all"
             />
-            <p className="text-xs text-gray-400 mt-1">
-              This URL will receive image data for AI analysis
+            <p className="text-xs text-gray-400 mt-2">
+              This endpoint will receive image data and return AI-generated
+              prompts and analysis
             </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Pending Requests Status */}
+      {/* Processing Queue */}
       {pendingRequests.length > 0 && (
         <Card className="bg-gradient-to-r from-amber-900/20 to-orange-900/20 backdrop-blur-md border-amber-500/30 rounded-xl">
-          <CardHeader>
+          <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <Activity className="text-amber-400" size={20} />
+                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center">
+                  <Activity className="w-6 h-6 text-white animate-pulse" />
+                </div>
                 <div>
                   <CardTitle className="text-amber-300">
-                    Processing Queue ({pendingRequests.length})
+                    AI Processing Queue ({pendingRequests.length})
                   </CardTitle>
                   <CardDescription className="text-amber-200/70">
-                    AI is analyzing your images...
+                    AI models are analyzing your images...
                   </CardDescription>
                 </div>
               </div>
 
               <Button
                 variant="outline"
-                size="sm"
                 onClick={stopAllChecking}
                 className="bg-red-900/30 border-red-500/30 text-red-300 hover:bg-red-900/50"
               >
-                <X size={16} className="mr-1" />
+                <X className="w-4 h-4 mr-2" />
                 Cancel All
               </Button>
             </div>
@@ -618,17 +655,17 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
               {pendingRequests.map((req) => (
                 <div
                   key={req.requestId}
-                  className="flex items-center justify-between bg-black/30 p-3 rounded-lg border border-white/10"
+                  className="flex items-center justify-between bg-black/30 p-4 rounded-xl border border-white/10"
                 >
-                  <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-amber-600/20 rounded">
-                      <Loader2 className="w-4 h-4 animate-spin text-amber-400" />
+                  <div className="flex items-center space-x-4">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center">
+                      <Loader2 className="w-5 h-5 text-white animate-spin" />
                     </div>
                     <div>
                       <p className="text-amber-200 font-medium">
                         {req.filename}
                       </p>
-                      <p className="text-amber-300/70 text-xs">
+                      <p className="text-amber-300/70 text-sm">
                         {Math.round(
                           (Date.now() - req.startTime.getTime()) / 1000
                         )}
@@ -643,7 +680,7 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
                     onClick={() => removePendingRequest(req.requestId)}
                     className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
                   >
-                    <X size={16} />
+                    <X className="w-4 h-4" />
                   </Button>
                 </div>
               ))}
@@ -652,50 +689,56 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
         </Card>
       )}
 
-      {/* Image Input Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Gallery Images */}
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        {/* Gallery Images Panel */}
         <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
-          <CardHeader>
+          <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-indigo-600/20 rounded">
-                  <ImageIcon className="text-indigo-400" size={20} />
+                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
+                  <Layers className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <CardTitle className="text-white">Gallery Images</CardTitle>
                   <CardDescription className="text-gray-400">
-                    Images sent from your gallery
+                    Images sent from your generation gallery
                   </CardDescription>
                 </div>
               </div>
               {receivedImages.length > 0 && (
                 <div className="flex items-center space-x-2">
-                  <span className="bg-indigo-600/30 text-indigo-300 px-3 py-1 rounded-full text-sm font-medium">
-                    {receivedImages.length} images
+                  <span className="bg-blue-600/30 text-blue-300 px-3 py-2 rounded-full text-sm font-medium">
+                    {receivedImages.length} images ready
                   </span>
                 </div>
               )}
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
             {receivedImages.length > 0 ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-3 max-h-64 overflow-y-auto bg-black/20 rounded-lg p-3">
+              <div className="space-y-6">
+                <div className="grid grid-cols-3 gap-4 max-h-80 overflow-y-auto bg-black/20 rounded-xl p-4 border border-white/10">
                   {receivedImages.map((image) => (
                     <div key={image.id} className="relative group">
-                      <img
-                        src={image.blobUrl || image.imageUrl}
-                        alt={image.filename}
-                        className="w-full aspect-square object-cover rounded-lg border border-white/10 transition-transform group-hover:scale-105"
-                      />
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                        <Eye size={20} className="text-white" />
-                      </div>
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2 rounded-b-lg">
-                        <p className="text-white text-xs truncate">
-                          {image.filename}
-                        </p>
+                      <div className="aspect-square rounded-lg overflow-hidden border border-white/10 bg-black/20">
+                        <img
+                          src={image.blobUrl || image.imageUrl}
+                          alt={image.filename}
+                          className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="absolute bottom-0 left-0 right-0 p-3">
+                            <p className="text-white text-xs truncate font-medium">
+                              {image.filename}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center">
+                            <Eye className="w-4 h-4 text-white" />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -705,182 +748,205 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
                   <Button
                     onClick={processReceivedImages}
                     disabled={isProcessing || !webhookUrl.trim()}
-                    className="flex-1 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white"
+                    className="flex-1 h-12 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-xl text-base font-semibold"
                   >
                     {isProcessing ? (
                       <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                         Analyzing...
                       </>
                     ) : (
                       <>
-                        <Wand2 className="w-4 h-4 mr-2" />
-                        Analyze All
+                        <Sparkles className="w-5 h-5 mr-2" />
+                        Analyze All Images
                       </>
                     )}
                   </Button>
                   <Button
                     variant="outline"
                     onClick={onClearReceivedImages}
-                    className="bg-black/60 border-white/10 text-white hover:bg-white/10"
+                    className="bg-black/40 border-white/20 text-white hover:bg-white/10 h-12 px-4"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-5 h-5" />
                   </Button>
                 </div>
               </div>
             ) : (
-              <div className="text-center py-12">
-                <div className="p-4 bg-indigo-600/10 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-                  <ImageIcon className="w-10 h-10 text-indigo-400/50" />
+              <div className="text-center py-16">
+                <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center mb-6">
+                  <ImageIcon className="w-10 h-10 text-white" />
                 </div>
-                <p className="text-gray-400 font-medium mb-2">
-                  No gallery images
+                <h3 className="text-xl font-semibold text-white mb-2">
+                  No Gallery Images
+                </h3>
+                <p className="text-gray-400 mb-4">
+                  Select images in the gallery and send them here for AI
+                  analysis
                 </p>
                 <p className="text-gray-500 text-sm">
-                  Select images in the gallery and send them here for analysis
+                  Generated images will appear here for prompt analysis
                 </p>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* File Upload */}
+        {/* File Upload Panel */}
         <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
-          <CardHeader>
+          <CardHeader className="pb-4">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-cyan-600/20 rounded">
-                <Upload className="text-cyan-400" size={20} />
+              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+                <Upload className="w-6 h-6 text-white" />
               </div>
               <div>
                 <CardTitle className="text-white">Upload Images</CardTitle>
                 <CardDescription className="text-gray-400">
-                  Upload local images for analysis
+                  Upload local images for AI prompt generation
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  id="file-upload"
-                />
-                <label
-                  htmlFor="file-upload"
-                  className="group block w-full p-8 border-2 border-dashed border-white/20 rounded-lg text-center cursor-pointer hover:border-cyan-400/50 hover:bg-cyan-600/5 transition-all duration-200"
-                >
-                  <div className="p-3 bg-cyan-600/20 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center group-hover:bg-cyan-600/30 transition-colors">
-                    <Plus className="w-8 h-8 text-cyan-400" />
-                  </div>
-                  <p className="text-gray-300 font-medium mb-1">
-                    Click to upload images
-                  </p>
-                  <p className="text-gray-500 text-sm">
-                    Supports JPG, PNG, WebP formats
-                  </p>
-                </label>
-              </div>
+          <CardContent className="space-y-6">
+            <div>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleFileUpload}
+                className="hidden"
+                id="file-upload"
+              />
+              <label
+                htmlFor="file-upload"
+                className="group block w-full p-12 border-2 border-dashed border-white/20 rounded-xl text-center cursor-pointer hover:border-purple-400/50 hover:bg-purple-600/5 transition-all duration-200"
+              >
+                <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                  <Camera className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-300 mb-2">
+                  Drop images here
+                </h3>
+                <p className="text-gray-400 mb-4">
+                  or click to browse your files
+                </p>
+                <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
+                  <span>Supports: JPG, PNG, WebP</span>
+                  <span>•</span>
+                  <span>Multiple files allowed</span>
+                </div>
+              </label>
+            </div>
 
-              {selectedFiles.length > 0 && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-gray-300 font-medium">
-                      Selected files ({selectedFiles.length})
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setSelectedFiles([])}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
-                    >
-                      <Trash2 size={16} />
-                    </Button>
-                  </div>
-
-                  <div className="max-h-32 overflow-y-auto space-y-2 bg-black/20 rounded-lg p-3">
-                    {selectedFiles.map((file, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between bg-black/40 p-2 rounded border border-white/10"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className="p-1 bg-cyan-600/20 rounded">
-                            <ImageIcon size={14} className="text-cyan-400" />
-                          </div>
-                          <span className="text-gray-300 text-sm truncate">
-                            {file.name}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => removeFile(index)}
-                          className="text-red-400 hover:text-red-300 p-1 hover:bg-red-900/20 rounded transition-colors"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
+            {selectedFiles.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-white font-medium">
+                    Selected Files ({selectedFiles.length})
+                  </h4>
                   <Button
-                    onClick={processUploadedFiles}
-                    disabled={isProcessing || !webhookUrl.trim()}
-                    className="w-full bg-gradient-to-r from-cyan-600 to-cyan-700 hover:from-cyan-700 hover:to-cyan-800 text-white"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedFiles([])}
+                    className="text-red-400 hover:text-red-300 hover:bg-red-900/20"
                   >
-                    {isProcessing ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Analyzing...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        Analyze {selectedFiles.length} Images
-                      </>
-                    )}
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    Clear All
                   </Button>
                 </div>
-              )}
-            </div>
+
+                <div className="max-h-40 overflow-y-auto space-y-2 bg-black/20 rounded-xl p-4 border border-white/10">
+                  {selectedFiles.map((file, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between bg-black/40 p-3 rounded-lg border border-white/10"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 rounded bg-purple-600/20 flex items-center justify-center">
+                          <ImageIcon className="w-4 h-4 text-purple-400" />
+                        </div>
+                        <span className="text-gray-300 text-sm truncate max-w-xs">
+                          {file.name}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {Math.round(file.size / 1024)}KB
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => removeFile(index)}
+                        className="text-red-400 hover:text-red-300 p-1 hover:bg-red-900/20 rounded transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <Button
+                  onClick={processUploadedFiles}
+                  disabled={isProcessing || !webhookUrl.trim()}
+                  className="w-full h-12 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl text-base font-semibold"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-5 h-5 mr-2" />
+                      Generate Prompts ({selectedFiles.length})
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
       {/* Processing Status */}
       {isProcessing && (
-        <Card className="bg-gradient-to-r from-indigo-900/20 to-cyan-900/20 backdrop-blur-md border-indigo-500/30 rounded-xl">
-          <CardContent className="pt-6">
-            <div className="space-y-4">
+        <Card className="bg-gradient-to-r from-indigo-900/20 to-purple-900/20 backdrop-blur-md border-indigo-500/30 rounded-xl">
+          <CardContent className="p-6">
+            <div className="space-y-6">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Loader2 className="w-6 h-6 animate-spin text-indigo-400" />
-                  <span className="text-white font-medium">
-                    Submitting Images for Analysis...
-                  </span>
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center">
+                    <Loader2 className="w-6 h-6 animate-spin text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-white">
+                      Processing Images
+                    </h3>
+                    <p className="text-indigo-200">
+                      Submitting images to AI for analysis...
+                    </p>
+                  </div>
                 </div>
-                <span className="bg-indigo-600/30 text-indigo-300 px-3 py-1 rounded-full text-sm font-medium">
-                  {Math.round(processingProgress)}%
-                </span>
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-indigo-400">
+                    {Math.round(processingProgress)}%
+                  </p>
+                  <p className="text-xs text-indigo-300">Complete</p>
+                </div>
               </div>
 
               <div className="w-full bg-black/60 rounded-full h-3">
                 <div
-                  className="bg-gradient-to-r from-indigo-600 to-cyan-600 h-3 rounded-full transition-all duration-500"
+                  className="bg-gradient-to-r from-indigo-500 to-purple-500 h-3 rounded-full transition-all duration-500"
                   style={{ width: `${processingProgress}%` }}
                 ></div>
               </div>
 
               {currentProcessingImage && (
-                <p className="text-gray-400 text-sm">
-                  Currently processing:{" "}
-                  <span className="text-indigo-300">
-                    {currentProcessingImage}
-                  </span>
-                </p>
+                <div className="text-center">
+                  <p className="text-indigo-300 text-sm">
+                    Currently processing:{" "}
+                    <span className="font-medium text-white">
+                      {currentProcessingImage}
+                    </span>
+                  </p>
+                </div>
               )}
             </div>
           </CardContent>
@@ -888,48 +954,52 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
       )}
 
       {/* Status Messages */}
-      {error && (
-        <Alert className="bg-red-900/20 border-red-500/30 text-red-200">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+      <div className="space-y-4">
+        {error && (
+          <Alert className="bg-red-900/20 border-red-500/30 text-red-200 rounded-xl">
+            <AlertCircle className="h-5 w-5" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-      {success && (
-        <Alert className="bg-green-900/20 border-green-500/30 text-green-200">
-          <CheckCircle className="h-4 w-4" />
-          <AlertTitle>Success</AlertTitle>
-          <AlertDescription>{success}</AlertDescription>
-        </Alert>
-      )}
+        {success && (
+          <Alert className="bg-green-900/20 border-green-500/30 text-green-200 rounded-xl">
+            <CheckCircle className="h-5 w-5" />
+            <AlertTitle>Success</AlertTitle>
+            <AlertDescription>{success}</AlertDescription>
+          </Alert>
+        )}
+      </div>
 
       {/* Results Section */}
       <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
-        <CardHeader>
+        <CardHeader className="pb-4">
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-green-600/20 rounded">
-                <Target className="text-green-400" size={20} />
+              <div className="w-12 h-12 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
+                <Stars className="w-6 h-6 text-white" />
               </div>
               <div>
-                <CardTitle className="text-white">Analysis Results</CardTitle>
+                <CardTitle className="text-white">
+                  AI Analysis Results
+                </CardTitle>
                 <CardDescription className="text-gray-400">
-                  AI-generated prompts and insights from your images
+                  Generated prompts and insights from your images
                 </CardDescription>
               </div>
             </div>
 
             {results.length > 0 && (
-              <div className="flex space-x-2">
+              <div className="flex space-x-3">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={exportResults}
-                  className="bg-black/60 border-white/10 text-white hover:bg-white/10"
+                  className="bg-black/40 border-white/20 text-white hover:bg-white/10"
                 >
-                  <FileDown size={16} className="mr-1" />
-                  Export
+                  <Download className="w-4 h-4 mr-2" />
+                  Export JSON
                 </Button>
                 <Button
                   variant="outline"
@@ -937,7 +1007,7 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
                   onClick={clearAllResults}
                   className="bg-red-900/30 border-red-500/30 text-red-300 hover:bg-red-900/50"
                 >
-                  <Trash2 size={16} className="mr-1" />
+                  <Trash2 className="w-4 h-4 mr-2" />
                   Clear All
                 </Button>
               </div>
@@ -947,30 +1017,30 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
 
         <CardContent>
           {results.length > 0 ? (
-            <div className="space-y-4 max-h-[500px] overflow-y-auto">
+            <div className="space-y-6 max-h-[600px] overflow-y-auto">
               {results.map((result) => (
                 <div
                   key={result.id}
-                  className="bg-gradient-to-r from-black/40 to-black/60 rounded-lg p-6 border border-white/10 hover:border-indigo-400/30 transition-colors"
+                  className="bg-gradient-to-r from-black/40 to-black/60 rounded-xl p-6 border border-white/10 hover:border-green-400/30 transition-all duration-200"
                 >
-                  {/* Header */}
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-indigo-600/20 rounded">
-                        <Sparkles className="text-indigo-400" size={16} />
+                  {/* Result Header */}
+                  <div className="flex justify-between items-start mb-6">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center">
+                        <Brain className="w-5 h-5 text-white" />
                       </div>
                       <div>
-                        <p className="text-gray-300 text-sm">
+                        <p className="text-gray-300 text-sm font-medium">
                           {result.timestamp.toLocaleString()}
                         </p>
-                        <div className="flex items-center space-x-2 mt-1">
-                          <span className="bg-indigo-600/30 text-indigo-300 px-2 py-1 rounded text-xs font-medium">
+                        <div className="flex items-center space-x-3 mt-2">
+                          <span className="bg-green-600/30 text-green-300 px-3 py-1 rounded-full text-xs font-medium">
                             {result.confidence}% confidence
                           </span>
-                          <span className="bg-cyan-600/30 text-cyan-300 px-2 py-1 rounded text-xs font-medium">
+                          <span className="bg-blue-600/30 text-blue-300 px-3 py-1 rounded-full text-xs font-medium">
                             {result.style}
                           </span>
-                          <span className="bg-green-600/30 text-green-300 px-2 py-1 rounded text-xs font-medium">
+                          <span className="bg-purple-600/30 text-purple-300 px-3 py-1 rounded-full text-xs font-medium">
                             {result.mood}
                           </span>
                         </div>
@@ -980,12 +1050,12 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
 
                   {/* Original Prompt */}
                   {result.originalPrompt && (
-                    <div className="mb-4">
-                      <Label className="text-gray-400 text-xs uppercase tracking-wide">
+                    <div className="mb-6">
+                      <Label className="text-gray-400 text-xs uppercase tracking-wider font-medium mb-3 block">
                         Original Prompt
                       </Label>
-                      <div className="bg-black/60 border border-white/10 rounded-lg p-3 mt-2">
-                        <p className="text-gray-300 text-sm">
+                      <div className="bg-black/40 border border-white/20 rounded-xl p-4">
+                        <p className="text-gray-300 leading-relaxed">
                           {result.originalPrompt}
                         </p>
                       </div>
@@ -993,12 +1063,12 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
                   )}
 
                   {/* Generated Prompt */}
-                  <div className="mb-4">
-                    <Label className="text-gray-400 text-xs uppercase tracking-wide">
+                  <div className="mb-6">
+                    <Label className="text-gray-400 text-xs uppercase tracking-wider font-medium mb-3 block">
                       AI Generated Prompt
                     </Label>
-                    <div className="bg-gradient-to-r from-indigo-900/20 to-cyan-900/20 border border-indigo-500/30 rounded-lg p-4 mt-2">
-                      <p className="text-white whitespace-pre-wrap leading-relaxed">
+                    <div className="bg-gradient-to-r from-green-900/20 to-emerald-900/20 border border-green-500/30 rounded-xl p-6">
+                      <p className="text-white whitespace-pre-wrap leading-relaxed text-base">
                         {result.generatedPrompt}
                       </p>
                     </div>
@@ -1006,15 +1076,15 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
 
                   {/* Tags */}
                   {result.tags.length > 0 && (
-                    <div className="mb-4">
-                      <Label className="text-gray-400 text-xs uppercase tracking-wide">
-                        Detected Tags
+                    <div className="mb-6">
+                      <Label className="text-gray-400 text-xs uppercase tracking-wider font-medium mb-3 block">
+                        Detected Elements
                       </Label>
-                      <div className="flex flex-wrap gap-2 mt-2">
+                      <div className="flex flex-wrap gap-2">
                         {result.tags.map((tag, index) => (
                           <span
                             key={index}
-                            className="bg-gray-700/50 text-gray-300 px-3 py-1 rounded-full text-xs border border-white/10"
+                            className="bg-gray-700/50 text-gray-300 px-3 py-2 rounded-lg text-sm border border-white/10 hover:border-white/20 transition-colors"
                           >
                             {tag}
                           </span>
@@ -1027,10 +1097,9 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
                   <div className="flex justify-end">
                     <Button
                       onClick={() => copyToClipboard(result.generatedPrompt)}
-                      className="bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-700 hover:to-cyan-700 text-white"
-                      size="sm"
+                      className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl px-6"
                     >
-                      <Copy size={14} className="mr-2" />
+                      <Copy className="w-4 h-4 mr-2" />
                       Copy Prompt
                     </Button>
                   </div>
@@ -1038,16 +1107,20 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
               ))}
             </div>
           ) : (
-            <div className="text-center py-12">
-              <div className="p-4 bg-green-600/10 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-                <Target className="w-10 h-10 text-green-400/50" />
+            <div className="text-center py-16">
+              <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center mb-6">
+                <Target className="w-10 h-10 text-white" />
               </div>
-              <p className="text-gray-400 font-medium mb-2">
-                No analysis results yet
-              </p>
-              <p className="text-gray-500 text-sm">
+              <h3 className="text-xl font-semibold text-white mb-2">
+                No Analysis Results Yet
+              </h3>
+              <p className="text-gray-400 mb-4">
                 Upload images or send them from the gallery to start generating
                 prompts
+              </p>
+              <p className="text-gray-500 text-sm">
+                AI will analyze your images and generate detailed prompts for
+                you
               </p>
             </div>
           )}

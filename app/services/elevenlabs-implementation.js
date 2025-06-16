@@ -91,6 +91,94 @@ export const API_KEY_PROFILES = {
       },
     ],
   },
+  account_9: {
+    name: "OF Sinatra's voice",
+    description: "Backup account for high-volume usage",
+    voices: [
+      {
+        name: "OF Sinatra",
+        voiceId: "9uOCBpX1fiXU98ucq1oF",
+        category: "professional",
+      },
+    ],
+  },
+  account_10: {
+    name: "OF Michelle G's voice",
+    description: "Backup account for high-volume usage",
+    voices: [
+      {
+        name: "OF Michelle G",
+        voiceId: "UlQs9FTJdozvn09jdKkY",
+        category: "professional",
+      },
+    ],
+  },
+  account_11: {
+    name: "OF Oakly's voice",
+    description: "Backup account for high-volume usage",
+    voices: [
+      {
+        name: "OF Oakly",
+        voiceId: "kus39ZcFKueIyzRe8jdP",
+        category: "professional",
+      },
+    ],
+  },
+  account_12: {
+    name: "OF Marcie's voice",
+    description: "Backup account for high-volume usage",
+    voices: [
+      {
+        name: "OF Marcie",
+        voiceId: "rfMPyyTI0XGJIxsLx836",
+        category: "professional",
+      },
+    ],
+  },
+  account_13: {
+    name: "OF Elle's voice",
+    description: "Backup account for high-volume usage",
+    voices: [
+      {
+        name: "OF Elle",
+        voiceId: "vBq6XyfxbraeTChltM5K",
+        category: "professional",
+      },
+    ],
+  },
+  account_14: {
+    name: "OF Razz's voice",
+    description: "Backup account for high-volume usage",
+    voices: [
+      {
+        name: "OF Razz",
+        voiceId: "WyO7e4tsNy8xIiAcVwxH",
+        category: "professional",
+      },
+    ],
+  },
+  account_15: {
+    name: "OF Autumn's voice",
+    description: "Backup account for high-volume usage",
+    voices: [
+      {
+        name: "OF Autumn",
+        voiceId: "LMYsvr1dCuHX2PE2IB2f",
+        category: "professional",
+      },
+    ],
+  },
+  account_16: {
+    name: "OF Natalie's voice",
+    description: "Backup account for high-volume usage",
+    voices: [
+      {
+        name: "OF Natalie",
+        voiceId: "eo0IGgzwrR8XLLd5uIbB",
+        category: "professional",
+      },
+    ],
+  },
 };
 
 // Available ElevenLabs models
@@ -168,7 +256,7 @@ export function getVoiceParameters(historyItemId) {
   return null;
 }
 
-// Load parameters from localStorage on //initialization
+// Load parameters from localStorage on initialization
 export function initVoiceParametersCache() {
   try {
     const allParams = JSON.parse(
@@ -351,7 +439,6 @@ export async function generateVoice(
       try {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to generate voice");
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (e) {
         // If not JSON, use status text
         throw new Error(`Failed to generate voice: ${response.statusText}`);

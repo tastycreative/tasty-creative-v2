@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -84,6 +85,11 @@ interface GeneratedVideo {
 }
 
 type MediaItem = GeneratedImage | GeneratedVideo;
+
+// Component Props Interface
+interface AIGalleryPageProps {
+  onSendToAIAnalysis?: (images: GeneratedImage[]) => void;
+}
 
 // Enhanced Video Display Component
 const EnhancedVideoDisplay: React.FC<{
@@ -310,7 +316,12 @@ const ComfyUIImage: React.FC<{
   );
 };
 
-const AIGalleryPage = () => {
+const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
+  onSendToAIAnalysis = () => {},
+}) => {
+  // Add Next.js router hook
+  const router = useRouter();
+
   // State management
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [generatedVideos, setGeneratedVideos] = useState<GeneratedVideo[]>([]);
@@ -509,6 +520,57 @@ const AIGalleryPage = () => {
 
   const getSelectedItems = (): MediaItem[] => {
     return allMediaItems.filter((item) => selectedItems.has(item.id));
+  };
+
+  // Get count of selected images (not videos)
+  const getSelectedImageCount = () => {
+    return Array.from(selectedItems).filter((id) => {
+      const item = allMediaItems.find((i) => i.id === id);
+      return item?.type === "image";
+    }).length;
+  };
+
+  // MODIFIED: Send selected images to AI analysis with navigation
+  const sendSelectedToAIAnalysis = () => {
+    const selectedItemsArray = getSelectedItems();
+    // Filter only images (not videos) since AIPromptPage expects GeneratedImage[]
+    const selectedImages = selectedItemsArray.filter(
+      (item): item is GeneratedImage => item.type === "image"
+    );
+
+    if (selectedImages.length === 0) {
+      setGalleryError(
+        "Please select at least one image to send for AI analysis"
+      );
+      setTimeout(() => setGalleryError(""), 3000);
+      return;
+    }
+
+    // Store images in localStorage for the prompt page to pick up
+    console.log("Storing images in localStorage:", selectedImages.length);
+    localStorage.setItem(
+      "ai_prompt_received_images",
+      JSON.stringify(selectedImages)
+    );
+
+    // Verify storage
+    const stored = localStorage.getItem("ai_prompt_received_images");
+    console.log(
+      "Verification - Stored data:",
+      stored ? JSON.parse(stored).length : "null"
+    );
+
+    // Send images to AI analysis (for any parent component handling)
+    onSendToAIAnalysis(selectedImages);
+
+    // Clear selections after sending
+    setSelectedItems(new Set());
+
+    // Show success message
+    console.log(`Sending ${selectedImages.length} images to AI analysis`);
+
+    // Navigate to the AI Prompt page
+    router.push("/apps/generative-ai/prompt");
   };
 
   // Toggle bookmark
@@ -1239,6 +1301,19 @@ const AIGalleryPage = () => {
               {/* Bulk Actions */}
               {selectedItems.size > 0 && (
                 <>
+                  {/* Send to AI Analysis Button */}
+                  {getSelectedImageCount() > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-purple-600/20 border-purple-500/30 text-purple-300 hover:bg-purple-600/30 transition-all duration-200"
+                      onClick={sendSelectedToAIAnalysis}
+                    >
+                      <Wand2 size={16} className="mr-1" />
+                      Send to AI ({getSelectedImageCount()})
+                    </Button>
+                  )}
+
                   <Button
                     variant="outline"
                     size="sm"
@@ -1410,6 +1485,11 @@ const AIGalleryPage = () => {
             {selectedItems.size > 0 && (
               <span className="text-purple-400">
                 Selected: {selectedItems.size}
+              </span>
+            )}
+            {getSelectedImageCount() > 0 && (
+              <span className="text-purple-300">
+                Images: {getSelectedImageCount()}
               </span>
             )}
             {showFavoritesOnly && (

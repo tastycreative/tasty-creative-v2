@@ -39,6 +39,10 @@ import {
   ImageIcon,
   Settings,
   Sliders,
+  Wand2,
+  Image as ImageLucide,
+  Info,
+  ZapOff,
 } from "lucide-react";
 
 interface GeneratedImage {
@@ -103,6 +107,7 @@ const AIImage2ImagePage = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [availableLoraModels, setAvailableLoraModels] = useState<string[]>([]);
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
 
   // Connection status check (using same method as AIText2ImagePage)
   useEffect(() => {
@@ -1021,426 +1026,670 @@ const AIImage2ImagePage = () => {
   };
 
   return (
-    <div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Panel - Image Upload and Masking */}
-        <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
-          <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <CardTitle className="text-white">
-                Reference Image & Masking
-              </CardTitle>
-              <CardDescription className="text-gray-400">
-                Upload an image and draw a mask to guide the AI generation
-              </CardDescription>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header Section */}
+        <div className="text-center space-y-4">
+          <h1 className="text-4xl font-bold text-white mb-2">
+            AI Image-to-Image Generator
+          </h1>
+          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+            Transform existing images with AI by uploading a reference image and
+            drawing areas to modify
+          </p>
+        </div>
 
-            {/* Connection Status */}
-            <div className="min-w-48">
-              <div className="flex items-center justify-between text-xs">
-                <div
-                  className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                    isConnected
-                      ? "bg-green-900/30 text-green-300 border border-green-500/30"
-                      : "bg-red-900/30 text-red-300 border border-red-500/30"
-                  }`}
-                >
-                  {isConnected ? (
-                    <>
-                      <Check size={10} className="mr-1" />
-                      ComfyUI Connected
-                    </>
-                  ) : (
-                    <>
-                      <X size={10} className="mr-1" />
-                      ComfyUI Disconnected
-                    </>
+        {/* Status Bar */}
+        <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+          <CardContent className="p-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex items-center space-x-4">
+                {isConnected ? (
+                  <>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
+                      <span className="text-green-400 font-medium">
+                        ComfyUI Connected
+                      </span>
+                    </div>
+                    <div className="text-gray-400 text-sm">
+                      {availableLoraModels.length} models available
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                      <span className="text-red-400 font-medium">
+                        ComfyUI Offline
+                      </span>
+                    </div>
+                    <div className="text-gray-400 text-sm">
+                      Check connection
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {isGenerating && (
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2 text-cyan-400">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm font-medium">
+                      {generationProgress}%
+                    </span>
+                  </div>
+                  {currentNode && (
+                    <span className="text-xs text-gray-400">{currentNode}</span>
                   )}
                 </div>
-              </div>
+              )}
             </div>
-          </CardHeader>
+          </CardContent>
+        </Card>
 
-          <CardContent className="space-y-4">
-            {/* Image Upload */}
-            {!uploadedImage ? (
-              <div className="border-2 border-dashed border-white/20 rounded-lg p-8 text-center">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-                <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                <p className="text-gray-300 mb-2">Upload a reference image</p>
-                <Button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg"
-                >
-                  Choose Image
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Canvas and Tools */}
-                <div className="border border-white/10 rounded-lg overflow-hidden relative">
-                  <div className="relative">
-                    <canvas
-                      ref={canvasRef}
-                      className="w-full h-auto max-h-96 object-contain bg-black block"
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          {/* Image Upload and Masking Panel */}
+          <div className="xl:col-span-1 space-y-6">
+            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-white flex items-center">
+                  <Upload className="w-5 h-5 mr-3" />
+                  Reference Image
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Upload an image to transform with AI
+                </CardDescription>
+              </CardHeader>
+
+              <CardContent className="space-y-6">
+                {/* Image Upload */}
+                {!uploadedImage ? (
+                  <div className="border-2 border-dashed border-white/20 rounded-xl p-8 text-center">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
                     />
-                    <canvas
-                      ref={overlayCanvasRef}
-                      onMouseDown={startDrawing}
-                      onMouseMove={handleMouseMove}
-                      onMouseUp={stopDrawing}
-                      onMouseLeave={handleMouseLeave}
-                      onMouseEnter={handleMouseEnter}
-                      className="absolute inset-0 w-full h-auto max-h-96 object-contain pointer-events-auto"
-                      style={{
-                        cursor: "none", // Hide default cursor and use our custom indicator
-                      }}
-                    />
+                    <Upload className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                    <h3 className="text-white font-medium mb-2">
+                      Upload Image
+                    </h3>
+                    <p className="text-gray-400 mb-4 text-sm">
+                      Choose an image to use as reference for AI transformation
+                    </p>
+                    <Button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg px-6"
+                    >
+                      Choose Image
+                    </Button>
                   </div>
-                </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Canvas and Tools */}
+                    <div className="border border-white/10 rounded-xl overflow-hidden relative">
+                      <div className="relative bg-black/20">
+                        <canvas
+                          ref={canvasRef}
+                          className="w-full h-auto max-h-96 object-contain bg-black block"
+                        />
+                        <canvas
+                          ref={overlayCanvasRef}
+                          onMouseDown={startDrawing}
+                          onMouseMove={handleMouseMove}
+                          onMouseUp={stopDrawing}
+                          onMouseLeave={handleMouseLeave}
+                          onMouseEnter={handleMouseEnter}
+                          className="absolute inset-0 w-full h-auto max-h-96 object-contain pointer-events-auto"
+                          style={{
+                            cursor: "none", // Hide default cursor and use our custom indicator
+                          }}
+                        />
+                      </div>
+                    </div>
 
-                {/* Masking Tools */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-2">
-                    <Label className="text-gray-300 text-sm">Tools</Label>
-                    <div className="flex space-x-1">
+                    <div className="text-center">
                       <Button
+                        variant="outline"
                         size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="bg-black/40 border-white/20 text-white hover:bg-white/10"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Change Image
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Masking Tools */}
+            {uploadedImage && (
+              <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-white flex items-center">
+                    <Brush className="w-5 h-5 mr-3" />
+                    Masking Tools
+                  </CardTitle>
+                  <CardDescription className="text-gray-400">
+                    Draw areas you want the AI to modify
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent className="space-y-6">
+                  {/* Tools */}
+                  <div>
+                    <Label className="text-gray-300 text-sm font-medium mb-3 block">
+                      Drawing Tools
+                    </Label>
+                    <div className="grid grid-cols-3 gap-3">
+                      <Button
                         variant={activeTool === "brush" ? "default" : "outline"}
                         onClick={() => setActiveTool("brush")}
-                        className="flex-1 bg-black/60 border-white/10 text-white"
+                        className={`h-12 ${
+                          activeTool === "brush"
+                            ? "bg-blue-600 hover:bg-blue-700 text-white"
+                            : "bg-black/40 border-white/20 text-white hover:bg-white/10"
+                        }`}
                       >
-                        <Brush size={14} />
+                        <Brush className="w-4 h-4 mb-1" />
+                        <span className="text-xs">Paint</span>
                       </Button>
                       <Button
-                        size="sm"
                         variant={
                           activeTool === "eraser" ? "default" : "outline"
                         }
                         onClick={() => setActiveTool("eraser")}
-                        className="flex-1 bg-black/60 border-white/10 text-white"
+                        className={`h-12 ${
+                          activeTool === "eraser"
+                            ? "bg-red-600 hover:bg-red-700 text-white"
+                            : "bg-black/40 border-white/20 text-white hover:bg-white/10"
+                        }`}
                       >
-                        <Eraser size={14} />
+                        <Eraser className="w-4 h-4 mb-1" />
+                        <span className="text-xs">Erase</span>
                       </Button>
                       <Button
-                        size="sm"
                         variant="outline"
                         onClick={clearMask}
-                        className="flex-1 bg-black/60 border-white/10 text-white"
+                        className="bg-black/40 border-white/20 text-white hover:bg-white/10 h-12"
                       >
-                        <RotateCcw size={14} />
+                        <RotateCcw className="w-4 h-4 mb-1" />
+                        <span className="text-xs">Clear</span>
                       </Button>
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-gray-300 text-sm">View</Label>
-                    <div className="flex space-x-1">
-                      <Button
-                        size="sm"
-                        variant={showMask ? "default" : "outline"}
-                        onClick={() => setShowMask(!showMask)}
-                        className="flex-1 bg-black/60 border-white/10 text-white"
-                      >
-                        {showMask ? <Eye size={14} /> : <EyeOff size={14} />}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="flex-1 bg-black/60 border-white/10 text-white"
-                      >
-                        <Upload size={14} />
-                      </Button>
-                    </div>
+                  {/* View Options */}
+                  <div>
+                    <Label className="text-gray-300 text-sm font-medium mb-3 block">
+                      View Options
+                    </Label>
+                    <Button
+                      variant={showMask ? "default" : "outline"}
+                      onClick={() => setShowMask(!showMask)}
+                      className={`w-full h-12 ${
+                        showMask
+                          ? "bg-violet-600 hover:bg-violet-700 text-white"
+                          : "bg-black/40 border-white/20 text-white hover:bg-white/10"
+                      }`}
+                    >
+                      {showMask ? (
+                        <>
+                          <Eye className="w-4 h-4 mr-2" />
+                          Hide Mask
+                        </>
+                      ) : (
+                        <>
+                          <EyeOff className="w-4 h-4 mr-2" />
+                          Show Mask
+                        </>
+                      )}
+                    </Button>
                   </div>
+
+                  {/* Brush Size */}
+                  <div>
+                    <div className="flex justify-between items-center mb-3">
+                      <Label className="text-gray-300 text-sm font-medium">
+                        Brush Size
+                      </Label>
+                      <span className="text-cyan-400 text-sm font-mono">
+                        {brushSize}px
+                      </span>
+                    </div>
+                    <Slider
+                      value={[brushSize]}
+                      onValueChange={(value) => setBrushSize(value[0])}
+                      min={10}
+                      max={100}
+                      step={2}
+                      className="py-2"
+                    />
+                    <p className="text-xs text-gray-400 mt-2">
+                      Adjust the size of your brush for precise masking
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Generation Settings Panel */}
+          <div className="xl:col-span-1 space-y-6">
+            {/* Prompt Input */}
+            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-white flex items-center">
+                  <Wand2 className="w-5 h-5 mr-3" />
+                  Transformation Prompt
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Describe how you want to transform the masked areas
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="relative">
+                  <Textarea
+                    placeholder="Describe the changes you want to make to the masked areas..."
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    className="bg-black/40 border-white/20 text-white rounded-xl min-h-[120px] resize-none focus:border-cyan-400/50 focus:ring-cyan-400/20 transition-all text-base leading-relaxed"
+                    rows={5}
+                  />
                 </div>
+              </CardContent>
+            </Card>
 
-                {/* Brush Size */}
-                <div className="space-y-2">
-                  <Label className="text-gray-300 text-sm">
-                    Brush Size: {brushSize}px
+            {/* Model Selection */}
+            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-white flex items-center">
+                  <Palette className="w-5 h-5 mr-3" />
+                  Style & Model
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Choose the artistic style for transformation
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <Label className="text-gray-300 text-sm font-medium mb-3 block">
+                    LoRA Model
                   </Label>
+                  <Select value={selectedLora} onValueChange={setSelectedLora}>
+                    <SelectTrigger className="bg-black/40 border-white/20 text-white rounded-xl h-12 focus:border-cyan-400/50">
+                      <SelectValue placeholder="Select LoRA model" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-black/90 border-white/10 text-white">
+                      {availableLoraModels.map((model) => (
+                        <SelectItem key={model} value={model}>
+                          <div className="flex items-center space-x-3">
+                            <div className="w-2 h-2 rounded-full bg-cyan-400"></div>
+                            <span>
+                              {model.replace(/\.(safetensors|pt|ckpt)$/, "")}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <Label className="text-gray-300 text-sm font-medium">
+                      LoRA Strength
+                    </Label>
+                    <span className="text-cyan-400 text-sm font-mono">
+                      {loraStrength.toFixed(2)}
+                    </span>
+                  </div>
                   <Slider
-                    value={[brushSize]}
-                    onValueChange={(value) => setBrushSize(value[0])}
-                    min={10}
-                    max={100}
-                    step={2}
-                    className="w-full"
+                    value={[loraStrength]}
+                    onValueChange={(value) => setLoraStrength(value[0])}
+                    min={0}
+                    max={2}
+                    step={0.05}
+                    className="py-2"
                   />
+                  <p className="text-xs text-gray-400 mt-2">
+                    Controls the influence of the selected art style
+                  </p>
                 </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
 
-        {/* Middle Panel - Generation Controls */}
-        <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
-          <CardHeader>
-            <CardTitle className="text-white">Generation Settings</CardTitle>
-            <CardDescription className="text-gray-400">
-              Configure AI generation parameters
-            </CardDescription>
-          </CardHeader>
+            {/* Generation Settings */}
+            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-white">
+                      Generation Settings
+                    </CardTitle>
+                    <CardDescription className="text-gray-400">
+                      Fine-tune transformation parameters
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-black/60 border-white/10 text-white hover:bg-black/80"
+                    onClick={() =>
+                      setShowAdvancedSettings(!showAdvancedSettings)
+                    }
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    {showAdvancedSettings ? "Hide" : "Show"} Advanced
+                  </Button>
+                </div>
+              </CardHeader>
 
-          <CardContent className="space-y-4">
-            {/* Prompt */}
-            <div>
-              <Label className="text-gray-300 mb-2 block">Prompt</Label>
-              <Textarea
-                placeholder="Describe the changes you want to make..."
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                className="bg-black/60 border-white/10 text-white rounded-lg"
-                rows={3}
-              />
-            </div>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 gap-6">
+                  <div>
+                    <div className="flex justify-between items-center mb-3">
+                      <Label className="text-gray-300 text-sm font-medium">
+                        Batch Size
+                      </Label>
+                      <span className="text-cyan-400 text-sm font-mono">
+                        {batchSize}
+                      </span>
+                    </div>
+                    <Slider
+                      value={[batchSize]}
+                      onValueChange={(value) => setBatchSize(value[0])}
+                      min={1}
+                      max={20}
+                      step={1}
+                      className="py-2"
+                    />
+                    <p className="text-xs text-gray-400 mt-2">
+                      Number of variations to generate
+                    </p>
+                  </div>
 
-            {/* LoRA Model */}
-            <div>
-              <Label className="text-gray-300 mb-2 block">LoRA Model</Label>
-              <Select value={selectedLora} onValueChange={setSelectedLora}>
-                <SelectTrigger className="bg-black/60 border-white/10 text-white rounded-lg">
-                  <SelectValue placeholder="Select LoRA" />
-                </SelectTrigger>
-                <SelectContent className="bg-black/90 border-white/10 text-white">
-                  {availableLoraModels.map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {model.replace(/\.(safetensors|pt|ckpt)$/, "")}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="mt-2">
-                <Label className="text-gray-300 text-xs">
-                  Strength: {loraStrength.toFixed(2)}
-                </Label>
-                <Slider
-                  value={[loraStrength]}
-                  onValueChange={(value) => setLoraStrength(value[0])}
-                  min={0}
-                  max={2}
-                  step={0.05}
-                  className="w-full mt-1"
-                />
-              </div>
-            </div>
+                  <div>
+                    <div className="flex justify-between items-center mb-3">
+                      <Label className="text-gray-300 text-sm font-medium">
+                        Redux Strength
+                      </Label>
+                      <span className="text-cyan-400 text-sm font-mono">
+                        {reduxStrength.toFixed(2)}
+                      </span>
+                    </div>
+                    <Slider
+                      value={[reduxStrength]}
+                      onValueChange={(value) => setReduxStrength(value[0])}
+                      min={0}
+                      max={2}
+                      step={0.05}
+                      className="py-2"
+                    />
+                    <p className="text-xs text-gray-400 mt-2">
+                      How much the reference image influences the generation
+                    </p>
+                  </div>
+                </div>
 
-            {/* Batch Size */}
-            <div>
-              <Label className="text-gray-300 text-xs">
-                Batch Size: {batchSize}
-              </Label>
-              <Slider
-                value={[batchSize]}
-                onValueChange={(value) => setBatchSize(value[0])}
-                min={1}
-                max={20}
-                step={1}
-                className="w-full mt-1"
-              />
-            </div>
+                {showAdvancedSettings && (
+                  <div className="space-y-6 pt-6 border-t border-white/10">
+                    <div>
+                      <Label className="text-gray-300 text-sm font-medium mb-3 block">
+                        Negative Prompt
+                      </Label>
+                      <Textarea
+                        placeholder="What you don't want in the transformed areas..."
+                        value={negativePrompt}
+                        onChange={(e) => setNegativePrompt(e.target.value)}
+                        className="bg-black/40 border-white/20 text-white rounded-xl min-h-[80px]"
+                        rows={3}
+                      />
+                      <p className="text-xs text-gray-400 mt-2">
+                        Describe what to avoid in the transformation
+                      </p>
+                    </div>
 
-            {/* Redux Strength */}
-            <div>
-              <Label className="text-gray-300 text-xs">
-                Redux Strength: {reduxStrength.toFixed(2)}
-              </Label>
-              <Slider
-                value={[reduxStrength]}
-                onValueChange={(value) => setReduxStrength(value[0])}
-                min={0}
-                max={2}
-                step={0.05}
-                className="w-full mt-1"
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                How much the reference image influences the generation
-              </p>
-            </div>
+                    <div className="grid grid-cols-1 gap-6">
+                      <div>
+                        <div className="flex justify-between items-center mb-3">
+                          <Label className="text-gray-300 text-sm font-medium">
+                            Downsampling Factor
+                          </Label>
+                          <span className="text-cyan-400 text-sm font-mono">
+                            {downsamplingFactor}
+                          </span>
+                        </div>
+                        <Slider
+                          value={[downsamplingFactor]}
+                          onValueChange={(value) =>
+                            setDownsamplingFactor(value[0])
+                          }
+                          min={1}
+                          max={8}
+                          step={1}
+                          className="py-2"
+                        />
+                        <p className="text-xs text-gray-400 mt-2">
+                          Higher values = faster generation, lower detail
+                        </p>
+                      </div>
 
-            {/* Downsampling Factor */}
-            <div>
-              <Label className="text-gray-300 text-xs">
-                Downsampling Factor: {downsamplingFactor}
-              </Label>
-              <Slider
-                value={[downsamplingFactor]}
-                onValueChange={(value) => setDownsamplingFactor(value[0])}
-                min={1}
-                max={8}
-                step={1}
-                className="w-full mt-1"
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                Controls image processing resolution (higher = faster but less
-                detail)
-              </p>
-            </div>
+                      <div>
+                        <div className="flex justify-between items-center mb-3">
+                          <Label className="text-gray-300 text-sm font-medium">
+                            Guidance Scale
+                          </Label>
+                          <span className="text-cyan-400 text-sm font-mono">
+                            {guidance.toFixed(1)}
+                          </span>
+                        </div>
+                        <Slider
+                          value={[guidance]}
+                          onValueChange={(value) => setGuidance(value[0])}
+                          min={1}
+                          max={10}
+                          step={0.5}
+                          className="py-2"
+                        />
+                        <p className="text-xs text-gray-400 mt-2">
+                          How closely the result follows your prompt
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
 
-            {/* Error Display */}
-            {error && (
-              <Alert
-                variant="destructive"
-                className="bg-red-900/20 border-red-500/30 text-red-200"
-              >
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-          </CardContent>
-
-          <CardFooter>
-            <Button
-              className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-lg"
-              onClick={handleGenerate}
-              disabled={
-                isGenerating ||
-                !prompt.trim() ||
-                !uploadedImage ||
-                !isConnected ||
-                !selectedLora
-              }
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Transforming... {generationProgress}%
-                  {currentNode && (
-                    <span className="ml-1 text-sm">({currentNode})</span>
+              <CardFooter className="pt-6">
+                <Button
+                  className="w-full h-14 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white rounded-xl text-lg font-semibold transition-all duration-200 disabled:opacity-50"
+                  onClick={handleGenerate}
+                  disabled={
+                    isGenerating ||
+                    !prompt.trim() ||
+                    !uploadedImage ||
+                    !isConnected ||
+                    !selectedLora
+                  }
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                      Transforming... {generationProgress}%
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-5 h-5 mr-3" />
+                      Transform Image
+                    </>
                   )}
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="w-5 h-5 mr-2" />
-                  Transform Image
-                </>
+                </Button>
+              </CardFooter>
+            </Card>
+
+            {/* Error & Warning Messages */}
+            <div className="space-y-4">
+              {error && (
+                <Alert className="bg-red-900/20 border-red-500/30 text-red-200">
+                  <ZapOff className="h-4 w-4" />
+                  <AlertTitle>Generation Error</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               )}
-            </Button>
-          </CardFooter>
-        </Card>
 
-        {/* Right Panel - Latest Creation */}
-        <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
-          <CardHeader>
-            <CardTitle className="text-white">Latest Creation</CardTitle>
-            <CardDescription className="text-gray-400">
-              Preview your most recent image transformation
-            </CardDescription>
-          </CardHeader>
+              {!isConnected && (
+                <Alert className="bg-amber-900/20 border-amber-500/30 text-amber-200">
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>Connection Required</AlertTitle>
+                  <AlertDescription>
+                    Please ensure ComfyUI is running and accessible to transform
+                    images.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          </div>
 
-          <CardContent>
-            {isGenerating ? (
-              <div className="aspect-square bg-black/50 rounded-lg border border-white/10 flex items-center justify-center">
-                <div className="text-center">
-                  <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-cyan-400" />
-                  <p className="text-gray-300">Transforming your image...</p>
-                  <p className="text-sm text-gray-400">{generationProgress}%</p>
-                  {currentNode && (
-                    <p className="text-xs text-gray-500 mt-1">{currentNode}</p>
+          {/* Preview Panel */}
+          <div className="xl:col-span-1 space-y-6">
+            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-white flex items-center">
+                  <ImageLucide className="w-5 h-5 mr-3" />
+                  Latest Creation
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Preview your most recent transformation
+                </CardDescription>
+              </CardHeader>
+
+              <CardContent>
+                <div className="h-[500px] flex items-center justify-center">
+                  {isGenerating ? (
+                    <div className="text-center space-y-6">
+                      <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center">
+                        <Loader2 className="w-10 h-10 text-white animate-spin" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-semibold text-white mb-2">
+                          Transforming Image
+                        </h3>
+                        <p className="text-gray-400 mb-2">
+                          {generationProgress}% complete
+                        </p>
+                        {currentNode && (
+                          <p className="text-gray-500 text-sm">{currentNode}</p>
+                        )}
+                      </div>
+                    </div>
+                  ) : latestGeneratedImage ? (
+                    <div className="w-full space-y-6">
+                      <div className="aspect-square rounded-xl overflow-hidden border border-white/10">
+                        <LatestCreationImage
+                          image={latestGeneratedImage}
+                          alt="Latest transformation"
+                          className="aspect-square"
+                        />
+                      </div>
+
+                      <div className="space-y-4">
+                        <div>
+                          <h3 className="text-lg font-semibold text-white mb-2">
+                            Latest Transformation
+                          </h3>
+                          <p className="text-gray-400 text-sm line-clamp-3 leading-relaxed">
+                            {latestGeneratedImage.prompt}
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap gap-3">
+                          <Button
+                            className="bg-blue-600 hover:bg-blue-700 text-white flex-1"
+                            onClick={downloadLatestImage}
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Download
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            className="bg-black/40 border-white/20 text-white hover:bg-white/10 flex-1"
+                            onClick={() => {
+                              navigator.clipboard.writeText(
+                                latestGeneratedImage.prompt
+                              );
+                            }}
+                          >
+                            <Copy className="w-4 h-4 mr-2" />
+                            Copy Prompt
+                          </Button>
+                        </div>
+
+                        <div className="text-xs text-gray-400 space-y-2 p-3 bg-black/20 rounded-lg">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <span className="text-gray-500">Redux:</span>
+                              <span className="text-white ml-1">
+                                {latestGeneratedImage.settings.reduxStrength}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">
+                                Downsampling:
+                              </span>
+                              <span className="text-white ml-1">
+                                {
+                                  latestGeneratedImage.settings
+                                    .downsamplingFactor
+                                }
+                              </span>
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-gray-500">LoRA:</span>
+                            <span className="text-white ml-1">
+                              {latestGeneratedImage.settings.lora
+                                ?.split("\\")
+                                .pop()
+                                ?.replace(/\.(safetensors|pt|ckpt)$/, "") ||
+                                "None"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center space-y-6">
+                      <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-gray-600 to-gray-700 flex items-center justify-center">
+                        <Palette className="w-10 h-10 text-gray-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-semibold text-white mb-2">
+                          No Transformations Yet
+                        </h3>
+                        <p className="text-gray-400">
+                          {isConnected && uploadedImage
+                            ? "Add a prompt and transform your image"
+                            : !isConnected
+                              ? "Connect to ComfyUI to start transforming"
+                              : "Upload an image to begin transformation"}
+                        </p>
+                      </div>
+                    </div>
                   )}
                 </div>
-              </div>
-            ) : latestGeneratedImage ? (
-              <div className="space-y-4">
-                <div className="aspect-square bg-black/50 rounded-lg border border-white/10 overflow-hidden">
-                  <LatestCreationImage
-                    image={latestGeneratedImage}
-                    alt="Latest creation"
-                    className="aspect-square"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-300 line-clamp-2">
-                    {latestGeneratedImage.prompt}
-                  </p>
-
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="bg-white/5 border-white/10 hover:bg-white/10 text-white"
-                      onClick={downloadLatestImage}
-                    >
-                      <Download size={14} className="mr-1" />
-                      Download
-                    </Button>
-
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="bg-white/5 border-white/10 hover:bg-white/10 text-white"
-                      onClick={() => {
-                        // Copy prompt to clipboard
-                        navigator.clipboard.writeText(
-                          latestGeneratedImage.prompt
-                        );
-                      }}
-                    >
-                      <Copy size={14} className="mr-1" />
-                      Copy Prompt
-                    </Button>
-                  </div>
-
-                  <div className="text-xs text-gray-400 space-y-1">
-                    <p>
-                      Redux Strength:{" "}
-                      {latestGeneratedImage.settings.reduxStrength}
-                    </p>
-                    <p>
-                      Downsampling:{" "}
-                      {latestGeneratedImage.settings.downsamplingFactor}
-                    </p>
-                    <p>
-                      LoRA:{" "}
-                      {latestGeneratedImage.settings.lora
-                        ?.split("\\")
-                        .pop()
-                        ?.replace(/\.(safetensors|pt|ckpt)$/, "") || "None"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="aspect-square bg-black/50 rounded-lg border border-white/10 flex items-center justify-center">
-                <div className="text-center">
-                  <Palette className="w-12 h-12 mx-auto mb-4 text-gray-500 opacity-50" />
-                  <p className="text-gray-300">No transformations yet</p>
-                  <p className="text-sm text-gray-400">
-                    {isConnected
-                      ? "Upload an image and create your first transformation"
-                      : "Connect to ComfyUI to start transforming"}
-                  </p>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Generation Status */}
-      {isGenerating && (
-        <div className="mt-4 p-4 bg-black/40 backdrop-blur-md rounded-md border border-white/10">
-          <h3 className="font-medium mb-2 text-white">
-            ComfyUI Generation Status
-          </h3>
-          <div className="flex items-center space-x-2">
-            <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
-            <p className="text-gray-300">{currentNode || "Processing..."}</p>
-            <span className="text-sm text-gray-400">
-              ({generationProgress}%)
-            </span>
+              </CardContent>
+            </Card>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

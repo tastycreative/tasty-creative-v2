@@ -881,139 +881,163 @@ const AIText2ImagePage = () => {
   const actualProgress = comfyUIProgress;
 
   return (
-    <div className="min-h-screen p-4 sm:p-6">
-      {/* Status Bar */}
-      <div className="mb-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-4 bg-black/20 backdrop-blur-md rounded-xl border border-white/10">
-          <div className="flex items-center space-x-3">
-            {isConnected ? (
-              <>
-                <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
-                <span className="text-green-400 font-medium">
-                  ComfyUI Connected
-                </span>
-                <span className="text-gray-400 text-sm hidden sm:block">
-                  • {availableLoraModels.length} models available
-                </span>
-              </>
-            ) : (
-              <>
-                <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                <span className="text-red-400 font-medium">
-                  ComfyUI Offline
-                </span>
-                <span className="text-gray-400 text-sm hidden sm:block">
-                  • Check connection
-                </span>
-              </>
-            )}
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header Section */}
+        <div className="text-center space-y-4">
+          <h1 className="text-4xl font-bold text-white mb-2">
+            AI Text-to-Image Generator
+          </h1>
+          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+            Create stunning AI images from text descriptions using ComfyUI
+          </p>
+        </div>
 
-          {actuallyGenerating && (
-            <div className="flex items-center space-x-2 text-violet-400">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span className="text-sm font-medium">{actualProgress}%</span>
-              {currentNode && (
-                <span className="text-xs text-gray-400 hidden sm:block">
-                  {currentNode}
-                </span>
+        {/* Status Bar */}
+        <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+          <CardContent className="p-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex items-center space-x-4">
+                {isConnected ? (
+                  <>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
+                      <span className="text-green-400 font-medium">
+                        ComfyUI Connected
+                      </span>
+                    </div>
+                    <div className="text-gray-400 text-sm">
+                      {availableLoraModels.length} models available
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                      <span className="text-red-400 font-medium">
+                        ComfyUI Offline
+                      </span>
+                    </div>
+                    <div className="text-gray-400 text-sm">
+                      Check connection
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {actuallyGenerating && (
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2 text-violet-400">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-sm font-medium">
+                      {actualProgress}%
+                    </span>
+                  </div>
+                  {currentNode && (
+                    <span className="text-xs text-gray-400">{currentNode}</span>
+                  )}
+                </div>
               )}
             </div>
-          )}
-        </div>
-      </div>
+          </CardContent>
+        </Card>
 
-      {/* Main Layout */}
-      <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-        {/* Generation Panel */}
-        <div className="xl:col-span-3">
-          <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl shadow-2xl">
-            <CardHeader className="pb-4">
-              <div className="flex items-center space-x-3 mb-2">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-r from-violet-500 to-fuchsia-500 flex items-center justify-center">
-                  <Type className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <CardTitle className="text-white text-xl">
-                    Text-to-Image Generator
-                  </CardTitle>
-                  <CardDescription className="text-gray-400">
-                    Create stunning AI images from text descriptions
-                  </CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="space-y-6">
-              {/* Prompt Input */}
-              <div className="space-y-3">
-                <Label className="text-gray-300 text-sm font-medium flex items-center">
-                  <Wand2 className="w-4 h-4 mr-2" />
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          {/* Generation Panel */}
+          <div className="space-y-6">
+            {/* Prompt Input */}
+            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-white flex items-center">
+                  <Wand2 className="w-5 h-5 mr-3" />
                   Describe Your Vision
-                </Label>
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Enter a detailed description of the image you want to create
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="relative">
                   <Textarea
                     placeholder="A majestic mountain landscape at sunset with vibrant colors, detailed clouds, photorealistic..."
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     maxLength={characterLimit}
-                    className="bg-black/40 border-white/20 text-white rounded-xl min-h-[120px] resize-none focus:border-violet-400/50 focus:ring-violet-400/20 transition-all"
-                    rows={5}
+                    className="bg-black/40 border-white/20 text-white rounded-xl min-h-[140px] resize-none focus:border-violet-400/50 focus:ring-violet-400/20 transition-all text-base leading-relaxed"
+                    rows={6}
                   />
                   <div className="absolute bottom-3 right-3 text-xs text-gray-400">
                     {prompt.length}/{characterLimit}
                   </div>
                 </div>
-              </div>
+              </CardContent>
+            </Card>
 
-              {/* Art Style Selection */}
-              <div className="space-y-3">
-                <Label className="text-gray-300 text-sm font-medium flex items-center">
-                  <Palette className="w-4 h-4 mr-2" />
-                  Art Style
-                </Label>
-                <Select
-                  value={selectedLoraModel}
-                  onValueChange={setSelectedLoraModel}
-                  disabled={!isConnected || availableLoraModels.length === 0}
-                >
-                  <SelectTrigger className="bg-black/40 border-white/20 text-white rounded-xl h-12 focus:border-violet-400/50">
-                    <SelectValue
-                      placeholder={
-                        isConnected
-                          ? availableLoraModels.length === 0
-                            ? "No styles available"
-                            : "Choose art style"
-                          : "Connection required"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent className="bg-black/90 border-white/10 text-white">
-                    {availableLoraModels.map((model) => (
-                      <SelectItem key={model} value={model}>
-                        <div className="flex items-center space-x-2">
-                          <div className="w-2 h-2 rounded-full bg-violet-400"></div>
-                          <span>
-                            {model.replace(/\.(safetensors|pt|ckpt)$/, "")}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+            {/* Model & Style Selection */}
+            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-white flex items-center">
+                  <Palette className="w-5 h-5 mr-3" />
+                  Art Style & Model
+                </CardTitle>
+                <CardDescription className="text-gray-400">
+                  Choose the artistic style for your image
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <Label className="text-gray-300 text-sm font-medium mb-3 block">
+                    LoRA Model
+                  </Label>
+                  <Select
+                    value={selectedLoraModel}
+                    onValueChange={setSelectedLoraModel}
+                    disabled={!isConnected || availableLoraModels.length === 0}
+                  >
+                    <SelectTrigger className="bg-black/40 border-white/20 text-white rounded-xl h-12 focus:border-violet-400/50">
+                      <SelectValue
+                        placeholder={
+                          isConnected
+                            ? availableLoraModels.length === 0
+                              ? "No styles available"
+                              : "Choose art style"
+                            : "Connection required"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent className="bg-black/90 border-white/10 text-white">
+                      {availableLoraModels.map((model) => (
+                        <SelectItem key={model} value={model}>
+                          <div className="flex items-center space-x-3">
+                            <div className="w-2 h-2 rounded-full bg-violet-400"></div>
+                            <span>
+                              {model.replace(/\.(safetensors|pt|ckpt)$/, "")}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
 
-              {/* Size Presets - Responsive Grid */}
-              <div className="space-y-3">
-                <Label className="text-gray-300 text-sm font-medium">
-                  Image Dimensions
-                </Label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {/* Image Dimensions */}
+            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-white">Image Dimensions</CardTitle>
+                <CardDescription className="text-gray-400">
+                  Select the size and aspect ratio for your image
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   {presetSizes.map((preset) => (
                     <Button
                       key={preset.name}
                       variant="outline"
-                      className={`h-16 p-3 border-2 transition-all duration-200 ${
+                      className={`h-20 p-4 border-2 transition-all duration-200 ${
                         width === preset.width && height === preset.height
                           ? "bg-violet-600/30 border-violet-400 text-violet-300"
                           : "bg-black/40 border-white/20 text-gray-300 hover:bg-white/10 hover:border-white/30"
@@ -1024,45 +1048,35 @@ const AIText2ImagePage = () => {
                       }}
                     >
                       <div className="text-center">
-                        <div className="font-medium text-sm">{preset.name}</div>
-                        <div className="text-xs opacity-70">
+                        <div className="font-medium text-base mb-1">
+                          {preset.name}
+                        </div>
+                        <div className="text-sm opacity-70">
                           {preset.width}×{preset.height}
                         </div>
                       </div>
                     </Button>
                   ))}
                 </div>
-              </div>
+              </CardContent>
+            </Card>
 
-              {/* Quick Settings Row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-gray-300 text-sm">
-                    Number of Images
-                  </Label>
-                  <Select
-                    value={batchSize.toString()}
-                    onValueChange={(value) => setBatchSize(parseInt(value))}
-                  >
-                    <SelectTrigger className="bg-black/40 border-white/20 text-white rounded-lg">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-black/90 border-white/10 text-white">
-                      {Array.from({ length: 8 }, (_, i) => i + 1).map(
-                        (size) => (
-                          <SelectItem key={size} value={size.toString()}>
-                            {size} {size === 1 ? "image" : "images"}
-                          </SelectItem>
-                        )
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-end">
+            {/* Generation Settings */}
+            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-white">
+                      Generation Settings
+                    </CardTitle>
+                    <CardDescription className="text-gray-400">
+                      Fine-tune your image generation parameters
+                    </CardDescription>
+                  </div>
                   <Button
                     variant="outline"
-                    className="w-full bg-black/40 border-white/20 text-white hover:bg-white/10"
+                    size="sm"
+                    className="bg-black/60 border-white/10 text-white hover:bg-black/80"
                     onClick={() =>
                       setShowAdvancedSettings(!showAdvancedSettings)
                     }
@@ -1071,87 +1085,125 @@ const AIText2ImagePage = () => {
                     {showAdvancedSettings ? "Hide" : "Show"} Advanced
                   </Button>
                 </div>
-              </div>
-
-              {/* Advanced Settings */}
-              {showAdvancedSettings && (
-                <div className="space-y-4 p-4 border border-white/10 rounded-xl bg-black/20">
-                  <h3 className="text-white font-medium flex items-center">
-                    <Settings className="w-4 h-4 mr-2" />
-                    Advanced Settings
-                  </h3>
-
-                  <div className="space-y-3">
-                    <Label className="text-gray-300 text-sm">
-                      Negative Prompt
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <Label className="text-gray-300 text-sm font-medium mb-3 block">
+                      Number of Images
                     </Label>
-                    <Textarea
-                      placeholder="low quality, blurry, distorted, bad anatomy..."
-                      value={negativePrompt}
-                      onChange={(e) => setNegativePrompt(e.target.value)}
-                      className="bg-black/40 border-white/20 text-white rounded-lg"
-                      rows={3}
-                    />
+                    <Select
+                      value={batchSize.toString()}
+                      onValueChange={(value) => setBatchSize(parseInt(value))}
+                    >
+                      <SelectTrigger className="bg-black/40 border-white/20 text-white rounded-xl h-12">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-black/90 border-white/10 text-white">
+                        {Array.from({ length: 8 }, (_, i) => i + 1).map(
+                          (size) => (
+                            <SelectItem key={size} value={size.toString()}>
+                              {size} {size === 1 ? "image" : "images"}
+                            </SelectItem>
+                          )
+                        )}
+                      </SelectContent>
+                    </Select>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <Label className="text-gray-300 text-sm">
-                          LoRA Strength
-                        </Label>
-                        <span className="text-violet-400 text-sm font-mono">
-                          {loraStrength.toFixed(2)}
-                        </span>
-                      </div>
-                      <Slider
-                        value={[loraStrength]}
-                        min={0}
-                        max={1}
-                        step={0.05}
-                        onValueChange={(value) => setLoraStrength(value[0])}
-                        className="py-2"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <Label className="text-gray-300 text-sm">Steps</Label>
-                        <span className="text-violet-400 text-sm font-mono">
-                          {steps}
-                        </span>
-                      </div>
-                      <Slider
-                        value={[steps]}
-                        min={20}
-                        max={80}
-                        step={5}
-                        onValueChange={(value) => setSteps(value[0])}
-                        className="py-2"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <Label className="text-gray-300 text-sm">CFG Scale</Label>
+                  <div>
+                    <div className="flex justify-between items-center mb-3">
+                      <Label className="text-gray-300 text-sm font-medium">
+                        LoRA Strength
+                      </Label>
                       <span className="text-violet-400 text-sm font-mono">
-                        {cfgScale.toFixed(1)}
+                        {loraStrength.toFixed(2)}
                       </span>
                     </div>
                     <Slider
-                      value={[cfgScale]}
-                      min={1}
-                      max={10}
-                      step={0.5}
-                      onValueChange={(value) => setCfgScale(value[0])}
+                      value={[loraStrength]}
+                      min={0}
+                      max={1}
+                      step={0.05}
+                      onValueChange={(value) => setLoraStrength(value[0])}
                       className="py-2"
                     />
+                    <p className="text-xs text-gray-400 mt-2">
+                      Controls the influence of the selected art style
+                    </p>
                   </div>
                 </div>
-              )}
 
-              {/* Error Display */}
+                {showAdvancedSettings && (
+                  <div className="space-y-6 pt-6 border-t border-white/10">
+                    <div>
+                      <Label className="text-gray-300 text-sm font-medium mb-3 block">
+                        Negative Prompt
+                      </Label>
+                      <Textarea
+                        placeholder="low quality, blurry, distorted, bad anatomy..."
+                        value={negativePrompt}
+                        onChange={(e) => setNegativePrompt(e.target.value)}
+                        className="bg-black/40 border-white/20 text-white rounded-xl min-h-[80px]"
+                        rows={3}
+                      />
+                      <p className="text-xs text-gray-400 mt-2">
+                        Describe what you don't want in the image
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <div className="flex justify-between items-center mb-3">
+                          <Label className="text-gray-300 text-sm font-medium">
+                            Steps
+                          </Label>
+                          <span className="text-violet-400 text-sm font-mono">
+                            {steps}
+                          </span>
+                        </div>
+                        <Slider
+                          value={[steps]}
+                          min={20}
+                          max={80}
+                          step={5}
+                          onValueChange={(value) => setSteps(value[0])}
+                          className="py-2"
+                        />
+                        <p className="text-xs text-gray-400 mt-2">
+                          More steps = higher quality, longer generation time
+                        </p>
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between items-center mb-3">
+                          <Label className="text-gray-300 text-sm font-medium">
+                            CFG Scale
+                          </Label>
+                          <span className="text-violet-400 text-sm font-mono">
+                            {cfgScale.toFixed(1)}
+                          </span>
+                        </div>
+                        <Slider
+                          value={[cfgScale]}
+                          min={1}
+                          max={10}
+                          step={0.5}
+                          onValueChange={(value) => setCfgScale(value[0])}
+                          className="py-2"
+                        />
+                        <p className="text-xs text-gray-400 mt-2">
+                          How closely the image follows your prompt
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Error & Warning Messages */}
+            <div className="space-y-4">
               {error && (
                 <Alert className="bg-red-900/20 border-red-500/30 text-red-200">
                   <ZapOff className="h-4 w-4" />
@@ -1160,7 +1212,6 @@ const AIText2ImagePage = () => {
                 </Alert>
               )}
 
-              {/* Connection Warning */}
               {!isConnected && (
                 <Alert className="bg-amber-900/20 border-amber-500/30 text-amber-200">
                   <Info className="h-4 w-4" />
@@ -1171,322 +1222,335 @@ const AIText2ImagePage = () => {
                   </AlertDescription>
                 </Alert>
               )}
-            </CardContent>
+            </div>
 
-            <CardFooter className="pt-4">
-              <Button
-                className="w-full h-14 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white rounded-xl text-lg font-semibold shadow-lg transition-all duration-200 disabled:opacity-50"
-                onClick={handleGenerate}
-                disabled={
-                  actuallyGenerating ||
-                  !prompt.trim() ||
-                  !isConnected ||
-                  !selectedLoraModel
-                }
-              >
-                {actuallyGenerating ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-3 animate-spin" />
-                    Creating {batchSize > 1 ? "Images" : "Image"}...{" "}
-                    {actualProgress}%
-                  </>
-                ) : (
-                  <>
-                    <Type className="w-5 h-5 mr-3" />
-                    Generate {batchSize > 1 ? `${batchSize} Images` : "Image"}
-                  </>
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
+            {/* Generate Button */}
+            <Button
+              className="w-full h-16 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white rounded-xl text-lg font-semibold shadow-lg transition-all duration-200 disabled:opacity-50"
+              onClick={handleGenerate}
+              disabled={
+                actuallyGenerating ||
+                !prompt.trim() ||
+                !isConnected ||
+                !selectedLoraModel
+              }
+            >
+              {actuallyGenerating ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                  Creating {batchSize > 1 ? "Images" : "Image"}...{" "}
+                  {actualProgress}%
+                </>
+              ) : (
+                <>
+                  <Type className="w-5 h-5 mr-3" />
+                  Generate {batchSize > 1 ? `${batchSize} Images` : "Image"}
+                </>
+              )}
+            </Button>
+          </div>
 
-        {/* Preview & Gallery Panel */}
-        <div className="xl:col-span-2">
-          <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl shadow-2xl">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center">
-                    <Grid className="w-4 h-4 text-white" />
-                  </div>
+          {/* Preview & Gallery Panel */}
+          <div className="space-y-6">
+            {/* Preview Card */}
+            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-white">Gallery</CardTitle>
+                    <CardTitle className="text-white flex items-center">
+                      <Grid className="w-5 h-5 mr-3" />
+                      Gallery
+                    </CardTitle>
                     <CardDescription className="text-gray-400">
                       {generatedImages.length} images created
                     </CardDescription>
                   </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-black/40 border-white/20 text-white hover:bg-white/10"
+                    onClick={() => setShowHistory(!showHistory)}
+                  >
+                    {showHistory ? (
+                      <>
+                        <Eye className="w-4 h-4 mr-2" />
+                        Preview
+                      </>
+                    ) : (
+                      <>
+                        <Grid className="w-4 h-4 mr-2" />
+                        Gallery
+                      </>
+                    )}
+                  </Button>
                 </div>
+              </CardHeader>
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-black/40 border-white/20 text-white hover:bg-white/10"
-                  onClick={() => setShowHistory(!showHistory)}
-                >
-                  {showHistory ? (
-                    <>
-                      <Eye className="w-4 h-4 mr-2" />
-                      Preview
-                    </>
-                  ) : (
-                    <>
-                      <Grid className="w-4 h-4 mr-2" />
-                      Gallery
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardHeader>
-
-            <CardContent className="h-[600px] flex flex-col">
-              {/* Latest Generation Preview */}
-              {!showHistory && (
-                <div className="flex-1 flex items-center justify-center">
-                  {actuallyGenerating ? (
-                    <div className="text-center">
-                      <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 flex items-center justify-center">
-                        <Loader2 className="w-10 h-10 text-white animate-spin" />
-                      </div>
-                      <h3 className="text-white font-medium mb-2">
-                        Creating Your Image
-                      </h3>
-                      <p className="text-gray-400 text-sm mb-1">
-                        {actualProgress}% complete
-                      </p>
-                      {currentNode && (
-                        <p className="text-gray-500 text-xs">{currentNode}</p>
-                      )}
-                    </div>
-                  ) : generatedImages.length > 0 ? (
-                    <div className="w-full">
-                      <div className="aspect-square mb-4 rounded-xl overflow-hidden border border-white/10">
-                        <ComfyUIImage
-                          image={generatedImages[0]}
-                          alt="Latest creation"
-                          className="aspect-square"
-                        />
-                      </div>
-
-                      <div className="text-center space-y-3">
-                        <h3 className="text-white font-medium">
-                          Latest Creation
-                        </h3>
-                        <p className="text-gray-400 text-sm line-clamp-2">
-                          {generatedImages[0].prompt}
-                        </p>
-
-                        <div className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-violet-600/20 border border-violet-400/30 text-violet-300">
-                          {generatedImages[0].settings.loraModel?.replace(
-                            /\.(safetensors|pt|ckpt)$/,
-                            ""
-                          ) || "AI Generated"}
+              <CardContent>
+                {/* Latest Generation Preview */}
+                {!showHistory && (
+                  <div className="h-[600px] flex items-center justify-center">
+                    {actuallyGenerating ? (
+                      <div className="text-center space-y-6">
+                        <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 flex items-center justify-center">
+                          <Loader2 className="w-12 h-12 text-white animate-spin" />
                         </div>
-
-                        <div className="flex justify-center space-x-2 pt-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="bg-black/40 border-white/20 hover:bg-white/10"
-                            onClick={() => downloadImage(generatedImages[0])}
-                          >
-                            <Download className="w-4 h-4 mr-1" />
-                            Download
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="bg-black/40 border-white/20 hover:bg-white/10"
-                            onClick={() =>
-                              toggleBookmark(generatedImages[0].id)
-                            }
-                          >
-                            <Star
-                              className={`w-4 h-4 mr-1 ${
-                                generatedImages[0].isBookmarked
-                                  ? "fill-yellow-400 text-yellow-400"
-                                  : ""
-                              }`}
-                            />
-                            Favorite
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="bg-black/40 border-white/20 hover:bg-white/10"
-                            onClick={() => addToVault([generatedImages[0]])}
-                          >
-                            <Save className="w-4 h-4 mr-1" />
-                            Save
-                          </Button>
+                        <div>
+                          <h3 className="text-xl font-semibold text-white mb-2">
+                            Creating Your Image
+                          </h3>
+                          <p className="text-gray-400 mb-2">
+                            {actualProgress}% complete
+                          </p>
+                          {currentNode && (
+                            <p className="text-gray-500 text-sm">
+                              {currentNode}
+                            </p>
+                          )}
                         </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="text-center">
-                      <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-r from-gray-600 to-gray-700 flex items-center justify-center">
-                        <Type className="w-10 h-10 text-gray-400" />
-                      </div>
-                      <h3 className="text-white font-medium mb-2">
-                        No Images Yet
-                      </h3>
-                      <p className="text-gray-400 text-sm">
-                        {isConnected
-                          ? "Create your first image to see it here"
-                          : "Connect to ComfyUI to start generating"}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
+                    ) : generatedImages.length > 0 ? (
+                      <div className="w-full max-w-md">
+                        <div className="aspect-square mb-6 rounded-xl overflow-hidden border border-white/10">
+                          <ComfyUIImage
+                            image={generatedImages[0]}
+                            alt="Latest creation"
+                            className="aspect-square"
+                          />
+                        </div>
 
-              {/* Gallery View */}
-              {showHistory && (
-                <div className="flex-1 flex flex-col">
-                  {/* Search and Filters */}
-                  <div className="flex flex-col sm:flex-row gap-2 mb-4">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input
-                        placeholder="Search images..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10 bg-black/40 border-white/20 text-white"
-                      />
-                    </div>
-                    <Select
-                      value={selectedCategory}
-                      onValueChange={setSelectedCategory}
-                    >
-                      <SelectTrigger className="w-full sm:w-32 bg-black/40 border-white/20 text-white">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-black/90 border-white/10 text-white">
-                        {categories.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            {category === "all"
-                              ? "All"
-                              : category.charAt(0).toUpperCase() +
-                                category.slice(1)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                        <div className="text-center space-y-4">
+                          <h3 className="text-xl font-semibold text-white">
+                            Latest Creation
+                          </h3>
+                          <p className="text-gray-400 text-sm line-clamp-3 leading-relaxed">
+                            {generatedImages[0].prompt}
+                          </p>
 
-                  {/* Images Grid */}
-                  <div className="flex-1 overflow-y-auto">
-                    {filteredImages.length > 0 ? (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {filteredImages.slice(0, 20).map((image) => (
-                          <div
-                            key={image.id}
-                            className="group relative aspect-square cursor-pointer transition-all duration-200 hover:scale-105"
-                            onClick={() => {
-                              setSelectedImageForModal(image);
-                              setShowImageModal(true);
-                            }}
-                          >
-                            <ComfyUIImage
-                              image={image}
-                              alt={image.prompt}
-                              className="aspect-square border border-white/10"
-                            />
-
-                            {/* Overlay */}
-                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center rounded-lg">
-                              <div className="flex space-x-1">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="bg-black/60 border-white/30 text-white hover:bg-white/20 w-8 h-8 p-0"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    downloadImage(image);
-                                  }}
-                                >
-                                  <Download className="w-3 h-3" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="bg-black/60 border-white/30 text-white hover:bg-white/20 w-8 h-8 p-0"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleBookmark(image.id);
-                                  }}
-                                >
-                                  <Star
-                                    className={`w-3 h-3 ${
-                                      image.isBookmarked
-                                        ? "fill-yellow-400 text-yellow-400"
-                                        : ""
-                                    }`}
-                                  />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="bg-black/60 border-white/30 text-white hover:bg-white/20 w-8 h-8 p-0"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedImageForModal(image);
-                                    setShowImageModal(true);
-                                  }}
-                                >
-                                  <Maximize2 className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            </div>
-
-                            {/* Status Indicators */}
-                            <div className="absolute top-2 right-2 flex space-x-1">
-                              {image.isBookmarked && (
-                                <div className="w-6 h-6 rounded-full bg-yellow-500/20 border border-yellow-400/50 flex items-center justify-center">
-                                  <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                                </div>
-                              )}
-                              {image.isInVault && (
-                                <div className="w-6 h-6 rounded-full bg-green-500/20 border border-green-400/50 flex items-center justify-center">
-                                  <FolderOpen className="w-3 h-3 text-green-400" />
-                                </div>
-                              )}
-                            </div>
+                          <div className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-violet-600/20 border border-violet-400/30 text-violet-300">
+                            {generatedImages[0].settings.loraModel?.replace(
+                              /\.(safetensors|pt|ckpt)$/,
+                              ""
+                            ) || "AI Generated"}
                           </div>
-                        ))}
+
+                          <div className="flex justify-center gap-3 pt-4">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="bg-black/40 border-white/20 hover:bg-white/10 px-4"
+                              onClick={() => downloadImage(generatedImages[0])}
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              Download
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="bg-black/40 border-white/20 hover:bg-white/10 px-4"
+                              onClick={() =>
+                                toggleBookmark(generatedImages[0].id)
+                              }
+                            >
+                              <Star
+                                className={`w-4 h-4 mr-2 ${
+                                  generatedImages[0].isBookmarked
+                                    ? "fill-yellow-400 text-yellow-400"
+                                    : ""
+                                }`}
+                              />
+                              Favorite
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="bg-black/40 border-white/20 hover:bg-white/10 px-4"
+                              onClick={() => addToVault([generatedImages[0]])}
+                            >
+                              <Save className="w-4 h-4 mr-2" />
+                              Save
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     ) : (
-                      <div className="flex-1 flex items-center justify-center text-center">
+                      <div className="text-center space-y-6">
+                        <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-r from-gray-600 to-gray-700 flex items-center justify-center">
+                          <Type className="w-12 h-12 text-gray-400" />
+                        </div>
                         <div>
-                          <Grid className="w-12 h-12 mx-auto mb-3 text-gray-600" />
-                          <p className="text-gray-400 mb-2">No images found</p>
-                          <p className="text-gray-500 text-sm">
-                            {searchQuery || selectedCategory !== "all"
-                              ? "Try adjusting your search or filter"
-                              : "Generate some images to see them here"}
+                          <h3 className="text-xl font-semibold text-white mb-2">
+                            No Images Yet
+                          </h3>
+                          <p className="text-gray-400">
+                            {isConnected
+                              ? "Create your first image to see it here"
+                              : "Connect to ComfyUI to start generating"}
                           </p>
                         </div>
                       </div>
                     )}
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+                )}
 
-      {/* Success Status */}
-      {generationStatus && !error && (
-        <div className="mt-6 p-4 bg-green-900/20 backdrop-blur-md rounded-xl border border-green-500/30">
-          <div className="flex items-center space-x-3">
-            <Check className="w-5 h-5 text-green-400" />
-            <span className="text-green-300 font-medium">
-              {generationStatus}
-            </span>
+                {/* Gallery View */}
+                {showHistory && (
+                  <div className="h-[600px] flex flex-col">
+                    {/* Search and Filters */}
+                    <div className="flex flex-col sm:flex-row gap-3 mb-6">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Input
+                          placeholder="Search images..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-10 bg-black/40 border-white/20 text-white h-12"
+                        />
+                      </div>
+                      <Select
+                        value={selectedCategory}
+                        onValueChange={setSelectedCategory}
+                      >
+                        <SelectTrigger className="w-full sm:w-40 bg-black/40 border-white/20 text-white h-12">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-black/90 border-white/10 text-white">
+                          {categories.map((category) => (
+                            <SelectItem key={category} value={category}>
+                              {category === "all"
+                                ? "All"
+                                : category.charAt(0).toUpperCase() +
+                                  category.slice(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Images Grid */}
+                    <div className="flex-1 overflow-y-auto">
+                      {filteredImages.length > 0 ? (
+                        <div className="grid grid-cols-2 gap-4">
+                          {filteredImages.slice(0, 20).map((image) => (
+                            <div
+                              key={image.id}
+                              className="group relative aspect-square cursor-pointer transition-all duration-200 hover:scale-105"
+                              onClick={() => {
+                                setSelectedImageForModal(image);
+                                setShowImageModal(true);
+                              }}
+                            >
+                              <ComfyUIImage
+                                image={image}
+                                alt={image.prompt}
+                                className="aspect-square border border-white/10"
+                              />
+
+                              {/* Overlay */}
+                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center rounded-lg">
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="bg-black/60 border-white/30 text-white hover:bg-white/20 w-10 h-10 p-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      downloadImage(image);
+                                    }}
+                                  >
+                                    <Download className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="bg-black/60 border-white/30 text-white hover:bg-white/20 w-10 h-10 p-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleBookmark(image.id);
+                                    }}
+                                  >
+                                    <Star
+                                      className={`w-4 h-4 ${
+                                        image.isBookmarked
+                                          ? "fill-yellow-400 text-yellow-400"
+                                          : ""
+                                      }`}
+                                    />
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="bg-black/60 border-white/30 text-white hover:bg-white/20 w-10 h-10 p-0"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedImageForModal(image);
+                                      setShowImageModal(true);
+                                    }}
+                                  >
+                                    <Maximize2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {/* Status Indicators */}
+                              <div className="absolute top-2 right-2 flex gap-1">
+                                {image.isBookmarked && (
+                                  <div className="w-7 h-7 rounded-full bg-yellow-500/20 border border-yellow-400/50 flex items-center justify-center">
+                                    <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                                  </div>
+                                )}
+                                {image.isInVault && (
+                                  <div className="w-7 h-7 rounded-full bg-green-500/20 border border-green-400/50 flex items-center justify-center">
+                                    <FolderOpen className="w-3 h-3 text-green-400" />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex-1 flex items-center justify-center text-center">
+                          <div className="space-y-4">
+                            <Grid className="w-16 h-16 mx-auto text-gray-600" />
+                            <div>
+                              <p className="text-gray-400 mb-2">
+                                No images found
+                              </p>
+                              <p className="text-gray-500 text-sm">
+                                {searchQuery || selectedCategory !== "all"
+                                  ? "Try adjusting your search or filter"
+                                  : "Generate some images to see them here"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
-      )}
+
+        {/* Success Status */}
+        {generationStatus && !error && (
+          <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-3">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <div>
+                  <h3 className="font-medium text-white mb-1">
+                    Generation Status
+                  </h3>
+                  <p className="text-gray-300">{generationStatus}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* Image Detail Modal */}
       {showImageModal && selectedImageForModal && (

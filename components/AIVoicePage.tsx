@@ -84,7 +84,7 @@ const AIVoicePage = () => {
   const [isLoadingHistoryAudio, setIsLoadingHistoryAudio] = useState(false);
   const [historyAudio, setHistoryAudio] = useState<HistoryAudio | null>(null);
   const [historyError, setHistoryError] = useState("");
-  const [showHistory, setShowHistory] = useState(false); // Toggle state for history
+  const [showHistory, setShowHistory] = useState(false);
   const [speakerBoost, setSpeakerBoost] = useState(true);
 
   const [audioNo, setAudioNo] = useState<number>(1);
@@ -102,17 +102,16 @@ const AIVoicePage = () => {
       setIsLoadingHistory(true);
       setHistoryError("");
 
-      // Fetch history from ElevenLabs API without pagination (large page size)
       const result = await fetchHistoryFromElevenLabs(
         selectedApiKeyProfile,
         selectedVoice,
-        100, // Get all history items at once (or the maximum allowed)
+        100,
         1,
         forceRefresh
       );
 
       setHistoryEntries(result.items || []);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Error loading history:", error);
       setHistoryError("Failed to load history from ElevenLabs");
@@ -122,9 +121,8 @@ const AIVoicePage = () => {
   };
 
   const reloadHistoryWithDelay = async () => {
-    // Wait for 1 second to give the ElevenLabs API time to update
     setTimeout(() => {
-      loadHistory(true); // Force refresh from API
+      loadHistory(true);
     }, 1000);
   };
 
@@ -149,7 +147,6 @@ const AIVoicePage = () => {
     setGenerationStatus("Generating voice with ElevenLabs...");
 
     try {
-      // Get the selected voice
       const selectedVoiceDetails = availableVoices.find(
         (voice) => voice.voiceId === selectedVoice
       );
@@ -178,11 +175,9 @@ const AIVoicePage = () => {
       });
       setGenerationStatus("Voice generated successfully!");
 
-      // Refresh balance after generation
       const balance = await checkApiKeyBalance(selectedApiKeyProfile);
       setApiKeyBalance(balance);
 
-      // Refresh history
       reloadHistoryWithDelay();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
@@ -198,22 +193,24 @@ const AIVoicePage = () => {
     try {
       setIsLoadingHistoryAudio(true);
       setSelectedHistoryItem(historyItem);
-      setHistoryError('');
+      setHistoryError("");
 
-      // Get audio for this history item
       const audio = await getHistoryAudio(
         selectedApiKeyProfile,
         historyItem.history_item_id
       );
       setHistoryAudio(audio);
 
-      // Play it
       setTimeout(() => {
         if (historyAudioRef.current) {
-          historyAudioRef.current.play();
+          historyAudioRef.current
+            .play()
+            .catch((err) =>
+              console.error("Failed to play history audio:", err)
+            );
         }
       }, 100);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Error playing history audio:", error);
       setHistoryError("Failed to load audio from history");
@@ -223,7 +220,7 @@ const AIVoicePage = () => {
   };
 
   const handleRefreshHistory = () => {
-    loadHistory(true); // Force refresh of history
+    loadHistory(true);
   };
 
   const handleStopHistoryAudio = () => {
@@ -237,7 +234,8 @@ const AIVoicePage = () => {
     if (historyAudio?.audioBlob) {
       downloadAudio(
         historyAudio.audioBlob,
-        `${historyItem.voice_name || "voice"}-${historyItem.history_item_id
+        `${historyItem.voice_name || "voice"}-${
+          historyItem.history_item_id
         }.mp3`
       );
     }
@@ -253,8 +251,11 @@ const AIVoicePage = () => {
   };
 
   const handlePlayAudio = () => {
+    console.log("Trying to play audio:", generatedAudio?.audioUrl);
     if (audioRef.current && generatedAudio?.audioUrl) {
-      audioRef.current.play();
+      audioRef.current
+        .play()
+        .catch((err) => console.error("Failed to play audio:", err));
     }
   };
 
@@ -265,52 +266,46 @@ const AIVoicePage = () => {
     }
   };
 
-   const handleUseHistoryText = (historyItem: HistoryItem) => {
-    // Still set the text
+  const handleUseHistoryText = (historyItem: HistoryItem) => {
     setVoiceText(historyItem.text);
 
-    // Try to get stored parameters for this history item
     const storedParams = getVoiceParameters(historyItem.history_item_id);
 
     if (storedParams) {
-      // Apply the stored parameters
       if (storedParams.stability !== undefined)
         setStability(storedParams.stability);
       if (storedParams.clarity !== undefined) setClarity(storedParams.clarity);
       if (storedParams.speed !== undefined) setSpeed(storedParams.speed);
-      if (storedParams.styleExaggeration !== undefined) setStyleExaggeration(storedParams.styleExaggeration);
-      if (storedParams.speakerBoost !== undefined) setSpeakerBoost(storedParams.speakerBoost);
-      if (storedParams.modelId !== undefined) setSelectedModelId(storedParams.modelId);
+      if (storedParams.styleExaggeration !== undefined)
+        setStyleExaggeration(storedParams.styleExaggeration);
+      if (storedParams.speakerBoost !== undefined)
+        setSpeakerBoost(storedParams.speakerBoost);
+      if (storedParams.modelId !== undefined)
+        setSelectedModelId(storedParams.modelId);
 
-      // Show a success notification
       setGenerationStatus(`Voice parameters restored from history`);
       setTimeout(() => setGenerationStatus(""), 3000);
     } else {
-      // If no parameters found, let the user know
       setGenerationStatus(`No saved parameters found for this history item`);
       setTimeout(() => setGenerationStatus(""), 3000);
     }
   };
 
-   useEffect(() => {
+  useEffect(() => {
     const fetchApiData = async () => {
       if (!selectedApiKeyProfile) return;
 
-
-      setVoiceError('');
+      setVoiceError("");
 
       try {
-        // Fetch balance
         const balance = await checkApiKeyBalance(selectedApiKeyProfile);
         setApiKeyBalance(balance);
 
-        // Get voices for the selected profile
         const profileVoices = getVoicesForProfile(selectedApiKeyProfile);
         setAvailableVoices(profileVoices);
 
-        // Reset selected voice when changing profiles
         setSelectedVoice(profileVoices[0]?.voiceId || "");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         console.error("Error fetching API data:", error);
         setApiKeyBalance({
@@ -323,7 +318,6 @@ const AIVoicePage = () => {
         });
         setVoiceError("There was an issue connecting to the API.");
       } finally {
-
       }
     };
 
@@ -331,559 +325,622 @@ const AIVoicePage = () => {
   }, [selectedApiKeyProfile]);
 
   return (
-    <div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
-          <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <CardTitle className="text-white">
-                Professional AI Voice Generation
-              </CardTitle>
-              <CardDescription className="text-gray-400">
-                Convert text to high-quality professional voices using
-                ElevenLabs
-              </CardDescription>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header Section */}
+        <div className="text-center space-y-4">
+          <h1 className="text-4xl font-bold text-white mb-2">
+            Professional AI Voice Generation
+          </h1>
+          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+            Convert text to high-quality professional voices using ElevenLabs
+          </p>
+        </div>
 
-            {/* API Profile Selection with status indicator */}
-            <div className="min-w-48">
-              <Select
-                value={selectedApiKeyProfile}
-                onValueChange={setSelectedApiKeyProfile}
-              >
-                <SelectTrigger className="bg-black/60 border-white/10 text-white rounded-lg w-full">
-                  <SelectValue placeholder="Select API profile" />
-                </SelectTrigger>
-                <SelectContent className="bg-black/90 border-white/10 text-white">
-                  {Object.entries(API_KEY_PROFILES).map(([key, profile]) => (
-                    <SelectItem
-                      key={key}
-                      value={key}
-                      className="flex items-center"
-                    >
-                      {profile.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        {/* API Profile & Balance Card */}
+        <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+          <CardContent className="p-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div className="flex-1">
+                <Label className="text-gray-300 text-sm font-medium">
+                  API Profile
+                </Label>
+                <Select
+                  value={selectedApiKeyProfile}
+                  onValueChange={setSelectedApiKeyProfile}
+                >
+                  <SelectTrigger className="bg-black/60 border-white/10 text-white rounded-lg mt-2 w-full md:w-80">
+                    <SelectValue placeholder="Select API profile" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-black/90 border-white/10 text-white">
+                    {Object.entries(API_KEY_PROFILES).map(([key, profile]) => (
+                      <SelectItem key={key} value={key}>
+                        {profile.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
               {apiKeyBalance && (
-                <div className="mt-2 flex items-center justify-between text-xs">
-                  <div className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-green-900/30 text-green-300 border border-green-500/30">
-                    <Check size={10} className="mr-1" />
-                    Active
+                <div className="flex flex-col items-end space-y-2">
+                  <div className="inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold bg-green-900/30 text-green-300 border border-green-500/30">
+                    <Check size={14} className="mr-2" />
+                    API Connected
                   </div>
-                  <span className="text-gray-300">
-                    {apiKeyBalance?.character?.remaining !== undefined
-                      ? apiKeyBalance.character.remaining.toLocaleString()
-                      : "N/A"}{" "}
-                    characters left
-                  </span>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-400">
+                      Characters remaining
+                    </p>
+                    <p className="text-lg font-semibold text-white">
+                      {apiKeyBalance?.character?.remaining !== undefined
+                        ? apiKeyBalance.character.remaining.toLocaleString()
+                        : "N/A"}
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
-          </CardHeader>
-
-          <CardContent className="space-y-5">
-            {/* Voice selection with available voices from the current profile */}
-            <div>
-              <Label
-                htmlFor="voice-selection"
-                className="text-gray-300 mb-1 block"
-              >
-                Select Voice ({availableVoices.length} available)
-              </Label>
-              <Select
-                value={selectedVoice}
-                onValueChange={setSelectedVoice}
-                disabled={availableVoices.length === 0}
-              >
-                <SelectTrigger className="bg-black/60 border-white/10 text-white rounded-lg">
-                  <SelectValue placeholder="Select a voice" />
-                </SelectTrigger>
-                <SelectContent className="bg-black/90 border-white/10 text-white max-h-72">
-                  {availableVoices.map((voice) => (
-                    <SelectItem
-                      key={voice.voiceId}
-                      value={voice.voiceId}
-                      className="flex items-center justify-between py-2"
-                    >
-                      {voice.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Model selection */}
-            <div>
-              <Label
-                htmlFor="model-selection"
-                className="text-gray-300 mb-1 block"
-              >
-                Select AI Model
-              </Label>
-              <Select
-                value={selectedModelId}
-                onValueChange={setSelectedModelId}
-              >
-                <SelectTrigger className="bg-black/60 border-white/10 text-white rounded-lg">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-black/90 border-white/10 text-white">
-                  {ELEVEN_LABS_MODELS.map((model) => (
-                    <SelectItem key={model.id} value={model.id}>
-                      {model.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-400 mt-1">
-                {ELEVEN_LABS_MODELS.find((m) => m.id === selectedModelId)
-                  ?.description || ""}
-              </p>
-            </div>
-
-            {/* Text input */}
-            <div>
-              <Label htmlFor="voice-text" className="text-gray-300 mb-1 block">
-                Voice Text
-              </Label>
-              <Textarea
-                id="voice-text"
-                placeholder="Enter text to convert to speech"
-                value={voiceText}
-                onChange={(e) => setVoiceText(e.target.value)}
-                maxLength={characterLimit}
-                className="bg-black/60 border-white/10 text-white rounded-lg min-h-24"
-              />
-              <div className="text-right text-xs text-gray-400 mt-1">
-                {voiceText.length}/{characterLimit} characters
-              </div>
-            </div>
-
-            <div className="flex gap-2 -mt-5">
-              <Label className="text-gray-300">Audio No:</Label>
-              <Input
-                value={audioNo}
-                onChange={(e) => {
-                  setAudioNo(Number(e.target.value));
-                }}
-                type="number"
-                min={1}
-                className="w-[70px] bg-black/60 border-white/10 text-white rounded-l"
-              />
-            </div>
-
-            {/* Voice parameters */}
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <Label className="text-gray-300">
-                    Stability: {stability.toFixed(2)}
-                  </Label>
-                </div>
-                <Slider
-                  value={[stability]}
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  onValueChange={(value) => setStability(value[0])}
-                  className="py-2"
-                />
-                <p className="text-xs text-gray-400 mt-1">
-                  Higher values make the voice more consistent between
-                  generations
-                </p>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <Label className="text-gray-300">
-                    Similarity: {clarity.toFixed(2)}
-                  </Label>
-                </div>
-                <Slider
-                  value={[clarity]}
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  onValueChange={(value) => setClarity(value[0])}
-                  className="py-2"
-                />
-                <p className="text-xs text-gray-400 mt-1">
-                  Higher values make the voice more similar to the original
-                  voice
-                </p>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <Label className="text-gray-300">
-                    Speed: {speed.toFixed(2)}x
-                  </Label>
-                </div>
-                <Slider
-                  value={[speed]}
-                  min={0.7}
-                  max={1.2}
-                  step={0.01}
-                  onValueChange={(value) => setSpeed(value[0])}
-                  className="py-2"
-                />
-                <p className="text-xs text-gray-400 mt-1">
-                  Adjust speaking speed (0.7x slower to 1.2x faster)
-                </p>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <Label className="text-gray-300">
-                    Style Exaggeration: {styleExaggeration.toFixed(2)}
-                  </Label>
-                </div>
-                <Slider
-                  value={[styleExaggeration]}
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  onValueChange={(value) => setStyleExaggeration(value[0])}
-                  className="py-2"
-                />
-                <p className="text-xs text-gray-400 mt-1">
-                  Higher values emphasize the voice style more strongly
-                </p>
-              </div>
-            </div>
-
-            {voiceError && (
-              <Alert
-                variant="destructive"
-                className="bg-red-900/20 border-red-500/30 text-red-200"
-              >
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{voiceError}</AlertDescription>
-              </Alert>
-            )}
           </CardContent>
-          <CardFooter>
-            <Button
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg"
-              onClick={handleGenerateVoice}
-              disabled={
-                isGeneratingVoice ||
-                !selectedApiKeyProfile ||
-                !selectedVoice ||
-                !voiceText.trim()
-              }
-            >
-              {isGeneratingVoice
-                ? "Generating..."
-                : "Generate Professional Voice"}
-            </Button>
-          </CardFooter>
         </Card>
 
-        {/* Preview card with history moved here */}
-        <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
-          <CardHeader>
-            <CardTitle className="text-white flex justify-between items-center">
-              <span>Voice Preview</span>
-              <div className="flex space-x-2">
-                {selectedVoice && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-black/60 border-white/10 text-white hover:bg-black/80 flex items-center h-7 px-2"
-                      onClick={() => setShowHistory(!showHistory)}
-                    >
-                      <Clock size={12} className="mr-1" />
-                      {showHistory ? "Hide History" : "Show History"}
-                    </Button>
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+          {/* Voice Generation Panel */}
+          <div className="space-y-6">
+            {/* Voice & Model Selection */}
+            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-white">Voice Selection</CardTitle>
+                <CardDescription className="text-gray-400">
+                  Choose your voice and AI model
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div>
+                  <Label className="text-gray-300 mb-3 block font-medium">
+                    Select Voice ({availableVoices.length} available)
+                  </Label>
+                  <Select
+                    value={selectedVoice}
+                    onValueChange={setSelectedVoice}
+                    disabled={availableVoices.length === 0}
+                  >
+                    <SelectTrigger className="bg-black/60 border-white/10 text-white rounded-lg h-12">
+                      <SelectValue placeholder="Select a voice" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-black/90 border-white/10 text-white max-h-72">
+                      {availableVoices.map((voice) => (
+                        <SelectItem key={voice.voiceId} value={voice.voiceId}>
+                          {voice.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                    {showHistory && (
+                <div>
+                  <Label className="text-gray-300 mb-3 block font-medium">
+                    AI Model
+                  </Label>
+                  <Select
+                    value={selectedModelId}
+                    onValueChange={setSelectedModelId}
+                  >
+                    <SelectTrigger className="bg-black/60 border-white/10 text-white rounded-lg h-12">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-black/90 border-white/10 text-white">
+                      {ELEVEN_LABS_MODELS.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          {model.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-gray-400 mt-2">
+                    {ELEVEN_LABS_MODELS.find((m) => m.id === selectedModelId)
+                      ?.description || ""}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Text Input */}
+            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-white">Voice Text</CardTitle>
+                <CardDescription className="text-gray-400">
+                  Enter the text you want to convert to speech
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Textarea
+                  placeholder="Enter text to convert to speech..."
+                  value={voiceText}
+                  onChange={(e) => setVoiceText(e.target.value)}
+                  maxLength={characterLimit}
+                  className="bg-black/60 border-white/10 text-white rounded-lg min-h-32 text-base leading-relaxed"
+                />
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-4">
+                    <Label className="text-gray-300">Audio No:</Label>
+                    <Input
+                      value={audioNo}
+                      onChange={(e) => setAudioNo(Number(e.target.value))}
+                      type="number"
+                      min={1}
+                      className="w-20 bg-black/60 border-white/10 text-white rounded-lg"
+                    />
+                  </div>
+                  <div className="text-sm text-gray-400">
+                    {voiceText.length}/{characterLimit} characters
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Voice Parameters */}
+            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-white">Voice Parameters</CardTitle>
+                <CardDescription className="text-gray-400">
+                  Fine-tune your voice generation settings
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <div className="flex justify-between items-center mb-3">
+                      <Label className="text-gray-300 font-medium">
+                        Stability
+                      </Label>
+                      <span className="text-sm text-purple-300 font-mono">
+                        {stability.toFixed(2)}
+                      </span>
+                    </div>
+                    <Slider
+                      value={[stability]}
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      onValueChange={(value) => setStability(value[0])}
+                      className="py-2"
+                    />
+                    <p className="text-xs text-gray-400 mt-2">
+                      Higher values make the voice more consistent between
+                      generations
+                    </p>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-3">
+                      <Label className="text-gray-300 font-medium">
+                        Similarity
+                      </Label>
+                      <span className="text-sm text-purple-300 font-mono">
+                        {clarity.toFixed(2)}
+                      </span>
+                    </div>
+                    <Slider
+                      value={[clarity]}
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      onValueChange={(value) => setClarity(value[0])}
+                      className="py-2"
+                    />
+                    <p className="text-xs text-gray-400 mt-2">
+                      Higher values make the voice more similar to the original
+                      voice
+                    </p>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-3">
+                      <Label className="text-gray-300 font-medium">Speed</Label>
+                      <span className="text-sm text-purple-300 font-mono">
+                        {speed.toFixed(2)}x
+                      </span>
+                    </div>
+                    <Slider
+                      value={[speed]}
+                      min={0.7}
+                      max={1.2}
+                      step={0.01}
+                      onValueChange={(value) => setSpeed(value[0])}
+                      className="py-2"
+                    />
+                    <p className="text-xs text-gray-400 mt-2">
+                      Adjust speaking speed (0.7x slower to 1.2x faster)
+                    </p>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-3">
+                      <Label className="text-gray-300 font-medium">
+                        Style Exaggeration
+                      </Label>
+                      <span className="text-sm text-purple-300 font-mono">
+                        {styleExaggeration.toFixed(2)}
+                      </span>
+                    </div>
+                    <Slider
+                      value={[styleExaggeration]}
+                      min={0}
+                      max={1}
+                      step={0.01}
+                      onValueChange={(value) => setStyleExaggeration(value[0])}
+                      className="py-2"
+                    />
+                    <p className="text-xs text-gray-400 mt-2">
+                      Higher values emphasize the voice style more strongly
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Generate Button */}
+            <div className="space-y-4">
+              {voiceError && (
+                <Alert
+                  variant="destructive"
+                  className="bg-red-900/20 border-red-500/30 text-red-200"
+                >
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{voiceError}</AlertDescription>
+                </Alert>
+              )}
+
+              <Button
+                className="w-full h-14 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl text-lg font-semibold"
+                onClick={handleGenerateVoice}
+                disabled={
+                  isGeneratingVoice ||
+                  !selectedApiKeyProfile ||
+                  !selectedVoice ||
+                  !voiceText.trim()
+                }
+              >
+                {isGeneratingVoice ? (
+                  <>
+                    <Loader2 size={20} className="mr-3 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Volume2 size={20} className="mr-3" />
+                    Generate Professional Voice
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          {/* Preview & History Panel */}
+          <div className="space-y-6">
+            {/* Voice Preview */}
+            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-white">Voice Preview</CardTitle>
+                <CardDescription className="text-gray-400">
+                  Listen to and download your generated voice
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {generatedAudio ? (
+                  <div className="text-center space-y-6">
+                    <div className="bg-gradient-to-br from-purple-600/20 to-blue-600/20 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
+                      <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center mb-4">
+                        <Volume2 size={40} className="text-white" />
+                      </div>
+                      <h3 className="text-xl font-semibold text-white mb-2">
+                        {generatedAudio.voiceName}
+                      </h3>
+                      <p className="text-gray-300 leading-relaxed max-w-md mx-auto">
+                        {voiceText.length > 100
+                          ? voiceText.substring(0, 100) + "..."
+                          : voiceText}
+                      </p>
+                      {generatedAudio.profile && (
+                        <div className="mt-4 inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold bg-purple-800/50 border border-purple-400/30">
+                          {generatedAudio.profile}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex justify-center gap-4">
+                      <Button
+                        variant="outline"
+                        className="bg-white/10 border-white/20 hover:bg-white/20 text-white px-6"
+                        onClick={handlePlayAudio}
+                      >
+                        <Play size={16} className="mr-2" /> Play
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="bg-white/10 border-white/20 hover:bg-white/20 text-white px-6"
+                        onClick={handleStopAudio}
+                      >
+                        <X size={16} className="mr-2" /> Stop
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="bg-white/10 border-white/20 hover:bg-white/20 text-white px-6"
+                        onClick={handleDownloadAudio}
+                      >
+                        <Download size={16} className="mr-2" /> Download
+                      </Button>
+                    </div>
+                  </div>
+                ) : selectedHistoryItem && historyAudio ? (
+                  <div className="text-center space-y-6">
+                    <div className="bg-gradient-to-br from-purple-600/20 to-blue-600/20 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
+                      <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center mb-4">
+                        <Volume2 size={40} className="text-white" />
+                      </div>
+                      <h3 className="text-xl font-semibold text-white mb-2">
+                        {selectedHistoryItem.voice_name || "Voice"}
+                      </h3>
+                      <p className="text-gray-300 leading-relaxed max-w-md mx-auto">
+                        {selectedHistoryItem.text &&
+                        selectedHistoryItem.text.length > 100
+                          ? selectedHistoryItem.text.substring(0, 100) + "..."
+                          : selectedHistoryItem.text || ""}
+                      </p>
+                      <div className="mt-4 inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold bg-blue-800/50 border border-blue-400/30">
+                        History Item
+                      </div>
+                    </div>
+
+                    <div className="flex justify-center gap-4">
+                      <Button
+                        variant="outline"
+                        className="bg-white/10 border-white/20 hover:bg-white/20 text-white px-6"
+                        onClick={() =>
+                          historyAudioRef.current &&
+                          historyAudioRef.current.play()
+                        }
+                      >
+                        <Play size={16} className="mr-2" /> Play
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="bg-white/10 border-white/20 hover:bg-white/20 text-white px-6"
+                        onClick={handleStopHistoryAudio}
+                      >
+                        <X size={16} className="mr-2" /> Stop
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="bg-white/10 border-white/20 hover:bg-white/20 text-white px-6"
+                        onClick={() =>
+                          handleDownloadHistoryAudio(selectedHistoryItem)
+                        }
+                      >
+                        <Download size={16} className="mr-2" /> Download
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Mic size={64} className="mx-auto mb-4 text-gray-500" />
+                    <h3 className="text-lg font-medium text-gray-300 mb-2">
+                      No Audio Generated Yet
+                    </h3>
+                    <p className="text-gray-400">
+                      {!selectedVoice
+                        ? "Select a voice to get started"
+                        : "Generated voice will appear here"}
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Voice History */}
+            {selectedVoice && (
+              <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-white flex items-center">
+                        <Clock size={20} className="mr-2" />
+                        Voice History
+                      </CardTitle>
+                      <CardDescription className="text-gray-400">
+                        Previous generations for this voice
+                      </CardDescription>
+                    </div>
+                    <div className="flex gap-3">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="bg-black/60 border-white/10 text-white hover:bg-black/80 flex items-center h-7 px-2"
-                        onClick={handleRefreshHistory}
-                        disabled={isLoadingHistory}
+                        className="bg-black/60 border-white/10 text-white hover:bg-black/80"
+                        onClick={() => setShowHistory(!showHistory)}
                       >
-                        {isLoadingHistory ? (
-                          <Loader2 size={12} className="mr-1 animate-spin" />
-                        ) : (
-                          <RefreshCw size={12} className="mr-1" />
-                        )}
-                        Refresh
+                        {showHistory ? "Hide" : "Show"}
                       </Button>
-                    )}
-                  </>
-                )}
-              </div>
-            </CardTitle>
-            <CardDescription className="text-gray-400">
-              Listen to and download generated voice
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent className="flex flex-col h-96">
-            {" "}
-            {/* Fixed height container with room for history toggle */}
-            {/* Active preview section */}
-            {generatedAudio ? (
-              <div className="w-full text-center mb-4">
-                <div className="bg-black/50 backdrop-blur-sm rounded-xl p-4 mb-4 border border-white/10">
-                  <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center mb-3">
-                    <Volume2 size={32} className="text-white" />
-                  </div>
-                  <p className="text-white mb-1 font-medium">
-                    {generatedAudio.voiceName}
-                  </p>
-                  <p className="text-sm text-gray-400 line-clamp-2">
-                    {voiceText.length > 60
-                      ? voiceText.substring(0, 60) + "..."
-                      : voiceText}
-                  </p>
-                  {generatedAudio.profile && (
-                    <div className="mt-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold bg-purple-800/50 border border-purple-400/30">
-                      {generatedAudio.profile}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex justify-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-white/5 border-white/10 hover:bg-white/10"
-                    onClick={handlePlayAudio}
-                  >
-                    <Play size={14} className="mr-1" /> Play
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-white/5 border-white/10 hover:bg-white/10"
-                    onClick={handleStopAudio}
-                  >
-                    <X size={14} className="mr-1" /> Stop
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-white/5 border-white/10 hover:bg-white/10"
-                    onClick={handleDownloadAudio}
-                  >
-                    <Download size={14} className="mr-1" /> Download
-                  </Button>
-                </div>
-              </div>
-            ) : selectedHistoryItem && historyAudio ? (
-              <div className="w-full text-center mb-4">
-                <div className="bg-black/50 backdrop-blur-sm rounded-xl p-4 mb-4 border border-white/10">
-                  <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center mb-3">
-                    <Volume2 size={32} className="text-white" />
-                  </div>
-                  <p className="text-white mb-1 font-medium">
-                    {selectedHistoryItem.voice_name || "Voice"}
-                  </p>
-                  <p className="text-sm text-gray-400 line-clamp-2">
-                    {selectedHistoryItem.text &&
-                    selectedHistoryItem.text.length > 60
-                      ? selectedHistoryItem.text.substring(0, 60) + "..."
-                      : selectedHistoryItem.text || ""}
-                  </p>
-                  <div className="mt-2 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold bg-purple-800/50 border border-purple-400/30">
-                    History Item
-                  </div>
-                </div>
-
-                <div className="flex justify-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-white/5 border-white/10 hover:bg-white/10"
-                    onClick={() =>
-                      historyAudioRef.current && historyAudioRef.current.play()
-                    }
-                  >
-                    <Play size={14} className="mr-1" /> Play
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-white/5 border-white/10 hover:bg-white/10"
-                    onClick={handleStopHistoryAudio}
-                  >
-                    <X size={14} className="mr-1" /> Stop
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-white/5 border-white/10 hover:bg-white/10"
-                    onClick={() =>
-                      handleDownloadHistoryAudio(selectedHistoryItem)
-                    }
-                  >
-                    <Download size={14} className="mr-1" /> Download
-                  </Button>
-                </div>
-              </div>
-            ) : !selectedVoice ? (
-              <div className="text-center text-gray-400 p-8">
-                <Mic size={48} className="mx-auto mb-3 opacity-50" />
-                <p>Generated voice will appear here</p>
-                <p className="text-xs text-gray-500 mt-2">
-                  Select a voice first
-                </p>
-              </div>
-            ) : null}
-            {/* Voice History Section - now toggleable and scrollable */}
-            {selectedVoice && showHistory && (
-              <div className="flex-1 mt-4">
-                <div className="flex items-center mb-2">
-                  <Clock size={14} className="mr-2 text-gray-400" />
-                  <h3 className="text-sm font-medium text-gray-300">History</h3>
-
-                  {isLoadingHistory && (
-                    <div className="flex items-center text-xs text-purple-300 ml-2">
-                      <Loader2 size={12} className="mr-1 animate-spin" />
-                      Loading...
-                    </div>
-                  )}
-                </div>
-
-                {historyError && (
-                  <Alert
-                    variant="destructive"
-                    className="mb-3 bg-red-900/20 border-red-500/30 text-red-200"
-                  >
-                    <AlertDescription>{historyError}</AlertDescription>
-                  </Alert>
-                )}
-
-                {/* Scrollable history list */}
-                <div className="overflow-y-auto max-h-56 border border-white/10 rounded-lg bg-black/40 p-2">
-                  {isLoadingHistory && historyEntries.length === 0 ? (
-                    <div className="flex justify-center items-center p-8">
-                      <Loader2
-                        size={24}
-                        className="animate-spin text-purple-400"
-                      />
-                    </div>
-                  ) : historyEntries.length > 0 ? (
-                    <Accordion type="single" collapsible className="w-full">
-                      {historyEntries.map((item) => (
-                        <AccordionItem
-                          key={item.history_item_id}
-                          value={item.history_item_id}
-                          className="border-white/10"
+                      {showHistory && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="bg-black/60 border-white/10 text-white hover:bg-black/80"
+                          onClick={handleRefreshHistory}
+                          disabled={isLoadingHistory}
                         >
-                          <AccordionTrigger className="text-sm hover:no-underline py-2">
-                            <div className="flex items-center text-left w-full">
-                              <span className="truncate max-w-[150px] text-xs text-gray-300">
-                                {truncateText(item.text)}
-                              </span>
-                              <span className="ml-auto text-xs text-gray-500">
-                                {formatDate(item.date_unix * 1000)}
-                              </span>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <div className="bg-black/20 p-2 rounded-md space-y-2 text-xs">
-                              <p className="text-gray-300">{item.text}</p>
-                              <p className="text-gray-400">
-                                Generated: {formatDate(item.date_unix * 1000)}
-                              </p>
-
-                              {/* Add indicator for available parameters */}
-                              {getVoiceParameters(item.history_item_id) && (
-                                <div className="mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold bg-green-800/50 border border-green-400/30">
-                                  <Check size={8} className="mr-1" /> Parameters
-                                  Available
-                                </div>
-                              )}
-
-                              <div className="flex flex-wrap gap-1 mt-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="bg-white/5 border-white/10 hover:bg-white/10 text-xs h-7 px-2"
-                                  onClick={() => handlePlayHistoryAudio(item)}
-                                  disabled={
-                                    isLoadingHistoryAudio &&
-                                    selectedHistoryItem?.history_item_id ===
-                                      item.history_item_id
-                                  }
-                                >
-                                  {isLoadingHistoryAudio &&
-                                  selectedHistoryItem?.history_item_id ===
-                                    item.history_item_id ? (
-                                    <>
-                                      <Loader2
-                                        size={10}
-                                        className="mr-1 animate-spin"
-                                      />{" "}
-                                      Load
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Play size={10} className="mr-1" /> Play
-                                    </>
-                                  )}
-                                </Button>
-                                {/* Pass entire item instead of just text */}
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="bg-white/5 border-white/10 hover:bg-white/10 text-xs h-7 px-2"
-                                  onClick={() => handleUseHistoryText(item)}
-                                >
-                                  <RefreshCw size={10} className="mr-1" /> Use
-                                </Button>
-                                {selectedHistoryItem?.history_item_id ===
-                                  item.history_item_id &&
-                                  historyAudio && (
-                                    <>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="bg-white/5 border-white/10 hover:bg-white/10 text-xs h-7 px-2"
-                                        onClick={handleStopHistoryAudio}
-                                      >
-                                        <X size={10} className="mr-1" /> Stop
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="bg-white/5 border-white/10 hover:bg-white/10 text-xs h-7 px-2"
-                                        onClick={() =>
-                                          handleDownloadHistoryAudio(item)
-                                        }
-                                      >
-                                        <Download size={10} className="mr-1" />{" "}
-                                        DL
-                                      </Button>
-                                    </>
-                                  )}
-                              </div>
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      ))}
-                    </Accordion>
-                  ) : (
-                    <div className="text-center py-6 text-gray-400">
-                      <p>No history found for this voice.</p>
-                      <p className="text-xs mt-2">
-                        Generate some audio to see it in your history.
-                      </p>
+                          {isLoadingHistory ? (
+                            <Loader2 size={14} className="mr-1 animate-spin" />
+                          ) : (
+                            <RefreshCw size={14} className="mr-1" />
+                          )}
+                          Refresh
+                        </Button>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
+                  </div>
+                </CardHeader>
+
+                {showHistory && (
+                  <CardContent>
+                    {historyError && (
+                      <Alert
+                        variant="destructive"
+                        className="mb-4 bg-red-900/20 border-red-500/30 text-red-200"
+                      >
+                        <AlertDescription>{historyError}</AlertDescription>
+                      </Alert>
+                    )}
+
+                    <div className="max-h-96 overflow-y-auto border border-white/10 rounded-lg bg-black/40 p-4">
+                      {isLoadingHistory && historyEntries.length === 0 ? (
+                        <div className="flex justify-center items-center py-12">
+                          <Loader2
+                            size={32}
+                            className="animate-spin text-purple-400"
+                          />
+                        </div>
+                      ) : historyEntries.length > 0 ? (
+                        <Accordion
+                          type="single"
+                          collapsible
+                          className="w-full space-y-2"
+                        >
+                          {historyEntries.map((item) => (
+                            <AccordionItem
+                              key={item.history_item_id}
+                              value={item.history_item_id}
+                              className="border-white/10 bg-black/20 rounded-lg px-4"
+                            >
+                              <AccordionTrigger className="hover:no-underline py-4">
+                                <div className="flex items-center justify-between w-full text-left">
+                                  <div className="flex-1 mr-4">
+                                    <p className="text-sm text-gray-300 truncate max-w-xs">
+                                      {truncateText(item.text, 50)}
+                                    </p>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    {getVoiceParameters(
+                                      item.history_item_id
+                                    ) && (
+                                      <div className="inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold bg-green-800/50 border border-green-400/30">
+                                        <Check size={8} className="mr-1" />
+                                        Params
+                                      </div>
+                                    )}
+                                    <span className="text-xs text-gray-500">
+                                      {formatDate(item.date_unix * 1000)}
+                                    </span>
+                                  </div>
+                                </div>
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                <div className="bg-black/30 p-4 rounded-lg space-y-4">
+                                  <p className="text-sm text-gray-300 leading-relaxed">
+                                    {item.text}
+                                  </p>
+                                  <p className="text-xs text-gray-400">
+                                    Generated:{" "}
+                                    {formatDate(item.date_unix * 1000)}
+                                  </p>
+
+                                  <div className="flex flex-wrap gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="bg-white/5 border-white/10 hover:bg-white/10 text-white"
+                                      onClick={() =>
+                                        handlePlayHistoryAudio(item)
+                                      }
+                                      disabled={
+                                        isLoadingHistoryAudio &&
+                                        selectedHistoryItem?.history_item_id ===
+                                          item.history_item_id
+                                      }
+                                    >
+                                      {isLoadingHistoryAudio &&
+                                      selectedHistoryItem?.history_item_id ===
+                                        item.history_item_id ? (
+                                        <>
+                                          <Loader2
+                                            size={12}
+                                            className="mr-1 animate-spin"
+                                          />
+                                          Loading
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Play size={12} className="mr-1" />
+                                          Play
+                                        </>
+                                      )}
+                                    </Button>
+
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="bg-white/5 border-white/10 hover:bg-white/10 text-white"
+                                      onClick={() => handleUseHistoryText(item)}
+                                    >
+                                      <RefreshCw size={12} className="mr-1" />
+                                      Use Text
+                                    </Button>
+
+                                    {selectedHistoryItem?.history_item_id ===
+                                      item.history_item_id &&
+                                      historyAudio && (
+                                        <>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="bg-white/5 border-white/10 hover:bg-white/10 text-white"
+                                            onClick={handleStopHistoryAudio}
+                                          >
+                                            <X size={12} className="mr-1" />
+                                            Stop
+                                          </Button>
+                                          <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="bg-white/5 border-white/10 hover:bg-white/10 text-white"
+                                            onClick={() =>
+                                              handleDownloadHistoryAudio(item)
+                                            }
+                                          >
+                                            <Download
+                                              size={12}
+                                              className="mr-1"
+                                            />
+                                            Download
+                                          </Button>
+                                        </>
+                                      )}
+                                  </div>
+                                </div>
+                              </AccordionContent>
+                            </AccordionItem>
+                          ))}
+                        </Accordion>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Clock
+                            size={48}
+                            className="mx-auto mb-3 text-gray-500"
+                          />
+                          <p className="text-gray-400 mb-1">No history found</p>
+                          <p className="text-sm text-gray-500">
+                            Generate some audio to see it here
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
             )}
+
+            {/* Voice Note Card */}
             <VoiceNoteCard
               voiceText={voiceText}
               model={
@@ -892,15 +949,48 @@ const AIVoicePage = () => {
               }
               audioNo={audioNo}
             />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+
+        {/* Status Section */}
+        {generationStatus && !voiceError && (
+          <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="w-2 h-2 bg-green-400 rounded-full mr-3 animate-pulse"></div>
+                <div>
+                  <h3 className="font-medium text-white mb-1">
+                    Generation Status
+                  </h3>
+                  <p className="text-gray-300">{generationStatus}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
-      {generationStatus && !voiceError && (
-        <div className="mt-4 p-4 bg-black/40 backdrop-blur-md rounded-md border border-white/10">
-          <h3 className="font-medium mb-2">ElevenLabs Generation Status</h3>
-          <p>{generationStatus}</p>
-        </div>
+      {/* Audio Elements */}
+      {generatedAudio?.audioUrl && (
+        <audio
+          ref={audioRef}
+          src={generatedAudio.audioUrl}
+          preload="metadata"
+          style={{ display: "none" }}
+          onError={(e) => console.error("Audio error:", e)}
+          onLoadedData={() => console.log("Audio loaded successfully")}
+        />
+      )}
+
+      {historyAudio?.audioUrl && (
+        <audio
+          ref={historyAudioRef}
+          src={historyAudio.audioUrl}
+          preload="metadata"
+          style={{ display: "none" }}
+          onError={(e) => console.error("History audio error:", e)}
+          onLoadedData={() => console.log("History audio loaded successfully")}
+        />
       )}
     </div>
   );
