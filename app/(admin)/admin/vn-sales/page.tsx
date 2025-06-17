@@ -27,14 +27,19 @@ export default function VNSalesPage() {
   const [submitStatus, setSubmitStatus] = useState<{type: 'success' | 'error', message: string} | null>(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
-  // Static models for now
+  // Static models for now with voice name mapping
   const models = [
-    { id: "autumn", name: "Autumn" }
+    { id: "autumn", name: "OF Autumn", voiceName: "Autumn" }
   ];
 
   useEffect(() => {
     loadVoiceHistory();
   }, []);
+
+  // Reset voice note selection when model changes
+  useEffect(() => {
+    setSelectedVoiceNote("");
+  }, [selectedModel]);
 
   const loadVoiceHistory = async () => {
     try {
@@ -193,25 +198,39 @@ export default function VNSalesPage() {
                     )}
                   </Button>
                 </div>
-                <Select value={selectedVoiceNote} onValueChange={setSelectedVoiceNote}>
+                <Select value={selectedVoiceNote} onValueChange={setSelectedVoiceNote} disabled={!selectedModel}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Choose a voice note from history" />
+                    <SelectValue placeholder={!selectedModel ? "Select a model first" : "Choose a voice note from history"} />
                   </SelectTrigger>
                   <SelectContent className="max-h-60">
-                    {voiceHistory.map((item) => (
-                      <SelectItem key={item.history_item_id} value={item.history_item_id}>
-                        <div className="flex flex-col">
-                          <span className="font-medium">
-                            {truncateText(item.text, 40)}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            Generated: {formatDate(item.date_unix)} | Voice: {item.voice_name}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
+                    {voiceHistory
+                      .filter((item) => {
+                        if (!selectedModel) return false;
+                        const selectedModelData = models.find(m => m.id === selectedModel);
+                        return selectedModelData && item.voice_name === selectedModelData.voiceName;
+                      })
+                      .map((item) => (
+                        <SelectItem key={item.history_item_id} value={item.history_item_id}>
+                          <div className="flex flex-col">
+                            <span className="font-medium">
+                              {truncateText(item.text, 40)}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              Generated: {formatDate(item.date_unix)} | Voice: {item.voice_name}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
+                {selectedModel && voiceHistory.filter((item) => {
+                  const selectedModelData = models.find(m => m.id === selectedModel);
+                  return selectedModelData && item.voice_name === selectedModelData.voiceName;
+                }).length === 0 && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    No voice notes found for {models.find(m => m.id === selectedModel)?.name}. Generate some voice notes first.
+                  </p>
+                )}
               </div>
 
               {/* Sale Price */}
