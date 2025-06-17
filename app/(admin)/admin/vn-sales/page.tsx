@@ -158,6 +158,7 @@ export default function VNSalesPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          id: selectedVoiceData.history_item_id, // Include the history_item_id as id
           model: modelName, // Use the voice name as the model name
           voiceNote: selectedVoiceData.text,
           sale: parseFloat(salePrice),

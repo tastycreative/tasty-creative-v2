@@ -17,13 +17,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { model, voiceNote, sale, soldDate, status } = await request.json();
+    const { id, model, voiceNote, sale, soldDate, status } = await request.json();
 
-    if (!model || !voiceNote || !sale || !soldDate || !status) {
+    if (!id || !model || !voiceNote || !sale || !soldDate || !status) {
       return NextResponse.json(
         {
           error:
-            "Missing required fields: model, voiceNote, sale, soldDate, status",
+            "Missing required fields: id, model, voiceNote, sale, soldDate, status",
         },
         { status: 400 }
       );
@@ -75,13 +75,13 @@ export async function POST(request: NextRequest) {
     const sheetName = model.replace(/^OF\s+/i, "").trim(); // Remove 'OF ' prefix if present
 
     // Format the data for the spreadsheet
-    // Headers: 'Voice Note' 'Sale' 'Sold Date' 'Status' 'Total'
+    // Headers: 'id' 'Voice Note' 'Sale' 'Sold Date' 'Status'
     const rowData = [
+      id, // history_item_id
       voiceNote,
       sale,
       new Date(soldDate).toLocaleDateString(),
       status,
-      sale, // Total column gets the same value as Sale for now
     ];
 
     // Append to the specific model sheet
@@ -100,6 +100,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: "Voice note sale submitted successfully",
       data: {
+        id,
         model,
         voiceNote,
         sale,
