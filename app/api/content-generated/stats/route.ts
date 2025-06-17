@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
 import { auth } from "@/auth";
@@ -40,7 +39,7 @@ export async function GET() {
 
     // Sheet names to check
     const sheetNames = ['VIP Gen Tracker', 'Live Gen Tracker', 'FTT Gen Tracker', 'AI Gen Tracker'];
-    
+
     let totalContentGenerated = 0;
     let contentGeneratedToday = 0;
     const contentByTracker: { [key: string]: number } = {};
@@ -53,18 +52,18 @@ export async function GET() {
         if (sheetName === 'AI Gen Tracker') {
           const response = await sheets.spreadsheets.values.get({
             spreadsheetId,
-            range: `${sheetName}!A1:Z100`, // Get more data to find TOTAL row
+            range: `'${sheetName}'!A1:Z100`, // Get more data to find TOTAL row
           });
 
           const rows = response.data.values || [];
-          
-          // Find the row that contains "TOTAL" in the first column
+
+          // Find the row that contains "TOTAL" in column C (MODEL column - index 2)
           const totalRow = rows.find(row => 
-            row[0] && row[0].toString().toUpperCase().includes('TOTAL')
+            row[2] && row[2].toString().toUpperCase().includes('TOTAL')
           );
-          
-          if (totalRow && totalRow.length > 1) {
-            const totalValue = totalRow[1]; // Files column (second column)
+
+          if (totalRow && totalRow.length > 3) {
+            const totalValue = totalRow[3]; // Files column D (index 3)
             if (totalValue && !isNaN(Number(totalValue))) {
               const count = Number(totalValue);
               totalContentGenerated += count;
