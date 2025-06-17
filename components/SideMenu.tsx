@@ -59,7 +59,7 @@ const SideMenu = ({ collapsed, onItemClick, session }: SideMenuProps) => {
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/apps", icon: AppWindow, label: "Apps" },
     { href: "/calendar", icon: Calendar1, label: "Calendar" },
-    { href: "/admin/users", icon: UserLock, label: "Admin" },
+    { href: "/admin/dashboard", icon: UserLock, label: "Admin" },
   ];
 
   return (
