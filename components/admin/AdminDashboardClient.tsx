@@ -256,8 +256,8 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     },
     {
       title: "Loyalty Points",
-      value: isLoadingVnStats ? 0 : (vnStatsData?.salesByModel?.reduce((total: number, model: any) => total + (model.loyaltyPoints || 0), 0) || 0),
-      formattedValue: isLoadingVnStats ? "Loading..." : (vnStatsData?.salesByModel?.reduce((total: number, model: any) => total + (model.loyaltyPoints || 0), 0) || 0).toLocaleString(),
+      value: isLoadingVnStats ? 0 : (vnSalesData?.salesByModel?.reduce((total: number, model: any) => total + (model.loyaltyPoints || 0), 0) || 0),
+      formattedValue: isLoadingVnStats ? "Loading..." : (vnSalesData?.salesByModel?.reduce((total: number, model: any) => total + (model.loyaltyPoints || 0), 0) || 0).toLocaleString(),
       icon: Star,
       description: isLoadingVnStats ? "Fetching from Google Sheets..." : `+${vnSales.loyaltyPointsGrowth}% this week`,
       color: "text-yellow-600",
