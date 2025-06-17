@@ -39,6 +39,8 @@ interface DashboardData {
     totalUsersThisMonth: number;
     userGrowthPercentage: number;
     usersByRole: Record<string, number>;
+    voiceNoteCount?: number; //Add voiceNoteCount in DashboardData
+    activeModelCount?: number; //Add activeModelCount in DashboardData
   };
   recentUsers: Array<{
     id: string;
