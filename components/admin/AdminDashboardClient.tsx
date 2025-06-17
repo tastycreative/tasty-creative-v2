@@ -114,7 +114,9 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
   const [isLoadingVoiceStats, setIsLoadingVoiceStats] = useState(true);
 
   // State for content generation data
-  const [contentGenerationData, setContentGenerationData] = useState(data.contentGeneration);
+  const [contentGenerationData, setContentGenerationData] = useState(
+    data.contentGeneration
+  );
   const [isLoadingContentStats, setIsLoadingContentStats] = useState(true);
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
 
@@ -122,19 +124,19 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
   useEffect(() => {
     const fetchVnSalesData = async () => {
       try {
-        const response = await fetch('/api/vn-sales/stats');
+        const response = await fetch("/api/vn-sales/stats");
         if (response.ok) {
           const vnStats = await response.json();
-          setVnSalesData(prev => ({
+          setVnSalesData((prev) => ({
             ...prev,
             vnSalesToday: vnStats.vnSalesToday || 0,
             totalRevenue: vnStats.totalRevenue || 0,
             averageVnPrice: vnStats.averageVnPrice || 0,
-            salesByModel: vnStats.salesByModel || []
+            salesByModel: vnStats.salesByModel || [],
           }));
         }
       } catch (error) {
-        console.error('Error fetching VN sales data:', error);
+        console.error("Error fetching VN sales data:", error);
       } finally {
         setIsLoadingVnStats(false);
       }
@@ -142,17 +144,17 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
 
     const fetchVoiceData = async () => {
       try {
-        const response = await fetch('/api/elevenlabs/total-history');
+        const response = await fetch("/api/elevenlabs/total-history");
         if (response.ok) {
           const voiceStats = await response.json();
-          setVnSalesData(prev => ({
+          setVnSalesData((prev) => ({
             ...prev,
             totalVnCount: voiceStats.totalVoiceGenerated || 0,
-            newVnToday: voiceStats.newVoicesToday || 0
+            newVnToday: voiceStats.newVoicesToday || 0,
           }));
         }
       } catch (error) {
-        console.error('Error fetching voice data:', error);
+        console.error("Error fetching voice data:", error);
       } finally {
         setIsLoadingVoiceStats(false);
       }
@@ -160,19 +162,19 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
 
     const fetchContentGenerationData = async () => {
       try {
-        const response = await fetch('/api/content-generated/stats');
+        const response = await fetch("/api/content-generated/stats");
         if (response.ok) {
           const contentStats = await response.json();
           setContentGenerationData({
             totalContentGenerated: contentStats.totalContentGenerated || 0,
             contentGeneratedToday: contentStats.contentGeneratedToday || 0,
             contentGrowth: contentStats.contentGrowth || 0,
-            contentByTracker: contentStats.contentByTracker || []
+            contentByTracker: contentStats.contentByTracker || [],
           });
           setRecentActivities(contentStats.recentActivities || []);
         }
       } catch (error) {
-        console.error('Error fetching content generation data:', error);
+        console.error("Error fetching content generation data:", error);
       } finally {
         setIsLoadingContentStats(false);
       }
@@ -208,9 +210,13 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     {
       title: "VN Sales Today",
       value: vnSales.vnSalesToday,
-      formattedValue: isLoadingVnStats ? "Loading..." : `$${vnSales.vnSalesToday.toLocaleString()}`,
+      formattedValue: isLoadingVnStats
+        ? "Loading..."
+        : `$${vnSales.vnSalesToday.toLocaleString()}`,
       icon: DollarSign,
-      description: isLoadingVnStats ? "Fetching from Google Sheets..." : `+${vnSales.vnSalesGrowth}% from yesterday`,
+      description: isLoadingVnStats
+        ? "Fetching from Google Sheets..."
+        : `+${vnSales.vnSalesGrowth}% from yesterday`,
       color: "text-green-600",
       bgColor: "bg-green-50 dark:bg-green-900/20",
       prefix: isLoadingVnStats ? "" : "$",
@@ -220,9 +226,13 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     {
       title: "Total VN Count",
       value: vnSales.totalVnCount,
-      formattedValue: isLoadingVoiceStats ? "Loading..." : vnSales.totalVnCount.toLocaleString(),
+      formattedValue: isLoadingVoiceStats
+        ? "Loading..."
+        : vnSales.totalVnCount.toLocaleString(),
       icon: FileText,
-      description: isLoadingVoiceStats ? "Fetching from ElevenLabs..." : `${vnSales.newVnToday} new today`,
+      description: isLoadingVoiceStats
+        ? "Fetching from ElevenLabs..."
+        : `${vnSales.newVnToday} new today`,
       color: "text-blue-600",
       bgColor: "bg-blue-50 dark:bg-blue-900/20",
       prefix: "",
@@ -232,9 +242,13 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     {
       title: "Content Generated",
       value: contentGenerationData.totalContentGenerated,
-      formattedValue: isLoadingContentStats ? "Loading..." : contentGenerationData.totalContentGenerated.toLocaleString(),
+      formattedValue: isLoadingContentStats
+        ? "Loading..."
+        : contentGenerationData.totalContentGenerated.toLocaleString(),
       icon: FileText,
-      description: isLoadingContentStats ? "Fetching from Google Sheets..." : `${contentGenerationData.contentGeneratedToday} generated today`,
+      description: isLoadingContentStats
+        ? "Fetching from Google Sheets..."
+        : `${contentGenerationData.contentGeneratedToday} generated today`,
       color: "text-purple-600",
       bgColor: "bg-purple-50 dark:bg-purple-900/20",
       prefix: "",
@@ -255,9 +269,13 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     {
       title: "Total Revenue",
       value: vnSales.totalRevenue,
-      formattedValue: isLoadingVnStats ? "Loading..." : `$${vnSales.totalRevenue.toLocaleString()}`,
+      formattedValue: isLoadingVnStats
+        ? "Loading..."
+        : `$${vnSales.totalRevenue.toLocaleString()}`,
       icon: TrendingUp,
-      description: isLoadingVnStats ? "Fetching from Google Sheets..." : `+${analytics.revenueGrowth}% from last week`,
+      description: isLoadingVnStats
+        ? "Fetching from Google Sheets..."
+        : `+${analytics.revenueGrowth}% from last week`,
       color: "text-green-600",
       bgColor: "bg-green-50 dark:bg-green-900/20",
       prefix: isLoadingVnStats ? "" : "$",
@@ -266,10 +284,24 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     },
     {
       title: "Loyalty Points",
-      value: isLoadingVnStats ? 0 : (vnSalesData?.salesByModel?.reduce((total: number, model: any) => total + (model.loyaltyPoints || 0), 0) || 0),
-      formattedValue: isLoadingVnStats ? "Loading..." : (vnSalesData?.salesByModel?.reduce((total: number, model: any) => total + (model.loyaltyPoints || 0), 0) || 0).toLocaleString(),
+      value: isLoadingVnStats
+        ? 0
+        : vnSalesData?.salesByModel?.reduce(
+            (total: number, model: any) => total + (model.loyaltyPoints || 0),
+            0
+          ) || 0,
+      formattedValue: isLoadingVnStats
+        ? "Loading..."
+        : (
+            vnSalesData?.salesByModel?.reduce(
+              (total: number, model: any) => total + (model.loyaltyPoints || 0),
+              0
+            ) || 0
+          ).toLocaleString(),
       icon: Star,
-      description: isLoadingVnStats ? "Fetching from Google Sheets..." : `+${vnSales.loyaltyPointsGrowth}% this week`,
+      description: isLoadingVnStats
+        ? "Fetching from Google Sheets..."
+        : `+${vnSales.loyaltyPointsGrowth}% this week`,
       color: "text-yellow-600",
       bgColor: "bg-yellow-50 dark:bg-yellow-900/20",
       prefix: "",
@@ -551,7 +583,9 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                   <tbody>
                     {recentActivities.slice(0, 5).map((activity, index) => {
                       // Check if this email matches any existing user
-                      const existingUser = recentUsers.find(user => user.email === activity.email);
+                      const existingUser = recentUsers.find(
+                        (user) => user.email === activity.email
+                      );
 
                       return (
                         <tr
@@ -559,55 +593,88 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                           className="border-b border-gray-700 hover:bg-gray-700/50 transition-colors"
                         >
                           <td className="py-3 px-4">
-                            
                             <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
-                  {activity.image ? (
-                    <img
-                      src={`/api/image-proxy?url=${encodeURIComponent(activity.image)}`}
-                      alt={activity.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        const fallback = target.nextSibling as HTMLElement;
-                        if (fallback) fallback.style.display = 'flex';
-                      }}
-                    />
-                  ) : null}
-                  <div className="w-full h-full bg-purple-500 rounded-full flex items-center justify-center" style={{ display: activity.image ? 'none' : 'flex' }}>
-                    <span className="text-white text-sm font-medium">
-                      {activity.name.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">
-                    {activity.name}
-                  </p>
-                  <p className="text-sm text-gray-400 truncate">
-                    Generated content
-                  </p>
-                </div>
-                <div className="text-xs text-gray-400">
-                  {activity.tracker}
-                </div>
-              </div>
+                              <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                                {activity.image ? (
+                                  <img
+                                    src={`/api/image-proxy?url=${encodeURIComponent(activity.image)}`}
+                                    alt={activity.name}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      const target =
+                                        e.target as HTMLImageElement;
+                                      target.style.display = "none";
+                                      const fallback =
+                                        target.nextSibling as HTMLElement;
+                                      if (fallback)
+                                        fallback.style.display = "flex";
+                                    }}
+                                  />
+                                ) : null}
+                                <div
+                                  className="w-full h-full bg-purple-500 rounded-full flex items-center justify-center"
+                                  style={{
+                                    display: activity.image ? "none" : "flex",
+                                  }}
+                                >
+                                  <span className="text-white text-sm font-medium">
+                                    {activity.name.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-white truncate">
+                                  {activity.name}
+                                </p>
+                                <p className="text-sm text-gray-400 truncate">
+                                  {(() => {
+                                    if (!activity.createdAt) return "Recently";
+                                    const now = new Date();
+                                    const createdTime = new Date(
+                                      activity.createdAt
+                                    );
+                                    const diffMs =
+                                      now.getTime() - createdTime.getTime();
+                                    const diffSeconds = Math.floor(
+                                      diffMs / 1000
+                                    );
+                                    const diffMinutes = Math.floor(
+                                      diffSeconds / 60
+                                    );
+                                    const diffHours = Math.floor(
+                                      diffMinutes / 60
+                                    );
+                                    const diffDays = Math.floor(diffHours / 24);
+
+                                    if (diffDays > 0)
+                                      return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+                                    if (diffHours > 0)
+                                      return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+                                    if (diffMinutes > 0)
+                                      return `${diffMinutes} minute${diffMinutes > 1 ? "s" : ""} ago`;
+                                    return "Just now";
+                                  })()}
+                                </p>
+                              </div>
+                              <div className="text-xs text-gray-400">
+                                {activity.tracker}
+                              </div>
+                            </div>
                           </td>
                           <td className="py-3 px-4 text-gray-300 text-sm">
                             Generated content
                           </td>
                           <td className="py-3 px-4">
-                            <Badge 
+                            <Badge
                               variant="secondary"
                               className={`text-xs
-                                ${activity.tracker === 'VIP Gen Tracker' ? 'bg-purple-900/50 text-purple-200 border-purple-700' : ''}
-                                ${activity.tracker === 'Live Gen Tracker' ? 'bg-red-900/50 text-red-200 border-red-700' : ''}
-                                ${activity.tracker === 'FTT Gen Tracker' ? 'bg-blue-900/50 text-blue-200 border-blue-700' : ''}
-                                ${activity.tracker === 'AI Gen Tracker' ? 'bg-green-900/50 text-green-200 border-green-700' : ''}
+                                ${activity.tracker === "VIP Gen Tracker" ? "bg-purple-900/50 text-purple-200 border-purple-700" : ""}
+                                ${activity.tracker === "Live Gen Tracker" ? "bg-red-900/50 text-red-200 border-red-700" : ""}
+                                ${activity.tracker === "FTT Gen Tracker" ? "bg-blue-900/50 text-blue-200 border-blue-700" : ""}
+                                ${activity.tracker === "AI Gen Tracker" ? "bg-green-900/50 text-green-200 border-green-700" : ""}
                               `}
                             >
-                              {activity.tracker.replace(' Gen Tracker', '')}
+                              {activity.tracker.replace(" Gen Tracker", "")}
                             </Badge>
                           </td>
                         </tr>
@@ -619,7 +686,9 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             ) : (
               <div className="text-center text-gray-400 py-8">
                 <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="text-sm">No recent content generation activity found</p>
+                <p className="text-sm">
+                  No recent content generation activity found
+                </p>
               </div>
             )}
           </CardContent>
@@ -680,7 +749,9 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                 </>
               ) : (
                 <div className="text-center text-gray-400 py-4">
-                  <p className="text-sm">No sales data found. Submit some sales to see analytics!</p>
+                  <p className="text-sm">
+                    No sales data found. Submit some sales to see analytics!
+                  </p>
                 </div>
               )}
             </div>
@@ -706,27 +777,31 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                 </div>
               ) : contentGenerationData.contentByTracker.length > 0 ? (
                 <>
-                  {contentGenerationData.contentByTracker.map((tracker, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg"
-                    >
-                      <div>
-                        <h3 className="font-medium text-white">{tracker.tracker}</h3>
-                        <p className="text-sm text-gray-400">
-                          Content generation tracker
-                        </p>
+                  {contentGenerationData.contentByTracker.map(
+                    (tracker, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg"
+                      >
+                        <div>
+                          <h3 className="font-medium text-white">
+                            {tracker.tracker}
+                          </h3>
+                          <p className="text-sm text-gray-400">
+                            Content generation tracker
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-purple-400">
+                            {tracker.count.toLocaleString()}
+                          </p>
+                          <p className="text-sm text-gray-400">
+                            items generated
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-purple-400">
-                          {tracker.count.toLocaleString()}
-                        </p>
-                        <p className="text-sm text-gray-400">
-                          items generated
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  )}
                   <div className="text-center text-gray-400 py-4">
                     <p className="text-sm">
                       Total Content Generated:{" "}
@@ -739,7 +814,10 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                 </>
               ) : (
                 <div className="text-center text-gray-400 py-4">
-                  <p className="text-sm">No content generation data found. Generate some content to see analytics!</p>
+                  <p className="text-sm">
+                    No content generation data found. Generate some content to
+                    see analytics!
+                  </p>
                 </div>
               )}
             </div>
