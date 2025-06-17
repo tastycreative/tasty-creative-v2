@@ -20,6 +20,7 @@ interface VoiceHistoryItem {
 
 export default function VNSalesPage() {
   const [selectedModel, setSelectedModel] = useState("");
+  const [selectedApiProfile, setSelectedApiProfile] = useState("");
   const [selectedVoiceNote, setSelectedVoiceNote] = useState("");
   const [salePrice, setSalePrice] = useState("");
   const [voiceHistory, setVoiceHistory] = useState<VoiceHistoryItem[]>([]);
@@ -27,14 +28,31 @@ export default function VNSalesPage() {
   const [submitStatus, setSubmitStatus] = useState<{type: 'success' | 'error', message: string} | null>(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
+  // API profiles available
+  const apiProfiles = [
+    { id: "account_1", name: "Account 1 - OF Bri's voice", voiceName: "OF Bri" },
+    { id: "account_2", name: "Account 2 - OF Coco's voice", voiceName: "OF Coco" },
+    { id: "account_3", name: "Account 3 - OF Mel's voice", voiceName: "OF Mel" },
+    { id: "account_4", name: "Account 4 - OF Lala's voice", voiceName: "OF Lala" },
+    { id: "account_5", name: "Account 5 - OF Bronwin's voice", voiceName: "OF Bronwin" },
+    { id: "account_6", name: "Account 6 - OF Nicole's voice", voiceName: "OF Nicole" },
+  ];
+
   // Static models for now with voice name mapping
   const models = [
-    { id: "autumn", name: "OF Autumn", voiceName: "Autumn" }
+    { id: "autumn", name: "OF Autumn", voiceName: "OF Bri" }, // Map to actual voice name
+    { id: "coco", name: "OF Coco", voiceName: "OF Coco" },
+    { id: "mel", name: "OF Mel", voiceName: "OF Mel" },
+    { id: "lala", name: "OF Lala", voiceName: "OF Lala" },
+    { id: "bronwin", name: "OF Bronwin", voiceName: "OF Bronwin" },
+    { id: "nicole", name: "OF Nicole", voiceName: "OF Nicole" },
   ];
 
   useEffect(() => {
-    loadVoiceHistory();
-  }, []);
+    if (selectedApiProfile) {
+      loadVoiceHistory();
+    }
+  }, [selectedApiProfile]);
 
   // Reset voice note selection when model changes
   useEffect(() => {
@@ -42,17 +60,19 @@ export default function VNSalesPage() {
   }, [selectedModel]);
 
   const loadVoiceHistory = async () => {
+    if (!selectedApiProfile) return;
+    
     try {
       setIsLoadingHistory(true);
       
-      // Fetch from ElevenLabs history - using account_1 as default
+      // Fetch from ElevenLabs history using selected API profile
       const response = await fetch('/api/elevenlabs/fetch-history', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          apiKeyProfileKey: 'account_1',
+          apiKeyProfileKey: selectedApiProfile,
           voiceId: '', // Empty to get all voices
           pageSize: 100,
           pageIndex: 1,
@@ -76,7 +96,7 @@ export default function VNSalesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedModel || !selectedVoiceNote || !salePrice) {
+    if (!selectedApiProfile || !selectedModel || !selectedVoiceNote || !salePrice) {
       setSubmitStatus({
         type: 'error',
         message: 'Please fill in all required fields'
@@ -119,6 +139,7 @@ export default function VNSalesPage() {
         });
         
         // Reset form
+        setSelectedApiProfile("");
         setSelectedModel("");
         setSelectedVoiceNote("");
         setSalePrice("");
@@ -160,12 +181,29 @@ export default function VNSalesPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* API Profile Selection */}
+              <div>
+                <Label htmlFor="apiProfile" className="text-gray-700 dark:text-gray-300">Select API Profile</Label>
+                <Select value={selectedApiProfile} onValueChange={setSelectedApiProfile}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Choose an API profile" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {apiProfiles.map((profile) => (
+                      <SelectItem key={profile.id} value={profile.id}>
+                        {profile.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {/* Model Selection */}
               <div>
                 <Label htmlFor="model" className="text-gray-700 dark:text-gray-300">Select Model</Label>
-                <Select value={selectedModel} onValueChange={setSelectedModel}>
+                <Select value={selectedModel} onValueChange={setSelectedModel} disabled={!selectedApiProfile}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Choose a model" />
+                    <SelectValue placeholder={!selectedApiProfile ? "Select an API profile first" : "Choose a model"} />
                   </SelectTrigger>
                   <SelectContent>
                     {models.map((model) => (
@@ -198,9 +236,9 @@ export default function VNSalesPage() {
                     )}
                   </Button>
                 </div>
-                <Select value={selectedVoiceNote} onValueChange={setSelectedVoiceNote} disabled={!selectedModel}>
+                <Select value={selectedVoiceNote} onValueChange={setSelectedVoiceNote} disabled={!selectedModel || !selectedApiProfile}>
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder={!selectedModel ? "Select a model first" : "Choose a voice note from history"} />
+                    <SelectValue placeholder={!selectedApiProfile ? "Select an API profile first" : !selectedModel ? "Select a model first" : "Choose a voice note from history"} />
                   </SelectTrigger>
                   <SelectContent className="max-h-60">
                     {voiceHistory
@@ -223,12 +261,17 @@ export default function VNSalesPage() {
                       ))}
                   </SelectContent>
                 </Select>
-                {selectedModel && voiceHistory.filter((item) => {
+                {selectedModel && selectedApiProfile && voiceHistory.filter((item) => {
                   const selectedModelData = models.find(m => m.id === selectedModel);
                   return selectedModelData && item.voice_name === selectedModelData.voiceName;
                 }).length === 0 && (
                   <p className="text-sm text-gray-500 mt-1">
-                    No voice notes found for {models.find(m => m.id === selectedModel)?.name}. Generate some voice notes first.
+                    No voice notes found for {models.find(m => m.id === selectedModel)?.name} in {apiProfiles.find(p => p.id === selectedApiProfile)?.name}. Generate some voice notes first.
+                  </p>
+                )}
+                {selectedApiProfile && voiceHistory.length === 0 && !isLoadingHistory && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    No voice history found in {apiProfiles.find(p => p.id === selectedApiProfile)?.name}. Make sure the API profile has voice generation history.
                   </p>
                 )}
               </div>
@@ -266,7 +309,7 @@ export default function VNSalesPage() {
               <Button 
                 type="submit" 
                 className="w-full"
-                disabled={isSubmitting || !selectedModel || !selectedVoiceNote || !salePrice}
+                disabled={isSubmitting || !selectedApiProfile || !selectedModel || !selectedVoiceNote || !salePrice}
               >
                 {isSubmitting ? (
                   <>
