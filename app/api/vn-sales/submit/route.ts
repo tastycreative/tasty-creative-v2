@@ -31,11 +31,27 @@ export async function POST(request: NextRequest) {
       process.env.GOOGLE_REDIRECT_URI
     );
 
+    // Check if we have the necessary tokens
+    if (!session.accessToken) {
+      return NextResponse.json(
+        { error: "No access token available. Please re-authenticate with Google." },
+        { status: 401 }
+      );
+    }
+
     oauth2Client.setCredentials({
       access_token: session.accessToken,
-      refresh_token: session.refreshToken,
+      refresh_token: session.refreshToken || undefined,
       expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
     });
+
+    // If no refresh token, try to refresh the access token manually
+    if (!session.refreshToken && session.expiresAt && new Date().getTime() > session.expiresAt * 1000) {
+      return NextResponse.json(
+        { error: "Access token expired and no refresh token available. Please re-authenticate with Google." },
+        { status: 401 }
+      );
+    }
 
     // Initialize the Google Sheets API
     const sheets = google.sheets({ version: "v4", auth: oauth2Client });
@@ -44,16 +60,17 @@ export async function POST(request: NextRequest) {
     const sheetName = model; // Use the model name as the sheet name
 
     // Format the data for the spreadsheet
-    // Headers: 'Voice Note' 'Sale' 'Sold Date' 'Status'
+    // Headers: 'Voice Note' 'Sale' 'Sold Date' 'Status' 'Total'
     const rowData = [
       voiceNote,
       sale,
       new Date(soldDate).toLocaleDateString(),
-      status
+      status,
+      sale // Total column gets the same value as Sale for now
     ];
 
     // Append to the specific model sheet
-    const range = `${sheetName}!A:D`;
+    const range = `${sheetName}!A:E`;
     
     await sheets.spreadsheets.values.append({
       spreadsheetId,
