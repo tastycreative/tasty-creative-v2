@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
-import { API_KEY_PROFILES } from "@/app/services/elevenlabs-implementation";
+import { API_KEY_PROFILES, getVoicesForProfile } from "@/app/services/elevenlabs-implementation";
 
 interface VoiceHistoryItem {
   history_item_id: string;
@@ -61,45 +61,7 @@ export default function VNSalesPage() {
 
 
 
-  // Function to get voices for a specific profile (copied from elevenlabs implementation)
-  const getVoicesForProfile = async (profileKey: string) => {
-    try {
-        const profile = API_KEY_PROFILES[profileKey as keyof typeof API_KEY_PROFILES];
-
-        if (!profile) {
-            console.error(`Profile not found for profile key: ${profileKey}`);
-            return [];
-        }
-
-        const response = await fetch('/api/elevenlabs/get-voices', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ profileKey: profileKey }),
-        });
-
-        if (!response.ok) {
-            console.error('Failed to fetch voices:', response.status, response.statusText);
-            return [];
-        }
-
-        const data = await response.json();
-        if (data && data.voices) {
-            // Map the voices to the format expected by the Select component
-            return data.voices.map((voice: any) => ({
-                voiceId: voice.voice_id,
-                name: voice.name,
-            }));
-        } else {
-            console.warn('No voices returned from API');
-            return [];
-        }
-    } catch (error) {
-        console.error('Error fetching voices:', error);
-        return [];
-    }
-};
+  
 
   useEffect(() => {
     loadStats(); // Load stats on component mount
@@ -108,7 +70,7 @@ export default function VNSalesPage() {
   useEffect(() => {
     const loadVoices = async () => {
         if (selectedApiProfile) {
-            const profileVoices = await getVoicesForProfile(selectedApiProfile);
+            const profileVoices = getVoicesForProfile(selectedApiProfile);
             setAvailableVoices(profileVoices);
 
             // Reset selected voice when changing profiles

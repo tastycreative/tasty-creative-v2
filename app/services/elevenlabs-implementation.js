@@ -548,3 +548,18 @@ export function downloadAudio(audioBlob, filename) {
 export function clearAudioUrlCache() {
   audioUrlCache.clear();
 }
+
+// Export the function and other utilities
+export {
+  generateVoice,
+  downloadAudio,
+  checkApiKeyBalance,
+  fetchHistoryFromElevenLabs,
+  getHistoryAudio,
+  getVoiceParameters,
+  storeVoiceParameters,
+  getVoicesForProfile,
+  API_KEY_PROFILES,
+  ELEVEN_LABS_MODELS,
+};
+```This update ensures the `getVoicesForProfile` function is exported, allowing it to be used in other modules.
