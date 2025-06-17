@@ -127,6 +127,14 @@ export default async function AdminDashboardPage() {
     roiGrowth: 15,
   };
 
+  // Content Generation data placeholder (will be fetched client-side)
+  const contentGenerationData = {
+    totalContentGenerated: 0,
+    contentGeneratedToday: 0,
+    contentGrowth: 0,
+    contentByTracker: []
+  };
+
   const dashboardData = {
     stats: {
       totalUsers,
@@ -141,6 +149,7 @@ export default async function AdminDashboardPage() {
     userGrowthData,
     vnSales: vnSalesData,
     analytics: analyticsData,
+    contentGeneration: contentGenerationData,
   };
 
   return <AdminDashboardClient data={dashboardData} />;

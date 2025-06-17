@@ -79,6 +79,15 @@ interface DashboardData {
     roi: number;
     roiGrowth: number;
   };
+  contentGeneration: {
+    totalContentGenerated: number;
+    contentGeneratedToday: number;
+    contentGrowth: number;
+    contentByTracker: Array<{
+      tracker: string;
+      count: number;
+    }>;
+  };
 }
 
 const ROLE_COLORS = {
@@ -95,6 +104,10 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
   const [vnSalesData, setVnSalesData] = useState(data.vnSales);
   const [isLoadingVnStats, setIsLoadingVnStats] = useState(true);
   const [isLoadingVoiceStats, setIsLoadingVoiceStats] = useState(true);
+  
+  // State for content generation data
+  const [contentGenerationData, setContentGenerationData] = useState(data.contentGeneration);
+  const [isLoadingContentStats, setIsLoadingContentStats] = useState(true);
 
   // Fetch real VN sales and voice data
   useEffect(() => {
@@ -136,8 +149,28 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       }
     };
 
+    const fetchContentGenerationData = async () => {
+      try {
+        const response = await fetch('/api/content-generated/stats');
+        if (response.ok) {
+          const contentStats = await response.json();
+          setContentGenerationData({
+            totalContentGenerated: contentStats.totalContentGenerated || 0,
+            contentGeneratedToday: contentStats.contentGeneratedToday || 0,
+            contentGrowth: contentStats.contentGrowth || 0,
+            contentByTracker: contentStats.contentByTracker || []
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching content generation data:', error);
+      } finally {
+        setIsLoadingContentStats(false);
+      }
+    };
+
     fetchVnSalesData();
     fetchVoiceData();
+    fetchContentGenerationData();
   }, []);
 
   const vnSales = vnSalesData;
@@ -187,15 +220,16 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       isLoading: isLoadingVoiceStats,
     },
     {
-      title: "Active Campaigns",
-      value: analytics.activeCampaigns,
-      formattedValue: analytics.activeCampaigns.toLocaleString(),
-      icon: Target,
-      description: `${analytics.newCampaignsThisWeek} new this week`,
+      title: "Content Generated",
+      value: contentGenerationData.totalContentGenerated,
+      formattedValue: isLoadingContentStats ? "Loading..." : contentGenerationData.totalContentGenerated.toLocaleString(),
+      icon: FileText,
+      description: isLoadingContentStats ? "Fetching from Google Sheets..." : `${contentGenerationData.contentGeneratedToday} generated today`,
       color: "text-purple-600",
       bgColor: "bg-purple-50 dark:bg-purple-900/20",
       prefix: "",
       suffix: "",
+      isLoading: isLoadingContentStats,
     },
     {
       title: "Conversion Rate",
@@ -470,64 +504,126 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         </CardContent>
       </Card>
 
-      {/* VN Sales by Model */}
-      <Card className="bg-gray-800 border-gray-700">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2 text-white">
-            <FileText className="h-5 w-5 text-orange-400" />
-            <span>VN Sales by Model</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {isLoadingVnStats ? (
-              <div className="flex justify-center py-8">
-                <div className="flex items-center text-gray-400">
-                  <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                  <span>Fetching sales data from Google Sheets...</span>
-                </div>
-              </div>
-            ) : vnSales.salesByModel.length > 0 ? (
-              <>
-                {vnSales.salesByModel.map((model, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg"
-                  >
-                    <div>
-                      <h3 className="font-medium text-white">{model.name}</h3>
-                      <p className="text-sm text-gray-400">
-                        {model.sales} VN sales
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-green-400">
-                        ${model.revenue.toFixed(2)}
-                      </p>
-                      <p className="text-sm text-gray-400">
-                        {model.loyaltyPoints} loyalty pts
-                      </p>
-                    </div>
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* VN Sales by Model */}
+        <Card className="bg-gray-800 border-gray-700">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-white">
+              <DollarSign className="h-5 w-5 text-orange-400" />
+              <span>VN Sales by Model</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {isLoadingVnStats ? (
+                <div className="flex justify-center py-8">
+                  <div className="flex items-center text-gray-400">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                    <span>Fetching sales data from Google Sheets...</span>
                   </div>
-                ))}
-                <div className="text-center text-gray-400 py-4">
-                  <p className="text-sm">
-                    Average VN Price:{" "}
-                    <span className="text-orange-400 font-semibold">
-                      ${vnSales.averageVnPrice.toFixed(2)}
-                    </span>{" "}
-                    (+${vnSales.priceIncrease} from last week)
-                  </p>
                 </div>
-              </>
-            ) : (
-              <div className="text-center text-gray-400 py-4">
-                <p className="text-sm">No sales data found. Submit some sales to see analytics!</p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              ) : vnSales.salesByModel.length > 0 ? (
+                <>
+                  {vnSales.salesByModel.map((model, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg"
+                    >
+                      <div>
+                        <h3 className="font-medium text-white">{model.name}</h3>
+                        <p className="text-sm text-gray-400">
+                          {model.sales} VN sales
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-green-400">
+                          ${model.revenue.toFixed(2)}
+                        </p>
+                        <p className="text-sm text-gray-400">
+                          {model.loyaltyPoints} loyalty pts
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="text-center text-gray-400 py-4">
+                    <p className="text-sm">
+                      Average VN Price:{" "}
+                      <span className="text-orange-400 font-semibold">
+                        ${vnSales.averageVnPrice.toFixed(2)}
+                      </span>{" "}
+                      (+${vnSales.priceIncrease} from last week)
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center text-gray-400 py-4">
+                  <p className="text-sm">No sales data found. Submit some sales to see analytics!</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Content Generation by Tracker */}
+        <Card className="bg-gray-800 border-gray-700">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-white">
+              <BarChart3 className="h-5 w-5 text-purple-400" />
+              <span>Content Generation by Tracker</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {isLoadingContentStats ? (
+                <div className="flex justify-center py-8">
+                  <div className="flex items-center text-gray-400">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                    <span>Fetching content data from Google Sheets...</span>
+                  </div>
+                </div>
+              ) : contentGenerationData.contentByTracker.length > 0 ? (
+                <>
+                  {contentGenerationData.contentByTracker.map((tracker, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg"
+                    >
+                      <div>
+                        <h3 className="font-medium text-white">{tracker.tracker}</h3>
+                        <p className="text-sm text-gray-400">
+                          Content generation tracker
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-purple-400">
+                          {tracker.count.toLocaleString()}
+                        </p>
+                        <p className="text-sm text-gray-400">
+                          items generated
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="text-center text-gray-400 py-4">
+                    <p className="text-sm">
+                      Total Content Generated:{" "}
+                      <span className="text-purple-400 font-semibold">
+                        {contentGenerationData.totalContentGenerated.toLocaleString()}
+                      </span>{" "}
+                      (+{contentGenerationData.contentGrowth}% growth)
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center text-gray-400 py-4">
+                  <p className="text-sm">No content generation data found. Generate some content to see analytics!</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
