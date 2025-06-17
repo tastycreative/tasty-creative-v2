@@ -1,40 +1,63 @@
-
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
+import { auth } from '@/auth';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Check if we have the required environment variables
-    if (!process.env.AUTH_SECRET) {
+    // Get the authenticated session
+    const session = await auth();
+
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
+    // Optional: Add role-based access control
+    if (session.user.role !== "ADMIN") {
       return NextResponse.json(
-        { error: "Missing AUTH_SECRET environment variable" },
-        { status: 500 }
+        { error: "Unauthorized. Admin access required." },
+        { status: 403 }
       );
     }
 
-    // Create service account credentials using AUTH_SECRET as the private key
-    const credentials = {
-      type: "service_account",
-      project_id: process.env.GOOGLE_PROJECT_ID,
-      private_key_id: process.env.GOOGLE_PRIVATE_KEY_ID,
-      private_key: process.env.AUTH_SECRET.replace(/\\n/g, '\n'),
-      client_email: process.env.GOOGLE_CLIENT_EMAIL,
-      client_id: process.env.GOOGLE_CLIENT_ID,
-      auth_uri: "https://accounts.google.com/o/oauth2/auth",
-      token_uri: "https://oauth2.googleapis.com/token",
-      auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
-      client_x509_cert_url: `https://www.googleapis.com/robot/v1/metadata/x509/${process.env.GOOGLE_CLIENT_EMAIL}`
-    };
+    // Set up OAuth2 client with Auth.js session tokens
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI
+    );
 
-    // Set up Google Auth with service account
-    const auth_client = new google.auth.GoogleAuth({
-      credentials: credentials,
-      scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly']
+    // Check if we have the necessary tokens
+    if (!session.accessToken) {
+      return NextResponse.json(
+        {
+          error: "No access token available. Please re-authenticate with Google.",
+        },
+        { status: 401 }
+      );
+    }
+
+    oauth2Client.setCredentials({
+      access_token: session.accessToken,
+      refresh_token: session.refreshToken || undefined,
+      expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
     });
 
-    // Initialize the Google Sheets API
-    const sheets = google.sheets({ version: "v4", auth: auth_client });
+    // Check if token is expired and we need to refresh
+    if (
+      !session.refreshToken &&
+      session.expiresAt &&
+      new Date().getTime() > session.expiresAt * 1000
+    ) {
+      return NextResponse.json(
+        {
+          error: "Access token expired and no refresh token available. Please re-authenticate with Google.",
+        },
+        { status: 401 }
+      );
+    }
 
+    // Initialize the Google Sheets API
+    const sheets = google.sheets({ version: "v4", auth: oauth2Client });
     const spreadsheetId = "1_a08KImbkIA3z0_DTGWoqJdnRiw1y-kygj-Wr2cB_gk";
 
     // Get all sheet names first
@@ -119,8 +142,23 @@ export async function GET() {
 
   } catch (error: any) {
     console.error("Error fetching VN sales stats:", error);
+
+    // Handle Google API permission errors specifically
+    if (error.code === 403 && error.errors && error.errors.length > 0) {
+      return NextResponse.json(
+        {
+          error: "GooglePermissionDenied",
+          message: `Google API Error: ${error.errors[0].message || "The authenticated Google account does not have permission for the Google Sheet."}`,
+        },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json(
-      { error: "Failed to fetch VN sales stats" },
+      {
+        error: "Failed to fetch VN sales stats",
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }
