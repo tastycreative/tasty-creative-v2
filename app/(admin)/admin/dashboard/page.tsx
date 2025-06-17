@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -13,8 +14,8 @@ export default async function AdminDashboardPage() {
 
   // Note: We'll fetch this data on the client side to show loading states
   // Static data for server-side rendering, real data fetched client-side
-  const vnSalesStats = null;
-  const voiceStats = null;
+  const vnSalesStats: any = null;
+  const voiceStats: any = null;
 
   // Fetch dashboard statistics
   const [
@@ -110,6 +111,7 @@ export default async function AdminDashboardPage() {
     loyaltyPointsGrowth: 0, // Calculate growth later if needed
     averageVnPrice: vnSalesStats?.averageVnPrice || 0,
     priceIncrease: 0, // Calculate price change later if needed
+    totalRevenue: vnSalesStats?.totalRevenue || 0,
     salesByModel: vnSalesStats?.salesByModel || []
   };
 

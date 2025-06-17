@@ -61,6 +61,7 @@ interface DashboardData {
     loyaltyPointsGrowth: number;
     averageVnPrice: number;
     priceIncrease: number;
+    totalRevenue: number;
     salesByModel: Array<{
       name: string;
       sales: number;

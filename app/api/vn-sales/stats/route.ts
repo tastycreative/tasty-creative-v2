@@ -76,6 +76,8 @@ export async function GET(request: NextRequest) {
 
     // Fetch data from each model sheet
     for (const sheetName of sheetNames) {
+      if (!sheetName) continue; // Skip if sheetName is null or undefined
+      
       try {
         const response = await sheets.spreadsheets.values.get({
           spreadsheetId,
