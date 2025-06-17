@@ -107,6 +107,15 @@ const ROLE_COLORS = {
   GUEST: "#6b7280",
 };
 
+//Mock data for API_KEY_PROFILES
+const API_KEY_PROFILES = {
+    key1: { active: true },
+    key2: { active: true },
+    key3: { active: false },
+    key4: { active: true },
+};
+
+
 export function AdminDashboardClient({ data }: { data: DashboardData }) {
   const { stats, recentUsers, userGrowthData, analytics } = data;
 
@@ -234,7 +243,17 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       icon: FileText,
       description: isLoadingVoiceStats
         ? "Fetching from ElevenLabs..."
-        : `${vnSales.newVnToday} new today`,
+        : (
+          <div className="flex items-center space-x-3 text-sm">
+            <span className="text-gray-400">{vnSales.newVnToday} new today</span>
+            <div className="flex items-center space-x-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-green-400 font-medium">
+                {Object.keys(API_KEY_PROFILES).length} active models
+              </span>
+            </div>
+          </div>
+        ),
       color: "text-blue-600",
       bgColor: "bg-blue-50 dark:bg-blue-900/20",
       prefix: "",
