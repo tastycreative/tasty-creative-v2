@@ -1,4 +1,3 @@
-
 "use client";
 
 import { auth } from "@/auth";
@@ -59,56 +58,70 @@ export default function VNSalesPage() {
       setIsLoadingStats(false);
     }
   };
-  
-  
+
+
 
   // Function to get voices for a specific profile (copied from elevenlabs implementation)
-  const getVoicesForProfile = (profileKey: string) => {
-    const voiceProfiles = {
-      account_1: [
-        { voiceId: "pNInz6obpgDQGcFmaJgB", name: "OF Bri" },
-        { voiceId: "EXAVITQu4vr4xnSDxMaL", name: "OF Bri (Spicy)" },
-      ],
-      account_2: [
-        { voiceId: "pNInz6obpgDQGcFmaJgB", name: "OF Coco" },
-        { voiceId: "EXAVITQu4vr4xnSDxMaL", name: "OF Coco (Spicy)" },
-      ],
-      account_3: [
-        { voiceId: "pNInz6obpgDQGcFmaJgB", name: "OF Mel" },
-        { voiceId: "EXAVITQu4vr4xnSDxMaL", name: "OF Mel (Spicy)" },
-      ],
-      account_4: [
-        { voiceId: "pNInz6obpgDQGcFmaJgB", name: "OF Lala" },
-        { voiceId: "EXAVITQu4vr4xnSDxMaL", name: "OF Lala (Spicy)" },
-      ],
-      account_5: [
-        { voiceId: "pNInz6obpgDQGcFmaJgB", name: "OF Bronwin" },
-        { voiceId: "EXAVITQu4vr4xnSDxMaL", name: "OF Bronwin (Spicy)" },
-      ],
-      account_6: [
-        { voiceId: "pNInz6obpgDQGcFmaJgB", name: "OF Nicole" },
-        { voiceId: "EXAVITQu4vr4xnSDxMaL", name: "OF Nicole (Spicy)" },
-      ],
-    };
-    return voiceProfiles[profileKey as keyof typeof voiceProfiles] || [];
-  };
+  const getVoicesForProfile = async (profileKey: string) => {
+    try {
+        const apiKey = API_KEY_PROFILES[profileKey as keyof typeof API_KEY_PROFILES]?.apiKey;
+
+        if (!apiKey) {
+            console.error(`API key not found for profile key: ${profileKey}`);
+            return [];
+        }
+
+        const response = await fetch('/api/elevenlabs/get-voices', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ apiKey: apiKey }),
+        });
+
+        if (!response.ok) {
+            console.error('Failed to fetch voices:', response.status, response.statusText);
+            return [];
+        }
+
+        const data = await response.json();
+        if (data && data.voices) {
+            // Map the voices to the format expected by the Select component
+            return data.voices.map((voice: any) => ({
+                voiceId: voice.voice_id,
+                name: voice.name,
+            }));
+        } else {
+            console.warn('No voices returned from API');
+            return [];
+        }
+    } catch (error) {
+        console.error('Error fetching voices:', error);
+        return [];
+    }
+};
 
   useEffect(() => {
     loadStats(); // Load stats on component mount
   }, []);
 
   useEffect(() => {
-    if (selectedApiProfile) {
-      // Get voices for the selected profile
-      const profileVoices = getVoicesForProfile(selectedApiProfile);
-      setAvailableVoices(profileVoices);
-      
-      // Reset selected voice when changing profiles
-      setSelectedVoice(profileVoices[0]?.voiceId || "");
-      
-      loadVoiceHistory();
-    }
-  }, [selectedApiProfile]);
+    const loadVoices = async () => {
+        if (selectedApiProfile) {
+            const profileVoices = await getVoicesForProfile(selectedApiProfile);
+            setAvailableVoices(profileVoices);
+
+            // Reset selected voice when changing profiles
+            setSelectedVoice(profileVoices[0]?.voiceId || "");
+        } else {
+            setAvailableVoices([]);
+            setSelectedVoice("");
+        }
+    };
+
+    loadVoices();
+    loadVoiceHistory(); // Load voice history whenever the API profile changes
+}, [selectedApiProfile]);
 
   // Reset voice note selection when voice changes
   useEffect(() => {
@@ -117,10 +130,10 @@ export default function VNSalesPage() {
 
   const loadVoiceHistory = async () => {
     if (!selectedApiProfile) return;
-    
+
     try {
       setIsLoadingHistory(true);
-      
+
       // Fetch from ElevenLabs history using selected API profile
       const response = await fetch('/api/elevenlabs/fetch-history', {
         method: 'POST',
@@ -151,7 +164,7 @@ export default function VNSalesPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!selectedApiProfile || !selectedVoice || !selectedVoiceNote || !salePrice) {
       setSubmitStatus({
         type: 'error',
@@ -197,13 +210,13 @@ export default function VNSalesPage() {
           type: 'success',
           message: 'Voice note sale submitted successfully!'
         });
-        
+
         // Reset form
         setSelectedApiProfile("");
         setSelectedVoice("");
         setSelectedVoiceNote("");
         setSalePrice("");
-        
+
         // Reload stats to show updated data
         loadStats();
       } else {
@@ -320,7 +333,7 @@ export default function VNSalesPage() {
                         // More flexible matching - check if voice name contains the selected voice name or vice versa
                         const selectedVoiceData = availableVoices.find(v => v.voiceId === selectedVoice);
                         if (!selectedVoiceData) return false;
-                        
+
                         // Extract the core name (e.g., "Bri" from "OF Bri")
                         const coreName = selectedVoiceData.name.replace(/^OF\s/, '').replace(/\s\(.*\)$/, '');
                         return item.voice_name && (
@@ -346,7 +359,7 @@ export default function VNSalesPage() {
                 {selectedVoice && selectedApiProfile && voiceHistory.filter((item) => {
                   const selectedVoiceData = availableVoices.find(v => v.voiceId === selectedVoice);
                   if (!selectedVoiceData) return false;
-                  
+
                   const coreName = selectedVoiceData.name.replace(/^OF\s/, '').replace(/\s\(.*\)$/, '');
                   return item.voice_name && (
                     item.voice_name.includes(coreName) || 
