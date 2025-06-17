@@ -439,7 +439,7 @@ export async function generateVoice(
       try {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to generate voice");
-      } catch (e) {
+      } catch {
         // If not JSON, use status text
         throw new Error(`Failed to generate voice: ${response.statusText}`);
       }
@@ -549,17 +549,3 @@ export function clearAudioUrlCache() {
   audioUrlCache.clear();
 }
 
-// Export the function and other utilities
-export {
-  generateVoice,
-  downloadAudio,
-  checkApiKeyBalance,
-  fetchHistoryFromElevenLabs,
-  getHistoryAudio,
-  getVoiceParameters,
-  storeVoiceParameters,
-  getVoicesForProfile,
-  API_KEY_PROFILES,
-  ELEVEN_LABS_MODELS,
-};
-```This update ensures the `getVoicesForProfile` function is exported, allowing it to be used in other modules.
