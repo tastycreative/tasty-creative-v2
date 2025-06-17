@@ -12,6 +12,16 @@ export default async function AdminDashboardPage() {
     redirect("/unauthorized");
   }
 
+  // Fetch VN Sales and Voice Generation stats
+  const [vnSalesStats, voiceStats] = await Promise.all([
+    fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/vn-sales/stats`, {
+      cache: 'no-store'
+    }).then(res => res.ok ? res.json() : null).catch(() => null),
+    fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/elevenlabs/total-history`, {
+      cache: 'no-store'
+    }).then(res => res.ok ? res.json() : null).catch(() => null)
+  ]);
+
   // Fetch dashboard statistics
   const [
     totalUsers,
@@ -20,7 +30,6 @@ export default async function AdminDashboardPage() {
     usersByRole,
     recentUsers,
     userGrowthData,
-    // VN Sales and Analytics data (mock data for now)
   ] = await Promise.all([
     // Total users
     prisma.user.count(),
@@ -97,20 +106,17 @@ export default async function AdminDashboardPage() {
     ? ((totalUsersThisMonth - totalUsersLastMonth) / totalUsersLastMonth) * 100 
     : 0;
 
-  // Mock VN Sales data (replace with actual database queries)
+  // Real VN Sales data from Google Sheets and ElevenLabs
   const vnSalesData = {
-    vnSalesToday: 890,
-    vnSalesGrowth: 15,
-    totalVnCount: 247,
-    newVnToday: 12,
-    loyaltyPointsEarned: 3450,
-    loyaltyPointsGrowth: 8,
-    averageVnPrice: 25.50,
-    priceIncrease: 2.50,
-    salesByModel: [
-      { name: "Model A", sales: 45, revenue: 1125, loyaltyPoints: 890 },
-      { name: "Model B", sales: 32, revenue: 800, loyaltyPoints: 640 },
-    ]
+    vnSalesToday: vnSalesStats?.vnSalesToday || 0,
+    vnSalesGrowth: 0, // Calculate growth later if needed
+    totalVnCount: voiceStats?.totalVoiceGenerated || 0,
+    newVnToday: voiceStats?.newVoicesToday || 0,
+    loyaltyPointsEarned: vnSalesStats?.salesByModel?.reduce((total: number, model: any) => total + model.loyaltyPoints, 0) || 0,
+    loyaltyPointsGrowth: 0, // Calculate growth later if needed
+    averageVnPrice: vnSalesStats?.averageVnPrice || 0,
+    priceIncrease: 0, // Calculate price change later if needed
+    salesByModel: vnSalesStats?.salesByModel || []
   };
 
   // Mock Analytics data (replace with actual database queries)

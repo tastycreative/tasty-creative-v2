@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { Loader2, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
 
 interface VoiceHistoryItem {
   history_item_id: string;
@@ -27,9 +27,37 @@ export default function VNSalesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<{type: 'success' | 'error', message: string} | null>(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [vnStats, setVnStats] = useState<any>(null);
+  const [voiceStats, setVoiceStats] = useState<any>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
 
   // Import API profiles and voice data from elevenlabs implementation
   const [availableVoices, setAvailableVoices] = useState<any[]>([]);
+
+  // Function to load real VN and voice statistics
+  const loadStats = async () => {
+    setIsLoadingStats(true);
+    try {
+      const [vnStatsRes, voiceStatsRes] = await Promise.all([
+        fetch('/api/vn-sales/stats'),
+        fetch('/api/elevenlabs/total-history')
+      ]);
+
+      if (vnStatsRes.ok) {
+        const vnData = await vnStatsRes.json();
+        setVnStats(vnData);
+      }
+
+      if (voiceStatsRes.ok) {
+        const voiceData = await voiceStatsRes.json();
+        setVoiceStats(voiceData);
+      }
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    } finally {
+      setIsLoadingStats(false);
+    }
+  };
   
   // API profiles from elevenlabs implementation
   const API_KEY_PROFILES = {
@@ -71,6 +99,10 @@ export default function VNSalesPage() {
     };
     return voiceProfiles[profileKey as keyof typeof voiceProfiles] || [];
   };
+
+  useEffect(() => {
+    loadStats(); // Load stats on component mount
+  }, []);
 
   useEffect(() => {
     if (selectedApiProfile) {
@@ -178,6 +210,9 @@ export default function VNSalesPage() {
         setSelectedVoice("");
         setSelectedVoiceNote("");
         setSalePrice("");
+        
+        // Reload stats to show updated data
+        loadStats();
       } else {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to submit voice note sale');
@@ -389,23 +424,49 @@ export default function VNSalesPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">VN Sales Today</h3>
-            <p className="text-2xl font-bold text-green-600">$890</p>
-            <p className="text-sm text-green-600">+15% from yesterday</p>
+            <p className="text-2xl font-bold text-green-600">
+              {isLoadingStats ? (
+                <Loader2 className="w-6 h-6 animate-spin" />
+              ) : (
+                `$${vnStats?.vnSalesToday?.toFixed(2) || '0.00'}`
+              )}
+            </p>
+            <p className="text-sm text-gray-500">Real-time data</p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total VN Count</h3>
-            <p className="text-2xl font-bold text-blue-600">247</p>
-            <p className="text-sm text-blue-600">12 new today</p>
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Voice Generated</h3>
+            <p className="text-2xl font-bold text-blue-600">
+              {isLoadingStats ? (
+                <Loader2 className="w-6 h-6 animate-spin" />
+              ) : (
+                voiceStats?.totalVoiceGenerated?.toLocaleString() || '0'
+              )}
+            </p>
+            <p className="text-sm text-blue-600">
+              {voiceStats?.newVoicesToday || 0} new today
+            </p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Loyalty Points Earned</h3>
-            <p className="text-2xl font-bold text-purple-600">3,450</p>
-            <p className="text-sm text-purple-600">+8% this week</p>
+            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Revenue</h3>
+            <p className="text-2xl font-bold text-purple-600">
+              {isLoadingStats ? (
+                <Loader2 className="w-6 h-6 animate-spin" />
+              ) : (
+                `$${vnStats?.totalRevenue?.toFixed(2) || '0.00'}`
+              )}
+            </p>
+            <p className="text-sm text-purple-600">From {vnStats?.salesByModel?.length || 0} models</p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Average VN Price</h3>
-            <p className="text-2xl font-bold text-orange-600">$25.50</p>
-            <p className="text-sm text-green-600">+$2.50 from last week</p>
+            <p className="text-2xl font-bold text-orange-600">
+              {isLoadingStats ? (
+                <Loader2 className="w-6 h-6 animate-spin" />
+              ) : (
+                `$${vnStats?.averageVnPrice?.toFixed(2) || '0.00'}`
+              )}
+            </p>
+            <p className="text-sm text-gray-500">Per voice note</p>
           </div>
         </div>
 
@@ -416,18 +477,50 @@ export default function VNSalesPage() {
           </div>
           <div className="p-6">
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div>
-                  <h3 className="font-medium text-gray-900 dark:text-white">OF Bri</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">45 VN sales</p>
+              {isLoadingStats ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
                 </div>
-                <div className="text-right">
-                  <p className="font-semibold text-green-600">$1,125</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">890 loyalty pts</p>
+              ) : vnStats?.salesByModel?.length > 0 ? (
+                vnStats.salesByModel.map((model: any, index: number) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                  >
+                    <div>
+                      <h3 className="font-medium text-gray-900 dark:text-white">{model.name}</h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{model.sales} VN sales</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-green-600">${model.revenue.toFixed(2)}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{model.loyaltyPoints} loyalty pts</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center text-gray-600 dark:text-gray-400 py-4">
+                  <p className="text-sm">No sales data found. Submit some sales above to see analytics!</p>
                 </div>
-              </div>
-              <div className="text-center text-gray-600 dark:text-gray-400 py-4">
-                <p className="text-sm">Submit new sales above to see updated analytics...</p>
+              )}
+              <div className="flex justify-center pt-4">
+                <Button
+                  variant="outline"
+                  onClick={loadStats}
+                  disabled={isLoadingStats}
+                  className="text-sm"
+                >
+                  {isLoadingStats ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Refreshing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Refresh Stats
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
           </div>
