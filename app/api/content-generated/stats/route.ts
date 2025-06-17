@@ -8,10 +8,7 @@ export async function GET() {
     const session = await auth();
 
     if (!session || !session.user) {
-      return NextResponse.json(
-        { error: "Not authenticated" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     if (!session.accessToken) {
@@ -39,7 +36,12 @@ export async function GET() {
     const spreadsheetId = "1LPrht0Aobhs3KiRV0aLjmJ6_AKQ0HmANJohbzEsMEOk";
 
     // Sheet names to check
-    const sheetNames = ['VIP Gen Tracker', 'Live Gen Tracker', 'FTT Gen Tracker', 'AI Gen Tracker'];
+    const sheetNames = [
+      "VIP Gen Tracker",
+      "Live Gen Tracker",
+      "FTT Gen Tracker",
+      "AI Gen Tracker",
+    ];
 
     let totalContentGenerated = 0;
     let contentGeneratedToday = 0;
@@ -50,7 +52,7 @@ export async function GET() {
     for (const sheetName of sheetNames) {
       try {
         // For AI Gen Tracker, find the TOTAL row in the data
-        if (sheetName === 'AI Gen Tracker') {
+        if (sheetName === "AI Gen Tracker") {
           const response = await sheets.spreadsheets.values.get({
             spreadsheetId,
             range: `'${sheetName}'!A1:Z100`, // Get more data to find TOTAL row
@@ -59,8 +61,8 @@ export async function GET() {
           const rows = response.data.values || [];
 
           // Find the row that contains "TOTAL" in column C (MODEL column - index 2)
-          const totalRow = rows.find(row => 
-            row[2] && row[2].toString().toUpperCase().includes('TOTAL')
+          const totalRow = rows.find(
+            (row) => row[2] && row[2].toString().toUpperCase().includes("TOTAL")
           );
 
           if (totalRow && totalRow.length > 3) {
@@ -83,7 +85,9 @@ export async function GET() {
 
           rows.forEach((row) => {
             // Count non-empty cells that might indicate content generation
-            const nonEmptyCells = row.filter(cell => cell && cell.toString().trim() !== '').length;
+            const nonEmptyCells = row.filter(
+              (cell) => cell && cell.toString().trim() !== ""
+            ).length;
             if (nonEmptyCells > 0) {
               sheetCount++;
             }
@@ -116,35 +120,40 @@ export async function GET() {
 
         // Find the "Created By" column index in row 3 (index 2)
         const headerRow = rows[2] || []; // Row 3 is index 2
-        const createdByIndex = headerRow.findIndex((header: string) => 
-          header && header.toString().toLowerCase().includes('created by')
+        const createdByIndex = headerRow.findIndex(
+          (header: string) =>
+            header && header.toString().toLowerCase().includes("created by")
         );
 
         // If not found in row 3, check if it's specifically in column G (index 6)
         const finalCreatedByIndex = createdByIndex !== -1 ? createdByIndex : 6; // Column G is index 6
 
-         // Find the "Date" column index in row 3 (index 2)
-         const dateHeaderRow = rows[2] || []; // Row 3 is index 2
-         const dateIndex = dateHeaderRow.findIndex((header: string) =>
-           header && header.toString().toLowerCase().includes('date')
-         );
- 
-         // If not found in row 3, check if it's specifically in column B (index 1)
-         const finalDateIndex = dateIndex !== -1 ? dateIndex : 1; // Column B is index 1
+        // Find the "Date" column index in row 3 (index 2)
+        const dateHeaderRow = rows[2] || []; // Row 3 is index 2
+        const dateIndex = dateHeaderRow.findIndex(
+          (header: string) =>
+            header && header.toString().toLowerCase().includes("date")
+        );
+
+        // If not found in row 3, check if it's specifically in column B (index 1)
+        const finalDateIndex = dateIndex !== -1 ? dateIndex : 1; // Column B is index 1
 
         if (finalCreatedByIndex !== -1) {
           // Get recent entries (skip first 3 rows which are headers and get up to 10 most recent)
           const dataRows = rows.slice(3, 13); // Start from row 4 (index 3)
 
           for (const row of dataRows) {
-            if (row[finalCreatedByIndex] && row[finalCreatedByIndex].toString().trim()) {
+            if (
+              row[finalCreatedByIndex] &&
+              row[finalCreatedByIndex].toString().trim()
+            ) {
               const createdByValue = row[finalCreatedByIndex].toString();
 
               // Parse the created by value
-              let name = '';
-              let email = '';
+              let name = "";
+              let email = "";
 
-              if (sheetName === 'AI Gen Tracker') {
+              if (sheetName === "AI Gen Tracker") {
                 // Format: txl.tasty (txl.tasty@gmail.com)
                 const match = createdByValue.match(/^(.+?)\s*\((.+?)\)$/);
                 if (match) {
@@ -164,55 +173,65 @@ export async function GET() {
                 // Query database for user profile image
                 const user = await prisma.user.findUnique({
                   where: { email },
-                  select: { image: true }
+                  select: { image: true },
                 });
 
-                 // Get the date from the Date column
-              const dateValue = row[finalDateIndex] ? row[finalDateIndex].toString().trim() : '';
+                // Get the date from the Date column
+                const dateValue = row[finalDateIndex]
+                  ? row[finalDateIndex].toString().trim()
+                  : "";
 
-              if (user && user.image) {
-                recentActivities.push({
-                  tracker: sheetName,
-                  name,
-                  email,
-                  image: user.image,
-                  createdAt: dateValue,
-                  activity: `Generated content in ${sheetName}`
-                });
-              } else {
-                recentActivities.push({
-                  tracker: sheetName,
-                  name,
-                  email,
-                  image: null,
-                  createdAt: dateValue,
-                  activity: `Generated content in ${sheetName}`
-                });
+                if (user && user.image) {
+                  recentActivities.push({
+                    tracker: sheetName,
+                    name,
+                    email,
+                    image: user.image,
+                    createdAt: dateValue,
+                    activity: `Generated content in ${sheetName}`,
+                  });
+                } else {
+                  recentActivities.push({
+                    tracker: sheetName,
+                    name,
+                    email,
+                    image: null,
+                    createdAt: dateValue,
+                    activity: `Generated content in ${sheetName}`,
+                  });
+                }
               }
             }
           }
         }
       } catch (error) {
-        console.error(`Error fetching recent activity from ${sheetName}:`, error);
+        console.error(
+          `Error fetching recent activity from ${sheetName}:`,
+          error
+        );
       }
     }
 
     // Sort by most recent and limit to 10
     const sortedActivities = recentActivities
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )
       .slice(0, 10);
 
     return NextResponse.json({
       totalContentGenerated,
       contentGeneratedToday,
       contentGrowth: Math.floor(Math.random() * 20) + 5, // Mock growth percentage
-      contentByTracker: Object.entries(contentByTracker).map(([name, count]) => ({
-        tracker: name,
-        count
-      })),
-      recentActivities: sortedActivities
+      contentByTracker: Object.entries(contentByTracker).map(
+        ([name, count]) => ({
+          tracker: name,
+          count,
+        })
+      ),
+      recentActivities: sortedActivities,
     });
-
   } catch (error: any) {
     console.error("Error fetching content generation stats:", error);
 
