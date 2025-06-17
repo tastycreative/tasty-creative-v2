@@ -592,7 +592,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                           key={index}
                           className="border-b border-gray-700 hover:bg-gray-700/50 transition-colors"
                         >
-                          <td className="py-3 px-4">
+                          <td className="py-2 px-4">
                             <div className="flex items-center space-x-3">
                               <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
                                 {activity.image ? (
