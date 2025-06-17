@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       id, // history_item_id
       voiceNote,
       sale,
-      new Date(soldDate).toLocaleDateString(),
+      new Date(soldDate).toLocaleDateString() + ' ' + new Date(soldDate).toLocaleTimeString(),
       status,
     ];
 
