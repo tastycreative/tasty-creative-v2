@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
@@ -151,10 +152,17 @@ export async function GET() {
               }
               
               if (name && email) {
+                // Query database for user profile image
+                const user = await prisma.user.findUnique({
+                  where: { email },
+                  select: { image: true }
+                });
+
                 recentActivities.push({
                   tracker: sheetName,
                   name,
                   email,
+                  image: user?.image || null,
                   createdAt: new Date().toISOString(), // Using current time as placeholder
                   activity: `Generated content in ${sheetName}`
                 });

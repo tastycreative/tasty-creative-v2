@@ -93,6 +93,7 @@ interface DashboardData {
       email: string;
       createdAt: string;
       activity: string;
+      image?: string;
     }>;
   };
 }
@@ -106,12 +107,12 @@ const ROLE_COLORS = {
 
 export function AdminDashboardClient({ data }: { data: DashboardData }) {
   const { stats, recentUsers, userGrowthData, analytics } = data;
-  
+
   // State for real-time VN sales and voice data
   const [vnSalesData, setVnSalesData] = useState(data.vnSales);
   const [isLoadingVnStats, setIsLoadingVnStats] = useState(true);
   const [isLoadingVoiceStats, setIsLoadingVoiceStats] = useState(true);
-  
+
   // State for content generation data
   const [contentGenerationData, setContentGenerationData] = useState(data.contentGeneration);
   const [isLoadingContentStats, setIsLoadingContentStats] = useState(true);
@@ -551,33 +552,47 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                     {recentActivities.slice(0, 5).map((activity, index) => {
                       // Check if this email matches any existing user
                       const existingUser = recentUsers.find(user => user.email === activity.email);
-                      
+
                       return (
                         <tr
                           key={index}
                           className="border-b border-gray-700 hover:bg-gray-700/50 transition-colors"
                         >
                           <td className="py-3 px-4">
+                            
                             <div className="flex items-center space-x-3">
-                              {existingUser?.image ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                  src={`/api/image-proxy?url=${encodeURIComponent(existingUser.image)}`}
-                                  alt={activity.name}
-                                  className="h-8 w-8 rounded-full object-cover"
-                                />
-                              ) : (
-                                <div className="h-8 w-8 rounded-full bg-gray-600 flex items-center justify-center">
-                                  <FileText className="h-4 w-4 text-gray-300" />
-                                </div>
-                              )}
-                              <div>
-                                <span className="font-medium text-white text-sm">
-                                  {activity.name}
-                                </span>
-                                <p className="text-xs text-gray-400">{activity.email}</p>
-                              </div>
-                            </div>
+                <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                  {activity.image ? (
+                    <img
+                      src={`/api/image-proxy?url=${encodeURIComponent(activity.image)}`}
+                      alt={activity.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const fallback = target.nextSibling as HTMLElement;
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <div className="w-full h-full bg-purple-500 rounded-full flex items-center justify-center" style={{ display: activity.image ? 'none' : 'flex' }}>
+                    <span className="text-white text-sm font-medium">
+                      {activity.name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white truncate">
+                    {activity.name}
+                  </p>
+                  <p className="text-sm text-gray-400 truncate">
+                    Generated content
+                  </p>
+                </div>
+                <div className="text-xs text-gray-400">
+                  {activity.tracker}
+                </div>
+              </div>
                           </td>
                           <td className="py-3 px-4 text-gray-300 text-sm">
                             Generated content
