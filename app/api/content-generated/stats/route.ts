@@ -101,6 +101,74 @@ export async function GET() {
     // Calculate today's content (simplified - you may want to add date filtering)
     contentGeneratedToday = Math.floor(totalContentGenerated * 0.1); // Mock calculation
 
+    // Fetch recent activity from all sheets
+    const recentActivities: any[] = [];
+    
+    for (const sheetName of sheetNames) {
+      try {
+        const response = await sheets.spreadsheets.values.get({
+          spreadsheetId,
+          range: `'${sheetName}'!A1:Z50`, // Get first 50 rows to find recent activities
+        });
+
+        const rows = response.data.values || [];
+        
+        // Find the "Created By" column index
+        const headerRow = rows[0] || [];
+        const createdByIndex = headerRow.findIndex((header: string) => 
+          header && header.toString().toLowerCase().includes('created by')
+        );
+        
+        if (createdByIndex !== -1) {
+          // Get recent entries (skip header row and get up to 10 most recent)
+          const dataRows = rows.slice(1, 11);
+          
+          for (const row of dataRows) {
+            if (row[createdByIndex] && row[createdByIndex].toString().trim()) {
+              const createdByValue = row[createdByIndex].toString();
+              
+              // Parse the created by value
+              let name = '';
+              let email = '';
+              
+              if (sheetName === 'AI Gen Tracker') {
+                // Format: txl.tasty (txl.tasty@gmail.com)
+                const match = createdByValue.match(/^(.+?)\s*\((.+?)\)$/);
+                if (match) {
+                  name = match[1].trim();
+                  email = match[2].trim();
+                }
+              } else {
+                // Format: Fatie Diongzon <fatimadiongzon5@gmail.com>
+                const match = createdByValue.match(/^(.+?)\s*<(.+?)>$/);
+                if (match) {
+                  name = match[1].trim();
+                  email = match[2].trim();
+                }
+              }
+              
+              if (name && email) {
+                recentActivities.push({
+                  tracker: sheetName,
+                  name,
+                  email,
+                  createdAt: new Date().toISOString(), // Using current time as placeholder
+                  activity: `Generated content in ${sheetName}`
+                });
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`Error fetching recent activity from ${sheetName}:`, error);
+      }
+    }
+    
+    // Sort by most recent and limit to 10
+    const sortedActivities = recentActivities
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 10);
+
     return NextResponse.json({
       totalContentGenerated,
       contentGeneratedToday,
@@ -108,7 +176,8 @@ export async function GET() {
       contentByTracker: Object.entries(contentByTracker).map(([name, count]) => ({
         tracker: name,
         count
-      }))
+      })),
+      recentActivities: sortedActivities
     });
 
   } catch (error: any) {

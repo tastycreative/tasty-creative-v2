@@ -87,6 +87,13 @@ interface DashboardData {
       tracker: string;
       count: number;
     }>;
+    recentActivities?: Array<{
+      tracker: string;
+      name: string;
+      email: string;
+      createdAt: string;
+      activity: string;
+    }>;
   };
 }
 
@@ -108,6 +115,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
   // State for content generation data
   const [contentGenerationData, setContentGenerationData] = useState(data.contentGeneration);
   const [isLoadingContentStats, setIsLoadingContentStats] = useState(true);
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
 
   // Fetch real VN sales and voice data
   useEffect(() => {
@@ -160,6 +168,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             contentGrowth: contentStats.contentGrowth || 0,
             contentByTracker: contentStats.contentByTracker || []
           });
+          setRecentActivities(contentStats.recentActivities || []);
         }
       } catch (error) {
         console.error('Error fetching content generation data:', error);
@@ -427,82 +436,180 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         </Card>
       </div>
 
-      {/* Recent Users Table */}
-      <Card className="bg-gray-800 border-gray-700">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2 text-white">
-            <Calendar className="h-5 w-5 text-purple-400" />
-            <span>Recent Users</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-600">
-                  <th className="text-left py-3 px-4 font-medium text-gray-300">
-                    User
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-300">
-                    Email
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-300">
-                    Role
-                  </th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-300">
-                    Joined
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentUsers.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="border-b border-gray-700 hover:bg-gray-700/50 transition-colors"
-                  >
-                    <td className="py-3 px-4">
-                      <div className="flex items-center space-x-3">
-                        {user.image ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={`/api/image-proxy?url=${encodeURIComponent(user.image)}`}
-                            alt={user.name || ""}
-                            className="h-8 w-8 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="h-8 w-8 rounded-full bg-gray-600 flex items-center justify-center">
-                            <Users className="h-4 w-4 text-gray-300" />
-                          </div>
-                        )}
-                        <span className="font-medium text-white">
-                          {user.name || "No name"}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-gray-300">{user.email}</td>
-                    <td className="py-3 px-4">
-                      <Badge
-                        variant="secondary"
-                        className={`
-                          ${user.role === "ADMIN" ? "bg-red-900/50 text-red-200 border-red-700" : ""}
-                          ${user.role === "MODERATOR" ? "bg-yellow-900/50 text-yellow-200 border-yellow-700" : ""}
-                          ${user.role === "USER" ? "bg-green-900/50 text-green-200 border-green-700" : ""}
-                          ${user.role === "GUEST" ? "bg-gray-700 text-gray-200 border-gray-600" : ""}
-                        `}
-                      >
-                        {user.role}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-4 text-gray-400">
-                      {new Date(user.createdAt).toLocaleDateString()}
-                    </td>
+      {/* Tables Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Users Table */}
+        <Card className="bg-gray-800 border-gray-700">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-white">
+              <Calendar className="h-5 w-5 text-purple-400" />
+              <span>Recent Users</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-600">
+                    <th className="text-left py-3 px-4 font-medium text-gray-300">
+                      User
+                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-300">
+                      Email
+                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-300">
+                      Role
+                    </th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-300">
+                      Joined
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+                </thead>
+                <tbody>
+                  {recentUsers.slice(0, 5).map((user) => (
+                    <tr
+                      key={user.id}
+                      className="border-b border-gray-700 hover:bg-gray-700/50 transition-colors"
+                    >
+                      <td className="py-3 px-4">
+                        <div className="flex items-center space-x-3">
+                          {user.image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={`/api/image-proxy?url=${encodeURIComponent(user.image)}`}
+                              alt={user.name || ""}
+                              className="h-8 w-8 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="h-8 w-8 rounded-full bg-gray-600 flex items-center justify-center">
+                              <Users className="h-4 w-4 text-gray-300" />
+                            </div>
+                          )}
+                          <span className="font-medium text-white">
+                            {user.name || "No name"}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-gray-300">{user.email}</td>
+                      <td className="py-3 px-4">
+                        <Badge
+                          variant="secondary"
+                          className={`
+                            ${user.role === "ADMIN" ? "bg-red-900/50 text-red-200 border-red-700" : ""}
+                            ${user.role === "MODERATOR" ? "bg-yellow-900/50 text-yellow-200 border-yellow-700" : ""}
+                            ${user.role === "USER" ? "bg-green-900/50 text-green-200 border-green-700" : ""}
+                            ${user.role === "GUEST" ? "bg-gray-700 text-gray-200 border-gray-600" : ""}
+                          `}
+                        >
+                          {user.role}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-gray-400">
+                        {new Date(user.createdAt).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent Activity Table */}
+        <Card className="bg-gray-800 border-gray-700">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-white">
+              <Activity className="h-5 w-5 text-green-400" />
+              <span>Recent Content Generation</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoadingContentStats ? (
+              <div className="flex justify-center py-8">
+                <div className="flex items-center text-gray-400">
+                  <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                  <span>Loading recent activity...</span>
+                </div>
+              </div>
+            ) : recentActivities.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-600">
+                      <th className="text-left py-3 px-4 font-medium text-gray-300">
+                        User
+                      </th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-300">
+                        Activity
+                      </th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-300">
+                        Tracker
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentActivities.slice(0, 5).map((activity, index) => {
+                      // Check if this email matches any existing user
+                      const existingUser = recentUsers.find(user => user.email === activity.email);
+                      
+                      return (
+                        <tr
+                          key={index}
+                          className="border-b border-gray-700 hover:bg-gray-700/50 transition-colors"
+                        >
+                          <td className="py-3 px-4">
+                            <div className="flex items-center space-x-3">
+                              {existingUser?.image ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={`/api/image-proxy?url=${encodeURIComponent(existingUser.image)}`}
+                                  alt={activity.name}
+                                  className="h-8 w-8 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="h-8 w-8 rounded-full bg-gray-600 flex items-center justify-center">
+                                  <FileText className="h-4 w-4 text-gray-300" />
+                                </div>
+                              )}
+                              <div>
+                                <span className="font-medium text-white text-sm">
+                                  {activity.name}
+                                </span>
+                                <p className="text-xs text-gray-400">{activity.email}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-gray-300 text-sm">
+                            Generated content
+                          </td>
+                          <td className="py-3 px-4">
+                            <Badge 
+                              variant="secondary"
+                              className={`text-xs
+                                ${activity.tracker === 'VIP Gen Tracker' ? 'bg-purple-900/50 text-purple-200 border-purple-700' : ''}
+                                ${activity.tracker === 'Live Gen Tracker' ? 'bg-red-900/50 text-red-200 border-red-700' : ''}
+                                ${activity.tracker === 'FTT Gen Tracker' ? 'bg-blue-900/50 text-blue-200 border-blue-700' : ''}
+                                ${activity.tracker === 'AI Gen Tracker' ? 'bg-green-900/50 text-green-200 border-green-700' : ''}
+                              `}
+                            >
+                              {activity.tracker.replace(' Gen Tracker', '')}
+                            </Badge>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center text-gray-400 py-8">
+                <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-sm">No recent content generation activity found</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
