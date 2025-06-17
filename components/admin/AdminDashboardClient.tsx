@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   XAxis,
   YAxis,
@@ -29,6 +29,7 @@ import {
   BarChart3,
   Target,
   Percent,
+  Loader2,
 } from "lucide-react";
 import CountUp from "react-countup";
 
@@ -87,7 +88,58 @@ const ROLE_COLORS = {
 };
 
 export function AdminDashboardClient({ data }: { data: DashboardData }) {
-  const { stats, recentUsers, userGrowthData, vnSales, analytics } = data;
+  const { stats, recentUsers, userGrowthData, analytics } = data;
+  
+  // State for real-time VN sales and voice data
+  const [vnSalesData, setVnSalesData] = useState(data.vnSales);
+  const [isLoadingVnStats, setIsLoadingVnStats] = useState(true);
+  const [isLoadingVoiceStats, setIsLoadingVoiceStats] = useState(true);
+
+  // Fetch real VN sales and voice data
+  useEffect(() => {
+    const fetchVnSalesData = async () => {
+      try {
+        const response = await fetch('/api/vn-sales/stats');
+        if (response.ok) {
+          const vnStats = await response.json();
+          setVnSalesData(prev => ({
+            ...prev,
+            vnSalesToday: vnStats.vnSalesToday || 0,
+            totalRevenue: vnStats.totalRevenue || 0,
+            averageVnPrice: vnStats.averageVnPrice || 0,
+            salesByModel: vnStats.salesByModel || []
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching VN sales data:', error);
+      } finally {
+        setIsLoadingVnStats(false);
+      }
+    };
+
+    const fetchVoiceData = async () => {
+      try {
+        const response = await fetch('/api/elevenlabs/total-history');
+        if (response.ok) {
+          const voiceStats = await response.json();
+          setVnSalesData(prev => ({
+            ...prev,
+            totalVnCount: voiceStats.totalVoiceGenerated || 0,
+            newVnToday: voiceStats.newVoicesToday || 0
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching voice data:', error);
+      } finally {
+        setIsLoadingVoiceStats(false);
+      }
+    };
+
+    fetchVnSalesData();
+    fetchVoiceData();
+  }, []);
+
+  const vnSales = vnSalesData;
 
   const roleChartData = Object.entries(stats.usersByRole).map(
     ([role, count]) => ({
@@ -112,24 +164,26 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     {
       title: "VN Sales Today",
       value: vnSales.vnSalesToday,
-      formattedValue: `$${vnSales.vnSalesToday.toLocaleString()}`,
+      formattedValue: isLoadingVnStats ? "Loading..." : `$${vnSales.vnSalesToday.toLocaleString()}`,
       icon: DollarSign,
-      description: `+${vnSales.vnSalesGrowth}% from yesterday`,
+      description: isLoadingVnStats ? "Fetching from Google Sheets..." : `+${vnSales.vnSalesGrowth}% from yesterday`,
       color: "text-green-600",
       bgColor: "bg-green-50 dark:bg-green-900/20",
-      prefix: "$",
+      prefix: isLoadingVnStats ? "" : "$",
       suffix: "",
+      isLoading: isLoadingVnStats,
     },
     {
       title: "Total VN Count",
       value: vnSales.totalVnCount,
-      formattedValue: vnSales.totalVnCount.toLocaleString(),
+      formattedValue: isLoadingVoiceStats ? "Loading..." : vnSales.totalVnCount.toLocaleString(),
       icon: FileText,
-      description: `${vnSales.newVnToday} new today`,
+      description: isLoadingVoiceStats ? "Fetching from ElevenLabs..." : `${vnSales.newVnToday} new today`,
       color: "text-blue-600",
       bgColor: "bg-blue-50 dark:bg-blue-900/20",
       prefix: "",
       suffix: "",
+      isLoading: isLoadingVoiceStats,
     },
     {
       title: "Active Campaigns",
@@ -155,25 +209,27 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     },
     {
       title: "Total Revenue",
-      value: analytics.totalRevenue,
-      formattedValue: `$${analytics.totalRevenue.toLocaleString()}`,
+      value: vnSales.totalRevenue,
+      formattedValue: isLoadingVnStats ? "Loading..." : `$${vnSales.totalRevenue.toLocaleString()}`,
       icon: TrendingUp,
-      description: `+${analytics.revenueGrowth}% from last week`,
+      description: isLoadingVnStats ? "Fetching from Google Sheets..." : `+${analytics.revenueGrowth}% from last week`,
       color: "text-green-600",
       bgColor: "bg-green-50 dark:bg-green-900/20",
-      prefix: "$",
+      prefix: isLoadingVnStats ? "" : "$",
       suffix: "",
+      isLoading: isLoadingVnStats,
     },
     {
       title: "Loyalty Points",
       value: vnSales.loyaltyPointsEarned,
-      formattedValue: vnSales.loyaltyPointsEarned.toLocaleString(),
+      formattedValue: isLoadingVnStats ? "Loading..." : vnSales.loyaltyPointsEarned.toLocaleString(),
       icon: Star,
-      description: `+${vnSales.loyaltyPointsGrowth}% this week`,
+      description: isLoadingVnStats ? "Fetching from Google Sheets..." : `+${vnSales.loyaltyPointsGrowth}% this week`,
       color: "text-yellow-600",
       bgColor: "bg-yellow-50 dark:bg-yellow-900/20",
       prefix: "",
       suffix: "",
+      isLoading: isLoadingVnStats,
     },
     {
       title: "ROI",
@@ -214,18 +270,25 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                       {stat.title}
                     </p>
                     <p className="text-2xl font-bold text-white">
-                      <CountUp
-                        end={stat.value}
-                        duration={2.5}
-                        prefix={stat.prefix}
-                        suffix={stat.suffix}
-                        decimals={
-                          stat.title.includes("Rate") ||
-                          stat.title.includes("ROI")
-                            ? 2
-                            : 0
-                        }
-                      />
+                      {(stat as any).isLoading ? (
+                        <div className="flex items-center">
+                          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                          Loading...
+                        </div>
+                      ) : (
+                        <CountUp
+                          end={stat.value}
+                          duration={2.5}
+                          prefix={stat.prefix}
+                          suffix={stat.suffix}
+                          decimals={
+                            stat.title.includes("Rate") ||
+                            stat.title.includes("ROI")
+                              ? 2
+                              : 0
+                          }
+                        />
+                      )}
                     </p>
                     <p className="text-xs text-gray-500">{stat.description}</p>
                   </div>
@@ -416,36 +479,51 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {vnSales.salesByModel.map((model, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg"
-              >
-                <div>
-                  <h3 className="font-medium text-white">{model.name}</h3>
-                  <p className="text-sm text-gray-400">
-                    {model.sales} VN sales
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-semibold text-green-400">
-                    ${model.revenue}
-                  </p>
-                  <p className="text-sm text-gray-400">
-                    {model.loyaltyPoints} loyalty pts
-                  </p>
+            {isLoadingVnStats ? (
+              <div className="flex justify-center py-8">
+                <div className="flex items-center text-gray-400">
+                  <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                  <span>Fetching sales data from Google Sheets...</span>
                 </div>
               </div>
-            ))}
-            <div className="text-center text-gray-400 py-4">
-              <p className="text-sm">
-                Average VN Price:{" "}
-                <span className="text-orange-400 font-semibold">
-                  ${vnSales.averageVnPrice}
-                </span>{" "}
-                (+${vnSales.priceIncrease} from last week)
-              </p>
-            </div>
+            ) : vnSales.salesByModel.length > 0 ? (
+              <>
+                {vnSales.salesByModel.map((model, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg"
+                  >
+                    <div>
+                      <h3 className="font-medium text-white">{model.name}</h3>
+                      <p className="text-sm text-gray-400">
+                        {model.sales} VN sales
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-green-400">
+                        ${model.revenue.toFixed(2)}
+                      </p>
+                      <p className="text-sm text-gray-400">
+                        {model.loyaltyPoints} loyalty pts
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                <div className="text-center text-gray-400 py-4">
+                  <p className="text-sm">
+                    Average VN Price:{" "}
+                    <span className="text-orange-400 font-semibold">
+                      ${vnSales.averageVnPrice.toFixed(2)}
+                    </span>{" "}
+                    (+${vnSales.priceIncrease} from last week)
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="text-center text-gray-400 py-4">
+                <p className="text-sm">No sales data found. Submit some sales to see analytics!</p>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -1,4 +1,3 @@
-
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -12,15 +11,10 @@ export default async function AdminDashboardPage() {
     redirect("/unauthorized");
   }
 
-  // Fetch VN Sales and Voice Generation stats
-  const [vnSalesStats, voiceStats] = await Promise.all([
-    fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/vn-sales/stats`, {
-      cache: 'no-store'
-    }).then(res => res.ok ? res.json() : null).catch(() => null),
-    fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/elevenlabs/total-history`, {
-      cache: 'no-store'
-    }).then(res => res.ok ? res.json() : null).catch(() => null)
-  ]);
+  // Note: We'll fetch this data on the client side to show loading states
+  // Static data for server-side rendering, real data fetched client-side
+  const vnSalesStats = null;
+  const voiceStats = null;
 
   // Fetch dashboard statistics
   const [
@@ -33,7 +27,7 @@ export default async function AdminDashboardPage() {
   ] = await Promise.all([
     // Total users
     prisma.user.count(),
-    
+
     // Users this month
     prisma.user.count({
       where: {
@@ -42,7 +36,7 @@ export default async function AdminDashboardPage() {
         },
       },
     }),
-    
+
     // Users last month
     prisma.user.count({
       where: {
@@ -52,7 +46,7 @@ export default async function AdminDashboardPage() {
         },
       },
     }),
-    
+
     // Users by role
     prisma.user.groupBy({
       by: ['role'],
@@ -60,7 +54,7 @@ export default async function AdminDashboardPage() {
         role: true,
       },
     }),
-    
+
     // Recent users
     prisma.user.findMany({
       select: {
@@ -76,7 +70,7 @@ export default async function AdminDashboardPage() {
       },
       take: 5,
     }),
-    
+
     // User growth data (last 12 months)
     Promise.all(
       Array.from({ length: 12 }, async (_, i) => {
@@ -84,7 +78,7 @@ export default async function AdminDashboardPage() {
         date.setMonth(date.getMonth() - i);
         const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
         const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 1);
-        
+
         const count = await prisma.user.count({
           where: {
             createdAt: {
@@ -93,7 +87,7 @@ export default async function AdminDashboardPage() {
             },
           },
         });
-        
+
         return {
           month: startOfMonth.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
           users: count,
