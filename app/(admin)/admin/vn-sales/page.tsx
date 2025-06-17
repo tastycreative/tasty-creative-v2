@@ -64,10 +64,10 @@ export default function VNSalesPage() {
   // Function to get voices for a specific profile (copied from elevenlabs implementation)
   const getVoicesForProfile = async (profileKey: string) => {
     try {
-        const apiKey = API_KEY_PROFILES[profileKey as keyof typeof API_KEY_PROFILES]?.apiKey;
+        const profile = API_KEY_PROFILES[profileKey as keyof typeof API_KEY_PROFILES];
 
-        if (!apiKey) {
-            console.error(`API key not found for profile key: ${profileKey}`);
+        if (!profile) {
+            console.error(`Profile not found for profile key: ${profileKey}`);
             return [];
         }
 
@@ -76,7 +76,7 @@ export default function VNSalesPage() {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ apiKey: apiKey }),
+            body: JSON.stringify({ profileKey: profileKey }),
         });
 
         if (!response.ok) {
