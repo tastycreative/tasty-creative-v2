@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { API_KEY_PROFILES } from "@/app/services/elevenlabs-implementation";
 
 interface VoiceHistoryItem {
   history_item_id: string;
@@ -59,15 +60,7 @@ export default function VNSalesPage() {
     }
   };
   
-  // API profiles from elevenlabs implementation
-  const API_KEY_PROFILES = {
-    account_1: { name: "Account 1 - OF Bri's voice" },
-    account_2: { name: "Account 2 - OF Coco's voice" },
-    account_3: { name: "Account 3 - OF Mel's voice" },
-    account_4: { name: "Account 4 - OF Lala's voice" },
-    account_5: { name: "Account 5 - OF Bronwin's voice" },
-    account_6: { name: "Account 6 - OF Nicole's voice" },
-  };
+  
 
   // Function to get voices for a specific profile (copied from elevenlabs implementation)
   const getVoicesForProfile = (profileKey: string) => {
@@ -362,12 +355,12 @@ export default function VNSalesPage() {
                   );
                 }).length === 0 && (
                   <p className="text-sm text-gray-500 mt-1">
-                    No voice notes found for {availableVoices.find(v => v.voiceId === selectedVoice)?.name} in {API_KEY_PROFILES[selectedApiProfile as keyof typeof API_KEY_PROFILES]?.name}. Generate some voice notes first.
+                    No voice notes found for {availableVoices.find(v => v.voiceId === selectedVoice)?.name} in {API_KEY_PROFILES[selectedApiProfile]?.name}. Generate some voice notes first.
                   </p>
                 )}
                 {selectedApiProfile && voiceHistory.length === 0 && !isLoadingHistory && (
                   <p className="text-sm text-gray-500 mt-1">
-                    No voice history found in {API_KEY_PROFILES[selectedApiProfile as keyof typeof API_KEY_PROFILES]?.name}. Make sure the API profile has voice generation history.
+                    No voice history found in {API_KEY_PROFILES[selectedApiProfile]?.name}. Make sure the API profile has voice generation history.
                   </p>
                 )}
               </div>
