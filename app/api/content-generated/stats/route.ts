@@ -49,18 +49,22 @@ export async function GET() {
     // Fetch data from each tracker sheet
     for (const sheetName of sheetNames) {
       try {
-        // For AI Gen Tracker, use row 3 and look for TOTAL next to MODEL
+        // For AI Gen Tracker, find the TOTAL row in the data
         if (sheetName === 'AI Gen Tracker') {
           const response = await sheets.spreadsheets.values.get({
             spreadsheetId,
-            range: `${sheetName}!A3:Z3`, // Get header row 3
+            range: `${sheetName}!A1:Z100`, // Get more data to find TOTAL row
           });
 
-          const headerRow = response.data.values?.[0] || [];
-          const modelIndex = headerRow.findIndex(cell => cell?.toString().toUpperCase().includes('MODEL'));
+          const rows = response.data.values || [];
           
-          if (modelIndex !== -1 && modelIndex + 1 < headerRow.length) {
-            const totalValue = headerRow[modelIndex + 1];
+          // Find the row that contains "TOTAL" in the first column
+          const totalRow = rows.find(row => 
+            row[0] && row[0].toString().toUpperCase().includes('TOTAL')
+          );
+          
+          if (totalRow && totalRow.length > 1) {
+            const totalValue = totalRow[1]; // Files column (second column)
             if (totalValue && !isNaN(Number(totalValue))) {
               const count = Number(totalValue);
               totalContentGenerated += count;
