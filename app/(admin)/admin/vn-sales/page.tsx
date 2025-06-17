@@ -289,8 +289,17 @@ export default function VNSalesPage() {
                     {voiceHistory
                       .filter((item) => {
                         if (!selectedVoice) return false;
+                        // More flexible matching - check if voice name contains the selected voice name or vice versa
                         const selectedVoiceData = availableVoices.find(v => v.voiceId === selectedVoice);
-                        return selectedVoiceData && item.voice_name === selectedVoiceData.name;
+                        if (!selectedVoiceData) return false;
+                        
+                        // Extract the core name (e.g., "Bri" from "OF Bri")
+                        const coreName = selectedVoiceData.name.replace(/^OF\s/, '').replace(/\s\(.*\)$/, '');
+                        return item.voice_name && (
+                          item.voice_name.includes(coreName) || 
+                          coreName.includes(item.voice_name) ||
+                          item.voice_name === selectedVoiceData.name
+                        );
                       })
                       .map((item) => (
                         <SelectItem key={item.history_item_id} value={item.history_item_id} className="dark:text-white dark:hover:bg-gray-700">
@@ -308,7 +317,14 @@ export default function VNSalesPage() {
                 </Select>
                 {selectedVoice && selectedApiProfile && voiceHistory.filter((item) => {
                   const selectedVoiceData = availableVoices.find(v => v.voiceId === selectedVoice);
-                  return selectedVoiceData && item.voice_name === selectedVoiceData.name;
+                  if (!selectedVoiceData) return false;
+                  
+                  const coreName = selectedVoiceData.name.replace(/^OF\s/, '').replace(/\s\(.*\)$/, '');
+                  return item.voice_name && (
+                    item.voice_name.includes(coreName) || 
+                    coreName.includes(item.voice_name) ||
+                    item.voice_name === selectedVoiceData.name
+                  );
                 }).length === 0 && (
                   <p className="text-sm text-gray-500 mt-1">
                     No voice notes found for {availableVoices.find(v => v.voiceId === selectedVoice)?.name} in {API_KEY_PROFILES[selectedApiProfile as keyof typeof API_KEY_PROFILES]?.name}. Generate some voice notes first.
