@@ -1,5 +1,6 @@
 
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import PermissionGoogle from "@/components/PermissionGoogle";
 
 export default function AdminLayout({
   children,
@@ -13,7 +14,8 @@ export default function AdminLayout({
       {/* Main Content */}
       <div className="md:ml-64 transition-all duration-300">
         <main className="min-h-screen">
-          {children}
+           <PermissionGoogle apiEndpoint={`/api/forms/list`}> {children}</PermissionGoogle>
+         
         </main>
       </div>
     </div>
