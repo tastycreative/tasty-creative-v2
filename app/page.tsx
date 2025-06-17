@@ -29,7 +29,7 @@ const HomePage = async () => {
 
             {session.user.role === "ADMIN" && (
               <Link
-                href="/admin/users"
+                href="/admin/dashboard"
                 className="text-purple-500 hover:underline"
               >
                 Admin

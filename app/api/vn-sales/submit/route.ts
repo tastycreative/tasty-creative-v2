@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import { auth } from "@/auth";
@@ -12,14 +11,20 @@ export async function POST(request: NextRequest) {
     }
 
     if (session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized. Admin access required." }, { status: 403 });
+      return NextResponse.json(
+        { error: "Unauthorized. Admin access required." },
+        { status: 403 }
+      );
     }
 
     const { model, voiceNote, sale, soldDate, status } = await request.json();
 
     if (!model || !voiceNote || !sale || !soldDate || !status) {
       return NextResponse.json(
-        { error: "Missing required fields: model, voiceNote, sale, soldDate, status" },
+        {
+          error:
+            "Missing required fields: model, voiceNote, sale, soldDate, status",
+        },
         { status: 400 }
       );
     }
@@ -34,7 +39,10 @@ export async function POST(request: NextRequest) {
     // Check if we have the necessary tokens
     if (!session.accessToken) {
       return NextResponse.json(
-        { error: "No access token available. Please re-authenticate with Google." },
+        {
+          error:
+            "No access token available. Please re-authenticate with Google.",
+        },
         { status: 401 }
       );
     }
@@ -46,9 +54,16 @@ export async function POST(request: NextRequest) {
     });
 
     // If no refresh token, try to refresh the access token manually
-    if (!session.refreshToken && session.expiresAt && new Date().getTime() > session.expiresAt * 1000) {
+    if (
+      !session.refreshToken &&
+      session.expiresAt &&
+      new Date().getTime() > session.expiresAt * 1000
+    ) {
       return NextResponse.json(
-        { error: "Access token expired and no refresh token available. Please re-authenticate with Google." },
+        {
+          error:
+            "Access token expired and no refresh token available. Please re-authenticate with Google.",
+        },
         { status: 401 }
       );
     }
@@ -57,7 +72,7 @@ export async function POST(request: NextRequest) {
     const sheets = google.sheets({ version: "v4", auth: oauth2Client });
 
     const spreadsheetId = "1_a08KImbkIA3z0_DTGWoqJdnRiw1y-kygj-Wr2cB_gk";
-    const sheetName = model; // Use the model name as the sheet name
+    const sheetName = model.replace(/^OF\s+/i, "").trim(); // Remove 'OF ' prefix if present
 
     // Format the data for the spreadsheet
     // Headers: 'Voice Note' 'Sale' 'Sold Date' 'Status' 'Total'
@@ -66,12 +81,12 @@ export async function POST(request: NextRequest) {
       sale,
       new Date(soldDate).toLocaleDateString(),
       status,
-      sale // Total column gets the same value as Sale for now
+      sale, // Total column gets the same value as Sale for now
     ];
 
     // Append to the specific model sheet
     const range = `${sheetName}!A:E`;
-    
+
     await sheets.spreadsheets.values.append({
       spreadsheetId,
       range,
@@ -89,10 +104,9 @@ export async function POST(request: NextRequest) {
         voiceNote,
         sale,
         soldDate,
-        status
-      }
+        status,
+      },
     });
-
   } catch (error: any) {
     console.error("Error submitting VN sale:", error);
 

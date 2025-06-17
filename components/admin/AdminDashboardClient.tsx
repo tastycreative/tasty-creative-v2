@@ -30,6 +30,7 @@ import {
   Target,
   Percent,
 } from "lucide-react";
+import CountUp from "react-countup";
 
 interface DashboardData {
   stats: {
@@ -99,67 +100,91 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
   const statCards = [
     {
       title: "Total Users",
-      value: stats.totalUsers.toLocaleString(),
+      value: stats.totalUsers,
+      formattedValue: stats.totalUsers.toLocaleString(),
       icon: Users,
       description: "All registered users",
       color: "text-blue-600",
       bgColor: "bg-blue-50 dark:bg-blue-900/20",
+      prefix: "",
+      suffix: "",
     },
     {
       title: "VN Sales Today",
-      value: `$${vnSales.vnSalesToday}`,
+      value: vnSales.vnSalesToday,
+      formattedValue: `$${vnSales.vnSalesToday.toLocaleString()}`,
       icon: DollarSign,
       description: `+${vnSales.vnSalesGrowth}% from yesterday`,
       color: "text-green-600",
       bgColor: "bg-green-50 dark:bg-green-900/20",
+      prefix: "$",
+      suffix: "",
     },
     {
       title: "Total VN Count",
-      value: vnSales.totalVnCount.toLocaleString(),
+      value: vnSales.totalVnCount,
+      formattedValue: vnSales.totalVnCount.toLocaleString(),
       icon: FileText,
       description: `${vnSales.newVnToday} new today`,
       color: "text-blue-600",
       bgColor: "bg-blue-50 dark:bg-blue-900/20",
+      prefix: "",
+      suffix: "",
     },
     {
       title: "Active Campaigns",
-      value: analytics.activeCampaigns.toLocaleString(),
+      value: analytics.activeCampaigns,
+      formattedValue: analytics.activeCampaigns.toLocaleString(),
       icon: Target,
       description: `${analytics.newCampaignsThisWeek} new this week`,
       color: "text-purple-600",
       bgColor: "bg-purple-50 dark:bg-purple-900/20",
+      prefix: "",
+      suffix: "",
     },
     {
       title: "Conversion Rate",
-      value: `${analytics.conversionRate}%`,
+      value: analytics.conversionRate,
+      formattedValue: `${analytics.conversionRate}%`,
       icon: Percent,
       description: `+${analytics.conversionGrowth}% from last week`,
       color: "text-green-600",
       bgColor: "bg-green-50 dark:bg-green-900/20",
+      prefix: "",
+      suffix: "%",
     },
     {
       title: "Total Revenue",
-      value: `$${analytics.totalRevenue.toLocaleString()}`,
+      value: analytics.totalRevenue,
+      formattedValue: `$${analytics.totalRevenue.toLocaleString()}`,
       icon: TrendingUp,
       description: `+${analytics.revenueGrowth}% from last week`,
       color: "text-green-600",
       bgColor: "bg-green-50 dark:bg-green-900/20",
+      prefix: "$",
+      suffix: "",
     },
     {
       title: "Loyalty Points",
-      value: vnSales.loyaltyPointsEarned.toLocaleString(),
+      value: vnSales.loyaltyPointsEarned,
+      formattedValue: vnSales.loyaltyPointsEarned.toLocaleString(),
       icon: Star,
       description: `+${vnSales.loyaltyPointsGrowth}% this week`,
       color: "text-yellow-600",
       bgColor: "bg-yellow-50 dark:bg-yellow-900/20",
+      prefix: "",
+      suffix: "",
     },
     {
       title: "ROI",
-      value: `${analytics.roi}%`,
+      value: analytics.roi,
+      formattedValue: `${analytics.roi}%`,
       icon: BarChart3,
       description: `+${analytics.roiGrowth}% from last week`,
       color: "text-purple-600",
       bgColor: "bg-purple-50 dark:bg-purple-900/20",
+      prefix: "",
+      suffix: "%",
     },
   ];
 
@@ -189,7 +214,18 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                       {stat.title}
                     </p>
                     <p className="text-2xl font-bold text-white">
-                      {stat.value}
+                      <CountUp
+                        end={stat.value}
+                        duration={2.5}
+                        prefix={stat.prefix}
+                        suffix={stat.suffix}
+                        decimals={
+                          stat.title.includes("Rate") ||
+                          stat.title.includes("ROI")
+                            ? 2
+                            : 0
+                        }
+                      />
                     </p>
                     <p className="text-xs text-gray-500">{stat.description}</p>
                   </div>
@@ -387,18 +423,27 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
               >
                 <div>
                   <h3 className="font-medium text-white">{model.name}</h3>
-                  <p className="text-sm text-gray-400">{model.sales} VN sales</p>
+                  <p className="text-sm text-gray-400">
+                    {model.sales} VN sales
+                  </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-green-400">${model.revenue}</p>
-                  <p className="text-sm text-gray-400">{model.loyaltyPoints} loyalty pts</p>
+                  <p className="font-semibold text-green-400">
+                    ${model.revenue}
+                  </p>
+                  <p className="text-sm text-gray-400">
+                    {model.loyaltyPoints} loyalty pts
+                  </p>
                 </div>
               </div>
             ))}
             <div className="text-center text-gray-400 py-4">
               <p className="text-sm">
-                Average VN Price: <span className="text-orange-400 font-semibold">${vnSales.averageVnPrice}</span>
-                {" "}(+${vnSales.priceIncrease} from last week)
+                Average VN Price:{" "}
+                <span className="text-orange-400 font-semibold">
+                  ${vnSales.averageVnPrice}
+                </span>{" "}
+                (+${vnSales.priceIncrease} from last week)
               </p>
             </div>
           </div>
