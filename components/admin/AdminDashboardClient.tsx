@@ -32,6 +32,7 @@ import {
   Loader2,
 } from "lucide-react";
 import CountUp from "react-countup";
+import { API_KEY_PROFILES } from "@/app/services/elevenlabs-implementation";
 
 interface DashboardData {
   stats: {
@@ -106,15 +107,6 @@ const ROLE_COLORS = {
   USER: "#10b981",
   GUEST: "#6b7280",
 };
-
-//Mock data for API_KEY_PROFILES
-const API_KEY_PROFILES = {
-    key1: { active: true },
-    key2: { active: true },
-    key3: { active: false },
-    key4: { active: true },
-};
-
 
 export function AdminDashboardClient({ data }: { data: DashboardData }) {
   const { stats, recentUsers, userGrowthData, analytics } = data;
