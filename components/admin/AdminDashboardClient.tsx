@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -17,17 +18,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Users,
-  UserPlus,
   TrendingUp,
   Activity,
-  Shield,
   UserCheck,
   Calendar,
   DollarSign,
   FileText,
   Star,
   BarChart3,
-  Target,
   Percent,
   Loader2,
 } from "lucide-react";
@@ -595,11 +593,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                   </thead>
                   <tbody>
                     {recentActivities.slice(0, 5).map((activity, index) => {
-                      // Check if this email matches any existing user
-                      const existingUser = recentUsers.find(
-                        (user) => user.email === activity.email
-                      );
-
                       return (
                         <tr
                           key={index}
