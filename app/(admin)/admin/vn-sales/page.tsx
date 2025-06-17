@@ -82,8 +82,12 @@ export default function VNSalesPage() {
     };
 
     loadVoices();
-    loadVoiceHistory(); // Load voice history whenever the API profile changes
 }, [selectedApiProfile]);
+
+// Separate useEffect for voice history that depends on both profile and voice
+useEffect(() => {
+    loadVoiceHistory();
+}, [selectedApiProfile, selectedVoice]);
 
   // Reset voice note selection when voice changes
   useEffect(() => {
@@ -91,12 +95,12 @@ export default function VNSalesPage() {
   }, [selectedVoice]);
 
   const loadVoiceHistory = async () => {
-    if (!selectedApiProfile) return;
+    if (!selectedApiProfile || !selectedVoice) return;
 
     try {
       setIsLoadingHistory(true);
 
-      // Fetch from ElevenLabs history using selected API profile
+      // Fetch from ElevenLabs history using selected API profile and specific voice
       const response = await fetch('/api/elevenlabs/fetch-history', {
         method: 'POST',
         headers: {
@@ -104,7 +108,7 @@ export default function VNSalesPage() {
         },
         body: JSON.stringify({
           apiKeyProfileKey: selectedApiProfile,
-          voiceId: '', // Empty to get all voices
+          voiceId: selectedVoice, // Use the specific selected voice ID
           pageSize: 100,
           pageIndex: 1,
           forceRefresh: true
@@ -290,22 +294,7 @@ export default function VNSalesPage() {
                     <SelectValue placeholder={!selectedApiProfile ? "Select an API profile first" : !selectedVoice ? "Select a voice first" : "Choose a voice note from history"} />
                   </SelectTrigger>
                   <SelectContent className="max-h-60 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600">
-                    {voiceHistory
-                      .filter((item) => {
-                        if (!selectedVoice) return false;
-                        // More flexible matching - check if voice name contains the selected voice name or vice versa
-                        const selectedVoiceData = availableVoices.find(v => v.voiceId === selectedVoice);
-                        if (!selectedVoiceData) return false;
-
-                        // Extract the core name (e.g., "Bri" from "OF Bri")
-                        const coreName = selectedVoiceData.name.replace(/^OF\s/, '').replace(/\s\(.*\)$/, '');
-                        return item.voice_name && (
-                          item.voice_name.includes(coreName) || 
-                          coreName.includes(item.voice_name) ||
-                          item.voice_name === selectedVoiceData.name
-                        );
-                      })
-                      .map((item) => (
+                    {voiceHistory.map((item) => (
                         <SelectItem key={item.history_item_id} value={item.history_item_id} className="dark:text-white dark:hover:bg-gray-700">
                           <div className="flex flex-col">
                             <span className="font-medium">
@@ -319,17 +308,7 @@ export default function VNSalesPage() {
                       ))}
                   </SelectContent>
                 </Select>
-                {selectedVoice && selectedApiProfile && voiceHistory.filter((item) => {
-                  const selectedVoiceData = availableVoices.find(v => v.voiceId === selectedVoice);
-                  if (!selectedVoiceData) return false;
-
-                  const coreName = selectedVoiceData.name.replace(/^OF\s/, '').replace(/\s\(.*\)$/, '');
-                  return item.voice_name && (
-                    item.voice_name.includes(coreName) || 
-                    coreName.includes(item.voice_name) ||
-                    item.voice_name === selectedVoiceData.name
-                  );
-                }).length === 0 && (
+                {selectedVoice && selectedApiProfile && voiceHistory.length === 0 && !isLoadingHistory && (
                   <p className="text-sm text-gray-500 mt-1">
                     No voice notes found for {availableVoices.find(v => v.voiceId === selectedVoice)?.name} in {API_KEY_PROFILES[selectedApiProfile as keyof typeof API_KEY_PROFILES]?.name}. Generate some voice notes first.
                   </p>
