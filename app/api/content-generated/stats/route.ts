@@ -104,7 +104,7 @@ export async function GET() {
 
     // Fetch recent activity from all sheets
     const recentActivities: any[] = [];
-    
+
     for (const sheetName of sheetNames) {
       try {
         const response = await sheets.spreadsheets.values.get({
@@ -113,28 +113,37 @@ export async function GET() {
         });
 
         const rows = response.data.values || [];
-        
+
         // Find the "Created By" column index in row 3 (index 2)
         const headerRow = rows[2] || []; // Row 3 is index 2
         const createdByIndex = headerRow.findIndex((header: string) => 
           header && header.toString().toLowerCase().includes('created by')
         );
-        
+
         // If not found in row 3, check if it's specifically in column G (index 6)
         const finalCreatedByIndex = createdByIndex !== -1 ? createdByIndex : 6; // Column G is index 6
-        
+
+         // Find the "Date" column index in row 3 (index 2)
+         const dateHeaderRow = rows[2] || []; // Row 3 is index 2
+         const dateIndex = dateHeaderRow.findIndex((header: string) =>
+           header && header.toString().toLowerCase().includes('date')
+         );
+ 
+         // If not found in row 3, check if it's specifically in column B (index 1)
+         const finalDateIndex = dateIndex !== -1 ? dateIndex : 1; // Column B is index 1
+
         if (finalCreatedByIndex !== -1) {
           // Get recent entries (skip first 3 rows which are headers and get up to 10 most recent)
           const dataRows = rows.slice(3, 13); // Start from row 4 (index 3)
-          
+
           for (const row of dataRows) {
             if (row[finalCreatedByIndex] && row[finalCreatedByIndex].toString().trim()) {
               const createdByValue = row[finalCreatedByIndex].toString();
-              
+
               // Parse the created by value
               let name = '';
               let email = '';
-              
+
               if (sheetName === 'AI Gen Tracker') {
                 // Format: txl.tasty (txl.tasty@gmail.com)
                 const match = createdByValue.match(/^(.+?)\s*\((.+?)\)$/);
@@ -150,7 +159,7 @@ export async function GET() {
                   email = match[2].trim();
                 }
               }
-              
+
               if (name && email) {
                 // Query database for user profile image
                 const user = await prisma.user.findUnique({
@@ -158,12 +167,25 @@ export async function GET() {
                   select: { image: true }
                 });
 
+                 // Get the date from the Date column
+              const dateValue = row[finalDateIndex] ? row[finalDateIndex].toString().trim() : '';
+
+              if (user && user.image) {
                 recentActivities.push({
                   tracker: sheetName,
                   name,
                   email,
-                  image: user?.image || null,
-                  createdAt: new Date().toISOString(), // Using current time as placeholder
+                  image: user.image,
+                  createdAt: dateValue,
+                  activity: `Generated content in ${sheetName}`
+                });
+              } else {
+                recentActivities.push({
+                  tracker: sheetName,
+                  name,
+                  email,
+                  image: null,
+                  createdAt: dateValue,
                   activity: `Generated content in ${sheetName}`
                 });
               }
@@ -174,7 +196,7 @@ export async function GET() {
         console.error(`Error fetching recent activity from ${sheetName}:`, error);
       }
     }
-    
+
     // Sort by most recent and limit to 10
     const sortedActivities = recentActivities
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
