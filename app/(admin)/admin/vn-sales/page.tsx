@@ -355,12 +355,12 @@ export default function VNSalesPage() {
                   );
                 }).length === 0 && (
                   <p className="text-sm text-gray-500 mt-1">
-                    No voice notes found for {availableVoices.find(v => v.voiceId === selectedVoice)?.name} in {API_KEY_PROFILES[selectedApiProfile]?.name}. Generate some voice notes first.
+                    No voice notes found for {availableVoices.find(v => v.voiceId === selectedVoice)?.name} in {API_KEY_PROFILES[selectedApiProfile as keyof typeof API_KEY_PROFILES]?.name}. Generate some voice notes first.
                   </p>
                 )}
                 {selectedApiProfile && voiceHistory.length === 0 && !isLoadingHistory && (
                   <p className="text-sm text-gray-500 mt-1">
-                    No voice history found in {API_KEY_PROFILES[selectedApiProfile]?.name}. Make sure the API profile has voice generation history.
+                    No voice history found in {API_KEY_PROFILES[selectedApiProfile as keyof typeof API_KEY_PROFILES]?.name}. Make sure the API profile has voice generation history.
                   </p>
                 )}
               </div>
