@@ -750,7 +750,9 @@ export default function AccountDetailsPage() {
                   <p className="text-sm text-gray-600">Unique Visitors</p>
                 </div>
               </div>
-            </Card        </CardContent>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
