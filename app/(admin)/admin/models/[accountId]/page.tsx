@@ -747,8 +747,7 @@ export default function AccountDetailsPage() {
                 <div className="text-center p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
                   <Users className="w-8 h-8 text-indigo-500 mx-auto mb-2" />
                   <p className="text-2xl font-bold">{profileVisitors?.unique_visitors?.toLocaleString() || '0'}</p>
-                  <p className="text-sm text-gray-600">Unique Visitors</p>
-                </div>
+                  <p className="text-sm text-gray-600">Unique Visitors</p>                </div>
               </div>
             </CardContent>
           </Card>
