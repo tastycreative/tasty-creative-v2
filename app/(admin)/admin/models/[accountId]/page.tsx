@@ -306,7 +306,7 @@ export default function AccountDetailsPage() {
               }
               break;
             case 'mass-messaging':
-              const massMessagesArray = Array.isArray(data) ? data : (data.data || []);
+              const massMessagesArray = Array.isArray(data) ? data : (data.data?.list || data.list || data.data || []);
               setMassMessages(massMessagesArray);
               console.log(`Processed ${endpoint}:`, massMessagesArray);
               break;
