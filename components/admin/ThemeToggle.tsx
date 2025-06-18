@@ -4,16 +4,24 @@
 import React from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useTheme } from './ThemeProvider';
+import { useTheme } from 'next-themes';
 
 export function ThemeToggle() {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => setMounted(true), []);
+
+  if (!mounted) {
+    // Avoid rendering mismatch during hydration, or return a placeholder
+    return <Button variant="ghost" size="sm" className="w-9 h-9 rounded-md" disabled />;
+  }
 
   return (
     <Button
       variant="ghost"
       size="sm"
-      onClick={toggleTheme}
+      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
       className="w-9 h-9 rounded-md hover:bg-accent hover:text-accent-foreground"
       title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
     >
