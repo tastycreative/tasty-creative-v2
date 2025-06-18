@@ -123,11 +123,15 @@ export default function AccountDetailsPage() {
             acc.id === accountId || 
             acc.username === accountId || 
             acc.onlyfans_user_data?.name === accountId ||
-            acc.onlyfans_user_data?.id === accountId
+            acc.onlyfans_user_data?.id === accountId ||
+            acc.onlyfans_user_data?.id?.toString() === accountId
           );
           if (currentAccount) {
             setAccountData(currentAccount);
             console.log('Found account in accounts list:', currentAccount);
+            // Use the actual account ID from the found account for API calls
+            const realAccountId = currentAccount.id || currentAccount.onlyfans_user_data?.id || accountId;
+            console.log('Using real account ID for API calls:', realAccountId);
           }
         }
       } catch (err) {
@@ -148,9 +152,17 @@ export default function AccountDetailsPage() {
         'account-balances'
       ];
 
+      // Get the real account ID to use for API calls
+      let realAccountId = accountId;
+      if (accountData) {
+        realAccountId = accountData.id || accountData.onlyfans_user_data?.id || accountId;
+      }
+
+      console.log('Making API calls with account ID:', realAccountId);
+
       const responses = await Promise.allSettled(
         endpoints.map(endpoint => {
-          const url = `/api/onlyfans/models?accountId=${encodeURIComponent(accountId)}&endpoint=${endpoint}`;
+          const url = `/api/onlyfans/models?accountId=${encodeURIComponent(realAccountId)}&endpoint=${endpoint}`;
           console.log(`Fetching: ${url}`);
           return fetch(url)
             .then(res => {
