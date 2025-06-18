@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 
-const ONLYFANS_API_BASE = "https://onlyfansapi.com/api";
+const ONLYFANS_API_BASE = "https://app.onlyfansapi.com/api";
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,29 +24,32 @@ export async function GET(request: NextRequest) {
     let apiUrl = "";
     
     switch (endpoint) {
+      case "accounts":
+        apiUrl = `${ONLYFANS_API_BASE}/accounts`;
+        break;
       case "profile":
         if (!username) {
           return NextResponse.json({ error: "Username required for profile data" }, { status: 400 });
         }
-        apiUrl = `${ONLYFANS_API_BASE}/users/${username}`;
+        apiUrl = `${ONLYFANS_API_BASE}/accounts/${username}`;
         break;
       case "stats":
         if (!username) {
           return NextResponse.json({ error: "Username required for stats data" }, { status: 400 });
         }
-        apiUrl = `${ONLYFANS_API_BASE}/users/${username}/stats`;
+        apiUrl = `${ONLYFANS_API_BASE}/accounts/${username}/stats`;
         break;
       case "posts":
         if (!username) {
           return NextResponse.json({ error: "Username required for posts data" }, { status: 400 });
         }
-        apiUrl = `${ONLYFANS_API_BASE}/users/${username}/posts`;
+        apiUrl = `${ONLYFANS_API_BASE}/accounts/${username}/posts`;
         break;
       case "earnings":
         if (!username) {
           return NextResponse.json({ error: "Username required for earnings data" }, { status: 400 });
         }
-        apiUrl = `${ONLYFANS_API_BASE}/users/${username}/earnings`;
+        apiUrl = `${ONLYFANS_API_BASE}/accounts/${username}/earnings`;
         break;
       default:
         return NextResponse.json({ error: "Invalid endpoint" }, { status: 400 });

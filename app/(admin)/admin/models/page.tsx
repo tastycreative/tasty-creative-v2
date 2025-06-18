@@ -1,4 +1,3 @@
-
 "use client";
 
 import { auth } from "@/auth";
@@ -85,24 +84,24 @@ export default function AdminModelsPage() {
 
   const handleSearch = async () => {
     if (!searchUsername.trim()) return;
-    
+
     setLoading(true);
     setError("");
     setSelectedModel(searchUsername);
-    
+
     try {
       // Fetch profile data
       const profile = await fetchOnlyFansData(searchUsername, "profile");
       setProfileData(profile);
-      
+
       // Fetch stats data
       const stats = await fetchOnlyFansData(searchUsername, "stats");
       setStatsData(stats);
-      
+
       // Fetch recent posts
       const posts = await fetchOnlyFansData(searchUsername, "posts");
       setPostsData(posts.posts || []);
-      
+
     } catch (err) {
       setError("Failed to fetch OnlyFans data. Please check the username and try again.");
       setProfileData(null);
@@ -155,13 +154,28 @@ export default function AdminModelsPage() {
 
       {/* Model Data Display */}
       {selectedModel && !loading && (
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+        <Tabs defaultValue="accounts" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="accounts">All Accounts</TabsTrigger>
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="stats">Statistics</TabsTrigger>
             <TabsTrigger value="posts">Recent Posts</TabsTrigger>
             <TabsTrigger value="earnings">Earnings</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="accounts" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>All Accounts</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center text-gray-600 dark:text-gray-400">
+                  <p>List of all OnlyFans accounts will be displayed here</p>
+                  <p className="text-sm mt-2">This section will show all available accounts with some basic information</p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="overview" className="space-y-6">
             {profileData && (
@@ -218,7 +232,7 @@ export default function AdminModelsPage() {
                       </div>
                     </CardContent>
                   </Card>
-                  
+
                   <Card>
                     <CardContent className="p-6">
                       <div className="flex items-center gap-2">
@@ -230,7 +244,7 @@ export default function AdminModelsPage() {
                       </div>
                     </CardContent>
                   </Card>
-                  
+
                   <Card>
                     <CardContent className="p-6">
                       <div className="flex items-center gap-2">
@@ -242,7 +256,7 @@ export default function AdminModelsPage() {
                       </div>
                     </CardContent>
                   </Card>
-                  
+
                   <Card>
                     <CardContent className="p-6">
                       <div className="flex items-center gap-2">
@@ -273,7 +287,7 @@ export default function AdminModelsPage() {
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardContent className="p-6">
                     <div className="flex items-center gap-2">
@@ -285,7 +299,7 @@ export default function AdminModelsPage() {
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardContent className="p-6">
                     <div className="flex items-center gap-2">
@@ -297,7 +311,7 @@ export default function AdminModelsPage() {
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardContent className="p-6">
                     <div className="flex items-center gap-2">
