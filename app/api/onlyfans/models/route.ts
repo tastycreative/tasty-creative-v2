@@ -191,6 +191,7 @@ export async function GET(request: NextRequest) {
       const type = endpoint === "active-fans" ? "active" : "expired";
 
       requestOptions.body = JSON.stringify({
+        account: accountId,
         limit: parseInt(limit),
         offset: parseInt(offset),
         type: type,
