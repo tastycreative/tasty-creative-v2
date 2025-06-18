@@ -1,5 +1,5 @@
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
-import { ThemeProvider } from "@/components/admin/ThemeProvider";
+import { ThemeProvider as NextThemesProvider } from "next-themes";
 import PermissionGoogle from "@/components/PermissionGoogle";
 
 export default function AdminLayout({
@@ -9,7 +9,7 @@ export default function AdminLayout({
 }) {
   return (
     <>
-      <ThemeProvider>
+      <NextThemesProvider attribute="class" defaultTheme="dark" storageKey="admin-theme">
         <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
           <AdminSidebar />
 
@@ -21,7 +21,7 @@ export default function AdminLayout({
             </main>
           </div>
         </div>
-      </ThemeProvider>
+      </NextThemesProvider>
     </>
   );
 }
