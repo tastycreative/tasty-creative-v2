@@ -36,7 +36,6 @@ import {
 } from "lucide-react";
 import CountUp from "react-countup";
 import { API_KEY_PROFILES } from "@/app/services/elevenlabs-implementation";
-import { useTheme } from "next-themes";
 
 interface DashboardData {
   stats: {
@@ -114,7 +113,6 @@ const ROLE_COLORS = {
 
 export function AdminDashboardClient({ data }: { data: DashboardData }) {
   const { stats, recentUsers, userGrowthData, analytics } = data;
-  const { theme } = useTheme();
 
   // State for real-time VN sales and voice data
   const [vnSalesData, setVnSalesData] = useState(data.vnSales);
@@ -607,11 +605,11 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 space-y-6">
+    <div className="min-h-screen bg-gray-900 p-6 space-y-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
-        <p className="text-gray-600 dark:text-gray-300 mt-2">
+        <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
+        <p className="text-gray-300 mt-2">
           Monitor your application&apos;s performance and user activity
         </p>
       </div>
@@ -623,15 +621,15 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           return (
             <Card
               key={index}
-              className="overflow-hidden hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors"
+              className="bg-gray-800 border-gray-700 overflow-hidden hover:bg-gray-750 transition-colors"
             >
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="space-y-2">
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    <p className="text-sm font-medium text-gray-400">
                       {stat.title}
                     </p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <p className="text-2xl font-bold text-white">
                       {(stat as any).isLoading ? (
                         <div className="flex items-center">
                           <Loader2 className="h-6 w-6 animate-spin mr-2" />
@@ -652,10 +650,10 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                         />
                       )}
                     </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-500">{stat.description}</p>
+                    <p className="text-xs text-gray-500">{stat.description}</p>
                   </div>
                   <div
-                    className={`${stat.bgColor} p-3 rounded-full`}
+                    className={`${stat.bgColor} p-3 rounded-full bg-opacity-20`}
                   >
                     <Icon className={`h-6 w-6 ${stat.color}`} />
                   </div>
@@ -670,10 +668,10 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Performing Messages Leaderboard */}
-        <Card>
+        <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-gray-900 dark:text-white">
-              <Trophy className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <CardTitle className="flex items-center space-x-2 text-white">
+              <Trophy className="h-5 w-5 text-blue-400" />
               <span>MM Campaigns Leaderboard</span>
             </CardTitle>
           </CardHeader>
@@ -681,7 +679,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             <div className="space-y-4">
               {isLoadingMassMessages ? (
                 <div className="flex justify-center py-8">
-                  <div className="flex items-center text-gray-600 dark:text-gray-400">
+                  <div className="flex items-center text-gray-400">
                     <Loader2 className="h-6 w-6 animate-spin mr-2" />
                     <span>Loading top performing messages...</span>
                   </div>
@@ -692,14 +690,14 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                     const getRankIcon = (rank: number) => {
                       switch (rank) {
                         case 1:
-                          return <Trophy className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />;
+                          return <Trophy className="h-5 w-5 text-yellow-400" />;
                         case 2:
-                          return <Medal className="h-5 w-5 text-gray-500 dark:text-gray-400" />;
+                          return <Medal className="h-5 w-5 text-gray-400" />;
                         case 3:
-                          return <Award className="h-5 w-5 text-amber-600 dark:text-amber-500" />;
+                          return <Award className="h-5 w-5 text-amber-600" />;
                         default:
                           return (
-                            <div className="h-5 w-5 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-gray-700 dark:text-white text-xs font-bold">
+                            <div className="h-5 w-5 rounded-full bg-gray-600 flex items-center justify-center text-white text-xs font-bold">
                               {rank}
                             </div>
                           );
@@ -707,16 +705,15 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                     };
 
                     const getRankStyle = (rank: number) => {
-                      // Added light mode backgrounds and borders
                       switch (rank) {
                         case 1:
-                          return "bg-yellow-50 border-yellow-200 dark:bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 dark:border-yellow-500/30";
+                          return "bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 border-yellow-500/30";
                         case 2:
-                          return "bg-gray-50 border-gray-200 dark:bg-gradient-to-r from-gray-400/20 to-gray-500/20 dark:border-gray-400/30";
+                          return "bg-gradient-to-r from-gray-400/20 to-gray-500/20 border-gray-400/30";
                         case 3:
-                          return "bg-amber-50 border-amber-200 dark:bg-gradient-to-r from-amber-600/20 to-amber-700/20 dark:border-amber-600/30";
+                          return "bg-gradient-to-r from-amber-600/20 to-amber-700/20 border-amber-600/30";
                         default:
-                          return "bg-gray-100 border-gray-200 dark:bg-gray-700/50 dark:border-gray-600/30";
+                          return "bg-gray-700/50 border-gray-600/30";
                       }
                     };
 
@@ -743,10 +740,10 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                                 </div>
                               )}
                               <div>
-                                <h3 className="font-medium text-gray-900 dark:text-white">
+                                <h3 className="font-medium text-white">
                                   {message.modelName}
                                 </h3>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                <p className="text-xs text-gray-400">
                                   @{message.modelUsername}
                                 </p>
                               </div>
@@ -761,7 +758,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                             {!message.isFree && message.price && (
                               <Badge
                                 variant="outline"
-                                className="bg-green-100 text-green-700 dark:bg-green-500/10 dark:text-green-400 border-green-200 dark:border-green-500/30"
+                                className="bg-green-50 text-green-700"
                               >
                                 ${message.price}
                               </Badge>
@@ -771,12 +768,12 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
 
                         <div className="mb-3">
                           <div
-                            className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2"
+                            className="text-sm text-gray-300 line-clamp-2"
                             dangerouslySetInnerHTML={{
                               __html: message.textCropped,
                             }}
                           />
-                          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                          <p className="text-xs text-gray-500 mt-1">
                             {new Date(message.date).toLocaleDateString()} at{" "}
                             {new Date(message.date).toLocaleTimeString()}
                           </p>
@@ -785,38 +782,38 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-6">
                             <div className="text-center">
-                              <p className="font-bold text-xl text-blue-600 dark:text-blue-400">
+                              <p className="font-bold text-xl text-blue-400">
                                 {message.viewedCount.toLocaleString()}
                               </p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">views</p>
+                              <p className="text-xs text-gray-400">views</p>
                             </div>
                             <div className="text-center">
-                              <p className="font-semibold text-lg text-gray-700 dark:text-gray-300">
+                              <p className="font-semibold text-lg text-gray-300">
                                 {message.sentCount.toLocaleString()}
                               </p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">sent</p>
+                              <p className="text-xs text-gray-400">sent</p>
                             </div>
                             <div className="text-center">
-                              <p className="font-semibold text-lg text-green-600 dark:text-green-400">
+                              <p className="font-semibold text-lg text-green-400">
                                 {message.viewRate.toFixed(1)}%
                               </p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">view rate</p>
+                              <p className="text-xs text-gray-400">view rate</p>
                             </div>
                             {!message.isFree && (
                               <>
                                 <div className="text-center">
-                                  <p className="font-semibold text-lg text-purple-600 dark:text-purple-400">
+                                  <p className="font-semibold text-lg text-purple-400">
                                     {message.purchasedCount}
                                   </p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  <p className="text-xs text-gray-400">
                                     purchases
                                   </p>
                                 </div>
                                 <div className="text-center">
-                                  <p className="font-semibold text-lg text-yellow-600 dark:text-yellow-400">
+                                  <p className="font-semibold text-lg text-yellow-400">
                                     ${message.revenue.toFixed(2)}
                                   </p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  <p className="text-xs text-gray-400">
                                     revenue
                                   </p>
                                 </div>
@@ -826,7 +823,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
 
                           {message.rank === 1 && (
                             <div className="flex items-center">
-                              <span className="text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-400 px-2 py-1 rounded-full">
+                              <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full">
                                 👑 Top Message
                               </span>
                             </div>
@@ -835,12 +832,12 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                       </div>
                     );
                   })}
-                  <div className="text-center text-gray-600 dark:text-gray-400 py-4 border-t border-gray-200 dark:border-gray-600 mt-4">
+                  <div className="text-center text-gray-400 py-4 border-t border-gray-600 mt-4">
                     <div className="flex justify-center space-x-8">
                       <div>
                         <p className="text-sm">
                           Top Message Views:{" "}
-                          <span className="text-blue-600 dark:text-blue-400 font-semibold">
+                          <span className="text-blue-400 font-semibold">
                             {topPerformingMessages[0]?.viewedCount.toLocaleString() ||
                               "0"}
                           </span>
@@ -849,7 +846,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                       <div>
                         <p className="text-sm">
                           Avg View Rate (Top 5):{" "}
-                          <span className="text-green-600 dark:text-green-400 font-semibold">
+                          <span className="text-green-400 font-semibold">
                             {topPerformingMessages.length > 0
                               ? (
                                   topPerformingMessages
@@ -868,7 +865,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                       <div>
                         <p className="text-sm">
                           Total Messages Analyzed:{" "}
-                          <span className="text-purple-600 dark:text-purple-400 font-semibold">
+                          <span className="text-purple-400 font-semibold">
                             {topPerformingMessages.length.toLocaleString()}
                           </span>
                         </p>
@@ -877,7 +874,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                   </div>
                 </>
               ) : (
-                <div className="text-center text-gray-600 dark:text-gray-400 py-8">
+                <div className="text-center text-gray-400 py-8">
                   <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p className="text-sm">
                     No mass messaging data found. Start sending campaigns to see
@@ -890,10 +887,10 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         </Card>
 
         {/* MM Campaign Leaderboards */}
-        <Card>
+        <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-gray-900 dark:text-white">
-              <Trophy className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />
+            <CardTitle className="flex items-center space-x-2 text-white">
+              <Trophy className="h-5 w-5 text-yellow-400" />
               <span>MM Campaign Champion Leaderboards</span>
             </CardTitle>
           </CardHeader>
@@ -901,7 +898,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             <div className="space-y-4">
               {isLoadingMassMessages ? (
                 <div className="flex justify-center py-8">
-                  <div className="flex items-center text-gray-600 dark:text-gray-400">
+                  <div className="flex items-center text-gray-400">
                     <Loader2 className="h-6 w-6 animate-spin mr-2" />
                     <span>Loading MM leaderboard...</span>
                   </div>
@@ -912,14 +909,14 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                     const getTrophyIcon = (rank: number) => {
                       switch (rank) {
                         case 1:
-                          return <Trophy className="h-6 w-6 text-yellow-500 dark:text-yellow-400" />;
+                          return <Trophy className="h-6 w-6 text-yellow-400" />;
                         case 2:
-                          return <Medal className="h-6 w-6 text-gray-500 dark:text-gray-400" />;
+                          return <Medal className="h-6 w-6 text-gray-400" />;
                         case 3:
-                          return <Award className="h-6 w-6 text-amber-600 dark:text-amber-500" />;
+                          return <Award className="h-6 w-6 text-amber-600" />;
                         default:
                           return (
-                            <div className="h-6 w-6 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-gray-700 dark:text-white text-sm font-bold">
+                            <div className="h-6 w-6 rounded-full bg-gray-600 flex items-center justify-center text-white text-sm font-bold">
                               {rank}
                             </div>
                           );
@@ -927,16 +924,15 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                     };
 
                     const getRankStyle = (rank: number) => {
-                      // Added light mode backgrounds and borders
                       switch (rank) {
                         case 1:
-                          return "bg-yellow-50 border-yellow-200 dark:bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 dark:border-yellow-500/30";
+                          return "bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 border-yellow-500/30";
                         case 2:
-                          return "bg-gray-50 border-gray-200 dark:bg-gradient-to-r from-gray-400/20 to-gray-500/20 dark:border-gray-400/30";
+                          return "bg-gradient-to-r from-gray-400/20 to-gray-500/20 border-gray-400/30";
                         case 3:
-                          return "bg-amber-50 border-amber-200 dark:bg-gradient-to-r from-amber-600/20 to-amber-700/20 dark:border-amber-600/30";
+                          return "bg-gradient-to-r from-amber-600/20 to-amber-700/20 border-amber-600/30";
                         default:
-                          return "bg-gray-100 border-gray-200 dark:bg-gray-700/50 dark:border-gray-600/30";
+                          return "bg-gray-700/50 border-gray-600/30";
                       }
                     };
 
@@ -963,10 +959,10 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                                 </div>
                               )}
                               <div>
-                                <h3 className="font-semibold text-gray-900 dark:text-white">
+                                <h3 className="font-semibold text-white">
                                   {model.name}
                                 </h3>
-                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                <p className="text-sm text-gray-400">
                                   @{model.username}
                                 </p>
                               </div>
@@ -977,26 +973,26 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                           <div className="flex flex-col space-y-1">
                             <div className="flex items-center justify-end space-x-4">
                               <div className="text-right">
-                                <p className="font-bold text-2xl text-green-600 dark:text-green-400">
+                                <p className="font-bold text-2xl text-green-400">
                                   ${model.totalRevenue.toLocaleString()}
                                 </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                <p className="text-xs text-gray-400">
                                   total revenue
                                 </p>
                               </div>
                               <div className="text-right">
-                                <p className="font-bold text-xl text-purple-600 dark:text-purple-400">
+                                <p className="font-bold text-xl text-purple-400">
                                   {model.totalViews.toLocaleString()}
                                 </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                <p className="text-xs text-gray-400">
                                   total views
                                 </p>
                               </div>
                               <div className="text-right">
-                                <p className="font-bold text-lg text-blue-600 dark:text-blue-400">
+                                <p className="font-bold text-lg text-blue-400">
                                   {model.viewRate.toFixed(1)}%
                                 </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                <p className="text-xs text-gray-400">
                                   view rate
                                 </p>
                               </div>
@@ -1005,32 +1001,32 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                             <div className="flex items-center justify-end space-x-3 mt-2">
                               <div className="flex items-center space-x-1">
                                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                <span className="text-xs text-green-600 dark:text-green-400">
+                                <span className="text-xs text-green-400">
                                   {model.freeMessages} free
                                 </span>
                               </div>
                               <div className="flex items-center space-x-1">
                                 <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                                <span className="text-xs text-yellow-600 dark:text-yellow-400">
+                                <span className="text-xs text-yellow-400">
                                   {model.paidMessages} paid
                                 </span>
                               </div>
                               <div className="flex items-center space-x-1">
                                 <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                                <span className="text-xs text-orange-600 dark:text-orange-400">
+                                <span className="text-xs text-orange-400">
                                   {model.totalPurchases} purchases
                                 </span>
                               </div>
                             </div>
 
                             <div className="flex items-center justify-end space-x-4 mt-1">
-                              <p className="text-xs text-gray-500 dark:text-gray-500">
+                              <p className="text-xs text-gray-500">
                                 Avg Price:{" "}
-                                <span className="text-green-700 dark:text-green-300">
+                                <span className="text-green-300">
                                   ${model.averagePrice.toFixed(2)}
                                 </span>
                               </p>
-                              <p className="text-xs text-gray-500 dark:text-gray-500">
+                              <p className="text-xs text-gray-500">
                                 {model.totalMessages} msgs •{" "}
                                 {model.totalSent.toLocaleString()} sent
                               </p>
@@ -1039,21 +1035,21 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
 
                           {model.rank === 1 && (
                             <div className="flex items-center justify-end mt-2">
-                              <span className="text-xs bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400 px-2 py-1 rounded-full">
+                              <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
                                 💰 Revenue Champion
                               </span>
                             </div>
                           )}
                           {model.rank === 2 && (
                             <div className="flex items-center justify-end mt-2">
-                              <span className="text-xs bg-gray-100 text-gray-700 dark:bg-gray-500/20 dark:text-gray-400 px-2 py-1 rounded-full">
+                              <span className="text-xs bg-gray-500/20 text-gray-400 px-2 py-1 rounded-full">
                                 🥈 Runner-up
                               </span>
                             </div>
                           )}
                           {model.rank === 3 && (
                             <div className="flex items-center justify-end mt-2">
-                              <span className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-600/20 dark:text-amber-600 px-2 py-1 rounded-full">
+                              <span className="text-xs bg-amber-600/20 text-amber-600 px-2 py-1 rounded-full">
                                 🥉 Third Place
                               </span>
                             </div>
@@ -1062,12 +1058,12 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                       </div>
                     );
                   })}
-                  <div className="text-center text-gray-600 dark:text-gray-400 py-4 border-t border-gray-200 dark:border-gray-600 mt-4">
+                  <div className="text-center text-gray-400 py-4 border-t border-gray-600 mt-4">
                     <div className="flex justify-center space-x-8">
                       <div>
                         <p className="text-sm">
                           Total Messages:{" "}
-                          <span className="text-orange-600 dark:text-orange-400 font-semibold">
+                          <span className="text-orange-400 font-semibold">
                             {totalMassMessages.toLocaleString()}
                           </span>
                         </p>
@@ -1075,7 +1071,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                       <div>
                         <p className="text-sm">
                           Total Revenue:{" "}
-                          <span className="text-green-600 dark:text-green-400 font-semibold">
+                          <span className="text-green-400 font-semibold">
                             $
                             {massMessagingLeaderboard
                               .reduce(
@@ -1089,7 +1085,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                       <div>
                         <p className="text-sm">
                           Total Views:{" "}
-                          <span className="text-purple-600 dark:text-purple-400 font-semibold">
+                          <span className="text-purple-400 font-semibold">
                             {massMessagingLeaderboard
                               .reduce((sum, model) => sum + model.totalViews, 0)
                               .toLocaleString()}
@@ -1099,7 +1095,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                       <div>
                         <p className="text-sm">
                           Avg View Rate:{" "}
-                          <span className="text-blue-600 dark:text-blue-400 font-semibold">
+                          <span className="text-blue-400 font-semibold">
                             {massMessagingLeaderboard.length > 0
                               ? (
                                   massMessagingLeaderboard.reduce(
@@ -1115,7 +1111,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                       <div>
                         <p className="text-sm">
                           Total Purchases:{" "}
-                          <span className="text-orange-600 dark:text-orange-400 font-semibold">
+                          <span className="text-orange-400 font-semibold">
                             {massMessagingLeaderboard
                               .reduce(
                                 (sum, model) => sum + model.totalPurchases,
@@ -1129,7 +1125,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                   </div>
                 </>
               ) : (
-                <div className="text-center text-gray-600 dark:text-gray-400 py-8">
+                <div className="text-center text-gray-400 py-8">
                   <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p className="text-sm">
                     No mass messaging data found. Start sending campaigns to see
@@ -1145,53 +1141,44 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* User Growth Chart */}
-        <Card>
+        <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-gray-900 dark:text-white">
-              <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <CardTitle className="flex items-center space-x-2 text-white">
+              <Activity className="h-5 w-5 text-blue-400" />
               <span>User Growth (12 Months)</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={userGrowthData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? "#374151" : "#e5e7eb"} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                 <XAxis
                   dataKey="month"
                   fontSize={12}
                   tickLine={false}
                   axisLine={false}
-                  tick={{ fill: theme === 'dark' ? "#9ca3af" : "#6b7280" }}
+                  tick={{ fill: "#9ca3af" }}
                 />
                 <YAxis
                   fontSize={12}
                   tickLine={false}
                   axisLine={false}
-                  tick={{ fill: theme === 'dark' ? "#9ca3af" : "#6b7280" }}
+                  tick={{ fill: "#9ca3af" }}
                 />
                 <Tooltip
-                  contentStyle={
-                    theme === 'dark'
-                      ? {
-                          backgroundColor: "#1f2937",
-                          border: "1px solid #374151",
-                          borderRadius: "8px",
-                          color: "#fff",
-                        }
-                      : {
-                          backgroundColor: "#ffffff",
-                          border: "1px solid #e5e7eb",
-                          borderRadius: "8px",
-                          color: "#000",
-                        }
-                  }
+                  contentStyle={{
+                    backgroundColor: "#1f2937",
+                    border: "1px solid #374151",
+                    borderRadius: "8px",
+                    color: "#fff",
+                  }}
                 />
                 <Line
                   type="monotone"
                   dataKey="users"
-                  stroke={theme === 'dark' ? "#60a5fa" : "#3b82f6"} // Adjusted light mode color for better visibility
+                  stroke="#60a5fa"
                   strokeWidth={3}
-                  dot={{ fill: theme === 'dark' ? "#60a5fa" : "#3b82f6", strokeWidth: 2 }}
+                  dot={{ fill: "#60a5fa", strokeWidth: 2 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -1199,10 +1186,10 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         </Card>
 
         {/* Users by Role Chart */}
-        <Card>
+        <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-gray-900 dark:text-white">
-              <UserCheck className="h-5 w-5 text-green-600 dark:text-green-400" />
+            <CardTitle className="flex items-center space-x-2 text-white">
+              <UserCheck className="h-5 w-5 text-green-400" />
               <span>Users by Role</span>
             </CardTitle>
           </CardHeader>
@@ -1214,20 +1201,11 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent, x, y, textAnchor }) => (
-                    <text
-                      x={x}
-                      y={y}
-                      fill={theme === 'dark' ? "#9ca3af" : "#4b5563"}
-                      fontSize={12}
-                      textAnchor={textAnchor}
-                      dominantBaseline="central"
-                    >
-                      {`${name} ${(percent * 100).toFixed(0)}%`}
-                    </text>
-                  )}
+                  label={({ name, percent }) =>
+                    `${name} ${(percent * 100).toFixed(0)}%`
+                  }
                   outerRadius={80}
-                  fill="#8884d8" // This is the default fill for slices if not using <Cell>
+                  fill="#8884d8"
                   dataKey="value"
                 >
                   {roleChartData.map((entry, index) => (
@@ -1235,21 +1213,12 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                   ))}
                 </Pie>
                 <Tooltip
-                  contentStyle={
-                    theme === 'dark'
-                      ? {
-                          backgroundColor: "#1f2937",
-                          border: "1px solid #374151",
-                          borderRadius: "8px",
-                          color: "#fff",
-                        }
-                      : {
-                          backgroundColor: "#ffffff",
-                          border: "1px solid #e5e7eb",
-                          borderRadius: "8px",
-                          color: "#000",
-                        }
-                  }
+                  contentStyle={{
+                    backgroundColor: "#1f2937",
+                    border: "1px solid #374151",
+                    borderRadius: "8px",
+                    color: "#fff",
+                  }}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -1260,10 +1229,10 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       {/* Tables Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Users Table */}
-        <Card>
+        <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-gray-900 dark:text-white">
-              <Calendar className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            <CardTitle className="flex items-center space-x-2 text-white">
+              <Calendar className="h-5 w-5 text-purple-400" />
               <span>Recent Users</span>
             </CardTitle>
           </CardHeader>
@@ -1271,17 +1240,17 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-600">
-                    <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-300">
+                  <tr className="border-b border-gray-600">
+                    <th className="text-left py-3 px-4 font-medium text-gray-300">
                       User
                     </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-300">
+                    <th className="text-left py-3 px-4 font-medium text-gray-300">
                       Email
                     </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-300">
+                    <th className="text-left py-3 px-4 font-medium text-gray-300">
                       Role
                     </th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-300">
+                    <th className="text-left py-3 px-4 font-medium text-gray-300">
                       Joined
                     </th>
                   </tr>
@@ -1290,7 +1259,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                   {recentUsers.slice(0, 5).map((user) => (
                     <tr
                       key={user.id}
-                      className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                      className="border-b border-gray-700 hover:bg-gray-700/50 transition-colors"
                     >
                       <td className="py-3 px-4">
                         <div className="flex items-center space-x-3">
@@ -1302,30 +1271,30 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                               className="h-8 w-8 rounded-full object-cover"
                             />
                           ) : (
-                            <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
-                              <Users className="h-4 w-4 text-gray-500 dark:text-gray-300" />
+                            <div className="h-8 w-8 rounded-full bg-gray-600 flex items-center justify-center">
+                              <Users className="h-4 w-4 text-gray-300" />
                             </div>
                           )}
-                          <span className="font-medium text-gray-900 dark:text-white">
+                          <span className="font-medium text-white">
                             {user.name || "No name"}
                           </span>
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-gray-700 dark:text-gray-300">{user.email}</td>
+                      <td className="py-3 px-4 text-gray-300">{user.email}</td>
                       <td className="py-3 px-4">
                         <Badge
                           variant="secondary"
                           className={`
-                            ${user.role === "ADMIN" ? "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/50 dark:text-red-200 dark:border-red-700" : ""}
-                            ${user.role === "MODERATOR" ? "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/50 dark:text-yellow-200 dark:border-yellow-700" : ""}
-                            ${user.role === "USER" ? "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/50 dark:text-green-200 dark:border-green-700" : ""}
-                            ${user.role === "GUEST" ? "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600" : ""}
+                            ${user.role === "ADMIN" ? "bg-red-900/50 text-red-200 border-red-700" : ""}
+                            ${user.role === "MODERATOR" ? "bg-yellow-900/50 text-yellow-200 border-yellow-700" : ""}
+                            ${user.role === "USER" ? "bg-green-900/50 text-green-200 border-green-700" : ""}
+                            ${user.role === "GUEST" ? "bg-gray-700 text-gray-200 border-gray-600" : ""}
                           `}
                         >
                           {user.role}
                         </Badge>
                       </td>
-                      <td className="py-3 px-4 text-gray-500 dark:text-gray-400">
+                      <td className="py-3 px-4 text-gray-400">
                         {new Date(user.createdAt).toLocaleDateString()}
                       </td>
                     </tr>
@@ -1337,17 +1306,17 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         </Card>
 
         {/* Recent Activity Table */}
-        <Card>
+        <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-gray-900 dark:text-white">
-              <Activity className="h-5 w-5 text-green-600 dark:text-green-400" />
+            <CardTitle className="flex items-center space-x-2 text-white">
+              <Activity className="h-5 w-5 text-green-400" />
               <span>Recent Content Generation</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
             {isLoadingContentStats ? (
               <div className="flex justify-center py-8">
-                <div className="flex items-center text-gray-600 dark:text-gray-400">
+                <div className="flex items-center text-gray-400">
                   <Loader2 className="h-6 w-6 animate-spin mr-2" />
                   <span>Loading recent activity...</span>
                 </div>
@@ -1356,17 +1325,17 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-gray-200 dark:border-gray-600">
-                      <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-300">
+                    <tr className="border-b border-gray-600">
+                      <th className="text-left py-3 px-4 font-medium text-gray-300">
                         User
                       </th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-300">
+                      <th className="text-left py-3 px-4 font-medium text-gray-300">
                         Model
                       </th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-300">
+                      <th className="text-left py-3 px-4 font-medium text-gray-300">
                         Activity
                       </th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-300">
+                      <th className="text-left py-3 px-4 font-medium text-gray-300">
                         Tracker
                       </th>
                     </tr>
@@ -1376,7 +1345,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                       return (
                         <tr
                           key={index}
-                          className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                          className="border-b border-gray-700 hover:bg-gray-700/50 transition-colors"
                         >
                           <td className="py-2 px-4">
                             <div className="flex items-center space-x-3">
@@ -1398,7 +1367,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                                   />
                                 ) : null}
                                 <div
-                                  className="w-full h-full bg-purple-500 rounded-full flex items-center justify-center" // Fallback color can remain specific if desired
+                                  className="w-full h-full bg-purple-500 rounded-full flex items-center justify-center"
                                   style={{
                                     display: activity.image ? "none" : "flex",
                                   }}
@@ -1409,10 +1378,10 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                                 </div>
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                <p className="text-sm font-medium text-white truncate">
                                   {activity.name}
                                 </p>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                                <p className="text-sm text-gray-400 truncate">
                                   {(() => {
                                     if (!activity.createdAt) return "Recently";
                                     const now = new Date();
@@ -1442,27 +1411,27 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                                   })()}
                                 </p>
                               </div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                              <div className="text-xs text-gray-400">
                                 {activity.tracker}
                               </div>
                             </div>
                           </td>
-                          <td className="py-3 px-4 text-gray-700 dark:text-gray-300 text-sm">
+                          <td className="py-3 px-4 text-gray-300 text-sm">
                             <div className="max-w-[120px] truncate">
                               {activity.model || "N/A"}
                             </div>
                           </td>
-                          <td className="py-3 px-4 text-gray-700 dark:text-gray-300 text-sm">
+                          <td className="py-3 px-4 text-gray-300 text-sm">
                             Generated content
                           </td>
                           <td className="py-3 px-4">
                             <Badge
                               variant="secondary"
                               className={`text-xs
-                                ${activity.tracker === "VIP Gen Tracker" ? "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/50 dark:text-purple-200 dark:border-purple-700" : ""}
-                                ${activity.tracker === "Live Gen Tracker" ? "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/50 dark:text-red-200 dark:border-red-700" : ""}
-                                ${activity.tracker === "FTT Gen Tracker" ? "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/50 dark:text-blue-200 dark:border-blue-700" : ""}
-                                ${activity.tracker === "AI Gen Tracker" ? "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/50 dark:text-green-200 dark:border-green-700" : ""}
+                                ${activity.tracker === "VIP Gen Tracker" ? "bg-purple-900/50 text-purple-200 border-purple-700" : ""}
+                                ${activity.tracker === "Live Gen Tracker" ? "bg-red-900/50 text-red-200 border-red-700" : ""}
+                                ${activity.tracker === "FTT Gen Tracker" ? "bg-blue-900/50 text-blue-200 border-blue-700" : ""}
+                                ${activity.tracker === "AI Gen Tracker" ? "bg-green-900/50 text-green-200 border-green-700" : ""}
                               `}
                             >
                               {activity.tracker.replace(" Gen Tracker", "")}
@@ -1475,7 +1444,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                 </table>
               </div>
             ) : (
-              <div className="text-center text-gray-600 dark:text-gray-400 py-8">
+              <div className="text-center text-gray-400 py-8">
                 <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p className="text-sm">
                   No recent content generation activity found
@@ -1489,10 +1458,10 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* VN Sales by Model */}
-        <Card>
+        <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-gray-900 dark:text-white">
-              <DollarSign className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+            <CardTitle className="flex items-center space-x-2 text-white">
+              <DollarSign className="h-5 w-5 text-orange-400" />
               <span>VN Sales by Model</span>
             </CardTitle>
           </CardHeader>
@@ -1500,7 +1469,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             <div className="space-y-4">
               {isLoadingVnStats ? (
                 <div className="flex justify-center py-8">
-                  <div className="flex items-center text-gray-600 dark:text-gray-400">
+                  <div className="flex items-center text-gray-400">
                     <Loader2 className="h-6 w-6 animate-spin mr-2" />
                     <span>Fetching sales data from Google Sheets...</span>
                   </div>
@@ -1510,28 +1479,28 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                   {vnSales.salesByModel.map((model, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-700/50 rounded-lg"
+                      className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg"
                     >
                       <div>
-                        <h3 className="font-medium text-gray-900 dark:text-white">{model.name}</h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                        <h3 className="font-medium text-white">{model.name}</h3>
+                        <p className="text-sm text-gray-400">
                           {model.sales} VN sales
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold text-green-600 dark:text-green-400">
+                        <p className="font-semibold text-green-400">
                           ${model.revenue.toFixed(2)}
                         </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                        <p className="text-sm text-gray-400">
                           {model.loyaltyPoints} loyalty pts
                         </p>
                       </div>
                     </div>
                   ))}
-                  <div className="text-center text-gray-600 dark:text-gray-400 py-4">
+                  <div className="text-center text-gray-400 py-4">
                     <p className="text-sm">
                       Average VN Price:{" "}
-                      <span className="text-orange-600 dark:text-orange-400 font-semibold">
+                      <span className="text-orange-400 font-semibold">
                         ${vnSales.averageVnPrice.toFixed(2)}
                       </span>{" "}
                       (+${vnSales.priceIncrease} from last week)
@@ -1539,7 +1508,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                   </div>
                 </>
               ) : (
-                <div className="text-center text-gray-600 dark:text-gray-400 py-4">
+                <div className="text-center text-gray-400 py-4">
                   <p className="text-sm">
                     No sales data found. Submit some sales to see analytics!
                   </p>
@@ -1550,10 +1519,10 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         </Card>
 
         {/* Content Generation by Tracker */}
-        <Card>
+        <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-gray-900 dark:text-white">
-              <BarChart3 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            <CardTitle className="flex items-center space-x-2 text-white">
+              <BarChart3 className="h-5 w-5 text-purple-400" />
               <span>Content Generation by Tracker</span>
             </CardTitle>
           </CardHeader>
@@ -1561,7 +1530,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             <div className="space-y-4">
               {isLoadingContentStats ? (
                 <div className="flex justify-center py-8">
-                  <div className="flex items-center text-gray-600 dark:text-gray-400">
+                  <div className="flex items-center text-gray-400">
                     <Loader2 className="h-6 w-6 animate-spin mr-2" />
                     <span>Fetching content data from Google Sheets...</span>
                   </div>
@@ -1572,31 +1541,31 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                     (tracker, index) => (
                       <div
                         key={index}
-                        className="flex items-center justify-between p-4 bg-gray-100 dark:bg-gray-700/50 rounded-lg"
+                        className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg"
                       >
                         <div>
-                          <h3 className="font-medium text-gray-900 dark:text-white">
+                          <h3 className="font-medium text-white">
                             {tracker.tracker}
                           </h3>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                          <p className="text-sm text-gray-400">
                             Content generation tracker
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-semibold text-purple-600 dark:text-purple-400">
+                          <p className="font-semibold text-purple-400">
                             {tracker.count.toLocaleString()}
                           </p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                          <p className="text-sm text-gray-400">
                             items generated
                           </p>
                         </div>
                       </div>
                     )
                   )}
-                  <div className="text-center text-gray-600 dark:text-gray-400 py-4">
+                  <div className="text-center text-gray-400 py-4">
                     <p className="text-sm">
                       Total Content Generated:{" "}
-                      <span className="text-purple-600 dark:text-purple-400 font-semibold">
+                      <span className="text-purple-400 font-semibold">
                         {contentGenerationData.totalContentGenerated.toLocaleString()}{" "}
                       </span>{" "}
                       (+{contentGenerationData.contentGrowth}% growth)
@@ -1604,7 +1573,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                   </div>
                 </>
               ) : (
-                <div className="text-center text-gray-600 dark:text-gray-400 py-4">
+                <div className="text-center text-gray-400 py-4">
                   <p className="text-sm">
                     No content generation data found. Generate some content to
                     see analytics!
