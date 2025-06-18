@@ -111,6 +111,29 @@ export default function AccountDetailsPage() {
         return;
       }
       
+      console.log(`Fetching data for account: ${accountId}`);
+
+      // First, try to get the account from the accounts list to get basic info
+      try {
+        const accountsResponse = await fetch('/api/onlyfans/models?endpoint=accounts');
+        if (accountsResponse.ok) {
+          const accountsData = await accountsResponse.json();
+          const accounts = accountsData.accounts || accountsData || [];
+          const currentAccount = accounts.find((acc: any) => 
+            acc.id === accountId || 
+            acc.username === accountId || 
+            acc.onlyfans_user_data?.name === accountId ||
+            acc.onlyfans_user_data?.id === accountId
+          );
+          if (currentAccount) {
+            setAccountData(currentAccount);
+            console.log('Found account in accounts list:', currentAccount);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching accounts list:', err);
+      }
+      
       // Fetch all the data from different endpoints
       const endpoints = [
         'chats',
@@ -124,8 +147,6 @@ export default function AccountDetailsPage() {
         'account-details',
         'account-balances'
       ];
-
-      console.log(`Fetching data for account: ${accountId}`);
 
       const responses = await Promise.allSettled(
         endpoints.map(endpoint => {
@@ -198,9 +219,17 @@ export default function AccountDetailsPage() {
 
   useEffect(() => {
     if (accountId) {
+      console.log('Account ID from params:', accountId);
       fetchAccountDetails();
     }
   }, [accountId]);
+
+  // Debug effect to log account data changes
+  useEffect(() => {
+    if (accountData) {
+      console.log('Account data updated:', accountData);
+    }
+  }, [accountData]);
 
   if (loading) {
     return (
@@ -243,25 +272,37 @@ export default function AccountDetailsPage() {
         </Button>
         
         <div className="flex items-center gap-4">
-          {accountData?.avatar && (
+          {(accountData?.avatar || accountData?.onlyfans_user_data?.avatar) && (
             <img 
-              src={accountData.avatar} 
-              alt={accountData.name}
+              src={accountData?.avatar || accountData?.onlyfans_user_data?.avatar} 
+              alt={accountData?.display_name || accountData?.name || 'Account'}
               className="w-16 h-16 rounded-full object-cover"
             />
           )}
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              {accountData?.display_name || accountData?.name || 'Account Details'}
+              {accountData?.onlyfans_user_data?.display_name || 
+               accountData?.display_name || 
+               accountData?.name || 
+               accountData?.onlyfans_user_data?.name || 
+               `Account ${accountId}`}
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              @{accountData?.onlyfans_user_data?.name || accountData?.username || 'Unknown'}
+              @{accountData?.onlyfans_user_data?.name || 
+                accountData?.username || 
+                accountData?.onlyfans_user_data?.username || 
+                accountId}
             </p>
             {accountData?.onlyfans_user_data?.email && (
               <p className="text-sm text-blue-600 dark:text-blue-400">
                 {accountData.onlyfans_user_data.email}
               </p>
             )}
+            <div className="mt-2 text-sm text-gray-500">
+              <p>Account ID: {accountId}</p>
+              <p>Authentication: {accountData?.is_authenticated ? 'Authenticated' : 'Not Authenticated'}</p>
+              <p>Status: {accountData?.authentication_progress || 'Unknown'}</p>
+            </div>
           </div>
         </div>
       </div>

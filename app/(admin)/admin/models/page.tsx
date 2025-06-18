@@ -270,7 +270,9 @@ export default function AdminModelsPage() {
                             size="sm" 
                             className="w-full"
                             onClick={() => {
-                              window.location.href = `/admin/models/${account.id || account.onlyfans_user_data?.id || 'unknown'}`;
+                              const accountId = account.id || account.username || account.onlyfans_user_data?.name || account.onlyfans_user_data?.id || 'unknown';
+                              console.log('Navigating to account details with ID:', accountId, 'Full account data:', account);
+                              window.location.href = `/admin/models/${encodeURIComponent(accountId)}`;
                             }}
                           >
                             <ExternalLink className="w-4 h-4 mr-2" />
