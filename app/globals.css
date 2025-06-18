@@ -116,6 +116,34 @@
   --sidebar-ring: oklch(0.551 0.027 264.364);
 }
 
+/* --- START: High-specificity theme overrides --- */
+
+html.light {
+  color-scheme: light !important;
+}
+
+html.dark {
+  color-scheme: dark !important;
+}
+
+/*
+  Ensure these use the CSS variables defined in :root and .dark respectively.
+  The ThemeProvider already adds 'light' or 'dark' to the html element.
+*/
+html.light body {
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+html.dark body {
+  /* The --background and --foreground variables are already redefined within the .dark scope */
+  /* So, this will pick up the dark theme variables correctly. */
+  background-color: var(--background) !important;
+  color: var(--foreground) !important;
+}
+
+/* --- END: High-specificity theme overrides --- */
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
