@@ -32,6 +32,7 @@ import {
   Trophy,
   Medal,
   Award,
+  Eye,
 } from "lucide-react";
 import CountUp from "react-countup";
 import { API_KEY_PROFILES } from "@/app/services/elevenlabs-implementation";
@@ -990,7 +991,172 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           </CardContent>
         </Card>
 
-        {/* Mass Messaging Leaderboard */}
+        {/* Mass Messaging Views Leaderboard */}
+        <Card className="bg-gray-800 border-gray-700">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-white">
+              <Eye className="h-5 w-5 text-blue-400" />
+              <span>MM Views Leaderboard</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {isLoadingMassMessages ? (
+                <div className="flex justify-center py-8">
+                  <div className="flex items-center text-gray-400">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                    <span>Loading MM views leaderboard...</span>
+                  </div>
+                </div>
+              ) : massMessagingLeaderboard.length > 0 ? (
+                <>
+                  {[...massMessagingLeaderboard].sort((a, b) => b.totalViews - a.totalViews).slice(0, 5).map((model, index) => {
+                    const rank = index + 1;
+                    const getRankIcon = (rank: number) => {
+                      switch (rank) {
+                        case 1:
+                          return <Eye className="h-5 w-5 text-blue-400" />;
+                        case 2:
+                          return <TrendingUp className="h-5 w-5 text-green-400" />;
+                        case 3:
+                          return <BarChart3 className="h-5 w-5 text-purple-400" />;
+                        default:
+                          return <div className="h-5 w-5 rounded-full bg-gray-600 flex items-center justify-center text-white text-xs font-bold">{rank}</div>;
+                      }
+                    };
+
+                    const getRankStyle = (rank: number) => {
+                      switch (rank) {
+                        case 1:
+                          return "bg-gradient-to-r from-blue-500/20 to-blue-600/20 border-blue-500/30";
+                        case 2:
+                          return "bg-gradient-to-r from-green-500/20 to-green-600/20 border-green-500/30";
+                        case 3:
+                          return "bg-gradient-to-r from-purple-500/20 to-purple-600/20 border-purple-500/30";
+                        default:
+                          return "bg-gray-700/50 border-gray-600/30";
+                      }
+                    };
+
+                    return (
+                      <div
+                        key={`views-${index}`}
+                        className={`flex items-center justify-between p-4 rounded-lg border ${getRankStyle(rank)} transition-all hover:scale-[1.01]`}
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center space-x-3">
+                            {getRankIcon(rank)}
+                            <div className="flex items-center space-x-3">
+                              {model.avatar ? (
+                                <img
+                                  src={`/api/image-proxy?url=${encodeURIComponent(model.avatar)}`}
+                                  alt={model.name}
+                                  className="h-8 w-8 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                                  <span className="text-white font-bold text-sm">
+                                    {model.name.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
+                              <div>
+                                <h3 className="font-medium text-white">{model.name}</h3>
+                                <p className="text-xs text-gray-400">@{model.username}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="flex items-center space-x-6">
+                            <div className="text-center">
+                              <p className="font-bold text-xl text-blue-400">
+                                {model.totalViews.toLocaleString()}
+                              </p>
+                              <p className="text-xs text-gray-400">views</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="font-semibold text-lg text-gray-300">
+                                {model.totalSent.toLocaleString()}
+                              </p>
+                              <p className="text-xs text-gray-400">sent</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="font-semibold text-lg text-green-400">
+                                {model.viewRate.toFixed(1)}%
+                              </p>
+                              <p className="text-xs text-gray-400">view rate</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="font-semibold text-lg text-yellow-400">
+                                ${model.averagePrice.toFixed(2)}
+                              </p>
+                              <p className="text-xs text-gray-400">avg price</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center justify-end space-x-3 mt-2">
+                            <div className="flex items-center space-x-1">
+                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                              <span className="text-xs text-green-400">{model.freeMessages} free</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                              <span className="text-xs text-yellow-400">{model.paidMessages} paid</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                              <span className="text-xs text-purple-400">{model.totalPurchases} purchases</span>
+                            </div>
+                          </div>
+
+                          {rank === 1 && (
+                            <div className="flex items-center justify-end mt-2">
+                              <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full">
+                                👁️ Most Viewed
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="text-center text-gray-400 py-4 border-t border-gray-600 mt-4">
+                    <div className="flex justify-center space-x-8">
+                      <div>
+                        <p className="text-sm">
+                          Total Views:{" "}
+                          <span className="text-blue-400 font-semibold">
+                            {massMessagingLeaderboard.reduce((sum, model) => sum + model.totalViews, 0).toLocaleString()}
+                          </span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm">
+                          Avg View Rate:{" "}
+                          <span className="text-green-400 font-semibold">
+                            {massMessagingLeaderboard.length > 0 
+                              ? (massMessagingLeaderboard.reduce((sum, model) => sum + model.viewRate, 0) / massMessagingLeaderboard.length).toFixed(1)
+                              : 0}%
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center text-gray-400 py-8">
+                  <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-sm">
+                    No mass messaging data found. Start sending campaigns to see the views leaderboard!
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Mass Messaging Champions */}
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-white">

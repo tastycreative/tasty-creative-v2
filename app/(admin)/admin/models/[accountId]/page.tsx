@@ -20,7 +20,10 @@ import {
   Clock,
   Link,
   CreditCard,
-  Wallet
+  Wallet,
+  Trophy,
+  Loader2,
+  BarChart3
 } from "lucide-react";
 
 interface ChatData {
@@ -34,6 +37,7 @@ interface ChatData {
   last_message: {
     text: string;
     created_at: string;
+    
   };
   unread_count: number;
 }
@@ -117,6 +121,21 @@ interface MassMessageData {
   purchasedCount?: number;
 }
 
+// New interface for mass messaging leaderboard data
+interface MassMessagingLeaderboardItem {
+  id: string;
+  name: string;
+  username: string;
+  avatar: string;
+  totalViews: number;
+  totalSent: number;
+  viewRate: number;
+  averagePrice: number;
+  freeMessages: number;
+  paidMessages: number;
+  totalPurchases: number;
+}
+
 export default function AccountDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -137,6 +156,8 @@ export default function AccountDetailsPage() {
   const [massMessages, setMassMessages] = useState<MassMessageData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [massMessagingLeaderboard, setMassMessagingLeaderboard] = useState<MassMessagingLeaderboardItem[]>([]);
+  const [isLoadingMassMessages, setIsLoadingMassMessages] = useState(false);
 
   const fetchAccountDetails = async () => {
     try {
@@ -317,6 +338,23 @@ export default function AccountDetailsPage() {
           console.error(`Failed to fetch ${endpoint}:`, response.reason);
         }
       });
+
+      // Fetch mass messaging leaderboard data
+      setIsLoadingMassMessages(true);
+      try {
+        const leaderboardResponse = await fetch(`/api/onlyfans/models?endpoint=mass-messaging-leaderboard`);
+        if (leaderboardResponse.ok) {
+          const leaderboardData = await leaderboardResponse.json();
+          setMassMessagingLeaderboard(leaderboardData);
+          console.log("Mass Messaging Leaderboard Data:", leaderboardData);
+        } else {
+          console.error("Failed to fetch mass messaging leaderboard:", leaderboardResponse.status, leaderboardResponse.statusText);
+        }
+      } catch (err) {
+        console.error("Error fetching mass messaging leaderboard:", err);
+      } finally {
+        setIsLoadingMassMessages(false);
+      }
 
     } catch (err) {
       console.error('Error fetching account details:', err);
@@ -726,6 +764,7 @@ export default function AccountDetailsPage() {
         <TabsContent value="transactions" className="space-y-6">
           <Card>
             <CardHeader>
+```typescript
               <CardTitle>Recent Transactions</CardTitle>
             </CardHeader>
             <CardContent>
