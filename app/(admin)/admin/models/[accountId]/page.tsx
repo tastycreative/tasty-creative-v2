@@ -42,11 +42,19 @@ interface FanData {
   id: number;
   name: string;
   username: string;
-  avatar: string;
-  subscribed_at: string;
-  expired_at?: string;
-  total_spent: number;
-  is_subscribed: boolean;
+  avatar: string | null;
+  displayName: string;
+  subscribedBy: boolean;
+  subscribedByExpire: boolean;
+  subscribedByExpireDate: string;
+  subscribedByAutoprolong: boolean;
+  subscribedIsExpiredNow: boolean;
+  subscribedOn: boolean;
+  subscribedOnExpiredNow: boolean;
+  subscribedOnDuration: string;
+  currentSubscribePrice: number;
+  isVerified: boolean;
+  canEarn: boolean;
 }
 
 interface VaultMediaData {
@@ -194,12 +202,12 @@ export default function AccountDetailsPage() {
               console.log(`Processed ${endpoint}:`, chatsArray);
               break;
             case 'active-fans':
-              const activeFansArray = Array.isArray(data) ? data : (data.fans || data.data || []);
+              const activeFansArray = Array.isArray(data) ? data : (data.data?.list || data.list || data.data || []);
               setActiveFans(activeFansArray);
               console.log(`Processed ${endpoint}:`, activeFansArray);
               break;
             case 'expired-fans':
-              const expiredFansArray = Array.isArray(data) ? data : (data.fans || data.data || []);
+              const expiredFansArray = Array.isArray(data) ? data : (data.data?.list || data.list || data.data || []);
               setExpiredFans(expiredFansArray);
               console.log(`Processed ${endpoint}:`, expiredFansArray);
               break;
@@ -511,20 +519,32 @@ export default function AccountDetailsPage() {
                 <CardTitle>Active Fans ({activeFans.length})</CardTitle>
               </CardHeader>
               <CardContent>
-                {activeFans.slice(0, 5).map((fan) => (
+                {activeFans.length > 0 ? activeFans.slice(0, 5).map((fan) => (
                   <div key={fan.id} className="flex items-center gap-3 p-3 border rounded-lg mb-3">
                     <img 
                       src={fan.avatar || '/model.png'} 
-                      alt={fan.name}
+                      alt={fan.displayName || fan.name}
                       className="w-10 h-10 rounded-full object-cover"
                     />
                     <div className="flex-1">
-                      <h5 className="font-medium">{fan.name}</h5>
-                      <p className="text-sm text-gray-600">${fan.total_spent}</p>
+                      <h5 className="font-medium">{fan.displayName || fan.name}</h5>
+                      <p className="text-sm text-gray-600">@{fan.username}</p>
+                      <p className="text-xs text-gray-500">
+                        Duration: {fan.subscribedOnDuration || 'N/A'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Price: ${fan.currentSubscribePrice || 0}
+                      </p>
                     </div>
-                    <Badge variant="secondary">Active</Badge>
+                    <div className="flex flex-col gap-1">
+                      <Badge variant="secondary">Active</Badge>
+                      {fan.isVerified && <Badge variant="outline" className="text-xs">Verified</Badge>}
+                      {fan.subscribedByAutoprolong && <Badge variant="outline" className="text-xs">Auto-renew</Badge>}
+                    </div>
                   </div>
-                ))}
+                )) : (
+                  <p className="text-center text-gray-500 py-4">No active fans found</p>
+                )}
               </CardContent>
             </Card>
 
@@ -533,20 +553,31 @@ export default function AccountDetailsPage() {
                 <CardTitle>Expired Fans ({expiredFans.length})</CardTitle>
               </CardHeader>
               <CardContent>
-                {expiredFans.slice(0, 5).map((fan) => (
+                {expiredFans.length > 0 ? expiredFans.slice(0, 5).map((fan) => (
                   <div key={fan.id} className="flex items-center gap-3 p-3 border rounded-lg mb-3">
                     <img 
                       src={fan.avatar || '/model.png'} 
-                      alt={fan.name}
+                      alt={fan.displayName || fan.name}
                       className="w-10 h-10 rounded-full object-cover"
                     />
                     <div className="flex-1">
-                      <h5 className="font-medium">{fan.name}</h5>
-                      <p className="text-sm text-gray-600">${fan.total_spent}</p>
+                      <h5 className="font-medium">{fan.displayName || fan.name}</h5>
+                      <p className="text-sm text-gray-600">@{fan.username}</p>
+                      <p className="text-xs text-gray-500">
+                        Expired: {fan.subscribedByExpireDate ? new Date(fan.subscribedByExpireDate).toLocaleDateString() : 'N/A'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Last Price: ${fan.currentSubscribePrice || 0}
+                      </p>
                     </div>
-                    <Badge variant="outline">Expired</Badge>
+                    <div className="flex flex-col gap-1">
+                      <Badge variant="outline">Expired</Badge>
+                      {fan.isVerified && <Badge variant="outline" className="text-xs">Verified</Badge>}
+                    </div>
                   </div>
-                ))}
+                )) : (
+                  <p className="text-center text-gray-500 py-4">No expired fans found</p>
+                )}
               </CardContent>
             </Card>
           </div>

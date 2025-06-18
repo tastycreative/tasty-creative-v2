@@ -79,15 +79,21 @@ export async function GET(request: NextRequest) {
         if (!accountId) {
           return NextResponse.json({ error: "Account ID required for active fans data" }, { status: 400 });
         }
-        // GET /fans/active endpoint
-        apiUrl = `${ONLYFANS_API_BASE}/fans/active`;
+        // GET /api/{account}/fans/active endpoint with query parameters
+        const limit = searchParams.get("limit") || "50";
+        const offset = searchParams.get("offset") || "0";
+        const type = "active";
+        apiUrl = `${ONLYFANS_API_BASE}/${accountId}/fans/active?limit=${limit}&offset=${offset}&type=${type}`;
         break;
       case "expired-fans":
         if (!accountId) {
           return NextResponse.json({ error: "Account ID required for expired fans data" }, { status: 400 });
         }
-        // GET /fans/expired endpoint
-        apiUrl = `${ONLYFANS_API_BASE}/fans/expired`;
+        // GET /api/{account}/fans/active endpoint with type=expired
+        const limitExpired = searchParams.get("limit") || "50";
+        const offsetExpired = searchParams.get("offset") || "0";
+        const typeExpired = "expired";
+        apiUrl = `${ONLYFANS_API_BASE}/${accountId}/fans/active?limit=${limitExpired}&offset=${offsetExpired}&type=${typeExpired}`;
         break;
       case "vault-media":
         if (!accountId) {
