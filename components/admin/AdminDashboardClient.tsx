@@ -28,6 +28,7 @@ import {
   BarChart3,
   Percent,
   Loader2,
+  MessageCircle,
 } from "lucide-react";
 import CountUp from "react-countup";
 import { API_KEY_PROFILES } from "@/app/services/elevenlabs-implementation";
@@ -121,6 +122,8 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
   const [isLoadingContentStats, setIsLoadingContentStats] = useState(true);
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
 
+  const [isLoadingMassMessages, setIsLoadingMassMessages] = useState(false);
+  const [totalMassMessages, setTotalMassMessages] = useState(0);
   // Fetch real VN sales and voice data
   useEffect(() => {
     const fetchVnSalesData = async () => {
@@ -181,9 +184,47 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       }
     };
 
+    const fetchTotalMassMessages = async () => {
+      setIsLoadingMassMessages(true);
+      try {
+        // First get all OnlyFans accounts
+        const accountsResponse = await fetch('/api/onlyfans/models?endpoint=accounts');
+        if (accountsResponse.ok) {
+          const accountsData = await accountsResponse.json();
+          const accounts = accountsData.accounts || accountsData || [];
+
+          let totalMessages = 0;
+
+          // Fetch mass messages for each account
+          for (const account of accounts) {
+            try {
+              const accountId = account.id || account.onlyfans_user_data?.id;
+              if (accountId) {
+                const messagesResponse = await fetch(`/api/onlyfans/models?accountId=${encodeURIComponent(accountId)}&endpoint=mass-messaging`);
+                if (messagesResponse.ok) {
+                  const messagesData = await messagesResponse.json();
+                  const messages = messagesData.data?.list || messagesData.list || messagesData.data || [];
+                  totalMessages += Array.isArray(messages) ? messages.length : 0;
+                }
+              }
+            } catch (error) {
+              console.error(`Error fetching mass messages for account ${account.id}:`, error);
+            }
+          }
+
+          setTotalMassMessages(totalMessages);
+        }
+      } catch (error) {
+        console.error('Error fetching total mass messages:', error);
+      } finally {
+        setIsLoadingMassMessages(false);
+      }
+    };
+
     fetchVnSalesData();
     fetchVoiceData();
     fetchContentGenerationData();
+    fetchTotalMassMessages();
   }, []);
 
   const vnSales = vnSalesData;
@@ -329,6 +370,20 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       bgColor: "bg-purple-50 dark:bg-purple-900/20",
       prefix: "",
       suffix: "%",
+    },
+    {
+      title: "Total Mass Messages",
+      value: totalMassMessages,
+      formattedValue: isLoadingMassMessages
+        ? "Loading..."
+        : totalMassMessages.toLocaleString(),
+      icon: MessageCircle,
+      description: "Total number of mass messages sent",
+      color: "text-orange-600",
+      bgColor: "bg-orange-50 dark:bg-orange-900/20",
+      prefix: "",
+      suffix: "",
+      isLoading: isLoadingMassMessages,
     },
   ];
 
@@ -820,8 +875,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                     <p className="text-sm">
                       Total Content Generated:{" "}
                       <span className="text-purple-400 font-semibold">
-                        {contentGenerationData.totalContentGenerated.toLocaleString()}
-                      </span>{" "}
+                        {contentGenerationData.totalContentGenerated.toLocaleString()}                      </span>{" "}
                       (+{contentGenerationData.contentGrowth}% growth)
                     </p>
                   </div>
