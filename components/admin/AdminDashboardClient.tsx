@@ -17,27 +17,21 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  BarChart3,
-  Trophy,
-  Percent,
-  Star,
   Users,
-  Calendar,
-  DollarSign,
   TrendingUp,
-  MessageCircle,
-  Clock,
-  Award,
-  Medal,
-  Loader2,
-  Headphones,
-  Image,
-  FileText,
-  Eye,
-  ChevronUp,
-  ChevronDown,
   Activity,
   UserCheck,
+  Calendar,
+  DollarSign,
+  FileText,
+  Star,
+  BarChart3,
+  Percent,
+  Loader2,
+  MessageCircle,
+  Trophy,
+  Medal,
+  Award,
 } from "lucide-react";
 import CountUp from "react-countup";
 import { API_KEY_PROFILES } from "@/app/services/elevenlabs-implementation";
@@ -142,9 +136,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     viewRate: number;
     paidMessages: number;
     freeMessages: number;
-    totalRevenue: number;
-    averagePrice: number;
-    totalPurchases: number;
     avatar?: string;
     rank: number;
   }>>([]);
@@ -261,7 +252,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                       totalViews += msg.viewedCount || 0;
                       totalSent += msg.sentCount || 0;
                       totalPurchases += msg.purchasedCount || 0;
-
+                      
                       if (msg.isFree) {
                         freeMessages++;
                       } else {
@@ -999,270 +990,210 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           </CardContent>
         </Card>
 
-        {/* Mass Messaging Analytics */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Revenue Leaderboard */}
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-white">
-                <DollarSign className="h-5 w-5 text-green-400" />
-                <span>MM Revenue Leaders</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {isLoadingMassMessages ? (
-                  <div className="flex justify-center py-8">
-                    <div className="flex items-center text-gray-400">
-                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                      <span>Loading...</span>
-                    </div>
-                  </div>
-                ) : massMessagingLeaderboard.length > 0 ? (
-                  massMessagingLeaderboard
-                    .sort((a, b) => b.totalRevenue - a.totalRevenue)
-                    .slice(0, 10)
-                    .map((model, index) => (
-                      <div key={`revenue-${model.username}`} className="flex items-center justify-between p-3 rounded-lg bg-gray-700">
-                        <div className="flex items-center space-x-3">
-                          <span className="text-sm font-bold text-gray-400 w-6">#{index + 1}</span>
-                          <img
-                            src={model.avatar || "/model.png"}
-                            alt={model.name}
-                            className="w-8 h-8 rounded-full object-cover"
-                          />
-                          <div>
-                            <p className="text-sm font-medium text-white">{model.name}</p>
-                            <p className="text-xs text-gray-400">@{model.username}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-bold text-green-400">${model.totalRevenue.toLocaleString()}</p>
-                          <p className="text-xs text-gray-400">{model.totalPurchases} purchases</p>
-                        </div>
-                      </div>
-                    ))
-                ) : (
-                  <p className="text-center text-gray-400 py-4">No revenue data available</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* View Rate Leaderboard */}
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-white">
-                <Eye className="h-5 w-5 text-blue-400" />
-                <span>MM View Rate Leaders</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {isLoadingMassMessages ? (
-                  <div className="flex justify-center py-8">
-                    <div className="flex items-center text-gray-400">
-                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                      <span>Loading...</span>
-                    </div>
-                  </div>
-                ) : massMessagingLeaderboard.length > 0 ? (
-                  massMessagingLeaderboard
-                    .filter(model => model.totalSent > 0)
-                    .sort((a, b) => b.viewRate - a.viewRate)
-                    .slice(0, 10)
-                    .map((model, index) => (
-                      <div key={`viewrate-${model.username}`} className="flex items-center justify-between p-3 rounded-lg bg-gray-700">
-                        <div className="flex items-center space-x-3">
-                          <span className="text-sm font-bold text-gray-400 w-6">#{index + 1}</span>
-                          <img
-                            src={model.avatar || "/model.png"}
-                            alt={model.name}
-                            className="w-8 h-8 rounded-full object-cover"
-                          />
-                          <div>
-                            <p className="text-sm font-medium text-white">{model.name}</p>
-                            <p className="text-xs text-gray-400">@{model.username}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-bold text-blue-400">{model.viewRate.toFixed(1)}%</p>
-                          <p className="text-xs text-gray-400">{model.totalViews.toLocaleString()} views</p>
-                        </div>
-                      </div>
-                    ))
-                ) : (
-                  <p className="text-center text-gray-400 py-4">No view rate data available</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Total Messages Leaderboard */}
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-white">
-                <MessageCircle className="h-5 w-5 text-purple-400" />
-                <span>MM Volume Leaders</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {isLoadingMassMessages ? (
-                  <div className="flex justify-center py-8">
-                    <div className="flex items-center text-gray-400">
-                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                      <span>Loading...</span>
-                    </div>
-                  </div>
-                ) : massMessagingLeaderboard.length > 0 ? (
-                  massMessagingLeaderboard
-                    .sort((a, b) => b.totalMessages - a.totalMessages)
-                    .slice(0, 10)
-                    .map((model, index) => (
-                      <div key={`volume-${model.username}`} className="flex items-center justify-between p-3 rounded-lg bg-gray-700">
-                        <div className="flex items-center space-x-3">
-                          <span className="text-sm font-bold text-gray-400 w-6">#{index + 1}</span>
-                          <img
-                            src={model.avatar || "/model.png"}
-                            alt={model.name}
-                            className="w-8 h-8 rounded-full object-cover"
-                          />
-                          <div>
-                            <p className="text-sm font-medium text-white">{model.name}</p>
-                            <p className="text-xs text-gray-400">@{model.username}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-bold text-purple-400">{model.totalMessages.toLocaleString()}</p>
-                          <p className="text-xs text-gray-400">{model.totalSent.toLocaleString()} sent</p>
-                        </div>
-                      </div>
-                    ))
-                ) : (
-                  <p className="text-center text-gray-400 py-4">No volume data available</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Average Price Leaderboard */}
-          <Card className="bg-gray-800 border-gray-700">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2 text-white">
-                <TrendingUp className="h-5 w-5 text-orange-400" />
-                <span>MM Price Leaders</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {isLoadingMassMessages ? (
-                  <div className="flex justify-center py-8">
-                    <div className="flex items-center text-gray-400">
-                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                      <span>Loading...</span>
-                    </div>
-                  </div>
-                ) : massMessagingLeaderboard.length > 0 ? (
-                  massMessagingLeaderboard
-                    .filter(model => model.averagePrice > 0)
-                    .sort((a, b) => b.averagePrice - a.averagePrice)
-                    .slice(0, 10)
-                    .map((model, index) => (
-                      <div key={`price-${model.username}`} className="flex items-center justify-between p-3 rounded-lg bg-gray-700">
-                        <div className="flex items-center space-x-3">
-                          <span className="text-sm font-bold text-gray-400 w-6">#{index + 1}</span>
-                          <img
-                            src={model.avatar || "/model.png"}
-                            alt={model.name}
-                            className="w-8 h-8 rounded-full object-cover"
-                          />
-                          <div>
-                            <p className="text-sm font-medium text-white">{model.name}</p>
-                            <p className="text-xs text-gray-400">@{model.username}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-bold text-orange-400">${model.averagePrice.toFixed(2)}</p>
-                          <p className="text-xs text-gray-400">{model.paidMessages} paid msgs</p>
-                        </div>
-                      </div>
-                    ))
-                ) : (
-                  <p className="text-center text-gray-400 py-4">No pricing data available</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Mass Messaging Summary Stats */}
+        {/* Mass Messaging Leaderboard */}
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-white">
-              <BarChart3 className="h-5 w-5 text-indigo-400" />
-              <span>MM Performance Summary</span>
+              <Trophy className="h-5 w-5 text-yellow-400" />
+              <span>Mass Messaging Champions</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoadingMassMessages ? (
-              <div className="flex justify-center py-8">
-                <div className="flex items-center text-gray-400">
-                  <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                  <span>Loading summary...</span>
+            <div className="space-y-4">
+              {isLoadingMassMessages ? (
+                <div className="flex justify-center py-8">
+                  <div className="flex items-center text-gray-400">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                    <span>Loading MM leaderboard...</span>
+                  </div>
                 </div>
-              </div>
-            ) : massMessagingLeaderboard.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                <div className="text-center p-4 bg-gray-700 rounded-lg">
-                  <p className="text-2xl font-bold text-orange-400">{totalMassMessages.toLocaleString()}</p>
-                  <p className="text-xs text-gray-400">Total Messages</p>
-                </div>
-                <div className="text-center p-4 bg-gray-700 rounded-lg">
-                  <p className="text-2xl font-bold text-green-400">
-                    ${massMessagingLeaderboard.reduce((sum, model) => sum + model.totalRevenue, 0).toLocaleString()}
+              ) : massMessagingLeaderboard.length > 0 ? (
+                <>
+                  {massMessagingLeaderboard.map((model, index) => {
+                    const getTrophyIcon = (rank: number) => {
+                      switch (rank) {
+                        case 1:
+                          return <Trophy className="h-6 w-6 text-yellow-400" />;
+                        case 2:
+                          return <Medal className="h-6 w-6 text-gray-400" />;
+                        case 3:
+                          return <Award className="h-6 w-6 text-amber-600" />;
+                        default:
+                          return <div className="h-6 w-6 rounded-full bg-gray-600 flex items-center justify-center text-white text-sm font-bold">{rank}</div>;
+                      }
+                    };
+
+                    const getRankStyle = (rank: number) => {
+                      switch (rank) {
+                        case 1:
+                          return "bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 border-yellow-500/30";
+                        case 2:
+                          return "bg-gradient-to-r from-gray-400/20 to-gray-500/20 border-gray-400/30";
+                        case 3:
+                          return "bg-gradient-to-r from-amber-600/20 to-amber-700/20 border-amber-600/30";
+                        default:
+                          return "bg-gray-700/50 border-gray-600/30";
+                      }
+                    };
+
+                    return (
+                      <div
+                        key={index}
+                        className={`flex items-center justify-between p-4 rounded-lg border ${getRankStyle(model.rank)} transition-all hover:scale-[1.02]`}
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center space-x-3">
+                            {getTrophyIcon(model.rank)}
+                            <div className="flex items-center space-x-3">
+                              {model.avatar ? (
+                                <img
+                                  src={`/api/image-proxy?url=${encodeURIComponent(model.avatar)}`}
+                                  alt={model.name}
+                                  className="h-10 w-10 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                                  <span className="text-white font-bold text-lg">
+                                    {model.name.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
+                              <div>
+                                <h3 className="font-semibold text-white">{model.name}</h3>
+                                <p className="text-sm text-gray-400">@{model.username}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="flex flex-col space-y-1">
+                            <div className="flex items-center justify-end space-x-4">
+                              <div className="text-right">
+                                <p className="font-bold text-2xl text-green-400">
+                                  ${model.totalRevenue.toLocaleString()}
+                                </p>
+                                <p className="text-xs text-gray-400">total revenue</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-bold text-xl text-purple-400">
+                                  {model.totalViews.toLocaleString()}
+                                </p>
+                                <p className="text-xs text-gray-400">total views</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-bold text-lg text-blue-400">
+                                  {model.viewRate.toFixed(1)}%
+                                </p>
+                                <p className="text-xs text-gray-400">view rate</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center justify-end space-x-3 mt-2">
+                              <div className="flex items-center space-x-1">
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <span className="text-xs text-green-400">{model.freeMessages} free</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                                <span className="text-xs text-yellow-400">{model.paidMessages} paid</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                                <span className="text-xs text-orange-400">{model.totalPurchases} purchases</span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-end space-x-4 mt-1">
+                              <p className="text-xs text-gray-500">
+                                Avg Price: <span className="text-green-300">${model.averagePrice.toFixed(2)}</span>
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {model.totalMessages} msgs • {model.totalSent.toLocaleString()} sent
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {model.rank === 1 && (
+                            <div className="flex items-center justify-end mt-2">
+                              <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
+                                💰 Revenue Champion
+                              </span>
+                            </div>
+                          )}
+                          {model.rank === 2 && (
+                            <div className="flex items-center justify-end mt-2">
+                              <span className="text-xs bg-gray-500/20 text-gray-400 px-2 py-1 rounded-full">
+                                🥈 Runner-up
+                              </span>
+                            </div>
+                          )}
+                          {model.rank === 3 && (
+                            <div className="flex items-center justify-end mt-2">
+                              <span className="text-xs bg-amber-600/20 text-amber-600 px-2 py-1 rounded-full">
+                                🥉 Third Place
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="text-center text-gray-400 py-4 border-t border-gray-600 mt-4">
+                    <div className="flex justify-center space-x-8">
+                      <div>
+                        <p className="text-sm">
+                          Total Messages:{" "}
+                          <span className="text-orange-400 font-semibold">
+                            {totalMassMessages.toLocaleString()}
+                          </span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm">
+                          Total Revenue:{" "}
+                          <span className="text-green-400 font-semibold">
+                            ${massMessagingLeaderboard.reduce((sum, model) => sum + model.totalRevenue, 0).toLocaleString()}
+                          </span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm">
+                          Total Views:{" "}
+                          <span className="text-purple-400 font-semibold">
+                            {massMessagingLeaderboard.reduce((sum, model) => sum + model.totalViews, 0).toLocaleString()}
+                          </span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm">
+                          Avg View Rate:{" "}
+                          <span className="text-blue-400 font-semibold">
+                            {massMessagingLeaderboard.length > 0 
+                              ? (massMessagingLeaderboard.reduce((sum, model) => sum + model.viewRate, 0) / massMessagingLeaderboard.length).toFixed(1)
+                              : 0}%
+                          </span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm">
+                          Total Purchases:{" "}
+                          <span className="text-orange-400 font-semibold">
+                            {massMessagingLeaderboard.reduce((sum, model) => sum + model.totalPurchases, 0).toLocaleString()}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center text-gray-400 py-8">
+                  <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-sm">
+                    No mass messaging data found. Start sending campaigns to see the leaderboard!
                   </p>
-                  <p className="text-xs text-gray-400">Total Revenue</p>
                 </div>
-                <div className="text-center p-4 bg-gray-700 rounded-lg">
-                  <p className="text-2xl font-bold text-purple-400">
-                    {massMessagingLeaderboard.reduce((sum, model) => sum + model.totalViews, 0).toLocaleString()}
-                  </p>
-                  <p className="text-xs text-gray-400">Total Views</p>
-                </div>
-                <div className="text-center p-4 bg-gray-700 rounded-lg">
-                  <p className="text-2xl font-bold text-blue-400">
-                    {massMessagingLeaderboard.length > 0 
-                      ? (massMessagingLeaderboard.reduce((sum, model) => sum + model.viewRate, 0) / massMessagingLeaderboard.length).toFixed(1)
-                      : 0}%
-                  </p>
-                  <p className="text-xs text-gray-400">Avg View Rate</p>
-                </div>
-                <div className="text-center p-4 bg-gray-700 rounded-lg">
-                  <p className="text-2xl font-bold text-orange-400">
-                    {massMessagingLeaderboard.reduce((sum, model) => sum + model.totalPurchases, 0).toLocaleString()}
-                  </p>
-                  <p className="text-xs text-gray-400">Total Purchases</p>
-                </div>
-                <div className="text-center p-4 bg-gray-700 rounded-lg">
-                  <p className="text-2xl font-bold text-yellow-400">
-                    {massMessagingLeaderboard.filter(model => model.averagePrice > 0).length > 0
-                      ? (massMessagingLeaderboard
-                          .filter(model => model.averagePrice > 0)
-                          .reduce((sum, model) => sum + model.averagePrice, 0) / 
-                        massMessagingLeaderboard.filter(model => model.averagePrice > 0).length).toFixed(2)
-                      : '0.00'}
-                  </p>
-                  <p className="text-xs text-gray-400">Avg Price</p>
-                </div>
-              </div>
-            ) : (
-              <div className="text-center text-gray-400 py-8">
-                <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg mb-2">No mass messaging data found</p>
-                <p className="text-sm">Start sending campaigns to see detailed analytics!</p>
-              </div>
-            )}
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
