@@ -584,6 +584,9 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                         User
                       </th>
                       <th className="text-left py-3 px-4 font-medium text-gray-300">
+                        Model
+                      </th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-300">
                         Activity
                       </th>
                       <th className="text-left py-3 px-4 font-medium text-gray-300">
@@ -665,6 +668,11 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                               <div className="text-xs text-gray-400">
                                 {activity.tracker}
                               </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-gray-300 text-sm">
+                            <div className="max-w-[120px] truncate">
+                              {activity.model || "N/A"}
                             </div>
                           </td>
                           <td className="py-3 px-4 text-gray-300 text-sm">

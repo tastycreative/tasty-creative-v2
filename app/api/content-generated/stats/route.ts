@@ -138,6 +138,16 @@ export async function GET() {
         // If not found in row 3, check if it's specifically in column B (index 1)
         const finalDateIndex = dateIndex !== -1 ? dateIndex : 1; // Column B is index 1
 
+        // Find the "Model" column index in row 3 (index 2)
+        const modelHeaderRow = rows[2] || []; // Row 3 is index 2
+        const modelIndex = modelHeaderRow.findIndex(
+          (header: string) =>
+            header && header.toString().toLowerCase().includes("model")
+        );
+
+        // If not found in row 3, check if it's specifically in column C (index 2)
+        const finalModelIndex = modelIndex !== -1 ? modelIndex : 2; // Column C is index 2
+
         if (finalCreatedByIndex !== -1) {
           // Get recent entries (skip first 3 rows which are headers and get up to 10 most recent)
           const dataRows = rows.slice(3, 13); // Start from row 4 (index 3)
@@ -181,6 +191,11 @@ export async function GET() {
                   ? row[finalDateIndex].toString().trim()
                   : "";
 
+                // Get the model from the Model column
+                const modelValue = row[finalModelIndex]
+                  ? row[finalModelIndex].toString().trim()
+                  : "";
+
                 if (user && user.image) {
                   recentActivities.push({
                     tracker: sheetName,
@@ -188,6 +203,7 @@ export async function GET() {
                     email,
                     image: user.image,
                     createdAt: dateValue,
+                    model: modelValue,
                     activity: `Generated content in ${sheetName}`,
                   });
                 } else {
@@ -197,6 +213,7 @@ export async function GET() {
                     email,
                     image: null,
                     createdAt: dateValue,
+                    model: modelValue,
                     activity: `Generated content in ${sheetName}`,
                   });
                 }
