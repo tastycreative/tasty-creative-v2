@@ -23,6 +23,7 @@ import {
   DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface AdminSidebarProps {
   className?: string;
@@ -161,14 +162,17 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
               </span>
             )}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="hidden md:flex"
-            onClick={() => setIsCollapsed(!isCollapsed)}
-          >
-            {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-          </Button>
+          <div className="flex items-center space-x-1">
+            {!isCollapsed && <ThemeToggle />}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="hidden md:flex"
+              onClick={() => setIsCollapsed(!isCollapsed)}
+            >
+              {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+            </Button>
+          </div>
         </div>
 
         {/* Model Selector */}

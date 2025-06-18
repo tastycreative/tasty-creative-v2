@@ -16,7 +16,7 @@ export default async function AdminAnalyticsPage() {
         <p className="text-gray-600 dark:text-gray-400">Detailed analytics and reporting</p>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-8 text-center border border-gray-200 dark:border-gray-700">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
           Advanced Analytics Coming Soon
         </h2>

@@ -605,11 +605,11 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-900 p-6 space-y-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 space-y-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
-        <p className="text-gray-300 mt-2">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Admin Dashboard</h1>
+        <p className="text-gray-600 dark:text-gray-300 mt-2">
           Monitor your application&apos;s performance and user activity
         </p>
       </div>

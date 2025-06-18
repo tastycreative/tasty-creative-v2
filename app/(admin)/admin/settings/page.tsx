@@ -37,7 +37,10 @@ export default async function AdminSettingsPage() {
               Maintenance Mode
             </label>
             <div className="flex items-center">
-              <input type="checkbox" className="mr-2" />
+              <input 
+                type="checkbox" 
+                className="mr-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:ring-blue-500" 
+              />
               <span className="text-sm text-gray-600 dark:text-gray-400">
                 Enable maintenance mode
               </span>
