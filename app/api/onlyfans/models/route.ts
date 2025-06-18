@@ -78,15 +78,15 @@ export async function GET(request: NextRequest) {
         if (!accountId) {
           return NextResponse.json({ error: "Account ID required for active fans data" }, { status: 400 });
         }
-        // POST /fans endpoint with type=active
-        apiUrl = `${ONLYFANS_API_BASE}/fans`;
+        // GET /{account}/fans/active endpoint
+        apiUrl = `${ONLYFANS_API_BASE}/${accountId}/fans/active`;
         break;
       case "expired-fans":
         if (!accountId) {
           return NextResponse.json({ error: "Account ID required for expired fans data" }, { status: 400 });
         }
-        // POST /fans endpoint with type=expired
-        apiUrl = `${ONLYFANS_API_BASE}/fans`;
+        // GET /{account}/fans/expired endpoint
+        apiUrl = `${ONLYFANS_API_BASE}/${accountId}/fans/expired`;
         break;
       case "vault-media":
         if (!accountId) {
@@ -182,21 +182,12 @@ export async function GET(request: NextRequest) {
       apiUrl += `?start_date=${encodeURIComponent(startDate || '')}&end_date=${encodeURIComponent(endDate || '')}&type=total`;
     }
 
-    // For fans endpoints, use POST method with JSON body  
+    // For fans endpoints, add pagination parameters as query parameters
     if (endpoint === "active-fans" || endpoint === "expired-fans") {
-      requestOptions.method = 'POST';
-
       const limit = searchParams.get("limit") || "50";
       const offset = searchParams.get("offset") || "0";
-      const type = endpoint === "active-fans" ? "active" : "expired";
-
-      requestOptions.body = JSON.stringify({
-        account: accountId,
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-        type: type,
-        filter: []
-      });
+      
+      apiUrl += `?limit=${limit}&offset=${offset}`;
     }
 
     const response = await fetch(apiUrl, requestOptions);
