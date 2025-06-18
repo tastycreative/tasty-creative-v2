@@ -472,7 +472,7 @@ export default function AccountDetailsPage() {
             <div className="flex items-center gap-2">
               <MessageCircle className="w-5 h-5 text-pink-500" />
               <div>
-                <p className="text-2xl font-bold">{massMessages.reduce((sum, msg) => sum + msg.sentCount, 0).toLocaleString()}</p>
+                <p className="text-2xl font-bold">{(Array.isArray(massMessages) ? massMessages.reduce((sum, msg) => sum + (msg.sentCount || 0), 0) : 0).toLocaleString()}</p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Mass Messages Sent</p>
               </div>
             </div>
@@ -810,22 +810,22 @@ export default function AccountDetailsPage() {
               <div className="grid gap-4 md:grid-cols-3 mb-6">
                 <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                   <MessageCircle className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-                  <p className="text-2xl font-bold">{massMessages.length}</p>
+                  <p className="text-2xl font-bold">{Array.isArray(massMessages) ? massMessages.length : 0}</p>
                   <p className="text-sm text-gray-600">Total Messages</p>
                 </div>
                 <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
                   <TrendingUp className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                  <p className="text-2xl font-bold">{massMessages.reduce((sum, msg) => sum + msg.sentCount, 0).toLocaleString()}</p>
+                  <p className="text-2xl font-bold">{(Array.isArray(massMessages) ? massMessages.reduce((sum, msg) => sum + (msg.sentCount || 0), 0) : 0).toLocaleString()}</p>
                   <p className="text-sm text-gray-600">Total Sent</p>
                 </div>
                 <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                   <Eye className="w-8 h-8 text-purple-500 mx-auto mb-2" />
-                  <p className="text-2xl font-bold">{massMessages.reduce((sum, msg) => sum + msg.viewedCount, 0).toLocaleString()}</p>
+                  <p className="text-2xl font-bold">{(Array.isArray(massMessages) ? massMessages.reduce((sum, msg) => sum + (msg.viewedCount || 0), 0) : 0).toLocaleString()}</p>
                   <p className="text-sm text-gray-600">Total Viewed</p>
                 </div>
               </div>
 
-              {massMessages.length > 0 ? (
+              {Array.isArray(massMessages) && massMessages.length > 0 ? (
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Recent Mass Messages</h3>
                   {massMessages.slice(0, 10).map((message) => (
