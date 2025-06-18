@@ -194,7 +194,7 @@ export async function GET(request: NextRequest) {
         limit: parseInt(limit),
         offset: parseInt(offset),
         type: type,
-        filter: ""
+        filter: []
       });
     }
 

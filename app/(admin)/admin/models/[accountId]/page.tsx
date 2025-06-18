@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -121,12 +120,12 @@ export default function AccountDetailsPage() {
   const fetchAccountDetails = async () => {
     try {
       setLoading(true);
-      
+
       if (!accountId) {
         setError('Account ID is required');
         return;
       }
-      
+
       console.log(`Fetching data for account: ${accountId}`);
 
       // First, try to get the account from the accounts list to get basic info
@@ -153,7 +152,7 @@ export default function AccountDetailsPage() {
       } catch (err) {
         console.error('Error fetching accounts list:', err);
       }
-      
+
       // Get the real account ID to use for API calls
       let realAccountId = accountId;
       if (accountData) {
@@ -202,7 +201,7 @@ export default function AccountDetailsPage() {
         if (response.status === 'fulfilled') {
           const data = response.value;
           console.log(`Processing ${endpoint} data:`, data);
-          
+
           switch (endpoint) {
             case 'chats':
               const chatsArray = Array.isArray(data) ? data : (data.chats || data.data || []);
@@ -343,7 +342,7 @@ export default function AccountDetailsPage() {
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Models
         </Button>
-        
+
         <div className="flex items-center gap-4">
           {(accountData?.avatar || accountData?.onlyfans_user_data?.avatar) && (
             <img 
@@ -626,7 +625,7 @@ export default function AccountDetailsPage() {
                   <p className="text-sm text-gray-600">Growth Rate</p>
                 </div>
               </div>
-              
+
               {earnings?.total?.chartAmount && (
                 <div className="mt-6">
                   <h3 className="text-lg font-semibold mb-4">Monthly Earnings Breakdown</h3>
@@ -751,9 +750,7 @@ export default function AccountDetailsPage() {
                   <p className="text-sm text-gray-600">Unique Visitors</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </Card        </CardContent>
       </Tabs>
     </div>
   );
