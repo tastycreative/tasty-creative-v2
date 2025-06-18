@@ -29,6 +29,9 @@ import {
   Percent,
   Loader2,
   MessageCircle,
+  Trophy,
+  Medal,
+  Award,
 } from "lucide-react";
 import CountUp from "react-countup";
 import { API_KEY_PROFILES } from "@/app/services/elevenlabs-implementation";
@@ -124,6 +127,13 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
 
   const [isLoadingMassMessages, setIsLoadingMassMessages] = useState(false);
   const [totalMassMessages, setTotalMassMessages] = useState(0);
+  const [massMessagingLeaderboard, setMassMessagingLeaderboard] = useState<Array<{
+    name: string;
+    username: string;
+    totalMessages: number;
+    avatar?: string;
+    rank: number;
+  }>>([]);
   // Fetch real VN sales and voice data
   useEffect(() => {
     const fetchVnSalesData = async () => {
@@ -194,6 +204,13 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           const accounts = accountsData.accounts || accountsData || [];
 
           let totalMessages = 0;
+          const leaderboardData: Array<{
+            name: string;
+            username: string;
+            totalMessages: number;
+            avatar?: string;
+            rank: number;
+          }> = [];
 
           // Fetch mass messages for each account
           for (const account of accounts) {
@@ -204,7 +221,17 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                 if (messagesResponse.ok) {
                   const messagesData = await messagesResponse.json();
                   const messages = messagesData.data?.list || messagesData.list || messagesData.data || [];
-                  totalMessages += Array.isArray(messages) ? messages.length : 0;
+                  const messageCount = Array.isArray(messages) ? messages.length : 0;
+                  totalMessages += messageCount;
+
+                  // Add to leaderboard data
+                  leaderboardData.push({
+                    name: account.onlyfans_user_data?.name || account.name || 'Unknown',
+                    username: account.onlyfans_user_data?.username || account.username || 'N/A',
+                    totalMessages: messageCount,
+                    avatar: account.onlyfans_user_data?.avatar || account.avatar,
+                    rank: 0, // Will be set after sorting
+                  });
                 }
               }
             } catch (error) {
@@ -212,7 +239,14 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             }
           }
 
+          // Sort by message count and assign ranks
+          leaderboardData.sort((a, b) => b.totalMessages - a.totalMessages);
+          leaderboardData.forEach((item, index) => {
+            item.rank = index + 1;
+          });
+
           setTotalMassMessages(totalMessages);
+          setMassMessagingLeaderboard(leaderboardData.slice(0, 5)); // Top 5
         }
       } catch (error) {
         console.error('Error fetching total mass messages:', error);
@@ -885,6 +919,133 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                   <p className="text-sm">
                     No content generation data found. Generate some content to
                     see analytics!
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Mass Messaging Leaderboard */}
+        <Card className="bg-gray-800 border-gray-700">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-white">
+              <Trophy className="h-5 w-5 text-yellow-400" />
+              <span>Mass Messaging Champions</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {isLoadingMassMessages ? (
+                <div className="flex justify-center py-8">
+                  <div className="flex items-center text-gray-400">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                    <span>Loading MM leaderboard...</span>
+                  </div>
+                </div>
+              ) : massMessagingLeaderboard.length > 0 ? (
+                <>
+                  {massMessagingLeaderboard.map((model, index) => {
+                    const getTrophyIcon = (rank: number) => {
+                      switch (rank) {
+                        case 1:
+                          return <Trophy className="h-6 w-6 text-yellow-400" />;
+                        case 2:
+                          return <Medal className="h-6 w-6 text-gray-400" />;
+                        case 3:
+                          return <Award className="h-6 w-6 text-amber-600" />;
+                        default:
+                          return <div className="h-6 w-6 rounded-full bg-gray-600 flex items-center justify-center text-white text-sm font-bold">{rank}</div>;
+                      }
+                    };
+
+                    const getRankStyle = (rank: number) => {
+                      switch (rank) {
+                        case 1:
+                          return "bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 border-yellow-500/30";
+                        case 2:
+                          return "bg-gradient-to-r from-gray-400/20 to-gray-500/20 border-gray-400/30";
+                        case 3:
+                          return "bg-gradient-to-r from-amber-600/20 to-amber-700/20 border-amber-600/30";
+                        default:
+                          return "bg-gray-700/50 border-gray-600/30";
+                      }
+                    };
+
+                    return (
+                      <div
+                        key={index}
+                        className={`flex items-center justify-between p-4 rounded-lg border ${getRankStyle(model.rank)} transition-all hover:scale-[1.02]`}
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center space-x-3">
+                            {getTrophyIcon(model.rank)}
+                            <div className="flex items-center space-x-3">
+                              {model.avatar ? (
+                                <img
+                                  src={`/api/image-proxy?url=${encodeURIComponent(model.avatar)}`}
+                                  alt={model.name}
+                                  className="h-10 w-10 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                                  <span className="text-white font-bold text-lg">
+                                    {model.name.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
+                              <div>
+                                <h3 className="font-semibold text-white">{model.name}</h3>
+                                <p className="text-sm text-gray-400">@{model.username}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-2xl text-white">
+                            {model.totalMessages.toLocaleString()}
+                          </p>
+                          <p className="text-sm text-gray-400">messages sent</p>
+                          {model.rank === 1 && (
+                            <div className="flex items-center justify-end mt-1">
+                              <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full">
+                                🏆 Champion
+                              </span>
+                            </div>
+                          )}
+                          {model.rank === 2 && (
+                            <div className="flex items-center justify-end mt-1">
+                              <span className="text-xs bg-gray-500/20 text-gray-400 px-2 py-1 rounded-full">
+                                🥈 Runner-up
+                              </span>
+                            </div>
+                          )}
+                          {model.rank === 3 && (
+                            <div className="flex items-center justify-end mt-1">
+                              <span className="text-xs bg-amber-600/20 text-amber-600 px-2 py-1 rounded-full">
+                                🥉 Third Place
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="text-center text-gray-400 py-4 border-t border-gray-600 mt-4">
+                    <p className="text-sm">
+                      Total Campaign Messages:{" "}
+                      <span className="text-orange-400 font-semibold">
+                        {totalMassMessages.toLocaleString()}
+                      </span>{" "}
+                      across all models
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center text-gray-400 py-8">
+                  <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-sm">
+                    No mass messaging data found. Start sending campaigns to see the leaderboard!
                   </p>
                 </div>
               )}
