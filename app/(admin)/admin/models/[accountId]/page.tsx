@@ -87,6 +87,9 @@ export default function AccountDetailsPage() {
   const router = useRouter();
   const accountId = params?.accountId as string;
 
+  console.log('Account details page params:', params);
+  console.log('Account ID:', accountId);
+
   const [accountData, setAccountData] = useState<any>(null);
   const [chatsData, setChatsData] = useState<ChatData[]>([]);
   const [activeFans, setActiveFans] = useState<FanData[]>([]);
@@ -103,6 +106,11 @@ export default function AccountDetailsPage() {
     try {
       setLoading(true);
       
+      if (!accountId) {
+        setError('Account ID is required');
+        return;
+      }
+      
       // Fetch all the data from different endpoints
       const endpoints = [
         'chats',
@@ -113,49 +121,70 @@ export default function AccountDetailsPage() {
         'profile-visitors',
         'transactions',
         'tracking-links',
-        'account-details'
+        'account-details',
+        'account-balances'
       ];
 
+      console.log(`Fetching data for account: ${accountId}`);
+
       const responses = await Promise.allSettled(
-        endpoints.map(endpoint => 
-          fetch(`/api/onlyfans/models?accountId=${accountId}&endpoint=${endpoint}`)
-            .then(res => res.ok ? res.json() : Promise.reject(res))
-        )
+        endpoints.map(endpoint => {
+          const url = `/api/onlyfans/models?accountId=${encodeURIComponent(accountId)}&endpoint=${endpoint}`;
+          console.log(`Fetching: ${url}`);
+          return fetch(url)
+            .then(res => {
+              if (!res.ok) {
+                console.error(`Error fetching ${endpoint}:`, res.status, res.statusText);
+                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+              }
+              return res.json();
+            });
+        })
       );
 
       // Process responses
       responses.forEach((response, index) => {
+        const endpoint = endpoints[index];
         if (response.status === 'fulfilled') {
           const data = response.value;
-          switch (endpoints[index]) {
+          console.log(`Processing ${endpoint} data:`, data);
+          
+          switch (endpoint) {
             case 'chats':
-              setChatsData(data.chats || data || []);
+              setChatsData(Array.isArray(data) ? data : data.chats || data.data || []);
               break;
             case 'active-fans':
-              setActiveFans(data.fans || data || []);
+              setActiveFans(Array.isArray(data) ? data : data.fans || data.data || []);
               break;
             case 'expired-fans':
-              setExpiredFans(data.fans || data || []);
+              setExpiredFans(Array.isArray(data) ? data : data.fans || data.data || []);
               break;
             case 'vault-media':
-              setVaultMedia(data.media || data || []);
+              setVaultMedia(Array.isArray(data) ? data : data.media || data.data || []);
               break;
             case 'earnings':
-              setEarnings(data);
+              setEarnings(data.earnings || data);
               break;
             case 'profile-visitors':
-              setProfileVisitors(data);
+              setProfileVisitors(data.visitors || data);
               break;
             case 'transactions':
-              setTransactions(data.transactions || data || []);
+              setTransactions(Array.isArray(data) ? data : data.transactions || data.data || []);
               break;
             case 'tracking-links':
-              setTrackingLinks(data.links || data || []);
+              setTrackingLinks(Array.isArray(data) ? data : data.links || data.data || []);
               break;
             case 'account-details':
-              setAccountData(data);
+              setAccountData(data.profile || data);
+              break;
+            case 'account-balances':
+              if (data && typeof data === 'object') {
+                setEarnings(prev => ({ ...prev, ...data }));
+              }
               break;
           }
+        } else {
+          console.error(`Failed to fetch ${endpoint}:`, response.reason);
         }
       });
 
