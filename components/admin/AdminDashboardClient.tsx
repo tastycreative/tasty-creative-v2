@@ -131,6 +131,11 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     name: string;
     username: string;
     totalMessages: number;
+    totalViews: number;
+    totalSent: number;
+    viewRate: number;
+    paidMessages: number;
+    freeMessages: number;
     avatar?: string;
     rank: number;
   }>>([]);
@@ -224,11 +229,36 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                   const messageCount = Array.isArray(messages) ? messages.length : 0;
                   totalMessages += messageCount;
 
+                  // Calculate detailed metrics
+                  let totalViews = 0;
+                  let totalSent = 0;
+                  let paidMessages = 0;
+                  let freeMessages = 0;
+
+                  if (Array.isArray(messages)) {
+                    messages.forEach((msg) => {
+                      totalViews += msg.viewedCount || 0;
+                      totalSent += msg.sentCount || 0;
+                      if (msg.isFree) {
+                        freeMessages++;
+                      } else {
+                        paidMessages++;
+                      }
+                    });
+                  }
+
+                  const viewRate = totalSent > 0 ? (totalViews / totalSent) * 100 : 0;
+
                   // Add to leaderboard data
                   leaderboardData.push({
                     name: account.onlyfans_user_data?.name || account.name || 'Unknown',
                     username: account.onlyfans_user_data?.username || account.username || 'N/A',
                     totalMessages: messageCount,
+                    totalViews,
+                    totalSent,
+                    viewRate,
+                    paidMessages,
+                    freeMessages,
                     avatar: account.onlyfans_user_data?.avatar || account.avatar,
                     rank: 0, // Will be set after sorting
                   });
@@ -239,8 +269,13 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             }
           }
 
-          // Sort by message count and assign ranks
-          leaderboardData.sort((a, b) => b.totalMessages - a.totalMessages);
+          // Sort by view count (primary) then view rate (secondary)
+          leaderboardData.sort((a, b) => {
+            if (b.totalViews !== a.totalViews) {
+              return b.totalViews - a.totalViews;
+            }
+            return b.viewRate - a.viewRate;
+          });
           leaderboardData.forEach((item, index) => {
             item.rank = index + 1;
           });
@@ -1002,26 +1037,54 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-2xl text-white">
-                            {model.totalMessages.toLocaleString()}
-                          </p>
-                          <p className="text-sm text-gray-400">messages sent</p>
+                          <div className="flex flex-col space-y-1">
+                            <div className="flex items-center justify-end space-x-4">
+                              <div className="text-right">
+                                <p className="font-bold text-2xl text-purple-400">
+                                  {model.totalViews.toLocaleString()}
+                                </p>
+                                <p className="text-xs text-gray-400">total views</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-bold text-xl text-green-400">
+                                  {model.viewRate.toFixed(1)}%
+                                </p>
+                                <p className="text-xs text-gray-400">view rate</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center justify-end space-x-2 mt-2">
+                              <div className="flex items-center space-x-1">
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <span className="text-xs text-green-400">{model.freeMessages} free</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                                <span className="text-xs text-yellow-400">{model.paidMessages} paid</span>
+                              </div>
+                            </div>
+
+                            <p className="text-xs text-gray-500 mt-1">
+                              {model.totalMessages} messages • {model.totalSent.toLocaleString()} sent
+                            </p>
+                          </div>
+                          
                           {model.rank === 1 && (
-                            <div className="flex items-center justify-end mt-1">
+                            <div className="flex items-center justify-end mt-2">
                               <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full">
-                                🏆 Champion
+                                🏆 View Champion
                               </span>
                             </div>
                           )}
                           {model.rank === 2 && (
-                            <div className="flex items-center justify-end mt-1">
+                            <div className="flex items-center justify-end mt-2">
                               <span className="text-xs bg-gray-500/20 text-gray-400 px-2 py-1 rounded-full">
                                 🥈 Runner-up
                               </span>
                             </div>
                           )}
                           {model.rank === 3 && (
-                            <div className="flex items-center justify-end mt-1">
+                            <div className="flex items-center justify-end mt-2">
                               <span className="text-xs bg-amber-600/20 text-amber-600 px-2 py-1 rounded-full">
                                 🥉 Third Place
                               </span>
@@ -1032,13 +1095,34 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                     );
                   })}
                   <div className="text-center text-gray-400 py-4 border-t border-gray-600 mt-4">
-                    <p className="text-sm">
-                      Total Campaign Messages:{" "}
-                      <span className="text-orange-400 font-semibold">
-                        {totalMassMessages.toLocaleString()}
-                      </span>{" "}
-                      across all models
-                    </p>
+                    <div className="flex justify-center space-x-8">
+                      <div>
+                        <p className="text-sm">
+                          Total Messages:{" "}
+                          <span className="text-orange-400 font-semibold">
+                            {totalMassMessages.toLocaleString()}
+                          </span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm">
+                          Total Views:{" "}
+                          <span className="text-purple-400 font-semibold">
+                            {massMessagingLeaderboard.reduce((sum, model) => sum + model.totalViews, 0).toLocaleString()}
+                          </span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm">
+                          Avg View Rate:{" "}
+                          <span className="text-green-400 font-semibold">
+                            {massMessagingLeaderboard.length > 0 
+                              ? (massMessagingLeaderboard.reduce((sum, model) => sum + model.viewRate, 0) / massMessagingLeaderboard.length).toFixed(1)
+                              : 0}%
+                          </span>
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </>
               ) : (
