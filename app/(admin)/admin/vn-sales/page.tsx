@@ -309,12 +309,12 @@ useEffect(() => {
                   </SelectContent>
                 </Select>
                 {selectedVoice && selectedApiProfile && voiceHistory.length === 0 && !isLoadingHistory && (
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                     No voice notes found for {availableVoices.find(v => v.voiceId === selectedVoice)?.name} in {API_KEY_PROFILES[selectedApiProfile as keyof typeof API_KEY_PROFILES]?.name}. Generate some voice notes first.
                   </p>
                 )}
                 {selectedApiProfile && voiceHistory.length === 0 && !isLoadingHistory && (
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                     No voice history found in {API_KEY_PROFILES[selectedApiProfile as keyof typeof API_KEY_PROFILES]?.name}. Make sure the API profile has voice generation history.
                   </p>
                 )}
@@ -337,13 +337,13 @@ useEffect(() => {
 
               {/* Submit Status */}
               {submitStatus && (
-                <Alert className={submitStatus.type === 'success' ? 'border-green-500' : 'border-red-500'}>
+                <Alert className={submitStatus.type === 'success' ? 'border-green-500 bg-green-50 dark:bg-green-900/20 dark:border-green-700/50' : 'border-red-500 bg-red-50 dark:bg-red-900/20 dark:border-red-700/50'}>
                   {submitStatus.type === 'success' ? (
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                   ) : (
-                    <AlertCircle className="h-4 w-4 text-red-600" />
+                    <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
                   )}
-                  <AlertDescription className={submitStatus.type === 'success' ? 'text-green-700' : 'text-red-700'}>
+                  <AlertDescription className={submitStatus.type === 'success' ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}>
                     {submitStatus.message}
                   </AlertDescription>
                 </Alert>
@@ -379,42 +379,42 @@ useEffect(() => {
                 `$${vnStats?.vnSalesToday?.toFixed(2) || '0.00'}`
               )}
             </p>
-            <p className="text-sm text-gray-500">Real-time data</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Real-time data</p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Voice Generated</h3>
-            <p className="text-2xl font-bold text-blue-600">
+            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Voice Generated</h3>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-500">
               {isLoadingStats ? (
                 <Loader2 className="w-6 h-6 animate-spin" />
               ) : (
                 voiceStats?.totalVoiceGenerated?.toLocaleString() || '0'
               )}
             </p>
-            <p className="text-sm text-blue-600">
+            <p className="text-sm text-blue-600 dark:text-blue-400">
               {voiceStats?.newVoicesToday || 0} new today
             </p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Revenue</h3>
-            <p className="text-2xl font-bold text-purple-600">
+            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Revenue</h3>
+            <p className="text-2xl font-bold text-purple-600 dark:text-purple-500">
               {isLoadingStats ? (
                 <Loader2 className="w-6 h-6 animate-spin" />
               ) : (
                 `$${vnStats?.totalRevenue?.toFixed(2) || '0.00'}`
               )}
             </p>
-            <p className="text-sm text-purple-600">From {vnStats?.salesByModel?.length || 0} models</p>
+            <p className="text-sm text-purple-600 dark:text-purple-400">From {vnStats?.salesByModel?.length || 0} models</p>
           </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Average VN Price</h3>
-            <p className="text-2xl font-bold text-orange-600">
+            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Average VN Price</h3>
+            <p className="text-2xl font-bold text-orange-600 dark:text-orange-500">
               {isLoadingStats ? (
                 <Loader2 className="w-6 h-6 animate-spin" />
               ) : (
                 `$${vnStats?.averageVnPrice?.toFixed(2) || '0.00'}`
               )}
             </p>
-            <p className="text-sm text-gray-500">Per voice note</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">Per voice note</p>
           </div>
         </div>
 
@@ -427,7 +427,7 @@ useEffect(() => {
             <div className="space-y-4">
               {isLoadingStats ? (
                 <div className="flex justify-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+                  <Loader2 className="w-8 h-8 animate-spin text-gray-500 dark:text-gray-400" />
                 </div>
               ) : vnStats?.salesByModel?.length > 0 ? (
                 vnStats.salesByModel.map((model: any, index: number) => (
@@ -437,11 +437,11 @@ useEffect(() => {
                   >
                     <div>
                       <h3 className="font-medium text-gray-900 dark:text-white">{model.name}</h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{model.sales} VN sales</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{model.sales} VN sales</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-green-600">${model.revenue.toFixed(2)}</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{model.loyaltyPoints} loyalty pts</p>
+                      <p className="font-semibold text-green-600 dark:text-green-400">${model.revenue.toFixed(2)}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{model.loyaltyPoints} loyalty pts</p>
                     </div>
                   </div>
                 ))
@@ -455,7 +455,7 @@ useEffect(() => {
                   variant="outline"
                   onClick={loadStats}
                   disabled={isLoadingStats}
-                  className="text-sm"
+                  className="text-sm text-gray-700 dark:text-gray-300"
                 >
                   {isLoadingStats ? (
                     <>
