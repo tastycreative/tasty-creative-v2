@@ -172,35 +172,61 @@ export default function AccountDetailsPage() {
           
           switch (endpoint) {
             case 'chats':
-              setChatsData(Array.isArray(data) ? data : data.chats || data.data || []);
+              const chatsArray = Array.isArray(data) ? data : (data.chats || data.data || []);
+              setChatsData(chatsArray);
+              console.log(`Processed ${endpoint}:`, chatsArray);
               break;
             case 'active-fans':
-              setActiveFans(Array.isArray(data) ? data : data.fans || data.data || []);
+              const activeFansArray = Array.isArray(data) ? data : (data.fans || data.data || []);
+              setActiveFans(activeFansArray);
+              console.log(`Processed ${endpoint}:`, activeFansArray);
               break;
             case 'expired-fans':
-              setExpiredFans(Array.isArray(data) ? data : data.fans || data.data || []);
+              const expiredFansArray = Array.isArray(data) ? data : (data.fans || data.data || []);
+              setExpiredFans(expiredFansArray);
+              console.log(`Processed ${endpoint}:`, expiredFansArray);
               break;
             case 'vault-media':
-              setVaultMedia(Array.isArray(data) ? data : data.media || data.data || []);
+              const vaultMediaArray = Array.isArray(data) ? data : (data.media || data.data || []);
+              setVaultMedia(vaultMediaArray);
+              console.log(`Processed ${endpoint}:`, vaultMediaArray);
               break;
             case 'earnings':
-              setEarnings(data.earnings || data);
+              const earningsData = data.earnings || data;
+              setEarnings(earningsData);
+              console.log(`Processed ${endpoint}:`, earningsData);
               break;
             case 'profile-visitors':
-              setProfileVisitors(data.visitors || data);
+              const visitorsData = data.visitors || data;
+              setProfileVisitors(visitorsData);
+              console.log(`Processed ${endpoint}:`, visitorsData);
               break;
             case 'transactions':
-              setTransactions(Array.isArray(data) ? data : data.transactions || data.data || []);
+              const transactionsArray = Array.isArray(data) ? data : (data.transactions || data.data || []);
+              setTransactions(transactionsArray);
+              console.log(`Processed ${endpoint}:`, transactionsArray);
               break;
             case 'tracking-links':
-              setTrackingLinks(Array.isArray(data) ? data : data.links || data.data || []);
+              const trackingLinksArray = Array.isArray(data) ? data : (data.links || data.data || []);
+              setTrackingLinks(trackingLinksArray);
+              console.log(`Processed ${endpoint}:`, trackingLinksArray);
               break;
             case 'account-details':
-              setAccountData(data.profile || data);
+              const accountDetailsData = data.profile || data;
+              if (accountDetailsData && Object.keys(accountDetailsData).length > 0) {
+                setAccountData(prev => ({ ...prev, ...accountDetailsData }));
+              }
+              console.log(`Processed ${endpoint}:`, accountDetailsData);
               break;
             case 'account-balances':
               if (data && typeof data === 'object') {
-                setEarnings(prev => ({ ...prev, ...data }));
+                setEarnings(prev => ({ 
+                  ...prev, 
+                  current_balance: data.current_balance || prev?.current_balance,
+                  pending_balance: data.pending_balance || prev?.pending_balance,
+                  total_earnings: data.total_earnings || prev?.total_earnings
+                }));
+                console.log(`Processed ${endpoint}:`, data);
               }
               break;
           }
