@@ -1214,13 +1214,21 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) =>
-                    `${name} ${(percent * 100).toFixed(0)}%`
-                  }
+                  label={({ name, percent, x, y, textAnchor }) => (
+                    <text
+                      x={x}
+                      y={y}
+                      fill={theme === 'dark' ? "#9ca3af" : "#4b5563"}
+                      fontSize={12}
+                      textAnchor={textAnchor}
+                      dominantBaseline="central"
+                    >
+                      {`${name} ${(percent * 100).toFixed(0)}%`}
+                    </text>
+                  )}
                   outerRadius={80}
-                  fill="#8884d8"
+                  fill="#8884d8" // This is the default fill for slices if not using <Cell>
                   dataKey="value"
-                  labelStyle={{ fill: theme === 'dark' ? "#9ca3af" : "#4b5563", fontSize: 12 }}
                 >
                   {roleChartData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
