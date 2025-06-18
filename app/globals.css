@@ -1,10 +1,5 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -80,6 +75,7 @@
   --sidebar-ring: oklch(0.704 0.04 256.788);
 }
 
+/* Dark theme variables, applied when html has .dark class */
 .dark {
   --background: oklch(0 0 0 / 0.6);
   --foreground: oklch(0.98 0 0);
@@ -118,13 +114,6 @@
   --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.551 0.027 264.364);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 @layer base {
