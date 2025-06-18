@@ -98,6 +98,23 @@ interface TransactionData {
   status: string;
 }
 
+interface MassMessageData {
+  id: number;
+  date: string;
+  text: string;
+  giphyId: string | null;
+  textCropped: string;
+  isFree: boolean;
+  sentCount: number;
+  viewedCount: number;
+  canUnsend: boolean;
+  unsendSeconds: number;
+  isCanceled: boolean;
+  mediaTypes: string | null;
+  hasError: boolean;
+  releaseForms: any[];
+}
+
 export default function AccountDetailsPage() {
   const params = useParams();
   const router = useRouter();
@@ -115,6 +132,7 @@ export default function AccountDetailsPage() {
   const [profileVisitors, setProfileVisitors] = useState<ProfileVisitors | null>(null);
   const [transactions, setTransactions] = useState<TransactionData[]>([]);
   const [trackingLinks, setTrackingLinks] = useState<any[]>([]);
+  const [massMessages, setMassMessages] = useState<MassMessageData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -178,7 +196,8 @@ export default function AccountDetailsPage() {
         { name: 'tracking-links', url: `/api/onlyfans/models?accountId=${encodeURIComponent(realAccountId)}&endpoint=tracking-links` },
         { name: 'profile-details', url: `/api/onlyfans/models?accountId=${encodeURIComponent(realAccountId)}&endpoint=profile-details` },
         { name: 'account-balances', url: `/api/onlyfans/models?accountId=${encodeURIComponent(realAccountId)}&endpoint=account-balances` },
-        { name: 'vault-lists', url: `/api/onlyfans/models?accountId=${encodeURIComponent(realAccountId)}&endpoint=vault-lists` }
+        { name: 'vault-lists', url: `/api/onlyfans/models?accountId=${encodeURIComponent(realAccountId)}&endpoint=vault-lists` },
+        { name: 'mass-messaging', url: `/api/onlyfans/models?accountId=${encodeURIComponent(realAccountId)}&endpoint=mass-messaging` }
       ];
 
       const responses = await Promise.allSettled(
@@ -285,6 +304,11 @@ export default function AccountDetailsPage() {
                 }));
                 console.log(`Processed ${endpoint}:`, data);
               }
+              break;
+            case 'mass-messaging':
+              const massMessagesArray = Array.isArray(data) ? data : (data.data || []);
+              setMassMessages(massMessagesArray);
+              console.log(`Processed ${endpoint}:`, massMessagesArray);
               break;
           }
         } else {
@@ -442,11 +466,23 @@ export default function AccountDetailsPage() {
             </div>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-2">
+              <MessageCircle className="w-5 h-5 text-pink-500" />
+              <div>
+                <p className="text-2xl font-bold">{massMessages.reduce((sum, msg) => sum + msg.sentCount, 0).toLocaleString()}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Mass Messages Sent</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Detailed Tabs */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-8">
+        <TabsList className="grid w-full grid-cols-9">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="chats">Chats</TabsTrigger>
           <TabsTrigger value="fans">Fans</TabsTrigger>
@@ -455,6 +491,7 @@ export default function AccountDetailsPage() {
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
           <TabsTrigger value="tracking">Tracking</TabsTrigger>
           <TabsTrigger value="visitors">Visitors</TabsTrigger>
+          <TabsTrigger value="messaging">Mass Messages</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -760,6 +797,74 @@ export default function AccountDetailsPage() {
                   <p className="text-2xl font-bold">{profileVisitors?.unique_visitors?.toLocaleString() || '0'}</p>
                   <p className="text-sm text-gray-600">Unique Visitors</p>                </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="messaging" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Mass Messaging Statistics</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-3 mb-6">
+                <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <MessageCircle className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                  <p className="text-2xl font-bold">{massMessages.length}</p>
+                  <p className="text-sm text-gray-600">Total Messages</p>
+                </div>
+                <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <TrendingUp className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                  <p className="text-2xl font-bold">{massMessages.reduce((sum, msg) => sum + msg.sentCount, 0).toLocaleString()}</p>
+                  <p className="text-sm text-gray-600">Total Sent</p>
+                </div>
+                <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                  <Eye className="w-8 h-8 text-purple-500 mx-auto mb-2" />
+                  <p className="text-2xl font-bold">{massMessages.reduce((sum, msg) => sum + msg.viewedCount, 0).toLocaleString()}</p>
+                  <p className="text-sm text-gray-600">Total Viewed</p>
+                </div>
+              </div>
+
+              {massMessages.length > 0 ? (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Recent Mass Messages</h3>
+                  {massMessages.slice(0, 10).map((message) => (
+                    <div key={message.id} className="border rounded-lg p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant={message.isFree ? "secondary" : "default"}>
+                              {message.isFree ? "Free" : "Paid"}
+                            </Badge>
+                            {message.isCanceled && <Badge variant="destructive">Canceled</Badge>}
+                            {message.hasError && <Badge variant="destructive">Error</Badge>}
+                          </div>
+                          <div 
+                            className="text-sm text-gray-700 dark:text-gray-300 mb-2" 
+                            dangerouslySetInnerHTML={{ __html: message.textCropped }}
+                          />
+                          <p className="text-xs text-gray-500">
+                            {new Date(message.date).toLocaleDateString()} at {new Date(message.date).toLocaleTimeString()}
+                          </p>
+                        </div>
+                        <div className="text-right ml-4">
+                          <div className="text-sm font-medium">
+                            <span className="text-green-600">{message.sentCount} sent</span>
+                          </div>
+                          <div className="text-sm">
+                            <span className="text-blue-600">{message.viewedCount} viewed</span>
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {message.viewedCount > 0 ? ((message.viewedCount / message.sentCount) * 100).toFixed(1) : 0}% view rate
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-gray-500 py-8">No mass messages found</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

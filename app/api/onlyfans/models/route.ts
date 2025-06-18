@@ -165,6 +165,13 @@ export async function GET(request: NextRequest) {
         // GET /users/{user_id} endpoint
         apiUrl = `${ONLYFANS_API_BASE}/users/${userId}`;
         break;
+      case "mass-messaging":
+        if (!accountId) {
+          return NextResponse.json({ error: "Account ID required for mass messaging statistics" }, { status: 400 });
+        }
+        // GET /{account}/mass-messaging/statistics endpoint
+        apiUrl = `${ONLYFANS_API_BASE}/${accountId}/mass-messaging/statistics`;
+        break;
       default:
         return NextResponse.json({ error: "Invalid endpoint" }, { status: 400 });
     }
