@@ -211,31 +211,63 @@ export default function AdminModelsPage() {
                           )}
                           <div className="flex-1 min-w-0">
                             <h3 className="font-semibold text-lg truncate">
-                              {account.name || account.username || 'Unknown'}
+                              {account.display_name}
                             </h3>
                             <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                              @{account.username || 'No username'}
+                              @{account.onlyfans_user_data?.username}
                             </p>
-                            {account.subscribersCount && (
-                              <p className="text-xs text-gray-500">
-                                {account.subscribersCount.toLocaleString()} subscribers
-                              </p>
-                            )}
+                            <div className="flex items-center gap-2 mt-1">
+                              {account.onlyfans_user_data?.isVerified && (
+                                <Badge variant="secondary" className="text-xs">
+                                  Verified
+                                </Badge>
+                              )}
+                              <Badge variant={account.is_authenticated ? "success" : "destructive"} className="text-xs">
+                                {account.authentication_progress}
+                              </Badge>
+                            </div>
                           </div>
-                          {account.isVerified && (
-                            <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                              Verified
-                            </Badge>
-                          )}
                         </div>
-                        {account.about && (
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-3 line-clamp-2">
-                            {account.about}
-                          </p>
-                        )}
-                        <div className="flex justify-between items-center mt-4 text-xs text-gray-500">
-                          <span>Posts: {account.postsCount || 0}</span>
-                          <span>Likes: {account.likesCount || 0}</span>
+
+                        <div className="mt-4 space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Subscribers:</span>
+                            <span className="font-medium">{account.onlyfans_user_data?.subscribersCount?.toLocaleString() || 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Posts:</span>
+                            <span className="font-medium">{account.onlyfans_user_data?.postsCount?.toLocaleString() || 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Photos:</span>
+                            <span className="font-medium">{account.onlyfans_user_data?.photosCount?.toLocaleString() || 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Videos:</span>
+                            <span className="font-medium">{account.onlyfans_user_data?.videosCount?.toLocaleString() || 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Subscribe Price:</span>
+                            <span className="font-medium">${account.onlyfans_user_data?.subscribePrice || 'N/A'}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Favorites:</span>
+                            <span className="font-medium">{account.onlyfans_user_data?.favoritedCount?.toLocaleString() || 'N/A'}</span>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 pt-4 border-t">
+                          <Button 
+                            size="sm" 
+                            className="w-full"
+                            onClick={() => {
+                              setSearchUsername(account.onlyfans_user_data?.username || '');
+                              handleSearch();
+                            }}
+                          >
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            View Details
+                          </Button>
                         </div>
                       </Card>
                     ))}
@@ -472,7 +504,7 @@ export default function AdminModelsPage() {
         </div>
       )}
 
-      
+
     </div>
   );
 }
