@@ -1,55 +1,408 @@
 
+"use client";
+
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { 
+  Users, 
+  TrendingUp, 
+  DollarSign, 
+  Eye,
+  Heart,
+  MessageCircle,
+  Calendar,
+  Search,
+  ExternalLink
+} from "lucide-react";
 
-export default async function AdminModelsPage() {
-  const session = await auth();
+interface OnlyFansProfile {
+  id: string;
+  username: string;
+  name: string;
+  about: string;
+  avatar: string;
+  cover: string;
+  location: string;
+  website: string;
+  isVerified: boolean;
+  subscribersCount: number;
+  photosCount: number;
+  videosCount: number;
+  likesCount: number;
+  joinDate: string;
+  lastSeen: string;
+}
 
-  if (session?.user?.role !== "ADMIN") {
-    redirect("/unauthorized");
-  }
+interface OnlyFansStats {
+  totalEarnings: number;
+  monthlyEarnings: number;
+  totalSubscribers: number;
+  activeSubscribers: number;
+  totalPosts: number;
+  totalLikes: number;
+  avgLikesPerPost: number;
+  engagementRate: number;
+}
+
+interface OnlyFansPost {
+  id: string;
+  text: string;
+  price: number;
+  isArchived: boolean;
+  createdAt: string;
+  likesCount: number;
+  commentsCount: number;
+  mediaCount: number;
+}
+
+export default function AdminModelsPage() {
+  const [searchUsername, setSearchUsername] = useState("");
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [profileData, setProfileData] = useState<OnlyFansProfile | null>(null);
+  const [statsData, setStatsData] = useState<OnlyFansStats | null>(null);
+  const [postsData, setPostsData] = useState<OnlyFansPost[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const fetchOnlyFansData = async (username: string, endpoint: string) => {
+    try {
+      const response = await fetch(`/api/onlyfans/models?username=${username}&endpoint=${endpoint}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch ${endpoint} data`);
+      }
+      return await response.json();
+    } catch (err) {
+      console.error(`Error fetching ${endpoint}:`, err);
+      throw err;
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchUsername.trim()) return;
+    
+    setLoading(true);
+    setError("");
+    setSelectedModel(searchUsername);
+    
+    try {
+      // Fetch profile data
+      const profile = await fetchOnlyFansData(searchUsername, "profile");
+      setProfileData(profile);
+      
+      // Fetch stats data
+      const stats = await fetchOnlyFansData(searchUsername, "stats");
+      setStatsData(stats);
+      
+      // Fetch recent posts
+      const posts = await fetchOnlyFansData(searchUsername, "posts");
+      setPostsData(posts.posts || []);
+      
+    } catch (err) {
+      setError("Failed to fetch OnlyFans data. Please check the username and try again.");
+      setProfileData(null);
+      setStatsData(null);
+      setPostsData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="p-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Models Management</h1>
-        <p className="text-gray-600 dark:text-gray-400">Manage model profiles and status</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          OnlyFans Models Management
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400">
+          Manage and monitor OnlyFans model performance and data
+        </p>
       </div>
 
-      <div className="grid gap-6">
-        {/* Models Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Models</h3>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">24</p>
+      {/* Search Section */}
+      <div className="mb-6">
+        <div className="flex gap-4 items-end">
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Search OnlyFans Username
+            </label>
+            <Input
+              type="text"
+              value={searchUsername}
+              onChange={(e) => setSearchUsername(e.target.value)}
+              placeholder="Enter OnlyFans username..."
+              className="w-full"
+            />
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Active Models</h3>
-            <p className="text-2xl font-bold text-green-600">18</p>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Inactive Models</h3>
-            <p className="text-2xl font-bold text-red-600">6</p>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">New This Month</h3>
-            <p className="text-2xl font-bold text-blue-600">3</p>
+          <Button 
+            onClick={handleSearch} 
+            disabled={loading || !searchUsername.trim()}
+            className="px-6"
+          >
+            <Search className="w-4 h-4 mr-2" />
+            {loading ? "Searching..." : "Search"}
+          </Button>
+        </div>
+        {error && (
+          <p className="text-red-500 text-sm mt-2">{error}</p>
+        )}
+      </div>
+
+      {/* Model Data Display */}
+      {selectedModel && !loading && (
+        <Tabs defaultValue="overview" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="stats">Statistics</TabsTrigger>
+            <TabsTrigger value="posts">Recent Posts</TabsTrigger>
+            <TabsTrigger value="earnings">Earnings</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            {profileData && (
+              <div className="grid gap-6">
+                {/* Profile Header */}
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-start gap-4">
+                      <img
+                        src={profileData.avatar || "/model.png"}
+                        alt={profileData.name}
+                        className="w-20 h-20 rounded-full object-cover"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <CardTitle className="text-2xl">{profileData.name}</CardTitle>
+                          {profileData.isVerified && (
+                            <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                              Verified
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-gray-600 dark:text-gray-400 mb-2">
+                          @{profileData.username}
+                        </p>
+                        <p className="text-sm text-gray-500 mb-4">
+                          {profileData.about}
+                        </p>
+                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-4 h-4" />
+                            Joined {new Date(profileData.joinDate).toLocaleDateString()}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Eye className="w-4 h-4" />
+                            Last seen {new Date(profileData.lastSeen).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </CardHeader>
+                </Card>
+
+                {/* Quick Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-5 h-5 text-blue-500" />
+                        <div>
+                          <p className="text-2xl font-bold">{profileData.subscribersCount?.toLocaleString()}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Subscribers</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-5 h-5 text-green-500" />
+                        <div>
+                          <p className="text-2xl font-bold">{profileData.photosCount?.toLocaleString()}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Photos</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-5 h-5 text-purple-500" />
+                        <div>
+                          <p className="text-2xl font-bold">{profileData.videosCount?.toLocaleString()}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Videos</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-2">
+                        <Heart className="w-5 h-5 text-red-500" />
+                        <div>
+                          <p className="text-2xl font-bold">{profileData.likesCount?.toLocaleString()}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">Total Likes</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="stats" className="space-y-6">
+            {statsData && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="w-5 h-5 text-green-500" />
+                      <div>
+                        <p className="text-2xl font-bold">${statsData.totalEarnings?.toLocaleString()}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Total Earnings</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-blue-500" />
+                      <div>
+                        <p className="text-2xl font-bold">${statsData.monthlyEarnings?.toLocaleString()}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Monthly Earnings</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-5 h-5 text-purple-500" />
+                      <div>
+                        <p className="text-2xl font-bold">{statsData.activeSubscribers?.toLocaleString()}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Active Subscribers</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-orange-500" />
+                      <div>
+                        <p className="text-2xl font-bold">{statsData.engagementRate?.toFixed(1)}%</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Engagement Rate</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="posts" className="space-y-4">
+            {postsData.length > 0 ? (
+              <div className="space-y-4">
+                {postsData.slice(0, 10).map((post) => (
+                  <Card key={post.id}>
+                    <CardContent className="p-6">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1">
+                          <p className="text-gray-800 dark:text-gray-200 mb-2">
+                            {post.text.substring(0, 200)}
+                            {post.text.length > 200 && "..."}
+                          </p>
+                          <div className="flex items-center gap-4 text-sm text-gray-500">
+                            <span className="flex items-center gap-1">
+                              <Heart className="w-4 h-4" />
+                              {post.likesCount} likes
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <MessageCircle className="w-4 h-4" />
+                              {post.commentsCount} comments
+                            </span>
+                            <span>{post.mediaCount} media files</span>
+                            <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                        {post.price > 0 && (
+                          <Badge variant="outline" className="ml-4">
+                            ${post.price}
+                          </Badge>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card>
+                <CardContent className="p-6 text-center">
+                  <p className="text-gray-600 dark:text-gray-400">No posts data available</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="earnings" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Earnings Overview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center text-gray-600 dark:text-gray-400">
+                  <p>Detailed earnings data will be displayed here</p>
+                  <p className="text-sm mt-2">This section will show earnings breakdowns, trends, and analytics</p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center h-40">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-500/30 border-t-blue-500"></div>
+            <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">
+              Fetching OnlyFans data...
+            </p>
           </div>
         </div>
+      )}
 
-        {/* Models Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Model Directory</h2>
-          </div>
-          <div className="p-6">
-            <div className="text-center text-gray-600 dark:text-gray-400">
-              <p>Model management interface coming soon...</p>
-              <p className="text-sm mt-2">This will include CRUD operations for model profiles with active/inactive status management.</p>
+      {/* No Data State */}
+      {!selectedModel && !loading && (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              OnlyFans Model Analytics
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              Search for an OnlyFans username to view detailed analytics and performance data
+            </p>
+            <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+              <ExternalLink className="w-4 h-4" />
+              <span>Powered by OnlyFansAPI.com</span>
             </div>
-          </div>
-        </div>
-      </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
