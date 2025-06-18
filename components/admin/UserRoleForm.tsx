@@ -55,7 +55,7 @@ export function UserRoleForm({
         value={selectedRole}
         onChange={(e) => setSelectedRole(e.target.value as Role)}
         disabled={isPending}
-        className="block rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm focus:ring-indigo-500 focus:border-indigo-500"
+        className="block rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-indigo-500 focus:border-indigo-500 dark:focus:ring-indigo-400 dark:focus:border-indigo-400"
       >
         <option value="GUEST">Guest</option>
         <option value="USER">User</option>
@@ -65,7 +65,7 @@ export function UserRoleForm({
       <button
         onClick={handleSubmit}
         disabled={isPending || selectedRole === currentRole}
-        className="px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isPending ? "Saving..." : "Save"}
       </button>

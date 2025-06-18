@@ -39,7 +39,7 @@ export default async function AdminSettingsPage() {
             <div className="flex items-center">
               <input 
                 type="checkbox" 
-                className="mr-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:ring-blue-500" 
+                className="mr-2 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:ring-blue-500 dark:focus:ring-blue-400" 
               />
               <span className="text-sm text-gray-600 dark:text-gray-400">
                 Enable maintenance mode
@@ -48,7 +48,7 @@ export default async function AdminSettingsPage() {
           </div>
 
           <div className="pt-4">
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+            <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors">
               Save Settings
             </button>
           </div>

@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState } from "react";
@@ -202,7 +201,7 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
 
             if (item.subItems) {
               const isExpanded = expandedGroups[item.title.toLowerCase()];
-              
+
               return (
                 <div key={item.title} className="space-y-1">
                   <button
@@ -235,12 +234,12 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
                       </>
                     )}
                   </button>
-                  
+
                   {!isCollapsed && isExpanded && (
                     <div className="ml-6 space-y-1">
                       {item.subItems.map((subItem) => {
                         const isSubActive = pathname === subItem.href;
-                        
+
                         return (
                           <Link
                             key={subItem.href}
