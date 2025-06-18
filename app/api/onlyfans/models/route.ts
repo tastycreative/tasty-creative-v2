@@ -134,8 +134,8 @@ export async function GET(request: NextRequest) {
         if (!accountId || !startDate || !endDate) {
           return NextResponse.json({ error: "Account ID, start date, and end date required for earnings data" }, { status: 400 });
         }
-        // GET /statistics-statements/earnings endpoint with required date parameters
-        apiUrl = `${ONLYFANS_API_BASE}/statistics-statements/earnings?start_date=${startDate}&end_date=${endDate}`;
+        // GET /{account}/statistics/statements/earnings endpoint
+        apiUrl = `${ONLYFANS_API_BASE}/${accountId}/statistics/statements/earnings`;
         break;
       case "tracking-links":
         if (!accountId) {
@@ -171,10 +171,42 @@ export async function GET(request: NextRequest) {
 
     console.log(`Making OnlyFans API request to: ${apiUrl}`);
 
-    const response = await fetch(apiUrl, {
+    // Prepare request options
+    let requestOptions: RequestInit = {
       headers,
       method: 'GET'
-    });
+    };
+
+    // For earnings endpoint, we need to send a POST request with body parameters
+    if (endpoint === "earnings" || endpoint === "active-fans" || endpoint === "expired-fans") {
+      requestOptions.method = 'GET';
+      
+      // For earnings, add the date parameters as request body
+      if (endpoint === "earnings") {
+        requestOptions.method = 'GET';
+        requestOptions.body = JSON.stringify({
+          start_date: startDate,
+          end_date: endDate,
+          type: "total"
+        });
+      }
+      
+      // For fans endpoints, add pagination parameters as request body
+      if (endpoint === "active-fans" || endpoint === "expired-fans") {
+        const limit = searchParams.get("limit") || "50";
+        const offset = searchParams.get("offset") || "0";
+        const type = endpoint === "active-fans" ? "active" : "expired";
+        
+        requestOptions.body = JSON.stringify({
+          limit: parseInt(limit),
+          offset: parseInt(offset),
+          type: type,
+          filter: ""
+        });
+      }
+    }
+
+    const response = await fetch(apiUrl, requestOptions);
 
     if (!response.ok) {
       const errorText = await response.text();

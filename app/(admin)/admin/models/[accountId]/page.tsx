@@ -68,11 +68,19 @@ interface VaultMediaData {
 }
 
 interface EarningsData {
-  total_earnings: number;
-  current_balance: number;
-  pending_balance: number;
-  monthly_earnings: number;
-  daily_earnings: Record<string, number>;
+  total_earnings?: number;
+  current_balance?: number;
+  pending_balance?: number;
+  monthly_earnings?: number;
+  daily_earnings?: Record<string, number>;
+  // New structure based on API response
+  total?: {
+    delta: number;
+    chartCount: Array<{date: string; count: number}>;
+    chartAmount: Array<{date: string; count: number}>;
+    total: number;
+    gross: number;
+  };
 }
 
 interface ProfileVisitors {
@@ -222,9 +230,18 @@ export default function AccountDetailsPage() {
               console.log(`Processed ${endpoint}:`, vaultListsArray);
               break;
             case 'earnings':
-              const earningsData = data.earnings || data;
-              setEarnings(earningsData);
-              console.log(`Processed ${endpoint}:`, earningsData);
+              const earningsData = data.data || data;
+              // Transform the API response to match our interface
+              const transformedEarnings = {
+                total_earnings: earningsData.total?.total || 0,
+                current_balance: earningsData.total?.total || 0,
+                pending_balance: 0,
+                monthly_earnings: earningsData.total?.chartAmount?.[0]?.count || 0,
+                daily_earnings: {},
+                total: earningsData.total
+              };
+              setEarnings(transformedEarnings);
+              console.log(`Processed ${endpoint}:`, transformedEarnings);
               break;
             case 'profile-visitors':
               const visitorsData = data.visitors || data;
@@ -382,8 +399,11 @@ export default function AccountDetailsPage() {
             <div className="flex items-center gap-2">
               <DollarSign className="w-5 h-5 text-green-500" />
               <div>
-                <p className="text-2xl font-bold">${earnings?.total_earnings?.toLocaleString() || '0'}</p>
+                <p className="text-2xl font-bold">${earnings?.total?.total?.toLocaleString() || earnings?.total_earnings?.toLocaleString() || '0'}</p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Total Earnings</p>
+                {earnings?.total?.gross && (
+                  <p className="text-xs text-gray-500">Gross: ${earnings.total.gross.toLocaleString()}</p>
+                )}
               </div>
             </div>
           </CardContent>
@@ -592,20 +612,34 @@ export default function AccountDetailsPage() {
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
                   <Wallet className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                  <p className="text-2xl font-bold">${earnings?.current_balance?.toLocaleString() || '0'}</p>
-                  <p className="text-sm text-gray-600">Available Now</p>
+                  <p className="text-2xl font-bold">${earnings?.total?.total?.toLocaleString() || earnings?.current_balance?.toLocaleString() || '0'}</p>
+                  <p className="text-sm text-gray-600">Net Earnings</p>
                 </div>
                 <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
                   <Clock className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
-                  <p className="text-2xl font-bold">${earnings?.pending_balance?.toLocaleString() || '0'}</p>
-                  <p className="text-sm text-gray-600">Pending</p>
+                  <p className="text-2xl font-bold">${earnings?.total?.gross?.toLocaleString() || earnings?.pending_balance?.toLocaleString() || '0'}</p>
+                  <p className="text-sm text-gray-600">Gross Earnings</p>
                 </div>
                 <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                   <TrendingUp className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-                  <p className="text-2xl font-bold">${earnings?.total_earnings?.toLocaleString() || '0'}</p>
-                  <p className="text-sm text-gray-600">Total Earned</p>
+                  <p className="text-2xl font-bold">{earnings?.total?.delta ? `${earnings.total.delta}%` : 'N/A'}</p>
+                  <p className="text-sm text-gray-600">Growth Rate</p>
                 </div>
               </div>
+              
+              {earnings?.total?.chartAmount && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold mb-4">Monthly Earnings Breakdown</h3>
+                  <div className="space-y-2">
+                    {earnings.total.chartAmount.slice(0, 6).map((item, index) => (
+                      <div key={index} className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-800 rounded">
+                        <span className="text-sm">{new Date(item.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                        <span className="font-medium">${item.count.toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
