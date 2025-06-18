@@ -19,6 +19,8 @@ import { Badge } from "@/components/ui/badge";
 import {
   BarChart3,
   Trophy,
+  Percent,
+  Star,
   Users,
   Calendar,
   DollarSign,
@@ -34,6 +36,8 @@ import {
   Eye,
   ChevronUp,
   ChevronDown,
+  Activity,
+  UserCheck,
 } from "lucide-react";
 import CountUp from "react-countup";
 import { API_KEY_PROFILES } from "@/app/services/elevenlabs-implementation";
