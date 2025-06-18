@@ -211,10 +211,10 @@ export default function AdminModelsPage() {
                           )}
                           <div className="flex-1 min-w-0">
                             <h3 className="font-semibold text-lg truncate">
-                              {account.display_name}
+                              {account.display_name || account.onlyfans_user_data?.name || 'Unknown'}
                             </h3>
                             <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                              @{account.onlyfans_user_data?.username}
+                              @{account.onlyfans_user_data?.name || 'No username'}
                             </p>
                             <div className="flex items-center gap-2 mt-1">
                               {account.onlyfans_user_data?.isVerified && (
@@ -261,7 +261,7 @@ export default function AdminModelsPage() {
                             size="sm" 
                             className="w-full"
                             onClick={() => {
-                              setSearchUsername(account.onlyfans_user_data?.username || '');
+                              setSearchUsername(account.onlyfans_user_data?.name || '');
                               handleSearch();
                             }}
                           >
