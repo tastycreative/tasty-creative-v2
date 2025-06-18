@@ -254,6 +254,12 @@ export default function AdminModelsPage() {
                             <span>Favorites:</span>
                             <span className="font-medium">{account.onlyfans_user_data?.favoritedCount?.toLocaleString() || 'N/A'}</span>
                           </div>
+                          {account.onlyfans_user_data?.email && (
+                            <div className="flex justify-between text-sm">
+                              <span>Email:</span>
+                              <span className="font-medium text-blue-600 dark:text-blue-400 truncate">{account.onlyfans_user_data.email}</span>
+                            </div>
+                          )}
                         </div>
 
                         <div className="mt-4 pt-4 border-t">
