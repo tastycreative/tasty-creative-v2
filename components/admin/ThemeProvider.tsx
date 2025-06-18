@@ -32,6 +32,26 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Apply theme to document when theme changes
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const root = document.documentElement;
+    
+    // Remove existing theme classes
+    root.classList.remove('dark', 'light');
+    
+    // Add current theme class
+    root.classList.add(theme);
+    
+    // Set data attribute for CSS targeting
+    root.setAttribute('data-theme', theme);
+    
+    // Update body classes for better compatibility
+    document.body.classList.remove('dark', 'light');
+    document.body.classList.add(theme);
+  }, [theme, mounted]);
+
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
     Cookies.set(THEME_COOKIE_KEY, newTheme, { expires: 365 });
@@ -48,7 +68,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
-      <div className={theme}>
+      <div className={theme} data-theme={theme}>
         {children}
       </div>
     </ThemeContext.Provider>
