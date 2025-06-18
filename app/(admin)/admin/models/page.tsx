@@ -170,7 +170,7 @@ export default function AdminModelsPage() {
           </Button>
         </div>
         {error && (
-          <p className="text-red-600 dark:text-red-500 text-sm mt-2">{error}</p>
+          <p className="text-red-500 text-sm mt-2">{error}</p>
         )}
       </div>
 
@@ -193,7 +193,7 @@ export default function AdminModelsPage() {
                 {accountsLoading ? (
                   <div className="flex items-center justify-center h-40">
                     <div className="flex flex-col items-center space-y-4">
-                      <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-300/30 border-t-blue-300 dark:border-blue-500/30 dark:border-t-blue-500"></div>
+                      <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-500/30 border-t-blue-500"></div>
                       <p className="text-sm text-gray-600 dark:text-gray-300">Loading accounts...</p>
                     </div>
                   </div>
@@ -210,7 +210,7 @@ export default function AdminModelsPage() {
                             />
                           )}
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-lg truncate text-gray-900 dark:text-white">
+                            <h3 className="font-semibold text-lg truncate">
                               {account.display_name || account.onlyfans_user_data?.name || 'Unknown'}
                             </h3>
                             <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
@@ -224,7 +224,7 @@ export default function AdminModelsPage() {
                               )}
                               <Badge 
                                 variant={account.is_authenticated ? "secondary" : "destructive"} 
-                                className={`text-xs ${account.is_authenticated ? "bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/50 dark:text-green-300 dark:hover:bg-green-800/50" : ""}`}
+                                className={`text-xs ${account.is_authenticated ? "bg-green-100 text-green-800 hover:bg-green-200" : ""}`}
                               >
                                 {account.authentication_progress}
                               </Badge>
@@ -234,32 +234,32 @@ export default function AdminModelsPage() {
 
                         <div className="mt-4 space-y-2">
                           <div className="flex justify-between text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">Subscribers:</span>
-                            <span className="font-medium text-gray-800 dark:text-gray-200">{account.onlyfans_user_data?.subscribersCount?.toLocaleString() || 'N/A'}</span>
+                            <span>Subscribers:</span>
+                            <span className="font-medium">{account.onlyfans_user_data?.subscribersCount?.toLocaleString() || 'N/A'}</span>
                           </div>
                           <div className="flex justify-between text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">Posts:</span>
-                            <span className="font-medium text-gray-800 dark:text-gray-200">{account.onlyfans_user_data?.postsCount?.toLocaleString() || 'N/A'}</span>
+                            <span>Posts:</span>
+                            <span className="font-medium">{account.onlyfans_user_data?.postsCount?.toLocaleString() || 'N/A'}</span>
                           </div>
                           <div className="flex justify-between text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">Photos:</span>
-                            <span className="font-medium text-gray-800 dark:text-gray-200">{account.onlyfans_user_data?.photosCount?.toLocaleString() || 'N/A'}</span>
+                            <span>Photos:</span>
+                            <span className="font-medium">{account.onlyfans_user_data?.photosCount?.toLocaleString() || 'N/A'}</span>
                           </div>
                           <div className="flex justify-between text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">Videos:</span>
-                            <span className="font-medium text-gray-800 dark:text-gray-200">{account.onlyfans_user_data?.videosCount?.toLocaleString() || 'N/A'}</span>
+                            <span>Videos:</span>
+                            <span className="font-medium">{account.onlyfans_user_data?.videosCount?.toLocaleString() || 'N/A'}</span>
                           </div>
                           <div className="flex justify-between text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">Subscribe Price:</span>
-                            <span className="font-medium text-gray-800 dark:text-gray-200">${account.onlyfans_user_data?.subscribePrice || 'N/A'}</span>
+                            <span>Subscribe Price:</span>
+                            <span className="font-medium">${account.onlyfans_user_data?.subscribePrice || 'N/A'}</span>
                           </div>
                           <div className="flex justify-between text-sm">
-                            <span className="text-gray-600 dark:text-gray-400">Favorites:</span>
-                            <span className="font-medium text-gray-800 dark:text-gray-200">{account.onlyfans_user_data?.favoritedCount?.toLocaleString() || 'N/A'}</span>
+                            <span>Favorites:</span>
+                            <span className="font-medium">{account.onlyfans_user_data?.favoritedCount?.toLocaleString() || 'N/A'}</span>
                           </div>
                           {account.onlyfans_user_data?.email && (
                             <div className="flex justify-between text-sm">
-                              <span className="text-gray-600 dark:text-gray-400">Email:</span>
+                              <span>Email:</span>
                               <span className="font-medium text-blue-600 dark:text-blue-400 truncate">{account.onlyfans_user_data.email}</span>
                             </div>
                           )}
@@ -309,7 +309,7 @@ export default function AdminModelsPage() {
                         <div className="flex items-center gap-2 mb-2">
                           <CardTitle className="text-2xl">{profileData.name}</CardTitle>
                           {profileData.isVerified && (
-                            <Badge variant="secondary" className="bg-blue-100 text-blue-700 dark:bg-blue-800/30 dark:text-blue-300">
+                            <Badge variant="secondary" className="bg-blue-100 text-blue-800">
                               Verified
                             </Badge>
                           )}
@@ -317,10 +317,10 @@ export default function AdminModelsPage() {
                         <p className="text-gray-600 dark:text-gray-400 mb-2">
                           @{profileData.username}
                         </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        <p className="text-sm text-gray-500 mb-4">
                           {profileData.about}
                         </p>
-                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                        <div className="flex items-center gap-4 text-sm text-gray-500">
                           <span className="flex items-center gap-1">
                             <Calendar className="w-4 h-4" />
                             Joined {new Date(profileData.joinDate).toLocaleDateString()}
@@ -340,9 +340,9 @@ export default function AdminModelsPage() {
                   <Card>
                     <CardContent className="p-6">
                       <div className="flex items-center gap-2">
-                        <Users className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                        <Users className="w-5 h-5 text-blue-500" />
                         <div>
-                          <p className="text-2xl font-bold text-gray-900 dark:text-white">{profileData.subscribersCount?.toLocaleString()}</p>
+                          <p className="text-2xl font-bold">{profileData.subscribersCount?.toLocaleString()}</p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">Subscribers</p>
                         </div>
                       </div>
@@ -352,9 +352,9 @@ export default function AdminModelsPage() {
                   <Card>
                     <CardContent className="p-6">
                       <div className="flex items-center gap-2">
-                        <Eye className="w-5 h-5 text-green-500 dark:text-green-400" />
+                        <Eye className="w-5 h-5 text-green-500" />
                         <div>
-                          <p className="text-2xl font-bold text-gray-900 dark:text-white">{profileData.photosCount?.toLocaleString()}</p>
+                          <p className="text-2xl font-bold">{profileData.photosCount?.toLocaleString()}</p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">Photos</p>
                         </div>
                       </div>
@@ -364,9 +364,9 @@ export default function AdminModelsPage() {
                   <Card>
                     <CardContent className="p-6">
                       <div className="flex items-center gap-2">
-                        <Eye className="w-5 h-5 text-purple-500 dark:text-purple-400" />
+                        <Eye className="w-5 h-5 text-purple-500" />
                         <div>
-                          <p className="text-2xl font-bold text-gray-900 dark:text-white">{profileData.videosCount?.toLocaleString()}</p>
+                          <p className="text-2xl font-bold">{profileData.videosCount?.toLocaleString()}</p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">Videos</p>
                         </div>
                       </div>
@@ -376,9 +376,9 @@ export default function AdminModelsPage() {
                   <Card>
                     <CardContent className="p-6">
                       <div className="flex items-center gap-2">
-                        <Heart className="w-5 h-5 text-red-500 dark:text-red-400" />
+                        <Heart className="w-5 h-5 text-red-500" />
                         <div>
-                          <p className="text-2xl font-bold text-gray-900 dark:text-white">{profileData.likesCount?.toLocaleString()}</p>
+                          <p className="text-2xl font-bold">{profileData.likesCount?.toLocaleString()}</p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">Total Likes</p>
                         </div>
                       </div>
@@ -395,9 +395,9 @@ export default function AdminModelsPage() {
                 <Card>
                   <CardContent className="p-6">
                     <div className="flex items-center gap-2">
-                      <DollarSign className="w-5 h-5 text-green-500 dark:text-green-400" />
+                      <DollarSign className="w-5 h-5 text-green-500" />
                       <div>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">${statsData.totalEarnings?.toLocaleString()}</p>
+                        <p className="text-2xl font-bold">${statsData.totalEarnings?.toLocaleString()}</p>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Total Earnings</p>
                       </div>
                     </div>
@@ -407,9 +407,9 @@ export default function AdminModelsPage() {
                 <Card>
                   <CardContent className="p-6">
                     <div className="flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+                      <TrendingUp className="w-5 h-5 text-blue-500" />
                       <div>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">${statsData.monthlyEarnings?.toLocaleString()}</p>
+                        <p className="text-2xl font-bold">${statsData.monthlyEarnings?.toLocaleString()}</p>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Monthly Earnings</p>
                       </div>
                     </div>
@@ -419,9 +419,9 @@ export default function AdminModelsPage() {
                 <Card>
                   <CardContent className="p-6">
                     <div className="flex items-center gap-2">
-                      <Users className="w-5 h-5 text-purple-500 dark:text-purple-400" />
+                      <Users className="w-5 h-5 text-purple-500" />
                       <div>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">{statsData.activeSubscribers?.toLocaleString()}</p>
+                        <p className="text-2xl font-bold">{statsData.activeSubscribers?.toLocaleString()}</p>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Active Subscribers</p>
                       </div>
                     </div>
@@ -431,9 +431,9 @@ export default function AdminModelsPage() {
                 <Card>
                   <CardContent className="p-6">
                     <div className="flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5 text-orange-500 dark:text-orange-400" />
+                      <TrendingUp className="w-5 h-5 text-orange-500" />
                       <div>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white">{statsData.engagementRate?.toFixed(1)}%</p>
+                        <p className="text-2xl font-bold">{statsData.engagementRate?.toFixed(1)}%</p>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Engagement Rate</p>
                       </div>
                     </div>
@@ -455,7 +455,7 @@ export default function AdminModelsPage() {
                             {post.text.substring(0, 200)}
                             {post.text.length > 200 && "..."}
                           </p>
-                          <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                          <div className="flex items-center gap-4 text-sm text-gray-500">
                             <span className="flex items-center gap-1">
                               <Heart className="w-4 h-4" />
                               {post.likesCount} likes
@@ -506,7 +506,7 @@ export default function AdminModelsPage() {
       {loading && (
         <div className="flex items-center justify-center h-40">
           <div className="flex flex-col items-center space-y-4">
-            <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-300/30 border-t-blue-300 dark:border-blue-500/30 dark:border-t-blue-500"></div>
+            <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-500/30 border-t-blue-500"></div>
             <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">
               Fetching OnlyFans data...
             </p>

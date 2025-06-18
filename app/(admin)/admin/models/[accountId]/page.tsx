@@ -383,7 +383,7 @@ export default function AccountDetailsPage() {
       <div className="p-6">
         <div className="flex items-center justify-center h-64">
           <div className="flex flex-col items-center space-y-4">
-            <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-300/30 border-t-blue-300 dark:border-blue-500/30 dark:border-t-blue-500"></div>
+            <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-500/30 border-t-blue-500"></div>
             <p className="text-sm text-gray-600 dark:text-gray-300">Loading account details...</p>
           </div>
         </div>
@@ -394,7 +394,7 @@ export default function AccountDetailsPage() {
   if (error) {
     return (
       <div className="p-6">
-        <div className="text-center text-red-600 dark:text-red-500 py-8">
+        <div className="text-center text-red-500 py-8">
           <p>{error}</p>
           <Button onClick={() => router.back()} className="mt-4">
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -445,7 +445,7 @@ export default function AccountDetailsPage() {
                 {accountData.onlyfans_user_data.email}
               </p>
             )}
-            <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            <div className="mt-2 text-sm text-gray-500">
               <p>Account ID: {accountId}</p>
               <p>Authentication: {accountData?.is_authenticated ? 'Authenticated' : 'Not Authenticated'}</p>
               <p>Status: {accountData?.authentication_progress || 'Unknown'}</p>
@@ -459,9 +459,9 @@ export default function AccountDetailsPage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+              <Users className="w-5 h-5 text-blue-500" />
               <div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{activeFans.length}</p>
+                <p className="text-2xl font-bold">{activeFans.length}</p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Active Fans</p>
               </div>
             </div>
@@ -471,12 +471,12 @@ export default function AccountDetailsPage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-green-500 dark:text-green-400" />
+              <DollarSign className="w-5 h-5 text-green-500" />
               <div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">${earnings?.total?.total?.toLocaleString() || earnings?.total_earnings?.toLocaleString() || '0'}</p>
+                <p className="text-2xl font-bold">${earnings?.total?.total?.toLocaleString() || earnings?.total_earnings?.toLocaleString() || '0'}</p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Total Earnings</p>
                 {earnings?.total?.gross && (
-                  <p className="text-xs text-gray-600 dark:text-gray-400">Gross: ${earnings.total.gross.toLocaleString()}</p>
+                  <p className="text-xs text-gray-500">Gross: ${earnings.total.gross.toLocaleString()}</p>
                 )}
               </div>
             </div>
@@ -486,9 +486,9 @@ export default function AccountDetailsPage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-2">
-              <MessageCircle className="w-5 h-5 text-purple-500 dark:text-purple-400" />
+              <MessageCircle className="w-5 h-5 text-purple-500" />
               <div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{chatsData.length}</p>
+                <p className="text-2xl font-bold">{chatsData.length}</p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Active Chats</p>
               </div>
             </div>
@@ -498,9 +498,9 @@ export default function AccountDetailsPage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-2">
-              <Eye className="w-5 h-5 text-orange-500 dark:text-orange-400" />
+              <Eye className="w-5 h-5 text-orange-500" />
               <div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{profileVisitors?.total_visitors?.toLocaleString() || '0'}</p>
+                <p className="text-2xl font-bold">{profileVisitors?.total_visitors?.toLocaleString() || '0'}</p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Profile Visits</p>
               </div>
             </div>
@@ -510,9 +510,9 @@ export default function AccountDetailsPage() {
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center gap-2">
-              <MessageCircle className="w-5 h-5 text-pink-500 dark:text-pink-400" />
+              <MessageCircle className="w-5 h-5 text-pink-500" />
               <div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{(Array.isArray(massMessages) ? massMessages.reduce((sum, msg) => sum + (msg.sentCount || 0), 0) : 0).toLocaleString()}</p>
+                <p className="text-2xl font-bold">{(Array.isArray(massMessages) ? massMessages.reduce((sum, msg) => sum + (msg.sentCount || 0), 0) : 0).toLocaleString()}</p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Mass Messages Sent</p>
               </div>
             </div>
@@ -543,16 +543,16 @@ export default function AccountDetailsPage() {
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex justify-between">
-                    <span className="text-gray-700 dark:text-gray-300">Current Balance:</span>
+                    <span>Current Balance:</span>
                     <span className="font-bold text-green-600">${earnings?.current_balance?.toLocaleString() || '0'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-700 dark:text-gray-300">Pending Balance:</span>
+                    <span>Pending Balance:</span>
                     <span className="font-bold text-yellow-600">${earnings?.pending_balance?.toLocaleString() || '0'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-700 dark:text-gray-300">Monthly Earnings:</span>
-                    <span className="font-bold text-gray-900 dark:text-white">${earnings?.monthly_earnings?.toLocaleString() || '0'}</span>
+                    <span>Monthly Earnings:</span>
+                    <span className="font-bold">${earnings?.monthly_earnings?.toLocaleString() || '0'}</span>
                   </div>
                 </div>
               </CardContent>
@@ -565,16 +565,16 @@ export default function AccountDetailsPage() {
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex justify-between">
-                    <span className="text-gray-700 dark:text-gray-300">Active Subscribers:</span>
+                    <span>Active Subscribers:</span>
                     <span className="font-bold text-green-600">{activeFans.length}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-700 dark:text-gray-300">Expired Subscribers:</span>
+                    <span>Expired Subscribers:</span>
                     <span className="font-bold text-red-600">{expiredFans.length}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-700 dark:text-gray-300">Media Items:</span>
-                    <span className="font-bold text-gray-900 dark:text-white">{vaultMedia.length}</span>
+                    <span>Media Items:</span>
+                    <span className="font-bold">{vaultMedia.length}</span>
                   </div>
                 </div>
               </CardContent>
@@ -591,18 +591,18 @@ export default function AccountDetailsPage() {
               {chatsData.length > 0 ? (
                 <div className="space-y-4">
                   {chatsData.slice(0, 10).map((chat) => (
-                    <div key={chat.id} className="flex items-center gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <div key={chat.id} className="flex items-center gap-4 p-4 border rounded-lg">
                       <img 
                         src={chat.with_user?.avatar || '/model.png'} 
                         alt={chat.with_user?.name}
                         className="w-12 h-12 rounded-full object-cover"
                       />
                       <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900 dark:text-white">{chat.with_user?.name}</h4>
+                        <h4 className="font-semibold">{chat.with_user?.name}</h4>
                         <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
                           {chat.last_message?.text || 'No messages'}
                         </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                        <p className="text-xs text-gray-500">
                           {chat.last_message?.created_at && new Date(chat.last_message.created_at).toLocaleDateString()}
                         </p>
                       </div>
@@ -613,7 +613,7 @@ export default function AccountDetailsPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-gray-600 dark:text-gray-400 py-8">No chats found</p>
+                <p className="text-center text-gray-500 py-8">No chats found</p>
               )}
             </CardContent>
           </Card>
@@ -627,19 +627,19 @@ export default function AccountDetailsPage() {
               </CardHeader>
               <CardContent>
                 {activeFans.length > 0 ? activeFans.slice(0, 5).map((fan) => (
-                  <div key={fan.id} className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg mb-3">
+                  <div key={fan.id} className="flex items-center gap-3 p-3 border rounded-lg mb-3">
                     <img 
                       src={fan.avatar || '/model.png'} 
                       alt={fan.displayName || fan.name}
                       className="w-10 h-10 rounded-full object-cover"
                     />
                     <div className="flex-1">
-                      <h5 className="font-medium text-gray-900 dark:text-white">{fan.displayName || fan.name}</h5>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">@{fan.username}</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <h5 className="font-medium">{fan.displayName || fan.name}</h5>
+                      <p className="text-sm text-gray-600">@{fan.username}</p>
+                      <p className="text-xs text-gray-500">
                         Duration: {fan.subscribedOnDuration || 'N/A'}
                       </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <p className="text-xs text-gray-500">
                         Price: ${fan.currentSubscribePrice || 0}
                       </p>
                     </div>
@@ -650,7 +650,7 @@ export default function AccountDetailsPage() {
                     </div>
                   </div>
                 )) : (
-                  <p className="text-center text-gray-600 dark:text-gray-400 py-4">No active fans found</p>
+                  <p className="text-center text-gray-500 py-4">No active fans found</p>
                 )}
               </CardContent>
             </Card>
@@ -661,19 +661,19 @@ export default function AccountDetailsPage() {
               </CardHeader>
               <CardContent>
                 {expiredFans.length > 0 ? expiredFans.slice(0, 5).map((fan) => (
-                  <div key={fan.id} className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg mb-3">
+                  <div key={fan.id} className="flex items-center gap-3 p-3 border rounded-lg mb-3">
                     <img 
                       src={fan.avatar || '/model.png'} 
                       alt={fan.displayName || fan.name}
                       className="w-10 h-10 rounded-full object-cover"
                     />
                     <div className="flex-1">
-                      <h5 className="font-medium text-gray-900 dark:text-white">{fan.displayName || fan.name}</h5>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">@{fan.username}</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <h5 className="font-medium">{fan.displayName || fan.name}</h5>
+                      <p className="text-sm text-gray-600">@{fan.username}</p>
+                      <p className="text-xs text-gray-500">
                         Expired: {fan.subscribedByExpireDate ? new Date(fan.subscribedByExpireDate).toLocaleDateString() : 'N/A'}
                       </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <p className="text-xs text-gray-500">
                         Last Price: ${fan.currentSubscribePrice || 0}
                       </p>
                     </div>
@@ -683,7 +683,7 @@ export default function AccountDetailsPage() {
                     </div>
                   </div>
                 )) : (
-                  <p className="text-center text-gray-600 dark:text-gray-400 py-4">No expired fans found</p>
+                  <p className="text-center text-gray-500 py-4">No expired fans found</p>
                 )}
               </CardContent>
             </Card>
@@ -698,30 +698,30 @@ export default function AccountDetailsPage() {
             <CardContent>
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <Wallet className="w-8 h-8 text-green-500 dark:text-green-400 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">${earnings?.total?.total?.toLocaleString() || earnings?.current_balance?.toLocaleString() || '0'}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Net Earnings</p>
+                  <Wallet className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                  <p className="text-2xl font-bold">${earnings?.total?.total?.toLocaleString() || earnings?.current_balance?.toLocaleString() || '0'}</p>
+                  <p className="text-sm text-gray-600">Net Earnings</p>
                 </div>
                 <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                  <Clock className="w-8 h-8 text-yellow-500 dark:text-yellow-400 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">${earnings?.total?.gross?.toLocaleString() || earnings?.pending_balance?.toLocaleString() || '0'}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Gross Earnings</p>
+                  <Clock className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
+                  <p className="text-2xl font-bold">${earnings?.total?.gross?.toLocaleString() || earnings?.pending_balance?.toLocaleString() || '0'}</p>
+                  <p className="text-sm text-gray-600">Gross Earnings</p>
                 </div>
                 <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <TrendingUp className="w-8 h-8 text-blue-500 dark:text-blue-400 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{earnings?.total?.delta ? `${earnings.total.delta}%` : 'N/A'}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Growth Rate</p>
+                  <TrendingUp className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                  <p className="text-2xl font-bold">{earnings?.total?.delta ? `${earnings.total.delta}%` : 'N/A'}</p>
+                  <p className="text-sm text-gray-600">Growth Rate</p>
                 </div>
               </div>
 
               {earnings?.total?.chartAmount && (
                 <div className="mt-6">
-                  <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Monthly Earnings Breakdown</h3>
+                  <h3 className="text-lg font-semibold mb-4">Monthly Earnings Breakdown</h3>
                   <div className="space-y-2">
                     {earnings.total.chartAmount.slice(0, 6).map((item, index) => (
                       <div key={index} className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-800 rounded">
-                        <span className="text-sm text-gray-700 dark:text-gray-300">{new Date(item.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
-                        <span className="font-medium text-gray-900 dark:text-white">${item.count.toLocaleString()}</span>
+                        <span className="text-sm">{new Date(item.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                        <span className="font-medium">${item.count.toLocaleString()}</span>
                       </div>
                     ))}
                   </div>
@@ -739,19 +739,19 @@ export default function AccountDetailsPage() {
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {vaultMedia.slice(0, 9).map((media) => (
-                  <div key={media.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <div key={media.id} className="border rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
                       {media.type === 'video' ? (
-                        <Video className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+                        <Video className="w-4 h-4 text-blue-500" />
                       ) : (
-                        <Image className="w-4 h-4 text-green-500 dark:text-green-400" />
+                        <Image className="w-4 h-4 text-green-500" />
                       )}
-                      <span className="font-medium truncate text-gray-900 dark:text-white">{media.name}</span>
+                      <span className="font-medium truncate">{media.name}</span>
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-gray-600">
                       {(media.size / 1024 / 1024).toFixed(2)} MB
                     </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                    <p className="text-xs text-gray-500">
                       {new Date(media.created_at).toLocaleDateString()}
                     </p>
                   </div>
@@ -771,16 +771,16 @@ export default function AccountDetailsPage() {
               {transactions.length > 0 ? (
                 <div className="space-y-3">
                   {transactions.slice(0, 10).map((transaction) => (
-                    <div key={transaction.id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <div key={transaction.id} className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
-                        <p className="font-medium text-gray-900 dark:text-white">{transaction.description}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{transaction.type}</p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                        <p className="font-medium">{transaction.description}</p>
+                        <p className="text-sm text-gray-600">{transaction.type}</p>
+                        <p className="text-xs text-gray-500">
                           {new Date(transaction.created_at).toLocaleDateString()}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-green-600 dark:text-green-500">+${transaction.amount}</p> {/* Keep green for amount, but ensure dark variant is good */}
+                        <p className="font-bold text-green-600">+${transaction.amount}</p>
                         <Badge variant={transaction.status === 'completed' ? 'secondary' : 'outline'}>
                           {transaction.status}
                         </Badge>
@@ -789,7 +789,7 @@ export default function AccountDetailsPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-gray-600 dark:text-gray-400 py-8">No transactions found</p>
+                <p className="text-center text-gray-500 py-8">No transactions found</p>
               )}
             </CardContent>
           </Card>
@@ -804,18 +804,18 @@ export default function AccountDetailsPage() {
               {trackingLinks.length > 0 ? (
                 <div className="space-y-3">
                   {trackingLinks.map((link, index) => (
-                    <div key={index} className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <div key={index} className="p-3 border rounded-lg">
                       <div className="flex items-center gap-2">
-                        <Link className="w-4 h-4 text-blue-500 dark:text-blue-400" />
-                        <span className="font-medium text-gray-900 dark:text-white">{link.name || `Link ${index + 1}`}</span>
+                        <Link className="w-4 h-4 text-blue-500" />
+                        <span className="font-medium">{link.name || `Link ${index + 1}`}</span>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{link.url}</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">Clicks: {link.clicks || 0}</p>
+                      <p className="text-sm text-gray-600 truncate">{link.url}</p>
+                      <p className="text-xs text-gray-500">Clicks: {link.clicks || 0}</p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-gray-600 dark:text-gray-400 py-8">No tracking links found</p>
+                <p className="text-center text-gray-500 py-8">No tracking links found</p>
               )}
             </CardContent>
           </Card>
@@ -829,14 +829,14 @@ export default function AccountDetailsPage() {
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                  <Eye className="w-8 h-8 text-purple-500 dark:text-purple-400 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{profileVisitors?.total_visitors?.toLocaleString() || '0'}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Visitors</p>
+                  <Eye className="w-8 h-8 text-purple-500 mx-auto mb-2" />
+                  <p className="text-2xl font-bold">{profileVisitors?.total_visitors?.toLocaleString() || '0'}</p>
+                  <p className="text-sm text-gray-600">Total Visitors</p>
                 </div>
                 <div className="text-center p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
-                  <Users className="w-8 h-8 text-indigo-500 dark:text-indigo-400 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{profileVisitors?.unique_visitors?.toLocaleString() || '0'}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Unique Visitors</p>                </div>
+                  <Users className="w-8 h-8 text-indigo-500 mx-auto mb-2" />
+                  <p className="text-2xl font-bold">{profileVisitors?.unique_visitors?.toLocaleString() || '0'}</p>
+                  <p className="text-sm text-gray-600">Unique Visitors</p>                </div>
               </div>
             </CardContent>
           </Card>
@@ -850,27 +850,27 @@ export default function AccountDetailsPage() {
             <CardContent>
               <div className="grid gap-4 md:grid-cols-3 mb-6">
                 <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <MessageCircle className="w-8 h-8 text-blue-500 dark:text-blue-400 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{Array.isArray(massMessages) ? massMessages.length : 0}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Messages</p>
+                  <MessageCircle className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                  <p className="text-2xl font-bold">{Array.isArray(massMessages) ? massMessages.length : 0}</p>
+                  <p className="text-sm text-gray-600">Total Messages</p>
                 </div>
                 <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <TrendingUp className="w-8 h-8 text-green-500 dark:text-green-400 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{(Array.isArray(massMessages) ? massMessages.reduce((sum, msg) => sum + (msg.sentCount || 0), 0) : 0).toLocaleString()}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Sent</p>
+                  <TrendingUp className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                  <p className="text-2xl font-bold">{(Array.isArray(massMessages) ? massMessages.reduce((sum, msg) => sum + (msg.sentCount || 0), 0) : 0).toLocaleString()}</p>
+                  <p className="text-sm text-gray-600">Total Sent</p>
                 </div>
                 <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                  <Eye className="w-8 h-8 text-purple-500 dark:text-purple-400 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{(Array.isArray(massMessages) ? massMessages.reduce((sum, msg) => sum + (msg.viewedCount || 0), 0) : 0).toLocaleString()}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Viewed</p>
+                  <Eye className="w-8 h-8 text-purple-500 mx-auto mb-2" />
+                  <p className="text-2xl font-bold">{(Array.isArray(massMessages) ? massMessages.reduce((sum, msg) => sum + (msg.viewedCount || 0), 0) : 0).toLocaleString()}</p>
+                  <p className="text-sm text-gray-600">Total Viewed</p>
                 </div>
               </div>
 
               {Array.isArray(massMessages) && massMessages.length > 0 ? (
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Mass Messages</h3>
+                  <h3 className="text-lg font-semibold">Recent Mass Messages</h3>
                   {massMessages.slice(0, 10).map((message) => (
-                    <div key={message.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <div key={message.id} className="border rounded-lg p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
@@ -878,7 +878,7 @@ export default function AccountDetailsPage() {
                               {message.isFree ? "Free" : "Paid"}
                             </Badge>
                             {!message.isFree && message.price && (
-                              <Badge variant="outline" className="bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
+                              <Badge variant="outline" className="bg-green-50 text-green-700">
                                 ${message.price}
                               </Badge>
                             )}
@@ -889,27 +889,27 @@ export default function AccountDetailsPage() {
                             className="text-sm text-gray-700 dark:text-gray-300 mb-2" 
                             dangerouslySetInnerHTML={{ __html: message.textCropped }}
                           />
-                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                          <p className="text-xs text-gray-500">
                             {new Date(message.date).toLocaleDateString()} at {new Date(message.date).toLocaleTimeString()}
                           </p>
                         </div>
                         <div className="text-right ml-4">
                           <div className="text-sm font-medium">
-                            <span className="text-green-600 dark:text-green-400">{message.sentCount} sent</span>
+                            <span className="text-green-600">{message.sentCount} sent</span>
                           </div>
                           <div className="text-sm">
-                            <span className="text-blue-600 dark:text-blue-400">{message.viewedCount} viewed</span>
+                            <span className="text-blue-600">{message.viewedCount} viewed</span>
                           </div>
                           {!message.isFree && message.purchasedCount !== undefined && (
                             <div className="text-sm">
-                              <span className="text-purple-600 dark:text-purple-400">{message.purchasedCount} purchased</span>
+                              <span className="text-purple-600">{message.purchasedCount} purchased</span>
                             </div>
                           )}
-                          <div className="text-xs text-gray-600 dark:text-gray-400">
+                          <div className="text-xs text-gray-500">
                             {message.viewedCount > 0 ? ((message.viewedCount / message.sentCount) * 100).toFixed(1) : 0}% view rate
                           </div>
                           {!message.isFree && message.price && message.purchasedCount !== undefined && (
-                            <div className="text-xs text-gray-600 dark:text-gray-400">
+                            <div className="text-xs text-gray-500">
                               Revenue: ${(parseFloat(message.price) * message.purchasedCount).toFixed(2)}
                             </div>
                           )}
@@ -919,7 +919,7 @@ export default function AccountDetailsPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-gray-600 dark:text-gray-400 py-8">No mass messages found</p>
+                <p className="text-center text-gray-500 py-8">No mass messages found</p>
               )}
             </CardContent>
           </Card>
