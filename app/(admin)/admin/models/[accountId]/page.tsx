@@ -85,7 +85,7 @@ interface TransactionData {
 export default function AccountDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const accountId = params.accountId as string;
+  const accountId = params?.accountId as string;
 
   const [accountData, setAccountData] = useState<any>(null);
   const [chatsData, setChatsData] = useState<ChatData[]>([]);
