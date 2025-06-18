@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     }
 
     let apiUrl = "";
-    let headers: Record<string, string> = {
+    const headers: Record<string, string> = {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     };
@@ -172,7 +172,7 @@ export async function GET(request: NextRequest) {
     console.log(`Making OnlyFans API request to: ${apiUrl}`);
 
     // Prepare request options
-    let requestOptions: RequestInit = {
+    const requestOptions: RequestInit = {
       headers,
       method: 'GET'
     };

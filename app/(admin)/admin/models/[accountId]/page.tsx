@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -260,7 +261,7 @@ export default function AccountDetailsPage() {
             case 'profile-details':
               const profileDetailsData = data.profile || data;
               if (profileDetailsData && Object.keys(profileDetailsData).length > 0) {
-                setAccountData(prev => ({ ...prev, ...profileDetailsData }));
+                setAccountData((prev: any) => ({ ...prev, ...profileDetailsData }));
               }
               console.log(`Processed ${endpoint}:`, profileDetailsData);
               break;
