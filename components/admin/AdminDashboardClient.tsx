@@ -1075,7 +1075,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-white">
               <Eye className="h-5 w-5 text-blue-400" />
-              <span>Top Performing Messages</span>
+              <span>MM Campaigns Leaderboard</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1263,7 +1263,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-white">
               <Trophy className="h-5 w-5 text-yellow-400" />
-              <span>MM Campaign Leaderboards</span>
+              <span>MM Campaign Champion Leaderboards</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
