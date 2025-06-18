@@ -222,7 +222,10 @@ export default function AdminModelsPage() {
                                   Verified
                                 </Badge>
                               )}
-                              <Badge variant={account.is_authenticated ? "success" : "destructive"} className="text-xs">
+                              <Badge 
+                                variant={account.is_authenticated ? "secondary" : "destructive"} 
+                                className={`text-xs ${account.is_authenticated ? "bg-green-100 text-green-800 hover:bg-green-200" : ""}`}
+                              >
                                 {account.authentication_progress}
                               </Badge>
                             </div>
