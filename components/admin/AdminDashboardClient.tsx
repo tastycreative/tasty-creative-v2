@@ -1258,12 +1258,12 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           </CardContent>
         </Card>
 
-        {/* Mass Messaging Champions */}
+        {/* MM Campaign Leaderboards */}
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-white">
               <Trophy className="h-5 w-5 text-yellow-400" />
-              <span>Mass Messaging Champions</span>
+              <span>MM Campaign Leaderboards</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
