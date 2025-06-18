@@ -137,6 +137,9 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     viewRate: number;
     paidMessages: number;
     freeMessages: number;
+    totalRevenue: number;
+    averagePrice: number;
+    totalPurchases: number;
     avatar?: string;
     rank: number;
   }>>([]);
