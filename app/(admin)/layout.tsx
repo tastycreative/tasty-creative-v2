@@ -9,28 +9,6 @@ export default function AdminLayout({
 }) {
   return (
     <>
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            (function() {
-              try {
-                const savedTheme = document.cookie
-                  .split('; ')
-                  .find(row => row.startsWith('admin-theme='))
-                  ?.split('=')[1] || 'dark';
-
-                document.documentElement.classList.add(savedTheme);
-                document.documentElement.setAttribute('data-theme', savedTheme);
-                document.body.classList.add(savedTheme);
-              } catch (e) {
-                document.documentElement.classList.add('dark');
-                document.documentElement.setAttribute('data-theme', 'dark');
-                document.body.classList.add('dark');
-              }
-            })()
-          `,
-        }}
-      />
       <ThemeProvider>
         <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
           <AdminSidebar />
