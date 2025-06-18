@@ -113,6 +113,8 @@ interface MassMessageData {
   mediaTypes: string | null;
   hasError: boolean;
   releaseForms: any[];
+  price?: string;
+  purchasedCount?: number;
 }
 
 export default function AccountDetailsPage() {
@@ -836,6 +838,11 @@ export default function AccountDetailsPage() {
                             <Badge variant={message.isFree ? "secondary" : "default"}>
                               {message.isFree ? "Free" : "Paid"}
                             </Badge>
+                            {!message.isFree && message.price && (
+                              <Badge variant="outline" className="bg-green-50 text-green-700">
+                                ${message.price}
+                              </Badge>
+                            )}
                             {message.isCanceled && <Badge variant="destructive">Canceled</Badge>}
                             {message.hasError && <Badge variant="destructive">Error</Badge>}
                           </div>
@@ -854,9 +861,19 @@ export default function AccountDetailsPage() {
                           <div className="text-sm">
                             <span className="text-blue-600">{message.viewedCount} viewed</span>
                           </div>
+                          {!message.isFree && message.purchasedCount !== undefined && (
+                            <div className="text-sm">
+                              <span className="text-purple-600">{message.purchasedCount} purchased</span>
+                            </div>
+                          )}
                           <div className="text-xs text-gray-500">
                             {message.viewedCount > 0 ? ((message.viewedCount / message.sentCount) * 100).toFixed(1) : 0}% view rate
                           </div>
+                          {!message.isFree && message.price && message.purchasedCount !== undefined && (
+                            <div className="text-xs text-gray-500">
+                              Revenue: ${(parseFloat(message.price) * message.purchasedCount).toFixed(2)}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
