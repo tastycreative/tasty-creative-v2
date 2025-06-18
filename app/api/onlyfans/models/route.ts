@@ -23,6 +23,8 @@ export async function GET(request: NextRequest) {
 
     let apiUrl = "";
     
+    const accountId = searchParams.get("accountId");
+    
     switch (endpoint) {
       case "accounts":
         apiUrl = `${ONLYFANS_API_BASE}/accounts`;
@@ -46,10 +48,70 @@ export async function GET(request: NextRequest) {
         apiUrl = `${ONLYFANS_API_BASE}/accounts/${username}/posts`;
         break;
       case "earnings":
-        if (!username) {
-          return NextResponse.json({ error: "Username required for earnings data" }, { status: 400 });
+        if (!username && !accountId) {
+          return NextResponse.json({ error: "Username or accountId required for earnings data" }, { status: 400 });
         }
-        apiUrl = `${ONLYFANS_API_BASE}/accounts/${username}/earnings`;
+        apiUrl = `${ONLYFANS_API_BASE}/accounts/${accountId || username}/earnings`;
+        break;
+      case "chats":
+        if (!accountId) {
+          return NextResponse.json({ error: "Account ID required for chats data" }, { status: 400 });
+        }
+        apiUrl = `${ONLYFANS_API_BASE}/chats`;
+        break;
+      case "active-fans":
+        if (!accountId) {
+          return NextResponse.json({ error: "Account ID required for active fans data" }, { status: 400 });
+        }
+        apiUrl = `${ONLYFANS_API_BASE}/fans/active`;
+        break;
+      case "expired-fans":
+        if (!accountId) {
+          return NextResponse.json({ error: "Account ID required for expired fans data" }, { status: 400 });
+        }
+        apiUrl = `${ONLYFANS_API_BASE}/fans/expired`;
+        break;
+      case "vault-media":
+        if (!accountId) {
+          return NextResponse.json({ error: "Account ID required for vault media data" }, { status: 400 });
+        }
+        apiUrl = `${ONLYFANS_API_BASE}/media-vault`;
+        break;
+      case "vault-lists":
+        if (!accountId) {
+          return NextResponse.json({ error: "Account ID required for vault lists data" }, { status: 400 });
+        }
+        apiUrl = `${ONLYFANS_API_BASE}/media-vault-lists`;
+        break;
+      case "account-balances":
+        if (!accountId) {
+          return NextResponse.json({ error: "Account ID required for account balances data" }, { status: 400 });
+        }
+        apiUrl = `${ONLYFANS_API_BASE}/payouts/account-balances`;
+        break;
+      case "account-details":
+        if (!accountId) {
+          return NextResponse.json({ error: "Account ID required for account details data" }, { status: 400 });
+        }
+        apiUrl = `${ONLYFANS_API_BASE}/public-profiles/${accountId}`;
+        break;
+      case "profile-visitors":
+        if (!accountId) {
+          return NextResponse.json({ error: "Account ID required for profile visitors data" }, { status: 400 });
+        }
+        apiUrl = `${ONLYFANS_API_BASE}/statistics-reach/profile-visitors`;
+        break;
+      case "transactions":
+        if (!accountId) {
+          return NextResponse.json({ error: "Account ID required for transactions data" }, { status: 400 });
+        }
+        apiUrl = `${ONLYFANS_API_BASE}/transactions`;
+        break;
+      case "tracking-links":
+        if (!accountId) {
+          return NextResponse.json({ error: "Account ID required for tracking links data" }, { status: 400 });
+        }
+        apiUrl = `${ONLYFANS_API_BASE}/tracking-links`;
         break;
       default:
         return NextResponse.json({ error: "Invalid endpoint" }, { status: 400 });

@@ -270,8 +270,7 @@ export default function AdminModelsPage() {
                             size="sm" 
                             className="w-full"
                             onClick={() => {
-                              setSearchUsername(account.onlyfans_user_data?.name || '');
-                              handleSearch();
+                              window.location.href = `/admin/models/${account.id || account.onlyfans_user_data?.id || 'unknown'}`;
                             }}
                           >
                             <ExternalLink className="w-4 h-4 mr-2" />
