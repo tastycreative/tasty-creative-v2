@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 
@@ -7,7 +6,7 @@ const ONLYFANS_API_BASE = "https://app.onlyfansapi.com/api";
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
-    
+
     if (!session || session.user?.role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -38,7 +37,7 @@ export async function GET(request: NextRequest) {
     if (accountId) {
       headers["X-Account-ID"] = accountId;
     }
-    
+
     switch (endpoint) {
       case "accounts":
         apiUrl = `${ONLYFANS_API_BASE}/accounts`;
@@ -79,21 +78,15 @@ export async function GET(request: NextRequest) {
         if (!accountId) {
           return NextResponse.json({ error: "Account ID required for active fans data" }, { status: 400 });
         }
-        // GET /api/{account}/fans/active endpoint with query parameters
-        const limit = searchParams.get("limit") || "50";
-        const offset = searchParams.get("offset") || "0";
-        const type = "active";
-        apiUrl = `${ONLYFANS_API_BASE}/${accountId}/fans/active?limit=${limit}&offset=${offset}&type=${type}`;
+        // GET /{account}/fans/active endpoint
+        apiUrl = `${ONLYFANS_API_BASE}/${accountId}/fans/active`;
         break;
       case "expired-fans":
         if (!accountId) {
           return NextResponse.json({ error: "Account ID required for expired fans data" }, { status: 400 });
         }
-        // GET /api/{account}/fans/active endpoint with type=expired
-        const limitExpired = searchParams.get("limit") || "50";
-        const offsetExpired = searchParams.get("offset") || "0";
-        const typeExpired = "expired";
-        apiUrl = `${ONLYFANS_API_BASE}/${accountId}/fans/active?limit=${limitExpired}&offset=${offsetExpired}&type=${typeExpired}`;
+        // GET /{account}/fans/expired endpoint
+        apiUrl = `${ONLYFANS_API_BASE}/${accountId}/fans/expired`;
         break;
       case "vault-media":
         if (!accountId) {
