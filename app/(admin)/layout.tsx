@@ -9,7 +9,12 @@ export default function AdminLayout({
 }) {
   return (
     <>
-      <NextThemesProvider attribute="class" defaultTheme="dark" storageKey="admin-theme">
+      <NextThemesProvider
+        attribute="class"
+        defaultTheme="dark"
+        storageKey="admin-theme"
+        enableSystem={false}
+      >
         <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
           <AdminSidebar />
 
