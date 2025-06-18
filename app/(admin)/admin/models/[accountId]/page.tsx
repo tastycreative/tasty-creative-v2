@@ -244,9 +244,19 @@ export default function AccountDetailsPage() {
               console.log(`Processed ${endpoint}:`, transformedEarnings);
               break;
             case 'profile-visitors':
-              const visitorsData = data.visitors || data;
-              setProfileVisitors(visitorsData);
-              console.log(`Processed ${endpoint}:`, visitorsData);
+              const visitorsData = data.data || data;
+              // Transform the API response to match our interface
+              const transformedVisitors = {
+                total_visitors: visitorsData.chart?.visitors?.reduce((sum: number, visitor: any) => sum + visitor.count, 0) || 0,
+                unique_visitors: visitorsData.chart?.visitors?.length || 0,
+                daily_visitors: visitorsData.chart?.visitors?.reduce((acc: any, visitor: any) => {
+                  const date = new Date(visitor.date).toLocaleDateString();
+                  acc[date] = visitor.count;
+                  return acc;
+                }, {}) || {}
+              };
+              setProfileVisitors(transformedVisitors);
+              console.log(`Processed ${endpoint}:`, transformedVisitors);
               break;
             case 'transactions':
               const transactionsArray = Array.isArray(data) ? data : (data.transactions || data.data || []);

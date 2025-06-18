@@ -127,8 +127,8 @@ export async function GET(request: NextRequest) {
         if (!accountId || !startDate || !endDate) {
           return NextResponse.json({ error: "Account ID, start date, and end date required for profile visitors data" }, { status: 400 });
         }
-        // GET /statistics-reach/profile-visitors endpoint with required date parameters
-        apiUrl = `${ONLYFANS_API_BASE}/statistics-reach/profile-visitors?start_date=${startDate}&end_date=${endDate}`;
+        // GET /{account}/statistics/reach/profile-visitors endpoint with required date parameters
+        apiUrl = `${ONLYFANS_API_BASE}/${accountId}/statistics/reach/profile-visitors`;
         break;
       case "earnings":
         if (!accountId || !startDate || !endDate) {
@@ -180,6 +180,12 @@ export async function GET(request: NextRequest) {
     // For earnings endpoint, add query parameters to URL
     if (endpoint === "earnings") {
       apiUrl += `?start_date=${encodeURIComponent(startDate || '')}&end_date=${encodeURIComponent(endDate || '')}&type=total`;
+    }
+
+    // For profile visitors endpoint, add query parameters to URL
+    if (endpoint === "profile-visitors") {
+      const type = searchParams.get("type") || "total";
+      apiUrl += `?start_date=${encodeURIComponent(startDate || '')}&end_date=${encodeURIComponent(endDate || '')}&type=${type}`;
     }
 
     // For fans endpoints, add pagination parameters as query parameters
