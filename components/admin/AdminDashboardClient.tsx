@@ -1074,7 +1074,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         <Card className="bg-gray-800 border-gray-700">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-white">
-              <Eye className="h-5 w-5 text-blue-400" />
+              <Trophy className="h-5 w-5 text-blue-400" />
               <span>MM Campaigns Leaderboard</span>
             </CardTitle>
           </CardHeader>
