@@ -138,20 +138,6 @@ export default function AccountDetailsPage() {
         console.error('Error fetching accounts list:', err);
       }
       
-      // Fetch all the data from different endpoints
-      const endpoints = [
-        'chats',
-        'active-fans', 
-        'expired-fans',
-        'vault-media',
-        'earnings',
-        'profile-visitors',
-        'transactions',
-        'tracking-links',
-        'account-details',
-        'account-balances'
-      ];
-
       // Get the real account ID to use for API calls
       let realAccountId = accountId;
       if (accountData) {
@@ -160,14 +146,32 @@ export default function AccountDetailsPage() {
 
       console.log('Making API calls with account ID:', realAccountId);
 
+      // Set up date parameters (last 30 days for endpoints that require them)
+      const endDate = new Date().toISOString().split('T')[0]; // Today
+      const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 30 days ago
+
+      // Define endpoints with their specific requirements
+      const endpointConfigs = [
+        { name: 'chats', url: `/api/onlyfans/models?accountId=${encodeURIComponent(realAccountId)}&endpoint=chats` },
+        { name: 'active-fans', url: `/api/onlyfans/models?accountId=${encodeURIComponent(realAccountId)}&endpoint=active-fans` },
+        { name: 'expired-fans', url: `/api/onlyfans/models?accountId=${encodeURIComponent(realAccountId)}&endpoint=expired-fans` },
+        { name: 'vault-media', url: `/api/onlyfans/models?accountId=${encodeURIComponent(realAccountId)}&endpoint=vault-media` },
+        { name: 'earnings', url: `/api/onlyfans/models?accountId=${encodeURIComponent(realAccountId)}&endpoint=earnings&startDate=${startDate}&endDate=${endDate}` },
+        { name: 'profile-visitors', url: `/api/onlyfans/models?accountId=${encodeURIComponent(realAccountId)}&endpoint=profile-visitors&startDate=${startDate}&endDate=${endDate}` },
+        { name: 'transactions', url: `/api/onlyfans/models?accountId=${encodeURIComponent(realAccountId)}&endpoint=transactions&startDate=${startDate}&endDate=${endDate}` },
+        { name: 'tracking-links', url: `/api/onlyfans/models?accountId=${encodeURIComponent(realAccountId)}&endpoint=tracking-links` },
+        { name: 'profile-details', url: `/api/onlyfans/models?accountId=${encodeURIComponent(realAccountId)}&endpoint=profile-details` },
+        { name: 'account-balances', url: `/api/onlyfans/models?accountId=${encodeURIComponent(realAccountId)}&endpoint=account-balances` },
+        { name: 'vault-lists', url: `/api/onlyfans/models?accountId=${encodeURIComponent(realAccountId)}&endpoint=vault-lists` }
+      ];
+
       const responses = await Promise.allSettled(
-        endpoints.map(endpoint => {
-          const url = `/api/onlyfans/models?accountId=${encodeURIComponent(realAccountId)}&endpoint=${endpoint}`;
-          console.log(`Fetching: ${url}`);
-          return fetch(url)
+        endpointConfigs.map(config => {
+          console.log(`Fetching ${config.name}: ${config.url}`);
+          return fetch(config.url)
             .then(res => {
               if (!res.ok) {
-                console.error(`Error fetching ${endpoint}:`, res.status, res.statusText);
+                console.error(`Error fetching ${config.name}:`, res.status, res.statusText);
                 throw new Error(`HTTP ${res.status}: ${res.statusText}`);
               }
               return res.json();
@@ -177,7 +181,8 @@ export default function AccountDetailsPage() {
 
       // Process responses
       responses.forEach((response, index) => {
-        const endpoint = endpoints[index];
+        const endpointConfig = endpointConfigs[index];
+        const endpoint = endpointConfig.name;
         if (response.status === 'fulfilled') {
           const data = response.value;
           console.log(`Processing ${endpoint} data:`, data);
@@ -203,6 +208,11 @@ export default function AccountDetailsPage() {
               setVaultMedia(vaultMediaArray);
               console.log(`Processed ${endpoint}:`, vaultMediaArray);
               break;
+            case 'vault-lists':
+              const vaultListsArray = Array.isArray(data) ? data : (data.lists || data.data || []);
+              // You can add a new state for vault lists if needed
+              console.log(`Processed ${endpoint}:`, vaultListsArray);
+              break;
             case 'earnings':
               const earningsData = data.earnings || data;
               setEarnings(earningsData);
@@ -223,12 +233,12 @@ export default function AccountDetailsPage() {
               setTrackingLinks(trackingLinksArray);
               console.log(`Processed ${endpoint}:`, trackingLinksArray);
               break;
-            case 'account-details':
-              const accountDetailsData = data.profile || data;
-              if (accountDetailsData && Object.keys(accountDetailsData).length > 0) {
-                setAccountData(prev => ({ ...prev, ...accountDetailsData }));
+            case 'profile-details':
+              const profileDetailsData = data.profile || data;
+              if (profileDetailsData && Object.keys(profileDetailsData).length > 0) {
+                setAccountData(prev => ({ ...prev, ...profileDetailsData }));
               }
-              console.log(`Processed ${endpoint}:`, accountDetailsData);
+              console.log(`Processed ${endpoint}:`, profileDetailsData);
               break;
             case 'account-balances':
               if (data && typeof data === 'object') {

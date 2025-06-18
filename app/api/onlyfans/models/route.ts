@@ -16,6 +16,12 @@ export async function GET(request: NextRequest) {
     const username = searchParams.get("username");
     const endpoint = searchParams.get("endpoint") || "profile";
     const accountId = searchParams.get("accountId");
+    const startDate = searchParams.get("startDate");
+    const endDate = searchParams.get("endDate");
+    const chatId = searchParams.get("chatId");
+    const listId = searchParams.get("listId");
+    const linkId = searchParams.get("linkId");
+    const userId = searchParams.get("userId");
 
     const apiKey = process.env.ONLYFANS_API_KEY;
     if (!apiKey) {
@@ -59,95 +65,106 @@ export async function GET(request: NextRequest) {
         if (!accountId) {
           return NextResponse.json({ error: "Account ID required for chats data" }, { status: 400 });
         }
-        apiUrl = `${ONLYFANS_API_BASE}/chats/list`;
+        // GET /chats endpoint - lists all chats
+        apiUrl = `${ONLYFANS_API_BASE}/chats`;
         break;
       case "chat-messages":
-        const chatId = searchParams.get("chatId");
         if (!accountId || !chatId) {
           return NextResponse.json({ error: "Account ID and Chat ID required for chat messages" }, { status: 400 });
         }
+        // GET /chats/{chat_id}/messages endpoint
         apiUrl = `${ONLYFANS_API_BASE}/chats/${chatId}/messages`;
         break;
       case "active-fans":
         if (!accountId) {
           return NextResponse.json({ error: "Account ID required for active fans data" }, { status: 400 });
         }
+        // GET /fans/active endpoint
         apiUrl = `${ONLYFANS_API_BASE}/fans/active`;
         break;
       case "expired-fans":
         if (!accountId) {
           return NextResponse.json({ error: "Account ID required for expired fans data" }, { status: 400 });
         }
+        // GET /fans/expired endpoint
         apiUrl = `${ONLYFANS_API_BASE}/fans/expired`;
         break;
       case "vault-media":
         if (!accountId) {
           return NextResponse.json({ error: "Account ID required for vault media data" }, { status: 400 });
         }
-        apiUrl = `${ONLYFANS_API_BASE}/media-vault/list`;
+        // GET /media-vault endpoint
+        apiUrl = `${ONLYFANS_API_BASE}/media-vault`;
         break;
       case "vault-lists":
         if (!accountId) {
           return NextResponse.json({ error: "Account ID required for vault lists data" }, { status: 400 });
         }
-        apiUrl = `${ONLYFANS_API_BASE}/media-vault-lists/list`;
+        // GET /media-vault-lists endpoint
+        apiUrl = `${ONLYFANS_API_BASE}/media-vault-lists`;
         break;
       case "vault-list-details":
-        const listId = searchParams.get("listId");
         if (!accountId || !listId) {
           return NextResponse.json({ error: "Account ID and List ID required for vault list details" }, { status: 400 });
         }
+        // GET /media-vault-lists/{list_id} endpoint
         apiUrl = `${ONLYFANS_API_BASE}/media-vault-lists/${listId}`;
         break;
       case "account-balances":
         if (!accountId) {
           return NextResponse.json({ error: "Account ID required for account balances data" }, { status: 400 });
         }
+        // GET /payouts/account-balances endpoint
         apiUrl = `${ONLYFANS_API_BASE}/payouts/account-balances`;
         break;
-      case "account-details":
+      case "profile-details":
         if (!accountId) {
-          return NextResponse.json({ error: "Account ID required for account details data" }, { status: 400 });
+          return NextResponse.json({ error: "Account ID required for profile details data" }, { status: 400 });
         }
-        apiUrl = `${ONLYFANS_API_BASE}/public-profiles/details`;
+        // GET /public-profiles/{account_id} endpoint
+        apiUrl = `${ONLYFANS_API_BASE}/public-profiles/${accountId}`;
         break;
       case "profile-visitors":
-        if (!accountId) {
-          return NextResponse.json({ error: "Account ID required for profile visitors data" }, { status: 400 });
+        if (!accountId || !startDate || !endDate) {
+          return NextResponse.json({ error: "Account ID, start date, and end date required for profile visitors data" }, { status: 400 });
         }
-        apiUrl = `${ONLYFANS_API_BASE}/statistics-reach/profile-visitors`;
+        // GET /statistics-reach/profile-visitors endpoint with required date parameters
+        apiUrl = `${ONLYFANS_API_BASE}/statistics-reach/profile-visitors?start_date=${startDate}&end_date=${endDate}`;
         break;
       case "earnings":
-        if (!accountId) {
-          return NextResponse.json({ error: "Account ID required for earnings data" }, { status: 400 });
+        if (!accountId || !startDate || !endDate) {
+          return NextResponse.json({ error: "Account ID, start date, and end date required for earnings data" }, { status: 400 });
         }
-        apiUrl = `${ONLYFANS_API_BASE}/statistics-statements/earnings`;
+        // GET /statistics-statements/earnings endpoint with required date parameters
+        apiUrl = `${ONLYFANS_API_BASE}/statistics-statements/earnings?start_date=${startDate}&end_date=${endDate}`;
         break;
       case "tracking-links":
         if (!accountId) {
           return NextResponse.json({ error: "Account ID required for tracking links data" }, { status: 400 });
         }
-        apiUrl = `${ONLYFANS_API_BASE}/tracking-links/list`;
+        // GET /tracking-links endpoint
+        apiUrl = `${ONLYFANS_API_BASE}/tracking-links`;
         break;
       case "tracking-link-subscribers":
-        const linkId = searchParams.get("linkId");
         if (!accountId || !linkId) {
           return NextResponse.json({ error: "Account ID and Link ID required for tracking link subscribers" }, { status: 400 });
         }
+        // GET /tracking-links/{link_id}/subscribers endpoint
         apiUrl = `${ONLYFANS_API_BASE}/tracking-links/${linkId}/subscribers`;
         break;
       case "transactions":
-        if (!accountId) {
-          return NextResponse.json({ error: "Account ID required for transactions data" }, { status: 400 });
+        if (!accountId || !startDate || !endDate) {
+          return NextResponse.json({ error: "Account ID, start date, and end date required for transactions data" }, { status: 400 });
         }
-        apiUrl = `${ONLYFANS_API_BASE}/transactions/list`;
+        // GET /transactions endpoint with required date parameters
+        apiUrl = `${ONLYFANS_API_BASE}/transactions?start_date=${startDate}&end_date=${endDate}`;
         break;
       case "user-details":
-        const userId = searchParams.get("userId");
         if (!accountId || !userId) {
           return NextResponse.json({ error: "Account ID and User ID required for user details" }, { status: 400 });
         }
-        apiUrl = `${ONLYFANS_API_BASE}/users/${userId}/details`;
+        // GET /users/{user_id} endpoint
+        apiUrl = `${ONLYFANS_API_BASE}/users/${userId}`;
         break;
       default:
         return NextResponse.json({ error: "Invalid endpoint" }, { status: 400 });
