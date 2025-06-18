@@ -177,33 +177,25 @@ export async function GET(request: NextRequest) {
       method: 'GET'
     };
 
-    // For earnings endpoint, we need to send a POST request with body parameters
-    if (endpoint === "earnings" || endpoint === "active-fans" || endpoint === "expired-fans") {
+    // For earnings endpoint, add query parameters to URL
+    if (endpoint === "earnings") {
+      apiUrl += `?start_date=${encodeURIComponent(startDate || '')}&end_date=${encodeURIComponent(endDate || '')}&type=total`;
+    }
+
+    // For fans endpoints, add pagination parameters as request body  
+    if (endpoint === "active-fans" || endpoint === "expired-fans") {
       requestOptions.method = 'GET';
-      
-      // For earnings, add the date parameters as request body
-      if (endpoint === "earnings") {
-        requestOptions.method = 'GET';
-        requestOptions.body = JSON.stringify({
-          start_date: startDate,
-          end_date: endDate,
-          type: "total"
-        });
-      }
-      
-      // For fans endpoints, add pagination parameters as request body
-      if (endpoint === "active-fans" || endpoint === "expired-fans") {
-        const limit = searchParams.get("limit") || "50";
-        const offset = searchParams.get("offset") || "0";
-        const type = endpoint === "active-fans" ? "active" : "expired";
-        
-        requestOptions.body = JSON.stringify({
-          limit: parseInt(limit),
-          offset: parseInt(offset),
-          type: type,
-          filter: ""
-        });
-      }
+
+      const limit = searchParams.get("limit") || "50";
+      const offset = searchParams.get("offset") || "0";
+      const type = endpoint === "active-fans" ? "active" : "expired";
+
+      requestOptions.body = JSON.stringify({
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        type: type,
+        filter: ""
+      });
     }
 
     const response = await fetch(apiUrl, requestOptions);
