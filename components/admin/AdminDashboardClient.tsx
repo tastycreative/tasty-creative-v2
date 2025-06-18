@@ -128,38 +128,42 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
 
   const [isLoadingMassMessages, setIsLoadingMassMessages] = useState(false);
   const [totalMassMessages, setTotalMassMessages] = useState(0);
-  const [massMessagingLeaderboard, setMassMessagingLeaderboard] = useState<Array<{
-    name: string;
-    username: string;
-    totalMessages: number;
-    totalViews: number;
-    totalSent: number;
-    viewRate: number;
-    paidMessages: number;
-    freeMessages: number;
-    totalRevenue: number;
-    averagePrice: number;
-    totalPurchases: number;
-    avatar?: string;
-    rank: number;
-  }>>([]);
-  const [topPerformingMessages, setTopPerformingMessages] = useState<Array<{
-    id: number;
-    text: string;
-    textCropped: string;
-    viewedCount: number;
-    sentCount: number;
-    viewRate: number;
-    isFree: boolean;
-    price?: string;
-    purchasedCount?: number;
-    revenue: number;
-    date: string;
-    modelName: string;
-    modelUsername: string;
-    modelAvatar?: string;
-    rank: number;
-  }>>([]);
+  const [massMessagingLeaderboard, setMassMessagingLeaderboard] = useState<
+    Array<{
+      name: string;
+      username: string;
+      totalMessages: number;
+      totalViews: number;
+      totalSent: number;
+      viewRate: number;
+      paidMessages: number;
+      freeMessages: number;
+      totalRevenue: number;
+      averagePrice: number;
+      totalPurchases: number;
+      avatar?: string;
+      rank: number;
+    }>
+  >([]);
+  const [topPerformingMessages, setTopPerformingMessages] = useState<
+    Array<{
+      id: number;
+      text: string;
+      textCropped: string;
+      viewedCount: number;
+      sentCount: number;
+      viewRate: number;
+      isFree: boolean;
+      price?: string;
+      purchasedCount?: number;
+      revenue: number;
+      date: string;
+      modelName: string;
+      modelUsername: string;
+      modelAvatar?: string;
+      rank: number;
+    }>
+  >([]);
   // Fetch real VN sales and voice data
   useEffect(() => {
     const fetchVnSalesData = async () => {
@@ -224,7 +228,9 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       setIsLoadingMassMessages(true);
       try {
         // First get all OnlyFans accounts
-        const accountsResponse = await fetch('/api/onlyfans/models?endpoint=accounts');
+        const accountsResponse = await fetch(
+          "/api/onlyfans/models?endpoint=accounts"
+        );
         if (accountsResponse.ok) {
           const accountsData = await accountsResponse.json();
           const accounts = accountsData.accounts || accountsData || [];
@@ -269,19 +275,33 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             try {
               const accountId = account.id || account.onlyfans_user_data?.id;
               if (accountId) {
-                const messagesResponse = await fetch(`/api/onlyfans/models?accountId=${encodeURIComponent(accountId)}&endpoint=mass-messaging`);
+                const messagesResponse = await fetch(
+                  `/api/onlyfans/models?accountId=${encodeURIComponent(accountId)}&endpoint=mass-messaging`
+                );
                 if (messagesResponse.ok) {
                   const messagesData = await messagesResponse.json();
-                  const messages = messagesData.data?.list || messagesData.list || messagesData.data || [];
-                  const messageCount = Array.isArray(messages) ? messages.length : 0;
+                  const messages =
+                    messagesData.data?.list ||
+                    messagesData.list ||
+                    messagesData.data ||
+                    [];
+                  const messageCount = Array.isArray(messages)
+                    ? messages.length
+                    : 0;
                   totalMessages += messageCount;
 
                   // Add individual messages to the global list
                   if (Array.isArray(messages)) {
                     messages.forEach((msg) => {
-                      const viewRate = msg.sentCount > 0 ? (msg.viewedCount / msg.sentCount) * 100 : 0;
-                      const revenue = !msg.isFree && msg.price ? parseFloat(msg.price) * (msg.purchasedCount || 0) : 0;
-                      
+                      const viewRate =
+                        msg.sentCount > 0
+                          ? (msg.viewedCount / msg.sentCount) * 100
+                          : 0;
+                      const revenue =
+                        !msg.isFree && msg.price
+                          ? parseFloat(msg.price) * (msg.purchasedCount || 0)
+                          : 0;
+
                       allMessages.push({
                         id: msg.id,
                         text: msg.text,
@@ -294,9 +314,16 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                         purchasedCount: msg.purchasedCount || 0,
                         revenue,
                         date: msg.date,
-                        modelName: account.onlyfans_user_data?.name || account.name || 'Unknown',
-                        modelUsername: account.onlyfans_user_data?.username || account.username || 'N/A',
-                        modelAvatar: account.onlyfans_user_data?.avatar || account.avatar,
+                        modelName:
+                          account.onlyfans_user_data?.name ||
+                          account.name ||
+                          "Unknown",
+                        modelUsername:
+                          account.onlyfans_user_data?.username ||
+                          account.username ||
+                          "N/A",
+                        modelAvatar:
+                          account.onlyfans_user_data?.avatar || account.avatar,
                         rank: 0, // Will be set after sorting
                       });
                     });
@@ -317,7 +344,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                       totalViews += msg.viewedCount || 0;
                       totalSent += msg.sentCount || 0;
                       totalPurchases += msg.purchasedCount || 0;
-                      
+
                       if (msg.isFree) {
                         freeMessages++;
                       } else {
@@ -334,13 +361,21 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                     });
                   }
 
-                  const viewRate = totalSent > 0 ? (totalViews / totalSent) * 100 : 0;
-                  const averagePrice = paidMessageCount > 0 ? priceSum / paidMessageCount : 0;
+                  const viewRate =
+                    totalSent > 0 ? (totalViews / totalSent) * 100 : 0;
+                  const averagePrice =
+                    paidMessageCount > 0 ? priceSum / paidMessageCount : 0;
 
                   // Add to leaderboard data
                   leaderboardData.push({
-                    name: account.onlyfans_user_data?.name || account.name || 'Unknown',
-                    username: account.onlyfans_user_data?.username || account.username || 'N/A',
+                    name:
+                      account.onlyfans_user_data?.name ||
+                      account.name ||
+                      "Unknown",
+                    username:
+                      account.onlyfans_user_data?.username ||
+                      account.username ||
+                      "N/A",
                     totalMessages: messageCount,
                     totalViews,
                     totalSent,
@@ -350,13 +385,17 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                     totalRevenue,
                     averagePrice,
                     totalPurchases,
-                    avatar: account.onlyfans_user_data?.avatar || account.avatar,
+                    avatar:
+                      account.onlyfans_user_data?.avatar || account.avatar,
                     rank: 0, // Will be set after sorting
                   });
                 }
               }
             } catch (error) {
-              console.error(`Error fetching mass messages for account ${account.id}:`, error);
+              console.error(
+                `Error fetching mass messages for account ${account.id}:`,
+                error
+              );
             }
           }
 
@@ -393,7 +432,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           setTopPerformingMessages(allMessages.slice(0, 10)); // Top 10 messages
         }
       } catch (error) {
-        console.error('Error fetching total mass messages:', error);
+        console.error("Error fetching total mass messages:", error);
       } finally {
         setIsLoadingMassMessages(false);
       }
@@ -450,19 +489,19 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         ? "Loading..."
         : vnSales.totalVnCount.toLocaleString(),
       icon: FileText,
-      description: isLoadingVoiceStats
-        ? "Fetching from ElevenLabs..."
-        : (
-          <div className="flex items-center space-x-3 text-sm">
-            <span className="text-gray-400">{vnSales.newVnToday} new today</span>
-            <div className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-green-400 font-medium">
-                {Object.keys(API_KEY_PROFILES).length} active models
-              </span>
-            </div>
+      description: isLoadingVoiceStats ? (
+        "Fetching from ElevenLabs..."
+      ) : (
+        <div className="flex items-center space-x-3 text-sm">
+          <span className="text-gray-400">{vnSales.newVnToday} new today</span>
+          <div className="flex items-center space-x-1">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-green-400 font-medium">
+              {Object.keys(API_KEY_PROFILES).length} active models
+            </span>
           </div>
-        ),
+        </div>
+      ),
       color: "text-blue-600",
       bgColor: "bg-blue-50 dark:bg-blue-900/20",
       prefix: "",
@@ -709,6 +748,480 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                 />
               </PieChart>
             </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* MM */}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Top Performing Messages Leaderboard */}
+        <Card className="bg-gray-800 border-gray-700">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-white">
+              <Trophy className="h-5 w-5 text-blue-400" />
+              <span>MM Campaigns Leaderboard</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {isLoadingMassMessages ? (
+                <div className="flex justify-center py-8">
+                  <div className="flex items-center text-gray-400">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                    <span>Loading top performing messages...</span>
+                  </div>
+                </div>
+              ) : topPerformingMessages.length > 0 ? (
+                <>
+                  {topPerformingMessages.slice(0, 5).map((message) => {
+                    const getRankIcon = (rank: number) => {
+                      switch (rank) {
+                        case 1:
+                          return <Trophy className="h-5 w-5 text-yellow-400" />;
+                        case 2:
+                          return <Medal className="h-5 w-5 text-gray-400" />;
+                        case 3:
+                          return <Award className="h-5 w-5 text-amber-600" />;
+                        default:
+                          return (
+                            <div className="h-5 w-5 rounded-full bg-gray-600 flex items-center justify-center text-white text-xs font-bold">
+                              {rank}
+                            </div>
+                          );
+                      }
+                    };
+
+                    const getRankStyle = (rank: number) => {
+                      switch (rank) {
+                        case 1:
+                          return "bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 border-yellow-500/30";
+                        case 2:
+                          return "bg-gradient-to-r from-gray-400/20 to-gray-500/20 border-gray-400/30";
+                        case 3:
+                          return "bg-gradient-to-r from-amber-600/20 to-amber-700/20 border-amber-600/30";
+                        default:
+                          return "bg-gray-700/50 border-gray-600/30";
+                      }
+                    };
+
+                    return (
+                      <div
+                        key={`message-${message.id}`}
+                        className={`flex flex-col p-4 rounded-lg border ${getRankStyle(message.rank)} transition-all hover:scale-[1.01]`}
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            {getRankIcon(message.rank)}
+                            <div className="flex items-center space-x-3">
+                              {message.modelAvatar ? (
+                                <img
+                                  src={`/api/image-proxy?url=${encodeURIComponent(message.modelAvatar)}`}
+                                  alt={message.modelName}
+                                  className="h-8 w-8 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                                  <span className="text-white font-bold text-sm">
+                                    {message.modelName.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
+                              <div>
+                                <h3 className="font-medium text-white">
+                                  {message.modelName}
+                                </h3>
+                                <p className="text-xs text-gray-400">
+                                  @{message.modelUsername}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <Badge
+                              variant={message.isFree ? "secondary" : "default"}
+                            >
+                              {message.isFree ? "Free" : "Paid"}
+                            </Badge>
+                            {!message.isFree && message.price && (
+                              <Badge
+                                variant="outline"
+                                className="bg-green-50 text-green-700"
+                              >
+                                ${message.price}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="mb-3">
+                          <div
+                            className="text-sm text-gray-300 line-clamp-2"
+                            dangerouslySetInnerHTML={{
+                              __html: message.textCropped,
+                            }}
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date(message.date).toLocaleDateString()} at{" "}
+                            {new Date(message.date).toLocaleTimeString()}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-6">
+                            <div className="text-center">
+                              <p className="font-bold text-xl text-blue-400">
+                                {message.viewedCount.toLocaleString()}
+                              </p>
+                              <p className="text-xs text-gray-400">views</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="font-semibold text-lg text-gray-300">
+                                {message.sentCount.toLocaleString()}
+                              </p>
+                              <p className="text-xs text-gray-400">sent</p>
+                            </div>
+                            <div className="text-center">
+                              <p className="font-semibold text-lg text-green-400">
+                                {message.viewRate.toFixed(1)}%
+                              </p>
+                              <p className="text-xs text-gray-400">view rate</p>
+                            </div>
+                            {!message.isFree && (
+                              <>
+                                <div className="text-center">
+                                  <p className="font-semibold text-lg text-purple-400">
+                                    {message.purchasedCount}
+                                  </p>
+                                  <p className="text-xs text-gray-400">
+                                    purchases
+                                  </p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="font-semibold text-lg text-yellow-400">
+                                    ${message.revenue.toFixed(2)}
+                                  </p>
+                                  <p className="text-xs text-gray-400">
+                                    revenue
+                                  </p>
+                                </div>
+                              </>
+                            )}
+                          </div>
+
+                          {message.rank === 1 && (
+                            <div className="flex items-center">
+                              <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full">
+                                👑 Top Message
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="text-center text-gray-400 py-4 border-t border-gray-600 mt-4">
+                    <div className="flex justify-center space-x-8">
+                      <div>
+                        <p className="text-sm">
+                          Top Message Views:{" "}
+                          <span className="text-blue-400 font-semibold">
+                            {topPerformingMessages[0]?.viewedCount.toLocaleString() ||
+                              "0"}
+                          </span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm">
+                          Avg View Rate (Top 5):{" "}
+                          <span className="text-green-400 font-semibold">
+                            {topPerformingMessages.length > 0
+                              ? (
+                                  topPerformingMessages
+                                    .slice(0, 5)
+                                    .reduce(
+                                      (sum, msg) => sum + msg.viewRate,
+                                      0
+                                    ) /
+                                  Math.min(5, topPerformingMessages.length)
+                                ).toFixed(1)
+                              : 0}
+                            %
+                          </span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm">
+                          Total Messages Analyzed:{" "}
+                          <span className="text-purple-400 font-semibold">
+                            {topPerformingMessages.length.toLocaleString()}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center text-gray-400 py-8">
+                  <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-sm">
+                    No mass messaging data found. Start sending campaigns to see
+                    the top performing messages!
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* MM Campaign Leaderboards */}
+        <Card className="bg-gray-800 border-gray-700">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-white">
+              <Trophy className="h-5 w-5 text-yellow-400" />
+              <span>MM Campaign Champion Leaderboards</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {isLoadingMassMessages ? (
+                <div className="flex justify-center py-8">
+                  <div className="flex items-center text-gray-400">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                    <span>Loading MM leaderboard...</span>
+                  </div>
+                </div>
+              ) : massMessagingLeaderboard.length > 0 ? (
+                <>
+                  {massMessagingLeaderboard.map((model, index) => {
+                    const getTrophyIcon = (rank: number) => {
+                      switch (rank) {
+                        case 1:
+                          return <Trophy className="h-6 w-6 text-yellow-400" />;
+                        case 2:
+                          return <Medal className="h-6 w-6 text-gray-400" />;
+                        case 3:
+                          return <Award className="h-6 w-6 text-amber-600" />;
+                        default:
+                          return (
+                            <div className="h-6 w-6 rounded-full bg-gray-600 flex items-center justify-center text-white text-sm font-bold">
+                              {rank}
+                            </div>
+                          );
+                      }
+                    };
+
+                    const getRankStyle = (rank: number) => {
+                      switch (rank) {
+                        case 1:
+                          return "bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 border-yellow-500/30";
+                        case 2:
+                          return "bg-gradient-to-r from-gray-400/20 to-gray-500/20 border-gray-400/30";
+                        case 3:
+                          return "bg-gradient-to-r from-amber-600/20 to-amber-700/20 border-amber-600/30";
+                        default:
+                          return "bg-gray-700/50 border-gray-600/30";
+                      }
+                    };
+
+                    return (
+                      <div
+                        key={index}
+                        className={`flex items-center justify-between p-4 rounded-lg border ${getRankStyle(model.rank)} transition-all hover:scale-[1.02]`}
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center space-x-3">
+                            {getTrophyIcon(model.rank)}
+                            <div className="flex items-center space-x-3">
+                              {model.avatar ? (
+                                <img
+                                  src={`/api/image-proxy?url=${encodeURIComponent(model.avatar)}`}
+                                  alt={model.name}
+                                  className="h-10 w-10 rounded-full object-cover"
+                                />
+                              ) : (
+                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                                  <span className="text-white font-bold text-lg">
+                                    {model.name.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                              )}
+                              <div>
+                                <h3 className="font-semibold text-white">
+                                  {model.name}
+                                </h3>
+                                <p className="text-sm text-gray-400">
+                                  @{model.username}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="flex flex-col space-y-1">
+                            <div className="flex items-center justify-end space-x-4">
+                              <div className="text-right">
+                                <p className="font-bold text-2xl text-green-400">
+                                  ${model.totalRevenue.toLocaleString()}
+                                </p>
+                                <p className="text-xs text-gray-400">
+                                  total revenue
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-bold text-xl text-purple-400">
+                                  {model.totalViews.toLocaleString()}
+                                </p>
+                                <p className="text-xs text-gray-400">
+                                  total views
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-bold text-lg text-blue-400">
+                                  {model.viewRate.toFixed(1)}%
+                                </p>
+                                <p className="text-xs text-gray-400">
+                                  view rate
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-end space-x-3 mt-2">
+                              <div className="flex items-center space-x-1">
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <span className="text-xs text-green-400">
+                                  {model.freeMessages} free
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                                <span className="text-xs text-yellow-400">
+                                  {model.paidMessages} paid
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                                <span className="text-xs text-orange-400">
+                                  {model.totalPurchases} purchases
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-end space-x-4 mt-1">
+                              <p className="text-xs text-gray-500">
+                                Avg Price:{" "}
+                                <span className="text-green-300">
+                                  ${model.averagePrice.toFixed(2)}
+                                </span>
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {model.totalMessages} msgs •{" "}
+                                {model.totalSent.toLocaleString()} sent
+                              </p>
+                            </div>
+                          </div>
+
+                          {model.rank === 1 && (
+                            <div className="flex items-center justify-end mt-2">
+                              <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
+                                💰 Revenue Champion
+                              </span>
+                            </div>
+                          )}
+                          {model.rank === 2 && (
+                            <div className="flex items-center justify-end mt-2">
+                              <span className="text-xs bg-gray-500/20 text-gray-400 px-2 py-1 rounded-full">
+                                🥈 Runner-up
+                              </span>
+                            </div>
+                          )}
+                          {model.rank === 3 && (
+                            <div className="flex items-center justify-end mt-2">
+                              <span className="text-xs bg-amber-600/20 text-amber-600 px-2 py-1 rounded-full">
+                                🥉 Third Place
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="text-center text-gray-400 py-4 border-t border-gray-600 mt-4">
+                    <div className="flex justify-center space-x-8">
+                      <div>
+                        <p className="text-sm">
+                          Total Messages:{" "}
+                          <span className="text-orange-400 font-semibold">
+                            {totalMassMessages.toLocaleString()}
+                          </span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm">
+                          Total Revenue:{" "}
+                          <span className="text-green-400 font-semibold">
+                            $
+                            {massMessagingLeaderboard
+                              .reduce(
+                                (sum, model) => sum + model.totalRevenue,
+                                0
+                              )
+                              .toLocaleString()}
+                          </span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm">
+                          Total Views:{" "}
+                          <span className="text-purple-400 font-semibold">
+                            {massMessagingLeaderboard
+                              .reduce((sum, model) => sum + model.totalViews, 0)
+                              .toLocaleString()}
+                          </span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm">
+                          Avg View Rate:{" "}
+                          <span className="text-blue-400 font-semibold">
+                            {massMessagingLeaderboard.length > 0
+                              ? (
+                                  massMessagingLeaderboard.reduce(
+                                    (sum, model) => sum + model.viewRate,
+                                    0
+                                  ) / massMessagingLeaderboard.length
+                                ).toFixed(1)
+                              : 0}
+                            %
+                          </span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm">
+                          Total Purchases:{" "}
+                          <span className="text-orange-400 font-semibold">
+                            {massMessagingLeaderboard
+                              .reduce(
+                                (sum, model) => sum + model.totalPurchases,
+                                0
+                              )
+                              .toLocaleString()}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center text-gray-400 py-8">
+                  <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-sm">
+                    No mass messaging data found. Start sending campaigns to see
+                    the leaderboard!
+                  </p>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -1053,7 +1566,8 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                     <p className="text-sm">
                       Total Content Generated:{" "}
                       <span className="text-purple-400 font-semibold">
-                        {contentGenerationData.totalContentGenerated.toLocaleString()}                      </span>{" "}
+                        {contentGenerationData.totalContentGenerated.toLocaleString()}{" "}
+                      </span>{" "}
                       (+{contentGenerationData.contentGrowth}% growth)
                     </p>
                   </div>
@@ -1063,401 +1577,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                   <p className="text-sm">
                     No content generation data found. Generate some content to
                     see analytics!
-                  </p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Top Performing Messages Leaderboard */}
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-white">
-              <Trophy className="h-5 w-5 text-blue-400" />
-              <span>MM Campaigns Leaderboard</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {isLoadingMassMessages ? (
-                <div className="flex justify-center py-8">
-                  <div className="flex items-center text-gray-400">
-                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                    <span>Loading top performing messages...</span>
-                  </div>
-                </div>
-              ) : topPerformingMessages.length > 0 ? (
-                <>
-                  {topPerformingMessages.slice(0, 5).map((message, index) => {
-                    const getRankIcon = (rank: number) => {
-                      switch (rank) {
-                        case 1:
-                          return <Trophy className="h-5 w-5 text-yellow-400" />;
-                        case 2:
-                          return <Medal className="h-5 w-5 text-gray-400" />;
-                        case 3:
-                          return <Award className="h-5 w-5 text-amber-600" />;
-                        default:
-                          return <div className="h-5 w-5 rounded-full bg-gray-600 flex items-center justify-center text-white text-xs font-bold">{rank}</div>;
-                      }
-                    };
-
-                    const getRankStyle = (rank: number) => {
-                      switch (rank) {
-                        case 1:
-                          return "bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 border-yellow-500/30";
-                        case 2:
-                          return "bg-gradient-to-r from-gray-400/20 to-gray-500/20 border-gray-400/30";
-                        case 3:
-                          return "bg-gradient-to-r from-amber-600/20 to-amber-700/20 border-amber-600/30";
-                        default:
-                          return "bg-gray-700/50 border-gray-600/30";
-                      }
-                    };
-
-                    return (
-                      <div
-                        key={`message-${message.id}`}
-                        className={`flex flex-col p-4 rounded-lg border ${getRankStyle(message.rank)} transition-all hover:scale-[1.01]`}
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center space-x-3">
-                            {getRankIcon(message.rank)}
-                            <div className="flex items-center space-x-3">
-                              {message.modelAvatar ? (
-                                <img
-                                  src={`/api/image-proxy?url=${encodeURIComponent(message.modelAvatar)}`}
-                                  alt={message.modelName}
-                                  className="h-8 w-8 rounded-full object-cover"
-                                />
-                              ) : (
-                                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
-                                  <span className="text-white font-bold text-sm">
-                                    {message.modelName.charAt(0).toUpperCase()}
-                                  </span>
-                                </div>
-                              )}
-                              <div>
-                                <h3 className="font-medium text-white">{message.modelName}</h3>
-                                <p className="text-xs text-gray-400">@{message.modelUsername}</p>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Badge variant={message.isFree ? "secondary" : "default"}>
-                              {message.isFree ? "Free" : "Paid"}
-                            </Badge>
-                            {!message.isFree && message.price && (
-                              <Badge variant="outline" className="bg-green-50 text-green-700">
-                                ${message.price}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <div className="mb-3">
-                          <div 
-                            className="text-sm text-gray-300 line-clamp-2" 
-                            dangerouslySetInnerHTML={{ __html: message.textCropped }}
-                          />
-                          <p className="text-xs text-gray-500 mt-1">
-                            {new Date(message.date).toLocaleDateString()} at {new Date(message.date).toLocaleTimeString()}
-                          </p>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-6">
-                            <div className="text-center">
-                              <p className="font-bold text-xl text-blue-400">
-                                {message.viewedCount.toLocaleString()}
-                              </p>
-                              <p className="text-xs text-gray-400">views</p>
-                            </div>
-                            <div className="text-center">
-                              <p className="font-semibold text-lg text-gray-300">
-                                {message.sentCount.toLocaleString()}
-                              </p>
-                              <p className="text-xs text-gray-400">sent</p>
-                            </div>
-                            <div className="text-center">
-                              <p className="font-semibold text-lg text-green-400">
-                                {message.viewRate.toFixed(1)}%
-                              </p>
-                              <p className="text-xs text-gray-400">view rate</p>
-                            </div>
-                            {!message.isFree && (
-                              <>
-                                <div className="text-center">
-                                  <p className="font-semibold text-lg text-purple-400">
-                                    {message.purchasedCount}
-                                  </p>
-                                  <p className="text-xs text-gray-400">purchases</p>
-                                </div>
-                                <div className="text-center">
-                                  <p className="font-semibold text-lg text-yellow-400">
-                                    ${message.revenue.toFixed(2)}
-                                  </p>
-                                  <p className="text-xs text-gray-400">revenue</p>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                          
-                          {message.rank === 1 && (
-                            <div className="flex items-center">
-                              <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full">
-                                👑 Top Message
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                  <div className="text-center text-gray-400 py-4 border-t border-gray-600 mt-4">
-                    <div className="flex justify-center space-x-8">
-                      <div>
-                        <p className="text-sm">
-                          Top Message Views:{" "}
-                          <span className="text-blue-400 font-semibold">
-                            {topPerformingMessages[0]?.viewedCount.toLocaleString() || '0'}
-                          </span>
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm">
-                          Avg View Rate (Top 5):{" "}
-                          <span className="text-green-400 font-semibold">
-                            {topPerformingMessages.length > 0 
-                              ? (topPerformingMessages.slice(0, 5).reduce((sum, msg) => sum + msg.viewRate, 0) / Math.min(5, topPerformingMessages.length)).toFixed(1)
-                              : 0}%
-                          </span>
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm">
-                          Total Messages Analyzed:{" "}
-                          <span className="text-purple-400 font-semibold">
-                            {topPerformingMessages.length.toLocaleString()}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center text-gray-400 py-8">
-                  <Eye className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-sm">
-                    No mass messaging data found. Start sending campaigns to see the top performing messages!
-                  </p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* MM Campaign Leaderboards */}
-        <Card className="bg-gray-800 border-gray-700">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-white">
-              <Trophy className="h-5 w-5 text-yellow-400" />
-              <span>MM Campaign Champion Leaderboards</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {isLoadingMassMessages ? (
-                <div className="flex justify-center py-8">
-                  <div className="flex items-center text-gray-400">
-                    <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                    <span>Loading MM leaderboard...</span>
-                  </div>
-                </div>
-              ) : massMessagingLeaderboard.length > 0 ? (
-                <>
-                  {massMessagingLeaderboard.map((model, index) => {
-                    const getTrophyIcon = (rank: number) => {
-                      switch (rank) {
-                        case 1:
-                          return <Trophy className="h-6 w-6 text-yellow-400" />;
-                        case 2:
-                          return <Medal className="h-6 w-6 text-gray-400" />;
-                        case 3:
-                          return <Award className="h-6 w-6 text-amber-600" />;
-                        default:
-                          return <div className="h-6 w-6 rounded-full bg-gray-600 flex items-center justify-center text-white text-sm font-bold">{rank}</div>;
-                      }
-                    };
-
-                    const getRankStyle = (rank: number) => {
-                      switch (rank) {
-                        case 1:
-                          return "bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 border-yellow-500/30";
-                        case 2:
-                          return "bg-gradient-to-r from-gray-400/20 to-gray-500/20 border-gray-400/30";
-                        case 3:
-                          return "bg-gradient-to-r from-amber-600/20 to-amber-700/20 border-amber-600/30";
-                        default:
-                          return "bg-gray-700/50 border-gray-600/30";
-                      }
-                    };
-
-                    return (
-                      <div
-                        key={index}
-                        className={`flex items-center justify-between p-4 rounded-lg border ${getRankStyle(model.rank)} transition-all hover:scale-[1.02]`}
-                      >
-                        <div className="flex items-center space-x-4">
-                          <div className="flex items-center space-x-3">
-                            {getTrophyIcon(model.rank)}
-                            <div className="flex items-center space-x-3">
-                              {model.avatar ? (
-                                <img
-                                  src={`/api/image-proxy?url=${encodeURIComponent(model.avatar)}`}
-                                  alt={model.name}
-                                  className="h-10 w-10 rounded-full object-cover"
-                                />
-                              ) : (
-                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                                  <span className="text-white font-bold text-lg">
-                                    {model.name.charAt(0).toUpperCase()}
-                                  </span>
-                                </div>
-                              )}
-                              <div>
-                                <h3 className="font-semibold text-white">{model.name}</h3>
-                                <p className="text-sm text-gray-400">@{model.username}</p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="flex flex-col space-y-1">
-                            <div className="flex items-center justify-end space-x-4">
-                              <div className="text-right">
-                                <p className="font-bold text-2xl text-green-400">
-                                  ${model.totalRevenue.toLocaleString()}
-                                </p>
-                                <p className="text-xs text-gray-400">total revenue</p>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-bold text-xl text-purple-400">
-                                  {model.totalViews.toLocaleString()}
-                                </p>
-                                <p className="text-xs text-gray-400">total views</p>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-bold text-lg text-blue-400">
-                                  {model.viewRate.toFixed(1)}%
-                                </p>
-                                <p className="text-xs text-gray-400">view rate</p>
-                              </div>
-                            </div>
-                            
-                            <div className="flex items-center justify-end space-x-3 mt-2">
-                              <div className="flex items-center space-x-1">
-                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                <span className="text-xs text-green-400">{model.freeMessages} free</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                                <span className="text-xs text-yellow-400">{model.paidMessages} paid</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                                <span className="text-xs text-orange-400">{model.totalPurchases} purchases</span>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center justify-end space-x-4 mt-1">
-                              <p className="text-xs text-gray-500">
-                                Avg Price: <span className="text-green-300">${model.averagePrice.toFixed(2)}</span>
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {model.totalMessages} msgs • {model.totalSent.toLocaleString()} sent
-                              </p>
-                            </div>
-                          </div>
-                          
-                          {model.rank === 1 && (
-                            <div className="flex items-center justify-end mt-2">
-                              <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
-                                💰 Revenue Champion
-                              </span>
-                            </div>
-                          )}
-                          {model.rank === 2 && (
-                            <div className="flex items-center justify-end mt-2">
-                              <span className="text-xs bg-gray-500/20 text-gray-400 px-2 py-1 rounded-full">
-                                🥈 Runner-up
-                              </span>
-                            </div>
-                          )}
-                          {model.rank === 3 && (
-                            <div className="flex items-center justify-end mt-2">
-                              <span className="text-xs bg-amber-600/20 text-amber-600 px-2 py-1 rounded-full">
-                                🥉 Third Place
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                  <div className="text-center text-gray-400 py-4 border-t border-gray-600 mt-4">
-                    <div className="flex justify-center space-x-8">
-                      <div>
-                        <p className="text-sm">
-                          Total Messages:{" "}
-                          <span className="text-orange-400 font-semibold">
-                            {totalMassMessages.toLocaleString()}
-                          </span>
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm">
-                          Total Revenue:{" "}
-                          <span className="text-green-400 font-semibold">
-                            ${massMessagingLeaderboard.reduce((sum, model) => sum + model.totalRevenue, 0).toLocaleString()}
-                          </span>
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm">
-                          Total Views:{" "}
-                          <span className="text-purple-400 font-semibold">
-                            {massMessagingLeaderboard.reduce((sum, model) => sum + model.totalViews, 0).toLocaleString()}
-                          </span>
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm">
-                          Avg View Rate:{" "}
-                          <span className="text-blue-400 font-semibold">
-                            {massMessagingLeaderboard.length > 0 
-                              ? (massMessagingLeaderboard.reduce((sum, model) => sum + model.viewRate, 0) / massMessagingLeaderboard.length).toFixed(1)
-                              : 0}%
-                          </span>
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm">
-                          Total Purchases:{" "}
-                          <span className="text-orange-400 font-semibold">
-                            {massMessagingLeaderboard.reduce((sum, model) => sum + model.totalPurchases, 0).toLocaleString()}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center text-gray-400 py-8">
-                  <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-sm">
-                    No mass messaging data found. Start sending campaigns to see the leaderboard!
                   </p>
                 </div>
               )}
