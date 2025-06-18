@@ -66,7 +66,9 @@ export default function AdminModelsPage() {
   const [profileData, setProfileData] = useState<OnlyFansProfile | null>(null);
   const [statsData, setStatsData] = useState<OnlyFansStats | null>(null);
   const [postsData, setPostsData] = useState<OnlyFansPost[]>([]);
+  const [accountsData, setAccountsData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [accountsLoading, setAccountsLoading] = useState(true);
   const [error, setError] = useState("");
 
   const fetchOnlyFansData = async (username: string, endpoint: string) => {
@@ -81,6 +83,26 @@ export default function AdminModelsPage() {
       throw err;
     }
   };
+
+  const fetchAccounts = async () => {
+    try {
+      const response = await fetch('/api/onlyfans/models?endpoint=accounts');
+      if (!response.ok) {
+        throw new Error('Failed to fetch accounts');
+      }
+      const data = await response.json();
+      setAccountsData(data.accounts || data || []);
+    } catch (err) {
+      console.error('Error fetching accounts:', err);
+      setError('Failed to load OnlyFans accounts');
+    } finally {
+      setAccountsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAccounts();
+  }, []);
 
   const handleSearch = async () => {
     if (!searchUsername.trim()) return;
@@ -152,27 +174,79 @@ export default function AdminModelsPage() {
         )}
       </div>
 
-      {/* Model Data Display */}
-      {selectedModel && !loading && (
-        <Tabs defaultValue="accounts" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="accounts">All Accounts</TabsTrigger>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="stats">Statistics</TabsTrigger>
-            <TabsTrigger value="posts">Recent Posts</TabsTrigger>
-            <TabsTrigger value="earnings">Earnings</TabsTrigger>
-          </TabsList>
+      {/* OnlyFans Data Display */}
+      <Tabs defaultValue="accounts" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="accounts">All Accounts</TabsTrigger>
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="stats">Statistics</TabsTrigger>
+          <TabsTrigger value="posts">Recent Posts</TabsTrigger>
+          <TabsTrigger value="earnings">Earnings</TabsTrigger>
+        </TabsList>
 
           <TabsContent value="accounts" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>All Accounts</CardTitle>
+                <CardTitle>Connected OnlyFans Accounts</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-center text-gray-600 dark:text-gray-400">
-                  <p>List of all OnlyFans accounts will be displayed here</p>
-                  <p className="text-sm mt-2">This section will show all available accounts with some basic information</p>
-                </div>
+                {accountsLoading ? (
+                  <div className="flex items-center justify-center h-40">
+                    <div className="flex flex-col items-center space-y-4">
+                      <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-500/30 border-t-blue-500"></div>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">Loading accounts...</p>
+                    </div>
+                  </div>
+                ) : accountsData.length > 0 ? (
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {accountsData.map((account, index) => (
+                      <Card key={account.id || index} className="p-4">
+                        <div className="flex items-center space-x-4">
+                          {account.avatar && (
+                            <img 
+                              src={account.avatar} 
+                              alt={account.username || account.name}
+                              className="w-12 h-12 rounded-full object-cover"
+                            />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-lg truncate">
+                              {account.name || account.username || 'Unknown'}
+                            </h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                              @{account.username || 'No username'}
+                            </p>
+                            {account.subscribersCount && (
+                              <p className="text-xs text-gray-500">
+                                {account.subscribersCount.toLocaleString()} subscribers
+                              </p>
+                            )}
+                          </div>
+                          {account.isVerified && (
+                            <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                              Verified
+                            </Badge>
+                          )}
+                        </div>
+                        {account.about && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-3 line-clamp-2">
+                            {account.about}
+                          </p>
+                        )}
+                        <div className="flex justify-between items-center mt-4 text-xs text-gray-500">
+                          <span>Posts: {account.postsCount || 0}</span>
+                          <span>Likes: {account.likesCount || 0}</span>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-600 dark:text-gray-400 py-8">
+                    <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <p>No OnlyFans accounts found</p>
+                    <p className="text-sm mt-2">Make sure your API key is configured correctly</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -384,8 +458,7 @@ export default function AdminModelsPage() {
               </CardContent>
             </Card>
           </TabsContent>
-        </Tabs>
-      )}
+      </Tabs>
 
       {/* Loading State */}
       {loading && (
@@ -399,24 +472,7 @@ export default function AdminModelsPage() {
         </div>
       )}
 
-      {/* No Data State */}
-      {!selectedModel && !loading && (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              OnlyFans Model Analytics
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Search for an OnlyFans username to view detailed analytics and performance data
-            </p>
-            <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
-              <ExternalLink className="w-4 h-4" />
-              <span>Powered by OnlyFansAPI.com</span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      
     </div>
   );
 }
