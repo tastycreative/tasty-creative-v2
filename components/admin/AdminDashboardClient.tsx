@@ -213,6 +213,14 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             name: string;
             username: string;
             totalMessages: number;
+            totalViews: number;
+            totalSent: number;
+            viewRate: number;
+            paidMessages: number;
+            freeMessages: number;
+            totalRevenue: number;
+            averagePrice: number;
+            totalPurchases: number;
             avatar?: string;
             rank: number;
           }> = [];
@@ -234,20 +242,35 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                   let totalSent = 0;
                   let paidMessages = 0;
                   let freeMessages = 0;
+                  let totalRevenue = 0;
+                  let totalPurchases = 0;
+                  let priceSum = 0;
+                  let paidMessageCount = 0;
 
                   if (Array.isArray(messages)) {
                     messages.forEach((msg) => {
                       totalViews += msg.viewedCount || 0;
                       totalSent += msg.sentCount || 0;
+                      totalPurchases += msg.purchasedCount || 0;
+                      
                       if (msg.isFree) {
                         freeMessages++;
                       } else {
                         paidMessages++;
+                        if (msg.price) {
+                          const price = parseFloat(msg.price);
+                          if (!isNaN(price)) {
+                            priceSum += price;
+                            paidMessageCount++;
+                            totalRevenue += price * (msg.purchasedCount || 0);
+                          }
+                        }
                       }
                     });
                   }
 
                   const viewRate = totalSent > 0 ? (totalViews / totalSent) * 100 : 0;
+                  const averagePrice = paidMessageCount > 0 ? priceSum / paidMessageCount : 0;
 
                   // Add to leaderboard data
                   leaderboardData.push({
@@ -259,6 +282,9 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                     viewRate,
                     paidMessages,
                     freeMessages,
+                    totalRevenue,
+                    averagePrice,
+                    totalPurchases,
                     avatar: account.onlyfans_user_data?.avatar || account.avatar,
                     rank: 0, // Will be set after sorting
                   });
@@ -269,8 +295,11 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             }
           }
 
-          // Sort by view count (primary) then view rate (secondary)
+          // Sort by total revenue (primary), then view count (secondary), then view rate (tertiary)
           leaderboardData.sort((a, b) => {
+            if (b.totalRevenue !== a.totalRevenue) {
+              return b.totalRevenue - a.totalRevenue;
+            }
             if (b.totalViews !== a.totalViews) {
               return b.totalViews - a.totalViews;
             }
@@ -1040,20 +1069,26 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                           <div className="flex flex-col space-y-1">
                             <div className="flex items-center justify-end space-x-4">
                               <div className="text-right">
-                                <p className="font-bold text-2xl text-purple-400">
+                                <p className="font-bold text-2xl text-green-400">
+                                  ${model.totalRevenue.toLocaleString()}
+                                </p>
+                                <p className="text-xs text-gray-400">total revenue</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-bold text-xl text-purple-400">
                                   {model.totalViews.toLocaleString()}
                                 </p>
                                 <p className="text-xs text-gray-400">total views</p>
                               </div>
                               <div className="text-right">
-                                <p className="font-bold text-xl text-green-400">
+                                <p className="font-bold text-lg text-blue-400">
                                   {model.viewRate.toFixed(1)}%
                                 </p>
                                 <p className="text-xs text-gray-400">view rate</p>
                               </div>
                             </div>
                             
-                            <div className="flex items-center justify-end space-x-2 mt-2">
+                            <div className="flex items-center justify-end space-x-3 mt-2">
                               <div className="flex items-center space-x-1">
                                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                                 <span className="text-xs text-green-400">{model.freeMessages} free</span>
@@ -1062,17 +1097,26 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                                 <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
                                 <span className="text-xs text-yellow-400">{model.paidMessages} paid</span>
                               </div>
+                              <div className="flex items-center space-x-1">
+                                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                                <span className="text-xs text-orange-400">{model.totalPurchases} purchases</span>
+                              </div>
                             </div>
 
-                            <p className="text-xs text-gray-500 mt-1">
-                              {model.totalMessages} messages • {model.totalSent.toLocaleString()} sent
-                            </p>
+                            <div className="flex items-center justify-end space-x-4 mt-1">
+                              <p className="text-xs text-gray-500">
+                                Avg Price: <span className="text-green-300">${model.averagePrice.toFixed(2)}</span>
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {model.totalMessages} msgs • {model.totalSent.toLocaleString()} sent
+                              </p>
+                            </div>
                           </div>
                           
                           {model.rank === 1 && (
                             <div className="flex items-center justify-end mt-2">
-                              <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-full">
-                                🏆 View Champion
+                              <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-full">
+                                💰 Revenue Champion
                               </span>
                             </div>
                           )}
@@ -1106,6 +1150,14 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                       </div>
                       <div>
                         <p className="text-sm">
+                          Total Revenue:{" "}
+                          <span className="text-green-400 font-semibold">
+                            ${massMessagingLeaderboard.reduce((sum, model) => sum + model.totalRevenue, 0).toLocaleString()}
+                          </span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm">
                           Total Views:{" "}
                           <span className="text-purple-400 font-semibold">
                             {massMessagingLeaderboard.reduce((sum, model) => sum + model.totalViews, 0).toLocaleString()}
@@ -1115,10 +1167,18 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                       <div>
                         <p className="text-sm">
                           Avg View Rate:{" "}
-                          <span className="text-green-400 font-semibold">
+                          <span className="text-blue-400 font-semibold">
                             {massMessagingLeaderboard.length > 0 
                               ? (massMessagingLeaderboard.reduce((sum, model) => sum + model.viewRate, 0) / massMessagingLeaderboard.length).toFixed(1)
                               : 0}%
+                          </span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm">
+                          Total Purchases:{" "}
+                          <span className="text-orange-400 font-semibold">
+                            {massMessagingLeaderboard.reduce((sum, model) => sum + model.totalPurchases, 0).toLocaleString()}
                           </span>
                         </p>
                       </div>
