@@ -149,7 +149,7 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed md:sticky top-0 h-screen transition-all duration-300 ease-in-out",
+          "fixed md:sticky z-50 top-0 h-screen transition-all duration-300 ease-in-out",
           "bg-white/95 backdrop-blur-md border-r border-gray-200",
           "shadow-[4px_0_24px_rgba(0,0,0,0.06)]",
           isCollapsed ? "w-16" : "w-64",

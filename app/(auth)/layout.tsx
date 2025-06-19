@@ -15,7 +15,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-black">
       {/* Left side - Auth Form */}
       <div className="flex-1 flex flex-col justify-center px-4 sm:px-6 lg:flex-none lg:px-20 xl:px-24 lg:w-1/2">
         <div className="mx-auto w-full max-w-sm lg:w-96">
