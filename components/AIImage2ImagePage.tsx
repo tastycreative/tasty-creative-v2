@@ -1372,16 +1372,9 @@ const AIImage2ImagePage = () => {
                     placeholder="Describe the changes you want to make to the masked areas..."
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    className="bg-black/40 border-white/20 text-white rounded-xl min-h-[120px] resize-none focus:border-cyan-400/50 focus:ring-cyan-400/20 transition-all text-base leading-relaxed"
+                    className="bg-black/40 border-white/20 text-white rounded-xl min-h-[120px] max-h-[200px] overflow-y-auto resize-none focus:border-cyan-400/50 focus:ring-cyan-400/20 transition-all text-base leading-relaxed"
                     rows={5}
                   />
-                  {instagramData && (
-                    <div className="absolute top-2 right-2">
-                      <div className="bg-pink-500/20 border border-pink-500/30 rounded-lg px-2 py-1 text-xs text-pink-300">
-                        From Instagram
-                      </div>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>

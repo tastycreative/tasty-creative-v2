@@ -82,7 +82,7 @@ export default function EnhancedAIInstagramScraperPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingImages, setIsLoadingImages] = useState(false); // New state for image loading
+  const [isLoadingImages, setIsLoadingImages] = useState(false);
   const [results, setResults] = useState<ScrapedPost[]>([]);
   const [images, setImages] = useState<DownloadedImage[]>([]);
   const [status, setStatus] = useState("");
@@ -114,10 +114,20 @@ export default function EnhancedAIInstagramScraperPage() {
     existing_urls_count: 0,
   });
 
+  // Enhanced error handling state
+  const [connectionHealth, setConnectionHealth] = useState(true);
+  const [lastDataRefresh, setLastDataRefresh] = useState<Date | null>(null);
+  const [autoRefreshInterval, setAutoRefreshInterval] =
+    useState<NodeJS.Timeout | null>(null);
+
   // Portal mounting state
   const [isMounted, setIsMounted] = useState(false);
 
-  const API_BASE = "https://corp-thoughts-nice-refresh.trycloudflare.com/api";
+  // Updated to use your Cloudflare tunnel URL
+  const API_BASE =
+    "https://usual-reception-finances-conversion.trycloudflare.com/api";
+  const IMAGE_BASE =
+    "https://usual-reception-finances-conversion.trycloudflare.com"; // For serving images
 
   // Prevent background scrolling when modals are open
   useEffect(() => {
@@ -135,6 +145,15 @@ export default function EnhancedAIInstagramScraperPage() {
     };
   }, [showImageModal, showClearDataModal]);
 
+  // Cleanup intervals when component unmounts
+  useEffect(() => {
+    return () => {
+      if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+      }
+    };
+  }, [autoRefreshInterval]);
+
   // Test API connection and get backend status on component mount
   useEffect(() => {
     testConnection();
@@ -142,6 +161,23 @@ export default function EnhancedAIInstagramScraperPage() {
     checkSheetsStatus();
     setIsMounted(true);
   }, []);
+
+  // Enhanced connection health check
+  const checkConnectionHealth = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/test`, {
+        method: "GET",
+        signal: AbortSignal.timeout(10000), // 10 second timeout for health check
+      });
+      const isHealthy = response.ok;
+      setConnectionHealth(isHealthy);
+      return isHealthy;
+    } catch (error) {
+      console.log("Health check failed:", error);
+      setConnectionHealth(false);
+      return false;
+    }
+  };
 
   const testConnection = async () => {
     try {
@@ -154,14 +190,16 @@ export default function EnhancedAIInstagramScraperPage() {
           openai_available: data.openai_available,
           sheets_available: data.sheets_available,
         }));
+        setConnectionHealth(true);
         setStatus(
           "✅ Connected to enhanced scraper backend with duplicate prevention"
         );
       }
     } catch (err) {
       setError(
-        "❌ Cannot connect to backend. Make sure the Python server is running on port 5001"
+        "❌ Cannot connect to backend. Make sure the Python server is running on port 5001 with Cloudflare tunnel active"
       );
+      setConnectionHealth(false);
       setBackendStatus({
         connected: false,
         openai_available: false,
@@ -271,6 +309,79 @@ export default function EnhancedAIInstagramScraperPage() {
     await checkSheetsStatus();
   };
 
+  // Manual data refresh function
+  const manualDataRefresh = async () => {
+    setStatus("🔄 Manually refreshing data...");
+    setIsLoadingImages(true);
+
+    try {
+      await loadImages();
+      await checkSheetsStatus();
+      setLastDataRefresh(new Date());
+      setStatus(
+        `✅ Data refreshed successfully at ${new Date().toLocaleTimeString()}`
+      );
+
+      // Clear status after 3 seconds
+      setTimeout(() => setStatus(""), 3000);
+    } catch (error) {
+      console.error("Manual refresh failed:", error);
+      setStatus("❌ Manual refresh failed. Check connection.");
+    } finally {
+      setIsLoadingImages(false);
+    }
+  };
+
+  // Auto-monitoring function
+  const startAutoMonitoring = () => {
+    if (autoRefreshInterval) {
+      clearInterval(autoRefreshInterval);
+    }
+
+    let checkCount = 0;
+    const maxChecks = 10; // Check for 10 minutes (every 60 seconds)
+
+    const interval = setInterval(async () => {
+      checkCount++;
+      console.log(`Auto-monitoring check ${checkCount}/${maxChecks}`);
+
+      try {
+        const oldImageCount = images.length;
+        await loadImages();
+        await checkSheetsStatus();
+
+        const newImageCount = images.length;
+        if (newImageCount > oldImageCount) {
+          const newImages = newImageCount - oldImageCount;
+          setStatus(
+            `🎉 Found ${newImages} new image${newImages > 1 ? "s" : ""}! Scraping completed successfully.`
+          );
+          setError(""); // Clear any existing error
+          clearInterval(interval);
+          setAutoRefreshInterval(null);
+          return;
+        }
+      } catch (error) {
+        console.log(`Auto-monitoring check ${checkCount} failed:`, error);
+      }
+
+      if (checkCount >= maxChecks) {
+        console.log("Auto-monitoring completed without finding new images");
+        setStatus(
+          "⏹️ Auto-monitoring completed. Try manual refresh if expecting more data."
+        );
+        clearInterval(interval);
+        setAutoRefreshInterval(null);
+      }
+    }, 60000); // Check every 60 seconds
+
+    setAutoRefreshInterval(interval);
+    setStatus(
+      "🔍 Auto-monitoring active - checking for new images every minute..."
+    );
+  };
+
+  // Enhanced handleScrape with robust error handling
   const handleScrape = async () => {
     if (!username.trim()) {
       setError("Please enter a username");
@@ -293,7 +404,20 @@ export default function EnhancedAIInstagramScraperPage() {
       ai_analyses_completed: 0,
     });
 
+    // Create AbortController for timeout handling
+    const controller = new AbortController();
+    let timeoutId: NodeJS.Timeout;
+
     try {
+      // Set a longer timeout (5 minutes) for scraping operations
+      timeoutId = setTimeout(() => {
+        controller.abort();
+      }, 300000); // 5 minutes
+
+      setStatus(
+        "🤖 Processing posts and analyzing with AI... This may take several minutes."
+      );
+
       const response = await fetch(`${API_BASE}/scrape`, {
         method: "POST",
         headers: {
@@ -303,7 +427,24 @@ export default function EnhancedAIInstagramScraperPage() {
           username: username.replace("@", ""),
           force_rescrape: forceRescrape,
         }),
+        signal: controller.signal,
       });
+
+      // Clear the timeout since request completed
+      clearTimeout(timeoutId);
+
+      // Check if response is ok
+      if (!response.ok) {
+        // Try to get error message from response
+        let errorMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+        } catch {
+          // If we can't parse the error response, use the status
+        }
+        throw new Error(errorMessage);
+      }
 
       const data: ScrapingResult = await response.json();
 
@@ -317,13 +458,145 @@ export default function EnhancedAIInstagramScraperPage() {
       } else {
         setError(data.message || "Scraping failed");
       }
-    } catch (err) {
-      setError(
-        "Failed to connect to backend. Check if Python server is running."
-      );
+    } catch (err: any) {
+      console.error("Scraping error:", err);
+
+      // Clear timeout if it exists
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+
+      // Handle different types of errors more specifically
+      if (err.name === "AbortError") {
+        // Request was aborted due to our timeout
+        setError(
+          "⏱️ Request timed out after 5 minutes. The scraping is likely still running in the background."
+        );
+        setStatus("⚠️ Checking for completed data...");
+
+        // Auto-refresh data after a delay
+        setTimeout(async () => {
+          try {
+            await loadImages();
+            await checkSheetsStatus();
+            setStatus("🔄 Data refreshed. Check if new images appeared above.");
+          } catch (refreshError) {
+            console.error("Error refreshing data:", refreshError);
+            setStatus(
+              "⚠️ Auto-refresh failed. Try the manual refresh button below."
+            );
+          }
+        }, 3000);
+      } else if (
+        err.message?.includes("Failed to fetch") ||
+        err.name === "TypeError"
+      ) {
+        // Network/fetch error - most common case
+        setError(
+          "🌐 Connection lost during scraping. The process is likely still running on the server."
+        );
+        setStatus("⚠️ Don't worry! Checking for completed data...");
+
+        // Auto-refresh data after a short delay
+        setTimeout(async () => {
+          try {
+            await loadImages();
+            await checkSheetsStatus();
+            setStatus(
+              "🔄 Data refreshed automatically. Check the images section above!"
+            );
+
+            // Clear the error after successful refresh
+            setTimeout(() => {
+              setError("");
+            }, 5000);
+          } catch (refreshError) {
+            console.error("Error during auto-refresh:", refreshError);
+            setStatus(
+              "⚠️ Auto-refresh had issues. Please try manual refresh below."
+            );
+          }
+        }, 2000);
+      } else if (
+        err.message?.includes("NetworkError") ||
+        err.message?.includes("network")
+      ) {
+        // Network-specific errors
+        setError(
+          "📡 Network connectivity issue. The scraping may still be running on the server."
+        );
+        setStatus("⚠️ Attempting to reconnect and check progress...");
+
+        setTimeout(async () => {
+          await loadImages();
+          await checkSheetsStatus();
+          setStatus("🔄 Reconnected. Check if new images appeared.");
+        }, 5000);
+      } else if (err.message?.includes("CORS")) {
+        // CORS-specific errors
+        setError(
+          "🔒 CORS error detected. The backend may still be processing your request."
+        );
+        setStatus("⚠️ Refreshing data...");
+
+        setTimeout(async () => {
+          await loadImages();
+          await checkSheetsStatus();
+          setStatus("🔄 Data refreshed despite CORS issue.");
+        }, 3000);
+      } else {
+        // Generic error handling
+        const errorMessage = err.message || "Unknown error occurred";
+
+        if (errorMessage.includes("timeout") || errorMessage.includes("time")) {
+          setError(
+            `⏱️ Timeout: ${errorMessage}. The scraping might still be running.`
+          );
+        } else {
+          setError(
+            `❌ Error: ${errorMessage}. The scraping might still be running.`
+          );
+        }
+
+        setStatus("⚠️ Checking if any data was processed...");
+
+        // Always try to refresh data on any error
+        setTimeout(async () => {
+          try {
+            await loadImages();
+            await checkSheetsStatus();
+            setStatus("🔄 Data check complete. Look for new images above.");
+          } catch (refreshError) {
+            console.error("Final refresh attempt failed:", refreshError);
+            setStatus("❌ Unable to check for new data. Try manual refresh.");
+          }
+        }, 4000);
+      }
     } finally {
-      setIsLoading(false);
+      // Always set loading to false
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 1000); // Small delay to let status messages show
     }
+  };
+
+  // Pre-flight check before scraping
+  const handleScrapeWithPreflightCheck = async () => {
+    // Check connection health before starting
+    setStatus("🔍 Checking backend connection...");
+    const isHealthy = await checkConnectionHealth();
+
+    if (!isHealthy) {
+      setError(
+        "❌ Cannot connect to backend. Please check if the server is running and tunnel is active."
+      );
+      return;
+    }
+
+    setStatus("✅ Backend connection verified. Starting scrape...");
+
+    // Call the main scrape function
+    await handleScrape();
   };
 
   const handleClearData = async () => {
@@ -459,9 +732,9 @@ export default function EnhancedAIInstagramScraperPage() {
       prompt = `Transform this image: ${image.filename}`;
     }
 
-    // Prepare data to transfer
+    // Prepare data to transfer - Updated to use Cloudflare tunnel URL
     const transferData = {
-      imageUrl: `http://localhost:5001${image.url}`,
+      imageUrl: `${IMAGE_BASE}${image.url}`, // Updated to use tunnel URL
       prompt: prompt,
       filename: image.filename,
       originalPost: post
@@ -520,9 +793,9 @@ export default function EnhancedAIInstagramScraperPage() {
           </p>
         </div>
 
-        {/* Enhanced Status Bar with Duplicate Prevention Info */}
+        {/* Enhanced Status Bar with Connection Health */}
         <div className="bg-white/5 dark:bg-gray-800/20 backdrop-blur-sm border border-white/10 dark:border-gray-700/20 rounded-2xl p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {/* Backend Connection */}
             <div className="flex items-center gap-3">
               <div
@@ -537,7 +810,24 @@ export default function EnhancedAIInstagramScraperPage() {
                     : "Backend Offline"}
                 </div>
                 <div className="text-xs text-gray-400">
-                  Flask API {backendStatus.connected ? "ready" : "unavailable"}
+                  Port 5001 {backendStatus.connected ? "ready" : "unavailable"}
+                </div>
+              </div>
+            </div>
+
+            {/* Connection Health */}
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-3 h-3 rounded-full ${connectionHealth ? "bg-green-400 animate-pulse" : "bg-orange-400"}`}
+              ></div>
+              <div>
+                <div
+                  className={`font-medium ${connectionHealth ? "text-green-400" : "text-orange-400"}`}
+                >
+                  Connection {connectionHealth ? "Healthy" : "Issues"}
+                </div>
+                <div className="text-xs text-gray-400">
+                  Network {connectionHealth ? "stable" : "unstable"}
                 </div>
               </div>
             </div>
@@ -626,7 +916,7 @@ export default function EnhancedAIInstagramScraperPage() {
               </div>
               <div className="sm:self-end flex gap-3">
                 <button
-                  onClick={handleScrape}
+                  onClick={handleScrapeWithPreflightCheck}
                   disabled={
                     isLoading || !username.trim() || !backendStatus.connected
                   }
@@ -697,6 +987,85 @@ export default function EnhancedAIInstagramScraperPage() {
           </div>
         </div>
 
+        {/* Progress Indicator for Long Operations */}
+        {isLoading && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/30 rounded-xl p-6">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                <div className="absolute inset-0 w-8 h-8 border-2 border-blue-500/30 rounded-full animate-pulse"></div>
+              </div>
+
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200">
+                    Scraping in Progress
+                  </h3>
+                  <div className="bg-blue-500/20 px-2 py-1 rounded text-xs text-blue-600 dark:text-blue-400">
+                    This may take 3-5 minutes
+                  </div>
+                </div>
+
+                <div className="text-sm text-blue-700 dark:text-blue-300 mb-3">
+                  Processing @{username} - Downloading images and analyzing with
+                  AI...
+                </div>
+
+                {/* Progress Steps */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span className="text-gray-600 dark:text-gray-400">
+                      Connected to Instagram
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    {backendStatus.openai_available ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-yellow-500" />
+                    )}
+                    <span className="text-gray-600 dark:text-gray-400">
+                      AI Analysis{" "}
+                      {backendStatus.openai_available ? "Active" : "Limited"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
+                    <span className="text-blue-600 dark:text-blue-400">
+                      Processing posts and images...
+                    </span>
+                  </div>
+                </div>
+
+                {/* Helpful Tips */}
+                <div className="mt-4 p-3 bg-blue-100 dark:bg-blue-800/30 rounded-lg">
+                  <p className="text-xs text-blue-700 dark:text-blue-300">
+                    💡 <strong>Tip:</strong> The process continues even if the
+                    page shows an error. Check the "Downloaded Images" section
+                    below for real-time updates.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Cancel Button (Optional) */}
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => {
+                  setIsLoading(false);
+                  setStatus(
+                    "⚠️ Scraping may still be running in background. Check images section for updates."
+                  );
+                }}
+                className="px-4 py-2 text-sm bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
+              >
+                Hide Progress (Keep Running)
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Status Messages */}
         {(status || error) && (
           <div className="space-y-2">
@@ -708,10 +1077,103 @@ export default function EnhancedAIInstagramScraperPage() {
                 </span>
               </div>
             )}
+
             {error && (
-              <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20">
-                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-                <span className="text-red-700 dark:text-red-400">{error}</span>
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                  <span className="text-red-700 dark:text-red-400">
+                    {error}
+                  </span>
+                </div>
+
+                {/* Enhanced Error Recovery Section */}
+                {error &&
+                  (error.includes("Connection lost") ||
+                    error.includes("Failed to fetch") ||
+                    error.includes("timeout")) && (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/30 rounded-xl p-4">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0">
+                          <div className="w-8 h-8 bg-blue-100 dark:bg-blue-800/30 rounded-full flex items-center justify-center">
+                            <RefreshCw className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          </div>
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium text-blue-800 dark:text-blue-200 mb-2">
+                            Background Processing Active
+                          </h4>
+                          <div className="text-sm text-blue-700 dark:text-blue-300 space-y-2 mb-4">
+                            <p>
+                              ✅ The scraping is likely still running on the
+                              server
+                            </p>
+                            <p>
+                              ✅ Data will be automatically saved to Google
+                              Sheets
+                            </p>
+                            <p>✅ Images will appear as they're processed</p>
+                            {lastDataRefresh && (
+                              <p>
+                                📅 Last refresh:{" "}
+                                {lastDataRefresh.toLocaleTimeString()}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              onClick={manualDataRefresh}
+                              disabled={isLoadingImages}
+                              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                            >
+                              {isLoadingImages ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <RefreshCw className="w-4 h-4" />
+                              )}
+                              Check Now
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                startAutoMonitoring();
+                                setError(""); // Clear the error to reduce visual clutter
+                              }}
+                              disabled={autoRefreshInterval !== null}
+                              className="px-4 py-2 bg-green-500 hover:bg-green-600 disabled:bg-green-400 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                            >
+                              <Eye className="w-4 h-4" />
+                              {autoRefreshInterval
+                                ? "Monitoring..."
+                                : "Start Auto-Monitor"}
+                            </button>
+
+                            <button
+                              onClick={async () => {
+                                setError("");
+                                setStatus("");
+                                if (autoRefreshInterval) {
+                                  clearInterval(autoRefreshInterval);
+                                  setAutoRefreshInterval(null);
+                                }
+                              }}
+                              className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors"
+                            >
+                              Clear Messages
+                            </button>
+                          </div>
+
+                          {autoRefreshInterval && (
+                            <div className="mt-3 p-2 bg-green-100 dark:bg-green-900/30 rounded text-xs text-green-800 dark:text-green-300">
+                              🔍 Auto-monitoring active - checking every minute
+                              for new images
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
               </div>
             )}
           </div>
@@ -830,7 +1292,7 @@ export default function EnhancedAIInstagramScraperPage() {
                   onClick={async () => await handleImageClick(image)}
                 >
                   <img
-                    src={`http://localhost:5001${image.url}`}
+                    src={`${IMAGE_BASE}${image.url}`}
                     alt={image.filename}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                     onError={(e) => {
@@ -859,7 +1321,7 @@ export default function EnhancedAIInstagramScraperPage() {
                   />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors">
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="bg-white/90 dark:bg-gray-900/90 rounded-lg px-3 py-2 text-sm font-medium">
+                      <div className="bg-pink-500/90 dark:bg-pink-600/90 rounded-lg px-3 py-2 text-sm font-medium text-white">
                         <Eye className="w-4 h-4 inline mr-2" />
                         View Details
                       </div>
@@ -882,11 +1344,11 @@ export default function EnhancedAIInstagramScraperPage() {
           createPortal(
             <div
               className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
-              onClick={() => setShowClearDataModal(false)} // Add this onClick handler
+              onClick={() => setShowClearDataModal(false)}
             >
               <div
                 className="bg-white dark:bg-gray-900 rounded-2xl max-w-md w-full"
-                onClick={(e) => e.stopPropagation()} // Add this to prevent closing when clicking modal content
+                onClick={(e) => e.stopPropagation()}
               >
                 {/* Modal Header */}
                 <div className="flex items-center gap-3 p-6 border-b border-gray-200 dark:border-gray-700">
@@ -1009,7 +1471,7 @@ export default function EnhancedAIInstagramScraperPage() {
                   <div className="w-3/5 p-6 flex items-center justify-center bg-gray-800">
                     <div className="relative max-w-full max-h-full">
                       <img
-                        src={`http://localhost:5001${selectedImageData.image.url}`}
+                        src={`${IMAGE_BASE}${selectedImageData.image.url}`}
                         alt={selectedImageData.image.filename}
                         className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
                       />
