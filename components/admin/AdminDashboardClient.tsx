@@ -33,6 +33,7 @@ import {
   Medal,
   Award,
   Eye,
+  Sparkles,
 } from "lucide-react";
 import CountUp from "react-countup";
 import { API_KEY_PROFILES } from "@/app/services/elevenlabs-implementation";
@@ -454,15 +455,16 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     })
   );
 
-  const statCards = [
+ const statCards = [
     {
       title: "Total Users",
       value: stats.totalUsers,
       formattedValue: stats.totalUsers.toLocaleString(),
       icon: Users,
       description: "All registered users",
-      color: "text-blue-600",
-      bgColor: "bg-blue-50 dark:bg-blue-900/20",
+      color: "text-gray-600",
+      bgColor: "bg-gray-50",
+      iconBgColor: "bg-gray-100",
       prefix: "",
       suffix: "",
     },
@@ -477,7 +479,8 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         ? "Fetching from Google Sheets..."
         : `+${vnSales.vnSalesGrowth}% from yesterday`,
       color: "text-green-600",
-      bgColor: "bg-green-50 dark:bg-green-900/20",
+      bgColor: "bg-green-50",
+      iconBgColor: "bg-green-100",
       prefix: isLoadingVnStats ? "" : "$",
       suffix: "",
       isLoading: isLoadingVnStats,
@@ -493,17 +496,18 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         "Fetching from ElevenLabs..."
       ) : (
         <div className="flex items-center space-x-3 text-sm">
-          <span className="text-gray-400">{vnSales.newVnToday} new today</span>
+          <span className="text-gray-500">{vnSales.newVnToday} new today</span>
           <div className="flex items-center space-x-1">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span className="text-green-400 font-medium">
+            <div className="w-2 h-2 bg-pink-500 rounded-full animate-pulse"></div>
+            <span className="text-pink-600 font-medium">
               {Object.keys(API_KEY_PROFILES).length} active models
             </span>
           </div>
         </div>
       ),
       color: "text-blue-600",
-      bgColor: "bg-blue-50 dark:bg-blue-900/20",
+      bgColor: "bg-blue-50",
+      iconBgColor: "bg-blue-100",
       prefix: "",
       suffix: "",
       isLoading: isLoadingVoiceStats,
@@ -519,7 +523,8 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         ? "Fetching from Google Sheets..."
         : `${contentGenerationData.contentGeneratedToday} generated today`,
       color: "text-purple-600",
-      bgColor: "bg-purple-50 dark:bg-purple-900/20",
+      bgColor: "bg-purple-50",
+      iconBgColor: "bg-purple-100",
       prefix: "",
       suffix: "",
       isLoading: isLoadingContentStats,
@@ -531,7 +536,8 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       icon: Percent,
       description: `+${analytics.conversionGrowth}% from last week`,
       color: "text-green-600",
-      bgColor: "bg-green-50 dark:bg-green-900/20",
+      bgColor: "bg-green-50",
+      iconBgColor: "bg-green-100",
       prefix: "",
       suffix: "%",
     },
@@ -546,7 +552,8 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         ? "Fetching from Google Sheets..."
         : `+${analytics.revenueGrowth}% from last week`,
       color: "text-green-600",
-      bgColor: "bg-green-50 dark:bg-green-900/20",
+      bgColor: "bg-green-50",
+      iconBgColor: "bg-green-100",
       prefix: isLoadingVnStats ? "" : "$",
       suffix: "",
       isLoading: isLoadingVnStats,
@@ -572,7 +579,8 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         ? "Fetching from Google Sheets..."
         : `+${vnSales.loyaltyPointsGrowth}% this week`,
       color: "text-yellow-600",
-      bgColor: "bg-yellow-50 dark:bg-yellow-900/20",
+      bgColor: "bg-yellow-50",
+      iconBgColor: "bg-yellow-100",
       prefix: "",
       suffix: "",
       isLoading: isLoadingVnStats,
@@ -584,7 +592,8 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       icon: BarChart3,
       description: `+${analytics.roiGrowth}% from last week`,
       color: "text-purple-600",
-      bgColor: "bg-purple-50 dark:bg-purple-900/20",
+      bgColor: "bg-purple-50",
+      iconBgColor: "bg-purple-100",
       prefix: "",
       suffix: "%",
     },
@@ -596,44 +605,49 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         : totalMassMessages.toLocaleString(),
       icon: MessageCircle,
       description: "Total number of mass messages sent",
-      color: "text-orange-600",
-      bgColor: "bg-orange-50 dark:bg-orange-900/20",
+      color: "text-pink-600",
+      bgColor: "bg-pink-50",
+      iconBgColor: "bg-pink-100",
       prefix: "",
       suffix: "",
       isLoading: isLoadingMassMessages,
     },
   ];
 
+
   return (
-    <div className="min-h-screen bg-gray-900 p-6 space-y-6">
+    <div className="min-h-screen p-6 space-y-6">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
-        <p className="text-gray-300 mt-2">
+        <div className="flex items-center space-x-3 mb-2">
+          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          <Sparkles className="h-6 w-6 text-pink-500" />
+        </div>
+        <p className="text-gray-600">
           Monitor your application&apos;s performance and user activity
         </p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <Card
               key={index}
-              className="bg-gray-800 border-gray-700 overflow-hidden hover:bg-gray-750 transition-colors"
+              className="border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group bg-white"
             >
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-gray-400">
+                  <div className="space-y-2 flex-1">
+                    <p className="text-sm font-medium text-gray-600">
                       {stat.title}
                     </p>
-                    <p className="text-2xl font-bold text-white">
+                    <p className="text-2xl font-bold text-gray-900">
                       {(stat as any).isLoading ? (
                         <div className="flex items-center">
-                          <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                          Loading...
+                          <Loader2 className="h-6 w-6 animate-spin mr-2 text-pink-500" />
+                          <span className="text-lg">Loading...</span>
                         </div>
                       ) : (
                         <CountUp
@@ -653,7 +667,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                     <p className="text-xs text-gray-500">{stat.description}</p>
                   </div>
                   <div
-                    className={`${stat.bgColor} p-3 rounded-full bg-opacity-20`}
+                    className={`${stat.iconBgColor} p-3 rounded-full group-hover:scale-110 transition-transform duration-300`}
                   >
                     <Icon className={`h-6 w-6 ${stat.color}`} />
                   </div>

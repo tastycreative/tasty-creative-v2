@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { updateUserRole } from "@/app/actions/admin";
+import { Edit2, Save, X } from "lucide-react";
 
 type Role = "GUEST" | "USER" | "MODERATOR" | "ADMIN";
 
@@ -39,12 +40,13 @@ export function UserRoleForm({
       <button
         onClick={() => setIsEditing(true)}
         disabled={isCurrentUser}
-        className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="inline-flex items-center text-sm text-gray-600 hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         title={
           isCurrentUser ? "You cannot change your own role" : "Change role"
         }
       >
-        Change Role
+        <Edit2 className="h-4 w-4 mr-1" />
+        Edit
       </button>
     );
   }
@@ -55,7 +57,7 @@ export function UserRoleForm({
         value={selectedRole}
         onChange={(e) => setSelectedRole(e.target.value as Role)}
         disabled={isPending}
-        className="block rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-indigo-500 focus:border-indigo-500 dark:focus:ring-indigo-400 dark:focus:border-indigo-400"
+        className="block px-3 py-1 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all"
       >
         <option value="GUEST">Guest</option>
         <option value="USER">User</option>
@@ -65,8 +67,9 @@ export function UserRoleForm({
       <button
         onClick={handleSubmit}
         disabled={isPending || selectedRole === currentRole}
-        className="px-3 py-1 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="inline-flex items-center px-3 py-1 text-sm bg-black text-white rounded-lg hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
+        <Save className="h-3 w-3 mr-1 text-pink-400" />
         {isPending ? "Saving..." : "Save"}
       </button>
       <button
@@ -75,8 +78,9 @@ export function UserRoleForm({
           setSelectedRole(currentRole);
         }}
         disabled={isPending}
-        className="px-3 py-1 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200"
+        className="inline-flex items-center px-3 py-1 text-sm text-gray-600 hover:text-gray-900 transition-colors"
       >
+        <X className="h-3 w-3 mr-1" />
         Cancel
       </button>
     </div>
