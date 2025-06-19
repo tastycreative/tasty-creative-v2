@@ -106,10 +106,10 @@ interface DashboardData {
 }
 
 const ROLE_COLORS = {
-  ADMIN: "#000000",
-  MODERATOR: "#f59e0b",
-  USER: "#10b981",
-  GUEST: "#6b7280",
+  ADMIN: "#ec4899", // Pink-500 - matches your line chart and main theme
+  MODERATOR: "#f97316", // Orange-500 - complements pink nicely
+  USER: "#10b981", // Emerald-500 - keeps the green from your UserCheck icon
+  GUEST: "#94a3b8", // Slate-400 - softer gray that works with pink theme
 };
 
 export function AdminDashboardClient({ data }: { data: DashboardData }) {
@@ -876,7 +876,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                           Avg View Rate (Top 5):{" "}
                           <span className="text-green-600 font-semibold">
                             {topPerformingMessages.length > 0
-                              ?(
+                              ? (
                                   topPerformingMessages
                                     .slice(0, 5)
                                     .reduce(
@@ -1176,7 +1176,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* User Growth Chart */}
+        {/* VN Sales by Model */}
         <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
           {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
@@ -1184,48 +1184,66 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           </div>
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
-              <Activity className="h-5 w-5 text-pink-500" />
-              <span>User Growth (12 Months)</span>
+              <DollarSign className="h-5 w-5 text-orange-500" />
+              <span>VN Sales by Model</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={userGrowthData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis
-                  dataKey="month"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fill: "#6b7280" }}
-                />
-                <YAxis
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fill: "#6b7280" }}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#ffffff",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "8px",
-                    color: "#111827",
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="users"
-                  stroke="#ec4899"
-                  strokeWidth={3}
-                  dot={{ fill: "#ec4899", strokeWidth: 2 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <div className="space-y-4">
+              {isLoadingVnStats ? (
+                <div className="flex justify-center py-8">
+                  <div className="flex items-center text-gray-500">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2 text-pink-500" />
+                    <span>Fetching sales data from Google Sheets...</span>
+                  </div>
+                </div>
+              ) : vnSales.salesByModel.length > 0 ? (
+                <>
+                  {vnSales.salesByModel.map((model, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-all duration-300"
+                    >
+                      <div>
+                        <h3 className="font-medium text-gray-900">
+                          {model.name}
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          {model.sales} VN sales
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-green-600">
+                          ${model.revenue.toFixed(2)}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {model.loyaltyPoints} loyalty pts
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="text-center text-gray-500 py-4">
+                    <p className="text-sm">
+                      Average VN Price:{" "}
+                      <span className="text-orange-600 font-semibold">
+                        ${vnSales.averageVnPrice.toFixed(2)}
+                      </span>{" "}
+                      (+${vnSales.priceIncrease} from last week)
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center text-gray-500 py-4">
+                  <p className="text-sm">
+                    No sales data found. Submit some sales to see analytics!
+                  </p>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
-        {/* Users by Role Chart */}
+        {/* Content Generation by Tracker */}
         <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
           {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
@@ -1233,39 +1251,65 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           </div>
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
-              <UserCheck className="h-5 w-5 text-green-500" />
-              <span>Users by Role</span>
+              <BarChart3 className="h-5 w-5 text-purple-500" />
+              <span>Content Generation by Tracker</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={roleChartData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) =>
-                    `${name} ${(percent * 100).toFixed(0)}%`
-                  }
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {roleChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "#ffffff",
-                    border: "1px solid #e5e7eb",
-                    borderRadius: "8px",
-                    color: "#111827",
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="space-y-4">
+              {isLoadingContentStats ? (
+                <div className="flex justify-center py-8">
+                  <div className="flex items-center text-gray-500">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2 text-pink-500" />
+                    <span>Fetching content data from Google Sheets...</span>
+                  </div>
+                </div>
+              ) : contentGenerationData.contentByTracker.length > 0 ? (
+                <>
+                  {contentGenerationData.contentByTracker.map(
+                    (tracker, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-all duration-300"
+                      >
+                        <div>
+                          <h3 className="font-medium text-gray-900">
+                            {tracker.tracker}
+                          </h3>
+                          <p className="text-sm text-gray-500">
+                            Content generation tracker
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-purple-600">
+                            {tracker.count.toLocaleString()}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            items generated
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  )}
+                  <div className="text-center text-gray-500 py-4">
+                    <p className="text-sm">
+                      Total Content Generated:{" "}
+                      <span className="text-purple-600 font-semibold">
+                        {contentGenerationData.totalContentGenerated.toLocaleString()}{" "}
+                      </span>{" "}
+                      (+{contentGenerationData.contentGrowth}% growth)
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center text-gray-500 py-4">
+                  <p className="text-sm">
+                    No content generation data found. Generate some content to
+                    see analytics!
+                  </p>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -1508,7 +1552,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* VN Sales by Model */}
+        {/* User Growth Chart */}
         <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
           {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
@@ -1516,66 +1560,48 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           </div>
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
-              <DollarSign className="h-5 w-5 text-orange-500" />
-              <span>VN Sales by Model</span>
+              <Activity className="h-5 w-5 text-pink-500" />
+              <span>User Growth (12 Months)</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="space-y-4">
-              {isLoadingVnStats ? (
-                <div className="flex justify-center py-8">
-                  <div className="flex items-center text-gray-500">
-                    <Loader2 className="h-6 w-6 animate-spin mr-2 text-pink-500" />
-                    <span>Fetching sales data from Google Sheets...</span>
-                  </div>
-                </div>
-              ) : vnSales.salesByModel.length > 0 ? (
-                <>
-                  {vnSales.salesByModel.map((model, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-all duration-300"
-                    >
-                      <div>
-                        <h3 className="font-medium text-gray-900">
-                          {model.name}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          {model.sales} VN sales
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-green-600">
-                          ${model.revenue.toFixed(2)}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {model.loyaltyPoints} loyalty pts
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                  <div className="text-center text-gray-500 py-4">
-                    <p className="text-sm">
-                      Average VN Price:{" "}
-                      <span className="text-orange-600 font-semibold">
-                        ${vnSales.averageVnPrice.toFixed(2)}
-                      </span>{" "}
-                      (+${vnSales.priceIncrease} from last week)
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center text-gray-500 py-4">
-                  <p className="text-sm">
-                    No sales data found. Submit some sales to see analytics!
-                  </p>
-                </div>
-              )}
-            </div>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={userGrowthData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis
+                  dataKey="month"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: "#6b7280" }}
+                />
+                <YAxis
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: "#6b7280" }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#ffffff",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "8px",
+                    color: "#111827",
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="users"
+                  stroke="#ec4899"
+                  strokeWidth={3}
+                  dot={{ fill: "#ec4899", strokeWidth: 2 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Content Generation by Tracker */}
+        {/* Users by Role Chart */}
         <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
           {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
@@ -1583,65 +1609,39 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           </div>
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
-              <BarChart3 className="h-5 w-5 text-purple-500" />
-              <span>Content Generation by Tracker</span>
+              <UserCheck className="h-5 w-5 text-green-500" />
+              <span>Users by Role</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="space-y-4">
-              {isLoadingContentStats ? (
-                <div className="flex justify-center py-8">
-                  <div className="flex items-center text-gray-500">
-                    <Loader2 className="h-6 w-6 animate-spin mr-2 text-pink-500" />
-                    <span>Fetching content data from Google Sheets...</span>
-                  </div>
-                </div>
-              ) : contentGenerationData.contentByTracker.length >0 ? (
-                <>
-                  {contentGenerationData.contentByTracker.map(
-                    (tracker, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-all duration-300"
-                      >
-                        <div>
-                          <h3 className="font-medium text-gray-900">
-                            {tracker.tracker}
-                          </h3>
-                          <p className="text-sm text-gray-500">
-                            Content generation tracker
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-purple-600">
-                            {tracker.count.toLocaleString()}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            items generated
-                          </p>
-                        </div>
-                      </div>
-                    )
-                  )}
-                  <div className="text-center text-gray-500 py-4">
-                    <p className="text-sm">
-                      Total Content Generated:{" "}
-                      <span className="text-purple-600 font-semibold">
-                        {contentGenerationData.totalContentGenerated.toLocaleString()}{" "}
-                      </span>{" "}
-                      (+{contentGenerationData.contentGrowth}% growth)
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center text-gray-500 py-4">
-                  <p className="text-sm">
-                    No content generation data found. Generate some content to
-                    see analytics!
-                  </p>
-                </div>
-              )}
-            </div>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={roleChartData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) =>
+                    `${name} ${(percent * 100).toFixed(0)}%`
+                  }
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {roleChartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#ffffff",
+                    border: "1px solid #e5e7eb",
+                    borderRadius: "8px",
+                    color: "#111827",
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
