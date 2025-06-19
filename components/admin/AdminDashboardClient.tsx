@@ -635,8 +635,12 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           return (
             <Card
               key={index}
-              className="border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white"
+              className="border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative"
             >
+              {/* Glass reflection effect */}
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+              </div>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="space-y-2 flex-1">
@@ -681,7 +685,11 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       {/* MM Leaderboards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Performing Messages Leaderboard */}
-        <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300">
+        <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
+          {/* Glass reflection effect */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+          </div>
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
               <Trophy className="h-5 w-5 text-pink-500" />
@@ -733,8 +741,12 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                     return (
                       <div
                         key={`message-${message.id}`}
-                        className={`flex flex-col p-4 rounded-lg border ${getRankStyle(message.rank)} transition-all duration-300 hover:scale-[1.01] hover:shadow-md`}
+                        className={`flex flex-col p-4 rounded-lg border ${getRankStyle(message.rank)} transition-all duration-300 hover:scale-[1.01] hover:shadow-md relative group overflow-hidden`}
                       >
+                        {/* Glass reflection effect for individual message items */}
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-500 ease-in-out"></div>
+                        </div>
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex items-center space-x-3">
                             {getRankIcon(message.rank)}
@@ -898,7 +910,11 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         </Card>
 
         {/* MM Campaign Leaderboards */}
-        <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300">
+        <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
+          {/* Glass reflection effect */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+          </div>
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
               <Trophy className="h-5 w-5 text-yellow-500" />
@@ -950,8 +966,12 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                     return (
                       <div
                         key={index}
-                        className={`flex items-center justify-between p-4 rounded-lg border ${getRankStyle(model.rank)} transition-all duration-300 hover:scale-[1.02] hover:shadow-md`}
+                        className={`flex items-center justify-between p-4 rounded-lg border ${getRankStyle(model.rank)} transition-all duration-300 hover:scale-[1.02] hover:shadow-md relative group overflow-hidden`}
                       >
+                        {/* Glass reflection effect for individual model items */}
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-500 ease-in-out"></div>
+                        </div>
                         <div className="flex items-center space-x-4">
                           <div className="flex items-center space-x-3">
                             {getTrophyIcon(model.rank)}
@@ -1152,7 +1172,11 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* User Growth Chart */}
-        <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300">
+        <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
+          {/* Glass reflection effect */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+          </div>
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
               <Activity className="h-5 w-5 text-pink-500" />
@@ -1197,7 +1221,11 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         </Card>
 
         {/* Users by Role Chart */}
-        <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300">
+        <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
+          {/* Glass reflection effect */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+          </div>
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
               <UserCheck className="h-5 w-5 text-green-500" />
@@ -1240,7 +1268,11 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       {/* Tables Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Users Table */}
-        <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300">
+        <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
+          {/* Glass reflection effect */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+          </div>
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
               <Calendar className="h-5 w-5 text-purple-500" />
@@ -1316,7 +1348,11 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         </Card>
 
         {/* Recent Activity Table */}
-        <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300">
+        <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
+          {/* Glass reflection effect */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+          </div>
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
               <Activity className="h-5 w-5 text-green-500" />
@@ -1468,7 +1504,11 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* VN Sales by Model */}
-        <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300">
+        <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
+          {/* Glass reflection effect */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+          </div>
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
               <DollarSign className="h-5 w-5 text-orange-500" />
@@ -1529,7 +1569,11 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         </Card>
 
         {/* Content Generation by Tracker */}
-        <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300">
+        <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
+          {/* Glass reflection effect */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+          </div>
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
               <BarChart3 className="h-5 w-5 text-purple-500" />
