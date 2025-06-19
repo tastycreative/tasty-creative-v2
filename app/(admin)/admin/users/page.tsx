@@ -15,7 +15,6 @@ import {
   Calendar,
   Eye,
   MoreHorizontal,
-  UserPlus,
   TrendingUp,
   Clock,
 } from "lucide-react";
@@ -83,10 +82,6 @@ export default async function AdminUsersPage() {
             </p>
           </div>
           <div className="flex gap-3">
-            <button className="inline-flex items-center px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5">
-              <UserPlus className="h-4 w-4 mr-2" />
-              Invite User
-            </button>
             <button className="inline-flex items-center px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5">
               <Download className="h-4 w-4 mr-2" />
               Export
@@ -364,62 +359,6 @@ export default async function AdminUsersPage() {
         </CardContent>
       </Card>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
-          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
-          </div>
-          <CardContent className="p-6 text-center">
-            <UserPlus className="h-12 w-12 text-pink-500 mx-auto mb-4 group-hover:scale-110 transition-transform duration-300" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Bulk Invite
-            </h3>
-            <p className="text-gray-600 text-sm mb-4">
-              Send invitations to multiple users at once
-            </p>
-            <button className="w-full bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-lg transition-colors">
-              Start Bulk Invite
-            </button>
-          </CardContent>
-        </Card>
-
-        <Card className="border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
-          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
-          </div>
-          <CardContent className="p-6 text-center">
-            <Shield className="h-12 w-12 text-yellow-500 mx-auto mb-4 group-hover:scale-110 transition-transform duration-300" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Role Management
-            </h3>
-            <p className="text-gray-600 text-sm mb-4">
-              Configure roles and permissions
-            </p>
-            <button className="w-full bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors">
-              Manage Roles
-            </button>
-          </CardContent>
-        </Card>
-
-        <Card className="border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
-          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
-          </div>
-          <CardContent className="p-6 text-center">
-            <Download className="h-12 w-12 text-blue-500 mx-auto mb-4 group-hover:scale-110 transition-transform duration-300" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Export Data
-            </h3>
-            <p className="text-gray-600 text-sm mb-4">
-              Download user data and analytics
-            </p>
-            <button className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
-              Export Users
-            </button>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }
