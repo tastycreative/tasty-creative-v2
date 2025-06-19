@@ -125,9 +125,9 @@ export default function EnhancedAIInstagramScraperPage() {
 
   // Updated to use your Cloudflare tunnel URL
   const API_BASE =
-    "https://usual-reception-finances-conversion.trycloudflare.com/api";
+    "https://removing-illness-cutting-expense.trycloudflare.com/api";
   const IMAGE_BASE =
-    "https://usual-reception-finances-conversion.trycloudflare.com"; // For serving images
+    "https://removing-illness-cutting-expense.trycloudflare.com"; // For serving images
 
   // Prevent background scrolling when modals are open
   useEffect(() => {
@@ -381,7 +381,7 @@ export default function EnhancedAIInstagramScraperPage() {
     );
   };
 
-  // Enhanced handleScrape with robust error handling
+  // Enhanced handleScrape with NO TIMEOUT (removed timeout completely)
   const handleScrape = async () => {
     if (!username.trim()) {
       setError("Please enter a username");
@@ -404,18 +404,12 @@ export default function EnhancedAIInstagramScraperPage() {
       ai_analyses_completed: 0,
     });
 
-    // Create AbortController for timeout handling
+    // Create AbortController (but no timeout - let it run as long as needed)
     const controller = new AbortController();
-    let timeoutId: NodeJS.Timeout | undefined; // ✅ Fixed: properly typed as potentially undefined
 
     try {
-      // Set a longer timeout (5 minutes) for scraping operations
-      timeoutId = setTimeout(() => {
-        controller.abort();
-      }, 300000); // 5 minutes
-
       setStatus(
-        "🤖 Processing posts and analyzing with AI... This may take several minutes."
+        "🤖 Processing posts and analyzing with AI... This may take several minutes (no timeout limit)."
       );
 
       const response = await fetch(`${API_BASE}/scrape`, {
@@ -429,9 +423,6 @@ export default function EnhancedAIInstagramScraperPage() {
         }),
         signal: controller.signal,
       });
-
-      // Clear the timeout since request completed
-      clearTimeout(timeoutId);
 
       // Check if response is ok
       if (!response.ok) {
@@ -461,16 +452,11 @@ export default function EnhancedAIInstagramScraperPage() {
     } catch (err: any) {
       console.error("Scraping error:", err);
 
-      // Clear timeout if it exists
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-
       // Handle different types of errors more specifically
       if (err.name === "AbortError") {
-        // Request was aborted due to our timeout
+        // Request was manually aborted (though we don't set a timeout anymore)
         setError(
-          "⏱️ Request timed out after 5 minutes. The scraping is likely still running in the background."
+          "⏱️ Request was aborted. The scraping might still be running in the background."
         );
         setStatus("⚠️ Checking for completed data...");
 
@@ -780,7 +766,7 @@ export default function EnhancedAIInstagramScraperPage() {
           <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-gradient-to-r from-pink-500/10 to-orange-500/10 border border-pink-500/20">
             <Download className="w-5 h-5 text-pink-500" />
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Enhanced AI-Powered Instagram Scraper with Auto-Refresh
+              Enhanced AI-Powered Instagram Scraper (No Timeout Limit)
             </span>
           </div>
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
@@ -987,7 +973,7 @@ export default function EnhancedAIInstagramScraperPage() {
           </div>
         </div>
 
-        {/* Progress Indicator for Long Operations */}
+        {/* Progress Indicator for Long Operations - Updated messaging */}
         {isLoading && (
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/30 rounded-xl p-6">
             <div className="flex items-center gap-4">
@@ -1001,8 +987,8 @@ export default function EnhancedAIInstagramScraperPage() {
                   <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200">
                     Scraping in Progress
                   </h3>
-                  <div className="bg-blue-500/20 px-2 py-1 rounded text-xs text-blue-600 dark:text-blue-400">
-                    This may take 3-5 minutes
+                  <div className="bg-green-500/20 px-2 py-1 rounded text-xs text-green-600 dark:text-green-400">
+                    No timeout limit - will run as long as needed
                   </div>
                 </div>
 
@@ -1039,11 +1025,11 @@ export default function EnhancedAIInstagramScraperPage() {
                 </div>
 
                 {/* Helpful Tips */}
-                <div className="mt-4 p-3 bg-blue-100 dark:bg-blue-800/30 rounded-lg">
-                  <p className="text-xs text-blue-700 dark:text-blue-300">
-                    💡 <strong>Tip:</strong> The process continues even if the
-                    page shows an error. Check the "Downloaded Images" section
-                    below for real-time updates.
+                <div className="mt-4 p-3 bg-green-100 dark:bg-green-800/30 rounded-lg">
+                  <p className="text-xs text-green-700 dark:text-green-300">
+                    💡 <strong>No Timeout:</strong> This process can now run as
+                    long as needed. Check the "Downloaded Images" section below
+                    for real-time updates.
                   </p>
                 </div>
               </div>
