@@ -201,46 +201,68 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
           {/* User Credentials Section */}
           {!isCollapsed && session?.user && (
             <div className="p-4 border-b border-gray-200">
-              <div className="flex items-center space-x-3 mb-3">
-                <div className="relative flex-shrink-0">
-                  {session.user.image && !imgError ? (
-                    <img
-                      src={`/api/image-proxy?url=${encodeURIComponent(session.user.image)}`}
-                      alt="Profile"
-                      className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
-                      onError={() => setImgError(true)}
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center">
-                      <User className="h-5 w-5 text-white" />
+              <div className="relative">
+                <input type="checkbox" id="user-dropdown" className="peer hidden" />
+                <label
+                  htmlFor="user-dropdown"
+                  className="w-full flex select-none items-center gap-3 p-3 rounded-lg cursor-pointer bg-gradient-to-r from-gray-50 to-pink-50 hover:from-gray-100 hover:to-pink-100 transition-all duration-200 border border-gray-100 shadow-sm"
+                >
+                  <div className="relative flex-shrink-0">
+                    {session.user.image && !imgError ? (
+                      <img
+                        src={`/api/image-proxy?url=${encodeURIComponent(session.user.image)}`}
+                        alt="Profile"
+                        className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
+                        onError={() => setImgError(true)}
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center">
+                        <User className="h-5 w-5 text-white" />
+                      </div>
+                    )}
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 border-2 border-white rounded-full"></div>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="text-sm font-semibold text-gray-900 truncate">
+                        {session.user.name || "Admin User"}
+                      </div>
+                      <span className="text-xs bg-black text-white px-2 py-1 rounded-full font-medium">
+                        {session.user.role}
+                      </span>
                     </div>
-                  )}
-                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 border-2 border-white rounded-full"></div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-gray-900 truncate">
-                    {session.user.name || "Admin User"}
+                    <div className="text-xs text-gray-500 truncate">
+                      {session.user.email}
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-500 truncate">
-                    {session.user.email}
-                  </div>
+                  <ChevronDown className="w-4 h-4 text-gray-500 transition-transform duration-200 peer-checked:rotate-180 flex-shrink-0" />
+                </label>
+
+                <div className="absolute top-full left-0 right-0 mt-2 border border-gray-200 rounded-lg p-2 hidden peer-checked:flex flex-col gap-1 bg-white backdrop-blur-xl shadow-lg z-20">
+                  <button 
+                    className="text-left hover:bg-gray-100 px-3 py-2 rounded-lg text-sm text-gray-700 font-medium transition-colors flex items-center gap-2"
+                    onClick={() => window.location.href = '/dashboard'}
+                  >
+                    <Home className="h-4 w-4" />
+                    Dashboard
+                  </button>
+                  <button 
+                    className="text-left hover:bg-gray-100 px-3 py-2 rounded-lg text-sm text-gray-700 font-medium transition-colors flex items-center gap-2"
+                    onClick={() => window.location.href = '/settings'}
+                  >
+                    <Settings className="h-4 w-4" />
+                    Account Settings
+                  </button>
+                  <div className="border-t border-gray-200 my-1"></div>
+                  <button
+                    className="text-left hover:bg-red-50 px-3 py-2 rounded-lg text-sm text-red-600 font-medium transition-colors flex items-center gap-2"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sign Out
+                  </button>
                 </div>
               </div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-gray-600">Role:</span>
-                <span className="text-xs bg-black text-white px-2 py-1 rounded-full font-medium">
-                  {session.user.role}
-                </span>
-              </div>
-              <Button
-                onClick={handleLogout}
-                variant="outline"
-                size="sm"
-                className="w-full text-xs text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
-              >
-                <LogOut className="h-3 w-3 mr-2" />
-                Sign Out
-              </Button>
             </div>
           )}
 
