@@ -406,7 +406,7 @@ export default function EnhancedAIInstagramScraperPage() {
 
     // Create AbortController for timeout handling
     const controller = new AbortController();
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: NodeJS.Timeout | undefined; // ✅ Fixed: properly typed as potentially undefined
 
     try {
       // Set a longer timeout (5 minutes) for scraping operations
