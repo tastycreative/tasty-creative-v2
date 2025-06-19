@@ -37,7 +37,7 @@ export default async function AdminSettingsPage() {
             Admin Settings Under Construction
           </h2>
           <p className="text-gray-600 max-w-lg mx-auto text-lg">
-            We're building comprehensive administrative settings including security configuration, system preferences, user management, and advanced customization options. Coming soon!
+            We&apos;re building comprehensive administrative settings including security configuration, system preferences, user management, and advanced customization options. Coming soon!
           </p>
         </CardContent>
       </Card>

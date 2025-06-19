@@ -1,4 +1,3 @@
-
 import { auth } from "@/auth";
 import { UserRoleForm } from "@/components/admin/UserRoleForm";
 import { prisma } from "@/lib/prisma";
@@ -17,7 +16,6 @@ import {
   Eye,
   MoreHorizontal,
   UserPlus,
-  Sparkles,
   TrendingUp,
   Clock,
 } from "lucide-react";
@@ -62,8 +60,11 @@ export default async function AdminUsersPage() {
   // Calculate growth metrics
   const thisMonth = new Date();
   const lastMonth = new Date(thisMonth.getFullYear(), thisMonth.getMonth() - 1);
-  const thisMonthUsers = users.filter(u => new Date(u.createdAt) >= lastMonth).length;
-  const growthRate = totalUsers > 0 ? Math.round((thisMonthUsers / totalUsers) * 100) : 0;
+  const thisMonthUsers = users.filter(
+    (u) => new Date(u.createdAt) >= lastMonth
+  ).length;
+  const growthRate =
+    totalUsers > 0 ? Math.round((thisMonthUsers / totalUsers) * 100) : 0;
 
   return (
     <div className="min-h-screen p-6 space-y-6 bg-gradient-to-br from-gray-50 via-white to-pink-50">
@@ -72,7 +73,9 @@ export default async function AdminUsersPage() {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center space-x-3 mb-2">
-              <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
+              <h1 className="text-3xl font-bold text-gray-900">
+                User Management
+              </h1>
               <Users className="h-6 w-6 text-pink-500" />
             </div>
             <p className="text-gray-600">
@@ -109,7 +112,9 @@ export default async function AdminUsersPage() {
                 </p>
                 <div className="flex items-center text-sm">
                   <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
-                  <span className="text-green-600 font-medium">+{growthRate}%</span>
+                  <span className="text-green-600 font-medium">
+                    +{growthRate}%
+                  </span>
                   <span className="text-gray-500 ml-1">this month</span>
                 </div>
               </div>
@@ -259,7 +264,7 @@ export default async function AdminUsersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
-                {users.map((user, index) => (
+                {users.map((user) => (
                   <tr
                     key={user.id}
                     className="hover:bg-gradient-to-r hover:from-gray-50 hover:to-pink-50 transition-all duration-300 group"
@@ -367,8 +372,12 @@ export default async function AdminUsersPage() {
           </div>
           <CardContent className="p-6 text-center">
             <UserPlus className="h-12 w-12 text-pink-500 mx-auto mb-4 group-hover:scale-110 transition-transform duration-300" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Bulk Invite</h3>
-            <p className="text-gray-600 text-sm mb-4">Send invitations to multiple users at once</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Bulk Invite
+            </h3>
+            <p className="text-gray-600 text-sm mb-4">
+              Send invitations to multiple users at once
+            </p>
             <button className="w-full bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-lg transition-colors">
               Start Bulk Invite
             </button>
@@ -381,8 +390,12 @@ export default async function AdminUsersPage() {
           </div>
           <CardContent className="p-6 text-center">
             <Shield className="h-12 w-12 text-yellow-500 mx-auto mb-4 group-hover:scale-110 transition-transform duration-300" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Role Management</h3>
-            <p className="text-gray-600 text-sm mb-4">Configure roles and permissions</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Role Management
+            </h3>
+            <p className="text-gray-600 text-sm mb-4">
+              Configure roles and permissions
+            </p>
             <button className="w-full bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg transition-colors">
               Manage Roles
             </button>
@@ -395,8 +408,12 @@ export default async function AdminUsersPage() {
           </div>
           <CardContent className="p-6 text-center">
             <Download className="h-12 w-12 text-blue-500 mx-auto mb-4 group-hover:scale-110 transition-transform duration-300" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Export Data</h3>
-            <p className="text-gray-600 text-sm mb-4">Download user data and analytics</p>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Export Data
+            </h3>
+            <p className="text-gray-600 text-sm mb-4">
+              Download user data and analytics
+            </p>
             <button className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors">
               Export Users
             </button>

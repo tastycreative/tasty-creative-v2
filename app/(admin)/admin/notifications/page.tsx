@@ -1,6 +1,3 @@
-` tags, making sure to include all necessary parts and follow all the rules.
-
-```typescript
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Bell, Sparkles } from "lucide-react";
@@ -40,7 +37,9 @@ export default async function AdminNotificationsPage() {
             Notification Center Under Construction
           </h2>
           <p className="text-gray-600 max-w-lg mx-auto text-lg">
-            We're developing advanced notification management features including alert configuration, message templates, delivery tracking, and comprehensive communication analytics. Stay tuned!
+            We&apos;re developing advanced notification management features including
+            alert configuration, message templates, delivery tracking, and
+            comprehensive communication analytics. Stay tuned!
           </p>
         </CardContent>
       </Card>

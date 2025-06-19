@@ -37,7 +37,7 @@ export default async function VNSalesPage() {
             VN Sales Tracker Coming Soon
           </h2>
           <p className="text-gray-600 max-w-lg mx-auto text-lg">
-            We're developing comprehensive video note sales tracking features including revenue analytics, performance metrics, and automated reporting tools. Stay tuned for exciting updates!
+            We&apos;re developing comprehensive video note sales tracking features including revenue analytics, performance metrics, and automated reporting tools. Stay tuned for exciting updates!
           </p>
         </CardContent>
       </Card>
