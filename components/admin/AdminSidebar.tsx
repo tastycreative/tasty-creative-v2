@@ -248,7 +248,7 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
                   </button>
                   <button 
                     className="text-left hover:bg-gray-100 px-3 py-2 rounded-lg text-sm text-gray-700 font-medium transition-colors flex items-center gap-2"
-                    onClick={() => window.location.href = '/settings'}
+                    // onClick={() => window.location.href = '/settings'}
                   >
                     <Settings className="h-4 w-4" />
                     Account Settings
