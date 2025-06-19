@@ -457,18 +457,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
 
   const statCards = [
     {
-      title: "Total Users",
-      value: stats.totalUsers,
-      formattedValue: stats.totalUsers.toLocaleString(),
-      icon: Users,
-      description: "All registered users",
-      color: "text-gray-600",
-      bgColor: "bg-gray-50",
-      iconBgColor: "bg-gray-100",
-      prefix: "",
-      suffix: "",
-    },
-    {
       title: "Total Revenue",
       value: vnSales.totalRevenue,
       formattedValue: isLoadingVnStats
@@ -484,6 +472,18 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       prefix: isLoadingVnStats ? "" : "$",
       suffix: "",
       isLoading: isLoadingVnStats,
+    },
+    {
+      title: "Total Users",
+      value: stats.totalUsers,
+      formattedValue: stats.totalUsers.toLocaleString(),
+      icon: Users,
+      description: "All registered users",
+      color: "text-gray-600",
+      bgColor: "bg-gray-50",
+      iconBgColor: "bg-gray-100",
+      prefix: "",
+      suffix: "",
     },
     {
       title: "VN Sales Today",
