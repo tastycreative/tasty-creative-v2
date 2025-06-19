@@ -637,8 +637,8 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
               className="border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative"
             >
               {/* Glass reflection effect */}
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
               </div>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -876,7 +876,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                           Avg View Rate (Top 5):{" "}
                           <span className="text-green-600 font-semibold">
                             {topPerformingMessages.length > 0
-                              ? (
+                              ?(
                                   topPerformingMessages
                                     .slice(0, 5)
                                     .reduce(
@@ -1596,7 +1596,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                     <span>Fetching content data from Google Sheets...</span>
                   </div>
                 </div>
-              ) : contentGenerationData.contentByTracker.length > 0 ? (
+              ) : contentGenerationData.contentByTracker.length >0 ? (
                 <>
                   {contentGenerationData.contentByTracker.map(
                     (tracker, index) => (

@@ -144,6 +144,20 @@ html.dark body {
 
 /* --- END: High-specificity theme overrides --- */
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes slideGlassRight {
+  from { transform: skewX(-12deg) translateX(-100%); }
+  to { transform: skewX(-12deg) translateX(100%); }
+}
+
+@keyframes slideGlassLeft {
+  from { transform: skewX(-12deg) translateX(100%); }
+  to { transform: skewX(-12deg) translateX(-100%); }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
