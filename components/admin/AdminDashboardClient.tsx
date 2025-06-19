@@ -1,4 +1,3 @@
-typescript
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
@@ -456,7 +455,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     })
   );
 
- const statCards = [
+  const statCards = [
     {
       title: "Total Users",
       value: stats.totalUsers,
@@ -673,7 +672,9 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                   <div
                     className={`${stat.iconBgColor} p-3 rounded-full group-hover:scale-110 transition-transform duration-300`}
                   >
-                    <Icon className={`h-6 w-6 ${stat.color} group-hover:text-pink-600 transition-colors duration-300`} />
+                    <Icon
+                      className={`h-6 w-6 ${stat.color} group-hover:text-pink-600 transition-colors duration-300`}
+                    />
                   </div>
                 </div>
               </CardContent>
@@ -777,7 +778,11 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                           <div className="flex items-center space-x-2">
                             <Badge
                               variant={message.isFree ? "secondary" : "default"}
-                              className={message.isFree ? "bg-gray-100 text-gray-700 border-gray-200" : "bg-black text-white border-black"}
+                              className={
+                                message.isFree
+                                  ? "bg-gray-100 text-gray-700 border-gray-200"
+                                  : "bg-black text-white border-black"
+                              }
                             >
                               {message.isFree ? "Free" : "Paid"}
                             </Badge>
@@ -873,7 +878,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                             {topPerformingMessages.length > 0
                               ? (
                                   topPerformingMessages
-                                    .slice(0, 5)```typescript
+                                    .slice(0, 5)
                                     .reduce(
                                       (sum, msg) => sum + msg.viewRate,
                                       0
@@ -1532,7 +1537,9 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                       className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-all duration-300"
                     >
                       <div>
-                        <h3 className="font-medium text-gray-900">{model.name}</h3>
+                        <h3 className="font-medium text-gray-900">
+                          {model.name}
+                        </h3>
                         <p className="text-sm text-gray-500">
                           {model.sales} VN sales
                         </p>
@@ -1592,7 +1599,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
               ) : contentGenerationData.contentByTracker.length > 0 ? (
                 <>
                   {contentGenerationData.contentByTracker.map(
-```typescript
                     (tracker, index) => (
                       <div
                         key={index}
