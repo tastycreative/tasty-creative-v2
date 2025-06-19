@@ -26,7 +26,6 @@ export async function GET(request: NextRequest) {
       process.env.GOOGLE_REDIRECT_URI
     );
 
-    // Check if we have the necessary tokens
     if (!session.accessToken) {
       return NextResponse.json(
         {
@@ -42,7 +41,6 @@ export async function GET(request: NextRequest) {
       expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
     });
 
-    // Check if token is expired and we need to refresh
     if (
       !session.refreshToken &&
       session.expiresAt &&
@@ -56,57 +54,60 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Initialize the Google Sheets API
     const sheets = google.sheets({ version: "v4", auth: oauth2Client });
     const spreadsheetId = "1_a08KImbkIA3z0_DTGWoqJdnRiw1y-kygj-Wr2cB_gk";
 
-    // Get all sheet names first
     const spreadsheetResponse = await sheets.spreadsheets.get({
       spreadsheetId,
     });
 
-    const sheetNames = spreadsheetResponse.data.sheets?.map(sheet => 
+    const sheetNames = spreadsheetResponse.data.sheets?.map(sheet =>
       sheet.properties?.title
     ).filter(name => name && name !== 'Sheet1') || [];
 
     let totalSales = 0;
     let totalSalesToday = 0;
-    const salesByModel: { [key: string]: { sales: number; revenue: number; loyaltyPoints: number } } = {};
-    const today = new Date().toLocaleDateString();
+    const salesByModel: {
+      [key: string]: { sales: number; revenue: number; loyaltyPoints: number };
+    } = {};
 
-    // Fetch data from each model sheet
+    const now = new Date();
+
     for (const sheetName of sheetNames) {
-      if (!sheetName) continue; // Skip if sheetName is null or undefined
-      
+      if (!sheetName) continue;
+
       try {
         const response = await sheets.spreadsheets.values.get({
           spreadsheetId,
-          range: `${sheetName}!A:E`, // Voice Note, Sale, Sold Date, Status, Total
+          range: `${sheetName}!A:E`, // ID, Voice Note, Sale, Sold Date, Status
         });
 
         const rows = response.data.values || [];
-        
-        // Skip header row
         const dataRows = rows.slice(1);
-        
+
         let modelSales = 0;
         let modelRevenue = 0;
-        let modelSalesToday = 0;
 
         for (const row of dataRows) {
           if (row.length >= 3) {
-            const sale = parseFloat(row[1]) || 0;
-            const soldDate = row[2];
-            
+            const sale = parseFloat(row[2]) || 0; // row[2] = Sale
+            const soldDate = row[3]; // row[3] = Sold Date
+
             if (sale > 0) {
               modelSales++;
               modelRevenue += sale;
               totalSales++;
-              
-              // Check if sale is from today
-              if (soldDate && new Date(soldDate).toLocaleDateString() === today) {
-                modelSalesToday++;
-                totalSalesToday += sale;
+
+              if (soldDate) {
+                const sold = new Date(soldDate);
+                const isToday =
+                  sold.getFullYear() === now.getFullYear() &&
+                  sold.getMonth() === now.getMonth() &&
+                  sold.getDate() === now.getDate();
+
+                if (isToday) {
+                  totalSalesToday += sale;
+                }
               }
             }
           }
@@ -116,7 +117,7 @@ export async function GET(request: NextRequest) {
           salesByModel[sheetName] = {
             sales: modelSales,
             revenue: modelRevenue,
-            loyaltyPoints: Math.floor(modelRevenue * 0.8) // Assume 0.8 loyalty points per dollar
+            loyaltyPoints: Math.floor(modelRevenue * 0.8),
           };
         }
       } catch (error) {
@@ -124,7 +125,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Calculate average VN price
     let totalRevenue = 0;
     for (const model of Object.values(salesByModel)) {
       totalRevenue += model.revenue;
@@ -138,14 +138,13 @@ export async function GET(request: NextRequest) {
       averageVnPrice: Math.round(averageVnPrice * 100) / 100,
       salesByModel: Object.entries(salesByModel).map(([name, data]) => ({
         name,
-        ...data
-      }))
+        ...data,
+      })),
     });
 
   } catch (error: any) {
     console.error("Error fetching VN sales stats:", error);
 
-    // Handle Google API permission errors specifically
     if (error.code === 403 && error.errors && error.errors.length > 0) {
       return NextResponse.json(
         {
