@@ -119,12 +119,12 @@ export default async function AdminDashboardPage() {
   const analyticsData = {
     activeCampaigns: 12,
     newCampaignsThisWeek: 3,
-    conversionRate: 3.8,
+    conversionRate: 0,
     conversionGrowth: 0.5,
-    totalRevenue: 12340,
-    revenueGrowth: 25,
-    roi: 285,
-    roiGrowth: 15,
+    totalRevenue: 0,
+    revenueGrowth: 0,
+    roi: 0,
+    roiGrowth: 0,
   };
 
   // Content Generation data placeholder (will be fetched client-side)
