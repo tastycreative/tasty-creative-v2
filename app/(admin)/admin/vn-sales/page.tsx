@@ -9,7 +9,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { 
+  Loader2, 
+  CheckCircle, 
+  AlertCircle, 
+  RefreshCw, 
+  DollarSign, 
+  TrendingUp, 
+  BarChart3,
+  Mic,
+  FileAudio,
+  Star,
+  Activity,
+  Calendar,
+  Eye
+} from "lucide-react";
 import { API_KEY_PROFILES, getVoicesForProfile } from "@/app/services/elevenlabs-implementation";
 
 interface VoiceHistoryItem {
@@ -207,270 +221,393 @@ useEffect(() => {
   };
 
   return (
-    <div className="p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">VN Sales Tracker</h1>
-        <p className="text-gray-600 dark:text-gray-400">Track video note sales, loyalty points, and transactions</p>
+    <div className="min-h-screen p-6 space-y-6 bg-gradient-to-br from-gray-50 via-white to-pink-50">
+      {/* Header */}
+      <div className="mb-8 p-6 bg-gradient-to-r from-gray-50 to-pink-50 rounded-lg border">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center space-x-3 mb-2">
+              <h1 className="text-3xl font-bold text-gray-900">VN Sales Tracker</h1>
+              <Mic className="h-6 w-6 text-pink-500" />
+            </div>
+            <p className="text-gray-600">
+              Track video note sales, loyalty points, and transactions
+            </p>
+          </div>
+          <div className="flex gap-3">
+            <button 
+              onClick={loadStats}
+              disabled={isLoadingStats}
+              className="inline-flex items-center px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingStats ? 'animate-spin' : ''}`} />
+              Refresh Stats
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div className="grid gap-6">
-        {/* Voice Note Sale Submission Form */}
-        <Card className="bg-white dark:bg-gray-800 shadow">
-          <CardHeader>
-            <CardTitle className="text-gray-900 dark:text-white">Submit Voice Note Sale</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* API Profile Selection */}
+      {/* Enhanced Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <Card className="border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+          </div>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
               <div>
-                <Label htmlFor="apiProfile" className="text-gray-700 dark:text-gray-300">Select API Profile</Label>
-                <Select value={selectedApiProfile} onValueChange={setSelectedApiProfile}>
-                  <SelectTrigger className="w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600">
-                    <SelectValue placeholder="Choose an API profile" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600">
-                    {Object.entries(API_KEY_PROFILES).map(([key, profile]) => (
-                      <SelectItem key={key} value={key} className="dark:text-white dark:hover:bg-gray-700">
-                        {profile.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Voice Selection */}
-              <div>
-                <Label htmlFor="voice-selection" className="text-gray-700 dark:text-gray-300">
-                  Select Voice ({availableVoices.length} available)
-                </Label>
-                <Select
-                  value={selectedVoice}
-                  onValueChange={setSelectedVoice}
-                  disabled={availableVoices.length === 0}
-                >
-                  <SelectTrigger className="w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600">
-                    <SelectValue placeholder="Select a voice" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 max-h-72">
-                    {availableVoices.map((voice) => (
-                      <SelectItem
-                        key={voice.voiceId}
-                        value={voice.voiceId}
-                        className="dark:text-white dark:hover:bg-gray-700"
-                      >
-                        {voice.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Voice Note Selection */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label htmlFor="voiceNote" className="text-gray-700 dark:text-gray-300">Select Voice Note</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={loadVoiceHistory}
-                    disabled={isLoadingHistory}
-                  >
-                    {isLoadingHistory ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Loading...
-                      </>
-                    ) : (
-                      'Refresh History'
-                    )}
-                  </Button>
-                </div>
-                <Select value={selectedVoiceNote} onValueChange={setSelectedVoiceNote} disabled={!selectedVoice || !selectedApiProfile}>
-                  <SelectTrigger className="w-full bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600">
-                    <SelectValue placeholder={!selectedApiProfile ? "Select an API profile first" : !selectedVoice ? "Select a voice first" : "Choose a voice note from history"} />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-60 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600">
-                    {voiceHistory.map((item) => (
-                        <SelectItem key={item.history_item_id} value={item.history_item_id} className="dark:text-white dark:hover:bg-gray-700">
-                          <div className="flex flex-col">
-                            <span className="font-medium">
-                              {truncateText(item.text, 40)}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              Generated: {formatDate(item.date_unix)} | Voice: {item.voice_name}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-                {selectedVoice && selectedApiProfile && voiceHistory.length === 0 && !isLoadingHistory && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    No voice notes found for {availableVoices.find(v => v.voiceId === selectedVoice)?.name} in {API_KEY_PROFILES[selectedApiProfile as keyof typeof API_KEY_PROFILES]?.name}. Generate some voice notes first.
-                  </p>
-                )}
-                {selectedApiProfile && voiceHistory.length === 0 && !isLoadingHistory && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    No voice history found in {API_KEY_PROFILES[selectedApiProfile as keyof typeof API_KEY_PROFILES]?.name}. Make sure the API profile has voice generation history.
-                  </p>
-                )}
-              </div>
-
-              {/* Sale Price */}
-              <div>
-                <Label htmlFor="salePrice" className="text-gray-700 dark:text-gray-300">Sale Price ($)</Label>
-                <Input
-                  id="salePrice"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={salePrice}
-                  onChange={(e) => setSalePrice(e.target.value)}
-                  placeholder="Enter sale amount"
-                  className="w-full"
-                />
-              </div>
-
-              {/* Submit Status */}
-              {submitStatus && (
-                <Alert className={submitStatus.type === 'success' ? 'border-green-500 bg-green-50 dark:bg-green-900/20 dark:border-green-700/50' : 'border-red-500 bg-red-50 dark:bg-red-900/20 dark:border-red-700/50'}>
-                  {submitStatus.type === 'success' ? (
-                    <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+                <p className="text-sm font-medium text-gray-500 mb-1">VN Sales Today</p>
+                <p className="text-3xl font-bold text-gray-900 mb-1">
+                  {isLoadingStats ? (
+                    <Loader2 className="w-6 h-6 animate-spin text-green-600" />
                   ) : (
-                    <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                    `$${vnStats?.vnSalesToday?.toFixed(2) || '0.00'}`
                   )}
-                  <AlertDescription className={submitStatus.type === 'success' ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}>
-                    {submitStatus.message}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {/* Submit Button */}
-              <Button 
-                type="submit" 
-                className="w-full"
-                disabled={isSubmitting || !selectedApiProfile || !selectedVoice || !selectedVoiceNote || !salePrice}
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Submitting Sale...
-                  </>
-                ) : (
-                  'Submit Voice Note Sale'
-                )}
-              </Button>
-            </form>
+                </p>
+                <div className="flex items-center text-sm">
+                  <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
+                  <span className="text-green-600 font-medium">Real-time data</span>
+                </div>
+              </div>
+              <div className="bg-green-50 p-3 rounded-full group-hover:bg-green-100 transition-colors">
+                <DollarSign className="h-6 w-6 text-green-600" />
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Sales Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">VN Sales Today</h3>
-            <p className="text-2xl font-bold text-green-600">
-              {isLoadingStats ? (
-                <Loader2 className="w-6 h-6 animate-spin" />
-              ) : (
-                `$${vnStats?.vnSalesToday?.toFixed(2) || '0.00'}`
-              )}
-            </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Real-time data</p>
+        <Card className="border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Voice Generated</h3>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-500">
-              {isLoadingStats ? (
-                <Loader2 className="w-6 h-6 animate-spin" />
-              ) : (
-                voiceStats?.totalVoiceGenerated?.toLocaleString() || '0'
-              )}
-            </p>
-            <p className="text-sm text-blue-600 dark:text-blue-400">
-              {voiceStats?.newVoicesToday || 0} new today
-            </p>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Revenue</h3>
-            <p className="text-2xl font-bold text-purple-600 dark:text-purple-500">
-              {isLoadingStats ? (
-                <Loader2 className="w-6 h-6 animate-spin" />
-              ) : (
-                `$${vnStats?.totalRevenue?.toFixed(2) || '0.00'}`
-              )}
-            </p>
-            <p className="text-sm text-purple-600 dark:text-purple-400">From {vnStats?.salesByModel?.length || 0} models</p>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Average VN Price</h3>
-            <p className="text-2xl font-bold text-orange-600 dark:text-orange-500">
-              {isLoadingStats ? (
-                <Loader2 className="w-6 h-6 animate-spin" />
-              ) : (
-                `$${vnStats?.averageVnPrice?.toFixed(2) || '0.00'}`
-              )}
-            </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Per voice note</p>
-          </div>
-        </div>
-
-        {/* Sales by Model */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Sales by Model</h2>
-          </div>
-          <div className="p-6">
-            <div className="space-y-4">
-              {isLoadingStats ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin text-gray-500 dark:text-gray-400" />
-                </div>
-              ) : vnStats?.salesByModel?.length > 0 ? (
-                vnStats.salesByModel.map((model: any, index: number) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                  >
-                    <div>
-                      <h3 className="font-medium text-gray-900 dark:text-white">{model.name}</h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{model.sales} VN sales</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-green-600 dark:text-green-400">${model.revenue.toFixed(2)}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{model.loyaltyPoints} loyalty pts</p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center text-gray-600 dark:text-gray-400 py-4">
-                  <p className="text-sm">No sales data found. Submit some sales above to see analytics!</p>
-                </div>
-              )}
-              <div className="flex justify-center pt-4">
-                <Button
-                  variant="outline"
-                  onClick={loadStats}
-                  disabled={isLoadingStats}
-                  className="text-sm text-gray-700 dark:text-gray-300"
-                >
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">Total Voice Generated</p>
+                <p className="text-3xl font-bold text-gray-900 mb-1">
                   {isLoadingStats ? (
+                    <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+                  ) : (
+                    voiceStats?.totalVoiceGenerated?.toLocaleString() || '0'
+                  )}
+                </p>
+                <div className="flex items-center text-sm">
+                  <Activity className="h-3 w-3 text-blue-500 mr-1" />
+                  <span className="text-blue-600 font-medium">
+                    {voiceStats?.newVoicesToday || 0} new today
+                  </span>
+                </div>
+              </div>
+              <div className="bg-blue-50 p-3 rounded-full group-hover:bg-blue-100 transition-colors">
+                <FileAudio className="h-6 w-6 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+          </div>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">Total Revenue</p>
+                <p className="text-3xl font-bold text-gray-900 mb-1">
+                  {isLoadingStats ? (
+                    <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
+                  ) : (
+                    `$${vnStats?.totalRevenue?.toFixed(2) || '0.00'}`
+                  )}
+                </p>
+                <div className="flex items-center text-sm">
+                  <BarChart3 className="h-3 w-3 text-purple-500 mr-1" />
+                  <span className="text-purple-600 font-medium">
+                    From {vnStats?.salesByModel?.length || 0} models
+                  </span>
+                </div>
+              </div>
+              <div className="bg-purple-50 p-3 rounded-full group-hover:bg-purple-100 transition-colors">
+                <BarChart3 className="h-6 w-6 text-purple-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+          </div>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-500 mb-1">Average VN Price</p>
+                <p className="text-3xl font-bold text-gray-900 mb-1">
+                  {isLoadingStats ? (
+                    <Loader2 className="w-6 h-6 animate-spin text-orange-600" />
+                  ) : (
+                    `$${vnStats?.averageVnPrice?.toFixed(2) || '0.00'}`
+                  )}
+                </p>
+                <div className="flex items-center text-sm">
+                  <Star className="h-3 w-3 text-orange-500 mr-1" />
+                  <span className="text-orange-600 font-medium">Per voice note</span>
+                </div>
+              </div>
+              <div className="bg-orange-50 p-3 rounded-full group-hover:bg-orange-100 transition-colors">
+                <Star className="h-6 w-6 text-orange-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Voice Note Sale Submission Form */}
+      <Card className="border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 bg-white">
+        <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b border-gray-200">
+          <CardTitle className="text-gray-900 font-bold flex items-center">
+            <Mic className="h-5 w-5 mr-2 text-pink-500" />
+            Submit Voice Note Sale
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* API Profile Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="apiProfile" className="text-sm font-medium text-gray-700">
+                Select API Profile
+              </Label>
+              <Select value={selectedApiProfile} onValueChange={setSelectedApiProfile}>
+                <SelectTrigger className="w-full bg-white border-gray-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all">
+                  <SelectValue placeholder="Choose an API profile" />
+                </SelectTrigger>
+                <SelectContent className="bg-white border-gray-300">
+                  {Object.entries(API_KEY_PROFILES).map(([key, profile]) => (
+                    <SelectItem key={key} value={key} className="hover:bg-gray-50">
+                      {profile.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Voice Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="voice-selection" className="text-sm font-medium text-gray-700">
+                Select Voice ({availableVoices.length} available)
+              </Label>
+              <Select
+                value={selectedVoice}
+                onValueChange={setSelectedVoice}
+                disabled={availableVoices.length === 0}
+              >
+                <SelectTrigger className="w-full bg-white border-gray-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all disabled:bg-gray-50">
+                  <SelectValue placeholder="Select a voice" />
+                </SelectTrigger>
+                <SelectContent className="bg-white border-gray-300 max-h-72">
+                  {availableVoices.map((voice) => (
+                    <SelectItem
+                      key={voice.voiceId}
+                      value={voice.voiceId}
+                      className="hover:bg-gray-50"
+                    >
+                      {voice.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Voice Note Selection */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="voiceNote" className="text-sm font-medium text-gray-700">
+                  Select Voice Note
+                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={loadVoiceHistory}
+                  disabled={isLoadingHistory}
+                  className="text-gray-600 hover:text-gray-800 border-gray-300 hover:border-pink-300 hover:bg-pink-50 transition-all"
+                >
+                  {isLoadingHistory ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Refreshing...
+                      Loading...
                     </>
                   ) : (
                     <>
                       <RefreshCw className="w-4 h-4 mr-2" />
-                      Refresh Stats
+                      Refresh History
                     </>
                   )}
                 </Button>
               </div>
+              <Select 
+                value={selectedVoiceNote} 
+                onValueChange={setSelectedVoiceNote} 
+                disabled={!selectedVoice || !selectedApiProfile}
+              >
+                <SelectTrigger className="w-full bg-white border-gray-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all disabled:bg-gray-50">
+                  <SelectValue placeholder={
+                    !selectedApiProfile 
+                      ? "Select an API profile first" 
+                      : !selectedVoice 
+                        ? "Select a voice first" 
+                        : "Choose a voice note from history"
+                  } />
+                </SelectTrigger>
+                <SelectContent className="max-h-60 bg-white border-gray-300">
+                  {voiceHistory.map((item) => (
+                    <SelectItem key={item.history_item_id} value={item.history_item_id} className="hover:bg-gray-50">
+                      <div className="flex flex-col space-y-1">
+                        <span className="font-medium text-gray-900">
+                          {truncateText(item.text, 40)}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          Generated: {formatDate(item.date_unix)} | Voice: {item.voice_name}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {selectedVoice && selectedApiProfile && voiceHistory.length === 0 && !isLoadingHistory && (
+                <p className="text-sm text-gray-600 mt-1">
+                  No voice notes found for {availableVoices.find(v => v.voiceId === selectedVoice)?.name} in {API_KEY_PROFILES[selectedApiProfile as keyof typeof API_KEY_PROFILES]?.name}. Generate some voice notes first.
+                </p>
+              )}
+            </div>
+
+            {/* Sale Price */}
+            <div className="space-y-2">
+              <Label htmlFor="salePrice" className="text-sm font-medium text-gray-700">
+                Sale Price ($)
+              </Label>
+              <Input
+                id="salePrice"
+                type="number"
+                step="0.01"
+                min="0"
+                value={salePrice}
+                onChange={(e) => setSalePrice(e.target.value)}
+                placeholder="Enter sale amount"
+                className="w-full bg-white border-gray-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all"
+              />
+            </div>
+
+            {/* Submit Status */}
+            {submitStatus && (
+              <Alert className={
+                submitStatus.type === 'success' 
+                  ? 'border-green-500 bg-green-50 text-green-800' 
+                  : 'border-red-500 bg-red-50 text-red-800'
+              }>
+                {submitStatus.type === 'success' ? (
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 text-red-600" />
+                )}
+                <AlertDescription className={
+                  submitStatus.type === 'success' ? 'text-green-700' : 'text-red-700'
+                }>
+                  {submitStatus.message}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Submit Button */}
+            <Button 
+              type="submit" 
+              className="w-full bg-pink-500 hover:bg-pink-600 text-white border-0 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
+              disabled={isSubmitting || !selectedApiProfile || !selectedVoice || !selectedVoiceNote || !salePrice}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Submitting Sale...
+                </>
+              ) : (
+                <>
+                  <DollarSign className="w-4 h-4 mr-2" />
+                  Submit Voice Note Sale
+                </>
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Enhanced Sales by Model */}
+      <Card className="border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 bg-white">
+        <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-gray-900 font-bold flex items-center">
+              <Eye className="h-5 w-5 mr-2 text-pink-500" />
+              Sales by Model
+            </CardTitle>
+            <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <Calendar className="h-4 w-4" />
+              <span>Last updated: {new Date().toLocaleTimeString()}</span>
             </div>
           </div>
-        </div>
-      </div>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            {isLoadingStats ? (
+              <div className="flex justify-center py-8">
+                <div className="flex items-center text-gray-500">
+                  <Loader2 className="h-6 w-6 animate-spin mr-2 text-pink-500" />
+                  <span>Fetching sales data...</span>
+                </div>
+              </div>
+            ) : vnStats?.salesByModel?.length > 0 ? (
+              vnStats.salesByModel.map((model: any, index: number) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-pink-50 rounded-lg border border-gray-200 hover:border-pink-300 transition-all duration-300 group hover:shadow-md"
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-pink-100 p-2 rounded-full group-hover:bg-pink-200 transition-colors">
+                      <Mic className="h-5 w-5 text-pink-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 group-hover:text-pink-700 transition-colors">
+                        {model.name}
+                      </h3>
+                      <p className="text-sm text-gray-600 flex items-center">
+                        <FileAudio className="h-3 w-3 mr-1" />
+                        {model.sales} VN sales
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-green-600 text-lg">
+                      ${model.revenue.toFixed(2)}
+                    </p>
+                    <p className="text-sm text-gray-600 flex items-center justify-end">
+                      <Star className="h-3 w-3 mr-1 text-yellow-500" />
+                      {model.loyaltyPoints} loyalty pts
+                    </p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="text-center text-gray-600 py-8">
+                <div className="flex flex-col items-center space-y-3">
+                  <div className="bg-gray-100 p-4 rounded-full">
+                    <BarChart3 className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <p className="text-lg font-medium">No sales data found</p>
+                  <p className="text-sm text-gray-500">Submit some sales above to see analytics!</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
