@@ -628,50 +628,59 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-12 gap-4 auto-rows-[120px]">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 auto-rows-min">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
-          const gridClasses = [
-            "col-span-12 md:col-span-8 row-span-2", // Large featured card
-            "col-span-12 md:col-span-4 row-span-2", // Medium vertical
-            "col-span-6 md:col-span-4 row-span-1", // Small cards
-            "col-span-6 md:col-span-4 row-span-1",
-            "col-span-12 md:col-span-4 row-span-1",
-            "col-span-6 md:col-span-3 row-span-2", // Tall narrow
-            "col-span-6 md:col-span-3 row-span-1",
-            "col-span-6 md:col-span-3 row-span-1",
-            "col-span-6 md:col-span-3 row-span-1",
-          ];
+
+          // More fluid responsive classes based on card priority/importance
+          const getGridClasses = (index: number) => {
+            if (index === 0) {
+              // Featured card - takes more space on larger screens
+              return "col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-4 row-span-1";
+            } else if (index === 1) {
+              // Second priority - medium card
+              return "col-span-1 sm:col-span-1 lg:col-span-2 xl:col-span-2 row-span-1";
+            } else if (index < 5) {
+              // Regular priority cards
+              return "col-span-1 sm:col-span-1 lg:col-span-1 xl:col-span-2 row-span-1";
+            } else {
+              // Lower priority cards - smaller on larger screens
+              return "col-span-1 row-span-1";
+            }
+          };
 
           return (
             <div
               key={index}
-              className={`${gridClasses[index] || "col-span-12 md:col-span-4 row-span-1"} bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-xl transition-all duration-500 group relative overflow-hidden hover:border-pink-200`}
+              className={`${getGridClasses(index)} bg-white rounded-2xl border border-gray-200 p-4 lg:p-6 hover:shadow-xl transition-all duration-500 group relative overflow-hidden hover:border-pink-200 min-h-[140px] flex`}
             >
-              {/* Animated gradient background */}
-              {/* <div className="absolute inset-0 bg-gradient-to-br from-pink-50/0 to-purple-50/0 group-hover:from-pink-50 group-hover:to-purple-50 transition-all duration-700" /> */}
-<div className="absolute -right-10 -top-10 w-40 h-40 bg-gradient-to-br from-pink-100 to-purple-100 rounded-full opacity-20 group-hover:scale-150 transition-transform duration-700" />
-            <div className="absolute -left-10 -bottom-10 w-32 h-32 bg-gradient-to-tr from-blue-100 to-green-100 rounded-full opacity-20 group-hover:scale-150 transition-transform duration-700" />
-            
-              <div className="relative z-10 h-full flex flex-col justify-between">
+              {/* Animated gradient backgrounds */}
+              <div className="absolute -right-6 -top-6 sm:-right-10 sm:-top-10 w-20 h-20 sm:w-40 sm:h-40 bg-gradient-to-br from-pink-100 to-purple-100 rounded-full opacity-20 group-hover:scale-150 transition-transform duration-700" />
+              <div className="absolute -left-6 -bottom-6 sm:-left-10 sm:-bottom-10 w-16 h-16 sm:w-32 sm:h-32 bg-gradient-to-tr from-blue-100 to-green-100 rounded-full opacity-20 group-hover:scale-150 transition-transform duration-700" />
+
+              <div className="relative z-10 flex flex-col justify-between w-full">
                 {index === 0 ? (
-                  // Featured card layout
+                  // Featured card layout - adapts better to different sizes
                   <>
-                    <div className="flex justify-between items-start mb-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start mb-2 sm:mb-4 gap-2">
                       <div
-                        className={`${stat.iconBgColor} p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300`}
+                        className={`${stat.iconBgColor} p-2 sm:p-4 rounded-xl sm:rounded-2xl group-hover:scale-110 transition-transform duration-300`}
                       >
-                        <Icon className={`h-8 w-8 ${stat.color}`} />
+                        <Icon
+                          className={`h-5 w-5 sm:h-8 sm:w-8 ${stat.color}`}
+                        />
                       </div>
-                      <Badge className="bg-black text-white">Featured</Badge>
+                      <Badge className="bg-black text-white text-xs">
+                        Featured
+                      </Badge>
                     </div>
-                    <div>
-                      <p className="text-lg font-medium text-gray-600 mb-2">
+                    <div className="flex-1">
+                      <p className="text-sm sm:text-lg font-medium text-gray-600 mb-1 sm:mb-2">
                         {stat.title}
                       </p>
-                      <p className="text-4xl font-bold text-gray-900 mb-2">
+                      <p className="text-2xl sm:text-4xl font-bold text-gray-900 mb-1 sm:mb-2">
                         {(stat as any).isLoading ? (
-                          <Loader2 className="h-8 w-8 animate-spin text-pink-500" />
+                          <Loader2 className="h-6 w-6 sm:h-8 sm:w-8 animate-spin text-pink-500" />
                         ) : (
                           <CountUp
                             end={stat.value}
@@ -681,22 +690,22 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                           />
                         )}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-xs sm:text-sm text-gray-500">
                         {stat.description}
                       </p>
                     </div>
                   </>
                 ) : (
-                  // Regular card layout
+                  // Regular card layout - more compact and flexible
                   <>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-600">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">
                           {stat.title}
                         </p>
-                        <p className="text-2xl font-bold text-gray-900 mt-1">
+                        <p className="text-lg sm:text-2xl font-bold text-gray-900 mt-1">
                           {(stat as any).isLoading ? (
-                            <Loader2 className="h-5 w-5 animate-spin text-pink-500" />
+                            <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin text-pink-500" />
                           ) : (
                             <CountUp
                               end={stat.value}
@@ -708,12 +717,14 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                         </p>
                       </div>
                       <div
-                        className={`${stat.iconBgColor} p-2 rounded-xl group-hover:scale-110 transition-transform duration-300`}
+                        className={`${stat.iconBgColor} p-1.5 sm:p-2 rounded-lg sm:rounded-xl group-hover:scale-110 transition-transform duration-300 flex-shrink-0 ml-2`}
                       >
-                        <Icon className={`h-5 w-5 ${stat.color}`} />
+                        <Icon
+                          className={`h-4 w-4 sm:h-5 sm:w-5 ${stat.color}`}
+                        />
                       </div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">
+                    <p className="text-xs text-gray-500 leading-tight mt-auto">
                       {stat.description}
                     </p>
                   </>
