@@ -117,7 +117,7 @@ export default function EnhancedAIInstagramScraperPage() {
   // Portal mounting state
   const [isMounted, setIsMounted] = useState(false);
 
-  const API_BASE = "http://localhost:5001/api";
+  const API_BASE = "https://corp-thoughts-nice-refresh.trycloudflare.com/api";
 
   // Prevent background scrolling when modals are open
   useEffect(() => {
@@ -880,11 +880,11 @@ export default function EnhancedAIInstagramScraperPage() {
         {showClearDataModal &&
           isMounted &&
           createPortal(
-            <div 
+            <div
               className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
               onClick={() => setShowClearDataModal(false)} // Add this onClick handler
             >
-              <div 
+              <div
                 className="bg-white dark:bg-gray-900 rounded-2xl max-w-md w-full"
                 onClick={(e) => e.stopPropagation()} // Add this to prevent closing when clicking modal content
               >
