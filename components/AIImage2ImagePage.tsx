@@ -43,6 +43,8 @@ import {
   Image as ImageLucide,
   Info,
   ZapOff,
+  Instagram,
+  User,
 } from "lucide-react";
 
 interface GeneratedImage {
@@ -108,6 +110,7 @@ const AIImage2ImagePage = () => {
   const [availableLoraModels, setAvailableLoraModels] = useState<string[]>([]);
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
+  const [instagramData, setInstagramData] = useState<any>(null);
 
   // Connection status check (using same method as AIText2ImagePage)
   useEffect(() => {
@@ -184,6 +187,51 @@ const AIImage2ImagePage = () => {
     loadGeneratedImages();
   }, []);
 
+  // Check for Instagram data transfer on mount
+  useEffect(() => {
+    const checkForInstagramData = async () => {
+      try {
+        const transferData = localStorage.getItem("instagram_to_image2image");
+        if (transferData) {
+          const data = JSON.parse(transferData);
+          setInstagramData(data);
+
+          // Load the image
+          if (data.imageUrl) {
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = () => {
+              setUploadedImage(img);
+              setMaskData(null); // Reset mask when new image is loaded
+
+              // Show success message
+              setStatus(`✅ Loaded image from Instagram: ${data.filename}`);
+            };
+            img.onerror = () => {
+              setError("Failed to load image from Instagram scraper");
+            };
+            img.src = data.imageUrl;
+          }
+
+          // Set the prompt from AI analysis or caption
+          if (data.prompt) {
+            setPrompt(data.prompt);
+          }
+
+          // Clear the transfer data so it doesn't load again
+          localStorage.removeItem("instagram_to_image2image");
+        }
+      } catch (error) {
+        console.error("Error loading Instagram data:", error);
+      }
+    };
+
+    checkForInstagramData();
+  }, []);
+
+  // Status state for user feedback
+  const [status, setStatus] = useState("");
+
   // Save generated images to localStorage
   const saveImageToStorage = useCallback((newImage: GeneratedImage) => {
     setGeneratedImages((prev) => {
@@ -244,6 +292,7 @@ const AIImage2ImagePage = () => {
     img.onload = () => {
       setUploadedImage(img);
       setMaskData(null); // Reset mask when new image is uploaded
+      setInstagramData(null); // Clear Instagram data when uploading new image
     };
     img.src = URL.createObjectURL(file);
   };
@@ -1039,6 +1088,30 @@ const AIImage2ImagePage = () => {
           </p>
         </div>
 
+        {/* Instagram Data Indicator */}
+        {instagramData && (
+          <div className="bg-gradient-to-r from-pink-500/10 to-orange-500/10 border border-pink-500/20 rounded-xl p-4">
+            <div className="flex items-center gap-3">
+              <Instagram className="w-5 h-5 text-pink-500" />
+              <div className="flex-1">
+                <h3 className="text-white font-medium">
+                  Loaded from Instagram
+                </h3>
+                <p className="text-gray-300 text-sm">
+                  {instagramData.originalPost ? (
+                    <>
+                      From @{instagramData.originalPost.username} •{" "}
+                      {instagramData.originalPost.likes.toLocaleString()} likes
+                    </>
+                  ) : (
+                    <>Image: {instagramData.filename}</>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Status Bar */}
         <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
           <CardContent className="p-6">
@@ -1302,6 +1375,13 @@ const AIImage2ImagePage = () => {
                     className="bg-black/40 border-white/20 text-white rounded-xl min-h-[120px] resize-none focus:border-cyan-400/50 focus:ring-cyan-400/20 transition-all text-base leading-relaxed"
                     rows={5}
                   />
+                  {instagramData && (
+                    <div className="absolute top-2 right-2">
+                      <div className="bg-pink-500/20 border border-pink-500/30 rounded-lg px-2 py-1 text-xs text-pink-300">
+                        From Instagram
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
