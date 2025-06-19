@@ -628,57 +628,98 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-12 gap-4 auto-rows-[120px]">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
+          const gridClasses = [
+            "col-span-12 md:col-span-8 row-span-2", // Large featured card
+            "col-span-12 md:col-span-4 row-span-2", // Medium vertical
+            "col-span-6 md:col-span-4 row-span-1", // Small cards
+            "col-span-6 md:col-span-4 row-span-1",
+            "col-span-12 md:col-span-4 row-span-1",
+            "col-span-6 md:col-span-3 row-span-2", // Tall narrow
+            "col-span-6 md:col-span-3 row-span-1",
+            "col-span-6 md:col-span-3 row-span-1",
+            "col-span-6 md:col-span-3 row-span-1",
+          ];
+
           return (
-            <Card
+            <div
               key={index}
-              className="border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative"
+              className={`${gridClasses[index] || "col-span-12 md:col-span-4 row-span-1"} bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-xl transition-all duration-500 group relative overflow-hidden hover:border-pink-200`}
             >
-              {/* Glass reflection effect */}
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+              {/* Animated gradient background */}
+              {/* <div className="absolute inset-0 bg-gradient-to-br from-pink-50/0 to-purple-50/0 group-hover:from-pink-50 group-hover:to-purple-50 transition-all duration-700" /> */}
+<div className="absolute -right-10 -top-10 w-40 h-40 bg-gradient-to-br from-pink-100 to-purple-100 rounded-full opacity-20 group-hover:scale-150 transition-transform duration-700" />
+            <div className="absolute -left-10 -bottom-10 w-32 h-32 bg-gradient-to-tr from-blue-100 to-green-100 rounded-full opacity-20 group-hover:scale-150 transition-transform duration-700" />
+            
+              <div className="relative z-10 h-full flex flex-col justify-between">
+                {index === 0 ? (
+                  // Featured card layout
+                  <>
+                    <div className="flex justify-between items-start mb-4">
+                      <div
+                        className={`${stat.iconBgColor} p-4 rounded-2xl group-hover:scale-110 transition-transform duration-300`}
+                      >
+                        <Icon className={`h-8 w-8 ${stat.color}`} />
+                      </div>
+                      <Badge className="bg-black text-white">Featured</Badge>
+                    </div>
+                    <div>
+                      <p className="text-lg font-medium text-gray-600 mb-2">
+                        {stat.title}
+                      </p>
+                      <p className="text-4xl font-bold text-gray-900 mb-2">
+                        {(stat as any).isLoading ? (
+                          <Loader2 className="h-8 w-8 animate-spin text-pink-500" />
+                        ) : (
+                          <CountUp
+                            end={stat.value}
+                            duration={2.5}
+                            prefix={stat.prefix}
+                            suffix={stat.suffix}
+                          />
+                        )}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {stat.description}
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  // Regular card layout
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">
+                          {stat.title}
+                        </p>
+                        <p className="text-2xl font-bold text-gray-900 mt-1">
+                          {(stat as any).isLoading ? (
+                            <Loader2 className="h-5 w-5 animate-spin text-pink-500" />
+                          ) : (
+                            <CountUp
+                              end={stat.value}
+                              duration={2.5}
+                              prefix={stat.prefix}
+                              suffix={stat.suffix}
+                            />
+                          )}
+                        </p>
+                      </div>
+                      <div
+                        className={`${stat.iconBgColor} p-2 rounded-xl group-hover:scale-110 transition-transform duration-300`}
+                      >
+                        <Icon className={`h-5 w-5 ${stat.color}`} />
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      {stat.description}
+                    </p>
+                  </>
+                )}
               </div>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-2 flex-1">
-                    <p className="text-sm font-medium text-gray-600 group-hover:text-gray-800 transition-colors duration-300">
-                      {stat.title}
-                    </p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {(stat as any).isLoading ? (
-                        <div className="flex items-center">
-                          <Loader2 className="h-6 w-6 animate-spin mr-2 text-pink-500" />
-                          <span className="text-lg">Loading...</span>
-                        </div>
-                      ) : (
-                        <CountUp
-                          end={stat.value}
-                          duration={2.5}
-                          prefix={stat.prefix}
-                          suffix={stat.suffix}
-                          decimals={
-                            stat.title.includes("Rate") ||
-                            stat.title.includes("ROI")
-                              ? 2
-                              : 0
-                          }
-                        />
-                      )}
-                    </p>
-                    <p className="text-xs text-gray-500">{stat.description}</p>
-                  </div>
-                  <div
-                    className={`${stat.iconBgColor} p-3 rounded-full group-hover:scale-110 transition-transform duration-300`}
-                  >
-                    <Icon
-                      className={`h-6 w-6 ${stat.color} group-hover:text-pink-600 transition-colors duration-300`}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            </div>
           );
         })}
       </div>
