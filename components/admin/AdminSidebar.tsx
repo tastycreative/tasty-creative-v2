@@ -19,8 +19,12 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronDown,
+  User,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { handleLogout } from "@/app/actions/sign-out";
+import { useSession } from "next-auth/react";
 
 interface AdminSidebarProps {
   className?: string;
@@ -112,8 +116,9 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
       analytics: true,
     }
   );
-  const [selectedModel, setSelectedModel] = useState<string>("all");
+  const [imgError, setImgError] = useState(false);
   const pathname = usePathname();
+  const { data: session } = useSession();
 
   const handleCollapse = (collapsed: boolean) => {
     setIsCollapsed(collapsed);
@@ -193,22 +198,70 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
             </Button>
           </div>
 
-          {/* Model Selector */}
-          {!isCollapsed && (
+          {/* User Credentials Section */}
+          {!isCollapsed && session?.user && (
             <div className="p-4 border-b border-gray-200">
-              <label className="block text-xs font-medium text-gray-600 mb-2">
-                Selected Model
-              </label>
-              <select
-                value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500 transition-all"
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="relative flex-shrink-0">
+                  {session.user.image && !imgError ? (
+                    <img
+                      src={`/api/image-proxy?url=${encodeURIComponent(session.user.image)}`}
+                      alt="Profile"
+                      className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
+                      onError={() => setImgError(true)}
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center">
+                      <User className="h-5 w-5 text-white" />
+                    </div>
+                  )}
+                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-400 border-2 border-white rounded-full"></div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-gray-900 truncate">
+                    {session.user.name || "Admin User"}
+                  </div>
+                  <div className="text-xs text-gray-500 truncate">
+                    {session.user.email}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-gray-600">Role:</span>
+                <span className="text-xs bg-black text-white px-2 py-1 rounded-full font-medium">
+                  {session.user.role}
+                </span>
+              </div>
+              <Button
+                onClick={handleLogout}
+                variant="outline"
+                size="sm"
+                className="w-full text-xs text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
               >
-                <option value="all">All Models</option>
-                <option value="model1">Model 1</option>
-                <option value="model2">Model 2</option>
-                <option value="model3">Model 3</option>
-              </select>
+                <LogOut className="h-3 w-3 mr-2" />
+                Sign Out
+              </Button>
+            </div>
+          )}
+
+          {/* Collapsed User Avatar */}
+          {isCollapsed && session?.user && (
+            <div className="p-4 border-b border-gray-200 flex justify-center">
+              <div className="relative">
+                {session.user.image && !imgError ? (
+                  <img
+                    src={`/api/image-proxy?url=${encodeURIComponent(session.user.image)}`}
+                    alt="Profile"
+                    className="w-8 h-8 rounded-full object-cover border-2 border-gray-200"
+                    onError={() => setImgError(true)}
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center">
+                    <User className="h-4 w-4 text-white" />
+                  </div>
+                )}
+                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-400 border-2 border-white rounded-full"></div>
+              </div>
             </div>
           )}
 
