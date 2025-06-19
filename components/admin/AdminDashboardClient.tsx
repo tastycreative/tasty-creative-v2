@@ -106,10 +106,10 @@ interface DashboardData {
 }
 
 const ROLE_COLORS = {
-  ADMIN: "#ec4899", // Pink-500 - matches your line chart and main theme
-  MODERATOR: "#f97316", // Orange-500 - complements pink nicely
-  USER: "#10b981", // Emerald-500 - keeps the green from your UserCheck icon
-  GUEST: "#94a3b8", // Slate-400 - softer gray that works with pink theme
+  ADMIN: "#ec4899", 
+  MODERATOR: "#f97316", 
+  USER: "#10b981",
+  GUEST: "#94a3b8", 
 };
 
 export function AdminDashboardClient({ data }: { data: DashboardData }) {
