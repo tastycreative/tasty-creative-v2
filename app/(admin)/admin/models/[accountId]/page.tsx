@@ -1,3 +1,4 @@
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
@@ -380,11 +381,11 @@ export default function AccountDetailsPage() {
 
   if (loading) {
     return (
-      <div className="p-6">
+      <div className="min-h-screen p-6 space-y-6 bg-gradient-to-br from-gray-50 via-white to-pink-50">
         <div className="flex items-center justify-center h-64">
           <div className="flex flex-col items-center space-y-4">
-            <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-300/30 border-t-blue-300 dark:border-blue-500/30 dark:border-t-blue-500"></div>
-            <p className="text-sm text-gray-600 dark:text-gray-300">Loading account details...</p>
+            <Loader2 className="animate-spin h-10 w-10 text-pink-500" />
+            <p className="text-sm text-gray-600">Loading account details...</p>
           </div>
         </div>
       </div>
@@ -393,10 +394,10 @@ export default function AccountDetailsPage() {
 
   if (error) {
     return (
-      <div className="p-6">
-        <div className="text-center text-red-600 dark:text-red-500 py-8">
+      <div className="min-h-screen p-6 space-y-6 bg-gradient-to-br from-gray-50 via-white to-pink-50">
+        <div className="text-center text-red-600 py-8">
           <p>{error}</p>
-          <Button onClick={() => router.back()} className="mt-4">
+          <Button onClick={() => router.back()} className="mt-4 bg-black text-white hover:bg-gray-800">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Go Back
           </Button>
@@ -406,13 +407,18 @@ export default function AccountDetailsPage() {
   }
 
   return (
-    <div className="p-6">
+    <div className="min-h-screen p-6 space-y-6 bg-gradient-to-br from-gray-50 via-white to-pink-50">
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-8 p-6 bg-gradient-to-r from-gray-50 to-pink-50 rounded-lg border overflow-hidden relative group">
+        {/* Glass reflection effect */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+        </div>
+        
         <Button
           variant="ghost"
           onClick={() => router.back()}
-          className="mb-4"
+          className="mb-4 hover:bg-gray-100 transition-colors duration-300"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Models
@@ -420,101 +426,131 @@ export default function AccountDetailsPage() {
 
         <div className="flex items-center gap-4">
           {(accountData?.avatar || accountData?.onlyfans_user_data?.avatar) && (
-            <img 
-              src={accountData?.avatar || accountData?.onlyfans_user_data?.avatar} 
-              alt={accountData?.display_name || accountData?.name || 'Account'}
-              className="w-16 h-16 rounded-full object-cover"
-            />
+            <div className="relative">
+              <img 
+                src={accountData?.avatar || accountData?.onlyfans_user_data?.avatar} 
+                alt={accountData?.display_name || accountData?.name || 'Account'}
+                className="w-16 h-16 rounded-full object-cover border-2 border-pink-200"
+              />
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-tilt"></div>
+            </div>
           )}
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            <h1 className="text-3xl font-bold text-gray-900">
               {accountData?.onlyfans_user_data?.display_name || 
                accountData?.display_name || 
                accountData?.name || 
                accountData?.onlyfans_user_data?.name || 
                `Account ${accountId}`}
             </h1>
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-gray-600">
               @{accountData?.onlyfans_user_data?.name || 
                 accountData?.username || 
                 accountData?.onlyfans_user_data?.username || 
                 accountId}
             </p>
             {accountData?.onlyfans_user_data?.email && (
-              <p className="text-sm text-blue-600 dark:text-blue-400">
+              <p className="text-sm text-blue-600">
                 {accountData.onlyfans_user_data.email}
               </p>
             )}
-            <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              <p>Account ID: {accountId}</p>
-              <p>Authentication: {accountData?.is_authenticated ? 'Authenticated' : 'Not Authenticated'}</p>
-              <p>Status: {accountData?.authentication_progress || 'Unknown'}</p>
+            <div className="mt-2 text-sm text-gray-600 flex gap-4">
+              <div className="flex items-center gap-2">
+                <span>Account ID:</span>
+                <Badge variant="outline">{accountId}</Badge>
+              </div>
+              <div className="flex items-center gap-2">
+                <span>Status:</span>
+                <Badge variant={accountData?.is_authenticated ? "default" : "secondary"} className={accountData?.is_authenticated ? "bg-black text-white" : ""}>
+                  {accountData?.is_authenticated ? 'Authenticated' : 'Not Authenticated'}
+                </Badge>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <Card className="border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative">
+          {/* Glass reflection effect */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+          </div>
           <CardContent className="p-6">
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-blue-500 dark:text-blue-400" />
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{activeFans.length}</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Active Fans</p>
+                <p className="text-2xl font-bold text-gray-900">{activeFans.length}</p>
+                <p className="text-sm text-gray-600">Active Fans</p>
               </div>
+              <Users className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform duration-300" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative">
+          {/* Glass reflection effect */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+          </div>
           <CardContent className="p-6">
-            <div className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-green-500 dark:text-green-400" />
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">${earnings?.total?.total?.toLocaleString() || earnings?.total_earnings?.toLocaleString() || '0'}</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Total Earnings</p>
+                <p className="text-2xl font-bold text-gray-900">${earnings?.total?.total?.toLocaleString() || earnings?.total_earnings?.toLocaleString() || '0'}</p>
+                <p className="text-sm text-gray-600">Total Earnings</p>
                 {earnings?.total?.gross && (
-                  <p className="text-xs text-gray-600 dark:text-gray-400">Gross: ${earnings.total.gross.toLocaleString()}</p>
+                  <p className="text-xs text-gray-500">Gross: ${earnings.total.gross.toLocaleString()}</p>
                 )}
               </div>
+              <DollarSign className="w-5 h-5 text-green-500 group-hover:scale-110 transition-transform duration-300" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative">
+          {/* Glass reflection effect */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+          </div>
           <CardContent className="p-6">
-            <div className="flex items-center gap-2">
-              <MessageCircle className="w-5 h-5 text-purple-500 dark:text-purple-400" />
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{chatsData.length}</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Active Chats</p>
+                <p className="text-2xl font-bold text-gray-900">{chatsData.length}</p>
+                <p className="text-sm text-gray-600">Active Chats</p>
               </div>
+              <MessageCircle className="w-5 h-5 text-purple-500 group-hover:scale-110 transition-transform duration-300" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative">
+          {/* Glass reflection effect */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+          </div>
           <CardContent className="p-6">
-            <div className="flex items-center gap-2">
-              <Eye className="w-5 h-5 text-orange-500 dark:text-orange-400" />
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{profileVisitors?.total_visitors?.toLocaleString() || '0'}</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Profile Visits</p>
+                <p className="text-2xl font-bold text-gray-900">{profileVisitors?.total_visitors?.toLocaleString() || '0'}</p>
+                <p className="text-sm text-gray-600">Profile Visits</p>
               </div>
+              <Eye className="w-5 h-5 text-orange-500 group-hover:scale-110 transition-transform duration-300" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative">
+          {/* Glass reflection effect */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+          </div>
           <CardContent className="p-6">
-            <div className="flex items-center gap-2">
-              <MessageCircle className="w-5 h-5 text-pink-500 dark:text-pink-400" />
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{(Array.isArray(massMessages) ? massMessages.reduce((sum, msg) => sum + (msg.sentCount || 0), 0) : 0).toLocaleString()}</p>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Mass Messages Sent</p>
+                <p className="text-2xl font-bold text-gray-900">{(Array.isArray(massMessages) ? massMessages.reduce((sum, msg) => sum + (msg.sentCount || 0), 0) : 0).toLocaleString()}</p>
+                <p className="text-sm text-gray-600">Mass Messages Sent</p>
               </div>
+              <MessageCircle className="w-5 h-5 text-pink-500 group-hover:scale-110 transition-transform duration-300" />
             </div>
           </CardContent>
         </Card>
@@ -522,59 +558,73 @@ export default function AccountDetailsPage() {
 
       {/* Detailed Tabs */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-9">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="chats">Chats</TabsTrigger>
-          <TabsTrigger value="fans">Fans</TabsTrigger>
-          <TabsTrigger value="earnings">Earnings</TabsTrigger>
-          <TabsTrigger value="media">Media Vault</TabsTrigger>
-          <TabsTrigger value="transactions">Transactions</TabsTrigger>
-          <TabsTrigger value="tracking">Tracking</TabsTrigger>
-          <TabsTrigger value="visitors">Visitors</TabsTrigger>
-          <TabsTrigger value="messaging">Mass Messages</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-9 bg-white border border-gray-200 rounded-lg p-1">
+          <TabsTrigger value="overview" className="data-[state=active]:bg-pink-500 data-[state=active]:text-white">Overview</TabsTrigger>
+          <TabsTrigger value="chats" className="data-[state=active]:bg-pink-500 data-[state=active]:text-white">Chats</TabsTrigger>
+          <TabsTrigger value="fans" className="data-[state=active]:bg-pink-500 data-[state=active]:text-white">Fans</TabsTrigger>
+          <TabsTrigger value="earnings" className="data-[state=active]:bg-pink-500 data-[state=active]:text-white">Earnings</TabsTrigger>
+          <TabsTrigger value="media" className="data-[state=active]:bg-pink-500 data-[state=active]:text-white">Media Vault</TabsTrigger>
+          <TabsTrigger value="transactions" className="data-[state=active]:bg-pink-500 data-[state=active]:text-white">Transactions</TabsTrigger>
+          <TabsTrigger value="tracking" className="data-[state=active]:bg-pink-500 data-[state=active]:text-white">Tracking</TabsTrigger>
+          <TabsTrigger value="visitors" className="data-[state=active]:bg-pink-500 data-[state=active]:text-white">Visitors</TabsTrigger>
+          <TabsTrigger value="messaging" className="data-[state=active]:bg-pink-500 data-[state=active]:text-white">Mass Messages</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2">
-            <Card>
+            <Card className="border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative">
+              {/* Glass reflection effect */}
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+              </div>
               <CardHeader>
-                <CardTitle>Account Balance</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Wallet className="w-5 h-5 text-green-500" />
+                  Account Balance
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex justify-between">
-                    <span className="text-gray-700 dark:text-gray-300">Current Balance:</span>
+                    <span className="text-gray-700">Current Balance:</span>
                     <span className="font-bold text-green-600">${earnings?.current_balance?.toLocaleString() || '0'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-700 dark:text-gray-300">Pending Balance:</span>
+                    <span className="text-gray-700">Pending Balance:</span>
                     <span className="font-bold text-yellow-600">${earnings?.pending_balance?.toLocaleString() || '0'}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-700 dark:text-gray-300">Monthly Earnings:</span>
-                    <span className="font-bold text-gray-900 dark:text-white">${earnings?.monthly_earnings?.toLocaleString() || '0'}</span>
+                    <span className="text-gray-700">Monthly Earnings:</span>
+                    <span className="font-bold text-gray-900">${earnings?.monthly_earnings?.toLocaleString() || '0'}</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative">
+              {/* Glass reflection effect */}
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+              </div>
               <CardHeader>
-                <CardTitle>Fan Statistics</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-blue-500" />
+                  Fan Statistics
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex justify-between">
-                    <span className="text-gray-700 dark:text-gray-300">Active Subscribers:</span>
+                    <span className="text-gray-700">Active Subscribers:</span>
                     <span className="font-bold text-green-600">{activeFans.length}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-700 dark:text-gray-300">Expired Subscribers:</span>
+                    <span className="text-gray-700">Expired Subscribers:</span>
                     <span className="font-bold text-red-600">{expiredFans.length}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-700 dark:text-gray-300">Media Items:</span>
-                    <span className="font-bold text-gray-900 dark:text-white">{vaultMedia.length}</span>
+                    <span className="text-gray-700">Media Items:</span>
+                    <span className="font-bold text-gray-900">{vaultMedia.length}</span>
                   </div>
                 </div>
               </CardContent>
@@ -583,7 +633,11 @@ export default function AccountDetailsPage() {
         </TabsContent>
 
         <TabsContent value="chats" className="space-y-4">
-          <Card>
+          <Card className="border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative">
+            {/* Glass reflection effect */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+            </div>
             <CardHeader>
               <CardTitle>Recent Chats ({chatsData.length})</CardTitle>
             </CardHeader>
@@ -591,18 +645,18 @@ export default function AccountDetailsPage() {
               {chatsData.length > 0 ? (
                 <div className="space-y-4">
                   {chatsData.slice(0, 10).map((chat) => (
-                    <div key={chat.id} className="flex items-center gap-4 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <div key={chat.id} className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200">
                       <img 
                         src={chat.with_user?.avatar || '/model.png'} 
                         alt={chat.with_user?.name}
                         className="w-12 h-12 rounded-full object-cover"
                       />
                       <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900 dark:text-white">{chat.with_user?.name}</h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                        <h4 className="font-semibold text-gray-900">{chat.with_user?.name}</h4>
+                        <p className="text-sm text-gray-600 truncate">
                           {chat.last_message?.text || 'No messages'}
                         </p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                        <p className="text-xs text-gray-500">
                           {chat.last_message?.created_at && new Date(chat.last_message.created_at).toLocaleDateString()}
                         </p>
                       </div>
@@ -613,7 +667,7 @@ export default function AccountDetailsPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-gray-600 dark:text-gray-400 py-8">No chats found</p>
+                <p className="text-center text-gray-600 py-8">No chats found</p>
               )}
             </CardContent>
           </Card>
@@ -621,69 +675,77 @@ export default function AccountDetailsPage() {
 
         <TabsContent value="fans" className="space-y-6">
           <div className="grid gap-6 md:grid-cols-2">
-            <Card>
+            <Card className="border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative">
+              {/* Glass reflection effect */}
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+              </div>
               <CardHeader>
-                <CardTitle>Active Fans ({activeFans.length})</CardTitle>
+                <CardTitle className="text-green-600">Active Fans ({activeFans.length})</CardTitle>
               </CardHeader>
               <CardContent>
                 {activeFans.length > 0 ? activeFans.slice(0, 5).map((fan) => (
-                  <div key={fan.id} className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg mb-3">
+                  <div key={fan.id} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg mb-3 hover:bg-gray-50 transition-colors duration-200">
                     <img 
                       src={fan.avatar || '/model.png'} 
                       alt={fan.displayName || fan.name}
                       className="w-10 h-10 rounded-full object-cover"
                     />
                     <div className="flex-1">
-                      <h5 className="font-medium text-gray-900 dark:text-white">{fan.displayName || fan.name}</h5>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">@{fan.username}</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <h5 className="font-medium text-gray-900">{fan.displayName || fan.name}</h5>
+                      <p className="text-sm text-gray-600">@{fan.username}</p>
+                      <p className="text-xs text-gray-500">
                         Duration: {fan.subscribedOnDuration || 'N/A'}
                       </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <p className="text-xs text-pink-600 font-medium">
                         Price: ${fan.currentSubscribePrice || 0}
                       </p>
                     </div>
                     <div className="flex flex-col gap-1">
-                      <Badge variant="secondary">Active</Badge>
+                      <Badge className="bg-green-100 text-green-700 border-green-300">Active</Badge>
                       {fan.isVerified && <Badge variant="outline" className="text-xs">Verified</Badge>}
                       {fan.subscribedByAutoprolong && <Badge variant="outline" className="text-xs">Auto-renew</Badge>}
                     </div>
                   </div>
                 )) : (
-                  <p className="text-center text-gray-600 dark:text-gray-400 py-4">No active fans found</p>
+                  <p className="text-center text-gray-600 py-4">No active fans found</p>
                 )}
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative">
+              {/* Glass reflection effect */}
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+              </div>
               <CardHeader>
-                <CardTitle>Expired Fans ({expiredFans.length})</CardTitle>
+                <CardTitle className="text-red-600">Expired Fans ({expiredFans.length})</CardTitle>
               </CardHeader>
               <CardContent>
                 {expiredFans.length > 0 ? expiredFans.slice(0, 5).map((fan) => (
-                  <div key={fan.id} className="flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-lg mb-3">
+                  <div key={fan.id} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg mb-3 hover:bg-gray-50 transition-colors duration-200">
                     <img 
                       src={fan.avatar || '/model.png'} 
                       alt={fan.displayName || fan.name}
                       className="w-10 h-10 rounded-full object-cover"
                     />
                     <div className="flex-1">
-                      <h5 className="font-medium text-gray-900 dark:text-white">{fan.displayName || fan.name}</h5>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">@{fan.username}</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <h5 className="font-medium text-gray-900">{fan.displayName || fan.name}</h5>
+                      <p className="text-sm text-gray-600">@{fan.username}</p>
+                      <p className="text-xs text-gray-500">
                         Expired: {fan.subscribedByExpireDate ? new Date(fan.subscribedByExpireDate).toLocaleDateString() : 'N/A'}
                       </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <p className="text-xs text-gray-500">
                         Last Price: ${fan.currentSubscribePrice || 0}
                       </p>
                     </div>
                     <div className="flex flex-col gap-1">
-                      <Badge variant="outline">Expired</Badge>
+                      <Badge className="bg-red-100 text-red-700 border-red-300">Expired</Badge>
                       {fan.isVerified && <Badge variant="outline" className="text-xs">Verified</Badge>}
                     </div>
                   </div>
                 )) : (
-                  <p className="text-center text-gray-600 dark:text-gray-400 py-4">No expired fans found</p>
+                  <p className="text-center text-gray-600 py-4">No expired fans found</p>
                 )}
               </CardContent>
             </Card>
@@ -691,37 +753,41 @@ export default function AccountDetailsPage() {
         </TabsContent>
 
         <TabsContent value="earnings" className="space-y-6">
-          <Card>
+          <Card className="border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative">
+            {/* Glass reflection effect */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+            </div>
             <CardHeader>
               <CardTitle>Earnings Breakdown</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-3">
-                <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <Wallet className="w-8 h-8 text-green-500 dark:text-green-400 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">${earnings?.total?.total?.toLocaleString() || earnings?.current_balance?.toLocaleString() || '0'}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Net Earnings</p>
+                <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+                  <Wallet className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-gray-900">${earnings?.total?.total?.toLocaleString() || earnings?.current_balance?.toLocaleString() || '0'}</p>
+                  <p className="text-sm text-gray-600">Net Earnings</p>
                 </div>
-                <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                  <Clock className="w-8 h-8 text-yellow-500 dark:text-yellow-400 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">${earnings?.total?.gross?.toLocaleString() || earnings?.pending_balance?.toLocaleString() || '0'}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Gross Earnings</p>
+                <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                  <Clock className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-gray-900">${earnings?.total?.gross?.toLocaleString() || earnings?.pending_balance?.toLocaleString() || '0'}</p>
+                  <p className="text-sm text-gray-600">Gross Earnings</p>
                 </div>
-                <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <TrendingUp className="w-8 h-8 text-blue-500 dark:text-blue-400 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{earnings?.total?.delta ? `${earnings.total.delta}%` : 'N/A'}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Growth Rate</p>
+                <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <TrendingUp className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-gray-900">{earnings?.total?.delta ? `${earnings.total.delta}%` : 'N/A'}</p>
+                  <p className="text-sm text-gray-600">Growth Rate</p>
                 </div>
               </div>
 
               {earnings?.total?.chartAmount && (
                 <div className="mt-6">
-                  <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Monthly Earnings Breakdown</h3>
+                  <h3 className="text-lg font-semibold mb-4 text-gray-900">Monthly Earnings Breakdown</h3>
                   <div className="space-y-2">
                     {earnings.total.chartAmount.slice(0, 6).map((item, index) => (
-                      <div key={index} className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-800 rounded">
-                        <span className="text-sm text-gray-700 dark:text-gray-300">{new Date(item.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
-                        <span className="font-medium text-gray-900 dark:text-white">${item.count.toLocaleString()}</span>
+                      <div key={index} className="flex justify-between items-center p-2 bg-gray-50 rounded hover:bg-gray-100 transition-colors duration-200">
+                        <span className="text-sm text-gray-700">{new Date(item.date).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
+                        <span className="font-medium text-gray-900">${item.count.toLocaleString()}</span>
                       </div>
                     ))}
                   </div>
@@ -732,26 +798,30 @@ export default function AccountDetailsPage() {
         </TabsContent>
 
         <TabsContent value="media" className="space-y-6">
-          <Card>
+          <Card className="border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative">
+            {/* Glass reflection effect */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+            </div>
             <CardHeader>
               <CardTitle>Media Vault ({vaultMedia.length} items)</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {vaultMedia.slice(0, 9).map((media) => (
-                  <div key={media.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  <div key={media.id} className="border border-gray-200 rounded-lg p-4 hover:border-pink-300 hover:shadow-md transition-all duration-200">
                     <div className="flex items-center gap-2 mb-2">
                       {media.type === 'video' ? (
-                        <Video className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+                        <Video className="w-4 h-4 text-blue-500" />
                       ) : (
-                        <Image className="w-4 h-4 text-green-500 dark:text-green-400" />
+                        <Image className="w-4 h-4 text-green-500" />
                       )}
-                      <span className="font-medium truncate text-gray-900 dark:text-white">{media.name}</span>
+                      <span className="font-medium truncate text-gray-900">{media.name}</span>
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                    <p className="text-sm text-gray-600">
                       {(media.size / 1024 / 1024).toFixed(2)} MB
                     </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                    <p className="text-xs text-gray-500">
                       {new Date(media.created_at).toLocaleDateString()}
                     </p>
                   </div>
@@ -762,26 +832,29 @@ export default function AccountDetailsPage() {
         </TabsContent>
 
         <TabsContent value="transactions" className="space-y-6">
-          <Card>
+          <Card className="border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative">
+            {/* Glass reflection effect */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+            </div>
             <CardHeader>
-```typescript
               <CardTitle>Recent Transactions</CardTitle>
             </CardHeader>
             <CardContent>
               {transactions.length > 0 ? (
                 <div className="space-y-3">
                   {transactions.slice(0, 10).map((transaction) => (
-                    <div key={transaction.id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <div key={transaction.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors duration-200">
                       <div>
-                        <p className="font-medium text-gray-900 dark:text-white">{transaction.description}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">{transaction.type}</p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                        <p className="font-medium text-gray-900">{transaction.description}</p>
+                        <p className="text-sm text-gray-600">{transaction.type}</p>
+                        <p className="text-xs text-gray-500">
                           {new Date(transaction.created_at).toLocaleDateString()}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-green-600 dark:text-green-500">+${transaction.amount}</p> {/* Keep green for amount, but ensure dark variant is good */}
-                        <Badge variant={transaction.status === 'completed' ? 'secondary' : 'outline'}>
+                        <p className="font-bold text-green-600">+${transaction.amount}</p>
+                        <Badge variant={transaction.status === 'completed' ? 'default' : 'outline'} className={transaction.status === 'completed' ? 'bg-green-100 text-green-700 border-green-300' : ''}>
                           {transaction.status}
                         </Badge>
                       </div>
@@ -789,14 +862,18 @@ export default function AccountDetailsPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-gray-600 dark:text-gray-400 py-8">No transactions found</p>
+                <p className="text-center text-gray-600 py-8">No transactions found</p>
               )}
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="tracking" className="space-y-6">
-          <Card>
+          <Card className="border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative">
+            {/* Glass reflection effect */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+            </div>
             <CardHeader>
               <CardTitle>Tracking Links</CardTitle>
             </CardHeader>
@@ -804,81 +881,90 @@ export default function AccountDetailsPage() {
               {trackingLinks.length > 0 ? (
                 <div className="space-y-3">
                   {trackingLinks.map((link, index) => (
-                    <div key={index} className="p-3 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <div key={index} className="p-3 border border-gray-200 rounded-lg hover:border-pink-300 hover:shadow-sm transition-all duration-200">
                       <div className="flex items-center gap-2">
-                        <Link className="w-4 h-4 text-blue-500 dark:text-blue-400" />
-                        <span className="font-medium text-gray-900 dark:text-white">{link.name || `Link ${index + 1}`}</span>
+                        <Link className="w-4 h-4 text-blue-500" />
+                        <span className="font-medium text-gray-900">{link.name || `Link ${index + 1}`}</span>
                       </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 truncate">{link.url}</p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">Clicks: {link.clicks || 0}</p>
+                      <p className="text-sm text-gray-600 truncate">{link.url}</p>
+                      <p className="text-xs text-gray-500">Clicks: {link.clicks || 0}</p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-gray-600 dark:text-gray-400 py-8">No tracking links found</p>
+                <p className="text-center text-gray-600 py-8">No tracking links found</p>
               )}
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="visitors" className="space-y-6">
-          <Card>
+          <Card className="border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative">
+            {/* Glass reflection effect */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+            </div>
             <CardHeader>
               <CardTitle>Profile Visitors</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                  <Eye className="w-8 h-8 text-purple-500 dark:text-purple-400 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{profileVisitors?.total_visitors?.toLocaleString() || '0'}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Visitors</p>
+                <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
+                  <Eye className="w-8 h-8 text-purple-500 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-gray-900">{profileVisitors?.total_visitors?.toLocaleString() || '0'}</p>
+                  <p className="text-sm text-gray-600">Total Visitors</p>
                 </div>
-                <div className="text-center p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
-                  <Users className="w-8 h-8 text-indigo-500 dark:text-indigo-400 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{profileVisitors?.unique_visitors?.toLocaleString() || '0'}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Unique Visitors</p>                </div>
+                <div className="text-center p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                  <Users className="w-8 h-8 text-indigo-500 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-gray-900">{profileVisitors?.unique_visitors?.toLocaleString() || '0'}</p>
+                  <p className="text-sm text-gray-600">Unique Visitors</p>
+                </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="messaging" className="space-y-6">
-          <Card>
+          <Card className="border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative">
+            {/* Glass reflection effect */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+            </div>
             <CardHeader>
               <CardTitle>Mass Messaging Statistics</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-3 mb-6">
-                <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <MessageCircle className="w-8 h-8 text-blue-500 dark:text-blue-400 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{Array.isArray(massMessages) ? massMessages.length : 0}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Messages</p>
+                <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <MessageCircle className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-gray-900">{Array.isArray(massMessages) ? massMessages.length : 0}</p>
+                  <p className="text-sm text-gray-600">Total Messages</p>
                 </div>
-                <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <TrendingUp className="w-8 h-8 text-green-500 dark:text-green-400 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{(Array.isArray(massMessages) ? massMessages.reduce((sum, msg) => sum + (msg.sentCount || 0), 0) : 0).toLocaleString()}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Sent</p>
+                <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+                  <TrendingUp className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-gray-900">{(Array.isArray(massMessages) ? massMessages.reduce((sum, msg) => sum + (msg.sentCount || 0), 0) : 0).toLocaleString()}</p>
+                  <p className="text-sm text-gray-600">Total Sent</p>
                 </div>
-                <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                  <Eye className="w-8 h-8 text-purple-500 dark:text-purple-400 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{(Array.isArray(massMessages) ? massMessages.reduce((sum, msg) => sum + (msg.viewedCount || 0), 0) : 0).toLocaleString()}</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Viewed</p>
+                <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
+                  <Eye className="w-8 h-8 text-purple-500 mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-gray-900">{(Array.isArray(massMessages) ? massMessages.reduce((sum, msg) => sum + (msg.viewedCount || 0), 0) : 0).toLocaleString()}</p>
+                  <p className="text-sm text-gray-600">Total Viewed</p>
                 </div>
               </div>
 
               {Array.isArray(massMessages) && massMessages.length > 0 ? (
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Mass Messages</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">Recent Mass Messages</h3>
                   {massMessages.slice(0, 10).map((message) => (
-                    <div key={message.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <div key={message.id} className="border border-gray-200 rounded-lg p-4 hover:border-pink-300 hover:shadow-sm transition-all duration-200">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <Badge variant={message.isFree ? "secondary" : "default"}>
+                            <Badge variant={message.isFree ? "secondary" : "default"} className={!message.isFree ? "bg-pink-100 text-pink-700 border-pink-300" : ""}>
                               {message.isFree ? "Free" : "Paid"}
                             </Badge>
                             {!message.isFree && message.price && (
-                              <Badge variant="outline" className="bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300">
+                              <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
                                 ${message.price}
                               </Badge>
                             )}
@@ -886,30 +972,30 @@ export default function AccountDetailsPage() {
                             {message.hasError && <Badge variant="destructive">Error</Badge>}
                           </div>
                           <div 
-                            className="text-sm text-gray-700 dark:text-gray-300 mb-2" 
+                            className="text-sm text-gray-700 mb-2" 
                             dangerouslySetInnerHTML={{ __html: message.textCropped }}
                           />
-                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                          <p className="text-xs text-gray-500">
                             {new Date(message.date).toLocaleDateString()} at {new Date(message.date).toLocaleTimeString()}
                           </p>
                         </div>
                         <div className="text-right ml-4">
                           <div className="text-sm font-medium">
-                            <span className="text-green-600 dark:text-green-400">{message.sentCount} sent</span>
+                            <span className="text-green-600">{message.sentCount} sent</span>
                           </div>
                           <div className="text-sm">
-                            <span className="text-blue-600 dark:text-blue-400">{message.viewedCount} viewed</span>
+                            <span className="text-blue-600">{message.viewedCount} viewed</span>
                           </div>
                           {!message.isFree && message.purchasedCount !== undefined && (
                             <div className="text-sm">
-                              <span className="text-purple-600 dark:text-purple-400">{message.purchasedCount} purchased</span>
+                              <span className="text-purple-600">{message.purchasedCount} purchased</span>
                             </div>
                           )}
-                          <div className="text-xs text-gray-600 dark:text-gray-400">
+                          <div className="text-xs text-gray-500">
                             {message.viewedCount > 0 ? ((message.viewedCount / message.sentCount) * 100).toFixed(1) : 0}% view rate
                           </div>
                           {!message.isFree && message.price && message.purchasedCount !== undefined && (
-                            <div className="text-xs text-gray-600 dark:text-gray-400">
+                            <div className="text-xs text-gray-500">
                               Revenue: ${(parseFloat(message.price) * message.purchasedCount).toFixed(2)}
                             </div>
                           )}
@@ -919,7 +1005,7 @@ export default function AccountDetailsPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-gray-600 dark:text-gray-400 py-8">No mass messages found</p>
+                <p className="text-center text-gray-600 py-8">No mass messages found</p>
               )}
             </CardContent>
           </Card>
