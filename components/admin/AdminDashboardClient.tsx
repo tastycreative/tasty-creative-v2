@@ -106,10 +106,10 @@ interface DashboardData {
 }
 
 const ROLE_COLORS = {
-  ADMIN: "#ec4899", 
-  MODERATOR: "#f97316", 
+  ADMIN: "#ec4899",
+  MODERATOR: "#f97316",
   USER: "#10b981",
-  GUEST: "#94a3b8", 
+  GUEST: "#94a3b8",
 };
 
 export function AdminDashboardClient({ data }: { data: DashboardData }) {
@@ -469,6 +469,23 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       suffix: "",
     },
     {
+      title: "Total Revenue",
+      value: vnSales.totalRevenue,
+      formattedValue: isLoadingVnStats
+        ? "Loading..."
+        : `$${vnSales.totalRevenue.toLocaleString()}`,
+      icon: TrendingUp,
+      description: isLoadingVnStats
+        ? "Fetching from Google Sheets..."
+        : `+${analytics.revenueGrowth}% from last week`,
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+      iconBgColor: "bg-green-100",
+      prefix: isLoadingVnStats ? "" : "$",
+      suffix: "",
+      isLoading: isLoadingVnStats,
+    },
+    {
       title: "VN Sales Today",
       value: vnSales.vnSalesToday,
       formattedValue: isLoadingVnStats
@@ -530,6 +547,21 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       isLoading: isLoadingContentStats,
     },
     {
+      title: "Total Mass Messages",
+      value: totalMassMessages,
+      formattedValue: isLoadingMassMessages
+        ? "Loading..."
+        : totalMassMessages.toLocaleString(),
+      icon: MessageCircle,
+      description: "Total number of mass messages sent",
+      color: "text-pink-600",
+      bgColor: "bg-pink-50",
+      iconBgColor: "bg-pink-100",
+      prefix: "",
+      suffix: "",
+      isLoading: isLoadingMassMessages,
+    },
+    {
       title: "Conversion Rate",
       value: analytics.conversionRate,
       formattedValue: `${analytics.conversionRate}%`,
@@ -541,23 +573,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       prefix: "",
       suffix: "%",
     },
-    {
-      title: "Total Revenue",
-      value: vnSales.totalRevenue,
-      formattedValue: isLoadingVnStats
-        ? "Loading..."
-        : `$${vnSales.totalRevenue.toLocaleString()}`,
-      icon: TrendingUp,
-      description: isLoadingVnStats
-        ? "Fetching from Google Sheets..."
-        : `+${analytics.revenueGrowth}% from last week`,
-      color: "text-green-600",
-      bgColor: "bg-green-50",
-      iconBgColor: "bg-green-100",
-      prefix: isLoadingVnStats ? "" : "$",
-      suffix: "",
-      isLoading: isLoadingVnStats,
-    },
+
     {
       title: "Loyalty Points",
       value: isLoadingVnStats
@@ -596,21 +612,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       iconBgColor: "bg-purple-100",
       prefix: "",
       suffix: "%",
-    },
-    {
-      title: "Total Mass Messages",
-      value: totalMassMessages,
-      formattedValue: isLoadingMassMessages
-        ? "Loading..."
-        : totalMassMessages.toLocaleString(),
-      icon: MessageCircle,
-      description: "Total number of mass messages sent",
-      color: "text-pink-600",
-      bgColor: "bg-pink-50",
-      iconBgColor: "bg-pink-100",
-      prefix: "",
-      suffix: "",
-      isLoading: isLoadingMassMessages,
     },
   ];
 
