@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { createPortal } from "react-dom"; // Add this import
 import {
   Card,
   CardContent,
@@ -322,6 +323,9 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
   // Add Next.js router hook
   const router = useRouter();
 
+  // Portal mounting state - Add this
+  const [isMounted, setIsMounted] = useState(false);
+
   // State management
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [generatedVideos, setGeneratedVideos] = useState<GeneratedVideo[]>([]);
@@ -348,6 +352,27 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Portal mounting and background scroll prevention - Add this
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Prevent background scrolling when modals are open - Add this
+  useEffect(() => {
+    if (showModal) {
+      document.body.style.overflow = "hidden";
+      document.body.style.paddingRight = "15px";
+    } else {
+      document.body.style.overflow = "unset";
+      document.body.style.paddingRight = "0px";
+    }
+
+    return () => {
+      document.body.style.overflow = "unset";
+      document.body.style.paddingRight = "0px";
+    };
+  }, [showModal]);
 
   // Load data from localStorage
   useEffect(() => {
@@ -1662,8 +1687,11 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
         </CardContent>
       </Card>
 
-      {/* Media Modal */}
-      <MediaModal />
+      {/* Media Modal with Portal Overlay */}
+      {showModal &&
+        selectedItemForModal &&
+        isMounted &&
+        createPortal(<MediaModal />, document.body)}
 
       {/* Error Display */}
       {galleryError && (

@@ -13,7 +13,6 @@ import {
   Pause,
   Volume2,
   VolumeX,
-  Clock,
   Film,
   Settings,
   Wand2,
@@ -43,12 +42,6 @@ import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Input } from "./ui/input";
 import { Slider } from "./ui/slider";
-import {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-} from "./ui/accordion";
 
 // TypeScript interfaces for video generation
 interface GeneratedVideo {
@@ -931,7 +924,6 @@ const AIVideoPage = () => {
 
   // UI states
   const [error, setError] = useState("");
-  const [showHistory, setShowHistory] = useState(false);
   const [generationStatus, setGenerationStatus] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -1429,7 +1421,7 @@ const AIVideoPage = () => {
                     placeholder="The woman is swaying her hips from side to side, her hair flowing gently in the breeze..."
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    className="bg-black/40 border-white/20 text-white rounded-xl min-h-[120px] resize-none focus:border-purple-400/50 focus:ring-purple-400/20 transition-all text-base leading-relaxed"
+                    className="bg-black/40 border-white/20 text-white rounded-xl min-h-[120px] max-h-[200px] resize-none focus:border-purple-400/50 focus:ring-purple-400/20 transition-all text-base leading-relaxed overflow-y-auto"
                     rows={5}
                   />
                 </div>
@@ -1616,39 +1608,16 @@ const AIVideoPage = () => {
           <div className="space-y-6">
             <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
               <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-white flex items-center">
-                      <Film className="w-5 h-5 mr-3" />
-                      Video Preview
-                    </CardTitle>
-                    <CardDescription className="text-gray-400">
-                      {isLoadingVideos
-                        ? "Loading..."
-                        : `${generatedVideos.length} videos created`}
-                    </CardDescription>
-                  </div>
-
-                  {!isLoadingVideos && generatedVideos.length > 0 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-black/40 border-white/20 text-white hover:bg-white/10"
-                      onClick={() => setShowHistory(!showHistory)}
-                    >
-                      {showHistory ? (
-                        <>
-                          <Video className="w-4 h-4 mr-2" />
-                          Preview
-                        </>
-                      ) : (
-                        <>
-                          <Clock className="w-4 h-4 mr-2" />
-                          History
-                        </>
-                      )}
-                    </Button>
-                  )}
+                <div>
+                  <CardTitle className="text-white flex items-center">
+                    <Film className="w-5 h-5 mr-3" />
+                    Video Preview
+                  </CardTitle>
+                  <CardDescription className="text-gray-400">
+                    {isLoadingVideos
+                      ? "Loading..."
+                      : `${generatedVideos.length} videos created`}
+                  </CardDescription>
                 </div>
               </CardHeader>
 
@@ -1688,12 +1657,12 @@ const AIVideoPage = () => {
                         )}
                       </div>
                     </div>
-                  ) : !showHistory && generatedVideos.length > 0 ? (
-                    <div className="w-full max-w-md space-y-6">
-                      <div className="aspect-video rounded-xl overflow-hidden border border-white/10">
+                  ) : generatedVideos.length > 0 ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center space-y-6">
+                      <div className="rounded-xl overflow-hidden border border-white/10 max-h-[500px]">
                         <EnhancedVideoDisplay
                           video={generatedVideos[0]}
-                          className="aspect-video"
+                          className="max-h-[500px] w-auto"
                           autoPlay={true}
                           muted={true}
                           loop={true}
@@ -1766,117 +1735,6 @@ const AIVideoPage = () => {
                             Favorite
                           </Button>
                         </div>
-                      </div>
-                    </div>
-                  ) : showHistory && generatedVideos.length > 0 ? (
-                    <div className="w-full h-full flex flex-col">
-                      <div className="flex-1 overflow-y-auto">
-                        <Accordion
-                          type="single"
-                          collapsible
-                          className="w-full space-y-2"
-                        >
-                          {generatedVideos.map((video) => (
-                            <AccordionItem
-                              key={video.id}
-                              value={video.id}
-                              className="border-white/10 bg-black/20 rounded-lg px-4"
-                            >
-                              <AccordionTrigger className="hover:no-underline py-4">
-                                <div className="flex items-center justify-between w-full text-left">
-                                  <div className="flex-1 mr-4">
-                                    <p className="text-sm text-gray-300 truncate">
-                                      {video.prompt.length > 40
-                                        ? video.prompt.substring(0, 40) + "..."
-                                        : video.prompt}
-                                    </p>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    {video.isBookmarked && (
-                                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                    )}
-                                    <span className="text-xs text-gray-500">
-                                      {formatDuration(video.duration)}
-                                    </span>
-                                  </div>
-                                </div>
-                              </AccordionTrigger>
-                              <AccordionContent>
-                                <div className="bg-black/30 p-4 rounded-lg space-y-4">
-                                  <p className="text-sm text-gray-300 leading-relaxed">
-                                    {video.prompt}
-                                  </p>
-
-                                  <div className="grid grid-cols-2 gap-4 text-xs text-gray-400">
-                                    <div>
-                                      <span className="text-gray-500">
-                                        Size:
-                                      </span>
-                                      <span className="text-white ml-1">
-                                        {video.settings.width}×
-                                        {video.settings.height}
-                                      </span>
-                                    </div>
-                                    <div>
-                                      <span className="text-gray-500">
-                                        FPS:
-                                      </span>
-                                      <span className="text-white ml-1">
-                                        {video.settings.fps}
-                                      </span>
-                                    </div>
-                                    <div>
-                                      <span className="text-gray-500">
-                                        Frames:
-                                      </span>
-                                      <span className="text-white ml-1">
-                                        {video.settings.frameCount}
-                                      </span>
-                                    </div>
-                                    <div>
-                                      <span className="text-gray-500">
-                                        Created:
-                                      </span>
-                                      <span className="text-white ml-1">
-                                        {video.timestamp.toLocaleDateString()}
-                                      </span>
-                                    </div>
-                                  </div>
-
-                                  <div className="flex flex-wrap gap-2">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="bg-white/5 border-white/10 hover:bg-white/10 text-white"
-                                      onClick={() => downloadVideo(video)}
-                                    >
-                                      <Download size={12} className="mr-1" />
-                                      Download
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="bg-white/5 border-white/10 hover:bg-white/10 text-white"
-                                      onClick={() => toggleBookmark(video.id)}
-                                    >
-                                      <Star
-                                        size={12}
-                                        className={`mr-1 ${
-                                          video.isBookmarked
-                                            ? "fill-yellow-400 text-yellow-400"
-                                            : ""
-                                        }`}
-                                      />
-                                      {video.isBookmarked
-                                        ? "Unfavorite"
-                                        : "Favorite"}
-                                    </Button>
-                                  </div>
-                                </div>
-                              </AccordionContent>
-                            </AccordionItem>
-                          ))}
-                        </Accordion>
                       </div>
                     </div>
                   ) : (

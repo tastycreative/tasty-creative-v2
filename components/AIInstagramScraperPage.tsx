@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
+import { io, Socket } from "socket.io-client"; // NEW: Socket.IO client
 import {
   Download,
   User,
@@ -29,6 +30,10 @@ import {
   Shield,
   RotateCcw,
   ImageIcon,
+  Wifi,
+  WifiOff,
+  Zap,
+  Activity,
 } from "lucide-react";
 
 interface ScrapedPost {
@@ -78,6 +83,21 @@ interface ClearDataResult {
   errors: string[];
 }
 
+// NEW: Real-time update interfaces
+interface RealtimeProgress {
+  current: number;
+  total: number;
+  percentage: number;
+  message: string;
+}
+
+interface RealtimeUpdate {
+  type: string;
+  message: string;
+  timestamp: string;
+  data?: any;
+}
+
 export default function EnhancedAIInstagramScraperPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
@@ -123,11 +143,441 @@ export default function EnhancedAIInstagramScraperPage() {
   // Portal mounting state
   const [isMounted, setIsMounted] = useState(false);
 
+  // NEW: WebSocket and real-time state
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
+  const [realtimeProgress, setRealtimeProgress] =
+    useState<RealtimeProgress | null>(null);
+  const [realtimeUpdates, setRealtimeUpdates] = useState<RealtimeUpdate[]>([]);
+  const [showRealtimePanel, setShowRealtimePanel] = useState(false);
+  const [isScrapingActive, setIsScrapingActive] = useState(false);
+
+  // Refs for auto-scrolling
+  const realtimeUpdatesRef = useRef<HTMLDivElement>(null);
+
   // Updated to use your Cloudflare tunnel URL
   const API_BASE =
     "https://removing-illness-cutting-expense.trycloudflare.com/api";
   const IMAGE_BASE =
     "https://removing-illness-cutting-expense.trycloudflare.com"; // For serving images
+  const WEBSOCKET_BASE =
+    "https://removing-illness-cutting-expense.trycloudflare.com"; // For WebSocket
+
+  // NEW: Initialize WebSocket connection
+  useEffect(() => {
+    const initWebSocket = () => {
+      console.log("🔌 Initializing WebSocket connection...");
+
+      const newSocket = io(WEBSOCKET_BASE, {
+        transports: ["websocket", "polling"],
+        upgrade: true,
+        rememberUpgrade: true,
+      });
+
+      // Connection events
+      newSocket.on("connect", () => {
+        console.log("✅ WebSocket connected");
+        setIsWebSocketConnected(true);
+        setSocket(newSocket);
+
+        // Request current status
+        newSocket.emit("request_status");
+
+        addRealtimeUpdate({
+          type: "connection",
+          message: "🔌 Connected to real-time updates",
+          timestamp: new Date().toISOString(),
+        });
+      });
+
+      newSocket.on("disconnect", () => {
+        console.log("❌ WebSocket disconnected");
+        setIsWebSocketConnected(false);
+
+        addRealtimeUpdate({
+          type: "connection",
+          message: "🔌 Disconnected from real-time updates",
+          timestamp: new Date().toISOString(),
+        });
+      });
+
+      newSocket.on("connect_error", (error) => {
+        console.error("WebSocket connection error:", error);
+        setIsWebSocketConnected(false);
+
+        addRealtimeUpdate({
+          type: "error",
+          message: "❌ WebSocket connection failed",
+          timestamp: new Date().toISOString(),
+        });
+      });
+
+      // Real-time scraping events
+      newSocket.on("scraping_started", (data) => {
+        console.log("🚀 Scraping started:", data);
+        setIsScrapingActive(true);
+        setShowRealtimePanel(true);
+        setRealtimeProgress(null);
+        setRealtimeUpdates([]); // Clear previous updates
+
+        addRealtimeUpdate({
+          type: "scraping_started",
+          message: `🚀 Started scraping @${data.username}`,
+          timestamp: data.timestamp,
+          data,
+        });
+      });
+
+      newSocket.on("apify_request_started", (data) => {
+        addRealtimeUpdate({
+          type: "apify_request",
+          message: `📤 ${data.message}`,
+          timestamp: new Date().toISOString(),
+          data,
+        });
+      });
+
+      newSocket.on("apify_actor_attempt", (data) => {
+        addRealtimeUpdate({
+          type: "apify_actor",
+          message: `🔗 ${data.message}`,
+          timestamp: new Date().toISOString(),
+          data,
+        });
+      });
+
+      newSocket.on("apify_actor_success", (data) => {
+        addRealtimeUpdate({
+          type: "apify_success",
+          message: `✅ ${data.message}`,
+          timestamp: new Date().toISOString(),
+          data,
+        });
+      });
+
+      newSocket.on("posts_found", (data) => {
+        addRealtimeUpdate({
+          type: "posts_found",
+          message: `🎯 ${data.message}`,
+          timestamp: new Date().toISOString(),
+          data,
+        });
+      });
+
+      newSocket.on("processing_progress", (data) => {
+        setRealtimeProgress(data);
+
+        // Update stats in real-time
+        setStats((prevStats) => ({
+          ...prevStats,
+          total_checked: data.total,
+        }));
+      });
+
+      newSocket.on("duplicate_skipped", (data) => {
+        addRealtimeUpdate({
+          type: "duplicate",
+          message: `⏭️ ${data.message} (duplicate)`,
+          timestamp: new Date().toISOString(),
+          data,
+        });
+
+        // Update stats
+        setStats((prevStats) => ({
+          ...prevStats,
+          skipped_posts: prevStats.skipped_posts + 1,
+        }));
+      });
+
+      newSocket.on("image_download_started", (data) => {
+        addRealtimeUpdate({
+          type: "image_download",
+          message: `⬇️ ${data.message}`,
+          timestamp: new Date().toISOString(),
+          data,
+        });
+      });
+
+      newSocket.on("image_downloaded", (data) => {
+        addRealtimeUpdate({
+          type: "image_success",
+          message: `${data.message} (${data.image_info?.size})`,
+          timestamp: new Date().toISOString(),
+          data,
+        });
+
+        // Update stats and images list in real-time
+        setStats((prevStats) => ({
+          ...prevStats,
+          images_downloaded: data.total_downloaded,
+        }));
+
+        // Add new image to the list
+        if (data.image_info) {
+          setImages((prevImages) => {
+            const newImage: DownloadedImage = {
+              filename: data.image_info.filename,
+              url: data.image_info.url,
+              size: data.image_info.size,
+              path: data.filename,
+            };
+
+            // Check if image already exists to avoid duplicates
+            const exists = prevImages.some(
+              (img) => img.filename === newImage.filename
+            );
+            if (!exists) {
+              return [newImage, ...prevImages];
+            }
+            return prevImages;
+          });
+        }
+      });
+
+      newSocket.on("image_download_failed", (data) => {
+        addRealtimeUpdate({
+          type: "image_error",
+          message: `${data.message}`,
+          timestamp: new Date().toISOString(),
+          data,
+        });
+      });
+
+      newSocket.on("ai_analysis_started", (data) => {
+        addRealtimeUpdate({
+          type: "ai_analysis",
+          message: `${data.message}`,
+          timestamp: new Date().toISOString(),
+          data,
+        });
+      });
+
+      newSocket.on("ai_analysis_completed", (data) => {
+        addRealtimeUpdate({
+          type: "ai_success",
+          message: `${data.message}`,
+          timestamp: new Date().toISOString(),
+          data,
+        });
+
+        // Update stats
+        setStats((prevStats) => ({
+          ...prevStats,
+          ai_analyses_completed: data.total_completed,
+        }));
+      });
+
+      newSocket.on("ai_analysis_fallback", (data) => {
+        addRealtimeUpdate({
+          type: "ai_warning",
+          message: `${data.message}`,
+          timestamp: new Date().toISOString(),
+          data,
+        });
+      });
+
+      newSocket.on("added_to_sheets", (data) => {
+        addRealtimeUpdate({
+          type: "sheets",
+          message: `${data.message}`,
+          timestamp: new Date().toISOString(),
+          data,
+        });
+      });
+
+      newSocket.on("post_completed", (data) => {
+        addRealtimeUpdate({
+          type: "post_complete",
+          message: `${data.message}`,
+          timestamp: new Date().toISOString(),
+          data,
+        });
+
+        // Update stats and results
+        setStats(data.stats);
+
+        // Add the new post to results
+        setResults((prevResults) => {
+          const exists = prevResults.some(
+            (post) => post.post_url === data.post_data.post_url
+          );
+          if (!exists) {
+            return [...prevResults, data.post_data];
+          }
+          return prevResults;
+        });
+      });
+
+      newSocket.on("scraping_completed", (data) => {
+        console.log("🎉 Scraping completed:", data);
+        setIsScrapingActive(false);
+        setRealtimeProgress(null);
+        setIsLoading(false);
+
+        addRealtimeUpdate({
+          type: "scraping_complete",
+          message: `🎉 ${data.message}`,
+          timestamp: data.timestamp,
+          data,
+        });
+
+        // Final stats update
+        setStats(data.stats);
+        setStatus(data.message);
+
+        // Auto-close realtime panel after 10 seconds
+        setTimeout(() => {
+          setShowRealtimePanel(false);
+        }, 10000);
+      });
+
+      newSocket.on("scraping_failed", (data) => {
+        console.log("❌ Scraping failed:", data);
+        setIsScrapingActive(false);
+        setRealtimeProgress(null);
+        setIsLoading(false);
+        setError(data.error);
+
+        addRealtimeUpdate({
+          type: "scraping_error",
+          message: `❌ Scraping failed: ${data.error}`,
+          timestamp: data.timestamp,
+          data,
+        });
+      });
+
+      newSocket.on("scraping_warning", (data) => {
+        addRealtimeUpdate({
+          type: "warning",
+          message: `⚠️ ${data.warning}`,
+          timestamp: new Date().toISOString(),
+          data,
+        });
+      });
+
+      newSocket.on("scraping_error", (data) => {
+        console.log("❌ Scraping error:", data);
+        setIsScrapingActive(false);
+        setRealtimeProgress(null);
+        setIsLoading(false);
+        setError(data.error);
+
+        addRealtimeUpdate({
+          type: "scraping_error",
+          message: `❌ Error: ${data.error}`,
+          timestamp: data.timestamp,
+          data,
+        });
+      });
+
+      // Data clearing events
+      newSocket.on("clearing_started", (data) => {
+        addRealtimeUpdate({
+          type: "clearing",
+          message: `🗑️ ${data.message}`,
+          timestamp: data.timestamp,
+          data,
+        });
+      });
+
+      newSocket.on("image_deleted", (data) => {
+        // Remove image from local state
+        setImages((prevImages) =>
+          prevImages.filter((img) => img.filename !== data.filename)
+        );
+      });
+
+      newSocket.on("clearing_completed", (data) => {
+        addRealtimeUpdate({
+          type: "clearing_complete",
+          message: `✅ ${data.message}`,
+          timestamp: data.timestamp,
+          data,
+        });
+
+        // Reset all state
+        setResults([]);
+        setImages([]);
+        setStats({
+          total_checked: 0,
+          new_posts: 0,
+          skipped_posts: 0,
+          images_downloaded: 0,
+          ai_analyses_completed: 0,
+        });
+      });
+
+      // Status updates
+      newSocket.on("status_update", (data) => {
+        setBackendStatus((prev) => ({
+          ...prev,
+          openai_available: data.openai_available,
+          sheets_available: data.sheets_available,
+        }));
+      });
+
+      return newSocket;
+    };
+
+    const socketInstance = initWebSocket();
+
+    // Cleanup on unmount
+    return () => {
+      if (socketInstance) {
+        console.log("🔌 Cleaning up WebSocket connection");
+        socketInstance.disconnect();
+      }
+    };
+  }, []);
+
+  // NEW: Test WebSocket connection function
+  const testWebSocketConnection = async () => {
+    console.log("🧪 Testing WebSocket connection...");
+
+    try {
+      // Test basic HTTP connection first
+      const response = await fetch(`${API_BASE}/test`);
+      const data = await response.json();
+      console.log("✅ HTTP connection works:", data.success);
+
+      // Test if server supports WebSocket
+      if (data.websocket_available) {
+        console.log("✅ Server reports WebSocket support available");
+      } else {
+        console.warn("⚠️ Server doesn't report WebSocket support");
+      }
+
+      // Check the specific WebSocket URL
+      console.log("🔍 WebSocket URL:", WEBSOCKET_BASE);
+      console.log("🔍 Attempting connection with polling first...");
+    } catch (error) {
+      console.error("❌ HTTP connection test failed:", error);
+      setError(
+        "Cannot connect to backend. WebSocket connection will also fail."
+      );
+    }
+  };
+
+  // Test connection on mount
+  useEffect(() => {
+    testWebSocketConnection();
+  }, []);
+
+  // NEW: Helper function to add real-time updates
+  const addRealtimeUpdate = (update: RealtimeUpdate) => {
+    setRealtimeUpdates((prev) => {
+      const newUpdates = [update, ...prev];
+      // Keep only last 50 updates to prevent memory issues
+      return newUpdates.slice(0, 50);
+    });
+  };
+
+  // NEW: Auto-scroll to bottom of realtime updates
+  useEffect(() => {
+    if (realtimeUpdatesRef.current) {
+      realtimeUpdatesRef.current.scrollTop = 0; // Scroll to top since we're prepending
+    }
+  }, [realtimeUpdates]);
 
   // Prevent background scrolling when modals are open
   useEffect(() => {
@@ -192,7 +642,7 @@ export default function EnhancedAIInstagramScraperPage() {
         }));
         setConnectionHealth(true);
         setStatus(
-          "✅ Connected to enhanced scraper backend with duplicate prevention"
+          "✅ Connected to enhanced scraper backend with WebSocket real-time updates"
         );
       }
     } catch (err) {
@@ -381,7 +831,7 @@ export default function EnhancedAIInstagramScraperPage() {
     );
   };
 
-  // Enhanced handleScrape with NO TIMEOUT (removed timeout completely)
+  // Enhanced handleScrape with WebSocket integration (no timeout)
   const handleScrape = async () => {
     if (!username.trim()) {
       setError("Please enter a username");
@@ -404,12 +854,13 @@ export default function EnhancedAIInstagramScraperPage() {
       ai_analyses_completed: 0,
     });
 
-    // Create AbortController (but no timeout - let it run as long as needed)
-    const controller = new AbortController();
+    // Show real-time panel
+    setShowRealtimePanel(true);
+    setRealtimeUpdates([]);
 
     try {
       setStatus(
-        "🤖 Processing posts and analyzing with AI... This may take several minutes (no timeout limit)."
+        "🤖 Processing posts and analyzing with AI... Watch the real-time panel for live updates!"
       );
 
       const response = await fetch(`${API_BASE}/scrape`, {
@@ -421,7 +872,6 @@ export default function EnhancedAIInstagramScraperPage() {
           username: username.replace("@", ""),
           force_rescrape: forceRescrape,
         }),
-        signal: controller.signal,
       });
 
       // Check if response is ok
@@ -440,129 +890,48 @@ export default function EnhancedAIInstagramScraperPage() {
       const data: ScrapingResult = await response.json();
 
       if (data.success) {
-        setResults(data.data);
-        setStats(data.stats);
-        setStatus(`✅ ${data.message}`);
-
-        // Enhanced auto-refresh after successful scraping
-        await refreshDataAfterScraping(data.stats);
+        // Only update if we don't have real-time data already
+        if (!isScrapingActive) {
+          setResults(data.data);
+          setStats(data.stats);
+          setStatus(`✅ ${data.message}`);
+        }
       } else {
         setError(data.message || "Scraping failed");
       }
     } catch (err: any) {
       console.error("Scraping error:", err);
 
-      // Handle different types of errors more specifically
-      if (err.name === "AbortError") {
-        // Request was manually aborted (though we don't set a timeout anymore)
-        setError(
-          "⏱️ Request was aborted. The scraping might still be running in the background."
-        );
-        setStatus("⚠️ Checking for completed data...");
-
-        // Auto-refresh data after a delay
-        setTimeout(async () => {
-          try {
-            await loadImages();
-            await checkSheetsStatus();
-            setStatus("🔄 Data refreshed. Check if new images appeared above.");
-          } catch (refreshError) {
-            console.error("Error refreshing data:", refreshError);
-            setStatus(
-              "⚠️ Auto-refresh failed. Try the manual refresh button below."
-            );
-          }
-        }, 3000);
-      } else if (
-        err.message?.includes("Failed to fetch") ||
-        err.name === "TypeError"
-      ) {
-        // Network/fetch error - most common case
-        setError(
-          "🌐 Connection lost during scraping. The process is likely still running on the server."
-        );
-        setStatus("⚠️ Don't worry! Checking for completed data...");
-
-        // Auto-refresh data after a short delay
-        setTimeout(async () => {
-          try {
-            await loadImages();
-            await checkSheetsStatus();
-            setStatus(
-              "🔄 Data refreshed automatically. Check the images section above!"
-            );
-
-            // Clear the error after successful refresh
-            setTimeout(() => {
-              setError("");
-            }, 5000);
-          } catch (refreshError) {
-            console.error("Error during auto-refresh:", refreshError);
-            setStatus(
-              "⚠️ Auto-refresh had issues. Please try manual refresh below."
-            );
-          }
-        }, 2000);
-      } else if (
-        err.message?.includes("NetworkError") ||
-        err.message?.includes("network")
-      ) {
-        // Network-specific errors
-        setError(
-          "📡 Network connectivity issue. The scraping may still be running on the server."
-        );
-        setStatus("⚠️ Attempting to reconnect and check progress...");
-
-        setTimeout(async () => {
-          await loadImages();
-          await checkSheetsStatus();
-          setStatus("🔄 Reconnected. Check if new images appeared.");
-        }, 5000);
-      } else if (err.message?.includes("CORS")) {
-        // CORS-specific errors
-        setError(
-          "🔒 CORS error detected. The backend may still be processing your request."
-        );
-        setStatus("⚠️ Refreshing data...");
-
-        setTimeout(async () => {
-          await loadImages();
-          await checkSheetsStatus();
-          setStatus("🔄 Data refreshed despite CORS issue.");
-        }, 3000);
-      } else {
-        // Generic error handling
-        const errorMessage = err.message || "Unknown error occurred";
-
-        if (errorMessage.includes("timeout") || errorMessage.includes("time")) {
+      // Only show error if WebSocket didn't handle it
+      if (!isWebSocketConnected) {
+        // Handle different types of errors more specifically
+        if (err.name === "AbortError") {
           setError(
-            `⏱️ Timeout: ${errorMessage}. The scraping might still be running.`
+            "⏱️ Request was aborted. The scraping might still be running in the background."
           );
+          setStatus("⚠️ Checking for completed data...");
+        } else if (
+          err.message?.includes("Failed to fetch") ||
+          err.name === "TypeError"
+        ) {
+          setError(
+            "🌐 Connection lost during scraping. The process is likely still running on the server."
+          );
+          setStatus("⚠️ Don't worry! Checking for completed data...");
         } else {
+          const errorMessage = err.message || "Unknown error occurred";
           setError(
             `❌ Error: ${errorMessage}. The scraping might still be running.`
           );
         }
-
-        setStatus("⚠️ Checking if any data was processed...");
-
-        // Always try to refresh data on any error
-        setTimeout(async () => {
-          try {
-            await loadImages();
-            await checkSheetsStatus();
-            setStatus("🔄 Data check complete. Look for new images above.");
-          } catch (refreshError) {
-            console.error("Final refresh attempt failed:", refreshError);
-            setStatus("❌ Unable to check for new data. Try manual refresh.");
-          }
-        }, 4000);
       }
     } finally {
-      // Always set loading to false
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 1000); // Small delay to let status messages show
+      // Don't set loading to false immediately if WebSocket is handling updates
+      if (!isWebSocketConnected || !isScrapingActive) {
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 1000);
+      }
     }
   };
 
@@ -601,16 +970,18 @@ export default function EnhancedAIInstagramScraperPage() {
       const data: ClearDataResult = await response.json();
 
       if (data.success) {
-        // Reset all local state
-        setResults([]);
-        setImages([]);
-        setStats({
-          total_checked: 0,
-          new_posts: 0,
-          skipped_posts: 0,
-          images_downloaded: 0,
-          ai_analyses_completed: 0,
-        });
+        // If WebSocket is not connected, manually reset state
+        if (!isWebSocketConnected) {
+          setResults([]);
+          setImages([]);
+          setStats({
+            total_checked: 0,
+            new_posts: 0,
+            skipped_posts: 0,
+            images_downloaded: 0,
+            ai_analyses_completed: 0,
+          });
+        }
         setUsername("");
 
         // Update backend status
@@ -758,6 +1129,42 @@ export default function EnhancedAIInstagramScraperPage() {
     setTimeout(() => setStatus(""), 2000);
   };
 
+  // NEW: Get update type styling
+  const getUpdateTypeStyle = (type: string) => {
+    switch (type) {
+      case "connection":
+        return "text-blue-400 bg-blue-500/10 border-blue-500/20";
+      case "scraping_started":
+      case "scraping_complete":
+        return "text-green-400 bg-green-500/10 border-green-500/20";
+      case "apify_success":
+      case "image_success":
+      case "ai_success":
+      case "post_complete":
+        return "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
+      case "apify_request":
+      case "apify_actor":
+      case "image_download":
+      case "ai_analysis":
+        return "text-yellow-400 bg-yellow-500/10 border-yellow-500/20";
+      case "duplicate":
+        return "text-orange-400 bg-orange-500/10 border-orange-500/20";
+      case "warning":
+      case "ai_warning":
+        return "text-amber-400 bg-amber-500/10 border-amber-500/20";
+      case "scraping_error":
+      case "image_error":
+        return "text-red-400 bg-red-500/10 border-red-500/20";
+      case "sheets":
+        return "text-purple-400 bg-purple-500/10 border-purple-500/20";
+      case "clearing":
+      case "clearing_complete":
+        return "text-gray-400 bg-gray-500/10 border-gray-500/20";
+      default:
+        return "text-gray-400 bg-gray-500/10 border-gray-500/20";
+    }
+  };
+
   return (
     <div className="w-full h-full overflow-auto">
       <div className="max-w-7xl mx-auto p-6 space-y-8">
@@ -766,22 +1173,36 @@ export default function EnhancedAIInstagramScraperPage() {
           <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-gradient-to-r from-pink-500/10 to-orange-500/10 border border-pink-500/20">
             <Download className="w-5 h-5 text-pink-500" />
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Enhanced AI-Powered Instagram Scraper (No Timeout Limit)
+              Enhanced AI-Powered Instagram Scraper with Real-time Updates
             </span>
+            {/* NEW: WebSocket status indicator */}
+            <div className="flex items-center gap-1">
+              {isWebSocketConnected ? (
+                <Wifi className="w-4 h-4 text-green-500" />
+              ) : (
+                <WifiOff className="w-4 h-4 text-red-500" />
+              )}
+              <span
+                className={`text-xs ${isWebSocketConnected ? "text-green-500" : "text-red-500"}`}
+              >
+                {isWebSocketConnected ? "Live" : "Offline"}
+              </span>
+            </div>
           </div>
           <h1 className="text-3xl font-bold text-gray-800 dark:text-white">
             Smart Instagram Content Analyzer
           </h1>
           <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
             Extract images from Instagram profiles with intelligent duplicate
-            prevention. Only scrapes new content, analyzes with AI, and
-            seamlessly transfers to Image-to-Image generation.
+            prevention and real-time progress tracking. Only scrapes new
+            content, analyzes with AI, and seamlessly transfers to
+            Image-to-Image generation.
           </p>
         </div>
 
-        {/* Enhanced Status Bar with Connection Health */}
+        {/* Enhanced Status Bar with WebSocket Connection Health */}
         <div className="bg-white/5 dark:bg-gray-800/20 backdrop-blur-sm border border-white/10 dark:border-gray-700/20 rounded-2xl p-6">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             {/* Backend Connection */}
             <div className="flex items-center gap-3">
               <div
@@ -797,6 +1218,24 @@ export default function EnhancedAIInstagramScraperPage() {
                 </div>
                 <div className="text-xs text-gray-400">
                   Port 5001 {backendStatus.connected ? "ready" : "unavailable"}
+                </div>
+              </div>
+            </div>
+
+            {/* NEW: WebSocket Connection */}
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-3 h-3 rounded-full ${isWebSocketConnected ? "bg-green-400 animate-pulse" : "bg-red-400"}`}
+              ></div>
+              <div>
+                <div
+                  className={`font-medium ${isWebSocketConnected ? "text-green-400" : "text-red-400"}`}
+                >
+                  Real-time {isWebSocketConnected ? "Active" : "Offline"}
+                </div>
+                <div className="text-xs text-gray-400">
+                  WebSocket{" "}
+                  {isWebSocketConnected ? "connected" : "disconnected"}
                 </div>
               </div>
             </div>
@@ -922,6 +1361,25 @@ export default function EnhancedAIInstagramScraperPage() {
                       : "Smart Scrape"}
                 </button>
 
+                {/* NEW: Real-time Panel Toggle */}
+                {(isScrapingActive || realtimeUpdates.length > 0) && (
+                  <button
+                    onClick={() => setShowRealtimePanel(!showRealtimePanel)}
+                    className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center gap-2 ${
+                      showRealtimePanel
+                        ? "bg-blue-500 hover:bg-blue-600 text-white"
+                        : "bg-gray-500 hover:bg-gray-600 text-white"
+                    }`}
+                  >
+                    {isScrapingActive ? (
+                      <Activity className="w-5 h-5 animate-pulse" />
+                    ) : (
+                      <Zap className="w-5 h-5" />
+                    )}
+                    {showRealtimePanel ? "Hide" : "Show"} Live Updates
+                  </button>
+                )}
+
                 {/* Clear Data Button */}
                 <button
                   onClick={() => setShowClearDataModal(true)}
@@ -973,7 +1431,106 @@ export default function EnhancedAIInstagramScraperPage() {
           </div>
         </div>
 
-        {/* Progress Indicator for Long Operations - Updated messaging */}
+        {/* NEW: Real-time Updates Panel */}
+        {showRealtimePanel && (
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl overflow-hidden">
+            {/* Panel Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-700 bg-gray-800">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-3 h-3 rounded-full ${isScrapingActive ? "bg-green-400 animate-pulse" : "bg-gray-400"}`}
+                ></div>
+                <h3 className="text-lg font-semibold text-white">
+                  Real-time Updates
+                </h3>
+                {isScrapingActive && (
+                  <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs font-medium">
+                    LIVE
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => setShowRealtimePanel(false)}
+                className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
+
+            {/* Progress Bar */}
+            {realtimeProgress && (
+              <div className="p-4 border-b border-gray-700 bg-gray-850">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-300">
+                    {realtimeProgress.message}
+                  </span>
+                  <span className="text-sm font-mono text-blue-400">
+                    {realtimeProgress.percentage}%
+                  </span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-2">
+                  <div
+                    className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${realtimeProgress.percentage}%` }}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <span>
+                    Processing {realtimeProgress.current} of{" "}
+                    {realtimeProgress.total}
+                  </span>
+                  <span>
+                    {realtimeProgress.total - realtimeProgress.current}{" "}
+                    remaining
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Updates List */}
+            <div
+              ref={realtimeUpdatesRef}
+              className="h-64 overflow-y-auto p-4 space-y-2"
+            >
+              {realtimeUpdates.length === 0 ? (
+                <div className="text-center text-gray-400 py-8">
+                  <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p>Waiting for real-time updates...</p>
+                  <p className="text-xs mt-1">
+                    Updates will appear here during scraping
+                  </p>
+                </div>
+              ) : (
+                realtimeUpdates.map((update, index) => (
+                  <div
+                    key={index}
+                    className={`p-3 rounded-lg border text-sm ${getUpdateTypeStyle(update.type)}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="flex-1">{update.message}</span>
+                      <span className="text-xs opacity-60 whitespace-nowrap">
+                        {new Date(update.timestamp).toLocaleTimeString()}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Panel Footer */}
+            <div className="p-3 border-t border-gray-700 bg-gray-800">
+              <div className="flex items-center justify-between text-xs text-gray-400">
+                <span>Updates: {realtimeUpdates.length}</span>
+                <span>
+                  WebSocket:{" "}
+                  {isWebSocketConnected ? "🟢 Connected" : "🔴 Disconnected"}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Progress Indicator for Long Operations - Updated with WebSocket integration */}
         {isLoading && (
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/30 rounded-xl p-6">
             <div className="flex items-center gap-4">
@@ -988,13 +1545,13 @@ export default function EnhancedAIInstagramScraperPage() {
                     Scraping in Progress
                   </h3>
                   <div className="bg-green-500/20 px-2 py-1 rounded text-xs text-green-600 dark:text-green-400">
-                    No timeout limit - will run as long as needed
+                    Real-time updates enabled
                   </div>
                 </div>
 
                 <div className="text-sm text-blue-700 dark:text-blue-300 mb-3">
-                  Processing @{username} - Downloading images and analyzing with
-                  AI...
+                  Processing @{username} - Watch the real-time panel for live
+                  updates...
                 </div>
 
                 {/* Progress Steps */}
@@ -1002,7 +1559,18 @@ export default function EnhancedAIInstagramScraperPage() {
                   <div className="flex items-center gap-2 text-sm">
                     <CheckCircle className="w-4 h-4 text-green-500" />
                     <span className="text-gray-600 dark:text-gray-400">
-                      Connected to Instagram
+                      Connected to Instagram via Apify
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    {isWebSocketConnected ? (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-yellow-500" />
+                    )}
+                    <span className="text-gray-600 dark:text-gray-400">
+                      Real-time Updates{" "}
+                      {isWebSocketConnected ? "Active" : "Limited"}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm">
@@ -1024,24 +1592,24 @@ export default function EnhancedAIInstagramScraperPage() {
                   </div>
                 </div>
 
-                {/* Helpful Tips */}
+                {/* Enhanced Tips */}
                 <div className="mt-4 p-3 bg-green-100 dark:bg-green-800/30 rounded-lg">
                   <p className="text-xs text-green-700 dark:text-green-300">
-                    💡 <strong>No Timeout:</strong> This process can now run as
-                    long as needed. Check the "Downloaded Images" section below
-                    for real-time updates.
+                    💡 <strong>Real-time Updates:</strong> Watch the "Real-time
+                    Updates" panel above for live progress. Images will appear
+                    in the gallery as they're downloaded!
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Cancel Button (Optional) */}
+            {/* Cancel Button */}
             <div className="mt-4 flex justify-end">
               <button
                 onClick={() => {
                   setIsLoading(false);
                   setStatus(
-                    "⚠️ Scraping may still be running in background. Check images section for updates."
+                    "⚠️ Scraping may still be running in background. Check real-time panel for updates."
                   );
                 }}
                 className="px-4 py-2 text-sm bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
@@ -1073,8 +1641,9 @@ export default function EnhancedAIInstagramScraperPage() {
                   </span>
                 </div>
 
-                {/* Enhanced Error Recovery Section */}
+                {/* Enhanced Error Recovery Section - Show only if WebSocket is not handling updates */}
                 {error &&
+                  !isWebSocketConnected &&
                   (error.includes("Connection lost") ||
                     error.includes("Failed to fetch") ||
                     error.includes("timeout")) && (
@@ -1165,7 +1734,7 @@ export default function EnhancedAIInstagramScraperPage() {
           </div>
         )}
 
-        {/* Enhanced Stats Section with Duplicate Prevention Stats */}
+        {/* Enhanced Stats Section with Real-time Updates */}
         {(results.length > 0 || stats.total_checked > 0) && (
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
             <div className="bg-white/5 dark:bg-gray-800/20 backdrop-blur-sm border border-white/10 dark:border-gray-700/20 rounded-xl p-4 text-center">
@@ -1234,7 +1803,7 @@ export default function EnhancedAIInstagramScraperPage() {
           </div>
         )}
 
-        {/* Previously Downloaded Images with Auto-Refresh Indicator */}
+        {/* Previously Downloaded Images with Real-time Updates */}
         {images.length > 0 && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -1243,9 +1812,10 @@ export default function EnhancedAIInstagramScraperPage() {
                 <h2 className="text-xl font-semibold text-gray-800 dark:text-white">
                   Downloaded Images ({images.length})
                 </h2>
-                {backendStatus.sheets_available && (
-                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg px-3 py-1 text-xs text-blue-400">
-                    Auto-Refresh Active
+                {isWebSocketConnected && (
+                  <div className="bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-1 text-xs text-green-400 flex items-center gap-1">
+                    <Activity className="w-3 h-3" />
+                    Real-time Updates
                   </div>
                 )}
                 {isLoadingImages && (
@@ -1323,6 +1893,8 @@ export default function EnhancedAIInstagramScraperPage() {
             </div>
           </div>
         )}
+
+        {/* Keep all existing modals and other components unchanged... */}
 
         {/* Clear Data Confirmation Modal */}
         {showClearDataModal &&

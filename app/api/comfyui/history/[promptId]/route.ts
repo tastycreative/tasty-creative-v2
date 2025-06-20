@@ -1,7 +1,7 @@
 // app/api/comfyui/history/[promptId]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
-const COMFYUI_BASE_URL = process.env.COMFYUI_BASE_URL || 'https://corp-thoughts-nice-refresh.trycloudflare.com';
+const COMFYUI_BASE_URL = process.env.COMFYUI_BASE_URL;
 
 interface RouteParams {
   params: Promise<{ promptId: string }>;

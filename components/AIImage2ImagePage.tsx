@@ -95,7 +95,7 @@ const AIImage2ImagePage = () => {
   const [guidance, setGuidance] = useState(3.5);
   const [reduxStrength, setReduxStrength] = useState(0.8);
   const [downsamplingFactor, setDownsamplingFactor] = useState(3);
-  const [batchSize, setBatchSize] = useState(15);
+  const [batchSize, setBatchSize] = useState(5);
   const [width, setWidth] = useState(832);
   const [height, setHeight] = useState(1216);
 
@@ -109,7 +109,6 @@ const AIImage2ImagePage = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [availableLoraModels, setAvailableLoraModels] = useState<string[]>([]);
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
-  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [instagramData, setInstagramData] = useState<any>(null);
 
   // Connection status check (using same method as AIText2ImagePage)
@@ -1437,7 +1436,7 @@ const AIImage2ImagePage = () => {
             )}
           </div>
 
-          {/* Generation Settings Panel */}
+          {/* Combined Settings Panel */}
           <div className="xl:col-span-1 space-y-6">
             {/* Prompt Input */}
             <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
@@ -1463,18 +1462,19 @@ const AIImage2ImagePage = () => {
               </CardContent>
             </Card>
 
-            {/* Model Selection */}
+            {/* Combined Style & Generation Settings */}
             <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
               <CardHeader className="pb-4">
                 <CardTitle className="text-white flex items-center">
                   <Palette className="w-5 h-5 mr-3" />
-                  Style & Model
+                  Style & Generation Settings
                 </CardTitle>
                 <CardDescription className="text-gray-400">
-                  Choose the artistic style for transformation
+                  Choose style and fine-tune transformation parameters
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-6 max-h-[300px] overflow-y-auto">
+                {/* LoRA Model Selection */}
                 <div>
                   <Label className="text-gray-300 text-sm font-medium mb-3 block">
                     LoRA Model
@@ -1498,6 +1498,7 @@ const AIImage2ImagePage = () => {
                   </Select>
                 </div>
 
+                {/* LoRA Strength */}
                 <div>
                   <div className="flex justify-between items-center mb-3">
                     <Label className="text-gray-300 text-sm font-medium">
@@ -1519,149 +1520,98 @@ const AIImage2ImagePage = () => {
                     Controls the influence of the selected art style
                   </p>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Generation Settings */}
-            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
-              <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-white">
-                      Generation Settings
-                    </CardTitle>
-                    <CardDescription className="text-gray-400">
-                      Fine-tune transformation parameters
-                    </CardDescription>
+                {/* Batch Size */}
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <Label className="text-gray-300 text-sm font-medium">
+                      Batch Size
+                    </Label>
+                    <span className="text-cyan-400 text-sm font-mono">
+                      {batchSize}
+                    </span>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-black/60 border-white/10 text-white hover:bg-black/80"
-                    onClick={() =>
-                      setShowAdvancedSettings(!showAdvancedSettings)
-                    }
-                  >
-                    <Settings className="w-4 h-4 mr-2" />
-                    {showAdvancedSettings ? "Hide" : "Show"} Advanced
-                  </Button>
-                </div>
-              </CardHeader>
-
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 gap-6">
-                  <div>
-                    <div className="flex justify-between items-center mb-3">
-                      <Label className="text-gray-300 text-sm font-medium">
-                        Batch Size
-                      </Label>
-                      <span className="text-cyan-400 text-sm font-mono">
-                        {batchSize}
-                      </span>
-                    </div>
-                    <Slider
-                      value={[batchSize]}
-                      onValueChange={(value) => setBatchSize(value[0])}
-                      min={1}
-                      max={20}
-                      step={1}
-                      className="py-2"
-                    />
-                    <p className="text-xs text-gray-400 mt-2">
-                      Number of variations to generate
-                    </p>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center mb-3">
-                      <Label className="text-gray-300 text-sm font-medium">
-                        Redux Strength
-                      </Label>
-                      <span className="text-cyan-400 text-sm font-mono">
-                        {reduxStrength.toFixed(2)}
-                      </span>
-                    </div>
-                    <Slider
-                      value={[reduxStrength]}
-                      onValueChange={(value) => setReduxStrength(value[0])}
-                      min={0}
-                      max={2}
-                      step={0.05}
-                      className="py-2"
-                    />
-                    <p className="text-xs text-gray-400 mt-2">
-                      How much the reference image influences the generation
-                    </p>
-                  </div>
+                  <Slider
+                    value={[batchSize]}
+                    onValueChange={(value) => setBatchSize(value[0])}
+                    min={1}
+                    max={15}
+                    step={1}
+                    className="py-2"
+                  />
+                  <p className="text-xs text-gray-400 mt-2">
+                    Number of variations to generate
+                  </p>
                 </div>
 
-                {showAdvancedSettings && (
-                  <div className="space-y-6 pt-6 border-t border-white/10">
-                    <div>
-                      <Label className="text-gray-300 text-sm font-medium mb-3 block">
-                        Negative Prompt
-                      </Label>
-                      <Textarea
-                        placeholder="What you don't want in the transformed areas..."
-                        value={negativePrompt}
-                        onChange={(e) => setNegativePrompt(e.target.value)}
-                        className="bg-black/40 border-white/20 text-white rounded-xl min-h-[80px]"
-                        rows={3}
-                      />
-                      <p className="text-xs text-gray-400 mt-2">
-                        Describe what to avoid in the transformation
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-6">
-                      <div>
-                        <div className="flex justify-between items-center mb-3">
-                          <Label className="text-gray-300 text-sm font-medium">
-                            Downsampling Factor
-                          </Label>
-                          <span className="text-cyan-400 text-sm font-mono">
-                            {downsamplingFactor}
-                          </span>
-                        </div>
-                        <Slider
-                          value={[downsamplingFactor]}
-                          onValueChange={(value) =>
-                            setDownsamplingFactor(value[0])
-                          }
-                          min={1}
-                          max={8}
-                          step={1}
-                          className="py-2"
-                        />
-                        <p className="text-xs text-gray-400 mt-2">
-                          Higher values = faster generation, lower detail
-                        </p>
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between items-center mb-3">
-                          <Label className="text-gray-300 text-sm font-medium">
-                            Guidance Scale
-                          </Label>
-                          <span className="text-cyan-400 text-sm font-mono">
-                            {guidance.toFixed(1)}
-                          </span>
-                        </div>
-                        <Slider
-                          value={[guidance]}
-                          onValueChange={(value) => setGuidance(value[0])}
-                          min={1}
-                          max={10}
-                          step={0.5}
-                          className="py-2"
-                        />
-                        <p className="text-xs text-gray-400 mt-2">
-                          How closely the result follows your prompt
-                        </p>
-                      </div>
-                    </div>
+                {/* Redux Strength */}
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <Label className="text-gray-300 text-sm font-medium">
+                      Redux Strength
+                    </Label>
+                    <span className="text-cyan-400 text-sm font-mono">
+                      {reduxStrength.toFixed(2)}
+                    </span>
                   </div>
-                )}
+                  <Slider
+                    value={[reduxStrength]}
+                    onValueChange={(value) => setReduxStrength(value[0])}
+                    min={0}
+                    max={2}
+                    step={0.05}
+                    className="py-2"
+                  />
+                  <p className="text-xs text-gray-400 mt-2">
+                    How much the reference image influences the generation
+                  </p>
+                </div>
+
+                {/* Downsampling Factor */}
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <Label className="text-gray-300 text-sm font-medium">
+                      Downsampling Factor
+                    </Label>
+                    <span className="text-cyan-400 text-sm font-mono">
+                      {downsamplingFactor}
+                    </span>
+                  </div>
+                  <Slider
+                    value={[downsamplingFactor]}
+                    onValueChange={(value) => setDownsamplingFactor(value[0])}
+                    min={1}
+                    max={8}
+                    step={1}
+                    className="py-2"
+                  />
+                  <p className="text-xs text-gray-400 mt-2">
+                    Higher values = faster generation, lower detail
+                  </p>
+                </div>
+
+                {/* Guidance Scale */}
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <Label className="text-gray-300 text-sm font-medium">
+                      Guidance Scale
+                    </Label>
+                    <span className="text-cyan-400 text-sm font-mono">
+                      {guidance.toFixed(1)}
+                    </span>
+                  </div>
+                  <Slider
+                    value={[guidance]}
+                    onValueChange={(value) => setGuidance(value[0])}
+                    min={1}
+                    max={10}
+                    step={0.5}
+                    className="py-2"
+                  />
+                  <p className="text-xs text-gray-400 mt-2">
+                    How closely the result follows your prompt
+                  </p>
+                </div>
               </CardContent>
 
               <CardFooter className="pt-6">

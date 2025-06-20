@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   Check,
   Loader2,
@@ -36,7 +37,6 @@ import {
   Wand2,
   Palette,
   Settings,
-  Save,
   Type,
   Maximize2,
   ZapOff,
@@ -406,6 +406,9 @@ const useComfyUIGeneration = () => {
 };
 
 const AIText2ImagePage = () => {
+  // Portal mounting state
+  const [isMounted, setIsMounted] = useState(false);
+
   // ComfyUI Integration
   const {
     handleGenerate: comfyUIGenerate,
@@ -459,6 +462,27 @@ const AIText2ImagePage = () => {
   const [newQuickFolderName, setNewQuickFolderName] = useState("");
 
   const characterLimit = 2000;
+
+  // Set mounted state on component mount
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Prevent background scrolling when modal is open
+  useEffect(() => {
+    if (showImageModal) {
+      document.body.style.overflow = "hidden";
+      document.body.style.paddingRight = "15px";
+    } else {
+      document.body.style.overflow = "unset";
+      document.body.style.paddingRight = "0px";
+    }
+
+    return () => {
+      document.body.style.overflow = "unset";
+      document.body.style.paddingRight = "0px";
+    };
+  }, [showImageModal]);
 
   // Set default LoRA model when available models load
   useEffect(() => {
@@ -1100,7 +1124,7 @@ const AIText2ImagePage = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-black/90 border-white/10 text-white">
-                        {Array.from({ length: 8 }, (_, i) => i + 1).map(
+                        {Array.from({ length: 15 }, (_, i) => i + 1).map(
                           (size) => (
                             <SelectItem key={size} value={size.toString()}>
                               {size} {size === 1 ? "image" : "images"}
@@ -1362,15 +1386,6 @@ const AIText2ImagePage = () => {
                               />
                               Favorite
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="bg-black/40 border-white/20 hover:bg-white/10 px-4"
-                              onClick={() => addToVault([generatedImages[0]])}
-                            >
-                              <Save className="w-4 h-4 mr-2" />
-                              Save
-                            </Button>
                           </div>
                         </div>
                       </div>
@@ -1552,184 +1567,187 @@ const AIText2ImagePage = () => {
         )}
       </div>
 
-      {/* Image Detail Modal */}
-      {showImageModal && selectedImageForModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-black/90 backdrop-blur-md border border-white/10 rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-white/10">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-violet-500 to-fuchsia-500 flex items-center justify-center">
-                  <Eye className="w-4 h-4 text-white" />
-                </div>
-                <h3 className="text-white text-xl font-semibold">
-                  Image Details
-                </h3>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="bg-red-600/20 border-red-500/30 text-red-300 hover:bg-red-600/30"
-                onClick={() => setShowImageModal(false)}
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6 max-h-[calc(90vh-120px)] overflow-y-auto">
-              {/* Image */}
-              <div className="aspect-square rounded-xl overflow-hidden border border-white/10">
-                <ComfyUIImage
-                  image={selectedImageForModal}
-                  alt={selectedImageForModal.prompt}
-                  className="aspect-square"
-                />
-              </div>
-
-              {/* Details */}
-              <div className="space-y-6">
-                {/* Prompt */}
-                <div>
-                  <Label className="text-gray-300 text-sm font-medium mb-2 block">
-                    Prompt
-                  </Label>
-                  <div className="bg-black/40 border border-white/10 rounded-lg p-4">
-                    <p className="text-white text-sm leading-relaxed">
-                      {selectedImageForModal.prompt}
-                    </p>
+      {/* Image Detail Modal with Portal */}
+      {showImageModal &&
+        selectedImageForModal &&
+        isMounted &&
+        createPortal(
+          <div
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
+            onClick={() => setShowImageModal(false)}
+          >
+            <div
+              className="bg-black/90 backdrop-blur-md border border-white/10 rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-6 border-b border-white/10">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-violet-500 to-fuchsia-500 flex items-center justify-center">
+                    <Eye className="w-4 h-4 text-white" />
                   </div>
+                  <h3 className="text-white text-xl font-semibold">
+                    Image Details
+                  </h3>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-red-600/20 border-red-500/30 text-red-300 hover:bg-red-600/30"
+                  onClick={() => setShowImageModal(false)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-6 max-h-[calc(90vh-120px)] overflow-y-auto">
+                {/* Image */}
+                <div className="aspect-square rounded-xl overflow-hidden border border-white/10">
+                  <ComfyUIImage
+                    image={selectedImageForModal}
+                    alt={selectedImageForModal.prompt}
+                    className="aspect-square"
+                  />
                 </div>
 
-                {/* Negative Prompt */}
-                {selectedImageForModal.negativePrompt && (
+                {/* Details */}
+                <div className="space-y-6">
+                  {/* Prompt */}
                   <div>
                     <Label className="text-gray-300 text-sm font-medium mb-2 block">
-                      Negative Prompt
+                      Prompt
                     </Label>
                     <div className="bg-black/40 border border-white/10 rounded-lg p-4">
                       <p className="text-white text-sm leading-relaxed">
-                        {selectedImageForModal.negativePrompt}
+                        {selectedImageForModal.prompt}
                       </p>
                     </div>
                   </div>
-                )}
 
-                {/* Settings */}
-                <div>
-                  <Label className="text-gray-300 text-sm font-medium mb-2 block">
-                    Generation Settings
-                  </Label>
-                  <div className="bg-black/40 border border-white/10 rounded-lg p-4 space-y-2">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <span className="text-gray-400">Model:</span>
-                        <span className="text-white ml-2">
-                          {selectedImageForModal.settings.model}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-400">Size:</span>
-                        <span className="text-white ml-2">
-                          {selectedImageForModal.settings.width}×
-                          {selectedImageForModal.settings.height}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-400">Steps:</span>
-                        <span className="text-white ml-2">
-                          {selectedImageForModal.settings.steps}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-gray-400">CFG:</span>
-                        <span className="text-white ml-2">
-                          {selectedImageForModal.settings.cfgScale}
-                        </span>
+                  {/* Negative Prompt */}
+                  {selectedImageForModal.negativePrompt && (
+                    <div>
+                      <Label className="text-gray-300 text-sm font-medium mb-2 block">
+                        Negative Prompt
+                      </Label>
+                      <div className="bg-black/40 border border-white/10 rounded-lg p-4">
+                        <p className="text-white text-sm leading-relaxed">
+                          {selectedImageForModal.negativePrompt}
+                        </p>
                       </div>
                     </div>
+                  )}
 
-                    {selectedImageForModal.settings.loraModel && (
-                      <div className="pt-2 border-t border-white/10">
-                        <span className="text-gray-400 text-sm">
-                          LoRA Model:
-                        </span>
-                        <span className="text-white ml-2 text-sm">
-                          {selectedImageForModal.settings.loraModel}
-                        </span>
+                  {/* Settings */}
+                  <div>
+                    <Label className="text-gray-300 text-sm font-medium mb-2 block">
+                      Generation Settings
+                    </Label>
+                    <div className="bg-black/40 border border-white/10 rounded-lg p-4 space-y-2">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-400">Model:</span>
+                          <span className="text-white ml-2">
+                            {selectedImageForModal.settings.model}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Size:</span>
+                          <span className="text-white ml-2">
+                            {selectedImageForModal.settings.width}×
+                            {selectedImageForModal.settings.height}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Steps:</span>
+                          <span className="text-white ml-2">
+                            {selectedImageForModal.settings.steps}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">CFG:</span>
+                          <span className="text-white ml-2">
+                            {selectedImageForModal.settings.cfgScale}
+                          </span>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                </div>
 
-                {/* Actions */}
-                <div className="flex flex-wrap gap-3">
-                  <Button
-                    className="bg-blue-600 hover:bg-blue-700 text-white flex-1 sm:flex-none"
-                    onClick={() => downloadImage(selectedImageForModal)}
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="bg-black/40 border-white/20 text-white hover:bg-white/10 flex-1 sm:flex-none"
-                    onClick={() => toggleBookmark(selectedImageForModal.id)}
-                  >
-                    <Star
-                      className={`w-4 h-4 mr-2 ${
-                        selectedImageForModal.isBookmarked
-                          ? "fill-yellow-400 text-yellow-400"
-                          : ""
-                      }`}
-                    />
-                    {selectedImageForModal.isBookmarked
-                      ? "Unfavorite"
-                      : "Favorite"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="bg-black/40 border-white/20 text-white hover:bg-white/10 flex-1 sm:flex-none"
-                    onClick={() => addToVault([selectedImageForModal])}
-                    disabled={selectedImageForModal.isInVault}
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    {selectedImageForModal.isInVault ? "In Vault" : "Save"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="bg-black/40 border-white/20 text-white hover:bg-white/10 w-full sm:w-auto"
-                    onClick={() => {
-                      setPrompt(selectedImageForModal.prompt);
-                      if (selectedImageForModal.negativePrompt) {
-                        setNegativePrompt(selectedImageForModal.negativePrompt);
-                      }
-                      if (selectedImageForModal.settings.loraModel) {
-                        setSelectedLoraModel(
-                          selectedImageForModal.settings.loraModel
-                        );
-                      }
-                      setWidth(selectedImageForModal.settings.width);
-                      setHeight(selectedImageForModal.settings.height);
-                      setSteps(selectedImageForModal.settings.steps);
-                      setCfgScale(selectedImageForModal.settings.cfgScale);
-                      if (selectedImageForModal.settings.loraStrength) {
-                        setLoraStrength(
-                          selectedImageForModal.settings.loraStrength
-                        );
-                      }
-                      setShowImageModal(false);
-                    }}
-                  >
-                    <Copy className="w-4 h-4 mr-2" />
-                    Use These Settings
-                  </Button>
+                      {selectedImageForModal.settings.loraModel && (
+                        <div className="pt-2 border-t border-white/10">
+                          <span className="text-gray-400 text-sm">
+                            LoRA Model:
+                          </span>
+                          <span className="text-white ml-2 text-sm">
+                            {selectedImageForModal.settings.loraModel}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex flex-wrap gap-3">
+                    <Button
+                      className="bg-blue-600 hover:bg-blue-700 text-white flex-1 sm:flex-none"
+                      onClick={() => downloadImage(selectedImageForModal)}
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="bg-black/40 border-white/20 text-white hover:bg-white/10 flex-1 sm:flex-none"
+                      onClick={() => toggleBookmark(selectedImageForModal.id)}
+                    >
+                      <Star
+                        className={`w-4 h-4 mr-2 ${
+                          selectedImageForModal.isBookmarked
+                            ? "fill-yellow-400 text-yellow-400"
+                            : ""
+                        }`}
+                      />
+                      {selectedImageForModal.isBookmarked
+                        ? "Unfavorite"
+                        : "Favorite"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="bg-black/40 border-white/20 text-white hover:bg-white/10 w-full sm:w-auto"
+                      onClick={() => {
+                        setPrompt(selectedImageForModal.prompt);
+                        if (selectedImageForModal.negativePrompt) {
+                          setNegativePrompt(
+                            selectedImageForModal.negativePrompt
+                          );
+                        }
+                        if (selectedImageForModal.settings.loraModel) {
+                          setSelectedLoraModel(
+                            selectedImageForModal.settings.loraModel
+                          );
+                        }
+                        setWidth(selectedImageForModal.settings.width);
+                        setHeight(selectedImageForModal.settings.height);
+                        setSteps(selectedImageForModal.settings.steps);
+                        setCfgScale(selectedImageForModal.settings.cfgScale);
+                        if (selectedImageForModal.settings.loraStrength) {
+                          setLoraStrength(
+                            selectedImageForModal.settings.loraStrength
+                          );
+                        }
+                        setShowImageModal(false);
+                      }}
+                    >
+                      <Copy className="w-4 h-4 mr-2" />
+                      Use These Settings
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 };
