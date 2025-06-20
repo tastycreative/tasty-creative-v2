@@ -1,7 +1,7 @@
 // app/api/comfyui/prompt/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 
-const COMFYUI_BASE_URL = process.env.COMFYUI_BASE_URL || 'http://209.53.88.242:12628';
+const COMFYUI_BASE_URL = process.env.COMFYUI_BASE_URL || 'https://corp-thoughts-nice-refresh.trycloudflare.com';
 
 export async function POST(request: NextRequest) {
   try {
