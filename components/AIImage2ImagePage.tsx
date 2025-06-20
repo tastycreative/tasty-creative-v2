@@ -245,6 +245,51 @@ const AIImage2ImagePage = () => {
     });
   }, []);
 
+  // Image compression function
+  const compressImage = (
+    file: File,
+    maxWidth: number = 1024,
+    quality: number = 0.8
+  ): Promise<File> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      const img = new Image();
+
+      img.onload = () => {
+        // Calculate new dimensions
+        let { width, height } = img;
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], file.name, {
+                type: "image/jpeg",
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            } else {
+              resolve(file);
+            }
+          },
+          "image/jpeg",
+          quality
+        );
+      };
+
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   // Canvas setup and image loading
   const setupCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -580,8 +625,11 @@ const AIImage2ImagePage = () => {
     return canvas.toDataURL("image/png");
   };
 
-  // Convert base64 to File for upload
-  const base64ToFile = (base64: string, filename: string): File => {
+  // Convert base64 to File for upload with compression
+  const base64ToFile = async (
+    base64: string,
+    filename: string
+  ): Promise<File> => {
     const arr = base64.split(",");
     const mime = arr[0].match(/:(.*?);/)![1];
     const bstr = atob(arr[1]);
@@ -590,7 +638,39 @@ const AIImage2ImagePage = () => {
     while (n--) {
       u8arr[n] = bstr.charCodeAt(n);
     }
-    return new File([u8arr], filename, { type: mime });
+    const originalFile = new File([u8arr], filename, { type: mime });
+
+    // Compress the file if it's too large (>2MB)
+    if (originalFile.size > 2 * 1024 * 1024) {
+      console.log(`Compressing large file: ${originalFile.size} bytes`);
+      return await compressImage(originalFile);
+    }
+
+    return originalFile;
+  };
+
+  // Enhanced error handling helper
+  const handleApiError = async (response: Response): Promise<string> => {
+    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+
+    try {
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorData.message || errorMessage;
+      } else {
+        const errorText = await response.text();
+        // Clean up HTML error messages
+        const cleanText = errorText.replace(/<[^>]*>/g, "").trim();
+        if (cleanText && cleanText.length < 200) {
+          errorMessage = cleanText;
+        }
+      }
+    } catch (parseError) {
+      console.error("Error parsing API response:", parseError);
+    }
+
+    return errorMessage;
   };
 
   // Generation function
@@ -632,7 +712,7 @@ const AIImage2ImagePage = () => {
       setGenerationProgress(10);
 
       // Upload the main image (intact, no transparency)
-      const imageFile = base64ToFile(imageBase64, "input_image.png");
+      const imageFile = await base64ToFile(imageBase64, "input_image.png");
       const imageFormData = new FormData();
       imageFormData.append("image", imageFile);
       imageFormData.append("subfolder", "");
@@ -644,12 +724,8 @@ const AIImage2ImagePage = () => {
       });
 
       if (!imageUploadResponse.ok) {
-        const errorData = await imageUploadResponse.json();
-        throw new Error(
-          `Failed to upload image: ${
-            errorData.error || imageUploadResponse.statusText
-          }`
-        );
+        const errorMessage = await handleApiError(imageUploadResponse);
+        throw new Error(`Failed to upload image: ${errorMessage}`);
       }
 
       const imageUploadResult = await imageUploadResponse.json();
@@ -661,7 +737,7 @@ const AIImage2ImagePage = () => {
         setCurrentNode("Uploading mask...");
         setGenerationProgress(15);
 
-        const maskFile = base64ToFile(
+        const maskFile = await base64ToFile(
           maskBase64,
           `clipspace-mask-${Date.now()}.png`
         );
@@ -678,6 +754,14 @@ const AIImage2ImagePage = () => {
         if (maskUploadResponse.ok) {
           const maskUploadResult = await maskUploadResponse.json();
           uploadedMaskName = maskUploadResult.name;
+        } else {
+          // Don't throw error for mask upload failure, just log it
+          try {
+            const errorMessage = await handleApiError(maskUploadResponse);
+            console.warn("Mask upload failed:", errorMessage);
+          } catch (parseError) {
+            console.warn("Mask upload failed:", maskUploadResponse.statusText);
+          }
         }
       }
 
@@ -854,10 +938,8 @@ const AIImage2ImagePage = () => {
       });
 
       if (!queueResponse.ok) {
-        const errorText = await queueResponse.text();
-        throw new Error(
-          `Failed to queue prompt: ${queueResponse.statusText} - ${errorText}`
-        );
+        const errorMessage = await handleApiError(queueResponse);
+        throw new Error(`Failed to queue prompt: ${errorMessage}`);
       }
 
       const queueResult = await queueResponse.json();
@@ -966,6 +1048,8 @@ const AIImage2ImagePage = () => {
                 throw new Error(errorMessage);
               }
             }
+          } else {
+            console.warn("History check failed:", historyResponse.statusText);
           }
         } catch (error) {
           console.warn("Status check failed:", error);
