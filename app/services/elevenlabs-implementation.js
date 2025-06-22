@@ -179,6 +179,17 @@ export const API_KEY_PROFILES = {
       },
     ],
   },
+  account_17: {
+    name: "OF Dakota's voice",
+    description: "Backup account for high-volume usage",
+    voices: [
+      {
+        name: "OF Dakota",
+        voiceId: "0yk5Yq3vY0KESRDgMXlR",
+        category: "professional",
+      },
+    ],
+  },
 };
 
 // Available ElevenLabs models
@@ -548,4 +559,3 @@ export function downloadAudio(audioBlob, filename) {
 export function clearAudioUrlCache() {
   audioUrlCache.clear();
 }
-
