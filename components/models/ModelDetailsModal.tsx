@@ -101,7 +101,7 @@ export default function ModelDetailsModal({
   isOpen,
   onClose,
 }: ModelDetailsModalProps) {
-  const [activeTab, setActiveTab] = useState<"info" | "assets" | "chatters">(
+  const [activeTab, setActiveTab] = useState<"info" | "assets" | "chatters" | "apps">(
     "info"
   );
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
