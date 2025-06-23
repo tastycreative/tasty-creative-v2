@@ -300,8 +300,8 @@ interface ModelDetailsModalProps {
 }
 
 interface ModelDetailsTabsProps {
-  activeTab: "info" | "assets" | "chatters";
-  setActiveTab: (tab: "info" | "assets" | "chatters") => void;
+  activeTab: "info" | "assets" | "chatters" | "apps";
+  setActiveTab: (tab: "info" | "assets" | "chatters" | "apps") => void;
 }
 
 interface ModelInfoTabProps {

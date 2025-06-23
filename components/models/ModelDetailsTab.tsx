@@ -1,7 +1,7 @@
 // components/models/ModelDetailsTabs.tsx
 "use client";
 
-import { Info, Image, MessageSquare } from "lucide-react";
+import { Info, Image, MessageSquare, Zap } from "lucide-react";
 
 export default function ModelDetailsTabs({
   activeTab,
@@ -11,6 +11,7 @@ export default function ModelDetailsTabs({
     { id: "info" as const, label: "Information", icon: Info },
     { id: "assets" as const, label: "Assets", icon: Image },
     { id: "chatters" as const, label: "Chatters", icon: MessageSquare },
+    { id: "apps" as const, label: "Apps", icon: Zap },
   ];
 
   return (
