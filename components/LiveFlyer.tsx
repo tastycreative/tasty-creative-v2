@@ -487,7 +487,7 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="flex col-span-1 flex-col gap-4 shadow-md  lg:max-w-lg w-full p-6 r bg-black/20 rounded-lg border border-white/10">
           <div>
-            <h1 className="text-2xl font-bold text-start">
+            <h1 className="text-2xl font-bold text-start text-white">
               Live Flyer Generation
             </h1>
             <p className="text-gray-400 text-sm">
@@ -653,7 +653,7 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
               {formData.datetmz ? formData.datetmz : "Date/Timezone"}
             </div> */}
 
-            <div className="col-span-2 flex flex-col gap-4 ">
+            <div className="col-span-2 text-white flex flex-col gap-4 ">
               <label className="flex items-center gap-1">
                 <input
                   type="radio"
@@ -730,7 +730,7 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
               <div className="flex flex-col">
                 <label
                   htmlFor="noOfTemplate"
-                  className="text-sm font-medium mb-1"
+                  className="text-sm font-medium mb-1 text-white"
                 >
                   No. of Flyers to generate (1-5)
                 </label>
@@ -834,7 +834,7 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
 
         <div className="flex col-span-2 flex-col gap-4 shadow-md relative  w-full p-6 r bg-black/20 rounded-lg border border-white/10">
           <div>
-            <h1 className="text-bold">Preview</h1>
+            <h1 className="text-bold text-white">Preview</h1>
             <p className="text-sm text-gray-400 mb-2">
               Live flyer preview will appear here
             </p>

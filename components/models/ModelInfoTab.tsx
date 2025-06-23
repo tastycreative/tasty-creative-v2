@@ -112,7 +112,9 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
             <div className="space-y-5">
               {/* Status */}
               <div>
-                <label className="block text-sm text-gray-400 mb-3 font-medium">Status</label>
+                <label className="block text-sm text-gray-400 mb-3 font-medium">
+                  Status
+                </label>
                 <span
                   className={`inline-flex px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm shadow-lg ${
                     model.status.toLowerCase() === "active"
@@ -121,7 +123,9 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
                   }`}
                 >
                   <Activity className="w-4 h-4 mr-2" />
-                  {model.status.toLowerCase() === "active" ? "Active" : "Dropped"}
+                  {model.status.toLowerCase() === "active"
+                    ? "Active"
+                    : "Dropped"}
                 </span>
               </div>
 
@@ -132,10 +136,10 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
                   Launch Date
                 </label>
                 <p className="text-white font-semibold bg-slate-900/30 px-4 py-2 rounded-lg inline-block">
-                  {new Date(model.launchDate).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
+                  {new Date(model.launchDate).toLocaleDateString("en-US", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
                   })}
                 </p>
               </div>
@@ -210,8 +214,8 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
                   {model.commonEmojis.map((emoji, index) => (
                     <motion.span
                       key={index}
-                      initial={{ opacity: 0, rotate: -180 }}
-                      animate={{ opacity: 1, rotate: 0 }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
                       transition={{ delay: 0.4 + index * 0.1 }}
                       className="bg-slate-900/30 p-2 rounded-lg hover:bg-slate-900/50 transition-all cursor-default"
                     >
@@ -262,10 +266,14 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
                       rel="noopener noreferrer"
                       className="group/link relative"
                     >
-                      <div className={`absolute inset-0 bg-gradient-to-r ${social.color} rounded-lg blur-lg opacity-0 group-hover/link:opacity-30 transition-all duration-300`} />
+                      <div
+                        className={`absolute inset-0 bg-gradient-to-r ${social.color} rounded-lg blur-lg opacity-0 group-hover/link:opacity-30 transition-all duration-300`}
+                      />
                       <div className="relative bg-slate-900/50 px-4 py-2.5 rounded-lg border border-slate-700/50 group-hover/link:border-slate-600/50 transition-all duration-300 flex items-center gap-2">
                         <Icon className={`w-4 h-4 ${social.textColor}`} />
-                        <span className={`${social.textColor} ${social.hoverColor} transition-colors font-medium`}>
+                        <span
+                          className={`${social.textColor} ${social.hoverColor} transition-colors font-medium`}
+                        >
                           {social.handle}
                         </span>
                       </div>
@@ -302,12 +310,12 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <div className="w-3 h-3 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full animate-pulse" />
-                  <div className="absolute inset-0 w-3 h-3 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full animate-ping" />
+                  <div className="w-3 h-3 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full " />
+                  <div className="absolute inset-0 w-3 h-3 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full " />
                 </div>
                 {loading ? (
                   <div className="flex items-center gap-2">
-                    <div className="h-2.5 w-32 bg-slate-700/50 rounded-full animate-pulse" />
+                    <div className="h-2.5 w-32 bg-slate-700/50 rounded-full " />
                     <Sparkles className="w-4 h-4 text-purple-400 animate-spin" />
                   </div>
                 ) : (
@@ -338,10 +346,30 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
               </h3>
               <div className="space-y-4">
                 {[
-                  { label: "Total Revenue", value: `${model.stats.totalRevenue.toLocaleString()}`, icon: DollarSign, color: "text-green-400" },
-                  { label: "Monthly Revenue", value: `${model.stats.monthlyRevenue.toLocaleString()}`, icon: TrendingUp, color: "text-emerald-400" },
-                  { label: "Subscribers", value: model.stats.subscribers.toLocaleString(), icon: Users, color: "text-blue-400" },
-                  { label: "Avg Response Time", value: model.stats.avgResponseTime, icon: Clock, color: "text-purple-400" },
+                  {
+                    label: "Total Revenue",
+                    value: `${model.stats.totalRevenue.toLocaleString()}`,
+                    icon: DollarSign,
+                    color: "text-green-400",
+                  },
+                  {
+                    label: "Monthly Revenue",
+                    value: `${model.stats.monthlyRevenue.toLocaleString()}`,
+                    icon: TrendingUp,
+                    color: "text-emerald-400",
+                  },
+                  {
+                    label: "Subscribers",
+                    value: model.stats.subscribers.toLocaleString(),
+                    icon: Users,
+                    color: "text-blue-400",
+                  },
+                  {
+                    label: "Avg Response Time",
+                    value: model.stats.avgResponseTime,
+                    icon: Clock,
+                    color: "text-purple-400",
+                  },
                 ].map((stat, index) => {
                   const Icon = stat.icon;
                   return (

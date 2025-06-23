@@ -387,7 +387,7 @@ export default function ImageCropper({
               }
             }}
           />
-          <label htmlFor={`${id}-custom`} className="cursor-pointer">
+          <label htmlFor={`${id}-custom`} className="cursor-pointer text-white">
             Custom Image
           </label>
         </div>
@@ -405,7 +405,7 @@ export default function ImageCropper({
               }
             }}
           />
-          <label htmlFor={`${id}-vault`} className="cursor-pointer">
+          <label htmlFor={`${id}-vault`} className="cursor-pointer text-white">
             Vault Selector
           </label>
         </div>
