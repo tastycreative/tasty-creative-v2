@@ -22,7 +22,6 @@ import { extractDriveIdFromFormula } from "@/lib/utils";
 import LiveFlyer from "../LiveFlyer";
 import VIPFlyer from "../VIPFlyer";
 import FTTFlyer from "../FTTPage";
-import ModelAppsTab from "./tabs/ModelAppsTab";
 
 export default function ModelAssetsTab({ modelName }: ModelAssetsTabProps) {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -36,7 +35,7 @@ export default function ModelAssetsTab({ modelName }: ModelAssetsTabProps) {
   }>({ live: [], vip: [], ftt: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"all" | "live" | "vip" | "ftt" | "apps">(
+  const [activeTab, setActiveTab] = useState<"all" | "live" | "vip" | "ftt">(
     "all"
   );
 
@@ -226,13 +225,6 @@ export default function ModelAssetsTab({ modelName }: ModelAssetsTabProps) {
             >
               <Zap className="w-4 h-4" />
               FTT
-            </button>
-            <button
-              onClick={() => setActiveTab("apps")}
-              className=" px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white  rounded-lg font-medium transition-colors flex items-center gap-2"
-            >
-              <Zap className="w-4 h-4" />
-              Apps
             </button>
           </div>
         </div>
@@ -461,7 +453,6 @@ export default function ModelAssetsTab({ modelName }: ModelAssetsTabProps) {
       {activeTab === "live" && <LiveFlyer modelName={modelName} />}
       {activeTab === "vip" && <VIPFlyer modelName={modelName} />}
       {activeTab === "ftt" && <FTTFlyer modelName={modelName} />}
-      {activeTab === "apps" && <ModelAppsTab modelName={modelName} />}
     </div>
   );
 }

@@ -9,6 +9,7 @@ import ModelAssetsTab from "./ModelAssetTabs";
 import ModelDetailsTabs from "./ModelDetailsTab";
 import ModelInfoTab from "./ModelInfoTab";
 import ModelChattersTab from "./tabs/ModelChattersTab";
+import ModelAppsTab from "./tabs/ModelAppsTab";
 
 function ModelImage({ model }: { model: ModelDetails }) {
   const [imageError, setImageError] = useState(false);
@@ -173,6 +174,7 @@ export default function ModelDetailsModal({
               {activeTab === "chatters" && (
                 <ModelChattersTab modelName={model.name} />
               )}
+               {activeTab === "apps" && <ModelAppsTab modelName={model.name} />}
             </div>
           </div>
         </>
