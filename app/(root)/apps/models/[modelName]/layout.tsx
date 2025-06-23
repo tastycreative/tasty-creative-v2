@@ -10,7 +10,7 @@ interface ModelAppLayoutProps {
 
 export default function ModelAppLayout({ children }: ModelAppLayoutProps) {
   const params = useParams();
-  const modelName = decodeURIComponent(params.modelName as string);
+  const modelName = params ? decodeURIComponent(params.modelName as string) : '';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
