@@ -65,7 +65,6 @@ export default function ModelDetailsPage() {
 
         if (foundModel) {
           setModel(foundModel);
-
         }
       } catch (error) {
         console.error("Error fetching model:", error);
@@ -78,21 +77,19 @@ export default function ModelDetailsPage() {
   }, [modelName]);
 
   if (loading) {
-    return (
-     <Loader />
-    );
+    return <Loader />;
   }
 
-  if (!model) {
+  if (!model && !loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center">
+      <div className="min-h-screen  flex items-center justify-center">
         <div className="text-white text-xl">Model not found</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
+    <div className="">
       <div className="container mx-auto px-4 py-8">
         {/* Back Button */}
         <button
@@ -108,10 +105,10 @@ export default function ModelDetailsPage() {
           {/* Header */}
           <div className="p-6 border-b border-white/10 bg-white/5">
             <div className="flex items-center gap-4">
-              <ModelImage model={model} />
+              {model && <ModelImage model={model} />}
               <div>
-                <h1 className="text-3xl font-bold text-white">{model.name}</h1>
-                <p className="text-gray-400 text-lg">{model.personalityType}</p>
+                <h1 className="text-3xl font-bold text-white">{model?.name}</h1>
+                <p className="text-gray-400 text-lg">{model?.personalityType}</p>
               </div>
             </div>
           </div>
@@ -121,16 +118,14 @@ export default function ModelDetailsPage() {
 
           {/* Content */}
           <div className="p-6">
-            {activeTab === "info" && model && (
-              <ModelInfoTab model={model} />
-            )}
-            {activeTab === "assets" && (
+            {activeTab === "info" && model && <ModelInfoTab model={model} />}
+            {activeTab === "assets" && model?.name && (
               <ModelAssetsTab modelName={model.name} />
             )}
-            {activeTab === "chatters" && (
+            {activeTab === "chatters" && model?.name && (
               <ModelChattersTab modelName={model.name} />
             )}
-            {activeTab === "apps" && <ModelAppsTab modelName={model.name} />}
+            {activeTab === "apps" && model?.name && <ModelAppsTab modelName={model.name} />}
           </div>
         </div>
       </div>

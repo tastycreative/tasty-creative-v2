@@ -1,19 +1,50 @@
-// components/models/ModelsList.tsx
 "use client";
-
 import ModelCard from "./ModelCard";
+import { Users } from "lucide-react";
 
-export default function ModelsList({ models, onModelClick }: ModelsListProps) {
+interface ModelsListProps {
+  models: ModelDetails[];
+  onModelClick: (model: ModelDetails) => void;
+  isLoading?: boolean;
+}
+
+export default function ModelsList({ models, onModelClick, isLoading }: ModelsListProps) {
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {[...Array(8)].map((_, i) => (
+          <div
+            key={i}
+            className="bg-slate-800/30 backdrop-blur-md rounded-2xl border border-slate-700/30 overflow-hidden animate-pulse"
+          >
+            <div className="h-48 bg-slate-700/30" />
+            <div className="p-4 space-y-3">
+              <div className="h-6 bg-slate-700/30 rounded" />
+              <div className="h-4 bg-slate-700/30 rounded w-3/4" />
+              <div className="grid grid-cols-2 gap-2">
+                <div className="h-12 bg-slate-700/30 rounded" />
+                <div className="h-12 bg-slate-700/30 rounded" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   if (models.length === 0) {
     return (
-      <div
-        //initial={{ opacity: 0 }}
-        //animate={{ opacity: 1 }}
-        className="bg-white/10 dark:bg-gray-800/30 backdrop-blur-md rounded-2xl border border-white/20 dark:border-gray-700/30 p-12 text-center"
-      >
-        <p className="text-gray-600 dark:text-gray-400 text-lg">
-          No models found
-        </p>
+      <div className="animate-in fade-in duration-500">
+        <div className="relative group">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10 rounded-3xl blur-xl" />
+          <div className="relative bg-slate-800/30 backdrop-blur-xl rounded-3xl border border-slate-700/30 p-16 text-center">
+            <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center">
+              <Users className="w-10 h-10 text-purple-400" />
+            </div>
+            <p className="text-gray-400 text-lg">No models found</p>
+            <p className="text-gray-500 text-sm mt-2">Try adjusting your search or filters</p>
+          </div>
+        </div>
       </div>
     );
   }

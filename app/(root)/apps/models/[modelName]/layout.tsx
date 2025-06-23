@@ -5,5 +5,5 @@ interface ModelAppLayoutProps {
 }
 
 export default function ModelAppLayout({ children }: ModelAppLayoutProps) {
-  return <div className="">{children}</div>;
+  return <div className="min-h-screen">{children}</div>;
 }

@@ -60,8 +60,8 @@ const ModelAppsTab: React.FC<ModelAppsTabProps> = ({ modelName }) => {
     // Generate Apps
     {
       id: "ftt",
-      name: "Fan to Fan",
-      description: "Fan interaction and engagement tools",
+      name: "First to Tip",
+      description: "First to Tip flyer generator",
       icon: Users,
       color: "from-blue-500 to-cyan-500",
       category: "generate",
@@ -87,8 +87,8 @@ const ModelAppsTab: React.FC<ModelAppsTabProps> = ({ modelName }) => {
     },
     {
       id: "live",
-      name: "Live Content",
-      description: "Real-time content generation",
+      name: "Live Flyer",
+      description: "Live Flyer content generation",
       icon: Mic,
       color: "from-red-500 to-pink-500",
       category: "generate",
@@ -105,7 +105,7 @@ const ModelAppsTab: React.FC<ModelAppsTabProps> = ({ modelName }) => {
     },
     {
       id: "vip",
-      name: "VIP Content",
+      name: "VIP Flyer",
       description: "Premium content creation",
       icon: Crown,
       color: "from-yellow-400 to-yellow-600",
@@ -237,7 +237,7 @@ const ModelAppsTab: React.FC<ModelAppsTabProps> = ({ modelName }) => {
   return (
     <div className="p-6 space-y-8">
       <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">Model Applications</h2>
+        <h2 className="text-2xl text-white font-bold mb-2">Model Applications</h2>
         <p className="text-gray-600 dark:text-gray-400">
           Explore all available tools and generators for {modelName}
         </p>

@@ -26,21 +26,25 @@ export default async function RootLayout({
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative">
-        <div className="fixed inset-0 -z-10 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-            {/* Small stars */}
+      {/* Base solid background layer */}
+      <div className="fixed inset-0 bg-slate-950 -z-50"></div>
+      
+      {/* Main content container */}
+      <div className="min-h-screen flex flex-col  relative">
+        {/* Animated Starry Background */}
+        <div className="fixed inset-0 -z-40 overflow-hidden">
+          <div className="absolute inset-0 stars-container">
             <div className="stars"></div>
-            {/* Medium stars */}
             <div className="stars2"></div>
-            {/* Large stars */}
             <div className="stars3"></div>
           </div>
         </div>
 
-        <EmailVerificationBanner />
-
-        <ContentLayout>{children}</ContentLayout>
+        {/* Content */}
+        <div className="relative z-10">
+          <EmailVerificationBanner />
+          <ContentLayout>{children}</ContentLayout>
+        </div>
       </div>
     </SidebarProvider>
   );

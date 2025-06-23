@@ -1,67 +1,69 @@
-
 "use client";
-
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import ModelDetailsTabs from "./ModelDetailsTab";
-import ModelInfoTab from "./ModelInfoTab";
-import ModelAssetsTab from "./ModelAssetTabs";
-import ModelChattersTab from "./tabs/ModelChattersTab";
-import ModelAppsTab from "./tabs/ModelAppsTab";
+import { ArrowLeft, Sparkles } from "lucide-react";
+import ModelDetailsTabs from "@/components/models/ModelDetailsTab";
+import ModelInfoTab from "@/components/models/ModelInfoTab";
+import ModelAssetsTab from "@/components/models/ModelAssetTabs";
+import ModelChattersTab from "@/components/models/tabs/ModelChattersTab";
+import ModelAppsTab from "@/components/models/tabs/ModelAppsTab";
 import { transformRawModel } from "@/lib/utils";
+import Loader from "@/app/(root)/apps/models/loading";
 
 function ModelImage({ model }: { model: ModelDetails }) {
   const [imageError, setImageError] = useState(false);
-
+  
   if (imageError || !model.id) {
     return (
-      <div className="w-20 h-20 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
-        <span className="text-white text-3xl font-bold">
-          {model.name.charAt(0).toUpperCase()}
-        </span>
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-600/30 to-pink-600/30 blur-2xl" />
+        <div className="relative w-24 h-24 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center shadow-2xl shadow-purple-500/25">
+          <span className="text-white text-3xl font-bold">
+            {model.name.charAt(0).toUpperCase()}
+          </span>
+        </div>
       </div>
     );
   }
-
+  
   return (
-    <div className="w-20 h-20 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 p-0.5 flex items-center justify-center">
-      <img
-        src={`/api/image-proxy?id=${model.id}`}
-        alt={model.name}
-        className="w-full h-full object-cover rounded-full"
-        onError={() => setImageError(true)}
-      />
+    <div className="relative">
+      <div className="absolute inset-0 bg-gradient-to-r from-purple-600/30 to-pink-600/30 blur-2xl" />
+      <div className="relative w-24 h-24 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 p-0.5 flex items-center justify-center shadow-2xl shadow-purple-500/25">
+        <img
+          src={`/api/image-proxy?id=${model.id}`}
+          alt={model.name}
+          className="w-full h-full object-cover rounded-full"
+          onError={() => setImageError(true)}
+        />
+      </div>
     </div>
   );
 }
 
-interface ModelDetailsPageProps {
-  modelName: string;
-}
-
-export default function ModelDetailsPage({ modelName }: ModelDetailsPageProps) {
+export default function ModelDetailsPage() {
+  const params = useParams();
   const router = useRouter();
+  let modelName = params ? decodeURIComponent(params.modelName as string) : "";
+  modelName = modelName.charAt(0).toUpperCase() + modelName.slice(1);
+  
   const [activeTab, setActiveTab] = useState<"info" | "assets" | "chatters" | "apps">("info");
-  const [isEditing, setIsEditing] = useState(false);
   const [model, setModel] = useState<ModelDetails | null>(null);
-  const [editedModel, setEditedModel] = useState<ModelDetails | null>(null);
   const [loading, setLoading] = useState(true);
-
+  
   useEffect(() => {
     const fetchModel = async () => {
       if (!modelName) return;
-      
       setLoading(true);
       try {
         const res = await fetch("/api/models?all=true");
         const { models: rawModels } = await res.json();
         const transformed = rawModels.map(transformRawModel);
-        const foundModel = transformed.find(m => m.name === modelName);
-        
+        const foundModel = transformed.find(
+          (m: ModelDetails) => m.name === modelName
+        );
         if (foundModel) {
           setModel(foundModel);
-          setEditedModel(foundModel);
         }
       } catch (error) {
         console.error("Error fetching model:", error);
@@ -69,66 +71,91 @@ export default function ModelDetailsPage({ modelName }: ModelDetailsPageProps) {
         setLoading(false);
       }
     };
-
     fetchModel();
   }, [modelName]);
-
+  
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
-      </div>
-    );
+    return <Loader />;
   }
-
+  
   if (!model) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center">
-        <div className="text-white text-xl">Model not found</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center">
+            <Sparkles className="w-10 h-10 text-purple-400" />
+          </div>
+          <div className="text-white text-xl">Model not found</div>
+          <button
+            onClick={() => router.back()}
+            className="mt-4 px-6 py-3 bg-slate-800/50 hover:bg-slate-700/50 text-gray-300 rounded-xl font-medium transition-all inline-flex items-center gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Go Back
+          </button>
+        </div>
       </div>
     );
   }
-
+  
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900">
+    <div className="animate-in fade-in duration-500">
       <div className="container mx-auto px-4 py-8">
         {/* Back Button */}
         <button
           onClick={() => router.back()}
-          className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+          className="mb-6 group flex items-center gap-2 text-gray-400 hover:text-white transition-all"
         >
-          <ArrowLeft className="w-5 h-5" />
+          <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
           <span>Back to Models</span>
         </button>
-
+        
         {/* Main Content */}
-        <div className="bg-gray-900/95 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl overflow-hidden">
-          {/* Header */}
-          <div className="p-6 border-b border-white/10 bg-white/5">
-            <div className="flex items-center gap-4">
-              <ModelImage model={model} />
-              <div>
-                <h1 className="text-3xl font-bold text-white">{model.name}</h1>
-                <p className="text-gray-400 text-lg">{model.personalityType}</p>
+        <div className="relative">
+          {/* Background Glow */}
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10 rounded-3xl blur-3xl" />
+          
+          <div className="relative bg-slate-800/40 backdrop-blur-xl rounded-3xl border border-slate-700/30 shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="relative p-8 border-b border-slate-700/30 bg-gradient-to-r from-purple-600/10 via-pink-600/5 to-purple-600/10">
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-slate-900/50" />
+              <div className="relative flex items-center gap-6">
+                <ModelImage model={model} />
+                <div>
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                    {model.name}
+                  </h1>
+                  <p className="text-gray-400 text-lg mt-1">{model.personalityType}</p>
+                  <div className="flex items-center gap-4 mt-3">
+                    <span className={`
+                      px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm
+                      ${model.status.toLowerCase() === "active"
+                        ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                        : "bg-red-500/20 text-red-400 border border-red-500/30"
+                      }
+                    `}>
+                      {model.status}
+                    </span>
+                    {model.launchDate && (
+                      <span className="text-sm text-gray-500">
+                        Since {model.launchDate}
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-
-          {/* Tabs */}
-          <ModelDetailsTabs activeTab={activeTab} setActiveTab={setActiveTab} />
-
-          {/* Content */}
-          <div className="p-6">
-            {activeTab === "info" && editedModel && (
-              <ModelInfoTab
-                model={editedModel}
-                isEditing={isEditing}
-                onModelChange={setEditedModel}
-              />
-            )}
-            {activeTab === "assets" && <ModelAssetsTab modelName={model.name} />}
-            {activeTab === "chatters" && <ModelChattersTab modelName={model.name} />}
-            {activeTab === "apps" && <ModelAppsTab modelName={model.name} />}
+            
+            {/* Tabs */}
+            <ModelDetailsTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+            
+            {/* Content */}
+            <div className="p-8">
+              {activeTab === "info" && model && <ModelInfoTab model={model} />}
+              {activeTab === "assets" && <ModelAssetsTab modelName={model.name} />}
+              {activeTab === "chatters" && <ModelChattersTab modelName={model.name} />}
+              {activeTab === "apps" && <ModelAppsTab modelName={model.name} />}
+            </div>
           </div>
         </div>
       </div>

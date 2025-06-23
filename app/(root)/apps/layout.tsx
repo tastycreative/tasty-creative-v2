@@ -20,7 +20,7 @@ export default function AppsLayout({
     <div className="relative w-full h-full">
       <title>Apps | Tasty Creative</title>
       {/* Animated Background Gradient */}
-      <div
+      {/* <div
         className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-purple-50/50 to-pink-50/50 dark:from-blue-950/20 dark:via-purple-950/20 dark:to-pink-950/20"
         //animate={{
         //   background: [
@@ -34,7 +34,7 @@ export default function AppsLayout({
         //   repeat: Infinity,
         //   repeatType: "reverse",
         // }}
-      />
+      /> */}
 
       {/* Back Button - Only show on sub-pages */}
       {isSubPage && (

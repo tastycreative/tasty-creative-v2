@@ -1,7 +1,6 @@
-// components/models/tabs/ModelChattersTab.tsx
 "use client";
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   MessageSquare,
   User,
@@ -10,7 +9,14 @@ import {
   TrendingUp,
   Search,
   MoreVertical,
+  UserPlus,
+  Activity,
+  Sparkles,
 } from "lucide-react";
+
+interface ModelChattersTabProps {
+  modelName: string;
+}
 
 export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -32,7 +38,6 @@ export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
             throw new Error(`Error: ${res.status}`);
           }
         }
-
         const data = await res.json();
         const sortedData = [...data].sort((a, b) =>
           a.clientName.localeCompare(b.clientName)
@@ -52,7 +57,7 @@ export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
     }
   }, [modelName]);
 
-  // Parse chatters from API data and add static values for missing data
+  // Parse chatters from API data
   const chatters: Chatter[] =
     modelData.length > 0 && modelData[0].chatters
       ? modelData[0].chatters.split(",").map((name, index) => ({
@@ -87,7 +92,6 @@ export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
   const chattingManagers =
     modelData.length > 0 ? modelData[0].chattingManagers : "";
 
-  // Static values for stats (will be replaced with real API data later)
   const staticStats = {
     totalChats: 2847,
     activeChats: 28,
@@ -95,38 +99,49 @@ export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
     totalRevenue: 127500,
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusConfig = (status: string) => {
     switch (status) {
       case "online":
-        return "bg-green-500";
+        return { color: "bg-green-500", glow: "shadow-green-500/50", text: "text-green-400", bg: "bg-green-500/20" };
       case "busy":
-        return "bg-yellow-500";
+        return { color: "bg-yellow-500", glow: "shadow-yellow-500/50", text: "text-yellow-400", bg: "bg-yellow-500/20" };
       case "offline":
-        return "bg-gray-500";
+        return { color: "bg-gray-500", glow: "shadow-gray-500/50", text: "text-gray-400", bg: "bg-gray-500/20" };
       default:
-        return "bg-gray-500";
+        return { color: "bg-gray-500", glow: "shadow-gray-500/50", text: "text-gray-400", bg: "bg-gray-500/20" };
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+        <div className="relative">
+          <div className="w-16 h-16 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin" />
+          <Sparkles className="w-6 h-6 text-purple-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6 text-center">
-        <p className="text-red-400">Error loading chatters: {error}</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="mt-4 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-colors"
-        >
-          Retry
-        </button>
-      </div>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="relative"
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 to-pink-600/10 rounded-2xl blur-xl" />
+        <div className="relative bg-red-500/10 border border-red-500/20 rounded-2xl p-8 text-center">
+          <MessageSquare className="w-12 h-12 text-red-400 mx-auto mb-4" />
+          <p className="text-red-400 mb-4">Error loading chatters: {error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-xl font-medium transition-all"
+          >
+            Retry
+          </button>
+        </div>
+      </motion.div>
     );
   }
 
@@ -134,216 +149,263 @@ export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h3 className="text-xl font-semibold text-white">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+        >
+          <h3 className="text-2xl font-semibold text-white flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-xl">
+              <MessageSquare className="w-5 h-5 text-blue-400" />
+            </div>
             Assigned Chatters
           </h3>
           <p className="text-gray-400 text-sm mt-1">
             {chatters.length} chatters managing this model
           </p>
           {chattingManagers && (
-            <p className="text-gray-500 text-xs mt-1">
+            <p className="text-gray-500 text-xs mt-1 flex items-center gap-1">
+              <User className="w-3 h-3" />
               Manager: {chattingManagers}
             </p>
           )}
-        </div>
-
-        <button className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg font-medium transition-colors">
+        </motion.div>
+        
+        <motion.button
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 text-white rounded-xl font-medium transition-all shadow-lg shadow-purple-500/25 flex items-center gap-2"
+        >
+          <UserPlus className="w-5 h-5" />
           Assign New Chatter
-        </button>
+        </motion.button>
       </div>
 
       {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="relative group"
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10 rounded-2xl blur-xl opacity-0 group-focus-within:opacity-100 transition-all duration-300" />
+        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
         <input
           type="text"
           placeholder="Search chatters..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 bg-white/5 backdrop-blur-sm rounded-lg border border-white/10 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all text-white placeholder-gray-500"
+          className="relative w-full pl-12 pr-4 py-3.5 bg-slate-800/50 backdrop-blur-sm rounded-2xl border border-slate-700/50 focus:border-purple-500/50 focus:outline-none focus:ring-2 focus:ring-purple-500/20 transition-all text-white placeholder-gray-500"
         />
-      </div>
+      </motion.div>
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-500/20 rounded-lg">
-              <MessageSquare className="w-5 h-5 text-purple-400" />
-            </div>
-            <div>
-              <p className="text-gray-400 text-sm">Total Chats</p>
-              <p className="text-xl font-bold text-white">
-                {staticStats.totalChats.toLocaleString()}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-500/20 rounded-lg">
-              <User className="w-5 h-5 text-green-400" />
-            </div>
-            <div>
-              <p className="text-gray-400 text-sm">Active Now</p>
-              <p className="text-xl font-bold text-white">
-                {staticStats.activeChats}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-500/20 rounded-lg">
-              <Clock className="w-5 h-5 text-blue-400" />
-            </div>
-            <div>
-              <p className="text-gray-400 text-sm">Avg Response</p>
-              <p className="text-xl font-bold text-white">
-                {staticStats.avgResponse}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-yellow-500/20 rounded-lg">
-              <DollarSign className="w-5 h-5 text-yellow-400" />
-            </div>
-            <div>
-              <p className="text-gray-400 text-sm">Total Revenue</p>
-              <p className="text-xl font-bold text-white">
-                ${staticStats.totalRevenue.toLocaleString()}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Chatters List */}
-      <div className="space-y-4">
-        {filteredChatters.length === 0 ? (
-          <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-12 text-center">
-            <User className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-            <p className="text-gray-400">
-              {chatters.length === 0
-                ? "No chatters assigned to this model"
-                : "No chatters found"}
-            </p>
-          </div>
-        ) : (
-          filteredChatters.map((chatter, index) => (
+        {[
+          {
+            icon: MessageSquare,
+            label: "Total Chats",
+            value: staticStats.totalChats.toLocaleString(),
+            color: "purple",
+            gradient: "from-purple-500 to-pink-500",
+          },
+          {
+            icon: Activity,
+            label: "Active Now",
+            value: staticStats.activeChats,
+            color: "green",
+            gradient: "from-green-500 to-emerald-500",
+          },
+          {
+            icon: Clock,
+            label: "Avg Response",
+            value: staticStats.avgResponse,
+            color: "blue",
+            gradient: "from-blue-500 to-cyan-500",
+          },
+          {
+            icon: DollarSign,
+            label: "Total Revenue",
+            value: `${staticStats.totalRevenue.toLocaleString()}`,
+            color: "yellow",
+            gradient: "from-yellow-500 to-amber-500",
+          },
+        ].map((stat, index) => {
+          const Icon = stat.icon;
+          return (
             <motion.div
-              key={chatter.id}
+              key={stat.label}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-6 hover:bg-white/10 transition-all"
+              transition={{ delay: 0.2 + index * 0.1 }}
+              className="relative group"
             >
-              <div className="flex items-center justify-between">
+              <div className={`absolute inset-0 bg-gradient-to-r ${stat.gradient} rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-all duration-300`} />
+              <div className="relative bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-5 hover:border-slate-600/50 transition-all duration-300">
                 <div className="flex items-center gap-4">
-                  {/* Avatar */}
-                  <div className="relative">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
-                      <span className="text-white font-bold">
-                        {chatter.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .slice(0, 2)}
-                      </span>
-                    </div>
-                    <div
-                      className={`absolute bottom-0 right-0 w-3 h-3 rounded-full ${getStatusColor(chatter.status)} border-2 border-gray-900`}
-                    />
+                  <div className={`p-3 bg-gradient-to-br ${stat.gradient} bg-opacity-20 rounded-xl`}>
+                    <Icon className={`w-6 h-6 text-${stat.color}-400`} />
                   </div>
-
-                  {/* Info */}
                   <div>
-                    <h4 className="text-white font-semibold flex items-center gap-2">
-                      {chatter.name}
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full ${
-                          chatter.status === "online"
-                            ? "bg-green-500/20 text-green-400"
-                            : chatter.status === "busy"
-                              ? "bg-yellow-500/20 text-yellow-400"
-                              : "bg-gray-500/20 text-gray-400"
-                        }`}
-                      >
-                        {chatter.status}
-                      </span>
-                    </h4>
-                    <p className="text-gray-400 text-sm">
-                      Assigned{" "}
-                      {new Date(chatter.assignedDate).toLocaleDateString()} •
-                      Last active {chatter.lastActive}
-                    </p>
+                    <p className="text-gray-400 text-sm">{stat.label}</p>
+                    <p className="text-2xl font-bold text-white">{stat.value}</p>
                   </div>
-                </div>
-
-                <button className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                  <MoreVertical className="w-5 h-5 text-gray-400" />
-                </button>
-              </div>
-
-              {/* Stats */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
-                <div>
-                  <p className="text-gray-400 text-sm">Total Chats</p>
-                  <p className="text-white font-semibold">
-                    {chatter.totalChats}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-400 text-sm">Active Chats</p>
-                  <p className="text-white font-semibold">
-                    {chatter.activeChats}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-400 text-sm">Revenue</p>
-                  <p className="text-white font-semibold">
-                    ${chatter.revenue.toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-gray-400 text-sm">Avg Response</p>
-                  <p className="text-white font-semibold">
-                    {chatter.avgResponseTime}
-                  </p>
-                </div>
-              </div>
-
-              {/* Performance Chart */}
-              <div className="mt-4 pt-4 border-t border-white/10">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-gray-400">Performance</span>
-                  <TrendingUp className="w-4 h-4 text-green-400" />
-                </div>
-                <div className="w-full bg-white/10 rounded-full h-2">
-                  <div
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full transition-all duration-500"
-                    style={{ width: `${(chatter.revenue / 15000) * 100}%` }}
-                  />
                 </div>
               </div>
             </motion.div>
-          ))
-        )}
+          );
+        })}
       </div>
 
-      {/* Load More Button (if needed) */}
+      {/* Chatters List */}
+      <AnimatePresence mode="popLayout">
+        {filteredChatters.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="relative"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10 rounded-3xl blur-2xl" />
+            <div className="relative bg-slate-800/30 backdrop-blur-xl rounded-3xl border border-slate-700/30 p-16 text-center">
+              <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center">
+                <User className="w-10 h-10 text-blue-400" />
+              </div>
+              <p className="text-gray-400 text-lg">
+                {chatters.length === 0
+                  ? "No chatters assigned to this model"
+                  : "No chatters found"}
+              </p>
+              {chatters.length === 0 && (
+                <button className="mt-6 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 text-white rounded-xl font-medium transition-all shadow-lg shadow-purple-500/25 inline-flex items-center gap-2">
+                  <UserPlus className="w-5 h-5" />
+                  Assign First Chatter
+                </button>
+              )}
+            </div>
+          </motion.div>
+        ) : (
+          <div className="space-y-4">
+            {filteredChatters.map((chatter, index) => {
+              const statusConfig = getStatusConfig(chatter.status);
+              
+              return (
+                <motion.div
+                  key={chatter.id}
+                  layout
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="group relative"
+                >
+                  {/* Hover Glow */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-600/5 to-pink-600/5 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                  
+                  {/* Card */}
+                  <div className="relative bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 hover:border-slate-600/50 transition-all duration-300">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        {/* Avatar */}
+                        <div className="relative">
+                          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg">
+                            <span className="text-white font-bold text-lg">
+                              {chatter.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .slice(0, 2)}
+                            </span>
+                          </div>
+                          <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full ${statusConfig.color} border-2 border-slate-900 ${statusConfig.glow} shadow-lg`} />
+                        </div>
+                        
+                        {/* Info */}
+                        <div>
+                          <h4 className="text-white font-semibold text-lg flex items-center gap-3">
+                            {chatter.name}
+                            <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusConfig.bg} ${statusConfig.text} backdrop-blur-sm`}>
+                              {chatter.status}
+                            </span>
+                          </h4>
+                          <p className="text-gray-400 text-sm mt-1 flex items-center gap-3">
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              Assigned {new Date(chatter.assignedDate).toLocaleDateString()}
+                            </span>
+                            <span>•</span>
+                            <span>Last active {chatter.lastActive}</span>
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <button className="p-2.5 hover:bg-slate-700/50 rounded-xl transition-all opacity-0 group-hover:opacity-100">
+                        <MoreVertical className="w-5 h-5 text-gray-400" />
+                      </button>
+                    </div>
+                    
+                    {/* Stats */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6">
+                      {[
+                        { label: "Total Chats", value: chatter.totalChats, icon: MessageSquare },
+                        { label: "Active Chats", value: chatter.activeChats, icon: Activity },
+                        { label: "Revenue", value: `${chatter.revenue.toLocaleString()}`, icon: DollarSign },
+                        { label: "Avg Response", value: chatter.avgResponseTime, icon: Clock },
+                      ].map((stat) => {
+                        const Icon = stat.icon;
+                        return (
+                          <div key={stat.label} className="bg-slate-900/30 rounded-xl p-3">
+                            <div className="flex items-center gap-2 text-gray-400 text-xs mb-1">
+                              <Icon className="w-3 h-3" />
+                              {stat.label}
+                            </div>
+                            <p className="text-white font-semibold">{stat.value}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    
+                    {/* Performance Chart */}
+                    <div className="mt-6 pt-6 border-t border-slate-700/30">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm text-gray-400">Performance Score</span>
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4 text-green-400" />
+                          <span className="text-sm text-green-400">+12%</span>
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <div className="w-full bg-slate-900/50 rounded-full h-2 overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${(chatter.revenue / 15000) * 100}%` }}
+                            transition={{ duration: 1, delay: index * 0.1 }}
+                            className="h-full bg-gradient-to-r from-purple-500 to-pink-500 relative"
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-pink-400 animate-pulse" />
+                          </motion.div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Load More */}
       {filteredChatters.length > 0 && (
-        <div className="text-center">
-          <button className="px-6 py-3 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg font-medium transition-all">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="text-center"
+        >
+          <button className="px-8 py-3 bg-slate-800/50 hover:bg-slate-700/50 text-gray-400 hover:text-white rounded-xl font-medium transition-all border border-slate-700/50 hover:border-slate-600/50">
             Load More Chatters
           </button>
-        </div>
+        </motion.div>
       )}
     </div>
   );
