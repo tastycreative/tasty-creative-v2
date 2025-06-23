@@ -306,8 +306,6 @@ interface ModelDetailsTabsProps {
 
 interface ModelInfoTabProps {
   model: ModelDetails;
-  isEditing: boolean;
-  onModelChange: (model: ModelDetails) => void;
 }
 
 interface ModelsListProps {
@@ -323,7 +321,6 @@ interface ModelsHeaderProps {
   totalModels: number;
   activeModels: number;
 }
-
 
 interface Chatter {
   id: string;
@@ -346,4 +343,3 @@ interface ClientData {
   chatters: string;
   chattingManagers: string;
 }
-  

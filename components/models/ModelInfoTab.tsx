@@ -16,27 +16,12 @@ import { useEffect, useState } from "react";
 
 export default function ModelInfoTab({
   model,
-  isEditing,
-  onModelChange,
+
 }: ModelInfoTabProps) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [client, setClient] = useState<any[]>([]);
-  const handleInputChange = (field: keyof ModelDetails, value: any) => {
-    onModelChange({ ...model, [field]: value });
-  };
-
-  const handleArrayInputChange = (
-    field: "commonTerms" | "commonEmojis" | "chattingManagers",
-    value: string
-  ) => {
-    const items = value
-      .split(",")
-      .map((item) => item.trim())
-      .filter((item) => item);
-    handleInputChange(field, items);
-  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -87,33 +72,15 @@ export default function ModelInfoTab({
             {/* Status */}
             <div>
               <label className="block text-sm text-gray-400 mb-2">Status</label>
-              {isEditing ? (
-                <select
-                  value={model.status}
-                  onChange={(e) =>
-                    handleInputChange(
-                      "status",
-                      e.target.value as "active" | "dropped"
-                    )
-                  }
-                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                >
-                  <option value="active">Active</option>
-                  <option value="dropped">Dropped</option>
-                </select>
-              ) : (
-                <span
-                  className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
-                    model.status.toLowerCase() === "active"
-                      ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                      : "bg-red-500/20 text-red-400 border border-red-500/30"
-                  }`}
-                >
-                  {model.status.toLowerCase() === "active"
-                    ? "Active"
-                    : "Dropped"}
-                </span>
-              )}
+              <span
+                className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
+                  model.status.toLowerCase() === "active"
+                    ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                    : "bg-red-500/20 text-red-400 border border-red-500/30"
+                }`}
+              >
+                {model.status.toLowerCase() === "active" ? "Active" : "Dropped"}
+              </span>
             </div>
 
             {/* Launch Date */}
@@ -122,20 +89,9 @@ export default function ModelInfoTab({
                 <Calendar className="inline w-4 h-4 mr-1" />
                 Launch Date
               </label>
-              {isEditing ? (
-                <input
-                  type="date"
-                  value={model.launchDate}
-                  onChange={(e) =>
-                    handleInputChange("launchDate", e.target.value)
-                  }
-                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              ) : (
-                <p className="text-white">
-                  {new Date(model.launchDate).toLocaleDateString()}
-                </p>
-              )}
+              <p className="text-white">
+                {new Date(model.launchDate).toLocaleDateString()}
+              </p>
             </div>
 
             {/* Referrer */}
@@ -144,18 +100,7 @@ export default function ModelInfoTab({
                 <User className="inline w-4 h-4 mr-1" />
                 Referrer Name
               </label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={model.referrerName}
-                  onChange={(e) =>
-                    handleInputChange("referrerName", e.target.value)
-                  }
-                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              ) : (
-                <p className="text-white">{model.referrerName}</p>
-              )}
+              <p className="text-white">{model.referrerName}</p>
             </div>
           </div>
         </div>
@@ -172,18 +117,7 @@ export default function ModelInfoTab({
               <label className="block text-sm text-gray-400 mb-2">
                 Personality Type
               </label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={model.personalityType}
-                  onChange={(e) =>
-                    handleInputChange("personalityType", e.target.value)
-                  }
-                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              ) : (
-                <p className="text-white">{model.personalityType}</p>
-              )}
+              <p className="text-white">{model.personalityType}</p>
             </div>
 
             {/* Common Terms */}
@@ -191,28 +125,16 @@ export default function ModelInfoTab({
               <label className="block text-sm text-gray-400 mb-2">
                 Common Terms
               </label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={model.commonTerms.join(", ")}
-                  onChange={(e) =>
-                    handleArrayInputChange("commonTerms", e.target.value)
-                  }
-                  placeholder="Enter terms separated by commas"
-                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {model.commonTerms.map((term, index) => (
-                    <span
-                      key={index}
-                      className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm"
-                    >
-                      {term}
-                    </span>
-                  ))}
-                </div>
-              )}
+              <div className="flex flex-wrap gap-2">
+                {model.commonTerms.map((term, index) => (
+                  <span
+                    key={index}
+                    className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm"
+                  >
+                    {term}
+                  </span>
+                ))}
+              </div>
             </div>
 
             {/* Common Emojis */}
@@ -221,26 +143,11 @@ export default function ModelInfoTab({
                 <Smile className="inline w-4 h-4 mr-1" />
                 Common Emojis
               </label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={model.commonEmojis.join(" ")}
-                  onChange={(e) =>
-                    handleArrayInputChange(
-                      "commonEmojis",
-                      e.target.value.split(" ").join(",")
-                    )
-                  }
-                  placeholder="Enter emojis separated by spaces"
-                  className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                />
-              ) : (
-                <div className="flex gap-2 text-2xl">
-                  {model.commonEmojis.map((emoji, index) => (
-                    <span key={index}>{emoji}</span>
-                  ))}
-                </div>
-              )}
+              <div className="flex gap-2 text-2xl">
+                {model.commonEmojis.map((emoji, index) => (
+                  <span key={index}>{emoji}</span>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -258,24 +165,14 @@ export default function ModelInfoTab({
               <Instagram className="inline w-4 h-4 mr-1 text-pink-400" />
               Instagram
             </label>
-            {isEditing ? (
-              <input
-                type="text"
-                value={model.instagram}
-                onChange={(e) => handleInputChange("instagram", e.target.value)}
-                placeholder="@username"
-                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-            ) : (
-              <a
-                href={`https://instagram.com/${model?.instagram?.replace("@", "")}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-pink-400 hover:text-pink-300 transition-colors"
-              >
-                {model.instagram}
-              </a>
-            )}
+            <a
+              href={`https://instagram.com/${model?.instagram?.replace("@", "")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-pink-400 hover:text-pink-300 transition-colors"
+            >
+              {model.instagram}
+            </a>
           </div>
 
           {/* Twitter */}
@@ -284,24 +181,14 @@ export default function ModelInfoTab({
               <Twitter className="inline w-4 h-4 mr-1 text-blue-400" />
               Twitter
             </label>
-            {isEditing ? (
-              <input
-                type="text"
-                value={model.twitter}
-                onChange={(e) => handleInputChange("twitter", e.target.value)}
-                placeholder="@username"
-                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-            ) : (
-              <a
-                href={`https://twitter.com/${model?.twitter?.replace("@", "")}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                {model.twitter}
-              </a>
-            )}
+            <a
+              href={`https://twitter.com/${model?.twitter?.replace("@", "")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:text-blue-300 transition-colors"
+            >
+              {model.twitter}
+            </a>
           </div>
 
           {/* TikTok */}
@@ -310,24 +197,14 @@ export default function ModelInfoTab({
               <Hash className="inline w-4 h-4 mr-1" />
               TikTok
             </label>
-            {isEditing ? (
-              <input
-                type="text"
-                value={model.tiktok}
-                onChange={(e) => handleInputChange("tiktok", e.target.value)}
-                placeholder="@username"
-                className="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-            ) : (
-              <a
-                href={`https://tiktok.com/@${model?.tiktok?.replace("@", "")}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-white hover:text-gray-300 transition-colors"
-              >
-                {model.tiktok}
-              </a>
-            )}
+            <a
+              href={`https://tiktok.com/@${model?.tiktok?.replace("@", "")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white hover:text-gray-300 transition-colors"
+            >
+              {model.tiktok}
+            </a>
           </div>
         </div>
       </div>

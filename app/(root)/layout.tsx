@@ -26,10 +26,9 @@ export default async function RootLayout({
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden">
-        {/* Animated Starry Background */}
-        <div className="fixed z-0">
-          <div className="stars-container">
+      <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative">
+        <div className="fixed inset-0 -z-10 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
             {/* Small stars */}
             <div className="stars"></div>
             {/* Medium stars */}
@@ -43,7 +42,6 @@ export default async function RootLayout({
 
         <ContentLayout>{children}</ContentLayout>
       </div>
-    
     </SidebarProvider>
   );
 }

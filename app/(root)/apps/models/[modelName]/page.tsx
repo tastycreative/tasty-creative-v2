@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -10,6 +9,7 @@ import ModelAssetsTab from "@/components/models/ModelAssetTabs";
 import ModelChattersTab from "@/components/models/tabs/ModelChattersTab";
 import ModelAppsTab from "@/components/models/tabs/ModelAppsTab";
 import { transformRawModel } from "@/lib/utils";
+import Loader from "../loading";
 
 function ModelImage({ model }: { model: ModelDetails }) {
   const [imageError, setImageError] = useState(false);
@@ -39,28 +39,33 @@ function ModelImage({ model }: { model: ModelDetails }) {
 export default function ModelDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const modelName = params ? decodeURIComponent(params.modelName as string) : '';
-  
-  const [activeTab, setActiveTab] = useState<"info" | "assets" | "chatters" | "apps">("info");
-  const [isEditing, setIsEditing] = useState(false);
+  let modelName = params ? decodeURIComponent(params.modelName as string) : "";
+  modelName = modelName.charAt(0).toUpperCase() + modelName.slice(1);
+
+  const [activeTab, setActiveTab] = useState<
+    "info" | "assets" | "chatters" | "apps"
+  >("info");
+
   const [model, setModel] = useState<ModelDetails | null>(null);
-  const [editedModel, setEditedModel] = useState<ModelDetails | null>(null);
+
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchModel = async () => {
       if (!modelName) return;
-      
+
       setLoading(true);
       try {
         const res = await fetch("/api/models?all=true");
         const { models: rawModels } = await res.json();
         const transformed = rawModels.map(transformRawModel);
-        const foundModel = transformed.find(m => m.name === modelName);
-        
+        const foundModel = transformed.find(
+          (m: ModelDetails) => m.name === modelName
+        );
+
         if (foundModel) {
           setModel(foundModel);
-          setEditedModel(foundModel);
+
         }
       } catch (error) {
         console.error("Error fetching model:", error);
@@ -74,9 +79,7 @@ export default function ModelDetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
-      </div>
+     <Loader />
     );
   }
 
@@ -118,15 +121,15 @@ export default function ModelDetailsPage() {
 
           {/* Content */}
           <div className="p-6">
-            {activeTab === "info" && editedModel && (
-              <ModelInfoTab
-                model={editedModel}
-                isEditing={isEditing}
-                onModelChange={setEditedModel}
-              />
+            {activeTab === "info" && model && (
+              <ModelInfoTab model={model} />
             )}
-            {activeTab === "assets" && <ModelAssetsTab modelName={model.name} />}
-            {activeTab === "chatters" && <ModelChattersTab modelName={model.name} />}
+            {activeTab === "assets" && (
+              <ModelAssetsTab modelName={model.name} />
+            )}
+            {activeTab === "chatters" && (
+              <ModelChattersTab modelName={model.name} />
+            )}
             {activeTab === "apps" && <ModelAppsTab modelName={model.name} />}
           </div>
         </div>
