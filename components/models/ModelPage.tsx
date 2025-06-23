@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 
-import ModelDetailsModal from "@/components/models/ModelDetailsModal";
+import { useRouter } from "next/navigation";
 import ModelsList from "@/components/models/ModelList";
 import ModelsHeader from "@/components/models/ModelsHeader";
 import PermissionGoogle from "../PermissionGoogle";
@@ -12,8 +12,7 @@ import { transformRawModel } from "@/lib/utils";
 export default function ModelsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<ModelStatus | "all">("all");
-  const [selectedModel, setSelectedModel] = useState<ModelDetails | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const router = useRouter();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isLoadingModels, setLoadingModels] = useState(false);
 
@@ -61,8 +60,7 @@ export default function ModelsPage() {
   });
 
   const handleModelClick = (model: ModelDetails) => {
-    setSelectedModel(model);
-    setShowDetailsModal(true);
+    router.push(`/apps/models/${encodeURIComponent(model.name)}`);
   };
 
   return (
@@ -82,26 +80,13 @@ export default function ModelsPage() {
         }
       />
 
-      {!showDetailsModal && !selectedModel && (
-        <PermissionGoogle apiEndpoint="/api/models">
-          <ModelsList
-            key={`${searchQuery}-${statusFilter}-${filteredModels.length}`}
-            models={filteredModels}
-            onModelClick={handleModelClick}
-          />
-        </PermissionGoogle>
-      )}
-
-      {showDetailsModal && selectedModel && (
-        <ModelDetailsModal
-          model={selectedModel}
-          isOpen={showDetailsModal}
-          onClose={() => {
-            setShowDetailsModal(false);
-            setSelectedModel(null);
-          }}
+      <PermissionGoogle apiEndpoint="/api/models">
+        <ModelsList
+          key={`${searchQuery}-${statusFilter}-${filteredModels.length}`}
+          models={filteredModels}
+          onModelClick={handleModelClick}
         />
-      )}
+      </PermissionGoogle>
     </div>
   );
 }
