@@ -102,12 +102,9 @@ export default function ModelDetailsModal({
   isOpen,
   onClose,
 }: ModelDetailsModalProps) {
-  const [activeTab, setActiveTab] = useState<"info" | "assets" | "chatters" | "apps">(
-    "info"
-  );
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedModel, setEditedModel] = useState(model);
+  const [activeTab, setActiveTab] = useState<
+    "info" | "assets" | "chatters" | "apps"
+  >("info");
 
   return (
     <AnimatePresence>
@@ -161,20 +158,14 @@ export default function ModelDetailsModal({
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6">
-              {activeTab === "info" && (
-                <ModelInfoTab
-                  model={editedModel}
-                  isEditing={isEditing}
-                  onModelChange={setEditedModel}
-                />
-              )}
+              {activeTab === "info" && <ModelInfoTab model={model} />}
               {activeTab === "assets" && (
                 <ModelAssetsTab modelName={model.name} />
               )}
               {activeTab === "chatters" && (
                 <ModelChattersTab modelName={model.name} />
               )}
-               {activeTab === "apps" && <ModelAppsTab modelName={model.name} />}
+              {activeTab === "apps" && <ModelAppsTab modelName={model.name} />}
             </div>
           </div>
         </>

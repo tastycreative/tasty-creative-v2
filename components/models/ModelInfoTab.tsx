@@ -12,6 +12,8 @@ import {
   Sparkles,
   Link,
   Activity,
+  DollarSign,
+  Clock,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
