@@ -1,99 +1,116 @@
-
 "use client";
-import { useState } from "react";
-import { motion } from "framer-motion";
+
+import React from "react";
+import Link from "next/link";
 import {
   Sparkles,
-  Video,
   Type,
   RefreshCw,
+  Video,
   PenTool,
   Download,
   Database,
   Archive,
   ImageIcon,
   Palette,
-  Camera,
-  Zap,
-  Crown,
-  Users,
-  Gift,
-  Hash,
+  Gamepad2,
   Twitter,
-  Play,
-  Star,
+  Users,
+  Crown,
+  Mic,
+  Image,
+  FileText,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+
+// Import all the page components
+import AIVoicePage from "@/components/AIVoicePage";
+import AIText2ImagePage from "@/components/AIText2ImagePage";
+import AIImage2ImagePage from "@/components/AIImage2ImagePage";
+import AIVideoPage from "@/components/AIVideoPage";
+import AIPromptPage from "@/components/AIPromptPage";
+import AIInstagramScraperPage from "@/components/AIInstagramScraperPage";
+import AIDatasetPage from "@/components/AIDatasetPage";
+import AIVaultPage from "@/components/AIVaultPage";
+import AIGalleryPage from "@/components/AIGalleryPage";
+import AIStudioPage from "@/components/AIStudioPage";
+import FTTPage from "@/components/FTTPage";
+import GifMaker from "@/components/GifMaker";
+import LiveFlyer from "@/components/LiveFlyer";
+import VIPFlyer from "@/components/VIPFlyer";
+import TwitterAdsPage from "@/components/TwitterAdsPage";
+
+interface ModelAppsTabProps {
+  modelName: string;
+}
 
 interface AppItem {
   id: string;
   name: string;
   description: string;
-  icon: any;
+  icon: React.ElementType;
   color: string;
-  href: string;
-  category: "generate" | "ai";
+  category: "ai" | "generate";
+  component: React.ComponentType<any>;
 }
 
-export default function ModelAppsTab({ modelName }: { modelName: string }) {
-  const router = useRouter();
-  const [selectedCategory, setSelectedCategory] = useState<"all" | "generate" | "ai">("all");
+const ModelAppsTab: React.FC<ModelAppsTabProps> = ({ modelName }) => {
+  const [activeApp, setActiveApp] = React.useState<string | null>(null);
 
   const apps: AppItem[] = [
     // Generate Apps
     {
-      id: "live",
-      name: "Live Flyers",
-      description: "Create engaging live stream promotional content",
-      icon: Sparkles,
-      color: "from-red-500 to-pink-500",
-      href: `/apps/models/${encodeURIComponent(modelName)}/live`,
-      category: "generate",
-    },
-    {
-      id: "vip",
-      name: "VIP Flyers",
-      description: "Design premium VIP promotional materials",
-      icon: Crown,
-      color: "from-yellow-500 to-amber-500",
-      href: `/apps/models/${encodeURIComponent(modelName)}/vip`,
-      category: "generate",
-    },
-    {
       id: "ftt",
-      name: "FTT Content",
-      description: "Generate first-time tipper content",
-      icon: Zap,
+      name: "Fan to Fan",
+      description: "Fan interaction and engagement tools",
+      icon: Users,
       color: "from-blue-500 to-cyan-500",
-      href: `/apps/models/${encodeURIComponent(modelName)}/ftt`,
       category: "generate",
+      component: FTTPage,
     },
     {
       id: "game",
-      name: "Game Content",
-      description: "Create interactive gaming content",
-      icon: Play,
+      name: "Game Creator",
+      description: "Interactive game generation",
+      icon: Gamepad2,
       color: "from-green-500 to-emerald-500",
-      href: `/apps/models/${encodeURIComponent(modelName)}/game`,
       category: "generate",
+      component: GifMaker, // Using GifMaker as placeholder for game
     },
     {
       id: "gif",
       name: "GIF Maker",
-      description: "Create animated GIFs and short clips",
-      icon: Camera,
-      color: "from-purple-500 to-indigo-500",
-      href: `/apps/models/${encodeURIComponent(modelName)}/gif`,
+      description: "Create animated GIFs from videos",
+      icon: Image,
+      color: "from-yellow-500 to-orange-500",
       category: "generate",
+      component: GifMaker,
+    },
+    {
+      id: "live",
+      name: "Live Content",
+      description: "Real-time content generation",
+      icon: Mic,
+      color: "from-red-500 to-pink-500",
+      category: "generate",
+      component: LiveFlyer,
     },
     {
       id: "twitter",
       name: "Twitter Ads",
-      description: "Generate Twitter advertising content",
+      description: "Social media advertising tools",
       icon: Twitter,
       color: "from-blue-400 to-blue-600",
-      href: `/apps/models/${encodeURIComponent(modelName)}/twitter`,
       category: "generate",
+      component: TwitterAdsPage,
+    },
+    {
+      id: "vip",
+      name: "VIP Content",
+      description: "Premium content creation",
+      icon: Crown,
+      color: "from-yellow-400 to-yellow-600",
+      category: "generate",
+      component: VIPFlyer,
     },
     // AI Apps
     {
@@ -102,8 +119,8 @@ export default function ModelAppsTab({ modelName }: { modelName: string }) {
       description: "Generate realistic voice content",
       icon: Sparkles,
       color: "from-red-500 to-pink-500",
-      href: `/apps/models/${encodeURIComponent(modelName)}/voice`,
       category: "ai",
+      component: AIVoicePage,
     },
     {
       id: "text2image",
@@ -111,8 +128,8 @@ export default function ModelAppsTab({ modelName }: { modelName: string }) {
       description: "Create images from text descriptions",
       icon: Type,
       color: "from-violet-500 to-fuchsia-500",
-      href: `/apps/models/${encodeURIComponent(modelName)}/text2image`,
       category: "ai",
+      component: AIText2ImagePage,
     },
     {
       id: "image2image",
@@ -120,8 +137,8 @@ export default function ModelAppsTab({ modelName }: { modelName: string }) {
       description: "Transform and enhance existing images",
       icon: RefreshCw,
       color: "from-cyan-500 to-blue-500",
-      href: `/apps/models/${encodeURIComponent(modelName)}/image2image`,
       category: "ai",
+      component: AIImage2ImagePage,
     },
     {
       id: "video",
@@ -129,8 +146,8 @@ export default function ModelAppsTab({ modelName }: { modelName: string }) {
       description: "Generate AI-powered video content",
       icon: Video,
       color: "from-blue-500 to-purple-500",
-      href: `/apps/models/${encodeURIComponent(modelName)}/video`,
       category: "ai",
+      component: AIVideoPage,
     },
     {
       id: "prompt",
@@ -138,8 +155,8 @@ export default function ModelAppsTab({ modelName }: { modelName: string }) {
       description: "Create optimized AI prompts",
       icon: PenTool,
       color: "from-indigo-500 to-cyan-500",
-      href: `/apps/models/${encodeURIComponent(modelName)}/prompt`,
       category: "ai",
+      component: AIPromptPage,
     },
     {
       id: "instagram",
@@ -147,8 +164,8 @@ export default function ModelAppsTab({ modelName }: { modelName: string }) {
       description: "Extract content from Instagram",
       icon: Download,
       color: "from-pink-500 to-orange-500",
-      href: `/apps/models/${encodeURIComponent(modelName)}/instagram`,
       category: "ai",
+      component: AIInstagramScraperPage,
     },
     {
       id: "dataset",
@@ -156,8 +173,8 @@ export default function ModelAppsTab({ modelName }: { modelName: string }) {
       description: "Manage AI training datasets",
       icon: Database,
       color: "from-orange-500 to-red-500",
-      href: `/apps/models/${encodeURIComponent(modelName)}/dataset`,
       category: "ai",
+      component: AIDatasetPage,
     },
     {
       id: "vault",
@@ -165,8 +182,8 @@ export default function ModelAppsTab({ modelName }: { modelName: string }) {
       description: "Store and organize generated content",
       icon: Archive,
       color: "from-emerald-500 to-lime-500",
-      href: `/apps/models/${encodeURIComponent(modelName)}/vault`,
       category: "ai",
+      component: AIVaultPage,
     },
     {
       id: "gallery",
@@ -174,8 +191,8 @@ export default function ModelAppsTab({ modelName }: { modelName: string }) {
       description: "Browse and manage AI creations",
       icon: ImageIcon,
       color: "from-teal-500 to-green-500",
-      href: `/apps/models/${encodeURIComponent(modelName)}/gallery`,
       category: "ai",
+      component: AIGalleryPage,
     },
     {
       id: "studio",
@@ -183,173 +200,106 @@ export default function ModelAppsTab({ modelName }: { modelName: string }) {
       description: "Advanced AI content creation workspace",
       icon: Palette,
       color: "from-purple-600 to-blue-600",
-      href: `/apps/models/${encodeURIComponent(modelName)}/studio`,
       category: "ai",
+      component: AIStudioPage,
     },
   ];
 
-  const filteredApps = selectedCategory === "all" 
-    ? apps 
-    : apps.filter(app => app.category === selectedCategory);
+  const generateApps = apps.filter((app) => app.category === "generate");
+  const aiApps = apps.filter((app) => app.category === "ai");
 
-  const handleAppClick = (app: AppItem) => {
-    router.push(app.href);
-  };
+  if (activeApp) {
+    const app = apps.find((a) => a.id === activeApp);
+    if (app) {
+      const Component = app.component;
+      return (
+        <div className="h-full flex flex-col">
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center space-x-3">
+              <app.icon className="w-6 h-6" />
+              <h2 className="text-xl font-semibold">{app.name}</h2>
+            </div>
+            <button
+              onClick={() => setActiveApp(null)}
+              className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+            >
+              Back to Apps
+            </button>
+          </div>
+          <div className="flex-1 overflow-auto">
+            <Component modelName={modelName} />
+          </div>
+        </div>
+      );
+    }
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h3 className="text-xl font-semibold text-white">Model Apps</h3>
-          <p className="text-gray-400 text-sm mt-1">
-            Access all available apps and tools for {modelName}
-          </p>
-        </div>
-
-        {/* Category Filter */}
-        <div className="flex items-center gap-2 bg-white/5 backdrop-blur-sm rounded-lg p-1">
-          <button
-            onClick={() => setSelectedCategory("all")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              selectedCategory === "all"
-                ? "bg-purple-500/20 text-purple-400"
-                : "text-gray-400 hover:text-gray-200"
-            }`}
-          >
-            All Apps
-          </button>
-          <button
-            onClick={() => setSelectedCategory("generate")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              selectedCategory === "generate"
-                ? "bg-purple-500/20 text-purple-400"
-                : "text-gray-400 hover:text-gray-200"
-            }`}
-          >
-            Generate
-          </button>
-          <button
-            onClick={() => setSelectedCategory("ai")}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              selectedCategory === "ai"
-                ? "bg-purple-500/20 text-purple-400"
-                : "text-gray-400 hover:text-gray-200"
-            }`}
-          >
-            AI Tools
-          </button>
-        </div>
+    <div className="p-6 space-y-8">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold mb-2">Model Applications</h2>
+        <p className="text-gray-600 dark:text-gray-400">
+          Explore all available tools and generators for {modelName}
+        </p>
       </div>
 
-      {/* Apps Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredApps.map((app, index) => {
-          const Icon = app.icon;
-          return (
-            <motion.div
+      {/* Generate Apps Section */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">
+          Content Generation Tools
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {generateApps.map((app) => (
+            <button
               key={app.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              onClick={() => handleAppClick(app)}
-              className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-6 hover:bg-white/10 hover:border-purple-500/50 transition-all cursor-pointer group"
+              onClick={() => setActiveApp(app.id)}
+              className="p-6 rounded-xl bg-white/10 dark:bg-gray-800/30 backdrop-blur-md border border-white/20 dark:border-gray-700/30 hover:bg-white/20 dark:hover:bg-gray-700/50 transition-all duration-200 text-left group"
             >
-              <div className="flex flex-col items-center text-center space-y-4">
-                {/* Icon */}
-                <div className={`p-4 rounded-xl bg-gradient-to-r ${app.color} bg-opacity-20 group-hover:scale-110 transition-transform`}>
-                  <Icon className="w-8 h-8 text-white" />
-                </div>
-
-                {/* Content */}
-                <div>
-                  <h4 className="text-white font-semibold mb-2">{app.name}</h4>
-                  <p className="text-gray-400 text-sm leading-relaxed">
-                    {app.description}
-                  </p>
-                </div>
-
-                {/* Category Badge */}
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      app.category === "generate"
-                        ? "bg-green-500/20 text-green-400"
-                        : "bg-blue-500/20 text-blue-400"
-                    }`}
-                  >
-                    {app.category === "generate" ? "Generate" : "AI"}
-                  </span>
-                  <Star className="w-3 h-3 text-gray-500" />
-                </div>
+              <div
+                className={`w-12 h-12 rounded-lg bg-gradient-to-r ${app.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200`}
+              >
+                <app.icon className="w-6 h-6 text-white" />
               </div>
-            </motion.div>
-          );
-        })}
+              <h4 className="font-semibold text-gray-800 dark:text-white mb-2">
+                {app.name}
+              </h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {app.description}
+              </p>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Empty State */}
-      {filteredApps.length === 0 && (
-        <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-12 text-center">
-          <Zap className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-          <p className="text-gray-400">No apps found for the selected category</p>
-        </div>
-      )}
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8">
-        <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-500/20 rounded-lg">
-              <Zap className="w-5 h-5 text-purple-400" />
-            </div>
-            <div>
-              <p className="text-gray-400 text-sm">Total Apps</p>
-              <p className="text-xl font-bold text-white">{apps.length}</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-500/20 rounded-lg">
-              <Users className="w-5 h-5 text-green-400" />
-            </div>
-            <div>
-              <p className="text-gray-400 text-sm">Generate</p>
-              <p className="text-xl font-bold text-white">
-                {apps.filter(app => app.category === "generate").length}
+      {/* AI Apps Section */}
+      <div>
+        <h3 className="text-lg font-semibold mb-4 text-gray-800 dark:text-gray-200">
+          AI Generation Tools
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {aiApps.map((app) => (
+            <button
+              key={app.id}
+              onClick={() => setActiveApp(app.id)}
+              className="p-6 rounded-xl bg-white/10 dark:bg-gray-800/30 backdrop-blur-md border border-white/20 dark:border-gray-700/30 hover:bg-white/20 dark:hover:bg-gray-700/50 transition-all duration-200 text-left group"
+            >
+              <div
+                className={`w-12 h-12 rounded-lg bg-gradient-to-r ${app.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-200`}
+              >
+                <app.icon className="w-6 h-6 text-white" />
+              </div>
+              <h4 className="font-semibold text-gray-800 dark:text-white mb-2">
+                {app.name}
+              </h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {app.description}
               </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-500/20 rounded-lg">
-              <Sparkles className="w-5 h-5 text-blue-400" />
-            </div>
-            <div>
-              <p className="text-gray-400 text-sm">AI Tools</p>
-              <p className="text-xl font-bold text-white">
-                {apps.filter(app => app.category === "ai").length}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-yellow-500/20 rounded-lg">
-              <Star className="w-5 h-5 text-yellow-400" />
-            </div>
-            <div>
-              <p className="text-gray-400 text-sm">Featured</p>
-              <p className="text-xl font-bold text-white">8</p>
-            </div>
-          </div>
+            </button>
+          ))}
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default ModelAppsTab;
