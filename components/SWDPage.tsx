@@ -1,4 +1,3 @@
-
 'use client'
 
 import React, { useState, useEffect } from 'react'
@@ -6,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
+import { Loader2, TrendingUp, Award, Trophy, Star, Zap, Sparkles, Crown, Medal, Users, FileText, Brain, Hash } from 'lucide-react'
 
 interface ModelData {
   creator: string
@@ -81,19 +81,34 @@ const SWDPage = () => {
     }
   }
 
-  const getStarRating = (rank: number) => {
-    const stars = '★'.repeat(5 - rank) + '☆'.repeat(rank)
-    return stars
+  const getRankIcon = (rank: number) => {
+    if (rank === 1) return <Crown className="w-5 h-5 text-yellow-400" />
+    if (rank === 2) return <Medal className="w-5 h-5 text-gray-300" />
+    if (rank === 3) return <Award className="w-5 h-5 text-amber-600" />
+    return <Star className="w-4 h-4 text-purple-400" />
+  }
+
+  const getRankColor = (rank: number) => {
+    if (rank === 1) return 'bg-gradient-to-r from-yellow-500 to-amber-500'
+    if (rank === 2) return 'bg-gradient-to-r from-gray-400 to-gray-500'
+    if (rank === 3) return 'bg-gradient-to-r from-amber-600 to-orange-600'
+    return 'bg-gradient-to-r from-purple-500 to-pink-500'
   }
 
   const currentModelData = scriptData?.modelData.find(model => model.creator === selectedModel)
 
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold mb-2">Script Writing Dashboard</h1>
-          <p className="text-muted-foreground">Loading script data...</p>
+      <div className="min-h-screen bg-gray-950 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+            <div className="relative">
+              <div className="absolute inset-0 blur-xl bg-gradient-to-r from-purple-600 to-pink-600 rounded-full animate-pulse"></div>
+              <Loader2 className="relative w-16 h-16 text-white animate-spin" />
+            </div>
+            <h2 className="text-2xl font-bold text-white">Loading Script Data...</h2>
+            <p className="text-gray-400">Fetching your dashboard information</p>
+          </div>
         </div>
       </div>
     )
@@ -101,247 +116,292 @@ const SWDPage = () => {
 
   if (error) {
     return (
-      <div className="p-6 space-y-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold mb-2">Script Writing Dashboard</h1>
-          <p className="text-red-500">Error: {error}</p>
+      <div className="min-h-screen bg-gray-950 p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
+            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-8">
+              <h2 className="text-2xl font-bold text-red-400 mb-2">Error Loading Data</h2>
+              <p className="text-gray-400">{error}</p>
+            </div>
+          </div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="text-center">
-        <h1 className="text-3xl font-bold mb-2">Script Writing Dashboard</h1>
-        <p className="text-muted-foreground">Manage and track script performance</p>
-      </div>
+    <div className="min-h-screen bg-gray-950 bg-gradient-to-br from-gray-950 via-purple-950/20 to-gray-950">
+      <div className="max-w-7xl mx-auto p-6 space-y-8">
+        {/* Animated Header */}
+        <div className="text-center space-y-4 py-8">
+          <div className="relative inline-block">
+            <div className="absolute inset-0 blur-2xl bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 opacity-50 animate-pulse"></div>
+            <h1 className="relative text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">
+              Script Writing Dashboard
+            </h1>
+          </div>
+          <p className="text-gray-400 text-lg">Manage and track script performance in real-time</p>
+        </div>
 
-      {/* Model Selection */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Model Selection</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Select value={selectedModel} onValueChange={setSelectedModel}>
-            <SelectTrigger className="w-full max-w-xs">
-              <SelectValue placeholder="Select a model" />
-            </SelectTrigger>
-            <SelectContent>
-              {scriptData?.modelData.map((model) => (
-                <SelectItem key={model.creator} value={model.creator}>
-                  {model.creator}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
-
-      {/* Model Stats Table */}
-      {currentModelData && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{selectedModel}</CardTitle>
+        {/* Model Selection Card */}
+        <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-xl overflow-hidden relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-900/10 to-pink-900/10"></div>
+          <CardHeader className="relative">
+            <CardTitle className="text-white flex items-center gap-2">
+              <Users className="w-5 h-5 text-purple-400" />
+              Model Selection
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-2 font-semibold">Creator</th>
-                    <th className="text-left p-2 font-semibold">Total Sets</th>
-                    <th className="text-left p-2 font-semibold">Total Scripts</th>
-                    <th className="text-left p-2 font-semibold">Personality Type</th>
-                    <th className="text-left p-2 font-semibold">Common Terms</th>
-                    <th className="text-left p-2 font-semibold">Common Emojis</th>
-                    <th className="text-left p-2 font-semibold">Restricted Terms or Emojis</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b">
-                    <td className="p-2">{currentModelData.creator}</td>
-                    <td className="p-2">{currentModelData.totalSets}</td>
-                    <td className="p-2">{currentModelData.totalScripts}</td>
-                    <td className="p-2">{currentModelData.personalityType}</td>
-                    <td className="p-2">{currentModelData.commonTerms}</td>
-                    <td className="p-2">{currentModelData.commonEmojis}</td>
-                    <td className="p-2">{currentModelData.restrictedTerms}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+          <CardContent className="relative">
+            <Select value={selectedModel} onValueChange={setSelectedModel}>
+              <SelectTrigger className="w-full max-w-md bg-gray-800/50 border-gray-700 text-white hover:bg-gray-800/70 transition-all duration-200">
+                <SelectValue placeholder="Select a model" />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-900 border-gray-800">
+                {scriptData?.modelData.map((model) => (
+                  <SelectItem 
+                    key={model.creator} 
+                    value={model.creator}
+                    className="text-white hover:bg-gray-800 focus:bg-gray-800"
+                  >
+                    {model.creator}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </CardContent>
         </Card>
-      )}
 
-      {/* Best Scripts */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-center">🏅 BEST SCRIPTS 🏅</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Best Seller Scripts */}
-            <div>
-              <h3 className="font-semibold mb-3 text-center">Best Seller Script ⏩</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between font-semibold border-b pb-1">
-                  <span>Script Title</span>
-                  <span>Total Buy</span>
+        {/* Model Stats */}
+        {currentModelData && (
+          <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-xl overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-900/5 to-purple-900/5"></div>
+            <CardHeader className="relative border-b border-gray-800">
+              <CardTitle className="text-white text-2xl flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
+                  <Sparkles className="w-6 h-6 text-white" />
                 </div>
-                {scriptData?.bestScripts.bestSeller.map((script, index) => (
-                  <div key={index} className="flex justify-between">
-                    <span className="text-sm">{script.title}</span>
-                    <span className="text-sm font-medium">{script.totalBuy}</span>
+                {selectedModel}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="relative p-0">
+              <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-y divide-gray-800">
+                <div className="p-6 space-y-2">
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <FileText className="w-4 h-4" />
+                    <span className="text-sm">Total Sets</span>
                   </div>
-                ))}
+                  <p className="text-3xl font-bold text-white">{currentModelData.totalSets}</p>
+                </div>
+                <div className="p-6 space-y-2">
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <Hash className="w-4 h-4" />
+                    <span className="text-sm">Total Scripts</span>
+                  </div>
+                  <p className="text-3xl font-bold text-white">{currentModelData.totalScripts}</p>
+                </div>
+                <div className="p-6 space-y-2">
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <Brain className="w-4 h-4" />
+                    <span className="text-sm">Personality</span>
+                  </div>
+                  <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+                    {currentModelData.personalityType}
+                  </Badge>
+                </div>
+                <div className="p-6 space-y-2">
+                  <div className="text-gray-400 text-sm mb-1">Common Terms</div>
+                  <p className="text-white text-sm">{currentModelData.commonTerms}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 divide-x divide-y divide-gray-800">
+                <div className="p-6 space-y-2">
+                  <div className="text-gray-400 text-sm">Common Emojis</div>
+                  <p className="text-2xl">{currentModelData.commonEmojis}</p>
+                </div>
+                <div className="p-6 space-y-2 md:col-span-2">
+                  <div className="text-gray-400 text-sm">Restricted Terms</div>
+                  <p className="text-white text-sm">{currentModelData.restrictedTerms || 'None'}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Best Scripts */}
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Best Seller */}
+          <Card className="bg-gradient-to-br from-amber-900/20 to-orange-900/20 border-amber-800/30 backdrop-blur-xl">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-white flex items-center justify-center gap-3">
+                <TrendingUp className="w-6 h-6 text-amber-400" />
+                Best Seller Scripts
+                <TrendingUp className="w-6 h-6 text-amber-400" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {scriptData?.bestScripts.bestSeller.map((script, index) => (
+                <div 
+                  key={index} 
+                  className="flex justify-between items-center p-3 bg-gray-900/50 rounded-lg border border-amber-800/20 hover:border-amber-600/40 transition-all duration-200"
+                >
+                  <span className="text-white font-medium">{script.title}</span>
+                  <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30">
+                    ${script.totalBuy}
+                  </Badge>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Top Sent */}
+          <Card className="bg-gradient-to-br from-blue-900/20 to-cyan-900/20 border-blue-800/30 backdrop-blur-xl">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-white flex items-center justify-center gap-3">
+                <Zap className="w-6 h-6 text-blue-400" />
+                Top Sent Scripts
+                <Zap className="w-6 h-6 text-blue-400" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {scriptData?.bestScripts.topSent.map((script, index) => (
+                <div 
+                  key={index} 
+                  className="flex justify-between items-center p-3 bg-gray-900/50 rounded-lg border border-blue-800/20 hover:border-blue-600/40 transition-all duration-200"
+                >
+                  <span className="text-white font-medium">{script.title}</span>
+                  <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">
+                    {script.totalSend.toLocaleString()}
+                  </Badge>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Leaderboard */}
+        <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-xl overflow-hidden">
+          <CardHeader className="text-center border-b border-gray-800 bg-gradient-to-r from-purple-900/20 via-pink-900/20 to-purple-900/20">
+            <CardTitle className="text-3xl text-white flex items-center justify-center gap-3">
+              <Trophy className="w-8 h-8 text-yellow-400" />
+              LEADERBOARD
+              <Trophy className="w-8 h-8 text-yellow-400" />
+            </CardTitle>
+            <p className="text-gray-400 mt-2">February Rankings</p>
+          </CardHeader>
+          <CardContent className="p-6 space-y-8">
+            {/* Main Leaderboards */}
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Total Send */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold text-white text-center flex items-center justify-center gap-2">
+                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                  TOTAL SEND
+                  <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+                </h3>
+                <div className="space-y-2">
+                  {scriptData?.leaderboard.totalSend.map((entry, index) => (
+                    <div 
+                      key={index} 
+                      className={`flex items-center gap-3 p-3 rounded-lg bg-gray-800/50 border border-gray-700 hover:border-purple-600/50 transition-all duration-200 ${
+                        entry.rank === 1 ? 'border-yellow-500/50 bg-yellow-900/10' : ''
+                      }`}
+                    >
+                      <div className="flex-shrink-0">{getRankIcon(entry.rank)}</div>
+                      <span className="flex-grow text-white font-medium">{entry.creator}</span>
+                      <span className={`font-bold text-lg ${
+                        entry.rank === 1 ? 'text-yellow-400' : 'text-gray-300'
+                      }`}>
+                        {entry.amount}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Total Buy */}
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold text-white text-center flex items-center justify-center gap-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                  TOTAL BUY
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                </h3>
+                <div className="space-y-2">
+                  {scriptData?.leaderboard.totalBuy.map((entry, index) => (
+                    <div 
+                      key={index} 
+                      className={`flex items-center gap-3 p-3 rounded-lg bg-gray-800/50 border border-gray-700 hover:border-green-600/50 transition-all duration-200 ${
+                        entry.rank === 1 ? 'border-yellow-500/50 bg-yellow-900/10' : ''
+                      }`}
+                    >
+                      <div className="flex-shrink-0">{getRankIcon(entry.rank)}</div>
+                      <span className="flex-grow text-white font-medium">{entry.creator}</span>
+                      <span className={`font-bold text-lg ${
+                        entry.rank === 1 ? 'text-yellow-400' : 'text-gray-300'
+                      }`}>
+                        ${entry.amount}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* Top Sent Scripts */}
-            <div>
-              <h3 className="font-semibold mb-3 text-center">Top Sent ⏪ Scripts</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between font-semibold border-b pb-1">
-                  <span>Script Title</span>
-                  <span>Total Send</span>
-                </div>
-                {scriptData?.bestScripts.topSent.map((script, index) => (
-                  <div key={index} className="flex justify-between">
-                    <span className="text-sm">{script.title}</span>
-                    <span className="text-sm font-medium">{script.totalSend.toLocaleString()}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+            <Separator className="bg-gray-800" />
 
-      {/* Leaderboard */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-center">🏆 LEADERBOARD 🏆</CardTitle>
-          <p className="text-center text-muted-foreground">February</p>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Total Send and Total Buy */}
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="font-semibold mb-3 text-center">TOTAL SEND</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between font-semibold border-b pb-1">
-                  <span></span>
-                  <span>Creator</span>
-                  <span>Amount</span>
-                </div>
-                {scriptData?.leaderboard.totalSend.map((entry, index) => (
-                  <div key={index} className="flex justify-between items-center">
-                    <span className="text-sm">{getStarRating(entry.rank)}</span>
-                    <span className="text-sm">{entry.creator}</span>
-                    <span className="text-sm font-medium">{entry.amount}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="font-semibold mb-3 text-center">TOTAL BUY</h3>
-              <div className="space-y-2">
-                <div className="flex justify-between font-semibold border-b pb-1">
-                  <span></span>
-                  <span>Creator</span>
-                  <span>Amount</span>
-                </div>
-                {scriptData?.leaderboard.totalBuy.map((entry, index) => (
-                  <div key={index} className="flex justify-between items-center">
-                    <span className="text-sm">{getStarRating(entry.rank)}</span>
-                    <span className="text-sm">{entry.creator}</span>
-                    <span className="text-sm font-medium">{entry.amount}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Additional Leaderboards */}
-          <div className="grid md:grid-cols-3 gap-6">
-            {/* Highest/Lowest Sets */}
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-semibold mb-2">Highest Set</h4>
-                <div className="space-y-1">
-                  <div className="flex justify-between font-semibold text-xs border-b pb-1">
-                    <span></span>
-                    <span>Creator</span>
-                    <span>Value</span>
-                  </div>
+            {/* Secondary Leaderboards */}
+            <div className="grid md:grid-cols-4 gap-6">
+              {/* Highest Set */}
+              <div className="space-y-3">
+                <h4 className="font-semibold text-white text-sm">Highest Set</h4>
+                <div className="space-y-2">
                   {scriptData?.leaderboard.highestSet.map((entry, index) => (
-                    <div key={index} className="flex justify-between items-center text-xs">
-                      <span>{getStarRating(entry.rank)}</span>
-                      <span>{entry.creator}</span>
-                      <span>{entry.amount}</span>
+                    <div key={index} className="flex items-center gap-2 text-sm">
+                      <span className="text-purple-400">{entry.rank}.</span>
+                      <span className="text-gray-300 truncate">{entry.creator}</span>
+                      <span className="text-white ml-auto">{entry.amount}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div>
-                <h4 className="font-semibold mb-2">Lowest Set (non-zero)</h4>
-                <div className="space-y-1">
-                  <div className="flex justify-between font-semibold text-xs border-b pb-1">
-                    <span></span>
-                    <span>Creator</span>
-                    <span>Value</span>
-                  </div>
+              {/* Lowest Set */}
+              <div className="space-y-3">
+                <h4 className="font-semibold text-white text-sm">Lowest Set</h4>
+                <div className="space-y-2">
                   {scriptData?.leaderboard.lowestSet.map((entry, index) => (
-                    <div key={index} className="flex justify-between items-center text-xs">
-                      <span>{getStarRating(entry.rank)}</span>
-                      <span>{entry.creator}</span>
-                      <span>{entry.amount}</span>
+                    <div key={index} className="flex items-center gap-2 text-sm">
+                      <span className="text-purple-400">{entry.rank}.</span>
+                      <span className="text-gray-300 truncate">{entry.creator}</span>
+                      <span className="text-white ml-auto">{entry.amount}</span>
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
 
-            {/* Highest/Lowest Scripts */}
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-semibold mb-2">Highest Script</h4>
-                <div className="space-y-1">
-                  <div className="flex justify-between font-semibold text-xs border-b pb-1">
-                    <span></span>
-                    <span>Creator</span>
-                    <span>Value</span>
-                  </div>
+              {/* Highest Script */}
+              <div className="space-y-3">
+                <h4 className="font-semibold text-white text-sm">Highest Script</h4>
+                <div className="space-y-2">
                   {scriptData?.leaderboard.highestScript.map((entry, index) => (
-                    <div key={index} className="flex justify-between items-center text-xs">
-                      <span>{getStarRating(entry.rank)}</span>
-                      <span>{entry.creator}</span>
-                      <span>{entry.amount}</span>
+                    <div key={index} className="flex items-center gap-2 text-sm">
+                      <span className="text-purple-400">{entry.rank}.</span>
+                      <span className="text-gray-300 truncate">{entry.creator}</span>
+                      <span className="text-white ml-auto">{entry.amount}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div>
-                <h4 className="font-semibold mb-2">Lowest Script (non-zero)</h4>
-                <div className="space-y-1">
-                  <div className="flex justify-between font-semibold text-xs border-b pb-1">
-                    <span></span>
-                    <span>Creator</span>
-                    <span>Value</span>
-                  </div>
+              {/* Lowest Script */}
+              <div className="space-y-3">
+                <h4 className="font-semibold text-white text-sm">Lowest Script</h4>
+                <div className="space-y-2">
                   {scriptData?.leaderboard.lowestScript.map((entry, index) => (
-                    <div key={index} className="flex justify-between items-center text-xs">
-                      <span>{getStarRating(entry.rank)}</span>
-                      <span>{entry.creator}</span>
-                      <span>{entry.amount}</span>
+                    <div key={index} className="flex items-center gap-2 text-sm">
+                      <span className="text-purple-400">{entry.rank}.</span>
+                      <span className="text-gray-300 truncate">{entry.creator}</span>
+                      <span className="text-white ml-auto">{entry.amount}</span>
                     </div>
                   ))}
                 </div>
@@ -349,28 +409,40 @@ const SWDPage = () => {
             </div>
 
             {/* Zero Lists */}
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-semibold mb-2">Zero Set</h4>
-                <div className="space-y-1">
-                  {scriptData?.leaderboard.zeroSet.map((creator, index) => (
-                    <div key={index} className="text-xs">{creator}</div>
-                  ))}
-                </div>
-              </div>
+            <div className="grid md:grid-cols-2 gap-6 mt-6">
+              <Card className="bg-red-900/10 border-red-800/30">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-red-400 text-sm">Zero Set Creators</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {scriptData?.leaderboard.zeroSet.map((creator, index) => (
+                      <Badge key={index} className="bg-red-900/20 text-red-300 border-red-800/30">
+                        {creator}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
 
-              <div>
-                <h4 className="font-semibold mb-2">Zero Script</h4>
-                <div className="space-y-1">
-                  {scriptData?.leaderboard.zeroScript.map((creator, index) => (
-                    <div key={index} className="text-xs">{creator}</div>
-                  ))}
-                </div>
-              </div>
+              <Card className="bg-orange-900/10 border-orange-800/30">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-orange-400 text-sm">Zero Script Creators</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {scriptData?.leaderboard.zeroScript.map((creator, index) => (
+                      <Badge key={index} className="bg-orange-900/20 text-orange-300 border-orange-800/30">
+                        {creator}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }
