@@ -76,6 +76,7 @@ enum Role {
   USER
   ADMIN
   MODERATOR
+  SWD //Script Writing Department
   GUEST
 }
 
