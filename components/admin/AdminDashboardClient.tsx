@@ -109,6 +109,7 @@ const ROLE_COLORS = {
   ADMIN: "#ec4899",
   MODERATOR: "#f97316",
   USER: "#10b981",
+  SWD: "#8b5cf6",
   GUEST: "#94a3b8",
 };
 
