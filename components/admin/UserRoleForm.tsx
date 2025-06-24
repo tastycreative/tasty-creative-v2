@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { updateUserRole } from "@/app/actions/admin";
 import { Edit2, Save, X } from "lucide-react";
 
-type Role = "GUEST" | "USER" | "MODERATOR" | "ADMIN";
+type Role = "GUEST" | "USER" | "MODERATOR" | "ADMIN" | "SWD";
 
 interface UserRoleFormProps {
   userId: string;

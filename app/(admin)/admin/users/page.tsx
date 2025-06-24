@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { UserRoleForm } from "@/components/admin/UserRoleForm";
+import { BulkRoleEditor } from "@/components/admin/BulkRoleEditor";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +18,7 @@ import {
   MoreHorizontal,
   TrendingUp,
   Clock,
+  Pencil,
 } from "lucide-react";
 
 type User = {
@@ -55,6 +57,8 @@ export default async function AdminUsersPage() {
   const adminCount = users.filter((u) => u.role === "ADMIN").length;
   const moderatorCount = users.filter((u) => u.role === "MODERATOR").length;
   const userCount = users.filter((u) => u.role === "USER").length;
+  const swdCount = users.filter((u) => u.role === "SWD").length;
+  const guestCount = users.filter((u) => u.role === "GUEST").length;
 
   // Calculate growth metrics
   const thisMonth = new Date();
@@ -82,6 +86,7 @@ export default async function AdminUsersPage() {
             </p>
           </div>
           <div className="flex gap-3">
+            <BulkRoleEditor users={users} />
             <button className="inline-flex items-center px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5">
               <Download className="h-4 w-4 mr-2" />
               Export
@@ -91,30 +96,29 @@ export default async function AdminUsersPage() {
       </div>
 
       {/* Enhanced Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
         <Card className="border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
           </div>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Total Users
                 </p>
-                <p className="text-3xl font-bold text-gray-900 mb-1">
+                <p className="text-2xl font-bold text-gray-900 mb-1">
                   {totalUsers.toLocaleString()}
                 </p>
-                <div className="flex items-center text-sm">
-                  <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
+                <div className="flex items-center text-xs">
+                  <TrendingUp className="h-2 w-2 text-green-500 mr-1" />
                   <span className="text-green-600 font-medium">
                     +{growthRate}%
                   </span>
-                  <span className="text-gray-500 ml-1">this month</span>
                 </div>
               </div>
-              <div className="bg-blue-50 p-3 rounded-full group-hover:bg-blue-100 transition-colors">
-                <Users className="h-6 w-6 text-blue-600" />
+              <div className="bg-blue-50 p-2 rounded-full group-hover:bg-blue-100 transition-colors">
+                <Users className="h-4 w-4 text-blue-600" />
               </div>
             </div>
           </CardContent>
@@ -124,22 +128,22 @@ export default async function AdminUsersPage() {
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
           </div>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Administrators
                 </p>
-                <p className="text-3xl font-bold text-gray-900 mb-1">
+                <p className="text-2xl font-bold text-gray-900 mb-1">
                   {adminCount}
                 </p>
-                <div className="flex items-center text-sm">
-                  <Shield className="h-3 w-3 text-pink-500 mr-1" />
-                  <span className="text-gray-500">Highest privilege</span>
+                <div className="flex items-center text-xs">
+                  <Shield className="h-2 w-2 text-pink-500 mr-1" />
+                  <span className="text-gray-500">Highest</span>
                 </div>
               </div>
-              <div className="bg-pink-50 p-3 rounded-full group-hover:bg-pink-100 transition-colors">
-                <Shield className="h-6 w-6 text-pink-500" />
+              <div className="bg-pink-50 p-2 rounded-full group-hover:bg-pink-100 transition-colors">
+                <Shield className="h-4 w-4 text-pink-500" />
               </div>
             </div>
           </CardContent>
@@ -149,22 +153,22 @@ export default async function AdminUsersPage() {
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
           </div>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">
+                <p className="text-xs font-medium text-gray-500 mb-1">
                   Moderators
                 </p>
-                <p className="text-3xl font-bold text-gray-900 mb-1">
+                <p className="text-2xl font-bold text-gray-900 mb-1">
                   {moderatorCount}
                 </p>
-                <div className="flex items-center text-sm">
-                  <UserCheck className="h-3 w-3 text-yellow-500 mr-1" />
-                  <span className="text-gray-500">Content managers</span>
+                <div className="flex items-center text-xs">
+                  <UserCheck className="h-2 w-2 text-yellow-500 mr-1" />
+                  <span className="text-gray-500">Content</span>
                 </div>
               </div>
-              <div className="bg-yellow-50 p-3 rounded-full group-hover:bg-yellow-100 transition-colors">
-                <UserCheck className="h-6 w-6 text-yellow-600" />
+              <div className="bg-yellow-50 p-2 rounded-full group-hover:bg-yellow-100 transition-colors">
+                <UserCheck className="h-4 w-4 text-yellow-600" />
               </div>
             </div>
           </CardContent>
@@ -174,22 +178,72 @@ export default async function AdminUsersPage() {
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
           </div>
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">
-                  Regular Users
+                <p className="text-xs font-medium text-gray-500 mb-1">
+                  SWD
                 </p>
-                <p className="text-3xl font-bold text-gray-900 mb-1">
-                  {userCount.toLocaleString()}
+                <p className="text-2xl font-bold text-gray-900 mb-1">
+                  {swdCount}
                 </p>
-                <div className="flex items-center text-sm">
-                  <User className="h-3 w-3 text-green-500 mr-1" />
-                  <span className="text-gray-500">Active members</span>
+                <div className="flex items-center text-xs">
+                  <Pencil className="h-2 w-2 text-purple-500 mr-1" />
+                  <span className="text-gray-500">Writers</span>
                 </div>
               </div>
-              <div className="bg-green-50 p-3 rounded-full group-hover:bg-green-100 transition-colors">
-                <User className="h-6 w-6 text-green-600" />
+              <div className="bg-purple-50 p-2 rounded-full group-hover:bg-purple-100 transition-colors">
+                <Pencil className="h-4 w-4 text-purple-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+          </div>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-500 mb-1">
+                  Regular Users
+                </p>
+                <p className="text-2xl font-bold text-gray-900 mb-1">
+                  {userCount.toLocaleString()}
+                </p>
+                <div className="flex items-center text-xs">
+                  <User className="h-2 w-2 text-green-500 mr-1" />
+                  <span className="text-gray-500">Active</span>
+                </div>
+              </div>
+              <div className="bg-green-50 p-2 rounded-full group-hover:bg-green-100 transition-colors">
+                <User className="h-4 w-4 text-green-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+          </div>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-500 mb-1">
+                  Guests
+                </p>
+                <p className="text-2xl font-bold text-gray-900 mb-1">
+                  {guestCount}
+                </p>
+                <div className="flex items-center text-xs">
+                  <User className="h-2 w-2 text-gray-400 mr-1" />
+                  <span className="text-gray-500">Limited</span>
+                </div>
+              </div>
+              <div className="bg-gray-50 p-2 rounded-full group-hover:bg-gray-100 transition-colors">
+                <User className="h-4 w-4 text-gray-500" />
               </div>
             </div>
           </CardContent>
@@ -306,9 +360,13 @@ export default async function AdminUsersPage() {
                               ? "bg-black text-white border-black hover:bg-gray-800"
                               : user.role === "MODERATOR"
                                 ? "bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200"
-                                : user.role === "USER"
-                                  ? "bg-green-100 text-green-800 border-green-300 hover:bg-green-200"
-                                  : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100"
+                                : user.role === "SWD"
+                                  ? "bg-purple-100 text-purple-800 border-purple-300 hover:bg-purple-200"
+                                  : user.role === "USER"
+                                    ? "bg-green-100 text-green-800 border-green-300 hover:bg-green-200"
+                                    : user.role === "GUEST"
+                                      ? "bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200"
+                                      : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100"
                           }
                         `}
                       >
@@ -318,10 +376,13 @@ export default async function AdminUsersPage() {
                         {user.role === "MODERATOR" && (
                           <UserCheck className="h-3 w-3 mr-1 inline" />
                         )}
-                        {user.role === "USER" && (
+                        {user.role === "SWD" && (
+                          <Pencil className="h-3 w-3 mr-1 inline" />
+                        )}
+                        {(user.role === "USER" || user.role === "GUEST") && (
                           <User className="h-3 w-3 mr-1 inline" />
                         )}
-                        {user.role}
+                        {user.role === "SWD" ? "Script Writer" : user.role}
                       </Badge>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -358,7 +419,6 @@ export default async function AdminUsersPage() {
           </div>
         </CardContent>
       </Card>
-
     </div>
   );
 }

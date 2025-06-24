@@ -13,7 +13,7 @@ type User = {
   createdAt: Date;
 };
 
-type Role = "USER" | "GUEST" | "ADMIN" | "MODERATOR";
+type Role = "USER" | "GUEST" | "ADMIN" | "MODERATOR" | "SWD";
 
 interface UserRoleFormProps {
   userId: string;
