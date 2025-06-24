@@ -4,11 +4,13 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 import { appPages } from "@/lib/lib";
+import { useSession } from "next-auth/react";
 
 // Global variable to persist animation state across component unmounts
 let hasAnimatedBefore = false;
 
 export default function AppsPage() {
+  
   const router = useRouter();
   const [hoveredItem, setHoveredItem] = useState<number | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -57,6 +59,8 @@ export default function AppsPage() {
     },
   };
 
+   const { data: session } = useSession();
+
   return (
     <div className="w-full h-full p-3 sm:p-4 lg:p-6">
       {/* Page Title - Responsive typography */}
@@ -80,6 +84,7 @@ export default function AppsPage() {
                    lg:grid-cols-6 lg:grid-rows-4"
       >
         {appPages.map((app) => {
+          if (app.roles && !app.roles?.includes(session?.user?.role || "GUEST")) return null;
           const Icon = app.icon;
           const isHovered = hoveredItem === app.id;
 

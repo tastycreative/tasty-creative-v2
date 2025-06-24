@@ -10,6 +10,7 @@ import {
   Package,
   FileSpreadsheet,
   CalendarRange,
+  PenTool
 } from "lucide-react";
 
 export const TIMEZONES = [
@@ -265,5 +266,15 @@ export const appPages = [
     color: "from-yellow-500 to-amber-500",
     size: "col-span-1 row-span-1 sm:col-span-2 lg:col-span-2",
     description: "Manage Timesheets",
+  },
+  {
+    id: 9,
+    name: "SWD",
+    path: "/apps/swd",
+    icon: PenTool,
+    color: "from-purple-500 to-pink-500",
+    size: "col-span-1 row-span-1",
+    description: "Script Writing Department",
+    roles:["SWD","ADMIN"]
   },
 ];
