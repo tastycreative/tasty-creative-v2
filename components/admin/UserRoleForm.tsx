@@ -61,6 +61,7 @@ export function UserRoleForm({
       >
         <option value="GUEST">Guest</option>
         <option value="USER">User</option>
+        <option value="SWD">SWD (Script Writing Department)</option>
         <option value="MODERATOR">Moderator</option>
         <option value="ADMIN">Admin</option>
       </select>
