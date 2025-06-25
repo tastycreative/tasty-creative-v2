@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
@@ -841,6 +842,51 @@ const SWDPage = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Success Modals */}
+        <Dialog open={showQuickDataSuccess} onOpenChange={setShowQuickDataSuccess}>
+          <DialogContent className="bg-gray-900 border-gray-800">
+            <DialogHeader>
+              <DialogTitle className="text-white flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-400" />
+                Success!
+              </DialogTitle>
+            </DialogHeader>
+            <div className="p-4">
+              <p className="text-gray-300 mb-4">
+                Your script data has been successfully submitted and added to the spreadsheet.
+              </p>
+              <Button 
+                onClick={() => setShowQuickDataSuccess(false)}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                Continue
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showRequestSuccess} onOpenChange={setShowRequestSuccess}>
+          <DialogContent className="bg-gray-900 border-gray-800">
+            <DialogHeader>
+              <DialogTitle className="text-white flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-400" />
+                Request Submitted!
+              </DialogTitle>
+            </DialogHeader>
+            <div className="p-4">
+              <p className="text-gray-300 mb-4">
+                Your script request has been successfully submitted. We'll process it and get back to you soon.
+              </p>
+              <Button 
+                onClick={() => setShowRequestSuccess(false)}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                Continue
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
@@ -884,7 +930,6 @@ const RequestForm = ({ onRequestSubmitted, onSuccess }: RequestFormProps) => {
     setShowSuccess(false);
 
     try {
-      // Inside handleSubmit()
       const response = await fetch("/api/google/swd-request", {
         method: "POST",
         headers: {
@@ -1083,7 +1128,7 @@ const QuickDataEntry = ({ onDataSubmitted, onSuccess }: QuickDataEntryProps) => 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setShowSuccess(false); // Reset success state
+    setShowSuccess(false);
 
     try {
       const response = await fetch("/api/google/swd-data", {
@@ -1136,7 +1181,6 @@ const QuickDataEntry = ({ onDataSubmitted, onSuccess }: QuickDataEntryProps) => 
 
   return (
     <div className="bg-gray-900/50 border border-gray-800 rounded-lg backdrop-blur-xl overflow-hidden">
-      {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-6 p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Creator */}
@@ -1258,95 +1302,3 @@ const QuickDataEntry = ({ onDataSubmitted, onSuccess }: QuickDataEntryProps) => 
 };
 
 export default SWDPage;
-        <Dialog open={showQuickDataSuccess} onOpenChange={setShowQuickDataSuccess}>
-          <DialogContent className="bg-gray-900 border-gray-800">
-            <DialogHeader>
-              <DialogTitle className="text-white flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-green-400" />
-                Success!
-              </DialogTitle>
-            </DialogHeader>
-            <div className="p-4">
-              <p className="text-gray-300 mb-4">
-                Your script data has been successfully submitted and added to the spreadsheet.
-              </p>
-              <Button 
-                onClick={() => setShowQuickDataSuccess(false)}
-                className="w-full bg-green-600 hover:bg-green-700"
-              >
-                Continue
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={showRequestSuccess} onOpenChange={setShowRequestSuccess}>
-          <DialogContent className="bg-gray-900 border-gray-800">
-            <DialogHeader>
-              <DialogTitle className="text-white flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-green-400" />
-                Request Submitted!
-              </DialogTitle>
-            </DialogHeader>
-            <div className="p-4">
-              <p className="text-gray-300 mb-4">
-                Your script request has been successfully submitted. We'll process it and get back to you soon.
-              </p>
-              <Button 
-                onClick={() => setShowRequestSuccess(false)}
-                className="w-full bg-green-600 hover:bg-green-700"
-              >
-                Continue
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Success Modals */}
-        <Dialog open={showQuickDataSuccess} onOpenChange={setShowQuickDataSuccess}>
-          <DialogContent className="bg-gray-900 border-gray-800">
-            <DialogHeader>
-              <DialogTitle className="text-white flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-green-400" />
-                Success!
-              </DialogTitle>
-            </DialogHeader>
-            <div className="p-4">
-              <p className="text-gray-300 mb-4">
-                Your script data has been successfully submitted and added to the spreadsheet.
-              </p>
-              <Button 
-                onClick={() => setShowQuickDataSuccess(false)}
-                className="w-full bg-green-600 hover:bg-green-700"
-              >
-                Continue
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={showRequestSuccess} onOpenChange={setShowRequestSuccess}>
-          <DialogContent className="bg-gray-900 border-gray-800">
-            <DialogHeader>
-              <DialogTitle className="text-white flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-green-400" />
-                Request Submitted!
-              </DialogTitle>
-            </DialogHeader>
-            <div className="p-4">
-              <p className="text-gray-300 mb-4">
-                Your script request has been successfully submitted. We'll process it and get back to you soon.
-              </p>
-              <Button 
-                onClick={() => setShowRequestSuccess(false)}
-                className="w-full bg-green-600 hover:bg-green-700"
-              >
-                Continue
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </div>
-  );
-};
