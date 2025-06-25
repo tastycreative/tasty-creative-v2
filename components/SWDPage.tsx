@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { Loader2, TrendingUp, Award, Trophy, Star, Zap, Sparkles, Crown, Medal, Users, FileText, Brain, Hash, Calendar } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Loader2, TrendingUp, Award, Trophy, Star, Zap, Sparkles, Crown, Medal, Users, FileText, Brain, Hash, Calendar, Plus } from 'lucide-react'
 
 interface ModelData {
   creator: string
@@ -363,19 +364,32 @@ const SWDPage = () => {
           </CardContent>
         </Card>
 
-        {/* Quick Data Entry Card */}
-        <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-xl overflow-hidden relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-green-900/10 to-blue-900/10"></div>
-          <CardHeader className="relative">
-            <CardTitle className="text-white flex items-center gap-2">
-              <FileText className="w-5 h-5 text-green-400" />
-              Quick Data Entry
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="relative">
+        {/* Quick Data Entry Modal Trigger */}
+        <Dialog>
+          <DialogTrigger asChild>
+            <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-xl overflow-hidden relative cursor-pointer hover:border-green-500/50 transition-all duration-200">
+              <div className="absolute inset-0 bg-gradient-to-r from-green-900/10 to-blue-900/10"></div>
+              <CardContent className="relative p-6">
+                <div className="flex items-center justify-center gap-3 text-green-400">
+                  <Plus className="w-8 h-8" />
+                  <div className="text-center">
+                    <h3 className="text-xl font-semibold text-white">Add New Script Data</h3>
+                    <p className="text-gray-400 text-sm mt-1">Click to add new script performance data</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </DialogTrigger>
+          <DialogContent className="bg-gray-900 border-gray-800 max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-white flex items-center gap-2">
+                <FileText className="w-5 h-5 text-green-400" />
+                Quick Data Entry
+              </DialogTitle>
+            </DialogHeader>
             <QuickDataEntry onDataSubmitted={fetchAllData} />
-          </CardContent>
-        </Card>
+          </DialogContent>
+        </Dialog>
 
         {/* Model Stats */}
         {currentModelData && (
@@ -769,7 +783,7 @@ const QuickDataEntry = ({ onDataSubmitted }: QuickDataEntryProps) => {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6 p-2">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="space-y-2">
           <label className="text-sm text-gray-400">Creator</label>
