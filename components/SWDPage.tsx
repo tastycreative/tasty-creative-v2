@@ -363,6 +363,20 @@ const SWDPage = () => {
           </CardContent>
         </Card>
 
+        {/* Quick Data Entry Card */}
+        <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-xl overflow-hidden relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-green-900/10 to-blue-900/10"></div>
+          <CardHeader className="relative">
+            <CardTitle className="text-white flex items-center gap-2">
+              <FileText className="w-5 h-5 text-green-400" />
+              Quick Data Entry
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="relative">
+            <QuickDataEntry onDataSubmitted={fetchAllData} />
+          </CardContent>
+        </Card>
+
         {/* Model Stats */}
         {currentModelData && (
           <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-xl overflow-hidden">
@@ -694,6 +708,190 @@ const SWDPage = () => {
         </Card>
       </div>
     </div>
+  )
+}
+
+interface QuickDataEntryProps {
+  onDataSubmitted: () => void
+}
+
+const QuickDataEntry = ({ onDataSubmitted }: QuickDataEntryProps) => {
+  const [formData, setFormData] = useState({
+    creator: '',
+    month: '',
+    dateUpdated: '',
+    scriptTitle: '',
+    scriptLink: '',
+    totalSend: '',
+    totalBuy: ''
+  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+
+    try {
+      // Here you would typically submit to your API
+      // For now, we'll just simulate a submission
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Reset form
+      setFormData({
+        creator: '',
+        month: '',
+        dateUpdated: '',
+        scriptTitle: '',
+        scriptLink: '',
+        totalSend: '',
+        totalBuy: ''
+      })
+      
+      setShowSuccess(true)
+      setTimeout(() => setShowSuccess(false), 3000)
+      
+      // Refresh the data
+      onDataSubmitted()
+    } catch (error) {
+      console.error('Error submitting data:', error)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <label className="text-sm text-gray-400">Creator</label>
+          <input
+            type="text"
+            name="creator"
+            value={formData.creator}
+            onChange={handleInputChange}
+            placeholder="Creator name"
+            className="w-full bg-gray-800/50 border border-gray-700 text-white px-3 py-2 rounded-lg focus:border-green-500 focus:outline-none transition-colors"
+            required
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <label className="text-sm text-gray-400">Month</label>
+          <input
+            type="text"
+            name="month"
+            value={formData.month}
+            onChange={handleInputChange}
+            placeholder="e.g., November"
+            className="w-full bg-gray-800/50 border border-gray-700 text-white px-3 py-2 rounded-lg focus:border-green-500 focus:outline-none transition-colors"
+            required
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <label className="text-sm text-gray-400">Date Updated</label>
+          <input
+            type="text"
+            name="dateUpdated"
+            value={formData.dateUpdated}
+            onChange={handleInputChange}
+            placeholder="e.g., Nov 1, 2024"
+            className="w-full bg-gray-800/50 border border-gray-700 text-white px-3 py-2 rounded-lg focus:border-green-500 focus:outline-none transition-colors"
+            required
+          />
+        </div>
+        
+        <div className="space-y-2 md:col-span-2">
+          <label className="text-sm text-gray-400">Script Title</label>
+          <input
+            type="text"
+            name="scriptTitle"
+            value={formData.scriptTitle}
+            onChange={handleInputChange}
+            placeholder="e.g., Sext 9 - Army Green Bikini"
+            className="w-full bg-gray-800/50 border border-gray-700 text-white px-3 py-2 rounded-lg focus:border-green-500 focus:outline-none transition-colors"
+            required
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <label className="text-sm text-gray-400">Total Send</label>
+          <input
+            type="text"
+            name="totalSend"
+            value={formData.totalSend}
+            onChange={handleInputChange}
+            placeholder="e.g., 5,870"
+            className="w-full bg-gray-800/50 border border-gray-700 text-white px-3 py-2 rounded-lg focus:border-green-500 focus:outline-none transition-colors"
+            required
+          />
+        </div>
+        
+        <div className="space-y-2 md:col-span-2">
+          <label className="text-sm text-gray-400">Script Link</label>
+          <input
+            type="url"
+            name="scriptLink"
+            value={formData.scriptLink}
+            onChange={handleInputChange}
+            placeholder="Google Docs link"
+            className="w-full bg-gray-800/50 border border-gray-700 text-white px-3 py-2 rounded-lg focus:border-green-500 focus:outline-none transition-colors"
+            required
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <label className="text-sm text-gray-400">Total Buy</label>
+          <input
+            type="text"
+            name="totalBuy"
+            value={formData.totalBuy}
+            onChange={handleInputChange}
+            placeholder="e.g., $4,672.06"
+            className="w-full bg-gray-800/50 border border-gray-700 text-white px-3 py-2 rounded-lg focus:border-green-500 focus:outline-none transition-colors"
+            required
+          />
+        </div>
+      </div>
+      
+      <div className="flex items-center justify-between pt-4">
+        <div className="flex items-center gap-2">
+          {showSuccess && (
+            <div className="flex items-center gap-2 text-green-400">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span className="text-sm">Data submitted successfully!</span>
+            </div>
+          )}
+        </div>
+        
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="px-6 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg hover:from-green-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Submitting...
+            </>
+          ) : (
+            <>
+              <FileText className="w-4 h-4" />
+              Add Entry
+            </>
+          )}
+        </button>
+      </div>
+    </form>
   )
 }
 
