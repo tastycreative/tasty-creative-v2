@@ -1,154 +1,139 @@
 import { NextRequest, NextResponse } from "next/server";
+import { google } from "googleapis";
+import { auth } from "@/auth";
 
-export async function GET(request: NextRequest) {
+// Type definitions
+interface ModelData {
+  creator: string;
+  totalSets: number;
+  totalScripts: number;
+  personalityType: string;
+  commonTerms: string;
+  commonEmojis: string;
+  restrictedTerms: string;
+}
+
+interface SendBuyData {
+  creator: string;
+  month: string;
+  dateUpdated: string;
+  scriptTitle: string;
+  scriptLink: string;
+  totalSend: number;
+  totalBuy: number;
+}
+
+interface ApiResponse {
+  modelData: ModelData[];
+  sendBuyData: SendBuyData[];
+  availableCreators: string[];
+  availableMonths: string[];
+}
+
+export async function GET(request: NextRequest): Promise<NextResponse<ApiResponse | { error: string; message?: string; details?: string }>> {
   try {
-    // Static model data
-    const modelData = [
-      {
-        creator: "Bri",
-        totalSets: 64,
-        totalScripts: 19,
-        personalityType: "Sweet, energetic, submissive, innocent",
-        commonTerms: "baby babe love",
-        commonEmojis: "🥰☺️😌😋🫶🏻🙈🙊🩷🩵🤍💕💞💘💖",
-        restrictedTerms: "i never just come out of the gate with \"hey daddy\""
-      },
-      {
-        creator: "Dan Dangler",
-        totalSets: 42,
-        totalScripts: 15,
-        personalityType: "Confident, flirty, dominant",
-        commonTerms: "sexy hot gorgeous",
-        commonEmojis: "😈💋🔥💦😍🥵💯",
-        restrictedTerms: "no explicit violence references"
-      },
-      {
-        creator: "Autumn",
-        totalSets: 38,
-        totalScripts: 12,
-        personalityType: "Playful, teasing, mysterious",
-        commonTerms: "darling sweetie cutie",
-        commonEmojis: "🍂🧡💛😘😉🤗",
-        restrictedTerms: "avoid overly aggressive language"
-      },
-      {
-        creator: "Coco",
-        totalSets: 35,
-        totalScripts: 10,
-        personalityType: "Sophisticated, elegant, alluring",
-        commonTerms: "honey treasure beautiful",
-        commonEmojis: "💎✨🖤🤍💋🥂",
-        restrictedTerms: "no crude language"
-      },
-      {
-        creator: "Alanna",
-        totalSets: 28,
-        totalScripts: 8,
-        personalityType: "Gentle, caring, romantic",
-        commonTerms: "love angel sweetheart",
-        commonEmojis: "💕💖💗💝🌸🌹",
-        restrictedTerms: "keep it romantic, not explicit"
-      }
-    ];
+    // Get session and authenticate
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+    if (!session.accessToken) {
+      return NextResponse.json(
+        { error: "Not authenticated. No access token." },
+        { status: 401 }
+      );
+    }
 
-    // Static best scripts data
-    const bestScripts = {
-      bestSeller: [
-        {
-          title: "Sext 39 (DAY) White Set",
-          totalBuy: "$9,381.30"
-        },
-        {
-          title: "Sext 28 (NIGHT) Black Lingerie",
-          totalBuy: "$7,652.80"
-        },
-        {
-          title: "Sext 45 (MORNING) Pink Set",
-          totalBuy: "$6,234.50"
-        }
-      ],
-      topSent: [
-        {
-          title: "Sext 34 (Both) White Top/Green Lingerie",
-          totalSend: 9672
-        },
-        {
-          title: "Sext 22 (DAY) Red Dress",
-          totalSend: 8945
-        },
-        {
-          title: "Sext 51 (NIGHT) Blue Set",
-          totalSend: 7823
-        }
-      ]
-    };
+    // Setup OAuth2 client
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI
+    );
+    oauth2Client.setCredentials({
+      access_token: session.accessToken,
+      refresh_token: session.refreshToken,
+      expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
+    });
 
-    // Static leaderboard data
-    const leaderboard = {
-      totalSend: [
-        { creator: "Alanna", amount: 0, rank: 0 },
-        { creator: "Alanna", amount: 0, rank: 1 },
-        { creator: "Alanna", amount: 0, rank: 2 },
-        { creator: "Alanna", amount: 0, rank: 3 },
-        { creator: "Alanna", amount: 0, rank: 4 }
-      ],
-      totalBuy: [
-        { creator: "Sharna", amount: "$10,817", rank: 0 },
-        { creator: "Alanna", amount: "$0", rank: 1 },
-        { creator: "Alanna", amount: "$0", rank: 2 },
-        { creator: "Alanna", amount: "$0", rank: 3 },
-        { creator: "Alanna", amount: "$0", rank: 4 }
-      ],
-      zeroSet: [
-        "Fandy", "Kei", "Koaty and Summer", "Lolo", "Rocky"
-      ],
-      zeroScript: [
-        "Alanna", "Ali Patience", "Aspen", "Fandy", "Grace", "Hailey", 
-        "Jade Bri", "Julianna", "Kei", "Kelly", "Kiki", "Koaty and Summer", 
-        "Laila", "Lolo", "Madison", "Marcie", "Mathilde", "Mia Swan", 
-        "Natalie R", "Razz", "Rocky", "Ry", "Sinatra", "Stasia", "Swiggy", 
-        "Tara West", "Tayy", "Victoria Lit", "Zoey"
-      ],
-      highestSet: [
-        { creator: "Kenzie", amount: 167, rank: 0 },
-        { creator: "Nicole Aniston", amount: 104, rank: 1 },
-        { creator: "Autumn", amount: 95, rank: 2 },
-        { creator: "Lala", amount: 90, rank: 3 },
-        { creator: "Victoria Lit", amount: 74, rank: 4 }
-      ],
-      lowestSet: [
-        { creator: "Mathilde", amount: 2, rank: 4 },
-        { creator: "Mathilde", amount: 2, rank: 3 },
-        { creator: "Hailey", amount: 3, rank: 2 },
-        { creator: "Hailey", amount: 3, rank: 1 },
-        { creator: "Hailey", amount: 3, rank: 0 }
-      ],
-      highestScript: [
-        { creator: "Bri", amount: 19, rank: 0 },
-        { creator: "Dan Dangler", amount: 15, rank: 1 },
-        { creator: "Autumn", amount: 12, rank: 2 },
-        { creator: "Coco", amount: 10, rank: 3 },
-        { creator: "Coco", amount: 10, rank: 4 }
-      ],
-      lowestScript: [
-        { creator: "Charlotte P", amount: 1, rank: 4 },
-        { creator: "Charlotte P", amount: 1, rank: 3 },
-        { creator: "Charlotte P", amount: 1, rank: 2 },
-        { creator: "Charlotte P", amount: 1, rank: 1 },
-        { creator: "Charlotte P", amount: 1, rank: 0 }
-      ]
-    };
+    const sheets = google.sheets({ version: "v4", auth: oauth2Client });
+    const spreadsheetId = "1hmC08YXrDygHzQiMd-33MJBT26QEoSaBnvvMozsIop0";
 
-    const response = {
+    // Fetch Client Database data (start from row 3 since headers are in row 2)
+    const clientResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: "Client Database!A3:H",
+    });
+    const clientRows: string[][] = clientResponse.data.values || [];
+
+    // Fetch Send+Buy Input data (start from row 3 since headers are in row 2)
+    const sendBuyResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: "Send+Buy Input!B3:H",
+    });
+    const sendBuyRows: string[][] = sendBuyResponse.data.values || [];
+
+    // Process model data from Client Database
+    const modelData: ModelData[] = clientRows.map((row: string[]) => ({
+      creator: row[1] || "", // Creator (column B)
+      totalSets: parseInt(row[2]) || 0, // Total sets (column C)
+      totalScripts: parseInt(row[3]) || 0, // Total Scripts (column D)
+      personalityType: row[4] || "", // Personality Type (column E)
+      commonTerms: row[5] || "", // Common Terms (column F)
+      commonEmojis: row[6] || "", // Common Emojis (column G)
+      restrictedTerms: row[7] || "", // Restricted Terms or Emojis (column H)
+    })).filter((model: ModelData) => model.creator && model.creator.trim() !== "");
+
+    // Process Send+Buy data
+    const sendBuyData: SendBuyData[] = sendBuyRows.map((row: string[]) => {
+      // Clean and parse totalSend (remove commas)
+      const totalSendStr = row[5] || "0";
+      const totalSend = parseInt(totalSendStr.replace(/,/g, '')) || 0;
+      
+      // Clean and parse totalBuy (remove $ and commas, handle both $ prefix and suffix)
+      const totalBuyStr = row[6] || "0";
+      const cleanedBuy = totalBuyStr.replace(/[$,\s]/g, ''); // Remove $, commas, and spaces
+      const totalBuy = parseFloat(cleanedBuy) || 0;
+      
+      return {
+        creator: row[0] || "",
+        month: row[1] || "",
+        dateUpdated: row[2] || "",
+        scriptTitle: row[3] || "",
+        scriptLink: row[4] || "",
+        totalSend: totalSend,
+        totalBuy: totalBuy,
+      };
+    }).filter((item: SendBuyData) => item.creator && item.creator.trim() !== "");
+
+    // Get unique creators and months for dropdowns
+    const availableCreators: string[] = [...new Set(modelData.map((m: ModelData) => m.creator))].sort();
+    const availableMonths: string[] = [...new Set(sendBuyData.map((s: SendBuyData) => s.month))].filter((m: string) => m).sort();
+
+    const response: ApiResponse = {
       modelData,
-      bestScripts,
-      leaderboard
+      sendBuyData,
+      availableCreators,
+      availableMonths
     };
 
     return NextResponse.json(response);
 
   } catch (error: any) {
-    console.error("Error returning SWD static data:", error);
+    console.error("Error fetching SWD data:", error);
+    
+    // Handle Google API permission errors
+    if (error.code === 403 && error.errors && error.errors.length > 0) {
+      console.error("Google API Permission Error (403):", error.errors[0].message);
+      return NextResponse.json(
+        {
+          error: "GooglePermissionDenied",
+          message: `Google API Error: ${error.errors[0].message || "The authenticated Google account does not have permission for the Google Sheet."}`,
+        },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json(
       { error: "Failed to fetch SWD data", details: error.message },
       { status: 500 }

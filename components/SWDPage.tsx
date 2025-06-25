@@ -1,11 +1,11 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { Loader2, TrendingUp, Award, Trophy, Star, Zap, Sparkles, Crown, Medal, Users, FileText, Brain, Hash } from 'lucide-react'
+import { Loader2, TrendingUp, Award, Trophy, Star, Zap, Sparkles, Crown, Medal, Users, FileText, Brain, Hash, Calendar } from 'lucide-react'
 
 interface ModelData {
   creator: string
@@ -17,10 +17,20 @@ interface ModelData {
   restrictedTerms: string
 }
 
+interface SendBuyData {
+  creator: string
+  month: string
+  dateUpdated: string
+  scriptTitle: string
+  scriptLink: string
+  totalSend: number
+  totalBuy: number
+}
+
 interface BestScript {
   title: string
-  totalBuy: string
-  totalSend: number
+  totalBuy?: string
+  totalSend?: number
 }
 
 interface LeaderboardEntry {
@@ -29,73 +39,235 @@ interface LeaderboardEntry {
   rank: number
 }
 
-interface ScriptData {
+interface Leaderboard {
+  totalSend: LeaderboardEntry[]
+  totalBuy: LeaderboardEntry[]
+  zeroSet: string[]
+  zeroScript: string[]
+  highestSet: LeaderboardEntry[]
+  lowestSet: LeaderboardEntry[]
+  highestScript: LeaderboardEntry[]
+  lowestScript: LeaderboardEntry[]
+}
+
+interface ApiResponse {
   modelData: ModelData[]
-  bestScripts: {
-    bestSeller: BestScript[]
-    topSent: BestScript[]
-  }
-  leaderboard: {
-    totalSend: LeaderboardEntry[]
-    totalBuy: LeaderboardEntry[]
-    zeroSet: string[]
-    zeroScript: string[]
-    highestSet: LeaderboardEntry[]
-    lowestSet: LeaderboardEntry[]
-    highestScript: LeaderboardEntry[]
-    lowestScript: LeaderboardEntry[]
-  }
+  sendBuyData: SendBuyData[]
+  availableCreators: string[]
+  availableMonths: string[]
+}
+
+interface CreatorStats {
+  creator: string
+  totalSend: number
+  totalBuy: number
+  totalSets: number
+  totalScripts: number
 }
 
 const SWDPage = () => {
   const [selectedModel, setSelectedModel] = useState<string>('')
-  const [scriptData, setScriptData] = useState<ScriptData | null>(null)
+  const [selectedMonth, setSelectedMonth] = useState<string>('all')
+  const [apiData, setApiData] = useState<ApiResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchScriptData()
+    fetchAllData()
   }, [])
 
-  const fetchScriptData = async () => {
+  const fetchAllData = async () => {
     try {
       setLoading(true)
-      // Replace with your actual Google Sheets API endpoint
+      setError(null)
+      
       const response = await fetch('/api/google/swd-data')
       
       if (!response.ok) {
-        throw new Error('Failed to fetch script data')
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to fetch script data')
       }
       
-      const data = await response.json()
-      setScriptData(data)
+      const data: ApiResponse = await response.json()
+      setApiData(data)
       
-      // Set default selected model to first model
-      if (data.modelData && data.modelData.length > 0) {
+      // Set default selected model to first model if not set
+      if (!selectedModel && data.modelData && data.modelData.length > 0) {
         setSelectedModel(data.modelData[0].creator)
       }
     } catch (err) {
+      console.error('Error fetching data:', err)
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setLoading(false)
     }
   }
 
+  // Client-side filtering and calculations
+  const { filteredSendBuyData, bestScripts, leaderboard } = useMemo(() => {
+    if (!apiData) {
+      return {
+        filteredSendBuyData: [],
+        bestScripts: { bestSeller: [], topSent: [] },
+        leaderboard: {
+          totalSend: [],
+          totalBuy: [],
+          zeroSet: [],
+          zeroScript: [],
+          highestSet: [],
+          lowestSet: [],
+          highestScript: [],
+          lowestScript: []
+        }
+      }
+    }
+
+    // Filter by month for leaderboard only
+    const monthFilteredData = selectedMonth !== 'all' 
+      ? apiData.sendBuyData.filter(item => 
+          item.month.toLowerCase() === selectedMonth.toLowerCase()
+        )
+      : apiData.sendBuyData
+
+    // Filter by creator for best scripts only (no month filter)
+    const creatorFilteredData = selectedModel 
+      ? apiData.sendBuyData.filter(item => item.creator.toLowerCase() === selectedModel.toLowerCase())
+      : apiData.sendBuyData
+
+    // Calculate best scripts (filtered by creator only, not month)
+    const bestScripts = {
+      bestSeller: creatorFilteredData
+        .sort((a, b) => b.totalBuy - a.totalBuy)
+        .slice(0, 3)
+        .map((item): BestScript => ({
+          title: item.scriptTitle,
+          totalBuy: `${item.totalBuy.toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+        })),
+      topSent: creatorFilteredData
+        .sort((a, b) => b.totalSend - a.totalSend)
+        .slice(0, 3)
+        .map((item): BestScript => ({
+          title: item.scriptTitle,
+          totalSend: item.totalSend
+        }))
+    }
+
+    // Calculate leaderboard stats (using month-filtered data)
+    const creatorStats: Record<string, CreatorStats> = {}
+    
+    // Initialize creator stats from model data
+    apiData.modelData.forEach((model) => {
+      creatorStats[model.creator] = {
+        creator: model.creator,
+        totalSend: 0,
+        totalBuy: 0,
+        totalSets: model.totalSets,
+        totalScripts: model.totalScripts
+      }
+    })
+
+    // Aggregate send/buy data by creator (using month-filtered data for leaderboard)
+    monthFilteredData.forEach((item) => {
+      if (!creatorStats[item.creator]) {
+        creatorStats[item.creator] = {
+          creator: item.creator,
+          totalSend: 0,
+          totalBuy: 0,
+          totalSets: 0,
+          totalScripts: 0
+        }
+      }
+      creatorStats[item.creator].totalSend += item.totalSend
+      creatorStats[item.creator].totalBuy += item.totalBuy
+    })
+
+    const creatorStatsArray = Object.values(creatorStats)
+
+    // Generate leaderboard
+    const leaderboard: Leaderboard = {
+      totalSend: creatorStatsArray
+        .sort((a, b) => b.totalSend - a.totalSend)
+        .slice(0, 5)
+        .map((creator, index) => ({
+          creator: creator.creator,
+          amount: creator.totalSend,
+          rank: index
+        })),
+      totalBuy: creatorStatsArray
+        .sort((a, b) => b.totalBuy - a.totalBuy)
+        .slice(0, 5)
+        .map((creator, index) => ({
+          creator: creator.creator,
+          amount: `$${creator.totalBuy.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+          rank: index
+        })),
+      zeroSet: creatorStatsArray
+        .filter(creator => creator.totalSets === 0)
+        .map(creator => creator.creator),
+      zeroScript: creatorStatsArray
+        .filter(creator => creator.totalScripts === 0)
+        .map(creator => creator.creator),
+      highestSet: creatorStatsArray
+        .filter(creator => creator.totalSets > 0)
+        .sort((a, b) => b.totalSets - a.totalSets)
+        .slice(0, 5)
+        .map((creator, index) => ({
+          creator: creator.creator,
+          amount: creator.totalSets,
+          rank: index
+        })),
+      lowestSet: creatorStatsArray
+        .filter(creator => creator.totalSets > 0)
+        .sort((a, b) => a.totalSets - b.totalSets)
+        .slice(0, 5)
+        .map((creator, index) => ({
+          creator: creator.creator,
+          amount: creator.totalSets,
+          rank: index
+        })),
+      highestScript: creatorStatsArray
+        .filter(creator => creator.totalScripts > 0)
+        .sort((a, b) => b.totalScripts - a.totalScripts)
+        .slice(0, 5)
+        .map((creator, index) => ({
+          creator: creator.creator,
+          amount: creator.totalScripts,
+          rank: index
+        })),
+      lowestScript: creatorStatsArray
+        .filter(creator => creator.totalScripts > 0)
+        .sort((a, b) => a.totalScripts - b.totalScripts)
+        .slice(0, 5)
+        .map((creator, index) => ({
+          creator: creator.creator,
+          amount: creator.totalScripts,
+          rank: index
+        }))
+    }
+
+    return {
+      filteredSendBuyData: filteredData,
+      bestScripts,
+      leaderboard
+    }
+  }, [apiData, selectedModel, selectedMonth])
+
+  const handleModelChange = (value: string) => {
+    setSelectedModel(value)
+  }
+
+  const handleMonthChange = (value: string) => {
+    setSelectedMonth(value)
+  }
+
   const getRankIcon = (rank: number) => {
-    if (rank === 1) return <Crown className="w-5 h-5 text-yellow-400" />
-    if (rank === 2) return <Medal className="w-5 h-5 text-gray-300" />
-    if (rank === 3) return <Award className="w-5 h-5 text-amber-600" />
+    if (rank === 0) return <Crown className="w-5 h-5 text-yellow-400" />
+    if (rank === 1) return <Medal className="w-5 h-5 text-gray-300" />
+    if (rank === 2) return <Award className="w-5 h-5 text-amber-600" />
     return <Star className="w-4 h-4 text-purple-400" />
   }
 
-  const getRankColor = (rank: number) => {
-    if (rank === 1) return 'bg-gradient-to-r from-yellow-500 to-amber-500'
-    if (rank === 2) return 'bg-gradient-to-r from-gray-400 to-gray-500'
-    if (rank === 3) return 'bg-gradient-to-r from-amber-600 to-orange-600'
-    return 'bg-gradient-to-r from-purple-500 to-pink-500'
-  }
-
-  const currentModelData = scriptData?.modelData.find(model => model.creator === selectedModel)
+  const currentModelData = apiData?.modelData.find(model => model.creator === selectedModel)
 
   if (loading) {
     return (
@@ -121,7 +293,13 @@ const SWDPage = () => {
           <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
             <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-8">
               <h2 className="text-2xl font-bold text-red-400 mb-2">Error Loading Data</h2>
-              <p className="text-gray-400">{error}</p>
+              <p className="text-gray-400 mb-4">{error}</p>
+              <button 
+                onClick={() => fetchAllData()}
+                className="px-4 py-2 bg-red-500/20 border border-red-500/30 text-red-300 rounded-lg hover:bg-red-500/30 transition-colors"
+              >
+                Retry
+              </button>
             </div>
           </div>
         </div>
@@ -153,22 +331,35 @@ const SWDPage = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="relative">
-            <Select value={selectedModel} onValueChange={setSelectedModel}>
-              <SelectTrigger className="w-full max-w-md bg-gray-800/50 border-gray-700 text-white hover:bg-gray-800/70 transition-all duration-200">
-                <SelectValue placeholder="Select a model" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-900 border-gray-800">
-                {scriptData?.modelData.map((model) => (
-                  <SelectItem 
-                    key={model.creator} 
-                    value={model.creator}
-                    className="text-white hover:bg-gray-800 focus:bg-gray-800"
-                  >
-                    {model.creator}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <label className="text-sm text-gray-400">Select Model</label>
+              <Select value={selectedModel} onValueChange={handleModelChange}>
+                <SelectTrigger className="w-full max-w-md bg-gray-800/50 border-gray-700 text-white hover:bg-gray-800/70 transition-all duration-200">
+                  <SelectValue placeholder="Select a model" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-900 border-gray-800">
+                  {apiData?.availableCreators.map((creator) => (
+                    <SelectItem 
+                      key={creator} 
+                      value={creator}
+                      className="text-white hover:bg-gray-800 focus:bg-gray-800"
+                    >
+                      {creator}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Active Creator Filter Display */}
+            {selectedModel && (
+              <div className="mt-4 flex items-center gap-2">
+                <span className="text-sm text-gray-400">Selected creator:</span>
+                <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+                  {selectedModel}
+                </Badge>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -238,19 +429,28 @@ const SWDPage = () => {
                 Best Seller Scripts
                 <TrendingUp className="w-6 h-6 text-amber-400" />
               </CardTitle>
+              {selectedModel && (
+                <p className="text-center text-amber-200 text-sm">for {selectedModel}</p>
+              )}
             </CardHeader>
             <CardContent className="space-y-3">
-              {scriptData?.bestScripts.bestSeller.map((script, index) => (
-                <div 
-                  key={index} 
-                  className="flex justify-between items-center p-3 bg-gray-900/50 rounded-lg border border-amber-800/20 hover:border-amber-600/40 transition-all duration-200"
-                >
-                  <span className="text-white font-medium">{script.title}</span>
-                  <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30">
-                    ${script.totalBuy}
-                  </Badge>
+              {bestScripts.bestSeller.length === 0 ? (
+                <div className="text-center text-gray-400 py-8">
+                  No data available for the selected filters
                 </div>
-              ))}
+              ) : (
+                bestScripts.bestSeller.map((script, index) => (
+                  <div 
+                    key={index} 
+                    className="flex justify-between items-center p-3 bg-gray-900/50 rounded-lg border border-amber-800/20 hover:border-amber-600/40 transition-all duration-200"
+                  >
+                    <span className="text-white font-medium">{script.title}</span>
+                    <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30">
+                      {script.totalBuy}
+                    </Badge>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
 
@@ -262,19 +462,28 @@ const SWDPage = () => {
                 Top Sent Scripts
                 <Zap className="w-6 h-6 text-blue-400" />
               </CardTitle>
+              {selectedModel && (
+                <p className="text-center text-blue-200 text-sm">for {selectedModel}</p>
+              )}
             </CardHeader>
             <CardContent className="space-y-3">
-              {scriptData?.bestScripts.topSent.map((script, index) => (
-                <div 
-                  key={index} 
-                  className="flex justify-between items-center p-3 bg-gray-900/50 rounded-lg border border-blue-800/20 hover:border-blue-600/40 transition-all duration-200"
-                >
-                  <span className="text-white font-medium">{script.title}</span>
-                  <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">
-                    {script.totalSend.toLocaleString()}
-                  </Badge>
+              {bestScripts.topSent.length === 0 ? (
+                <div className="text-center text-gray-400 py-8">
+                  No data available for the selected filters
                 </div>
-              ))}
+              ) : (
+                bestScripts.topSent.map((script, index) => (
+                  <div 
+                    key={index} 
+                    className="flex justify-between items-center p-3 bg-gray-900/50 rounded-lg border border-blue-800/20 hover:border-blue-600/40 transition-all duration-200"
+                  >
+                    <span className="text-white font-medium">{script.title}</span>
+                    <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">
+                      {script.totalSend?.toLocaleString() || 0}
+                    </Badge>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
         </div>
@@ -287,7 +496,40 @@ const SWDPage = () => {
               LEADERBOARD
               <Trophy className="w-8 h-8 text-yellow-400" />
             </CardTitle>
-            <p className="text-gray-400 mt-2">February Rankings</p>
+            
+            {/* Month Filter for Leaderboard */}
+            <div className="mt-4 flex items-center justify-center gap-4">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-gray-400" />
+                <span className="text-sm text-gray-400">Filter by Month:</span>
+              </div>
+              <Select value={selectedMonth} onValueChange={handleMonthChange}>
+                <SelectTrigger className="w-48 bg-gray-800/50 border-gray-700 text-white hover:bg-gray-800/70 transition-all duration-200">
+                  <SelectValue placeholder="All months" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-900 border-gray-800">
+                  <SelectItem 
+                    value="all"
+                    className="text-white hover:bg-gray-800 focus:bg-gray-800"
+                  >
+                    All Months
+                  </SelectItem>
+                  {apiData?.availableMonths.map((month) => (
+                    <SelectItem 
+                      key={month} 
+                      value={month}
+                      className="text-white hover:bg-gray-800 focus:bg-gray-800"
+                    >
+                      {month}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <p className="text-gray-400 mt-2">
+              {selectedMonth !== 'all' ? `${selectedMonth} Rankings` : 'Overall Rankings'}
+            </p>
           </CardHeader>
           <CardContent className="p-6 space-y-8">
             {/* Main Leaderboards */}
@@ -300,19 +542,19 @@ const SWDPage = () => {
                   <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
                 </h3>
                 <div className="space-y-2">
-                  {scriptData?.leaderboard.totalSend.map((entry, index) => (
+                  {leaderboard.totalSend.map((entry, index) => (
                     <div 
                       key={index} 
                       className={`flex items-center gap-3 p-3 rounded-lg bg-gray-800/50 border border-gray-700 hover:border-purple-600/50 transition-all duration-200 ${
-                        entry.rank === 1 ? 'border-yellow-500/50 bg-yellow-900/10' : ''
+                        entry.rank === 0 ? 'border-yellow-500/50 bg-yellow-900/10' : ''
                       }`}
                     >
                       <div className="flex-shrink-0">{getRankIcon(entry.rank)}</div>
                       <span className="flex-grow text-white font-medium">{entry.creator}</span>
                       <span className={`font-bold text-lg ${
-                        entry.rank === 1 ? 'text-yellow-400' : 'text-gray-300'
+                        entry.rank === 0 ? 'text-yellow-400' : 'text-gray-300'
                       }`}>
-                        {entry.amount}
+                        {typeof entry.amount === 'number' ? entry.amount.toLocaleString() : entry.amount}
                       </span>
                     </div>
                   ))}
@@ -327,19 +569,19 @@ const SWDPage = () => {
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                 </h3>
                 <div className="space-y-2">
-                  {scriptData?.leaderboard.totalBuy.map((entry, index) => (
+                  {leaderboard.totalBuy.map((entry, index) => (
                     <div 
                       key={index} 
                       className={`flex items-center gap-3 p-3 rounded-lg bg-gray-800/50 border border-gray-700 hover:border-green-600/50 transition-all duration-200 ${
-                        entry.rank === 1 ? 'border-yellow-500/50 bg-yellow-900/10' : ''
+                        entry.rank === 0 ? 'border-yellow-500/50 bg-yellow-900/10' : ''
                       }`}
                     >
                       <div className="flex-shrink-0">{getRankIcon(entry.rank)}</div>
                       <span className="flex-grow text-white font-medium">{entry.creator}</span>
                       <span className={`font-bold text-lg ${
-                        entry.rank === 1 ? 'text-yellow-400' : 'text-gray-300'
+                        entry.rank === 0 ? 'text-yellow-400' : 'text-gray-300'
                       }`}>
-                        ${entry.amount}
+                        {entry.amount}
                       </span>
                     </div>
                   ))}
@@ -355,9 +597,9 @@ const SWDPage = () => {
               <div className="space-y-3">
                 <h4 className="font-semibold text-white text-sm">Highest Set</h4>
                 <div className="space-y-2">
-                  {scriptData?.leaderboard.highestSet.map((entry, index) => (
+                  {leaderboard.highestSet.map((entry, index) => (
                     <div key={index} className="flex items-center gap-2 text-sm">
-                      <span className="text-purple-400">{entry.rank}.</span>
+                      <span className="text-purple-400">{entry.rank + 1}.</span>
                       <span className="text-gray-300 truncate">{entry.creator}</span>
                       <span className="text-white ml-auto">{entry.amount}</span>
                     </div>
@@ -369,9 +611,9 @@ const SWDPage = () => {
               <div className="space-y-3">
                 <h4 className="font-semibold text-white text-sm">Lowest Set</h4>
                 <div className="space-y-2">
-                  {scriptData?.leaderboard.lowestSet.map((entry, index) => (
+                  {leaderboard.lowestSet.map((entry, index) => (
                     <div key={index} className="flex items-center gap-2 text-sm">
-                      <span className="text-purple-400">{entry.rank}.</span>
+                      <span className="text-purple-400">{entry.rank + 1}.</span>
                       <span className="text-gray-300 truncate">{entry.creator}</span>
                       <span className="text-white ml-auto">{entry.amount}</span>
                     </div>
@@ -383,9 +625,9 @@ const SWDPage = () => {
               <div className="space-y-3">
                 <h4 className="font-semibold text-white text-sm">Highest Script</h4>
                 <div className="space-y-2">
-                  {scriptData?.leaderboard.highestScript.map((entry, index) => (
+                  {leaderboard.highestScript.map((entry, index) => (
                     <div key={index} className="flex items-center gap-2 text-sm">
-                      <span className="text-purple-400">{entry.rank}.</span>
+                      <span className="text-purple-400">{entry.rank + 1}.</span>
                       <span className="text-gray-300 truncate">{entry.creator}</span>
                       <span className="text-white ml-auto">{entry.amount}</span>
                     </div>
@@ -397,9 +639,9 @@ const SWDPage = () => {
               <div className="space-y-3">
                 <h4 className="font-semibold text-white text-sm">Lowest Script</h4>
                 <div className="space-y-2">
-                  {scriptData?.leaderboard.lowestScript.map((entry, index) => (
+                  {leaderboard.lowestScript.map((entry, index) => (
                     <div key={index} className="flex items-center gap-2 text-sm">
-                      <span className="text-purple-400">{entry.rank}.</span>
+                      <span className="text-purple-400">{entry.rank + 1}.</span>
                       <span className="text-gray-300 truncate">{entry.creator}</span>
                       <span className="text-white ml-auto">{entry.amount}</span>
                     </div>
@@ -416,11 +658,15 @@ const SWDPage = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
-                    {scriptData?.leaderboard.zeroSet.map((creator, index) => (
-                      <Badge key={index} className="bg-red-900/20 text-red-300 border-red-800/30">
-                        {creator}
-                      </Badge>
-                    ))}
+                    {leaderboard.zeroSet.length === 0 ? (
+                      <span className="text-gray-400 text-sm">No creators with zero sets</span>
+                    ) : (
+                      leaderboard.zeroSet.map((creator, index) => (
+                        <Badge key={index} className="bg-red-900/20 text-red-300 border-red-800/30">
+                          {creator}
+                        </Badge>
+                      ))
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -431,11 +677,15 @@ const SWDPage = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-2">
-                    {scriptData?.leaderboard.zeroScript.map((creator, index) => (
-                      <Badge key={index} className="bg-orange-900/20 text-orange-300 border-orange-800/30">
-                        {creator}
-                      </Badge>
-                    ))}
+                    {leaderboard.zeroScript.length === 0 ? (
+                      <span className="text-gray-400 text-sm">No creators with zero scripts</span>
+                    ) : (
+                      leaderboard.zeroScript.map((creator, index) => (
+                        <Badge key={index} className="bg-orange-900/20 text-orange-300 border-orange-800/30">
+                          {creator}
+                        </Badge>
+                      ))
+                    )}
                   </div>
                 </CardContent>
               </Card>
