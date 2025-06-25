@@ -876,7 +876,7 @@ const SWDPage = () => {
             </DialogHeader>
             <div className="p-4">
               <p className="text-gray-300 mb-4">
-                Your script request has been successfully submitted. We'll process it and get back to you soon.
+                Your script request has been successfully submitted. We&apos;ll process it and get back to you soon.
               </p>
               <Button 
                 onClick={() => setShowRequestSuccess(false)}
