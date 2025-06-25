@@ -212,12 +212,17 @@ export async function POST(req: NextRequest) {
     const sheets = google.sheets({ version: "v4", auth: oauth2Client });
     const spreadsheetId = "1hmC08YXrDygHzQiMd-33MJBT26QEoSaBnvvMozsIop0";
 
+    const dataRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: "Send+Buy Input!B3:B", // only checking creator column
+    });
+    const lastRow = (dataRes.data.values?.length || 0) + 3; // start at row 3
+
     // Append the new row
     await sheets.spreadsheets.values.append({
       spreadsheetId,
-      range: "Send+Buy Input!A3:H",
+      range: `Send+Buy Input!B${lastRow}:H${lastRow}`,
       valueInputOption: "USER_ENTERED",
-      insertDataOption: "INSERT_ROWS",
       requestBody: {
         values: [
           [
@@ -235,6 +240,7 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ message: "Row added successfully." });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("Error adding data to Send+Buy Input sheet:", error);
 
