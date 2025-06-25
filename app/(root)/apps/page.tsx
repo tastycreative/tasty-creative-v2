@@ -18,7 +18,8 @@ export default function AppsPage() {
 
   // Filter visible apps based on user role
   const visibleApps = appPages.filter(
-    (app) => !app.roles || app.roles.includes(session?.user?.role || "GUEST")
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (app) => !(app as any).roles || (app as any).roles.includes(session?.user?.role || "GUEST")
   );
 
   // Dynamic grid sizing function - creates layouts that completely fill the grid
