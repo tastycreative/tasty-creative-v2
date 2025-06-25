@@ -750,37 +750,52 @@ const QuickDataEntry = ({ onDataSubmitted }: QuickDataEntryProps) => {
     }))
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsSubmitting(true)
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setIsSubmitting(true);
 
-    try {
-      // Here you would typically submit to your API
-      // For now, we'll just simulate a submission
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Reset form
-      setFormData({
-        creator: '',
-        month: '',
-        dateUpdated: '',
-        scriptTitle: '',
-        scriptLink: '',
-        totalSend: '',
-        totalBuy: ''
-      })
-      
-      setShowSuccess(true)
-      setTimeout(() => setShowSuccess(false), 3000)
-      
-      // Refresh the data
-      onDataSubmitted()
-    } catch (error) {
-      console.error('Error submitting data:', error)
-    } finally {
-      setIsSubmitting(false)
+  try {
+    const response = await fetch("/api/google/swd-data", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        ...formData,
+        totalSend: formData.totalSend.replace(/,/g, ""),
+        totalBuy: formData.totalBuy.replace(/[^0-9.]/g, ""),
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to submit");
     }
+
+    // Reset form
+    setFormData({
+      creator: "",
+      month: "",
+      dateUpdated: "",
+      scriptTitle: "",
+      scriptLink: "",
+      totalSend: "",
+      totalBuy: "",
+    });
+
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
+
+    // Refresh the data
+    onDataSubmitted();
+  } catch (error) {
+    console.error("Error submitting data:", error);
+    alert("There was an error submitting the form. Check console for details.");
+  } finally {
+    setIsSubmitting(false);
   }
+};
+
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 p-2">

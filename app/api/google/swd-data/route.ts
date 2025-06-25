@@ -141,3 +141,93 @@ export async function GET(): Promise<NextResponse<ApiResponse | { error: string;
     );
   }
 }
+
+export async function POST(req: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
+    if (!session.accessToken) {
+      return NextResponse.json(
+        { error: "Not authenticated. No access token." },
+        { status: 401 }
+      );
+    }
+
+    const body = await req.json();
+
+    const {
+      creator,
+      month,
+      dateUpdated,
+      scriptTitle,
+      scriptLink,
+      totalSend,
+      totalBuy,
+    } = body;
+
+    // Validate required fields
+    if (!creator || !month || !dateUpdated || !scriptTitle || !scriptLink) {
+      return NextResponse.json(
+        { error: "Missing required fields." },
+        { status: 400 }
+      );
+    }
+
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI
+    );
+
+    oauth2Client.setCredentials({
+      access_token: session.accessToken,
+      refresh_token: session.refreshToken,
+      expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
+    });
+
+    const sheets = google.sheets({ version: "v4", auth: oauth2Client });
+    const spreadsheetId = "1hmC08YXrDygHzQiMd-33MJBT26QEoSaBnvvMozsIop0";
+
+    // Append the new row
+    await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: "Send+Buy Input!B3:H",
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: [
+          [
+            creator,
+            month,
+            dateUpdated,
+            scriptTitle,
+            scriptLink,
+            totalSend,
+            totalBuy,
+          ],
+        ],
+      },
+    });
+
+    return NextResponse.json({ message: "Row added successfully." });
+  } catch (error: any) {
+    console.error("Error adding data to Send+Buy Input sheet:", error);
+
+    if (error.code === 403 && error.errors && error.errors.length > 0) {
+      return NextResponse.json(
+        {
+          error: "GooglePermissionDenied",
+          message: `Google API Error: ${error.errors[0].message}`,
+        },
+        { status: 403 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Failed to add row", details: error.message },
+      { status: 500 }
+    );
+  }
+}
