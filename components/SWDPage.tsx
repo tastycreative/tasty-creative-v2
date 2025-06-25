@@ -104,7 +104,7 @@ const SWDPage = () => {
   }
 
   // Client-side filtering and calculations
-  const { filteredSendBuyData, bestScripts, leaderboard } = useMemo(() => {
+  const { bestScripts, leaderboard } = useMemo(() => {
     if (!apiData) {
       return {
         filteredSendBuyData: [],

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import {  NextResponse } from "next/server";
 import { google } from "googleapis";
 import { auth } from "@/auth";
 
@@ -30,7 +30,7 @@ interface ApiResponse {
   availableMonths: string[];
 }
 
-export async function GET(request: NextRequest): Promise<NextResponse<ApiResponse | { error: string; message?: string; details?: string }>> {
+export async function GET(): Promise<NextResponse<ApiResponse | { error: string; message?: string; details?: string }>> {
   try {
     // Get session and authenticate
     const session = await auth();
@@ -119,6 +119,7 @@ export async function GET(request: NextRequest): Promise<NextResponse<ApiRespons
 
     return NextResponse.json(response);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("Error fetching SWD data:", error);
     
