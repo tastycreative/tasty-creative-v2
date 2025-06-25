@@ -1,4 +1,4 @@
-import {  NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import { auth } from "@/auth";
 
@@ -30,7 +30,11 @@ interface ApiResponse {
   availableMonths: string[];
 }
 
-export async function GET(): Promise<NextResponse<ApiResponse | { error: string; message?: string; details?: string }>> {
+export async function GET(): Promise<
+  NextResponse<
+    ApiResponse | { error: string; message?: string; details?: string }
+  >
+> {
   try {
     // Get session and authenticate
     const session = await auth();
@@ -74,58 +78,75 @@ export async function GET(): Promise<NextResponse<ApiResponse | { error: string;
     const sendBuyRows: string[][] = sendBuyResponse.data.values || [];
 
     // Process model data from Client Database
-    const modelData: ModelData[] = clientRows.map((row: string[]) => ({
-      creator: row[1] || "", // Creator (column B)
-      totalSets: parseInt(row[2]) || 0, // Total sets (column C)
-      totalScripts: parseInt(row[3]) || 0, // Total Scripts (column D)
-      personalityType: row[4] || "", // Personality Type (column E)
-      commonTerms: row[5] || "", // Common Terms (column F)
-      commonEmojis: row[6] || "", // Common Emojis (column G)
-      restrictedTerms: row[7] || "", // Restricted Terms or Emojis (column H)
-    })).filter((model: ModelData) => model.creator && model.creator.trim() !== "");
+    const modelData: ModelData[] = clientRows
+      .map((row: string[]) => ({
+        creator: row[1] || "", // Creator (column B)
+        totalSets: parseInt(row[2]) || 0, // Total sets (column C)
+        totalScripts: parseInt(row[3]) || 0, // Total Scripts (column D)
+        personalityType: row[4] || "", // Personality Type (column E)
+        commonTerms: row[5] || "", // Common Terms (column F)
+        commonEmojis: row[6] || "", // Common Emojis (column G)
+        restrictedTerms: row[7] || "", // Restricted Terms or Emojis (column H)
+      }))
+      .filter(
+        (model: ModelData) => model.creator && model.creator.trim() !== ""
+      );
 
     // Process Send+Buy data
-    const sendBuyData: SendBuyData[] = sendBuyRows.map((row: string[]) => {
-      // Clean and parse totalSend (remove commas)
-      const totalSendStr = row[5] || "0";
-      const totalSend = parseInt(totalSendStr.replace(/,/g, '')) || 0;
-      
-      // Clean and parse totalBuy (remove $ and commas, handle both $ prefix and suffix)
-      const totalBuyStr = row[6] || "0";
-      const cleanedBuy = totalBuyStr.replace(/[$,\s]/g, ''); // Remove $, commas, and spaces
-      const totalBuy = parseFloat(cleanedBuy) || 0;
-      
-      return {
-        creator: row[0] || "",
-        month: row[1] || "",
-        dateUpdated: row[2] || "",
-        scriptTitle: row[3] || "",
-        scriptLink: row[4] || "",
-        totalSend: totalSend,
-        totalBuy: totalBuy,
-      };
-    }).filter((item: SendBuyData) => item.creator && item.creator.trim() !== "");
+    const sendBuyData: SendBuyData[] = sendBuyRows
+      .map((row: string[]) => {
+        // Clean and parse totalSend (remove commas)
+        const totalSendStr = row[5] || "0";
+        const totalSend = parseInt(totalSendStr.replace(/,/g, "")) || 0;
+
+        // Clean and parse totalBuy (remove $ and commas, handle both $ prefix and suffix)
+        const totalBuyStr = row[6] || "0";
+        const cleanedBuy = totalBuyStr.replace(/[$,\s]/g, ""); // Remove $, commas, and spaces
+        const totalBuy = parseFloat(cleanedBuy) || 0;
+
+        return {
+          creator: row[0] || "",
+          month: row[1] || "",
+          dateUpdated: row[2] || "",
+          scriptTitle: row[3] || "",
+          scriptLink: row[4] || "",
+          totalSend: totalSend,
+          totalBuy: totalBuy,
+        };
+      })
+      .filter(
+        (item: SendBuyData) => item.creator && item.creator.trim() !== ""
+      );
 
     // Get unique creators and months for dropdowns
-    const availableCreators: string[] = [...new Set(modelData.map((m: ModelData) => m.creator))].sort();
-    const availableMonths: string[] = [...new Set(sendBuyData.map((s: SendBuyData) => s.month))].filter((m: string) => m).sort();
+    const availableCreators: string[] = [
+      ...new Set(modelData.map((m: ModelData) => m.creator)),
+    ].sort();
+    const availableMonths: string[] = [
+      ...new Set(sendBuyData.map((s: SendBuyData) => s.month)),
+    ]
+      .filter((m: string) => m)
+      .sort();
 
     const response: ApiResponse = {
       modelData,
       sendBuyData,
       availableCreators,
-      availableMonths
+      availableMonths,
     };
 
     return NextResponse.json(response);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("Error fetching SWD data:", error);
-    
+
     // Handle Google API permission errors
     if (error.code === 403 && error.errors && error.errors.length > 0) {
-      console.error("Google API Permission Error (403):", error.errors[0].message);
+      console.error(
+        "Google API Permission Error (403):",
+        error.errors[0].message
+      );
       return NextResponse.json(
         {
           error: "GooglePermissionDenied",
@@ -194,11 +215,12 @@ export async function POST(req: NextRequest) {
     // Append the new row
     await sheets.spreadsheets.values.append({
       spreadsheetId,
-      range: "Send+Buy Input!B3:H",
+      range: "Send+Buy Input!A3:H",
       valueInputOption: "USER_ENTERED",
       requestBody: {
         values: [
           [
+            "",
             creator,
             month,
             dateUpdated,
