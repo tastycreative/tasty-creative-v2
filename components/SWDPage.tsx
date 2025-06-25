@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Loader2, TrendingUp, Award, Trophy, Star, Zap, Sparkles, Crown, Medal, Users, FileText, Brain, Hash, Calendar, Plus, CheckCircle } from 'lucide-react'
+import { Loader2, TrendingUp, Award, Trophy, Star, Zap, Sparkles, Crown, Medal, Users, FileText, Brain, Hash, Calendar, Plus, CheckCircle, PenTool } from 'lucide-react'
 import { Button } from "./ui/button";
 import { useSession } from "next-auth/react";
 
@@ -80,6 +80,8 @@ const SWDPage = () => {
   const [apiData, setApiData] = useState<ApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showQuickDataSuccess, setShowQuickDataSuccess] = useState(false);
+  const [showRequestSuccess, setShowRequestSuccess] = useState(false);
 
   useEffect(() => {
     fetchAllData();
@@ -366,7 +368,7 @@ const SWDPage = () => {
                   Submit Script Request
                 </DialogTitle>
               </DialogHeader>
-              <RequestForm onRequestSubmitted={fetchAllData} />
+              <RequestForm onRequestSubmitted={fetchAllData} onSuccess={() => setShowRequestSuccess(true)} />
             </DialogContent>
           </Dialog>
 
@@ -851,9 +853,10 @@ interface QuickDataEntryProps {
 
 interface RequestFormProps {
   onRequestSubmitted: () => void;
+  onSuccess: () => void;
 }
 
-const RequestForm = ({ onRequestSubmitted }: RequestFormProps) => {
+const RequestForm = ({ onRequestSubmitted, onSuccess }: RequestFormProps) => {
   const [formData, setFormData] = useState({
     requestedBy: "",
     model: "",
@@ -915,6 +918,9 @@ const RequestForm = ({ onRequestSubmitted }: RequestFormProps) => {
       setTimeout(() => {
         setShowSuccess(false);
       }, 5000);
+
+      // Trigger parent success handler
+      onSuccess();
 
       // Refresh the data
       onRequestSubmitted();
@@ -1117,7 +1123,7 @@ const QuickDataEntry = ({ onDataSubmitted, onSuccess }: QuickDataEntryProps) => 
 
       // Refresh the data
       onDataSubmitted();
-      onSuccess()
+      onSuccess();
     } catch (error) {
       console.error("Error submitting data:", error);
       alert(
@@ -1247,10 +1253,11 @@ const QuickDataEntry = ({ onDataSubmitted, onSuccess }: QuickDataEntryProps) => 
           </button>
         </div>
       </form>
-    
-```python
-    
-    {/* Success Modals */}
+    </div>
+  );
+};
+
+export default SWDPage;
         <Dialog open={showQuickDataSuccess} onOpenChange={setShowQuickDataSuccess}>
           <DialogContent className="bg-gray-900 border-gray-800">
             <DialogHeader>
@@ -1294,9 +1301,52 @@ const QuickDataEntry = ({ onDataSubmitted, onSuccess }: QuickDataEntryProps) => 
             </div>
           </DialogContent>
         </Dialog>
-      
-    
+
+        {/* Success Modals */}
+        <Dialog open={showQuickDataSuccess} onOpenChange={setShowQuickDataSuccess}>
+          <DialogContent className="bg-gray-900 border-gray-800">
+            <DialogHeader>
+              <DialogTitle className="text-white flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-400" />
+                Success!
+              </DialogTitle>
+            </DialogHeader>
+            <div className="p-4">
+              <p className="text-gray-300 mb-4">
+                Your script data has been successfully submitted and added to the spreadsheet.
+              </p>
+              <Button 
+                onClick={() => setShowQuickDataSuccess(false)}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                Continue
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showRequestSuccess} onOpenChange={setShowRequestSuccess}>
+          <DialogContent className="bg-gray-900 border-gray-800">
+            <DialogHeader>
+              <DialogTitle className="text-white flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-400" />
+                Request Submitted!
+              </DialogTitle>
+            </DialogHeader>
+            <div className="p-4">
+              <p className="text-gray-300 mb-4">
+                Your script request has been successfully submitted. We'll process it and get back to you soon.
+              </p>
+              <Button 
+                onClick={() => setShowRequestSuccess(false)}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                Continue
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
   );
 };
-
-export default SWDPage;
