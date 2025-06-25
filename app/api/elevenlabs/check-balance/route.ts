@@ -2,8 +2,24 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export async function POST(request: NextRequest) {
+  let apiKeyProfileKey: string | undefined;
+  
   try {
-    const { apiKeyProfileKey } = await request.json();
+    const requestBody = await request.json();
+    apiKeyProfileKey = requestBody.apiKeyProfileKey;
+    
+    // Validate that apiKeyProfileKey is provided
+    if (!apiKeyProfileKey) {
+      return NextResponse.json(
+        { 
+          error: 'API key profile key is required',
+          errorType: 'missing_profile_key',
+          character: { limit: 0, remaining: 0, used: 0 },
+          status: 'error'
+        },
+        { status: 400 }
+      );
+    }
     
     // Map profile keys to environment variables
     const API_KEY_MAP: Record<string, string | undefined> = {
@@ -197,7 +213,8 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error(`Unexpected error checking balance for ${apiKeyProfileKey}:`, error);
+    const profileKey = apiKeyProfileKey || 'unknown';
+    console.error(`Unexpected error checking balance for ${profileKey}:`, error);
     
     // Determine error type from the error message
     let errorType = 'network_error';
