@@ -366,8 +366,28 @@ const SWDPage = () => {
           </p>
         </div>
 
-        {/* Quick Data Entry Modal Trigger */}
-        <div className="flex justify-end">
+        {/* Action Buttons */}
+        <div className="flex justify-end gap-4">
+          {/* Request Section Modal */}
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                New Request
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-gray-900 border-gray-800 max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader className="bg-gradient-to-r from-purple-900/20 via-pink-900/20 to-purple-900/20 border-b border-gray-800 px-6 py-4">
+                <DialogTitle className="text-white flex items-center gap-2">
+                  <Users className="w-5 h-5 text-purple-400" />
+                  Submit Script Request
+                </DialogTitle>
+              </DialogHeader>
+              <RequestForm onRequestSubmitted={fetchAllData} />
+            </DialogContent>
+          </Dialog>
+
+          {/* Quick Data Entry Modal */}
           <Dialog>
             <DialogTrigger asChild>
               <Button className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2">
@@ -842,6 +862,177 @@ const SWDPage = () => {
 interface QuickDataEntryProps {
   onDataSubmitted: () => void;
 }
+
+interface RequestFormProps {
+  onRequestSubmitted: () => void;
+}
+
+const RequestForm = ({ onRequestSubmitted }: RequestFormProps) => {
+  const [formData, setFormData] = useState({
+    requesterName: "",
+    modelName: "",
+    sextingSet: "",
+    specialRequests: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setShowSuccess(false);
+
+    try {
+      const response = await fetch("/api/google/swd-requests", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...formData,
+          dateRequested: new Date().toLocaleDateString(),
+          status: "Pending",
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to submit request");
+      }
+
+      // Reset form
+      setFormData({
+        requesterName: "",
+        modelName: "",
+        sextingSet: "",
+        specialRequests: "",
+      });
+
+      // Show success message
+      setShowSuccess(true);
+
+      // Hide success message after 5 seconds
+      setTimeout(() => {
+        setShowSuccess(false);
+      }, 5000);
+
+      // Refresh the data
+      onRequestSubmitted();
+    } catch (error) {
+      console.error("Error submitting request:", error);
+      alert(
+        "There was an error submitting the request. Check console for details."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="bg-gray-900/50 border border-gray-800 rounded-lg backdrop-blur-xl overflow-hidden">
+      <form onSubmit={handleSubmit} className="space-y-6 p-6">
+        <div className="grid grid-cols-1 gap-4">
+          {/* Who requested it? */}
+          <div className="space-y-2">
+            <label className="text-sm text-gray-400">Who requested it? *</label>
+            <input
+              type="text"
+              name="requesterName"
+              value={formData.requesterName}
+              onChange={handleInputChange}
+              placeholder="Enter requester name"
+              className="w-full bg-gray-800/50 border border-gray-700 text-white px-3 py-2 rounded-lg focus:border-purple-500 focus:outline-none transition-colors"
+              required
+            />
+          </div>
+
+          {/* What model? */}
+          <div className="space-y-2">
+            <label className="text-sm text-gray-400">What model? *</label>
+            <input
+              type="text"
+              name="modelName"
+              value={formData.modelName}
+              onChange={handleInputChange}
+              placeholder="Enter model name"
+              className="w-full bg-gray-800/50 border border-gray-700 text-white px-3 py-2 rounded-lg focus:border-purple-500 focus:outline-none transition-colors"
+              required
+            />
+          </div>
+
+          {/* Which sexting set? */}
+          <div className="space-y-2">
+            <label className="text-sm text-gray-400">Which sexting set? *</label>
+            <input
+              type="text"
+              name="sextingSet"
+              value={formData.sextingSet}
+              onChange={handleInputChange}
+              placeholder="Enter sexting set name/number"
+              className="w-full bg-gray-800/50 border border-gray-700 text-white px-3 py-2 rounded-lg focus:border-purple-500 focus:outline-none transition-colors"
+              required
+            />
+          </div>
+
+          {/* Special requests */}
+          <div className="space-y-2">
+            <label className="text-sm text-gray-400">Any special requests?</label>
+            <textarea
+              name="specialRequests"
+              value={formData.specialRequests}
+              onChange={handleInputChange}
+              placeholder="Enter any special requests or notes..."
+              rows={4}
+              className="w-full bg-gray-800/50 border border-gray-700 text-white px-3 py-2 rounded-lg focus:border-purple-500 focus:outline-none transition-colors resize-y"
+            />
+          </div>
+        </div>
+
+        {/* Submit Section */}
+        <div className="flex items-center justify-between pt-4 border-t border-gray-800">
+          <div className="flex items-center gap-2">
+            {showSuccess && (
+              <div className="flex items-center gap-2 text-green-400 animate-in fade-in duration-300">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium">
+                  Request submitted successfully!
+                </span>
+              </div>
+            )}
+          </div>
+
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2 font-medium"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              <>
+                <Users className="w-4 h-4" />
+                Submit Request
+              </>
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
 
 const QuickDataEntry = ({ onDataSubmitted }: QuickDataEntryProps) => {
   const [formData, setFormData] = useState({
