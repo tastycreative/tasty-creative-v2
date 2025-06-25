@@ -219,28 +219,27 @@ export async function POST(req: NextRequest) {
     const lastRow = (dataRes.data.values?.length || 0) + 3; // start at row 3
 
     // Append the new row
-    await sheets.spreadsheets.values.append({
+    // Write to column B (creator)
+    await sheets.spreadsheets.values.update({
       spreadsheetId,
-      range: `Send+Buy Input!B${lastRow}:H${lastRow}`,
+      range: `Send+Buy Input!B${lastRow}:B${lastRow}`,
       valueInputOption: "USER_ENTERED",
       requestBody: {
-        values: [
-          [
-            "",
-            creator,
-            month,
-            dateUpdated,
-            scriptTitle,
-            scriptLink,
-            totalSend,
-            totalBuy,
-          ],
-        ],
+        values: [[creator]],
+      },
+    });
+
+    // Write to columns D to H
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `Send+Buy Input!D${lastRow}:H${lastRow}`,
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: [[dateUpdated, scriptTitle, scriptLink, totalSend, totalBuy]],
       },
     });
 
     return NextResponse.json({ message: "Row added successfully." });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("Error adding data to Send+Buy Input sheet:", error);
 
