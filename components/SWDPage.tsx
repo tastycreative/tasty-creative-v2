@@ -11,31 +11,8 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Loader2,
-  TrendingUp,
-  Award,
-  Trophy,
-  Star,
-  Zap,
-  Sparkles,
-  Crown,
-  Medal,
-  Users,
-  FileText,
-  Brain,
-  Hash,
-  Calendar,
-  Plus,
-  PenTool,
-} from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Loader2, TrendingUp, Award, Trophy, Star, Zap, Sparkles, Crown, Medal, Users, FileText, Brain, Hash, Calendar, Plus, CheckCircle } from 'lucide-react'
 import { Button } from "./ui/button";
 import { useSession } from "next-auth/react";
 
@@ -409,7 +386,7 @@ const SWDPage = () => {
                     Quick Data Entry - Send+Buy Input
                   </DialogTitle>
                 </DialogHeader>
-                <QuickDataEntry onDataSubmitted={fetchAllData} />
+                <QuickDataEntry onDataSubmitted={fetchAllData} onSuccess={() => setShowQuickDataSuccess(true)} />
               </DialogContent>
             </Dialog>
           )}
@@ -869,6 +846,7 @@ const SWDPage = () => {
 
 interface QuickDataEntryProps {
   onDataSubmitted: () => void;
+  onSuccess: () => void;
 }
 
 interface RequestFormProps {
@@ -1050,7 +1028,7 @@ const RequestForm = ({ onRequestSubmitted }: RequestFormProps) => {
   );
 };
 
-const QuickDataEntry = ({ onDataSubmitted }: QuickDataEntryProps) => {
+const QuickDataEntry = ({ onDataSubmitted, onSuccess }: QuickDataEntryProps) => {
   const [formData, setFormData] = useState({
     creator: "",
     dateUpdated: "",
@@ -1139,6 +1117,7 @@ const QuickDataEntry = ({ onDataSubmitted }: QuickDataEntryProps) => {
 
       // Refresh the data
       onDataSubmitted();
+      onSuccess()
     } catch (error) {
       console.error("Error submitting data:", error);
       alert(
@@ -1268,7 +1247,55 @@ const QuickDataEntry = ({ onDataSubmitted }: QuickDataEntryProps) => {
           </button>
         </div>
       </form>
-    </div>
+    
+```python
+    
+    {/* Success Modals */}
+        <Dialog open={showQuickDataSuccess} onOpenChange={setShowQuickDataSuccess}>
+          <DialogContent className="bg-gray-900 border-gray-800">
+            <DialogHeader>
+              <DialogTitle className="text-white flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-400" />
+                Success!
+              </DialogTitle>
+            </DialogHeader>
+            <div className="p-4">
+              <p className="text-gray-300 mb-4">
+                Your script data has been successfully submitted and added to the spreadsheet.
+              </p>
+              <Button 
+                onClick={() => setShowQuickDataSuccess(false)}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                Continue
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showRequestSuccess} onOpenChange={setShowRequestSuccess}>
+          <DialogContent className="bg-gray-900 border-gray-800">
+            <DialogHeader>
+              <DialogTitle className="text-white flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-400" />
+                Request Submitted!
+              </DialogTitle>
+            </DialogHeader>
+            <div className="p-4">
+              <p className="text-gray-300 mb-4">
+                Your script request has been successfully submitted. We'll process it and get back to you soon.
+              </p>
+              <Button 
+                onClick={() => setShowRequestSuccess(false)}
+                className="w-full bg-green-600 hover:bg-green-700"
+              >
+                Continue
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      
+    
   );
 };
 
