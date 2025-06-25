@@ -267,6 +267,6 @@ export const appPages = [
     icon: PenTool,
     color: "from-purple-500 to-pink-500",
     description: "Script Writing Department",
-    roles: ["SWD", "ADMIN"]
+    // roles: ["SWD", "ADMIN"]
   },
 ];

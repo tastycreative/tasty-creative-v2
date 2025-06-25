@@ -34,8 +34,10 @@ import {
   Hash,
   Calendar,
   Plus,
+  PenTool,
 } from "lucide-react";
 import { Button } from "./ui/button";
+import { useSession } from "next-auth/react";
 
 interface ModelData {
   creator: string;
@@ -308,6 +310,10 @@ const SWDPage = () => {
     (model) => model.creator === selectedModel
   );
 
+  const { data: session } = useSession();
+
+  const userRole = session?.user?.role || "GUEST";
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-950 p-6">
@@ -372,8 +378,8 @@ const SWDPage = () => {
           <Dialog>
             <DialogTrigger asChild>
               <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2">
-                <Users className="w-4 h-4" />
-                New Request
+                <PenTool className="w-4 h-4" />
+                Script Request
               </Button>
             </DialogTrigger>
             <DialogContent className="bg-gray-900 border-gray-800 max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -388,23 +394,25 @@ const SWDPage = () => {
           </Dialog>
 
           {/* Quick Data Entry Modal */}
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                Add Entry
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-gray-900 border-gray-800 max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader className="bg-gradient-to-r from-green-900/20 via-blue-900/20 to-purple-900/20 border-b border-gray-800 px-6 py-4">
-                <DialogTitle className="text-white flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-green-400" />
-                  Quick Data Entry - Send+Buy Input
-                </DialogTitle>
-              </DialogHeader>
-              <QuickDataEntry onDataSubmitted={fetchAllData} />
-            </DialogContent>
-          </Dialog>
+          {(userRole === "SWD" || userRole === "ADMIN") && (
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2">
+                  <Plus className="w-4 h-4" />
+                  Add Send+Buy Input Entry
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-gray-900 border-gray-800 max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader className="bg-gradient-to-r from-green-900/20 via-blue-900/20 to-purple-900/20 border-b border-gray-800 px-6 py-4">
+                  <DialogTitle className="text-white flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-green-400" />
+                    Quick Data Entry - Send+Buy Input
+                  </DialogTitle>
+                </DialogHeader>
+                <QuickDataEntry onDataSubmitted={fetchAllData} />
+              </DialogContent>
+            </Dialog>
+          )}
         </div>
 
         {/* Model Selection Card */}
@@ -869,8 +877,8 @@ interface RequestFormProps {
 
 const RequestForm = ({ onRequestSubmitted }: RequestFormProps) => {
   const [formData, setFormData] = useState({
-    requesterName: "",
-    modelName: "",
+    requestedBy: "",
+    model: "",
     sextingSet: "",
     specialRequests: "",
   });
@@ -878,7 +886,9 @@ const RequestForm = ({ onRequestSubmitted }: RequestFormProps) => {
   const [showSuccess, setShowSuccess] = useState(false);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -893,15 +903,17 @@ const RequestForm = ({ onRequestSubmitted }: RequestFormProps) => {
     setShowSuccess(false);
 
     try {
-      const response = await fetch("/api/google/swd-requests", {
+      // Inside handleSubmit()
+      const response = await fetch("/api/google/swd-request", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          ...formData,
-          dateRequested: new Date().toLocaleDateString(),
-          status: "Pending",
+          requestedBy: formData.requestedBy,
+          model: formData.model,
+          sextingSet: formData.sextingSet,
+          specialRequest: formData.specialRequests,
         }),
       });
 
@@ -912,8 +924,8 @@ const RequestForm = ({ onRequestSubmitted }: RequestFormProps) => {
 
       // Reset form
       setFormData({
-        requesterName: "",
-        modelName: "",
+        requestedBy: "",
+        model: "",
         sextingSet: "",
         specialRequests: "",
       });
@@ -947,8 +959,8 @@ const RequestForm = ({ onRequestSubmitted }: RequestFormProps) => {
             <label className="text-sm text-gray-400">Who requested it? *</label>
             <input
               type="text"
-              name="requesterName"
-              value={formData.requesterName}
+              name="requestedBy"
+              value={formData.requestedBy}
               onChange={handleInputChange}
               placeholder="Enter requester name"
               className="w-full bg-gray-800/50 border border-gray-700 text-white px-3 py-2 rounded-lg focus:border-purple-500 focus:outline-none transition-colors"
@@ -961,8 +973,8 @@ const RequestForm = ({ onRequestSubmitted }: RequestFormProps) => {
             <label className="text-sm text-gray-400">What model? *</label>
             <input
               type="text"
-              name="modelName"
-              value={formData.modelName}
+              name="model"
+              value={formData.model}
               onChange={handleInputChange}
               placeholder="Enter model name"
               className="w-full bg-gray-800/50 border border-gray-700 text-white px-3 py-2 rounded-lg focus:border-purple-500 focus:outline-none transition-colors"
@@ -972,7 +984,9 @@ const RequestForm = ({ onRequestSubmitted }: RequestFormProps) => {
 
           {/* Which sexting set? */}
           <div className="space-y-2">
-            <label className="text-sm text-gray-400">Which sexting set? *</label>
+            <label className="text-sm text-gray-400">
+              Which sexting set? *
+            </label>
             <input
               type="text"
               name="sextingSet"
@@ -986,7 +1000,9 @@ const RequestForm = ({ onRequestSubmitted }: RequestFormProps) => {
 
           {/* Special requests */}
           <div className="space-y-2">
-            <label className="text-sm text-gray-400">Any special requests?</label>
+            <label className="text-sm text-gray-400">
+              Any special requests?
+            </label>
             <textarea
               name="specialRequests"
               value={formData.specialRequests}
