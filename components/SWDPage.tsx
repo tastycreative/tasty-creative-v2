@@ -246,7 +246,7 @@ const SWDPage = () => {
     }
 
     return {
-      filteredSendBuyData: filteredData,
+      filteredSendBuyData: creatorFilteredData,
       bestScripts,
       leaderboard
     }
