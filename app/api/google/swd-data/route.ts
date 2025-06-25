@@ -217,6 +217,7 @@ export async function POST(req: NextRequest) {
       spreadsheetId,
       range: "Send+Buy Input!A3:H",
       valueInputOption: "USER_ENTERED",
+      insertDataOption: "INSERT_ROWS",
       requestBody: {
         values: [
           [
