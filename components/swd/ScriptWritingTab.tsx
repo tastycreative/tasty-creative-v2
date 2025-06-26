@@ -50,7 +50,9 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
   };
 
   const handleFontSizeChange = (size: string) => {
-    executeCommand('fontSize', size);
+    // Extract the numeric value from the point size (e.g., "12pt" -> "12")
+    const numericSize = size.replace('pt', '');
+    executeCommand('fontSize', numericSize);
   };
 
   const getDocumentContent = () => {
@@ -307,11 +309,22 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
                 onChange={(e) => handleFontSizeChange(e.target.value)}
                 className="px-2 py-1 text-sm bg-gray-800 border border-gray-700 text-gray-300 rounded"
               >
-                <option value="1">Small</option>
-                <option value="3" selected>Normal</option>
-                <option value="4">Medium</option>
-                <option value="5">Large</option>
-                <option value="6">X-Large</option>
+                <option value="8pt">8 pt</option>
+                <option value="9pt">9 pt</option>
+                <option value="10pt">10 pt</option>
+                <option value="11pt">11 pt</option>
+                <option value="12pt" selected>12 pt</option>
+                <option value="14pt">14 pt</option>
+                <option value="16pt">16 pt</option>
+                <option value="18pt">18 pt</option>
+                <option value="20pt">20 pt</option>
+                <option value="22pt">22 pt</option>
+                <option value="24pt">24 pt</option>
+                <option value="26pt">26 pt</option>
+                <option value="28pt">28 pt</option>
+                <option value="36pt">36 pt</option>
+                <option value="48pt">48 pt</option>
+                <option value="72pt">72 pt</option>
               </select>
             </div>
 
