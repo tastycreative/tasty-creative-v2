@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -73,15 +72,16 @@ const SWDPage = () => {
         {/* Updated Tabs with theme styling */}
         <div className="relative">
           <Tabs defaultValue="dashboard" className="w-full space-y-6">
-            <div className="flex justify-center">
-              <TabsList className="bg-gray-900/50 border border-gray-800 backdrop-blur-xl rounded-2xl p-2 shadow-2xl">
-                <TabsTrigger 
-                  value="dashboard" 
-                  className="relative px-8 py-3 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/25 text-gray-400 hover:text-white hover:bg-gray-800/50 font-medium"
-                >
-                  <span className="relative z-10">Dashboard</span>
-                </TabsTrigger>
-                {(userRole === "SWD" || userRole === "ADMIN") && (
+            {(userRole === "SWD" || userRole === "ADMIN") && (
+              <div className="flex justify-center">
+                <TabsList className="bg-gray-900/50 border border-gray-800 backdrop-blur-xl rounded-2xl p-2 shadow-2xl">
+                  <TabsTrigger
+                    value="dashboard"
+                    className="relative px-8 py-3 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/25 text-gray-400 hover:text-white hover:bg-gray-800/50 font-medium"
+                  >
+                    <span className="relative z-10">Dashboard</span>
+                  </TabsTrigger>
+
                   <>
                     <TabsTrigger
                       value="requests"
@@ -96,9 +96,9 @@ const SWDPage = () => {
                       <span className="relative z-10">Script Writing</span>
                     </TabsTrigger>
                   </>
-                )}
-              </TabsList>
-            </div>
+                </TabsList>
+              </div>
+            )}
 
             <TabsContent value="dashboard" className="space-y-4 mt-8">
               <SWDDashboard />
