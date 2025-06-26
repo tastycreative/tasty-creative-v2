@@ -84,8 +84,8 @@ const SWDPage = () => {
                   <span className="relative z-10">Dashboard</span>
                 </TabsTrigger>
                 {(userRole === "SWD" || userRole === "ADMIN") && (
-                  <TabsTrigger 
-                    value="requests" 
+                  <TabsTrigger
+                    value="requests"
                     className="relative px-8 py-3 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/25 text-gray-400 hover:text-white hover:bg-gray-800/50 font-medium"
                   >
                     <span className="relative z-10">Requests</span>
