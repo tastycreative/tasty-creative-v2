@@ -58,6 +58,38 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Call webhook after successful sheet addition
+    try {
+      const webhookData = {
+        timestamp,
+        user,
+        requestedBy,
+        model,
+        sextingSet,
+        specialRequest,
+        spreadsheetId,
+        action: "row_added"
+      };
+
+      const webhookResponse = await fetch("https://n8n.tastycreative.xyz/webhook/d05c7614-66c7-497c-9e35-bd6037bf4902", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(webhookData),
+      });
+
+      if (!webhookResponse.ok) {
+        console.warn(`Webhook call failed with status: ${webhookResponse.status}`);
+        // Note: We don't fail the main request if webhook fails
+      } else {
+        console.log("Webhook called successfully");
+      }
+    } catch (webhookError) {
+      console.error("Error calling webhook:", webhookError);
+      // Note: We don't fail the main request if webhook fails
+    }
+
     return NextResponse.json({ message: "Request added successfully." });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
