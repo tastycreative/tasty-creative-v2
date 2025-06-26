@@ -21,6 +21,7 @@ import {
   ChevronDown,
   User,
   LogOut,
+  DollarSign,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { handleLogout } from "@/app/actions/sign-out";
@@ -43,6 +44,13 @@ const adminNavItems = [
     href: "/admin/models",
     icon: Users,
     description: "Model profile management",
+    category: "main",
+  },
+  {
+    title: "AI Finance",
+    href: "/admin/ai-finance",
+    icon: DollarSign,
+    description: "ElevenLabs billing & costs",
     category: "main",
   },
   {
@@ -202,7 +210,11 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
           {!isCollapsed && session?.user && (
             <div className="p-4 border-b border-gray-200">
               <div className="relative">
-                <input type="checkbox" id="user-dropdown" className="peer hidden" />
+                <input
+                  type="checkbox"
+                  id="user-dropdown"
+                  className="peer hidden"
+                />
                 <label
                   htmlFor="user-dropdown"
                   className="w-full flex select-none items-center gap-3 p-3 rounded-lg cursor-pointer bg-gradient-to-r from-gray-50 to-pink-50 hover:from-gray-100 hover:to-pink-100 transition-all duration-200 border border-gray-100 shadow-sm"
@@ -239,14 +251,14 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
                 </label>
 
                 <div className="absolute top-full left-0 right-0 mt-2 border border-gray-200 rounded-lg p-2 hidden peer-checked:flex flex-col gap-1 bg-white backdrop-blur-xl shadow-lg z-20">
-                  <button 
+                  <button
                     className="text-left hover:bg-gray-100 px-3 py-2 rounded-lg text-sm text-gray-700 font-medium transition-colors flex items-center gap-2"
-                    onClick={() => window.location.href = '/dashboard'}
+                    onClick={() => (window.location.href = "/dashboard")}
                   >
                     <Home className="h-4 w-4" />
                     Dashboard
                   </button>
-                  <button 
+                  <button
                     className="text-left hover:bg-gray-100 px-3 py-2 rounded-lg text-sm text-gray-700 font-medium transition-colors flex items-center gap-2"
                     // onClick={() => window.location.href = '/settings'}
                   >
