@@ -22,7 +22,6 @@ import {
   ListOrdered,
   Undo,
   Redo,
-  Type,
   CheckCircle,
   Loader2
 } from "lucide-react";
@@ -354,7 +353,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
               lineHeight: '1.6',
               fontFamily: 'system-ui, -apple-system, sans-serif'
             }}
-            placeholder="Start writing your script here..."
+            // placeholder="Start writing your script here..."
             onInput={saveToLocalStorage}
             onBlur={saveToLocalStorage}
           />
@@ -372,7 +371,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
           </DialogHeader>
           <div className="p-4 space-y-4">
             <p className="text-gray-300">
-              Your script "{documentTitle}" has been successfully uploaded to Google Drive as a Google Doc.
+              Your script &quot;{documentTitle}&quot; has been successfully uploaded to Google Drive as a Google Doc.
             </p>
             {uploadedDocUrl && (
               <div className="space-y-2">
