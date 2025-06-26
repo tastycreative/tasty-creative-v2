@@ -2,13 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { Loader2 } from 'lucide-react'
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
+import { Loader2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SWDDashboard } from "./swd/SWDDashboard";
 import { SWDRequestsTab } from "./swd/SWDRequestsTab";
 import { ScriptWritingTab } from "./swd/ScriptWritingTab";
@@ -46,11 +41,13 @@ const SWDPage = () => {
         throw new Error(errorData.message || "Failed to fetch requests");
       }
 
-      const data: Request[] = await response.json();
-      setRequests(data);
+      const json = await response.json();
+      setRequests(json.requests);
     } catch (err) {
       console.error("Error fetching requests:", err);
-      setRequestsError(err instanceof Error ? err.message : "An error occurred");
+      setRequestsError(
+        err instanceof Error ? err.message : "An error occurred"
+      );
     } finally {
       setRequestsLoading(false);
     }
@@ -84,21 +81,14 @@ const SWDPage = () => {
                   <span className="relative z-10">Dashboard</span>
                 </TabsTrigger>
                 {(userRole === "SWD" || userRole === "ADMIN") && (
+              <div className="flex justify-center">
+                <TabsList className="bg-gray-900/50 border border-gray-800 backdrop-blur-xl rounded-2xl p-2 shadow-2xl">
                   <TabsTrigger
-                    value="requests"
-                    className="relative px-8 py-3 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/25 text-gray-400 hover:text-white hover:bg-gray-800/50 font-medium"
+                    value="dashboard"
+                    className="relative px-8 py-3 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/25 text-gray-400 hover:text-white hover:bg-gray-800/50 font-medium"
                   >
-                    <span className="relative z-10">Requests</span>
+                    <span className="relative z-10">Dashboard</span>
                   </TabsTrigger>
-                )}
-                <TabsTrigger 
-                  value="writing" 
-                  className="relative px-8 py-3 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-600 data-[state=active]:to-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-orange-500/25 text-gray-400 hover:text-white hover:bg-gray-800/50 font-medium"
-                >
-                  <span className="relative z-10">Script Writing</span>
-                </TabsTrigger>
-              </TabsList>
-            </div>
 
             <TabsContent value="dashboard" className="space-y-4 mt-8">
               <SWDDashboard />
@@ -111,13 +101,19 @@ const SWDPage = () => {
                     <div className="absolute inset-0 blur-xl bg-gradient-to-r from-blue-600 to-cyan-600 rounded-full animate-pulse"></div>
                     <Loader2 className="relative w-12 h-12 text-white animate-spin" />
                   </div>
-                  <h3 className="text-xl font-semibold text-white">Loading requests...</h3>
-                  <p className="text-gray-400">Fetching the latest script requests</p>
+                  <h3 className="text-xl font-semibold text-white">
+                    Loading requests...
+                  </h3>
+                  <p className="text-gray-400">
+                    Fetching the latest script requests
+                  </p>
                 </div>
               ) : requestsError ? (
                 <div className="flex flex-col items-center justify-center min-h-[40vh] space-y-4">
                   <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-8 max-w-md">
-                    <h3 className="text-xl font-semibold text-red-400 mb-2">Error Loading Requests</h3>
+                    <h3 className="text-xl font-semibold text-red-400 mb-2">
+                      Error Loading Requests
+                    </h3>
                     <p className="text-gray-400 mb-4">{requestsError}</p>
                     <button
                       onClick={fetchRequests}

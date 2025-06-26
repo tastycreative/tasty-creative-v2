@@ -52,6 +52,9 @@ import {
 } from "@/app/services/elevenlabs-implementation";
 import { truncateText, formatDate } from "@/lib/utils";
 
+// Profile status type - simplified to 3 states
+type ProfileStatus = "healthy" | "low-credits" | "error";
+
 const AIVoicePage = () => {
   // API Key Profile state
   const [selectedApiKeyProfile, setSelectedApiKeyProfile] =
@@ -59,6 +62,15 @@ const AIVoicePage = () => {
   const [apiKeyBalance, setApiKeyBalance] = useState<ApiKeyBalance | null>(
     null
   );
+  // Profile statuses state - simplified
+  const [profileStatuses, setProfileStatuses] = useState<
+    Record<string, ProfileStatus>
+  >({});
+  const [profileErrors, setProfileErrors] = useState<Record<string, string>>(
+    {}
+  );
+  const [isCheckingStatuses, setIsCheckingStatuses] = useState(false);
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [availableVoices, setAvailableVoices] = useState<Voice[]>([]);
   const [voiceText, setVoiceText] = useState("");
@@ -94,6 +106,167 @@ const AIVoicePage = () => {
   const characterLimit = 1000;
 
   const [generationStatus, setGenerationStatus] = useState("");
+
+  // Function to determine profile status - simplified to 3 states
+  const determineProfileStatus = (
+    balance: any,
+    error?: string
+  ): ProfileStatus => {
+    // If there's any error or API issues, it's red (error)
+    if (!balance || balance.status === "error" || error) {
+      return "error";
+    }
+
+    // Check for billing/payment issues in subscription data - also red
+    if (balance.subscription) {
+      const sub = balance.subscription;
+      if (
+        sub.status &&
+        (sub.status === "incomplete" ||
+          sub.status === "past_due" ||
+          sub.status === "unpaid")
+      ) {
+        return "error";
+      }
+      if (
+        sub.payment_failed ||
+        sub.billing_issue ||
+        sub.subscription_status === "past_due"
+      ) {
+        return "error";
+      }
+    }
+
+    const remaining = balance.character?.remaining || 0;
+    const limit = balance.character?.limit || 0;
+
+    // If we have invalid numbers, it's an error (red)
+    if (limit === 0 && remaining === 0) {
+      return "error";
+    }
+
+    // If no credits remaining, it's an error (red)
+    if (remaining === 0) {
+      return "error";
+    }
+
+    // If below 100,000 credits, it's yellow (low-credits)
+    if (remaining < 100000) {
+      return "low-credits";
+    }
+
+    // Otherwise, it's green (healthy)
+    return "healthy";
+  };
+
+  // Function to check status of a single profile - simplified
+  const checkProfileStatus = async (
+    profileKey: string
+  ): Promise<ProfileStatus> => {
+    try {
+      setProfileStatuses((prev) => ({ ...prev, [profileKey]: "error" })); // Show red while checking
+      setProfileErrors((prev) => ({ ...prev, [profileKey]: "" }));
+
+      console.log(`Checking status for ${profileKey}...`);
+
+      const balance = await checkApiKeyBalance(profileKey);
+      console.log(`Balance result for ${profileKey}:`, balance);
+
+      // Extract error message from the response
+      const errorMessage = balance?.error || "";
+
+      const status = determineProfileStatus(balance, errorMessage);
+
+      // Store the error message for display
+      if (errorMessage) {
+        setProfileErrors((prev) => ({ ...prev, [profileKey]: errorMessage }));
+      }
+
+      setProfileStatuses((prev) => ({ ...prev, [profileKey]: status }));
+      return status;
+    } catch (error: any) {
+      console.error(`Error checking status for ${profileKey}:`, error);
+
+      const errorMessage = error.message || error.toString();
+      setProfileErrors((prev) => ({ ...prev, [profileKey]: errorMessage }));
+
+      setProfileStatuses((prev) => ({ ...prev, [profileKey]: "error" }));
+      return "error";
+    }
+  };
+
+  // Function to check all profile statuses
+  const checkAllProfileStatuses = async () => {
+    setIsCheckingStatuses(true);
+
+    const profiles = Object.keys(API_KEY_PROFILES);
+    const statusPromises = profiles.map((profileKey) =>
+      checkProfileStatus(profileKey)
+    );
+
+    try {
+      await Promise.allSettled(statusPromises);
+    } catch (error) {
+      console.error("Error checking profile statuses:", error);
+    } finally {
+      setIsCheckingStatuses(false);
+    }
+  };
+
+  // Function to get status indicator props - simplified to 3 states
+  const getStatusIndicator = (status: ProfileStatus) => {
+    switch (status) {
+      case "healthy":
+        return {
+          color: "bg-green-400",
+          pulse: false,
+          tooltip: "Account is healthy with plenty of credits",
+        };
+      case "low-credits":
+        return {
+          color: "bg-yellow-400",
+          pulse: true,
+          tooltip: "Low credits (below 100,000 remaining)",
+        };
+      case "error":
+      default:
+        return {
+          color: "bg-red-500",
+          pulse: false,
+          tooltip: "Account has problems or no credits",
+        };
+    }
+  };
+
+  // Status Indicator Component - simplified
+  const StatusIndicator = ({
+    status,
+    profileKey,
+  }: {
+    status: ProfileStatus;
+    profileKey?: string;
+  }) => {
+    const { color, pulse, tooltip } = getStatusIndicator(status);
+    const errorMessage = profileKey ? profileErrors[profileKey] : "";
+
+    let displayTooltip = tooltip;
+    if (errorMessage) {
+      displayTooltip = `${tooltip}: ${errorMessage}`;
+    }
+
+    return (
+      <div className="relative group">
+        <div
+          className={`w-3 h-3 rounded-full ${color} ${pulse ? "animate-pulse" : ""}`}
+          title={displayTooltip}
+        />
+        {/* Tooltip on hover */}
+        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-black rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 max-w-xs">
+          {displayTooltip}
+        </div>
+      </div>
+    );
+  };
 
   const loadHistory = async (forceRefresh = false) => {
     if (!selectedVoice || !selectedApiKeyProfile) return;
@@ -177,6 +350,24 @@ const AIVoicePage = () => {
 
       const balance = await checkApiKeyBalance(selectedApiKeyProfile);
       setApiKeyBalance(balance);
+
+      // Update status for the used profile
+      const errorMessage = balance?.error || "";
+      const newStatus = determineProfileStatus(balance, errorMessage);
+      setProfileStatuses((prev) => ({
+        ...prev,
+        [selectedApiKeyProfile]: newStatus,
+      }));
+
+      // Update error message
+      if (errorMessage) {
+        setProfileErrors((prev) => ({
+          ...prev,
+          [selectedApiKeyProfile]: errorMessage,
+        }));
+      } else {
+        setProfileErrors((prev) => ({ ...prev, [selectedApiKeyProfile]: "" }));
+      }
 
       reloadHistoryWithDelay();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -301,6 +492,29 @@ const AIVoicePage = () => {
         const balance = await checkApiKeyBalance(selectedApiKeyProfile);
         setApiKeyBalance(balance);
 
+        // Extract error message from the response
+        const errorMessage = balance?.error || "";
+
+        // Update status for the selected profile
+        const status = determineProfileStatus(balance, errorMessage);
+        setProfileStatuses((prev) => ({
+          ...prev,
+          [selectedApiKeyProfile]: status,
+        }));
+
+        // Store error message if present
+        if (errorMessage) {
+          setProfileErrors((prev) => ({
+            ...prev,
+            [selectedApiKeyProfile]: errorMessage,
+          }));
+        } else {
+          setProfileErrors((prev) => ({
+            ...prev,
+            [selectedApiKeyProfile]: "",
+          }));
+        }
+
         const profileVoices = getVoicesForProfile(selectedApiKeyProfile);
         setAvailableVoices(profileVoices);
 
@@ -316,6 +530,14 @@ const AIVoicePage = () => {
           },
           status: "error",
         });
+        setProfileStatuses((prev) => ({
+          ...prev,
+          [selectedApiKeyProfile]: "error",
+        }));
+        setProfileErrors((prev) => ({
+          ...prev,
+          [selectedApiKeyProfile]: error.message || error.toString(),
+        }));
         setVoiceError("There was an issue connecting to the API.");
       } finally {
       }
@@ -323,6 +545,11 @@ const AIVoicePage = () => {
 
     fetchApiData();
   }, [selectedApiKeyProfile]);
+
+  // Check all profile statuses on component mount
+  useEffect(() => {
+    checkAllProfileStatuses();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
@@ -337,47 +564,113 @@ const AIVoicePage = () => {
           </p>
         </div>
 
+        {/* Status Guide */}
+        <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-white">💡 Status Guide</CardTitle>
+            <CardDescription className="text-gray-400">
+              Understanding account status indicators
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                <div>
+                  <p className="text-white font-medium">Green - Healthy</p>
+                  <p className="text-sm text-gray-400">
+                    100,000+ credits remaining
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
+                <div>
+                  <p className="text-white font-medium">Yellow - Low Credits</p>
+                  <p className="text-sm text-gray-400">
+                    Below 100,000 remaining
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                <div>
+                  <p className="text-white font-medium">Red - Problems</p>
+                  <p className="text-sm text-gray-400">
+                    Issues, billing problems, or no credits
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* API Profile & Balance Card */}
         <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
           <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-              <div className="flex-1">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Left side - API Profile */}
+              <div className="space-y-4">
                 <Label className="text-gray-300 text-sm font-medium">
                   API Profile
                 </Label>
-                <Select
-                  value={selectedApiKeyProfile}
-                  onValueChange={setSelectedApiKeyProfile}
-                >
-                  <SelectTrigger className="bg-black/60 border-white/10 text-white rounded-lg mt-2 w-full md:w-80">
-                    <SelectValue placeholder="Select API profile" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-black/90 border-white/10 text-white">
-                    {Object.entries(API_KEY_PROFILES).map(([key, profile]) => (
-                      <SelectItem key={key} value={key}>
-                        {profile.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-3">
+                  <Select
+                    value={selectedApiKeyProfile}
+                    onValueChange={setSelectedApiKeyProfile}
+                  >
+                    <SelectTrigger className="bg-black/60 border-white/10 text-white rounded-lg flex-1">
+                      <SelectValue placeholder="Select API profile" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-black/90 border-white/10 text-white">
+                      {Object.entries(API_KEY_PROFILES).map(
+                        ([key, profile]) => (
+                          <SelectItem key={key} value={key}>
+                            <div className="flex items-center gap-3 py-1">
+                              <StatusIndicator
+                                status={profileStatuses[key] || "error"}
+                                profileKey={key}
+                              />
+                              <span>{profile.name}</span>
+                            </div>
+                          </SelectItem>
+                        )
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-black/60 border-white/10 text-white hover:bg-black/80 text-xs"
+                    onClick={checkAllProfileStatuses}
+                    disabled={isCheckingStatuses}
+                  >
+                    {isCheckingStatuses ? (
+                      <Loader2 size={12} className="mr-1 animate-spin" />
+                    ) : (
+                      <RefreshCw size={12} className="mr-1" />
+                    )}
+                    Refresh
+                  </Button>
+                </div>
+                {apiKeyBalance && (
+                  <div className="inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold bg-green-900/30 text-green-300 border border-green-500/30">
+                    <span>API Connected</span>
+                  </div>
+                )}
               </div>
 
+              {/* Right side - Characters remaining */}
               {apiKeyBalance && (
-                <div className="flex flex-col items-end space-y-2">
-                  <div className="inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold bg-green-900/30 text-green-300 border border-green-500/30">
-                    <Check size={14} className="mr-2" />
-                    API Connected
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-400">
-                      Characters remaining
-                    </p>
-                    <p className="text-lg font-semibold text-white">
-                      {apiKeyBalance?.character?.remaining !== undefined
-                        ? apiKeyBalance.character.remaining.toLocaleString()
-                        : "N/A"}
-                    </p>
-                  </div>
+                <div className="flex flex-col justify-end items-end text-right">
+                  <p className="text-sm text-gray-400 mb-1">
+                    Characters remaining
+                  </p>
+                  <p className="text-2xl font-semibold text-white">
+                    {apiKeyBalance?.character?.remaining !== undefined
+                      ? apiKeyBalance.character.remaining.toLocaleString()
+                      : "N/A"}
+                  </p>
                 </div>
               )}
             </div>

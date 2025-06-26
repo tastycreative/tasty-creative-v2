@@ -1,15 +1,17 @@
-
 "use client";
 
 import React, { useState } from "react";
-import { Loader2, FileText } from 'lucide-react';
+import { Loader2, FileText } from "lucide-react";
 
 interface QuickDataEntryProps {
   onDataSubmitted: () => void;
   onSuccess: () => void;
 }
 
-export const QuickDataEntry = ({ onDataSubmitted, onSuccess }: QuickDataEntryProps) => {
+export const QuickDataEntry = ({
+  onDataSubmitted,
+  onSuccess,
+}: QuickDataEntryProps) => {
   const [formData, setFormData] = useState({
     creator: "",
     dateUpdated: "",
@@ -37,21 +39,24 @@ export const QuickDataEntry = ({ onDataSubmitted, onSuccess }: QuickDataEntryPro
     return isNaN(number) ? "" : number.toLocaleString();
   };
 
-  const formatCurrency = (value: string): string => {
-    const cleaned = value.replace(/[^\d.]/g, "");
-    const number = parseFloat(cleaned);
-    if (isNaN(number) || number === 0) return "";
-    return `$${number.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
-
   const handleTotalSendChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatNumber(e.target.value);
     setFormData((prev) => ({ ...prev, totalSend: formatted }));
   };
 
+  // Updated handleTotalBuyChange function
   const handleTotalBuyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatCurrency(e.target.value);
-    setFormData((prev) => ({ ...prev, totalBuy: formatted }));
+    // Only allow numbers and decimal point
+    const value = e.target.value.replace(/[^\d.]/g, "");
+
+    // Prevent multiple decimal points
+    const parts = value.split(".");
+    let formattedValue = parts[0];
+    if (parts.length > 1) {
+      formattedValue += "." + parts[1];
+    }
+
+    setFormData((prev) => ({ ...prev, totalBuy: formattedValue }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -68,7 +73,7 @@ export const QuickDataEntry = ({ onDataSubmitted, onSuccess }: QuickDataEntryPro
         body: JSON.stringify({
           ...formData,
           totalSend: formData.totalSend.replace(/,/g, ""),
-          totalBuy: formData.totalBuy.replace(/[^0-9.]/g, ""),
+          totalBuy: formData.totalBuy,
         }),
       });
 
@@ -96,7 +101,9 @@ export const QuickDataEntry = ({ onDataSubmitted, onSuccess }: QuickDataEntryPro
       onSuccess();
     } catch (error) {
       console.error("Error submitting data:", error);
-      alert("There was an error submitting the form. Check console for details.");
+      alert(
+        "There was an error submitting the form. Check console for details."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -171,14 +178,19 @@ export const QuickDataEntry = ({ onDataSubmitted, onSuccess }: QuickDataEntryPro
 
           <div className="space-y-2">
             <label className="text-sm text-gray-400">Total Buy *</label>
-            <input
-              type="text"
-              value={formData.totalBuy}
-              onChange={handleTotalBuyChange}
-              placeholder="$4,672.06"
-              className="w-full bg-gray-800/50 border border-gray-700 text-white px-3 py-2 rounded-lg focus:border-green-500 focus:outline-none transition-colors"
-              required
-            />
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+                $
+              </span>
+              <input
+                type="text"
+                value={formData.totalBuy}
+                onChange={handleTotalBuyChange}
+                placeholder="4672.06"
+                className="w-full bg-gray-800/50 border border-gray-700 text-white pl-8 pr-3 py-2 rounded-lg focus:border-green-500 focus:outline-none transition-colors"
+                required
+              />
+            </div>
           </div>
         </div>
 
@@ -187,7 +199,9 @@ export const QuickDataEntry = ({ onDataSubmitted, onSuccess }: QuickDataEntryPro
             {showSuccess && (
               <div className="flex items-center gap-2 text-green-400 animate-in fade-in duration-300">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <span className="text-sm font-medium">Entry added successfully!</span>
+                <span className="text-sm font-medium">
+                  Entry added successfully!
+                </span>
               </div>
             )}
           </div>
