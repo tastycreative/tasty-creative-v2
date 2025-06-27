@@ -34,10 +34,11 @@ export async function GET() {
 
     const drive = google.drive({ version: "v3", auth: oauth2Client });
 
-    // Search for Google Docs created by the script writing feature
-    // Look for docs with "Script" in the name or in a specific folder
+    // Search for Google Docs in the same folder where scripts are saved
+    const SCRIPTS_FOLDER_ID = "1mwWO8WRT60DDdJTSLvkejhFuJUrNFBwC";
+    
     const response = await drive.files.list({
-      q: `mimeType='application/vnd.google-apps.document' and name contains 'Script' and trashed=false`,
+      q: `mimeType='application/vnd.google-apps.document' and '${SCRIPTS_FOLDER_ID}' in parents and trashed=false`,
       fields: 'files(id, name, createdTime, modifiedTime, webViewLink, size)',
       orderBy: 'modifiedTime desc',
       pageSize: 50, // Limit to 50 most recent documents
