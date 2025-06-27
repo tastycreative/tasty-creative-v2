@@ -142,7 +142,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
           // Ensure proper font size attribute
           span.setAttribute('data-font-size', size + 'pt');
           // Update the style to use the correct format
-          span.style.fontSize = size + 'pt';
+          (span as HTMLElement).style.fontSize = size + 'pt';
         }
       });
 
@@ -201,7 +201,6 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
 
   const handleFontSizeChange = (size: string) => {
     // Extract the numeric value from the point size (e.g., "12pt" -> "12")
-    const numericSize = size.replace('pt', '');
     // Use the actual point size for better consistency
     if (editorRef.current) {
       document.execCommand('fontSize', false, '7'); // Use a standard HTML size first
@@ -214,7 +213,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
           span.style.fontSize = size;
           try {
             range.surroundContents(span);
-          } catch (e) {
+          } catch  {
             // If surroundContents fails, extract and wrap contents
             const contents = range.extractContents();
             span.appendChild(contents);
@@ -298,7 +297,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
           // Ensure proper font size attribute
           span.setAttribute('data-font-size', size + 'pt');
           // Update the style to use the correct format
-          span.style.fontSize = size + 'pt';
+          (span as HTMLElement).style.fontSize = size + 'pt';
         }
       });
 

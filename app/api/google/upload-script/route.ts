@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     const docs = google.docs({ version: "v1", auth: oauth2Client });
 
     // Process HTML content to extract formatting and convert to Google Docs format
-    let requests = [];
+    const requests = [];
     
     if (htmlContent && preserveFormatting) {
       // Parse HTML content and create Google Docs requests
@@ -71,8 +71,19 @@ export async function POST(req: NextRequest) {
         tempDiv.innerHTML = htmlContent;
         
         // Extract text and formatting information
-        const textNodes = [];
-        const walkTextNodes = (node, startIndex = 1) => {
+        interface TextNode {
+          text: string;
+          startIndex: number;
+          endIndex: number;
+          formatting: {
+            bold?: boolean;
+            italic?: boolean;
+            underline?: boolean;
+            fontSize?: number;
+          };
+        }
+        const textNodes: TextNode[] = [];
+        const walkTextNodes = (node: any, startIndex = 1) => {
           if (node.nodeType === 3) { // Text node
             const text = node.textContent || '';
             if (text.trim()) {
@@ -94,8 +105,8 @@ export async function POST(req: NextRequest) {
           return 0;
         };
         
-        const getParentFormatting = (element) => {
-          const formatting = {};
+        const getParentFormatting = (element: any) => {
+          const formatting: any = {};
           if (element) {
             const style = element.style || {};
             if (style.fontWeight === 'bold' || element.tagName === 'B' || element.tagName === 'STRONG') {
@@ -130,7 +141,7 @@ export async function POST(req: NextRequest) {
         // Apply formatting
         for (const textNode of textNodes) {
           if (Object.keys(textNode.formatting).length > 0) {
-            const textStyle = {};
+            const textStyle: any = {};
             
             if (textNode.formatting.bold) {
               textStyle.bold = true;
