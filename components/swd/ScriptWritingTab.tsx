@@ -634,18 +634,18 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
 
       {/* Documents Modal */}
       <Dialog open={showDocumentsModal} onOpenChange={setShowDocumentsModal}>
-        <DialogContent className="bg-gray-900 border-gray-800 max-w-[95vw] sm:max-w-7xl max-h-[90vh] overflow-hidden w-full">
-          <DialogHeader className="border-b border-gray-700 pb-6 px-8 pt-6">
+        <DialogContent className="bg-gray-900 border-gray-800 max-w-[95vw] sm:max-w-6xl lg:max-w-7xl max-h-[90vh] overflow-hidden w-full">
+          <DialogHeader className="border-b border-gray-700 pb-4 sm:pb-6 px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <FolderOpen className="w-4 h-4 text-white" />
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <FolderOpen className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                 </div>
                 <div>
-                  <DialogTitle className="text-white text-lg font-semibold">
+                  <DialogTitle className="text-white text-base sm:text-lg font-semibold">
                     My Scripts
                   </DialogTitle>
-                  <p className="text-gray-400 text-sm">
+                  <p className="text-gray-400 text-xs sm:text-sm">
                     {documents.length}{" "}
                     {documents.length === 1 ? "document" : "documents"}
                   </p>
@@ -669,31 +669,33 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
 
           <div className="flex-1 overflow-hidden">
             {isLoadingDocs ? (
-              <div className="flex items-center justify-center py-16">
+              <div className="flex items-center justify-center py-12 sm:py-16">
                 <div className="text-center">
-                  <Loader2 className="w-8 h-8 animate-spin text-blue-400 mx-auto mb-4" />
-                  <p className="text-gray-400">Loading your scripts...</p>
+                  <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-blue-400 mx-auto mb-3 sm:mb-4" />
+                  <p className="text-gray-400 text-sm">
+                    Loading your scripts...
+                  </p>
                 </div>
               </div>
             ) : documents.length === 0 ? (
-              <div className="flex items-center justify-center py-16">
-                <div className="text-center max-w-sm">
-                  <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <FileText className="w-8 h-8 text-gray-500" />
+              <div className="flex items-center justify-center py-12 sm:py-16">
+                <div className="text-center max-w-sm px-4">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                    <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-gray-500" />
                   </div>
-                  <h3 className="text-white font-medium mb-2">
+                  <h3 className="text-white font-medium mb-2 text-sm sm:text-base">
                     No scripts found
                   </h3>
-                  <p className="text-gray-400 text-sm">
+                  <p className="text-gray-400 text-xs sm:text-sm">
                     Create your first script to see it here. Your documents will
                     appear in this folder.
                   </p>
                 </div>
               </div>
             ) : (
-              <div className="p-8 overflow-y-auto max-h-[75vh]">
+              <div className="p-4 sm:p-6 lg:p-8 overflow-y-auto max-h-[70vh] sm:max-h-[75vh]">
                 {/* Document Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3 sm:gap-4 lg:gap-6">
                   {documents.map((doc) => (
                     <div
                       key={doc.id}
@@ -701,31 +703,31 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                       onClick={() => loadDocumentContent(doc)}
                     >
                       {/* Document Preview */}
-                      <div className="aspect-[3/4] p-5 flex flex-col">
+                      <div className="aspect-[3/4] p-3 sm:p-4 lg:p-5 flex flex-col">
                         {/* Document Icon */}
-                        <div className="flex-1 flex items-center justify-center mb-4">
-                          <div className="w-20 h-24 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg flex items-center justify-center relative overflow-hidden">
-                            <FileText className="w-10 h-10 text-white z-10" />
+                        <div className="flex-1 flex items-center justify-center mb-2 sm:mb-3 lg:mb-4">
+                          <div className="w-14 h-17 sm:w-16 sm:h-20 lg:w-20 lg:h-24 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg flex items-center justify-center relative overflow-hidden">
+                            <FileText className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-white z-10" />
                             {/* Google Docs style lines */}
                             <div className="absolute inset-0 bg-white/10">
-                              <div className="absolute top-5 left-2.5 right-2.5 h-0.5 bg-white/40 rounded"></div>
-                              <div className="absolute top-7 left-2.5 right-3 h-0.5 bg-white/30 rounded"></div>
-                              <div className="absolute top-9 left-2.5 right-2.5 h-0.5 bg-white/30 rounded"></div>
-                              <div className="absolute top-11 left-2.5 right-4 h-0.5 bg-white/25 rounded"></div>
-                              <div className="absolute top-13 left-2.5 right-2.5 h-0.5 bg-white/25 rounded"></div>
-                              <div className="absolute top-15 left-2.5 right-3.5 h-0.5 bg-white/20 rounded"></div>
+                              <div className="absolute top-3 sm:top-4 lg:top-5 left-1.5 sm:left-2 lg:left-2.5 right-1.5 sm:right-2 lg:right-2.5 h-0.5 bg-white/40 rounded"></div>
+                              <div className="absolute top-4.5 sm:top-5.5 lg:top-7 left-1.5 sm:left-2 lg:left-2.5 right-2 sm:right-2.5 lg:right-3 h-0.5 bg-white/30 rounded"></div>
+                              <div className="absolute top-6 sm:top-7 lg:top-9 left-1.5 sm:left-2 lg:left-2.5 right-1.5 sm:right-2 lg:right-2.5 h-0.5 bg-white/30 rounded"></div>
+                              <div className="absolute top-7.5 sm:top-8.5 lg:top-11 left-1.5 sm:left-2 lg:left-2.5 right-2.5 sm:right-3 lg:right-4 h-0.5 bg-white/25 rounded"></div>
+                              <div className="absolute top-9 sm:top-10 lg:top-13 left-1.5 sm:left-2 lg:left-2.5 right-1.5 sm:right-2 lg:right-2.5 h-0.5 bg-white/25 rounded"></div>
+                              <div className="absolute top-10.5 sm:top-11.5 lg:top-15 left-1.5 sm:left-2 lg:left-2.5 right-2 sm:right-2.5 lg:right-3.5 h-0.5 bg-white/20 rounded"></div>
                             </div>
                             {/* Google Docs corner fold */}
-                            <div className="absolute top-0 right-0 w-0 h-0 border-l-[10px] border-l-transparent border-t-[10px] border-t-white/20"></div>
+                            <div className="absolute top-0 right-0 w-0 h-0 border-l-[6px] sm:border-l-[8px] lg:border-l-[10px] border-l-transparent border-t-[6px] sm:border-t-[8px] lg:border-t-[10px] border-t-white/20"></div>
                           </div>
                         </div>
 
                         {/* Document Info */}
                         <div className="text-center">
-                          <h3 className="text-white text-sm font-medium truncate group-hover:text-blue-400 transition-colors mb-1">
+                          <h3 className="text-white text-xs sm:text-sm font-medium truncate group-hover:text-blue-400 transition-colors mb-1">
                             {doc.name}
                           </h3>
-                          <p className="text-gray-500 text-xs mb-2">
+                          <p className="text-gray-500 text-xs mb-1 sm:mb-2">
                             Modified{" "}
                             {new Date(doc.modifiedTime).toLocaleDateString(
                               "en-US",
@@ -744,8 +746,8 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                       </div>
 
                       {/* Hover Actions */}
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <div className="flex gap-1">
+                      <div className="absolute top-1 sm:top-2 right-1 sm:right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <div className="flex gap-0.5 sm:gap-1">
                           <Button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -753,10 +755,10 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                             }}
                             variant="ghost"
                             size="sm"
-                            className="h-7 w-7 p-0 bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-gray-600"
+                            className="h-6 w-6 sm:h-7 sm:w-7 p-0 bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-gray-600"
                             title="Open in Google Docs"
                           >
-                            <Eye className="w-3 h-3" />
+                            <Eye className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                           </Button>
                           <Button
                             onClick={(e) => {
@@ -765,15 +767,15 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                             }}
                             disabled={isLoadingDocContent}
                             size="sm"
-                            className="h-7 px-2 bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                            className="h-6 sm:h-7 px-1.5 sm:px-2 bg-blue-600 hover:bg-blue-700 text-white text-xs"
                             title="Edit in Script Writer"
                           >
                             {isLoadingDocContent ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
+                              <Loader2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 animate-spin" />
                             ) : (
                               <>
-                                <Edit className="w-3 h-3 mr-1" />
-                                Edit
+                                <Edit className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
+                                <span className="hidden sm:inline">Edit</span>
                               </>
                             )}
                           </Button>
