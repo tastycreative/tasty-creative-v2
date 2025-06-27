@@ -88,7 +88,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
     }
   };
 
-  const loadDocumentContent = async (doc: GoogleDoc) => {
+  const loadDocumentContent = useCallback(async (doc: GoogleDoc) => {
     setIsLoadingDocContent(true);
     try {
       const response = await fetch(
@@ -123,7 +123,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
     } finally {
       setIsLoadingDocContent(false);
     }
-  };
+  }, []);
 
   const processHtmlContent = (
     htmlContent: string
@@ -317,7 +317,9 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
       const contentToLoad = saveData.htmlContent || saveData.content;
       setDocumentContent(contentToLoad);
       setCurrentDocId(saveData.docId || null);
+      return true; // Return true if local draft was loaded
     }
+    return false; // Return false if no local draft exists
   }, []);
 
   const uploadToGoogleDrive = async () => {
@@ -398,10 +400,48 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
     localStorage.removeItem("swd-script-draft");
   };
 
+  const loadLatestDocument = useCallback(async () => {
+    try {
+      const response = await fetch("/api/google/list-scripts");
+      if (!response.ok) {
+        console.error("Failed to fetch documents for auto-load");
+        return;
+      }
+      const data = await response.json();
+      const documents = data.documents || [];
+
+      if (documents.length > 0) {
+        // Sort by modifiedTime to get the latest document
+        const sortedDocs = documents.sort(
+          (a: GoogleDoc, b: GoogleDoc) =>
+            new Date(b.modifiedTime).getTime() -
+            new Date(a.modifiedTime).getTime()
+        );
+        const latestDoc = sortedDocs[0];
+
+        // Load the latest document content
+        await loadDocumentContent(latestDoc);
+        console.log(`Auto-loaded latest document: ${latestDoc.name}`);
+      }
+    } catch (error) {
+      console.error("Error auto-loading latest document:", error);
+      // Fallback to local storage if auto-load fails
+      loadFromLocalStorage();
+    }
+  }, [loadDocumentContent, loadFromLocalStorage]);
+
   useEffect(() => {
-    // Load saved content on component mount
-    loadFromLocalStorage();
-  }, [loadFromLocalStorage]);
+    // Check if there's saved content in local storage first
+    const saved = localStorage.getItem("swd-script-draft");
+
+    if (saved) {
+      // If there's saved content, load it first
+      loadFromLocalStorage();
+    } else {
+      // If no saved content, try to load the latest document from Google Drive
+      loadLatestDocument();
+    }
+  }, [loadFromLocalStorage, loadLatestDocument]);
 
   return (
     <div className="space-y-6">
