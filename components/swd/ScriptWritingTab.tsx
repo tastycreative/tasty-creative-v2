@@ -23,11 +23,24 @@ import {
   Undo,
   Redo,
   CheckCircle,
-  Loader2
+  Loader2,
+  FolderOpen,
+  Eye,
+  Edit,
+  RefreshCw
 } from "lucide-react";
 
 interface ScriptWritingTabProps {
   onDocumentSaved?: () => void;
+}
+
+interface GoogleDoc {
+  id: string;
+  name: string;
+  createdTime: string;
+  modifiedTime: string;
+  webViewLink: string;
+  size?: string;
 }
 
 export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSaved }) => {
@@ -35,6 +48,14 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
   const [isUploading, setIsUploading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [uploadedDocUrl, setUploadedDocUrl] = useState("");
+  const [currentDocId, setCurrentDocId] = useState<string | null>(null);
+  
+  // Document management states
+  const [documents, setDocuments] = useState<GoogleDoc[]>([]);
+  const [isLoadingDocs, setIsLoadingDocs] = useState(false);
+  const [showDocumentsModal, setShowDocumentsModal] = useState(false);
+  const [isLoadingDocContent, setIsLoadingDocContent] = useState(false);
+  
   const editorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -43,6 +64,108 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
     const defaultTitle = `Script Draft - ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
     setDocumentTitle(defaultTitle);
   }, []);
+
+  const fetchDocuments = async () => {
+    setIsLoadingDocs(true);
+    try {
+      const response = await fetch('/api/google/list-scripts');
+      if (!response.ok) {
+        throw new Error('Failed to fetch documents');
+      }
+      const data = await response.json();
+      setDocuments(data.documents || []);
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+      alert('Failed to fetch documents. Please try again.');
+    } finally {
+      setIsLoadingDocs(false);
+    }
+  };
+
+  const loadDocumentContent = async (doc: GoogleDoc) => {
+    setIsLoadingDocContent(true);
+    try {
+      const response = await fetch(`/api/google/get-script-content?docId=${doc.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to load document content');
+      }
+      const data = await response.json();
+      
+      // Load the content into the editor
+      setDocumentTitle(doc.name);
+      setDocumentContent(data.content || '');
+      setCurrentDocId(doc.id);
+      setShowDocumentsModal(false);
+      
+      // Save to local storage
+      const saveData = {
+        title: doc.name,
+        content: data.content || '',
+        lastSaved: new Date().toISOString(),
+        docId: doc.id
+      };
+      localStorage.setItem('swd-script-draft', JSON.stringify(saveData));
+      
+    } catch (error) {
+      console.error('Error loading document content:', error);
+      alert('Failed to load document content. Please try again.');
+    } finally {
+      setIsLoadingDocContent(false);
+    }
+  };
+
+  const updateExistingDocument = async () => {
+    if (!currentDocId || !documentTitle.trim()) {
+      alert("Please make sure you have a document loaded and a title.");
+      return;
+    }
+
+    const content = getDocumentContent();
+    if (!content.trim()) {
+      alert("Please write some content before updating.");
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      // Convert HTML to plain text for Google Docs
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = content;
+      const plainTextContent = tempDiv.textContent || tempDiv.innerText || '';
+
+      const response = await fetch('/api/google/update-script', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          docId: currentDocId,
+          title: documentTitle,
+          content: plainTextContent,
+          htmlContent: content
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update document');
+      }
+
+      const result = await response.json();
+      setUploadedDocUrl(result.webViewLink);
+      setShowSuccessModal(true);
+      
+      if (onDocumentSaved) {
+        onDocumentSaved();
+      }
+    } catch (error) {
+      console.error('Update error:', error);
+      alert(`Failed to update document: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const executeCommand = (command: string, value?: string) => {
     document.execCommand(command, false, value);
@@ -70,7 +193,8 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
     const saveData = {
       title: documentTitle,
       content: content,
-      lastSaved: new Date().toISOString()
+      lastSaved: new Date().toISOString(),
+      docId: currentDocId
     };
     localStorage.setItem('swd-script-draft', JSON.stringify(saveData));
     
@@ -91,6 +215,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
       const saveData = JSON.parse(saved);
       setDocumentTitle(saveData.title);
       setDocumentContent(saveData.content);
+      setCurrentDocId(saveData.docId || null);
     }
   };
 
@@ -151,6 +276,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
     const newTitle = `Script Draft - ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
     setDocumentTitle(newTitle);
     setDocumentContent("");
+    setCurrentDocId(null);
     localStorage.removeItem('swd-script-draft');
   };
 
@@ -181,7 +307,18 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
                 className="bg-gray-800/50 border-gray-700 text-white"
               />
             </div>
-            <div className="flex gap-2 items-end">
+            <div className="flex gap-2 items-end flex-wrap">
+              <Button
+                onClick={() => {
+                  setShowDocumentsModal(true);
+                  fetchDocuments();
+                }}
+                variant="outline"
+                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+              >
+                <FolderOpen className="w-4 h-4 mr-2" />
+                Open Docs
+              </Button>
               <Button
                 id="save-btn"
                 onClick={saveToLocalStorage}
@@ -199,18 +336,33 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
                 <FileText className="w-4 h-4 mr-2" />
                 New
               </Button>
-              <Button
-                onClick={uploadToGoogleDrive}
-                disabled={isUploading}
-                className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
-              >
-                {isUploading ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <Upload className="w-4 h-4 mr-2" />
-                )}
-                Upload to Drive
-              </Button>
+              {currentDocId ? (
+                <Button
+                  onClick={updateExistingDocument}
+                  disabled={isUploading}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                >
+                  {isUploading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Edit className="w-4 h-4 mr-2" />
+                  )}
+                  Update Doc
+                </Button>
+              ) : (
+                <Button
+                  onClick={uploadToGoogleDrive}
+                  disabled={isUploading}
+                  className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+                >
+                  {isUploading ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Upload className="w-4 h-4 mr-2" />
+                  )}
+                  Upload to Drive
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
@@ -372,6 +524,86 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
           />
         </CardContent>
       </Card>
+
+      {/* Documents Modal */}
+      <Dialog open={showDocumentsModal} onOpenChange={setShowDocumentsModal}>
+        <DialogContent className="bg-gray-900 border-gray-800 max-w-4xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <FolderOpen className="w-5 h-5 text-blue-400" />
+              Your Script Documents
+              <Button
+                onClick={fetchDocuments}
+                disabled={isLoadingDocs}
+                variant="ghost"
+                size="sm"
+                className="ml-auto text-gray-400 hover:text-white"
+              >
+                {isLoadingDocs ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-4 space-y-4 overflow-y-auto max-h-[60vh]">
+            {isLoadingDocs ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                <span className="ml-2 text-gray-400">Loading documents...</span>
+              </div>
+            ) : documents.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No script documents found.</p>
+                <p className="text-sm">Create your first script to see it here.</p>
+              </div>
+            ) : (
+              <div className="grid gap-3">
+                {documents.map((doc) => (
+                  <Card key={doc.id} className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-colors">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-white font-medium truncate">{doc.name}</h3>
+                          <div className="flex items-center gap-4 mt-2 text-sm text-gray-400">
+                            <span>Modified: {new Date(doc.modifiedTime).toLocaleDateString()}</span>
+                            <span>Created: {new Date(doc.createdTime).toLocaleDateString()}</span>
+                            {doc.size && <span>Size: {doc.size}</span>}
+                          </div>
+                        </div>
+                        <div className="flex gap-2 ml-4">
+                          <Button
+                            onClick={() => window.open(doc.webViewLink, '_blank')}
+                            variant="outline"
+                            size="sm"
+                            className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            onClick={() => loadDocumentContent(doc)}
+                            disabled={isLoadingDocContent}
+                            size="sm"
+                            className="bg-blue-600 hover:bg-blue-700"
+                          >
+                            {isLoadingDocContent ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Edit className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Success Modal */}
       <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
