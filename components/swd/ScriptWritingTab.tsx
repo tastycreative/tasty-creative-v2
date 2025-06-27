@@ -282,16 +282,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
 
   const setDocumentContent = (content: string) => {
     if (editorRef.current) {
-      // Temporarily remove the inline font-size to allow content styles to take precedence
-      const originalFontSize = editorRef.current.style.fontSize;
-      editorRef.current.style.fontSize = "";
-
       editorRef.current.innerHTML = content;
-
-      // If content is empty or doesn't have font styling, restore default
-      if (!content.trim() || !content.includes("font-size")) {
-        editorRef.current.style.fontSize = originalFontSize || "12pt";
-      }
     }
   };
 
@@ -642,7 +633,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
             <div
               ref={editorRef}
               contentEditable
-              className="min-h-[11in] text-white bg-transparent outline-none resize-none leading-relaxed"
+              className="min-h-[11in] text-white bg-transparent outline-none resize-none leading-relaxed text-[12pt]"
               style={{
                 lineHeight: "1.15",
                 fontFamily: 'Times, "Times New Roman", serif',
@@ -651,7 +642,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                 minHeight: "11in",
                 margin: "0 auto",
                 boxSizing: "border-box",
-                fontSize: "12pt", // Default font size, can be overridden by content
+                // No inline fontSize - CSS class provides default
               }}
               // placeholder="Start writing your script here..."
               onInput={saveToLocalStorage}
