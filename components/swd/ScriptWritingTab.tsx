@@ -6,16 +6,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { 
-  Save, 
-  Upload, 
-  FileText, 
-  Bold, 
-  Italic, 
-  Underline, 
-  AlignLeft, 
-  AlignCenter, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Save,
+  Upload,
+  FileText,
+  Bold,
+  Italic,
+  Underline,
+  AlignLeft,
+  AlignCenter,
   AlignRight,
   List,
   ListOrdered,
@@ -26,7 +31,7 @@ import {
   FolderOpen,
   Eye,
   Edit,
-  RefreshCw
+  RefreshCw,
 } from "lucide-react";
 
 interface ScriptWritingTabProps {
@@ -42,7 +47,9 @@ interface GoogleDoc {
   size?: string;
 }
 
-export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSaved }) => {
+export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
+  onDocumentSaved,
+}) => {
   const [documentTitle, setDocumentTitle] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -67,15 +74,15 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
   const fetchDocuments = async () => {
     setIsLoadingDocs(true);
     try {
-      const response = await fetch('/api/google/list-scripts');
+      const response = await fetch("/api/google/list-scripts");
       if (!response.ok) {
-        throw new Error('Failed to fetch documents');
+        throw new Error("Failed to fetch documents");
       }
       const data = await response.json();
       setDocuments(data.documents || []);
     } catch (error) {
-      console.error('Error fetching documents:', error);
-      alert('Failed to fetch documents. Please try again.');
+      console.error("Error fetching documents:", error);
+      alert("Failed to fetch documents. Please try again.");
     } finally {
       setIsLoadingDocs(false);
     }
@@ -84,30 +91,31 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
   const loadDocumentContent = async (doc: GoogleDoc) => {
     setIsLoadingDocContent(true);
     try {
-      const response = await fetch(`/api/google/get-script-content?docId=${doc.id}`);
+      const response = await fetch(
+        `/api/google/get-script-content?docId=${doc.id}`
+      );
       if (!response.ok) {
-        throw new Error('Failed to load document content');
+        throw new Error("Failed to load document content");
       }
       const data = await response.json();
 
       // Load the content into the editor
       setDocumentTitle(doc.name);
-      setDocumentContent(data.content || '');
+      setDocumentContent(data.content || "");
       setCurrentDocId(doc.id);
       setShowDocumentsModal(false);
 
       // Save to local storage
       const saveData = {
         title: doc.name,
-        content: data.content || '',
+        content: data.content || "",
         lastSaved: new Date().toISOString(),
-        docId: doc.id
+        docId: doc.id,
       };
-      localStorage.setItem('swd-script-draft', JSON.stringify(saveData));
-
+      localStorage.setItem("swd-script-draft", JSON.stringify(saveData));
     } catch (error) {
-      console.error('Error loading document content:', error);
-      alert('Failed to load document content. Please try again.');
+      console.error("Error loading document content:", error);
+      alert("Failed to load document content. Please try again.");
     } finally {
       setIsLoadingDocContent(false);
     }
@@ -129,54 +137,54 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
 
     try {
       // Process HTML content to preserve formatting better and prevent duplication
-      const tempDiv = document.createElement('div');
+      const tempDiv = document.createElement("div");
       tempDiv.innerHTML = content;
 
       // Convert specific font sizes and clean up content
       const spans = tempDiv.querySelectorAll('span[style*="font-size"]');
-      spans.forEach(span => {
-        const style = span.getAttribute('style') || '';
+      spans.forEach((span) => {
+        const style = span.getAttribute("style") || "";
         const fontSizeMatch = style.match(/font-size:\s*(\d+)pt/);
         if (fontSizeMatch) {
           const size = fontSizeMatch[1];
           // Ensure proper font size attribute
-          span.setAttribute('data-font-size', size + 'pt');
+          span.setAttribute("data-font-size", size + "pt");
           // Update the style to use the correct format
-          (span as HTMLElement).style.fontSize = size + 'pt';
+          (span as HTMLElement).style.fontSize = size + "pt";
         }
       });
 
       // Get clean text content without duplication
-      const plainTextContent = tempDiv.textContent || tempDiv.innerText || '';
+      const plainTextContent = tempDiv.textContent || tempDiv.innerText || "";
 
       // Clean processed HTML content
       let processedHtmlContent = tempDiv.innerHTML;
 
       // Remove any duplicate content that might occur
       const textContent = plainTextContent.trim();
-      if (textContent !== processedHtmlContent.replace(/<[^>]*>/g, '').trim()) {
+      if (textContent !== processedHtmlContent.replace(/<[^>]*>/g, "").trim()) {
         // If there's a mismatch, use the plain text as the source of truth
         tempDiv.textContent = textContent;
         processedHtmlContent = tempDiv.innerHTML;
       }
 
-      const response = await fetch('/api/google/update-script', {
-        method: 'POST',
+      const response = await fetch("/api/google/update-script", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           docId: currentDocId,
           title: documentTitle,
           content: plainTextContent,
           htmlContent: processedHtmlContent,
-          preserveFormatting: true
+          preserveFormatting: true,
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update document');
+        throw new Error(errorData.message || "Failed to update document");
       }
 
       const result = await response.json();
@@ -187,8 +195,10 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
         onDocumentSaved();
       }
     } catch (error) {
-      console.error('Update error:', error);
-      alert(`Failed to update document: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Update error:", error);
+      alert(
+        `Failed to update document: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
     } finally {
       setIsUploading(false);
     }
@@ -203,17 +213,17 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
     // Extract the numeric value from the point size (e.g., "12pt" -> "12")
     // Use the actual point size for better consistency
     if (editorRef.current) {
-      document.execCommand('fontSize', false, '7'); // Use a standard HTML size first
+      document.execCommand("fontSize", false, "7"); // Use a standard HTML size first
       // Then apply the actual point size via CSS
       const selection = window.getSelection();
       if (selection && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
         if (!range.collapsed) {
-          const span = document.createElement('span');
+          const span = document.createElement("span");
           span.style.fontSize = size;
           try {
             range.surroundContents(span);
-          } catch  {
+          } catch {
             // If surroundContents fails, extract and wrap contents
             const contents = range.extractContents();
             span.appendChild(contents);
@@ -243,15 +253,15 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
       title: documentTitle,
       content: content,
       lastSaved: new Date().toISOString(),
-      docId: currentDocId
+      docId: currentDocId,
     };
-    localStorage.setItem('swd-script-draft', JSON.stringify(saveData));
+    localStorage.setItem("swd-script-draft", JSON.stringify(saveData));
 
     // Show brief save confirmation
-    const saveBtn = document.getElementById('save-btn');
+    const saveBtn = document.getElementById("save-btn");
     if (saveBtn) {
       const originalText = saveBtn.textContent;
-      saveBtn.textContent = 'Saved!';
+      saveBtn.textContent = "Saved!";
       setTimeout(() => {
         saveBtn.textContent = originalText;
       }, 1000);
@@ -259,7 +269,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
   };
 
   const loadFromLocalStorage = () => {
-    const saved = localStorage.getItem('swd-script-draft');
+    const saved = localStorage.getItem("swd-script-draft");
     if (saved) {
       const saveData = JSON.parse(saved);
       setDocumentTitle(saveData.title);
@@ -284,53 +294,55 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
 
     try {
       // Process HTML content to preserve formatting better and prevent duplication
-      const tempDiv = document.createElement('div');
+      const tempDiv = document.createElement("div");
       tempDiv.innerHTML = content;
 
       // Convert specific font sizes and clean up content
       const spans = tempDiv.querySelectorAll('span[style*="font-size"]');
-      spans.forEach(span => {
-        const style = span.getAttribute('style') || '';
+      spans.forEach((span) => {
+        const style = span.getAttribute("style") || "";
         const fontSizeMatch = style.match(/font-size:\s*(\d+)pt/);
         if (fontSizeMatch) {
           const size = fontSizeMatch[1];
           // Ensure proper font size attribute
-          span.setAttribute('data-font-size', size + 'pt');
+          span.setAttribute("data-font-size", size + "pt");
           // Update the style to use the correct format
-          (span as HTMLElement).style.fontSize = size + 'pt';
+          (span as HTMLElement).style.fontSize = size + "pt";
         }
       });
 
       // Get clean text content without duplication
-      const plainTextContent = tempDiv.textContent || tempDiv.innerText || '';
+      const plainTextContent = tempDiv.textContent || tempDiv.innerText || "";
 
       // Clean processed HTML content
       let processedHtmlContent = tempDiv.innerHTML;
 
       // Remove any duplicate content that might occur
       const textContent = plainTextContent.trim();
-      if (textContent !== processedHtmlContent.replace(/<[^>]*>/g, '').trim()) {
+      if (textContent !== processedHtmlContent.replace(/<[^>]*>/g, "").trim()) {
         // If there's a mismatch, use the plain text as the source of truth
         tempDiv.textContent = textContent;
         processedHtmlContent = tempDiv.innerHTML;
       }
 
-      const response = await fetch('/api/google/upload-script', {
-        method: 'POST',
+      const response = await fetch("/api/google/upload-script", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           title: documentTitle,
           content: plainTextContent,
           htmlContent: processedHtmlContent,
-          preserveFormatting: true
+          preserveFormatting: true,
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to upload to Google Drive');
+        throw new Error(
+          errorData.message || "Failed to upload to Google Drive"
+        );
       }
 
       const result = await response.json();
@@ -341,8 +353,10 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
         onDocumentSaved();
       }
     } catch (error) {
-      console.error('Upload error:', error);
-      alert(`Failed to upload document: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Upload error:", error);
+      alert(
+        `Failed to upload document: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
     } finally {
       setIsUploading(false);
     }
@@ -354,7 +368,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
     setDocumentTitle(newTitle);
     setDocumentContent("");
     setCurrentDocId(null);
-    localStorage.removeItem('swd-script-draft');
+    localStorage.removeItem("swd-script-draft");
   };
 
   useEffect(() => {
@@ -455,7 +469,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => executeCommand('bold')}
+                onClick={() => executeCommand("bold")}
                 className="border-gray-700 text-gray-300 hover:bg-gray-800"
               >
                 <Bold className="w-4 h-4" />
@@ -463,7 +477,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => executeCommand('italic')}
+                onClick={() => executeCommand("italic")}
                 className="border-gray-700 text-gray-300 hover:bg-gray-800"
               >
                 <Italic className="w-4 h-4" />
@@ -471,7 +485,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => executeCommand('underline')}
+                onClick={() => executeCommand("underline")}
                 className="border-gray-700 text-gray-300 hover:bg-gray-800"
               >
                 <Underline className="w-4 h-4" />
@@ -485,7 +499,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => executeCommand('justifyLeft')}
+                onClick={() => executeCommand("justifyLeft")}
                 className="border-gray-700 text-gray-300 hover:bg-gray-800"
               >
                 <AlignLeft className="w-4 h-4" />
@@ -493,7 +507,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => executeCommand('justifyCenter')}
+                onClick={() => executeCommand("justifyCenter")}
                 className="border-gray-700 text-gray-300 hover:bg-gray-800"
               >
                 <AlignCenter className="w-4 h-4" />
@@ -501,7 +515,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => executeCommand('justifyRight')}
+                onClick={() => executeCommand("justifyRight")}
                 className="border-gray-700 text-gray-300 hover:bg-gray-800"
               >
                 <AlignRight className="w-4 h-4" />
@@ -515,7 +529,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => executeCommand('insertUnorderedList')}
+                onClick={() => executeCommand("insertUnorderedList")}
                 className="border-gray-700 text-gray-300 hover:bg-gray-800"
               >
                 <List className="w-4 h-4" />
@@ -523,7 +537,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => executeCommand('insertOrderedList')}
+                onClick={() => executeCommand("insertOrderedList")}
                 className="border-gray-700 text-gray-300 hover:bg-gray-800"
               >
                 <ListOrdered className="w-4 h-4" />
@@ -542,7 +556,9 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
                 <option value="9pt">9 pt</option>
                 <option value="10pt">10 pt</option>
                 <option value="11pt">11 pt</option>
-                <option value="12pt" selected>12 pt</option>
+                <option value="12pt" selected>
+                  12 pt
+                </option>
                 <option value="14pt">14 pt</option>
                 <option value="16pt">16 pt</option>
                 <option value="18pt">18 pt</option>
@@ -564,7 +580,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => executeCommand('undo')}
+                onClick={() => executeCommand("undo")}
                 className="border-gray-700 text-gray-300 hover:bg-gray-800"
               >
                 <Undo className="w-4 h-4" />
@@ -572,7 +588,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => executeCommand('redo')}
+                onClick={() => executeCommand("redo")}
                 className="border-gray-700 text-gray-300 hover:bg-gray-800"
               >
                 <Redo className="w-4 h-4" />
@@ -585,20 +601,27 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
       {/* Editor */}
       <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-xl overflow-hidden relative">
         <div className="absolute inset-0 bg-gradient-to-r from-gray-900/10 to-gray-800/10"></div>
-        <CardContent className="relative p-0">
-          <div
-            ref={editorRef}
-            contentEditable
-            className="min-h-[500px] p-6 text-white bg-transparent outline-none resize-none leading-relaxed"
-            style={{
-              fontSize: '16px',
-              lineHeight: '1.6',
-              fontFamily: 'system-ui, -apple-system, sans-serif'
-            }}
-            // placeholder="Start writing your script here..."
-            onInput={saveToLocalStorage}
-            onBlur={saveToLocalStorage}
-          />
+        <CardContent className="relative p-0 flex justify-center">
+          <div className="w-full max-w-[8.5in] bg-white/5 shadow-lg">
+            <div
+              ref={editorRef}
+              contentEditable
+              className="min-h-[11in] text-white bg-transparent outline-none resize-none leading-relaxed"
+              style={{
+                fontSize: "12pt",
+                lineHeight: "1.15",
+                fontFamily: 'Times, "Times New Roman", serif',
+                padding: "1in",
+                width: "8.5in",
+                minHeight: "11in",
+                margin: "0 auto",
+                boxSizing: "border-box",
+              }}
+              // placeholder="Start writing your script here..."
+              onInput={saveToLocalStorage}
+              onBlur={saveToLocalStorage}
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -634,25 +657,40 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
               <div className="text-center py-8 text-gray-400">
                 <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>No script documents found.</p>
-                <p className="text-sm">Create your first script to see it here.</p>
+                <p className="text-sm">
+                  Create your first script to see it here.
+                </p>
               </div>
             ) : (
               <div className="grid gap-3">
                 {documents.map((doc) => (
-                  <Card key={doc.id} className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-colors">
+                  <Card
+                    key={doc.id}
+                    className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-colors"
+                  >
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-white font-medium truncate">{doc.name}</h3>
+                          <h3 className="text-white font-medium truncate">
+                            {doc.name}
+                          </h3>
                           <div className="flex items-center gap-4 mt-2 text-sm text-gray-400">
-                            <span>Modified: {new Date(doc.modifiedTime).toLocaleDateString()}</span>
-                            <span>Created: {new Date(doc.createdTime).toLocaleDateString()}</span>
+                            <span>
+                              Modified:{" "}
+                              {new Date(doc.modifiedTime).toLocaleDateString()}
+                            </span>
+                            <span>
+                              Created:{" "}
+                              {new Date(doc.createdTime).toLocaleDateString()}
+                            </span>
                             {doc.size && <span>Size: {doc.size}</span>}
                           </div>
                         </div>
                         <div className="flex gap-2 ml-4">
                           <Button
-                            onClick={() => window.open(doc.webViewLink, '_blank')}
+                            onClick={() =>
+                              window.open(doc.webViewLink, "_blank")
+                            }
                             variant="outline"
                             size="sm"
                             className="border-gray-600 text-gray-300 hover:bg-gray-700"
@@ -693,12 +731,13 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
           </DialogHeader>
           <div className="p-4 space-y-4">
             <p className="text-gray-300">
-              Your script &quot;{documentTitle}&quot; has been successfully uploaded to Google Drive as a Google Doc.
+              Your script &quot;{documentTitle}&quot; has been successfully
+              uploaded to Google Drive as a Google Doc.
             </p>
             {uploadedDocUrl && (
               <div className="space-y-2">
                 <Button
-                  onClick={() => window.open(uploadedDocUrl, '_blank')}
+                  onClick={() => window.open(uploadedDocUrl, "_blank")}
                   className="w-full bg-blue-600 hover:bg-blue-700"
                 >
                   Open in Google Docs
@@ -706,7 +745,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
                 <Button
                   onClick={() => {
                     navigator.clipboard.writeText(uploadedDocUrl);
-                    alert('Link copied to clipboard!');
+                    alert("Link copied to clipboard!");
                   }}
                   variant="outline"
                   className="w-full border-gray-700 text-gray-300 hover:bg-gray-800"
