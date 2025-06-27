@@ -129,10 +129,24 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
     setIsUploading(true);
 
     try {
-      // Convert HTML to plain text for Google Docs
+      // Process HTML content to preserve formatting better
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = content;
+      
+      // Convert specific font sizes to more readable format
+      const spans = tempDiv.querySelectorAll('span[style*="font-size"]');
+      spans.forEach(span => {
+        const style = span.getAttribute('style') || '';
+        const fontSizeMatch = style.match(/font-size:\s*(\d+)pt/);
+        if (fontSizeMatch) {
+          const size = fontSizeMatch[1];
+          // Keep the formatting information for better Google Docs conversion
+          span.setAttribute('data-font-size', size + 'pt');
+        }
+      });
+
       const plainTextContent = tempDiv.textContent || tempDiv.innerText || '';
+      const processedHtmlContent = tempDiv.innerHTML;
 
       const response = await fetch('/api/google/update-script', {
         method: 'POST',
@@ -143,7 +157,8 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
           docId: currentDocId,
           title: documentTitle,
           content: plainTextContent,
-          htmlContent: content
+          htmlContent: processedHtmlContent,
+          preserveFormatting: true
         }),
       });
 
@@ -175,7 +190,30 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
   const handleFontSizeChange = (size: string) => {
     // Extract the numeric value from the point size (e.g., "12pt" -> "12")
     const numericSize = size.replace('pt', '');
-    executeCommand('fontSize', numericSize);
+    // Use the actual point size for better consistency
+    if (editorRef.current) {
+      document.execCommand('fontSize', false, '7'); // Use a standard HTML size first
+      // Then apply the actual point size via CSS
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        if (!range.collapsed) {
+          const span = document.createElement('span');
+          span.style.fontSize = size;
+          try {
+            range.surroundContents(span);
+          } catch (e) {
+            // If surroundContents fails, extract and wrap contents
+            const contents = range.extractContents();
+            span.appendChild(contents);
+            range.insertNode(span);
+          }
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+      }
+    }
+    editorRef.current?.focus();
   };
 
   const getDocumentContent = () => {
@@ -234,10 +272,24 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
     setIsUploading(true);
 
     try {
-      // Convert HTML to plain text for Google Docs
+      // Process HTML content to preserve formatting better
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = content;
+      
+      // Convert specific font sizes to more readable format
+      const spans = tempDiv.querySelectorAll('span[style*="font-size"]');
+      spans.forEach(span => {
+        const style = span.getAttribute('style') || '';
+        const fontSizeMatch = style.match(/font-size:\s*(\d+)pt/);
+        if (fontSizeMatch) {
+          const size = fontSizeMatch[1];
+          // Keep the formatting information for better Google Docs conversion
+          span.setAttribute('data-font-size', size + 'pt');
+        }
+      });
+
       const plainTextContent = tempDiv.textContent || tempDiv.innerText || '';
+      const processedHtmlContent = tempDiv.innerHTML;
 
       const response = await fetch('/api/google/upload-script', {
         method: 'POST',
@@ -247,7 +299,8 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
         body: JSON.stringify({
           title: documentTitle,
           content: plainTextContent,
-          htmlContent: content
+          htmlContent: processedHtmlContent,
+          preserveFormatting: true
         }),
       });
 

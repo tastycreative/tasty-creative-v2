@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { docId, title, content, htmlContent } = body;
+    const { docId, title, content, htmlContent, preserveFormatting } = body;
 
     if (!docId || !title || !content) {
       return NextResponse.json(

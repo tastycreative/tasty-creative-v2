@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { title, content } = body;
+    const { title, content, htmlContent, preserveFormatting } = body;
 
     if (!title || !content) {
       return NextResponse.json(
