@@ -348,6 +348,23 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
         list.style.marginLeft = "20px";
         list.style.paddingLeft = "20px";
 
+        // Get current font size from selection or default
+        let currentFontSize = "12pt";
+        const selectedElement =
+          selection.anchorNode?.nodeType === Node.TEXT_NODE
+            ? selection.anchorNode.parentElement
+            : (selection.anchorNode as Element);
+
+        if (selectedElement) {
+          const computedStyle = window.getComputedStyle(selectedElement);
+          const fontSize = computedStyle.fontSize;
+          if (fontSize && fontSize !== "medium") {
+            currentFontSize = fontSize.includes("px")
+              ? Math.round(parseFloat(fontSize) * 0.75) + "pt"
+              : fontSize;
+          }
+        }
+
         // If there's selected text, use it for the list item
         let content = "";
         if (!range.collapsed) {
@@ -357,6 +374,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
 
         const listItem = document.createElement("li");
         listItem.style.marginBottom = "4px";
+        listItem.style.fontSize = currentFontSize;
         listItem.innerHTML = content || "<br>";
         list.appendChild(listItem);
 
@@ -388,6 +406,17 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
         if (!range.collapsed) {
           const span = document.createElement("span");
           span.style.fontSize = size;
+
+          // If we're inside a list item, also apply font size to the list item itself
+          const listItem =
+            range.commonAncestorContainer.nodeType === Node.TEXT_NODE
+              ? range.commonAncestorContainer.parentElement?.closest("li")
+              : (range.commonAncestorContainer as Element)?.closest("li");
+
+          if (listItem) {
+            listItem.style.fontSize = size;
+          }
+
           try {
             range.surroundContents(span);
           } catch {
@@ -396,8 +425,28 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
             span.appendChild(contents);
             range.insertNode(span);
           }
+
+          // Apply font size to any list items within the selection
+          const listItems = span.querySelectorAll("li");
+          listItems.forEach((li) => {
+            li.style.fontSize = size;
+          });
+
           selection.removeAllRanges();
           selection.addRange(range);
+        } else {
+          // If no selection, check if we're inside a list item and apply font size
+          let currentNode = selection.anchorNode;
+          while (currentNode && currentNode !== editorRef.current) {
+            if (
+              currentNode.nodeType === Node.ELEMENT_NODE &&
+              (currentNode as Element).tagName === "LI"
+            ) {
+              (currentNode as HTMLElement).style.fontSize = size;
+              break;
+            }
+            currentNode = currentNode.parentNode;
+          }
         }
       }
     }
@@ -861,17 +910,20 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                 margin-left: 20px !important;
                 padding-left: 20px !important;
                 color: white !important;
+                font-size: inherit !important;
               }
               .prose-lists ol {
                 list-style-type: decimal !important;
                 margin-left: 20px !important;
                 padding-left: 20px !important;
                 color: white !important;
+                font-size: inherit !important;
               }
               .prose-lists li {
                 margin-bottom: 4px !important;
                 display: list-item !important;
                 color: white !important;
+                font-size: inherit !important;
               }
               .prose-lists ul ul {
                 list-style-type: circle !important;
