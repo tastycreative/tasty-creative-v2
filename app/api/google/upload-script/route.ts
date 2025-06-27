@@ -63,11 +63,11 @@ export async function POST(req: NextRequest) {
 
     // Process HTML content to extract formatting and convert to Google Docs format
     const requests = [];
-    
+
     if (htmlContent && preserveFormatting) {
       // Check if we're in a browser environment (we're not, this is server-side)
       // Since we're on the server, we'll use the processed content from the client
-      
+
       // For now, just insert the plain text content
       // The client should have already processed the HTML and sent us clean content
       requests.push({
@@ -76,10 +76,9 @@ export async function POST(req: NextRequest) {
           text: content,
         },
       });
-      
+
       // TODO: In the future, we could use a server-side HTML parser like 'jsdom'
       // to properly parse and convert HTML formatting to Google Docs requests
-      
     } else {
       // Simple text insertion without formatting
       requests.push({
@@ -104,7 +103,6 @@ export async function POST(req: NextRequest) {
       webContentLink: driveResponse.data.webContentLink,
       message: "Script uploaded successfully to Google Drive",
     });
-
   } catch (error: any) {
     console.error("Error uploading script:", error);
 
@@ -122,7 +120,8 @@ export async function POST(req: NextRequest) {
       {
         error: "Failed to upload script",
         details: error.message,
-        message: "An error occurred while uploading your script to Google Drive",
+        message:
+          "An error occurred while uploading your script to Google Drive",
       },
       { status: 500 }
     );

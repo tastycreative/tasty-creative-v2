@@ -125,7 +125,9 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
     }
   };
 
-  const processHtmlContent = (htmlContent: string) => {
+  const processHtmlContent = (
+    htmlContent: string
+  ): { plainText: string; processedHtml: string } => {
     // Only run DOM processing in browser environment
     if (typeof window === "undefined")
       return { plainText: "", processedHtml: htmlContent };
@@ -338,6 +340,20 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
 
       const result = await response.json();
       setUploadedDocUrl(result.webViewLink);
+
+      // Set the document ID so it switches to update mode
+      setCurrentDocId(result.documentId);
+
+      // Update local storage with the new document ID
+      const saveData = {
+        title: documentTitle,
+        content: content,
+        htmlContent: content,
+        lastSaved: new Date().toISOString(),
+        docId: result.documentId,
+      };
+      localStorage.setItem("swd-script-draft", JSON.stringify(saveData));
+
       setShowSuccessModal(true);
 
       if (onDocumentSaved) {
