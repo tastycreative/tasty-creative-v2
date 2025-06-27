@@ -634,17 +634,29 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
 
       {/* Documents Modal */}
       <Dialog open={showDocumentsModal} onOpenChange={setShowDocumentsModal}>
-        <DialogContent className="bg-gray-900 border-gray-800 max-w-4xl max-h-[80vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
-              <FolderOpen className="w-5 h-5 text-blue-400" />
-              Your Script Documents
+        <DialogContent className="bg-gray-900 border-gray-800 max-w-6xl max-h-[85vh] overflow-hidden">
+          <DialogHeader className="border-b border-gray-700 pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <FolderOpen className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <DialogTitle className="text-white text-lg font-semibold">
+                    My Scripts
+                  </DialogTitle>
+                  <p className="text-gray-400 text-sm">
+                    {documents.length}{" "}
+                    {documents.length === 1 ? "document" : "documents"}
+                  </p>
+                </div>
+              </div>
               <Button
                 onClick={fetchDocuments}
                 disabled={isLoadingDocs}
                 variant="ghost"
                 size="sm"
-                className="ml-auto text-gray-400 hover:text-white"
+                className="text-gray-400 hover:text-white hover:bg-gray-800"
               >
                 {isLoadingDocs ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -652,75 +664,137 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                   <RefreshCw className="w-4 h-4" />
                 )}
               </Button>
-            </DialogTitle>
+            </div>
           </DialogHeader>
-          <div className="p-4 space-y-4 overflow-y-auto max-h-[60vh]">
+
+          <div className="flex-1 overflow-hidden">
             {isLoadingDocs ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                <span className="ml-2 text-gray-400">Loading documents...</span>
+              <div className="flex items-center justify-center py-16">
+                <div className="text-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-400 mx-auto mb-4" />
+                  <p className="text-gray-400">Loading your scripts...</p>
+                </div>
               </div>
             ) : documents.length === 0 ? (
-              <div className="text-center py-8 text-gray-400">
-                <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No script documents found.</p>
-                <p className="text-sm">
-                  Create your first script to see it here.
-                </p>
+              <div className="flex items-center justify-center py-16">
+                <div className="text-center max-w-sm">
+                  <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FileText className="w-8 h-8 text-gray-500" />
+                  </div>
+                  <h3 className="text-white font-medium mb-2">
+                    No scripts found
+                  </h3>
+                  <p className="text-gray-400 text-sm">
+                    Create your first script to see it here. Your documents will
+                    appear in this folder.
+                  </p>
+                </div>
               </div>
             ) : (
-              <div className="grid gap-3">
-                {documents.map((doc) => (
-                  <Card
-                    key={doc.id}
-                    className="bg-gray-800/50 border-gray-700 hover:bg-gray-800/70 transition-colors"
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-white font-medium truncate">
-                            {doc.name}
-                          </h3>
-                          <div className="flex items-center gap-4 mt-2 text-sm text-gray-400">
-                            <span>
-                              Modified:{" "}
-                              {new Date(doc.modifiedTime).toLocaleDateString()}
-                            </span>
-                            <span>
-                              Created:{" "}
-                              {new Date(doc.createdTime).toLocaleDateString()}
-                            </span>
-                            {doc.size && <span>Size: {doc.size}</span>}
+              <div className="p-6 overflow-y-auto max-h-[60vh]">
+                {/* Header Row */}
+                <div className="grid grid-cols-12 gap-4 px-4 py-2 text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-gray-700 mb-4">
+                  <div className="col-span-6">Name</div>
+                  <div className="col-span-2">Modified</div>
+                  <div className="col-span-2">Created</div>
+                  <div className="col-span-2 text-right">Actions</div>
+                </div>
+
+                {/* Document List */}
+                <div className="space-y-1">
+                  {documents.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="group grid grid-cols-12 gap-4 items-center px-4 py-3 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer"
+                      onClick={() => loadDocumentContent(doc)}
+                    >
+                      {/* Document Icon & Name */}
+                      <div className="col-span-6 flex items-center gap-3 min-w-0">
+                        <div className="flex-shrink-0">
+                          <div className="w-8 h-10 bg-blue-600 rounded-sm flex items-center justify-center relative overflow-hidden">
+                            <FileText className="w-4 h-4 text-white" />
+                            {/* Google Docs style lines */}
+                            <div className="absolute inset-0 bg-white/10">
+                              <div className="absolute top-2 left-1 right-1 h-0.5 bg-white/30 rounded"></div>
+                              <div className="absolute top-3 left-1 right-2 h-0.5 bg-white/20 rounded"></div>
+                              <div className="absolute top-4 left-1 right-1.5 h-0.5 bg-white/20 rounded"></div>
+                            </div>
                           </div>
                         </div>
-                        <div className="flex gap-2 ml-4">
-                          <Button
-                            onClick={() =>
-                              window.open(doc.webViewLink, "_blank")
-                            }
-                            variant="outline"
-                            size="sm"
-                            className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            onClick={() => loadDocumentContent(doc)}
-                            disabled={isLoadingDocContent}
-                            size="sm"
-                            className="bg-blue-600 hover:bg-blue-700"
-                          >
-                            {isLoadingDocContent ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Edit className="w-4 h-4" />
-                            )}
-                          </Button>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-white font-medium truncate group-hover:text-blue-400 transition-colors">
+                            {doc.name}
+                          </h3>
+                          <p className="text-gray-500 text-xs">Google Docs</p>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
+
+                      {/* Modified Date */}
+                      <div className="col-span-2 text-gray-400 text-sm">
+                        {new Date(doc.modifiedTime).toLocaleDateString(
+                          "en-US",
+                          {
+                            month: "short",
+                            day: "numeric",
+                            year:
+                              new Date(doc.modifiedTime).getFullYear() !==
+                              new Date().getFullYear()
+                                ? "numeric"
+                                : undefined,
+                          }
+                        )}
+                      </div>
+
+                      {/* Created Date */}
+                      <div className="col-span-2 text-gray-400 text-sm">
+                        {new Date(doc.createdTime).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year:
+                            new Date(doc.createdTime).getFullYear() !==
+                            new Date().getFullYear()
+                              ? "numeric"
+                              : undefined,
+                        })}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="col-span-2 flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(doc.webViewLink, "_blank");
+                          }}
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700"
+                          title="Open in Google Docs"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            loadDocumentContent(doc);
+                          }}
+                          disabled={isLoadingDocContent}
+                          size="sm"
+                          className="h-8 px-3 bg-blue-600 hover:bg-blue-700 text-white"
+                          title="Edit in Script Writer"
+                        >
+                          {isLoadingDocContent ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Edit className="w-3 h-3 mr-1" />
+                              Edit
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
