@@ -692,106 +692,96 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
               </div>
             ) : (
               <div className="p-6 overflow-y-auto max-h-[60vh]">
-                {/* Header Row */}
-                <div className="grid grid-cols-12 gap-4 px-4 py-2 text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-gray-700 mb-4">
-                  <div className="col-span-6">Name</div>
-                  <div className="col-span-2">Modified</div>
-                  <div className="col-span-2">Created</div>
-                  <div className="col-span-2 text-right">Actions</div>
-                </div>
-
-                {/* Document List */}
-                <div className="space-y-1">
+                {/* Document Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                   {documents.map((doc) => (
                     <div
                       key={doc.id}
-                      className="group grid grid-cols-12 gap-4 items-center px-4 py-3 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer"
+                      className="group relative bg-gray-800/30 rounded-lg border border-gray-700/50 hover:border-blue-500/50 hover:bg-gray-800/50 transition-all duration-200 cursor-pointer"
                       onClick={() => loadDocumentContent(doc)}
                     >
-                      {/* Document Icon & Name */}
-                      <div className="col-span-6 flex items-center gap-3 min-w-0">
-                        <div className="flex-shrink-0">
-                          <div className="w-8 h-10 bg-blue-600 rounded-sm flex items-center justify-center relative overflow-hidden">
-                            <FileText className="w-4 h-4 text-white" />
+                      {/* Document Preview */}
+                      <div className="aspect-[3/4] p-4 flex flex-col">
+                        {/* Document Icon */}
+                        <div className="flex-1 flex items-center justify-center mb-3">
+                          <div className="w-16 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg flex items-center justify-center relative overflow-hidden">
+                            <FileText className="w-8 h-8 text-white z-10" />
                             {/* Google Docs style lines */}
                             <div className="absolute inset-0 bg-white/10">
-                              <div className="absolute top-2 left-1 right-1 h-0.5 bg-white/30 rounded"></div>
-                              <div className="absolute top-3 left-1 right-2 h-0.5 bg-white/20 rounded"></div>
-                              <div className="absolute top-4 left-1 right-1.5 h-0.5 bg-white/20 rounded"></div>
+                              <div className="absolute top-4 left-2 right-2 h-0.5 bg-white/40 rounded"></div>
+                              <div className="absolute top-6 left-2 right-3 h-0.5 bg-white/30 rounded"></div>
+                              <div className="absolute top-8 left-2 right-2.5 h-0.5 bg-white/30 rounded"></div>
+                              <div className="absolute top-10 left-2 right-4 h-0.5 bg-white/25 rounded"></div>
+                              <div className="absolute top-12 left-2 right-2 h-0.5 bg-white/25 rounded"></div>
+                              <div className="absolute top-14 left-2 right-3.5 h-0.5 bg-white/20 rounded"></div>
                             </div>
+                            {/* Google Docs corner fold */}
+                            <div className="absolute top-0 right-0 w-0 h-0 border-l-[8px] border-l-transparent border-t-[8px] border-t-white/20"></div>
                           </div>
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <h3 className="text-white font-medium truncate group-hover:text-blue-400 transition-colors">
+
+                        {/* Document Info */}
+                        <div className="text-center">
+                          <h3 className="text-white text-sm font-medium truncate group-hover:text-blue-400 transition-colors mb-1">
                             {doc.name}
                           </h3>
-                          <p className="text-gray-500 text-xs">Google Docs</p>
+                          <p className="text-gray-500 text-xs mb-2">
+                            Modified{" "}
+                            {new Date(doc.modifiedTime).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "numeric",
+                                year:
+                                  new Date(doc.modifiedTime).getFullYear() !==
+                                  new Date().getFullYear()
+                                    ? "numeric"
+                                    : undefined,
+                              }
+                            )}
+                          </p>
                         </div>
                       </div>
 
-                      {/* Modified Date */}
-                      <div className="col-span-2 text-gray-400 text-sm">
-                        {new Date(doc.modifiedTime).toLocaleDateString(
-                          "en-US",
-                          {
-                            month: "short",
-                            day: "numeric",
-                            year:
-                              new Date(doc.modifiedTime).getFullYear() !==
-                              new Date().getFullYear()
-                                ? "numeric"
-                                : undefined,
-                          }
-                        )}
+                      {/* Hover Actions */}
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <div className="flex gap-1">
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(doc.webViewLink, "_blank");
+                            }}
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-gray-600"
+                            title="Open in Google Docs"
+                          >
+                            <Eye className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              loadDocumentContent(doc);
+                            }}
+                            disabled={isLoadingDocContent}
+                            size="sm"
+                            className="h-7 px-2 bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                            title="Edit in Script Writer"
+                          >
+                            {isLoadingDocContent ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <>
+                                <Edit className="w-3 h-3 mr-1" />
+                                Edit
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </div>
 
-                      {/* Created Date */}
-                      <div className="col-span-2 text-gray-400 text-sm">
-                        {new Date(doc.createdTime).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year:
-                            new Date(doc.createdTime).getFullYear() !==
-                            new Date().getFullYear()
-                              ? "numeric"
-                              : undefined,
-                        })}
-                      </div>
-
-                      {/* Actions */}
-                      <div className="col-span-2 flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(doc.webViewLink, "_blank");
-                          }}
-                          variant="ghost"
-                          size="sm"
-                          className="h-8 w-8 p-0 text-gray-400 hover:text-white hover:bg-gray-700"
-                          title="Open in Google Docs"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            loadDocumentContent(doc);
-                          }}
-                          disabled={isLoadingDocContent}
-                          size="sm"
-                          className="h-8 px-3 bg-blue-600 hover:bg-blue-700 text-white"
-                          title="Edit in Script Writer"
-                        >
-                          {isLoadingDocContent ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <>
-                              <Edit className="w-3 h-3 mr-1" />
-                              Edit
-                            </>
-                          )}
-                        </Button>
-                      </div>
+                      {/* Selection indicator */}
+                      <div className="absolute inset-0 rounded-lg border-2 border-transparent group-hover:border-blue-500/30 pointer-events-none"></div>
                     </div>
                   ))}
                 </div>
