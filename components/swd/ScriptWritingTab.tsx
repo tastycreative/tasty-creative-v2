@@ -724,7 +724,10 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
 
                         {/* Document Info */}
                         <div className="text-center">
-                          <h3 className="text-white text-xs sm:text-sm font-medium truncate group-hover:text-blue-400 transition-colors mb-1">
+                          <h3
+                            className="text-white text-xs sm:text-sm font-medium truncate group-hover:text-blue-400 transition-colors mb-1"
+                            title={doc.name}
+                          >
                             {doc.name}
                           </h3>
                           <p className="text-gray-500 text-xs mb-1 sm:mb-2">
