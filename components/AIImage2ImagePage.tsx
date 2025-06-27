@@ -45,6 +45,8 @@ import {
   ZapOff,
   Instagram,
   User,
+  Users,
+  Scan,
 } from "lucide-react";
 
 interface GeneratedImage {
@@ -80,6 +82,17 @@ const AIImage2ImagePage = () => {
     y: number;
   } | null>(null);
 
+  // Automatic masking states
+  const [autoMaskMode, setAutoMaskMode] = useState<
+    "manual" | "person" | "background"
+  >("person");
+  const [isProcessingMask, setIsProcessingMask] = useState(false);
+
+  // Person detection states
+  const [personDetectionModel, setPersonDetectionModel] = useState<any>(null);
+  const [isLoadingModel, setIsLoadingModel] = useState(false);
+  const [detectedPersons, setDetectedPersons] = useState<number>(0);
+
   // Tool states
   const [activeTool, setActiveTool] = useState<"brush" | "eraser">("brush");
 
@@ -110,8 +123,227 @@ const AIImage2ImagePage = () => {
   const [availableLoraModels, setAvailableLoraModels] = useState<string[]>([]);
   const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
   const [instagramData, setInstagramData] = useState<any>(null);
+  const [status, setStatus] = useState("");
 
-  // Connection status check (using same method as AIText2ImagePage)
+  // Load TensorFlow.js and BodyPix model for person detection
+  const loadPersonDetectionModel = useCallback(async () => {
+    if (personDetectionModel) return personDetectionModel;
+
+    setIsLoadingModel(true);
+    try {
+      // Dynamically import TensorFlow.js and BodyPix
+      const tf = await import("@tensorflow/tfjs");
+      const bodyPix = await import("@tensorflow-models/body-pix");
+
+      // Load the model
+      const model = await bodyPix.load({
+        architecture: "MobileNetV1",
+        outputStride: 16,
+        multiplier: 0.75,
+        quantBytes: 2,
+      });
+
+      setPersonDetectionModel(model);
+      setStatus("✅ Person detection model loaded");
+      return model;
+    } catch (error) {
+      console.error("Failed to load person detection model:", error);
+      setError(
+        "Failed to load person detection model. Using fallback methods."
+      );
+      return null;
+    } finally {
+      setIsLoadingModel(false);
+    }
+  }, [personDetectionModel]);
+
+  // Person segmentation function using BodyPix
+  const segmentPersons = async (
+    img: HTMLImageElement
+  ): Promise<ImageData | null> => {
+    try {
+      const model = await loadPersonDetectionModel();
+      if (!model) return null;
+
+      // Create a temporary canvas for the image
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = img.width;
+      tempCanvas.height = img.height;
+      const tempCtx = tempCanvas.getContext("2d");
+      if (!tempCtx) return null;
+
+      tempCtx.drawImage(img, 0, 0);
+
+      // Perform segmentation
+      const segmentation = await model.segmentPerson(tempCanvas, {
+        flipHorizontal: false,
+        internalResolution: "medium",
+        segmentationThreshold: 0.7,
+        maxDetections: 5,
+        scoreThreshold: 0.4,
+        nmsRadius: 20,
+      });
+
+      // Count detected persons
+      const persons = segmentation.allPoses
+        ? segmentation.allPoses.length
+        : segmentation.data.some((pixel: number) => pixel === 1)
+          ? 1
+          : 0;
+      setDetectedPersons(persons);
+
+      // Create mask from segmentation
+      const maskData = tempCtx.createImageData(img.width, img.height);
+
+      for (let i = 0; i < segmentation.data.length; i++) {
+        const pixelIndex = i * 4;
+        if (segmentation.data[i] === 1) {
+          // Person pixel
+          maskData.data[pixelIndex] = 255; // R
+          maskData.data[pixelIndex + 1] = 255; // G
+          maskData.data[pixelIndex + 2] = 255; // B
+          maskData.data[pixelIndex + 3] = 128; // A (semi-transparent)
+        } else {
+          maskData.data[pixelIndex] = 0; // R
+          maskData.data[pixelIndex + 1] = 0; // G
+          maskData.data[pixelIndex + 2] = 0; // B
+          maskData.data[pixelIndex + 3] = 0; // A (transparent)
+        }
+      }
+
+      return maskData;
+    } catch (error) {
+      console.error("Person segmentation failed:", error);
+      return null;
+    }
+  };
+
+  // Background segmentation (inverse of person segmentation)
+  const segmentBackground = async (
+    img: HTMLImageElement
+  ): Promise<ImageData | null> => {
+    try {
+      const model = await loadPersonDetectionModel();
+      if (!model) return null;
+
+      const tempCanvas = document.createElement("canvas");
+      tempCanvas.width = img.width;
+      tempCanvas.height = img.height;
+      const tempCtx = tempCanvas.getContext("2d");
+      if (!tempCtx) return null;
+
+      tempCtx.drawImage(img, 0, 0);
+
+      const segmentation = await model.segmentPerson(tempCanvas, {
+        flipHorizontal: false,
+        internalResolution: "medium",
+        segmentationThreshold: 0.7,
+        maxDetections: 5,
+        scoreThreshold: 0.4,
+        nmsRadius: 20,
+      });
+
+      const persons = segmentation.allPoses
+        ? segmentation.allPoses.length
+        : segmentation.data.some((pixel: number) => pixel === 1)
+          ? 1
+          : 0;
+      setDetectedPersons(persons);
+
+      // Create mask for background (inverse of person)
+      const maskData = tempCtx.createImageData(img.width, img.height);
+
+      for (let i = 0; i < segmentation.data.length; i++) {
+        const pixelIndex = i * 4;
+        if (segmentation.data[i] === 0) {
+          // Background pixel (not person)
+          maskData.data[pixelIndex] = 255; // R
+          maskData.data[pixelIndex + 1] = 255; // G
+          maskData.data[pixelIndex + 2] = 255; // B
+          maskData.data[pixelIndex + 3] = 128; // A (semi-transparent)
+        } else {
+          maskData.data[pixelIndex] = 0; // R
+          maskData.data[pixelIndex + 1] = 0; // G
+          maskData.data[pixelIndex + 2] = 0; // B
+          maskData.data[pixelIndex + 3] = 0; // A (transparent)
+        }
+      }
+
+      return maskData;
+    } catch (error) {
+      console.error("Background segmentation failed:", error);
+      return null;
+    }
+  };
+
+  // Automatic mask generation function (simplified to only include available modes)
+  const generateAutomaticMask = useCallback(
+    async (img: HTMLImageElement, mode: string) => {
+      switch (mode) {
+        case "person":
+          // Use AI person detection
+          return await segmentPersons(img);
+
+        case "background":
+          // Use AI background detection (inverse of person)
+          return await segmentBackground(img);
+
+        default:
+          // Manual mode - empty mask
+          return null;
+      }
+    },
+    []
+  );
+
+  // Function to regenerate mask when mode changes
+  const regenerateAutomaticMask = useCallback(async () => {
+    if (!uploadedImage || autoMaskMode === "manual") return;
+
+    setIsProcessingMask(true);
+    try {
+      const autoMask = await generateAutomaticMask(uploadedImage, autoMaskMode);
+      if (autoMask) {
+        setMaskData(autoMask);
+        if (autoMaskMode === "person" || autoMaskMode === "background") {
+          setStatus(
+            `✅ Detected ${detectedPersons} person(s) and generated ${autoMaskMode} mask`
+          );
+        } else {
+          setStatus(`✅ Regenerated ${autoMaskMode} mask`);
+        }
+      }
+    } catch (error) {
+      console.error("Error regenerating automatic mask:", error);
+      setError("Failed to regenerate automatic mask");
+    } finally {
+      setIsProcessingMask(false);
+    }
+  }, [uploadedImage, autoMaskMode, generateAutomaticMask, detectedPersons]);
+
+  // Effect to regenerate mask when mode changes
+  useEffect(() => {
+    if (uploadedImage && autoMaskMode !== "manual") {
+      regenerateAutomaticMask();
+    } else if (autoMaskMode === "manual") {
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          const imageData = ctx.createImageData(canvas.width, canvas.height);
+          for (let i = 0; i < imageData.data.length; i += 4) {
+            imageData.data[i] = 0;
+            imageData.data[i + 1] = 0;
+            imageData.data[i + 2] = 0;
+            imageData.data[i + 3] = 0;
+          }
+          setMaskData(imageData);
+        }
+      }
+    }
+  }, [autoMaskMode, regenerateAutomaticMask]);
+
+  // Connection status check
   useEffect(() => {
     const testConnection = async () => {
       try {
@@ -125,7 +357,6 @@ const AIImage2ImagePage = () => {
           console.log("ComfyUI connected successfully");
           const objectInfo = await response.json();
 
-          // Extract LoRA models from the response
           const loraLoader = objectInfo.LoraLoaderModelOnly;
           if (
             loraLoader &&
@@ -151,7 +382,6 @@ const AIImage2ImagePage = () => {
       } catch (error) {
         console.error("Connection test failed:", error);
         setIsConnected(false);
-        // For development, use mock data
         setAvailableLoraModels([
           "2\\OF_BRI_V2.safetensors",
           "anime_style.safetensors",
@@ -161,7 +391,7 @@ const AIImage2ImagePage = () => {
     };
 
     testConnection();
-    const interval = setInterval(testConnection, 30000); // Check every 30 seconds
+    const interval = setInterval(testConnection, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -186,7 +416,7 @@ const AIImage2ImagePage = () => {
     loadGeneratedImages();
   }, []);
 
-  // Check for Instagram data transfer on mount
+  // Modified Instagram data loading with automatic masking
   useEffect(() => {
     const checkForInstagramData = async () => {
       try {
@@ -194,42 +424,76 @@ const AIImage2ImagePage = () => {
         if (transferData) {
           const data = JSON.parse(transferData);
           setInstagramData(data);
+          setIsProcessingMask(true);
 
-          // Load the image
           if (data.imageUrl) {
             const img = new Image();
             img.crossOrigin = "anonymous";
-            img.onload = () => {
+            img.onload = async () => {
               setUploadedImage(img);
-              setMaskData(null); // Reset mask when new image is loaded
 
-              // Show success message
-              setStatus(`✅ Loaded image from Instagram: ${data.filename}`);
+              if (autoMaskMode !== "manual") {
+                try {
+                  const autoMask = await generateAutomaticMask(
+                    img,
+                    autoMaskMode
+                  );
+                  if (autoMask) {
+                    setMaskData(autoMask);
+                    if (
+                      autoMaskMode === "person" ||
+                      autoMaskMode === "background"
+                    ) {
+                      setStatus(
+                        `✅ Loaded image from Instagram with ${autoMaskMode} mask (${detectedPersons} person(s) detected): ${data.filename}`
+                      );
+                    } else {
+                      setStatus(
+                        `✅ Loaded image from Instagram with ${autoMaskMode} mask: ${data.filename}`
+                      );
+                    }
+                  } else {
+                    setMaskData(null);
+                    setStatus(
+                      `✅ Loaded image from Instagram: ${data.filename}`
+                    );
+                  }
+                } catch (error) {
+                  console.error(
+                    "Error generating automatic mask for Instagram image:",
+                    error
+                  );
+                  setMaskData(null);
+                  setStatus(`✅ Loaded image from Instagram: ${data.filename}`);
+                }
+              } else {
+                setMaskData(null);
+                setStatus(`✅ Loaded image from Instagram: ${data.filename}`);
+              }
+
+              setIsProcessingMask(false);
             };
             img.onerror = () => {
               setError("Failed to load image from Instagram scraper");
+              setIsProcessingMask(false);
             };
             img.src = data.imageUrl;
           }
 
-          // Set the prompt from AI analysis or caption
           if (data.prompt) {
             setPrompt(data.prompt);
           }
 
-          // Clear the transfer data so it doesn't load again
           localStorage.removeItem("instagram_to_image2image");
         }
       } catch (error) {
         console.error("Error loading Instagram data:", error);
+        setIsProcessingMask(false);
       }
     };
 
     checkForInstagramData();
-  }, []);
-
-  // Status state for user feedback
-  const [status, setStatus] = useState("");
+  }, [autoMaskMode, generateAutomaticMask, detectedPersons]);
 
   // Save generated images to localStorage
   const saveImageToStorage = useCallback((newImage: GeneratedImage) => {
@@ -256,7 +520,6 @@ const AIImage2ImagePage = () => {
       const img = new Image();
 
       img.onload = () => {
-        // Calculate new dimensions
         let { width, height } = img;
         if (width > maxWidth) {
           height = (height * maxWidth) / width;
@@ -299,25 +562,21 @@ const AIImage2ImagePage = () => {
     const overlayCtx = overlayCanvas.getContext("2d");
     if (!ctx || !overlayCtx) return;
 
-    // Set canvas size to match image
     canvas.width = uploadedImage.width;
     canvas.height = uploadedImage.height;
     overlayCanvas.width = uploadedImage.width;
     overlayCanvas.height = uploadedImage.height;
 
-    // Clear and draw image
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(uploadedImage, 0, 0);
 
-    // Initialize mask data if not exists
     if (!maskData) {
       const imageData = ctx.createImageData(canvas.width, canvas.height);
-      // Initialize as transparent
       for (let i = 0; i < imageData.data.length; i += 4) {
-        imageData.data[i] = 0; // R
-        imageData.data[i + 1] = 0; // G
-        imageData.data[i + 2] = 0; // B
-        imageData.data[i + 3] = 0; // A (transparent)
+        imageData.data[i] = 0;
+        imageData.data[i + 1] = 0;
+        imageData.data[i + 2] = 0;
+        imageData.data[i + 3] = 0;
       }
       setMaskData(imageData);
     }
@@ -327,21 +586,54 @@ const AIImage2ImagePage = () => {
     setupCanvas();
   }, [setupCanvas]);
 
-  // File upload handler
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Modified image upload handler with automatic masking
+  const handleImageUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    setIsProcessingMask(true);
+
     const img = new Image();
-    img.onload = () => {
+    img.onload = async () => {
       setUploadedImage(img);
-      setMaskData(null); // Reset mask when new image is uploaded
-      setInstagramData(null); // Clear Instagram data when uploading new image
+
+      if (autoMaskMode !== "manual") {
+        try {
+          const autoMask = await generateAutomaticMask(img, autoMaskMode);
+          if (autoMask) {
+            setMaskData(autoMask);
+            if (autoMaskMode === "person" || autoMaskMode === "background") {
+              setStatus(
+                `✅ Automatically generated ${autoMaskMode} mask (${detectedPersons} person(s) detected)`
+              );
+            } else {
+              setStatus(`✅ Automatically generated ${autoMaskMode} mask`);
+            }
+          }
+        } catch (error) {
+          console.error("Error generating automatic mask:", error);
+          setError("Failed to generate automatic mask");
+          setMaskData(null);
+        }
+      } else {
+        setMaskData(null);
+      }
+
+      setInstagramData(null);
+      setIsProcessingMask(false);
     };
+
+    img.onerror = () => {
+      setError("Failed to load image");
+      setIsProcessingMask(false);
+    };
+
     img.src = URL.createObjectURL(file);
   };
 
-  // Canvas drawing functions
+  // Canvas drawing functions (unchanged)
   const getCanvasCoordinates = (event: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
@@ -356,7 +648,6 @@ const AIImage2ImagePage = () => {
     };
   };
 
-  // Mouse tracking for brush indicator
   const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
     const coords = getCanvasCoordinates(event);
     setMousePos(coords);
@@ -365,13 +656,11 @@ const AIImage2ImagePage = () => {
       drawSmooth(coords);
     }
 
-    // Update brush indicator immediately
     updateBrushIndicator(coords);
   };
 
   const handleMouseEnter = (event: React.MouseEvent<HTMLCanvasElement>) => {
     setIsMouseOnCanvas(true);
-    // Immediately show brush indicator when mouse enters
     const coords = getCanvasCoordinates(event);
     updateBrushIndicator(coords);
   };
@@ -383,7 +672,6 @@ const AIImage2ImagePage = () => {
     clearBrushIndicator();
   };
 
-  // Smooth drawing function
   const drawSmooth = (currentPoint: { x: number; y: number }) => {
     if (!maskData) return;
 
@@ -393,12 +681,10 @@ const AIImage2ImagePage = () => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Update mask data
     const newMaskData = ctx.createImageData(maskData.width, maskData.height);
     newMaskData.data.set(maskData.data);
 
     if (lastDrawPoint) {
-      // Draw line between last point and current point for smooth strokes
       const distance = Math.sqrt(
         Math.pow(currentPoint.x - lastDrawPoint.x, 2) +
           Math.pow(currentPoint.y - lastDrawPoint.y, 2)
@@ -414,7 +700,6 @@ const AIImage2ImagePage = () => {
         drawCircle(newMaskData, x, y, brushSize, activeTool === "brush");
       }
     } else {
-      // First point
       drawCircle(
         newMaskData,
         currentPoint.x,
@@ -429,7 +714,6 @@ const AIImage2ImagePage = () => {
     redrawCanvas(newMaskData);
   };
 
-  // Helper function to draw a circle on the mask
   const drawCircle = (
     imageData: ImageData,
     centerX: number,
@@ -452,24 +736,21 @@ const AIImage2ImagePage = () => {
         ) {
           const index = (Math.floor(y) * canvas.width + Math.floor(x)) * 4;
           if (isPaint) {
-            // Paint mask
-            imageData.data[index] = 255; // R
-            imageData.data[index + 1] = 255; // G
-            imageData.data[index + 2] = 255; // B
-            imageData.data[index + 3] = 128; // A (semi-transparent)
+            imageData.data[index] = 255;
+            imageData.data[index + 1] = 255;
+            imageData.data[index + 2] = 255;
+            imageData.data[index + 3] = 128;
           } else {
-            // Erase mask
-            imageData.data[index] = 0; // R
-            imageData.data[index + 1] = 0; // G
-            imageData.data[index + 2] = 0; // B
-            imageData.data[index + 3] = 0; // A (transparent)
+            imageData.data[index] = 0;
+            imageData.data[index + 1] = 0;
+            imageData.data[index + 2] = 0;
+            imageData.data[index + 3] = 0;
           }
         }
       }
     }
   };
 
-  // Brush indicator functions
   const updateBrushIndicator = (coords: { x: number; y: number }) => {
     const overlayCanvas = overlayCanvasRef.current;
     if (!overlayCanvas || !isMouseOnCanvas) return;
@@ -477,13 +758,10 @@ const AIImage2ImagePage = () => {
     const overlayCtx = overlayCanvas.getContext("2d");
     if (!overlayCtx) return;
 
-    // Clear overlay
     overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
 
-    // Draw larger, more visible brush indicator
     const radius = brushSize;
 
-    // Outer circle (main indicator)
     overlayCtx.strokeStyle = activeTool === "brush" ? "#3b82f6" : "#ef4444";
     overlayCtx.lineWidth = 3;
     overlayCtx.setLineDash([8, 4]);
@@ -491,14 +769,12 @@ const AIImage2ImagePage = () => {
     overlayCtx.arc(coords.x, coords.y, radius, 0, 2 * Math.PI);
     overlayCtx.stroke();
 
-    // Inner dot for precise cursor position
     overlayCtx.fillStyle = activeTool === "brush" ? "#3b82f6" : "#ef4444";
     overlayCtx.setLineDash([]);
     overlayCtx.beginPath();
     overlayCtx.arc(coords.x, coords.y, 2, 0, 2 * Math.PI);
     overlayCtx.fill();
 
-    // Semi-transparent fill to show affected area
     overlayCtx.fillStyle =
       activeTool === "brush"
         ? "rgba(59, 130, 246, 0.1)"
@@ -537,11 +813,9 @@ const AIImage2ImagePage = () => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Clear and redraw image
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(uploadedImage, 0, 0);
 
-    // Draw mask overlay if enabled
     if (showMask && (currentMaskData || maskData)) {
       const tempCanvas = document.createElement("canvas");
       tempCanvas.width = canvas.width;
@@ -559,7 +833,6 @@ const AIImage2ImagePage = () => {
     redrawCanvas();
   }, [showMask, uploadedImage, maskData]);
 
-  // Clear mask
   const clearMask = () => {
     if (!uploadedImage) return;
 
@@ -580,7 +853,6 @@ const AIImage2ImagePage = () => {
     redrawCanvas(imageData);
   };
 
-  // Create clipspace-style image with separate mask channel
   const getClipspaceImageWithMask = (): string | null => {
     if (!uploadedImage) return null;
 
@@ -594,7 +866,6 @@ const AIImage2ImagePage = () => {
     return canvas.toDataURL("image/png");
   };
 
-  // Create separate mask file for clipspace functionality
   const getClipspaceMask = (): string | null => {
     if (!maskData || !uploadedImage) return null;
 
@@ -604,27 +875,23 @@ const AIImage2ImagePage = () => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
 
-    // Create white background (unmasked areas)
     ctx.fillStyle = "white";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Create black and white mask - black areas are where AI should focus
     const bwMaskData = ctx.createImageData(canvas.width, canvas.height);
     for (let i = 0; i < maskData.data.length; i += 4) {
       const alpha = maskData.data[i + 3];
-      // Black = masked area (where AI works), White = unmasked area (preserve original)
-      const value = alpha > 0 ? 0 : 255; // Inverted for clipspace style
-      bwMaskData.data[i] = value; // R
-      bwMaskData.data[i + 1] = value; // G
-      bwMaskData.data[i + 2] = value; // B
-      bwMaskData.data[i + 3] = 255; // A
+      const value = alpha > 0 ? 0 : 255;
+      bwMaskData.data[i] = value;
+      bwMaskData.data[i + 1] = value;
+      bwMaskData.data[i + 2] = value;
+      bwMaskData.data[i + 3] = 255;
     }
 
     ctx.putImageData(bwMaskData, 0, 0);
     return canvas.toDataURL("image/png");
   };
 
-  // Convert base64 to File for upload with compression
   const base64ToFile = async (
     base64: string,
     filename: string
@@ -639,7 +906,6 @@ const AIImage2ImagePage = () => {
     }
     const originalFile = new File([u8arr], filename, { type: mime });
 
-    // Compress the file if it's too large (>2MB)
     if (originalFile.size > 2 * 1024 * 1024) {
       console.log(`Compressing large file: ${originalFile.size} bytes`);
       return await compressImage(originalFile);
@@ -648,7 +914,6 @@ const AIImage2ImagePage = () => {
     return originalFile;
   };
 
-  // Enhanced error handling helper
   const handleApiError = async (response: Response): Promise<string> => {
     let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
 
@@ -659,7 +924,6 @@ const AIImage2ImagePage = () => {
         errorMessage = errorData.error || errorData.message || errorMessage;
       } else {
         const errorText = await response.text();
-        // Clean up HTML error messages
         const cleanText = errorText.replace(/<[^>]*>/g, "").trim();
         if (cleanText && cleanText.length < 200) {
           errorMessage = cleanText;
@@ -672,7 +936,7 @@ const AIImage2ImagePage = () => {
     return errorMessage;
   };
 
-  // Generation function
+  // Generation function (unchanged from original)
   const handleGenerate = async () => {
     if (!prompt.trim()) {
       setError("Please enter a prompt");
@@ -699,7 +963,6 @@ const AIImage2ImagePage = () => {
     setGenerationProgress(0);
 
     try {
-      // Step 1: Upload image and mask separately for clipspace functionality
       const imageBase64 = getClipspaceImageWithMask();
       const maskBase64 = getClipspaceMask();
 
@@ -710,7 +973,6 @@ const AIImage2ImagePage = () => {
       setCurrentNode("Uploading image...");
       setGenerationProgress(10);
 
-      // Upload the main image (intact, no transparency)
       const imageFile = await base64ToFile(imageBase64, "input_image.png");
       const imageFormData = new FormData();
       imageFormData.append("image", imageFile);
@@ -730,7 +992,6 @@ const AIImage2ImagePage = () => {
       const imageUploadResult = await imageUploadResponse.json();
       const uploadedImageName = imageUploadResult.name;
 
-      // Upload mask separately if it exists
       let uploadedMaskName = "";
       if (maskBase64) {
         setCurrentNode("Uploading mask...");
@@ -754,7 +1015,6 @@ const AIImage2ImagePage = () => {
           const maskUploadResult = await maskUploadResponse.json();
           uploadedMaskName = maskUploadResult.name;
         } else {
-          // Don't throw error for mask upload failure, just log it
           try {
             const errorMessage = await handleApiError(maskUploadResponse);
             console.warn("Mask upload failed:", errorMessage);
@@ -767,7 +1027,6 @@ const AIImage2ImagePage = () => {
       setCurrentNode("Building workflow...");
       setGenerationProgress(20);
 
-      // Step 2: Build workflow with separate image and mask handling
       const workflow: Record<string, any> = {
         "6": {
           class_type: "CLIPTextEncode",
@@ -855,7 +1114,7 @@ const AIImage2ImagePage = () => {
             conditioning: ["6", 0],
             style_model: ["42", 0],
             clip_vision: ["43", 0],
-            image: ["155", 0], // Main image from LoadImage
+            image: ["155", 0],
             weight: 1,
             downsampling_function: "area",
             mode: "center crop (square)",
@@ -883,7 +1142,7 @@ const AIImage2ImagePage = () => {
         "155": {
           class_type: "LoadImage",
           inputs: {
-            image: uploadedImageName, // Original intact image
+            image: uploadedImageName,
           },
         },
         "154": {
@@ -895,9 +1154,7 @@ const AIImage2ImagePage = () => {
         },
       };
 
-      // Add mask handling if we have a mask (clipspace style)
       if (uploadedMaskName) {
-        // Load the mask image
         workflow["156"] = {
           class_type: "LoadImage",
           inputs: {
@@ -905,7 +1162,6 @@ const AIImage2ImagePage = () => {
           },
         };
 
-        // Convert image to mask format
         workflow["157"] = {
           class_type: "ImageToMask",
           inputs: {
@@ -914,11 +1170,9 @@ const AIImage2ImagePage = () => {
           },
         };
 
-        // Add mask to ReduxAdvanced
         workflow["44"].inputs.mask = ["157", 0];
       }
 
-      // Queue the prompt
       const clientId =
         Math.random().toString(36).substring(2) + Date.now().toString(36);
 
@@ -944,7 +1198,6 @@ const AIImage2ImagePage = () => {
       const queueResult = await queueResponse.json();
       const promptId = queueResult.prompt_id;
 
-      // Poll for completion
       let attempts = 0;
       const baseTimeoutMinutes = 5;
       const additionalTimeoutPerImage = 2;
@@ -978,7 +1231,6 @@ const AIImage2ImagePage = () => {
                 setCurrentNode("Retrieving images...");
                 setGenerationProgress(95);
 
-                // Get the generated images
                 const imageUrls: string[] = [];
 
                 if (execution.outputs) {
@@ -995,7 +1247,6 @@ const AIImage2ImagePage = () => {
 
                 setGenerationProgress(100);
 
-                // Convert to GeneratedImage objects
                 const generatedImages = imageUrls.map((url, index) => ({
                   id: `${promptId}_${index}`,
                   imageUrl: url,
@@ -1014,16 +1265,15 @@ const AIImage2ImagePage = () => {
                     downsamplingFactor: downsamplingFactor,
                     width: width,
                     height: height,
+                    autoMaskMode: autoMaskMode,
+                    detectedPersons: detectedPersons,
                   },
                   timestamp: new Date(),
                   type: "image" as const,
                 }));
 
-                // Set the latest generated image (first one from the batch)
                 if (generatedImages.length > 0) {
                   setLatestGeneratedImage(generatedImages[0]);
-
-                  // Save each image to storage
                   generatedImages.forEach(saveImageToStorage);
                 }
 
@@ -1031,7 +1281,6 @@ const AIImage2ImagePage = () => {
               }
 
               if (execution.status && execution.status.status_str === "error") {
-                // Get detailed error information
                 let errorMessage = "Generation failed with error";
                 if (execution.status.messages) {
                   const errorMessages = execution.status.messages
@@ -1073,7 +1322,6 @@ const AIImage2ImagePage = () => {
     }
   };
 
-  // Download function for latest generated image
   const downloadLatestImage = async () => {
     if (!latestGeneratedImage) return;
 
@@ -1105,7 +1353,6 @@ const AIImage2ImagePage = () => {
     }
   };
 
-  // Custom Image Component for the latest creation
   const LatestCreationImage: React.FC<{
     image: GeneratedImage;
     className?: string;
@@ -1157,6 +1404,341 @@ const AIImage2ImagePage = () => {
     );
   };
 
+  // Enhanced Auto Mask Selector Component with Person Detection
+  const AutoMaskSelector = () => (
+    <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-white flex items-center">
+          <Settings className="w-5 h-5 mr-3" />
+          Auto Masking Mode
+          {isLoadingModel && (
+            <Loader2 className="w-4 h-4 ml-2 animate-spin text-cyan-400" />
+          )}
+        </CardTitle>
+        <CardDescription className="text-gray-400">
+          Choose between manual masking or AI-powered person detection
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 gap-3">
+          {[
+            {
+              value: "manual",
+              label: "Manual",
+              desc: "Draw mask manually",
+              icon: Brush,
+            },
+            {
+              value: "person",
+              label: "Person Detection",
+              desc: "AI detects and masks people",
+              icon: Users,
+              ai: true,
+            },
+            {
+              value: "background",
+              label: "Background Only",
+              desc: "AI masks everything except people",
+              icon: Scan,
+              ai: true,
+            },
+          ].map(({ value, label, desc, icon: Icon, ai }) => (
+            <Button
+              key={value}
+              variant={autoMaskMode === value ? "default" : "outline"}
+              onClick={() => setAutoMaskMode(value as any)}
+              className={`h-16 justify-start text-left ${
+                autoMaskMode === value
+                  ? ai
+                    ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+                    : "bg-cyan-600 hover:bg-cyan-700 text-white"
+                  : "bg-black/40 border-white/20 text-white hover:bg-white/10"
+              }`}
+            >
+              <Icon className="w-5 h-5 mr-3 flex-shrink-0" />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{label}</span>
+                  {ai && (
+                    <span className="px-1.5 py-0.5 bg-purple-500/20 text-purple-300 text-xs rounded-full">
+                      AI
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs opacity-70">{desc}</div>
+              </div>
+            </Button>
+          ))}
+        </div>
+
+        {autoMaskMode === "background" && detectedPersons > 0 && (
+          <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3">
+            <div className="flex items-center text-blue-400 text-sm">
+              <Scan className="w-4 h-4 mr-2 flex-shrink-0" />
+              <span>
+                Will mask background, preserving {detectedPersons} person(s)
+              </span>
+            </div>
+          </div>
+        )}
+
+        {(autoMaskMode === "person" || autoMaskMode === "background") &&
+          detectedPersons === 0 &&
+          uploadedImage && (
+            <div className="bg-amber-900/20 border border-amber-500/30 rounded-lg p-3">
+              <div className="flex items-center text-amber-400 text-sm">
+                <Info className="w-4 h-4 mr-2 flex-shrink-0" />
+                <span>No persons detected in this image</span>
+              </div>
+            </div>
+          )}
+
+        {autoMaskMode !== "manual" &&
+          autoMaskMode !== "person" &&
+          autoMaskMode !== "background" && (
+            <div className="bg-cyan-900/20 border border-cyan-500/30 rounded-lg p-3">
+              <div className="flex items-center text-cyan-400 text-sm">
+                <Info className="w-4 h-4 mr-2 flex-shrink-0" />
+                <span>
+                  Mask will be generated automatically when you upload an image
+                </span>
+              </div>
+            </div>
+          )}
+
+        {isProcessingMask && (
+          <div className="flex items-center justify-center p-4 bg-black/20 rounded-lg">
+            <Loader2 className="w-5 h-5 animate-spin text-cyan-400 mr-2" />
+            <span className="text-cyan-400 text-sm">
+              {autoMaskMode === "person" || autoMaskMode === "background"
+                ? "Running AI person detection..."
+                : "Generating automatic mask..."}
+            </span>
+          </div>
+        )}
+
+        {(autoMaskMode === "person" || autoMaskMode === "background") &&
+          !personDetectionModel &&
+          !isLoadingModel && (
+            <div className="bg-orange-900/20 border border-orange-500/30 rounded-lg p-3">
+              <div className="flex items-center text-orange-400 text-sm">
+                <Info className="w-4 h-4 mr-2 flex-shrink-0" />
+                <span>AI model will be loaded when you upload an image</span>
+              </div>
+            </div>
+          )}
+      </CardContent>
+    </Card>
+  );
+
+  // Updated Masking Tools Component
+  const MaskingToolsCard = () => (
+    <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-white flex items-center">
+          <Brush className="w-5 h-5 mr-3" />
+          Masking Tools
+          {autoMaskMode !== "manual" && (
+            <span
+              className={`ml-2 px-2 py-1 text-white text-xs rounded-full ${
+                autoMaskMode === "person" || autoMaskMode === "background"
+                  ? "bg-gradient-to-r from-purple-600 to-pink-600"
+                  : "bg-cyan-600"
+              }`}
+            >
+              {autoMaskMode === "person" || autoMaskMode === "background"
+                ? "AI: "
+                : "Auto: "}
+              {autoMaskMode}
+            </span>
+          )}
+        </CardTitle>
+        <CardDescription className="text-gray-400">
+          {autoMaskMode === "manual"
+            ? "Draw areas you want the AI to modify"
+            : autoMaskMode === "person"
+              ? "AI automatically detects and masks people"
+              : autoMaskMode === "background"
+                ? "AI masks background, preserving people"
+                : `Automatic ${autoMaskMode} masking active`}
+        </CardDescription>
+      </CardHeader>
+
+      <CardContent className="space-y-6">
+        {autoMaskMode === "manual" ? (
+          <>
+            <div>
+              <Label className="text-gray-300 text-sm font-medium mb-3 block">
+                Drawing Tools
+              </Label>
+              <div className="grid grid-cols-3 gap-3">
+                <Button
+                  variant={activeTool === "brush" ? "default" : "outline"}
+                  onClick={() => setActiveTool("brush")}
+                  className={`h-12 ${
+                    activeTool === "brush"
+                      ? "bg-blue-600 hover:bg-blue-700 text-white"
+                      : "bg-black/40 border-white/20 text-white hover:bg-white/10"
+                  }`}
+                >
+                  <Brush className="w-4 h-4 mb-1" />
+                  <span className="text-xs">Paint</span>
+                </Button>
+                <Button
+                  variant={activeTool === "eraser" ? "default" : "outline"}
+                  onClick={() => setActiveTool("eraser")}
+                  className={`h-12 ${
+                    activeTool === "eraser"
+                      ? "bg-red-600 hover:bg-red-700 text-white"
+                      : "bg-black/40 border-white/20 text-white hover:bg-white/10"
+                  }`}
+                >
+                  <Eraser className="w-4 h-4 mb-1" />
+                  <span className="text-xs">Erase</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={clearMask}
+                  className="bg-black/40 border-white/20 text-white hover:bg-white/10 h-12"
+                >
+                  <RotateCcw className="w-4 h-4 mb-1" />
+                  <span className="text-xs">Clear</span>
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-3">
+                <Label className="text-gray-300 text-sm font-medium">
+                  Brush Size
+                </Label>
+                <span className="text-cyan-400 text-sm font-mono">
+                  {brushSize}px
+                </span>
+              </div>
+              <Slider
+                value={[brushSize]}
+                onValueChange={(value) => setBrushSize(value[0])}
+                min={10}
+                max={100}
+                step={2}
+                className="py-2"
+              />
+              <p className="text-xs text-gray-400 mt-2">
+                Adjust the size of your brush for precise masking
+              </p>
+            </div>
+          </>
+        ) : (
+          <div
+            className={`border rounded-lg p-4 ${
+              autoMaskMode === "person" || autoMaskMode === "background"
+                ? "bg-gradient-to-br from-purple-900/20 to-pink-900/20 border-purple-500/30"
+                : "bg-cyan-900/20 border-cyan-500/30"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div
+                className={`flex items-center ${
+                  autoMaskMode === "person" || autoMaskMode === "background"
+                    ? "text-purple-400"
+                    : "text-cyan-400"
+                }`}
+              >
+                {autoMaskMode === "person" || autoMaskMode === "background" ? (
+                  <Users className="w-4 h-4 mr-2" />
+                ) : (
+                  <Wand2 className="w-4 h-4 mr-2" />
+                )}
+                <span className="font-medium">
+                  {autoMaskMode === "person" || autoMaskMode === "background"
+                    ? "AI Detection Active"
+                    : "Auto-masking Active"}
+                </span>
+              </div>
+              {isProcessingMask && (
+                <Loader2
+                  className={`w-4 h-4 animate-spin ${
+                    autoMaskMode === "person" || autoMaskMode === "background"
+                      ? "text-purple-400"
+                      : "text-cyan-400"
+                  }`}
+                />
+              )}
+            </div>
+            <p
+              className={`text-sm mb-3 ${
+                autoMaskMode === "person" || autoMaskMode === "background"
+                  ? "text-purple-200"
+                  : "text-cyan-200"
+              }`}
+            >
+              {autoMaskMode === "person"
+                ? "Using AI to automatically detect and mask people in the image."
+                : autoMaskMode === "background"
+                  ? "Using AI to mask background while preserving people."
+                  : `Using ${autoMaskMode} automatic masking. Switch to manual mode to draw custom masks.`}
+            </p>
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={regenerateAutomaticMask}
+                disabled={!uploadedImage || isProcessingMask}
+                className={`w-full ${
+                  autoMaskMode === "person" || autoMaskMode === "background"
+                    ? "bg-black/40 border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
+                    : "bg-black/40 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+                }`}
+              >
+                <RefreshCw className="w-3 h-3 mr-1" />
+                {autoMaskMode === "person" || autoMaskMode === "background"
+                  ? "Re-detect"
+                  : "Regenerate"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setAutoMaskMode("manual")}
+                className="w-full bg-black/40 border-white/20 text-white hover:bg-white/10"
+              >
+                <Brush className="w-3 h-3 mr-1" />
+                Manual Mode
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <div>
+          <Label className="text-gray-300 text-sm font-medium mb-3 block">
+            View Options
+          </Label>
+          <Button
+            variant={showMask ? "default" : "outline"}
+            onClick={() => setShowMask(!showMask)}
+            className={`w-full h-12 ${
+              showMask
+                ? "bg-violet-600 hover:bg-violet-700 text-white"
+                : "bg-black/40 border-white/20 text-white hover:bg-white/10"
+            }`}
+          >
+            {showMask ? (
+              <>
+                <Eye className="w-4 h-4 mr-2" />
+                Hide Mask
+              </>
+            ) : (
+              <>
+                <EyeOff className="w-4 h-4 mr-2" />
+                Show Mask
+              </>
+            )}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -1166,10 +1748,17 @@ const AIImage2ImagePage = () => {
             AI Image-to-Image Generator
           </h1>
           <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-            Transform existing images with AI by uploading a reference image and
-            drawing areas to modify
+            Transform existing images with AI using automatic person detection
+            and masking
           </p>
         </div>
+
+        {/* Status message */}
+        {status && (
+          <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-3 text-center">
+            <span className="text-green-400">{status}</span>
+          </div>
+        )}
 
         {/* Instagram Data Indicator */}
         {instagramData && (
@@ -1211,6 +1800,14 @@ const AIImage2ImagePage = () => {
                     <div className="text-gray-400 text-sm">
                       {availableLoraModels.length} models available
                     </div>
+                    {personDetectionModel && (
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 rounded-full bg-purple-400"></div>
+                        <span className="text-purple-400 font-medium text-sm">
+                          AI Detection Ready
+                        </span>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <>
@@ -1232,7 +1829,7 @@ const AIImage2ImagePage = () => {
                   <div className="flex items-center space-x-2 text-cyan-400">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span className="text-sm font-medium">
-                      {generationProgress}%
+                      {generationProgress.toFixed(2)}%
                     </span>
                   </div>
                   {currentNode && (
@@ -1248,6 +1845,9 @@ const AIImage2ImagePage = () => {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           {/* Image Upload and Masking Panel */}
           <div className="xl:col-span-1 space-y-6">
+            {/* Auto Mask Selector */}
+            <AutoMaskSelector />
+
             <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
               <CardHeader className="pb-4">
                 <CardTitle className="text-white flex items-center">
@@ -1260,7 +1860,6 @@ const AIImage2ImagePage = () => {
               </CardHeader>
 
               <CardContent className="space-y-6">
-                {/* Image Upload */}
                 {!uploadedImage ? (
                   <div className="border-2 border-dashed border-white/20 rounded-xl p-8 text-center">
                     <input
@@ -1286,7 +1885,6 @@ const AIImage2ImagePage = () => {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {/* Canvas and Tools */}
                     <div className="border border-white/10 rounded-xl overflow-hidden relative">
                       <div className="relative bg-black/20">
                         <canvas
@@ -1302,7 +1900,8 @@ const AIImage2ImagePage = () => {
                           onMouseEnter={handleMouseEnter}
                           className="absolute inset-0 w-full h-auto max-h-96 object-contain pointer-events-auto"
                           style={{
-                            cursor: "none", // Hide default cursor and use our custom indicator
+                            cursor:
+                              autoMaskMode === "manual" ? "none" : "default",
                           }}
                         />
                       </div>
@@ -1325,115 +1924,7 @@ const AIImage2ImagePage = () => {
             </Card>
 
             {/* Masking Tools */}
-            {uploadedImage && (
-              <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-white flex items-center">
-                    <Brush className="w-5 h-5 mr-3" />
-                    Masking Tools
-                  </CardTitle>
-                  <CardDescription className="text-gray-400">
-                    Draw areas you want the AI to modify
-                  </CardDescription>
-                </CardHeader>
-
-                <CardContent className="space-y-6">
-                  {/* Tools */}
-                  <div>
-                    <Label className="text-gray-300 text-sm font-medium mb-3 block">
-                      Drawing Tools
-                    </Label>
-                    <div className="grid grid-cols-3 gap-3">
-                      <Button
-                        variant={activeTool === "brush" ? "default" : "outline"}
-                        onClick={() => setActiveTool("brush")}
-                        className={`h-12 ${
-                          activeTool === "brush"
-                            ? "bg-blue-600 hover:bg-blue-700 text-white"
-                            : "bg-black/40 border-white/20 text-white hover:bg-white/10"
-                        }`}
-                      >
-                        <Brush className="w-4 h-4 mb-1" />
-                        <span className="text-xs">Paint</span>
-                      </Button>
-                      <Button
-                        variant={
-                          activeTool === "eraser" ? "default" : "outline"
-                        }
-                        onClick={() => setActiveTool("eraser")}
-                        className={`h-12 ${
-                          activeTool === "eraser"
-                            ? "bg-red-600 hover:bg-red-700 text-white"
-                            : "bg-black/40 border-white/20 text-white hover:bg-white/10"
-                        }`}
-                      >
-                        <Eraser className="w-4 h-4 mb-1" />
-                        <span className="text-xs">Erase</span>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={clearMask}
-                        className="bg-black/40 border-white/20 text-white hover:bg-white/10 h-12"
-                      >
-                        <RotateCcw className="w-4 h-4 mb-1" />
-                        <span className="text-xs">Clear</span>
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* View Options */}
-                  <div>
-                    <Label className="text-gray-300 text-sm font-medium mb-3 block">
-                      View Options
-                    </Label>
-                    <Button
-                      variant={showMask ? "default" : "outline"}
-                      onClick={() => setShowMask(!showMask)}
-                      className={`w-full h-12 ${
-                        showMask
-                          ? "bg-violet-600 hover:bg-violet-700 text-white"
-                          : "bg-black/40 border-white/20 text-white hover:bg-white/10"
-                      }`}
-                    >
-                      {showMask ? (
-                        <>
-                          <Eye className="w-4 h-4 mr-2" />
-                          Hide Mask
-                        </>
-                      ) : (
-                        <>
-                          <EyeOff className="w-4 h-4 mr-2" />
-                          Show Mask
-                        </>
-                      )}
-                    </Button>
-                  </div>
-
-                  {/* Brush Size */}
-                  <div>
-                    <div className="flex justify-between items-center mb-3">
-                      <Label className="text-gray-300 text-sm font-medium">
-                        Brush Size
-                      </Label>
-                      <span className="text-cyan-400 text-sm font-mono">
-                        {brushSize}px
-                      </span>
-                    </div>
-                    <Slider
-                      value={[brushSize]}
-                      onValueChange={(value) => setBrushSize(value[0])}
-                      min={10}
-                      max={100}
-                      step={2}
-                      className="py-2"
-                    />
-                    <p className="text-xs text-gray-400 mt-2">
-                      Adjust the size of your brush for precise masking
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            {uploadedImage && <MaskingToolsCard />}
           </div>
 
           {/* Combined Settings Panel */}
@@ -1446,13 +1937,26 @@ const AIImage2ImagePage = () => {
                   Transformation Prompt
                 </CardTitle>
                 <CardDescription className="text-gray-400">
-                  Describe how you want to transform the masked areas
+                  Describe how you want to transform the{" "}
+                  {autoMaskMode === "manual"
+                    ? "masked areas"
+                    : autoMaskMode === "person"
+                      ? "detected people"
+                      : autoMaskMode === "background"
+                        ? "background"
+                        : "image"}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="relative">
                   <Textarea
-                    placeholder="Describe the changes you want to make to the masked areas..."
+                    placeholder={
+                      autoMaskMode === "person"
+                        ? "Describe how you want to transform the people in the image..."
+                        : autoMaskMode === "background"
+                          ? "Describe how you want to transform the background..."
+                          : "Describe the changes you want to make to the masked areas..."
+                    }
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     className="bg-black/40 border-white/20 text-white rounded-xl min-h-[120px] max-h-[200px] overflow-y-auto resize-none focus:border-cyan-400/50 focus:ring-cyan-400/20 transition-all text-base leading-relaxed"
@@ -1629,7 +2133,7 @@ const AIImage2ImagePage = () => {
                   {isGenerating ? (
                     <>
                       <Loader2 className="w-5 h-5 mr-3 animate-spin" />
-                      Transforming... {generationProgress}%
+                      Transforming... {generationProgress.toFixed(2)}%
                     </>
                   ) : (
                     <>
@@ -1689,7 +2193,7 @@ const AIImage2ImagePage = () => {
                           Transforming Image
                         </h3>
                         <p className="text-gray-400 mb-2">
-                          {generationProgress}% complete
+                          {generationProgress.toFixed(2)}% complete
                         </p>
                         {currentNode && (
                           <p className="text-gray-500 text-sm">{currentNode}</p>
@@ -1758,6 +2262,25 @@ const AIImage2ImagePage = () => {
                                 }
                               </span>
                             </div>
+                            <div>
+                              <span className="text-gray-500">Mask:</span>
+                              <span className="text-white ml-1">
+                                {latestGeneratedImage.settings.autoMaskMode ||
+                                  "manual"}
+                              </span>
+                            </div>
+                            {latestGeneratedImage.settings.detectedPersons >
+                              0 && (
+                              <div>
+                                <span className="text-gray-500">Persons:</span>
+                                <span className="text-white ml-1">
+                                  {
+                                    latestGeneratedImage.settings
+                                      .detectedPersons
+                                  }
+                                </span>
+                              </div>
+                            )}
                           </div>
                           <div>
                             <span className="text-gray-500">LoRA:</span>
