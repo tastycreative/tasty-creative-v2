@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
@@ -49,13 +48,13 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [uploadedDocUrl, setUploadedDocUrl] = useState("");
   const [currentDocId, setCurrentDocId] = useState<string | null>(null);
-  
+
   // Document management states
   const [documents, setDocuments] = useState<GoogleDoc[]>([]);
   const [isLoadingDocs, setIsLoadingDocs] = useState(false);
   const [showDocumentsModal, setShowDocumentsModal] = useState(false);
   const [isLoadingDocContent, setIsLoadingDocContent] = useState(false);
-  
+
   const editorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -90,13 +89,13 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
         throw new Error('Failed to load document content');
       }
       const data = await response.json();
-      
+
       // Load the content into the editor
       setDocumentTitle(doc.name);
       setDocumentContent(data.content || '');
       setCurrentDocId(doc.id);
       setShowDocumentsModal(false);
-      
+
       // Save to local storage
       const saveData = {
         title: doc.name,
@@ -105,7 +104,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
         docId: doc.id
       };
       localStorage.setItem('swd-script-draft', JSON.stringify(saveData));
-      
+
     } catch (error) {
       console.error('Error loading document content:', error);
       alert('Failed to load document content. Please try again.');
@@ -129,24 +128,37 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
     setIsUploading(true);
 
     try {
-      // Process HTML content to preserve formatting better
+      // Process HTML content to preserve formatting better and prevent duplication
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = content;
-      
-      // Convert specific font sizes to more readable format
+
+      // Convert specific font sizes and clean up content
       const spans = tempDiv.querySelectorAll('span[style*="font-size"]');
       spans.forEach(span => {
         const style = span.getAttribute('style') || '';
         const fontSizeMatch = style.match(/font-size:\s*(\d+)pt/);
         if (fontSizeMatch) {
           const size = fontSizeMatch[1];
-          // Keep the formatting information for better Google Docs conversion
+          // Ensure proper font size attribute
           span.setAttribute('data-font-size', size + 'pt');
+          // Update the style to use the correct format
+          span.style.fontSize = size + 'pt';
         }
       });
 
+      // Get clean text content without duplication
       const plainTextContent = tempDiv.textContent || tempDiv.innerText || '';
-      const processedHtmlContent = tempDiv.innerHTML;
+
+      // Clean processed HTML content
+      let processedHtmlContent = tempDiv.innerHTML;
+
+      // Remove any duplicate content that might occur
+      const textContent = plainTextContent.trim();
+      if (textContent !== processedHtmlContent.replace(/<[^>]*>/g, '').trim()) {
+        // If there's a mismatch, use the plain text as the source of truth
+        tempDiv.textContent = textContent;
+        processedHtmlContent = tempDiv.innerHTML;
+      }
 
       const response = await fetch('/api/google/update-script', {
         method: 'POST',
@@ -170,7 +182,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
       const result = await response.json();
       setUploadedDocUrl(result.webViewLink);
       setShowSuccessModal(true);
-      
+
       if (onDocumentSaved) {
         onDocumentSaved();
       }
@@ -235,7 +247,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
       docId: currentDocId
     };
     localStorage.setItem('swd-script-draft', JSON.stringify(saveData));
-    
+
     // Show brief save confirmation
     const saveBtn = document.getElementById('save-btn');
     if (saveBtn) {
@@ -272,24 +284,37 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
     setIsUploading(true);
 
     try {
-      // Process HTML content to preserve formatting better
+      // Process HTML content to preserve formatting better and prevent duplication
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = content;
-      
-      // Convert specific font sizes to more readable format
+
+      // Convert specific font sizes and clean up content
       const spans = tempDiv.querySelectorAll('span[style*="font-size"]');
       spans.forEach(span => {
         const style = span.getAttribute('style') || '';
         const fontSizeMatch = style.match(/font-size:\s*(\d+)pt/);
         if (fontSizeMatch) {
           const size = fontSizeMatch[1];
-          // Keep the formatting information for better Google Docs conversion
+          // Ensure proper font size attribute
           span.setAttribute('data-font-size', size + 'pt');
+          // Update the style to use the correct format
+          span.style.fontSize = size + 'pt';
         }
       });
 
+      // Get clean text content without duplication
       const plainTextContent = tempDiv.textContent || tempDiv.innerText || '';
-      const processedHtmlContent = tempDiv.innerHTML;
+
+      // Clean processed HTML content
+      let processedHtmlContent = tempDiv.innerHTML;
+
+      // Remove any duplicate content that might occur
+      const textContent = plainTextContent.trim();
+      if (textContent !== processedHtmlContent.replace(/<[^>]*>/g, '').trim()) {
+        // If there's a mismatch, use the plain text as the source of truth
+        tempDiv.textContent = textContent;
+        processedHtmlContent = tempDiv.innerHTML;
+      }
 
       const response = await fetch('/api/google/upload-script', {
         method: 'POST',
@@ -312,7 +337,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({ onDocumentSa
       const result = await response.json();
       setUploadedDocUrl(result.webViewLink);
       setShowSuccessModal(true);
-      
+
       if (onDocumentSaved) {
         onDocumentSaved();
       }

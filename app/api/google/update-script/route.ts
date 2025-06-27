@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import { auth } from "@/auth";
@@ -7,7 +6,7 @@ export async function POST(request: NextRequest) {
   try {
     // Get session using Auth.js
     const session = await auth();
-    
+
     if (!session || !session.user) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
@@ -65,8 +64,7 @@ export async function POST(request: NextRequest) {
     }, 0);
 
     // Clear the document content and insert new content
-    const requests = [
-      // Delete all existing content (except the final newline)
+    let requests = [
       {
         deleteContentRange: {
           range: {
@@ -74,24 +72,83 @@ export async function POST(request: NextRequest) {
             endIndex: Math.max(1, endIndex - 1)
           }
         }
-      },
-      // Insert new content
-      {
-        insertText: {
-          location: {
-            index: 1
-          },
-          text: content
-        }
       }
     ];
+
+    if (htmlContent && preserveFormatting) {
+      // Simple approach: insert text and apply basic formatting
+      requests.push({
+        insertText: {
+          location: { index: 1 },
+          text: content,
+        },
+      });
+
+      // Extract font size information from HTML content
+      const fontSizeMatches = htmlContent.match(/font-size:\s*(\d+)pt/g);
+      if (fontSizeMatches) {
+        const fontSize = parseInt(fontSizeMatches[0].match(/(\d+)/)[1]);
+
+        // Apply font size to entire document
+        requests.push({
+          updateTextStyle: {
+            range: {
+              startIndex: 1,
+              endIndex: content.length + 1,
+            },
+            textStyle: {
+              fontSize: {
+                magnitude: fontSize,
+                unit: 'PT'
+              }
+            },
+            fields: 'fontSize'
+          },
+        });
+      }
+
+      // Apply bold formatting if found
+      if (htmlContent.includes('font-weight: bold') || htmlContent.includes('<b>') || htmlContent.includes('<strong>')) {
+        // Find bold sections and apply formatting
+        const boldMatches = content.match(/\*\*.*?\*\*/g);
+        if (boldMatches) {
+          let currentIndex = 1;
+          for (const match of boldMatches) {
+            const startIndex = content.indexOf(match.replace(/\*\*/g, ''), currentIndex - 1) + 1;
+            const endIndex = startIndex + match.replace(/\*\*/g, '').length;
+
+            requests.push({
+              updateTextStyle: {
+                range: {
+                  startIndex: startIndex,
+                  endIndex: endIndex,
+                },
+                textStyle: {
+                  bold: true
+                },
+                fields: 'bold'
+              },
+            });
+            currentIndex = endIndex;
+          }
+        }
+      }
+    } else {
+      // Simple text insertion without formatting
+      requests.push({
+        insertText: {
+          location: { index: 1 },
+          text: content,
+        },
+      });
+    }
 
     // Update the document content
     await docs.documents.batchUpdate({
       documentId: docId,
       requestBody: {
-        requests: requests
-      }
+        requests: requests,
+      },
     });
 
     // Update the document title if it's different
