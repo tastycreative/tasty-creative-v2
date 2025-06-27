@@ -135,17 +135,37 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
     const tempDiv = document.createElement("div");
     tempDiv.innerHTML = htmlContent;
 
-    // Convert specific font sizes and clean up content
+    // Convert specific font sizes and ensure they have proper CSS specificity
     const spans = tempDiv.querySelectorAll('span[style*="font-size"]');
     spans.forEach((span) => {
       const style = span.getAttribute("style") || "";
       const fontSizeMatch = style.match(/font-size:\s*(\d+)pt/);
       if (fontSizeMatch) {
         const size = fontSizeMatch[1];
-        // Ensure proper font size attribute
+        // Ensure proper font size attribute with !important to override editor defaults
         span.setAttribute("data-font-size", size + "pt");
-        // Update the style to use the correct format
-        (span as HTMLElement).style.fontSize = size + "pt";
+        // Update the style to use the correct format with higher specificity
+        const currentStyle = span.getAttribute("style") || "";
+        const updatedStyle = currentStyle.includes("font-size")
+          ? currentStyle.replace(
+              /font-size:\s*[^;]+/,
+              `font-size: ${size}pt !important`
+            )
+          : `${currentStyle}; font-size: ${size}pt !important`;
+        span.setAttribute("style", updatedStyle);
+      }
+    });
+
+    // Also handle direct font-size styles in other elements
+    const allElements = tempDiv.querySelectorAll('*[style*="font-size"]');
+    allElements.forEach((element) => {
+      const style = element.getAttribute("style") || "";
+      if (style.includes("font-size") && !style.includes("!important")) {
+        const updatedStyle = style.replace(
+          /font-size:\s*([^;]+)/g,
+          "font-size: $1 !important"
+        );
+        element.setAttribute("style", updatedStyle);
       }
     });
 
@@ -262,7 +282,16 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
 
   const setDocumentContent = (content: string) => {
     if (editorRef.current) {
+      // Temporarily remove the inline font-size to allow content styles to take precedence
+      const originalFontSize = editorRef.current.style.fontSize;
+      editorRef.current.style.fontSize = "";
+
       editorRef.current.innerHTML = content;
+
+      // If content is empty or doesn't have font styling, restore default
+      if (!content.trim() || !content.includes("font-size")) {
+        editorRef.current.style.fontSize = originalFontSize || "12pt";
+      }
     }
   };
 
@@ -615,7 +644,6 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
               contentEditable
               className="min-h-[11in] text-white bg-transparent outline-none resize-none leading-relaxed"
               style={{
-                fontSize: "12pt",
                 lineHeight: "1.15",
                 fontFamily: 'Times, "Times New Roman", serif',
                 padding: "1in",
@@ -623,6 +651,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                 minHeight: "11in",
                 margin: "0 auto",
                 boxSizing: "border-box",
+                fontSize: "12pt", // Default font size, can be overridden by content
               }}
               // placeholder="Start writing your script here..."
               onInput={saveToLocalStorage}
