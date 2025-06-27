@@ -125,6 +125,48 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
     }
   };
 
+  const processHtmlContent = (htmlContent: string) => {
+    // Only run DOM processing in browser environment
+    if (typeof window === "undefined")
+      return { plainText: "", processedHtml: htmlContent };
+
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = htmlContent;
+
+    // Convert specific font sizes and clean up content
+    const spans = tempDiv.querySelectorAll('span[style*="font-size"]');
+    spans.forEach((span) => {
+      const style = span.getAttribute("style") || "";
+      const fontSizeMatch = style.match(/font-size:\s*(\d+)pt/);
+      if (fontSizeMatch) {
+        const size = fontSizeMatch[1];
+        // Ensure proper font size attribute
+        span.setAttribute("data-font-size", size + "pt");
+        // Update the style to use the correct format
+        (span as HTMLElement).style.fontSize = size + "pt";
+      }
+    });
+
+    // Get clean text content without duplication
+    const plainTextContent = tempDiv.textContent || tempDiv.innerText || "";
+
+    // Clean processed HTML content
+    let processedHtmlContent = tempDiv.innerHTML;
+
+    // Remove any duplicate content that might occur
+    const textContent = plainTextContent.trim();
+    if (textContent !== processedHtmlContent.replace(/<[^>]*>/g, "").trim()) {
+      // If there's a mismatch, use the plain text as the source of truth
+      tempDiv.textContent = textContent;
+      processedHtmlContent = tempDiv.innerHTML;
+    }
+
+    return {
+      plainText: plainTextContent,
+      processedHtml: processedHtmlContent,
+    };
+  };
+
   const updateExistingDocument = async () => {
     if (!currentDocId || !documentTitle.trim()) {
       alert("Please make sure you have a document loaded and a title.");
@@ -140,37 +182,8 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
     setIsUploading(true);
 
     try {
-      // Process HTML content to preserve formatting better and prevent duplication
-      const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = content;
-
-      // Convert specific font sizes and clean up content
-      const spans = tempDiv.querySelectorAll('span[style*="font-size"]');
-      spans.forEach((span) => {
-        const style = span.getAttribute("style") || "";
-        const fontSizeMatch = style.match(/font-size:\s*(\d+)pt/);
-        if (fontSizeMatch) {
-          const size = fontSizeMatch[1];
-          // Ensure proper font size attribute
-          span.setAttribute("data-font-size", size + "pt");
-          // Update the style to use the correct format
-          (span as HTMLElement).style.fontSize = size + "pt";
-        }
-      });
-
-      // Get clean text content without duplication
-      const plainTextContent = tempDiv.textContent || tempDiv.innerText || "";
-
-      // Clean processed HTML content
-      let processedHtmlContent = tempDiv.innerHTML;
-
-      // Remove any duplicate content that might occur
-      const textContent = plainTextContent.trim();
-      if (textContent !== processedHtmlContent.replace(/<[^>]*>/g, "").trim()) {
-        // If there's a mismatch, use the plain text as the source of truth
-        tempDiv.textContent = textContent;
-        processedHtmlContent = tempDiv.innerHTML;
-      }
+      // Process HTML content on client side
+      const { plainText, processedHtml } = processHtmlContent(content);
 
       const response = await fetch("/api/google/update-script", {
         method: "POST",
@@ -180,8 +193,8 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
         body: JSON.stringify({
           docId: currentDocId,
           title: documentTitle,
-          content: plainTextContent,
-          htmlContent: processedHtmlContent,
+          content: plainText,
+          htmlContent: processedHtml,
           preserveFormatting: true,
         }),
       });
@@ -300,37 +313,8 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
     setIsUploading(true);
 
     try {
-      // Process HTML content to preserve formatting better and prevent duplication
-      const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = content;
-
-      // Convert specific font sizes and clean up content
-      const spans = tempDiv.querySelectorAll('span[style*="font-size"]');
-      spans.forEach((span) => {
-        const style = span.getAttribute("style") || "";
-        const fontSizeMatch = style.match(/font-size:\s*(\d+)pt/);
-        if (fontSizeMatch) {
-          const size = fontSizeMatch[1];
-          // Ensure proper font size attribute
-          span.setAttribute("data-font-size", size + "pt");
-          // Update the style to use the correct format
-          (span as HTMLElement).style.fontSize = size + "pt";
-        }
-      });
-
-      // Get clean text content without duplication
-      const plainTextContent = tempDiv.textContent || tempDiv.innerText || "";
-
-      // Clean processed HTML content
-      let processedHtmlContent = tempDiv.innerHTML;
-
-      // Remove any duplicate content that might occur
-      const textContent = plainTextContent.trim();
-      if (textContent !== processedHtmlContent.replace(/<[^>]*>/g, "").trim()) {
-        // If there's a mismatch, use the plain text as the source of truth
-        tempDiv.textContent = textContent;
-        processedHtmlContent = tempDiv.innerHTML;
-      }
+      // Process HTML content on client side
+      const { plainText, processedHtml } = processHtmlContent(content);
 
       const response = await fetch("/api/google/upload-script", {
         method: "POST",
@@ -339,8 +323,8 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
         },
         body: JSON.stringify({
           title: documentTitle,
-          content: plainTextContent,
-          htmlContent: processedHtmlContent,
+          content: plainText,
+          htmlContent: processedHtml,
           preserveFormatting: true,
         }),
       });
