@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,16 +99,20 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
       }
       const data = await response.json();
 
-      // Load the content into the editor
+      // Load the content into the editor, preserving HTML formatting
       setDocumentTitle(doc.name);
-      setDocumentContent(data.content || "");
+
+      // Use htmlContent if available, otherwise fall back to plain content
+      const contentToLoad = data.htmlContent || data.content || "";
+      setDocumentContent(contentToLoad);
       setCurrentDocId(doc.id);
       setShowDocumentsModal(false);
 
-      // Save to local storage
+      // Save to local storage with both content types
       const saveData = {
         title: doc.name,
-        content: data.content || "",
+        content: contentToLoad,
+        htmlContent: data.htmlContent,
         lastSaved: new Date().toISOString(),
         docId: doc.id,
       };
@@ -252,6 +256,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
     const saveData = {
       title: documentTitle,
       content: content,
+      htmlContent: content, // Save the HTML content to preserve formatting
       lastSaved: new Date().toISOString(),
       docId: currentDocId,
     };
@@ -268,15 +273,17 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
     }
   };
 
-  const loadFromLocalStorage = () => {
+  const loadFromLocalStorage = useCallback(() => {
     const saved = localStorage.getItem("swd-script-draft");
     if (saved) {
       const saveData = JSON.parse(saved);
       setDocumentTitle(saveData.title);
-      setDocumentContent(saveData.content);
+      // Use htmlContent if available for better formatting preservation
+      const contentToLoad = saveData.htmlContent || saveData.content;
+      setDocumentContent(contentToLoad);
       setCurrentDocId(saveData.docId || null);
     }
-  };
+  }, []);
 
   const uploadToGoogleDrive = async () => {
     if (!documentTitle.trim()) {
@@ -374,7 +381,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
   useEffect(() => {
     // Load saved content on component mount
     loadFromLocalStorage();
-  }, []);
+  }, [loadFromLocalStorage]);
 
   return (
     <div className="space-y-6">
