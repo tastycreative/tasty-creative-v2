@@ -61,6 +61,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
   const [isLoadingDocs, setIsLoadingDocs] = useState(false);
   const [showDocumentsModal, setShowDocumentsModal] = useState(false);
   const [isLoadingDocContent, setIsLoadingDocContent] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   const editorRef = useRef<HTMLDivElement>(null);
 
@@ -401,14 +402,21 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
   };
 
   const loadLatestDocument = useCallback(async () => {
+    console.log("🔄 Attempting to load latest document...");
+
     try {
       const response = await fetch("/api/google/list-scripts");
+      console.log("📋 List scripts response status:", response.status);
+
       if (!response.ok) {
-        console.error("Failed to fetch documents for auto-load");
-        return;
+        const errorText = await response.text();
+        console.error("❌ Failed to fetch documents for auto-load:", errorText);
+        throw new Error(`Failed to fetch documents: ${response.status}`);
       }
+
       const data = await response.json();
       const documents = data.documents || [];
+      console.log("📄 Found documents:", documents.length);
 
       if (documents.length > 0) {
         // Sort by modifiedTime to get the latest document
@@ -418,33 +426,70 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
             new Date(a.modifiedTime).getTime()
         );
         const latestDoc = sortedDocs[0];
+        console.log(
+          "📝 Latest document:",
+          latestDoc.name,
+          "modified:",
+          latestDoc.modifiedTime
+        );
 
         // Load the latest document content
         await loadDocumentContent(latestDoc);
-        console.log(`Auto-loaded latest document: ${latestDoc.name}`);
+        console.log(`✅ Auto-loaded latest document: ${latestDoc.name}`);
+      } else {
+        console.log("📭 No documents found");
+        throw new Error("No documents found");
       }
     } catch (error) {
-      console.error("Error auto-loading latest document:", error);
-      // Fallback to local storage if auto-load fails
-      loadFromLocalStorage();
+      console.error("❌ Error auto-loading latest document:", error);
+      throw error; // Re-throw so the useEffect can handle the fallback
     }
-  }, [loadDocumentContent, loadFromLocalStorage]);
+  }, [loadDocumentContent]);
 
   useEffect(() => {
-    // Check if there's saved content in local storage first
-    const saved = localStorage.getItem("swd-script-draft");
+    const initializeEditor = async () => {
+      console.log("🚀 Initializing script editor...");
+      setIsInitializing(true);
 
-    if (saved) {
-      // If there's saved content, load it first
-      loadFromLocalStorage();
-    } else {
-      // If no saved content, try to load the latest document from Google Drive
-      loadLatestDocument();
-    }
+      // Always try to load the latest document from Google Drive first
+      // This ensures we get the most up-to-date content
+      try {
+        await loadLatestDocument();
+        console.log("✅ Successfully loaded latest document from Google Drive");
+      } catch (error) {
+        // If loading from Google Drive fails, fall back to local storage
+        console.log(
+          "⚠️ Failed to load from Google Drive, checking local storage:",
+          error
+        );
+        const saved = localStorage.getItem("swd-script-draft");
+        if (saved) {
+          console.log("💾 Loading content from local storage");
+          loadFromLocalStorage();
+        } else {
+          console.log("📄 No local content found, starting with empty editor");
+        }
+      } finally {
+        setIsInitializing(false);
+        console.log("🏁 Editor initialization complete");
+      }
+    };
+
+    initializeEditor();
   }, [loadFromLocalStorage, loadLatestDocument]);
 
   return (
     <div className="space-y-6">
+      {/* Loading indicator during initialization */}
+      {isInitializing && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-gray-900 border border-gray-700 rounded-lg p-6 flex items-center gap-3">
+            <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
+            <span className="text-white">Loading latest script...</span>
+          </div>
+        </div>
+      )}
+
       {/* Document Header */}
       <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-xl overflow-hidden relative">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-900/10 to-purple-900/10"></div>
