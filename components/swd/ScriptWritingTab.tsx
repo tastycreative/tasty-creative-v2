@@ -249,6 +249,133 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
     editorRef.current?.focus();
   };
 
+  const getDocumentContent = () => {
+    return editorRef.current?.innerHTML || "";
+  };
+
+  const setDocumentContent = (content: string) => {
+    if (editorRef.current) {
+      editorRef.current.innerHTML = content;
+    }
+  };
+
+  const saveToLocalStorage = useCallback(() => {
+    const content = getDocumentContent();
+    const saveData = {
+      title: documentTitle,
+      content: content,
+      htmlContent: content, // Save the HTML content to preserve formatting
+      lastSaved: new Date().toISOString(),
+      docId: currentDocId,
+    };
+    localStorage.setItem("swd-script-draft", JSON.stringify(saveData));
+
+    // Show brief save confirmation
+    const saveBtn = document.getElementById("save-btn");
+    if (saveBtn) {
+      const originalText = saveBtn.textContent;
+      saveBtn.textContent = "Saved!";
+      setTimeout(() => {
+        saveBtn.textContent = originalText;
+      }, 1000);
+    }
+  }, [documentTitle, currentDocId]);
+
+  const handleListCommand = useCallback(
+    (listType: "ul" | "ol") => {
+      if (!editorRef.current) return;
+
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) return;
+
+      // Focus the editor first
+      editorRef.current.focus();
+
+      // Try the standard document.execCommand first
+      const command =
+        listType === "ul" ? "insertUnorderedList" : "insertOrderedList";
+
+      try {
+        const success = document.execCommand(command, false);
+        if (success) {
+          return;
+        }
+      } catch {
+        console.log(
+          "Standard list command failed, using manual implementation"
+        );
+      }
+
+      // If execCommand fails, implement manual list creation
+      const range = selection.getRangeAt(0);
+
+      // Check if we're already in a list
+      let listElement = range.commonAncestorContainer;
+      while (listElement && listElement.nodeType !== Node.ELEMENT_NODE) {
+        listElement = listElement.parentNode!;
+      }
+
+      // Find existing list
+      let existingList = null;
+      let currentElement = listElement as Element;
+      while (currentElement && currentElement !== editorRef.current) {
+        if (
+          currentElement.tagName === "UL" ||
+          currentElement.tagName === "OL"
+        ) {
+          existingList = currentElement;
+          break;
+        }
+        currentElement = currentElement.parentElement!;
+      }
+
+      if (existingList) {
+        // If we're in a list, remove it
+        const listItems = existingList.querySelectorAll("li");
+        const fragment = document.createDocumentFragment();
+
+        listItems.forEach((li) => {
+          const p = document.createElement("p");
+          p.innerHTML = li.innerHTML;
+          fragment.appendChild(p);
+        });
+
+        existingList.parentNode?.replaceChild(fragment, existingList);
+      } else {
+        // Create a new list
+        const listTag = listType === "ul" ? "ul" : "ol";
+        const list = document.createElement(listTag);
+        list.style.marginLeft = "20px";
+        list.style.paddingLeft = "20px";
+
+        // If there's selected text, use it for the list item
+        let content = "";
+        if (!range.collapsed) {
+          content = range.toString();
+          range.deleteContents();
+        }
+
+        const listItem = document.createElement("li");
+        listItem.style.marginBottom = "4px";
+        listItem.innerHTML = content || "<br>";
+        list.appendChild(listItem);
+
+        range.insertNode(list);
+
+        // Position cursor in the list item
+        const newRange = document.createRange();
+        newRange.setStart(listItem, 0);
+        newRange.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+      }
+
+      // Save to local storage after change
+      setTimeout(() => saveToLocalStorage(), 100);
+    },
+    [saveToLocalStorage]
+  );
+
   const handleFontSizeChange = (size: string) => {
     // Extract the numeric value from the point size (e.g., "12pt" -> "12")
     // Use the actual point size for better consistency
@@ -275,38 +402,6 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
       }
     }
     editorRef.current?.focus();
-  };
-
-  const getDocumentContent = () => {
-    return editorRef.current?.innerHTML || "";
-  };
-
-  const setDocumentContent = (content: string) => {
-    if (editorRef.current) {
-      editorRef.current.innerHTML = content;
-    }
-  };
-
-  const saveToLocalStorage = () => {
-    const content = getDocumentContent();
-    const saveData = {
-      title: documentTitle,
-      content: content,
-      htmlContent: content, // Save the HTML content to preserve formatting
-      lastSaved: new Date().toISOString(),
-      docId: currentDocId,
-    };
-    localStorage.setItem("swd-script-draft", JSON.stringify(saveData));
-
-    // Show brief save confirmation
-    const saveBtn = document.getElementById("save-btn");
-    if (saveBtn) {
-      const originalText = saveBtn.textContent;
-      saveBtn.textContent = "Saved!";
-      setTimeout(() => {
-        saveBtn.textContent = originalText;
-      }, 1000);
-    }
   };
 
   const loadFromLocalStorage = useCallback(() => {
@@ -478,6 +573,30 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
     initializeEditor();
   }, [loadFromLocalStorage, loadLatestDocument]);
 
+  // Add keyboard shortcuts for lists
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + Shift + 8 for bullet list
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "8") {
+        e.preventDefault();
+        handleListCommand("ul");
+      }
+      // Ctrl/Cmd + Shift + 7 for numbered list
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "7") {
+        e.preventDefault();
+        handleListCommand("ol");
+      }
+    };
+
+    const editor = editorRef.current;
+    if (editor) {
+      editor.addEventListener("keydown", handleKeyDown);
+      return () => {
+        editor.removeEventListener("keydown", handleKeyDown);
+      };
+    }
+  }, [handleListCommand]);
+
   return (
     <div className="space-y-6">
       {/* Loading indicator during initialization */}
@@ -641,7 +760,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => executeCommand("insertUnorderedList")}
+                onClick={() => handleListCommand("ul")}
                 className="border-gray-700 text-gray-300 hover:bg-gray-800"
               >
                 <List className="w-4 h-4" />
@@ -649,7 +768,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => executeCommand("insertOrderedList")}
+                onClick={() => handleListCommand("ol")}
                 className="border-gray-700 text-gray-300 hover:bg-gray-800"
               >
                 <ListOrdered className="w-4 h-4" />
@@ -718,7 +837,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
             <div
               ref={editorRef}
               contentEditable
-              className="min-h-[11in] text-white bg-transparent outline-none resize-none leading-relaxed text-[12pt]"
+              className="min-h-[11in] text-white bg-transparent outline-none resize-none leading-relaxed text-[12pt] prose-lists"
               style={{
                 lineHeight: "1.15",
                 fontFamily: 'Times, "Times New Roman", serif',
@@ -734,6 +853,35 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
               onBlur={saveToLocalStorage}
             />
           </div>
+          <style
+            dangerouslySetInnerHTML={{
+              __html: `
+              .prose-lists ul {
+                list-style-type: disc !important;
+                margin-left: 20px !important;
+                padding-left: 20px !important;
+                color: white !important;
+              }
+              .prose-lists ol {
+                list-style-type: decimal !important;
+                margin-left: 20px !important;
+                padding-left: 20px !important;
+                color: white !important;
+              }
+              .prose-lists li {
+                margin-bottom: 4px !important;
+                display: list-item !important;
+                color: white !important;
+              }
+              .prose-lists ul ul {
+                list-style-type: circle !important;
+              }
+              .prose-lists ul ul ul {
+                list-style-type: square !important;
+              }
+            `,
+            }}
+          />
         </CardContent>
       </Card>
 
