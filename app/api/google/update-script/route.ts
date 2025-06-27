@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     }, 0);
 
     // Clear the document content and insert new content
-    let requests = [
+    let requests: any[] = [
       {
         deleteContentRange: {
           range: {
