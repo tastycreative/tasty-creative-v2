@@ -634,8 +634,8 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
 
       {/* Documents Modal */}
       <Dialog open={showDocumentsModal} onOpenChange={setShowDocumentsModal}>
-        <DialogContent className="bg-gray-900 border-gray-800 max-w-6xl max-h-[85vh] overflow-hidden">
-          <DialogHeader className="border-b border-gray-700 pb-4">
+        <DialogContent className="bg-gray-900 border-gray-800 max-w-[95vw] sm:max-w-7xl max-h-[90vh] overflow-hidden w-full">
+          <DialogHeader className="border-b border-gray-700 pb-6 px-8 pt-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -691,9 +691,9 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                 </div>
               </div>
             ) : (
-              <div className="p-6 overflow-y-auto max-h-[60vh]">
+              <div className="p-8 overflow-y-auto max-h-[75vh]">
                 {/* Document Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-6">
                   {documents.map((doc) => (
                     <div
                       key={doc.id}
@@ -701,22 +701,22 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                       onClick={() => loadDocumentContent(doc)}
                     >
                       {/* Document Preview */}
-                      <div className="aspect-[3/4] p-4 flex flex-col">
+                      <div className="aspect-[3/4] p-5 flex flex-col">
                         {/* Document Icon */}
-                        <div className="flex-1 flex items-center justify-center mb-3">
-                          <div className="w-16 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg flex items-center justify-center relative overflow-hidden">
-                            <FileText className="w-8 h-8 text-white z-10" />
+                        <div className="flex-1 flex items-center justify-center mb-4">
+                          <div className="w-20 h-24 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg flex items-center justify-center relative overflow-hidden">
+                            <FileText className="w-10 h-10 text-white z-10" />
                             {/* Google Docs style lines */}
                             <div className="absolute inset-0 bg-white/10">
-                              <div className="absolute top-4 left-2 right-2 h-0.5 bg-white/40 rounded"></div>
-                              <div className="absolute top-6 left-2 right-3 h-0.5 bg-white/30 rounded"></div>
-                              <div className="absolute top-8 left-2 right-2.5 h-0.5 bg-white/30 rounded"></div>
-                              <div className="absolute top-10 left-2 right-4 h-0.5 bg-white/25 rounded"></div>
-                              <div className="absolute top-12 left-2 right-2 h-0.5 bg-white/25 rounded"></div>
-                              <div className="absolute top-14 left-2 right-3.5 h-0.5 bg-white/20 rounded"></div>
+                              <div className="absolute top-5 left-2.5 right-2.5 h-0.5 bg-white/40 rounded"></div>
+                              <div className="absolute top-7 left-2.5 right-3 h-0.5 bg-white/30 rounded"></div>
+                              <div className="absolute top-9 left-2.5 right-2.5 h-0.5 bg-white/30 rounded"></div>
+                              <div className="absolute top-11 left-2.5 right-4 h-0.5 bg-white/25 rounded"></div>
+                              <div className="absolute top-13 left-2.5 right-2.5 h-0.5 bg-white/25 rounded"></div>
+                              <div className="absolute top-15 left-2.5 right-3.5 h-0.5 bg-white/20 rounded"></div>
                             </div>
                             {/* Google Docs corner fold */}
-                            <div className="absolute top-0 right-0 w-0 h-0 border-l-[8px] border-l-transparent border-t-[8px] border-t-white/20"></div>
+                            <div className="absolute top-0 right-0 w-0 h-0 border-l-[10px] border-l-transparent border-t-[10px] border-t-white/20"></div>
                           </div>
                         </div>
 
