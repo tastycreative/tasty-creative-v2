@@ -774,6 +774,8 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       prefix: "$",
       suffix: "",
       isLoading: isLoadingSwdData,
+      // Add decimals property for CountUp to show cents
+      decimals: 2,
     },
   ];
 
@@ -850,6 +852,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                             duration={2.5}
                             prefix={stat.prefix}
                             suffix={stat.suffix}
+                            decimals={(stat as any).decimals || 0}
                           />
                         )}
                       </p>
@@ -875,6 +878,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                               duration={2.5}
                               prefix={stat.prefix}
                               suffix={stat.suffix}
+                              decimals={(stat as any).decimals || 0}
                             />
                           )}
                         </p>
