@@ -124,7 +124,7 @@ const DEFAULT_GENERATION_PARAMS = {
   cfgScale: 1.0,
   guidance: 3.5,
   reduxStrength: 0.8,
-  downsamplingFactor: 3,
+  downsamplingFactor: 1,
   batchSize: 5,
   loraStrength: 0.95,
   brushSize: 40,
