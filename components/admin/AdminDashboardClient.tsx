@@ -973,7 +973,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                             <div className="flex items-center space-x-3">
                               {message.modelAvatar ? (
                                 <Image
-                                  src={`/api/image-proxy?url=${encodeURIComponent(message.modelAvatar)}`}
+                                  src={`/api/image-proxy?url=${message.modelAvatar}`}
                                   alt={message.modelName}
                                   width={32}
                                   height={32}
@@ -1204,7 +1204,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                             <div className="flex items-center space-x-3">
                               {model.avatar ? (
                                 <Image
-                                  src={`/api/image-proxy?url=${encodeURIComponent(model.avatar)}`}
+                                  src={`/api/image-proxy?url=${model.avatar}`}
                                   alt={model.name}
                                   width={40}
                                   height={40}
@@ -1769,7 +1769,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                         <div className="flex items-center space-x-3">
                           {user.image ? (
                             <Image
-                              src={`/api/image-proxy?url=${encodeURIComponent(user.image)}`}
+                              src={`/api/image-proxy?url=${user.image}`}
                               alt={user.name || ""}
                               width={32}
                               height={32}
@@ -1861,7 +1861,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                               <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
                                 {activity.image ? (
                                   <Image
-                                    src={`/api/image-proxy?url=${encodeURIComponent(activity.image)}`}
+                                    src={`/api/image-proxy?url=${activity.image}`}
                                     alt={activity.name}
                                     width={32}
                                     height={32}
