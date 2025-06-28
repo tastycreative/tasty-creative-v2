@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
@@ -12,8 +11,32 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Loader2, TrendingUp, Award, Trophy, Star, Zap, Sparkles, Crown, Medal, Users, FileText, Brain, Hash, Calendar, Plus, CheckCircle, PenTool } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Loader2,
+  TrendingUp,
+  Award,
+  Trophy,
+  Star,
+  Zap,
+  Sparkles,
+  Crown,
+  Medal,
+  Users,
+  FileText,
+  Brain,
+  Hash,
+  Calendar,
+  Plus,
+  CheckCircle,
+  PenTool,
+} from "lucide-react";
 import { Button } from "../ui/button";
 import { useSession } from "next-auth/react";
 import { QuickDataEntry } from "./QuickDataEntry";
@@ -49,7 +72,11 @@ interface ApiResponse {
   availableMonths: string[];
 }
 
-export const SWDDashboard = () => {
+interface SWDDashboardProps {
+  onScriptClick?: (scriptLink: string) => void;
+}
+
+export const SWDDashboard = ({ onScriptClick }: SWDDashboardProps) => {
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [selectedMonth, setSelectedMonth] = useState<string>("all");
   const [apiData, setApiData] = useState<ApiResponse | null>(null);
@@ -128,6 +155,7 @@ export const SWDDashboard = () => {
         .map((item) => ({
           title: item.scriptTitle,
           totalBuy: `${item.totalBuy.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+          scriptLink: item.scriptLink,
         })),
       topSent: creatorFilteredData
         .sort((a, b) => b.totalSend - a.totalSend)
@@ -135,6 +163,7 @@ export const SWDDashboard = () => {
         .map((item) => ({
           title: item.scriptTitle,
           totalSend: item.totalSend,
+          scriptLink: item.scriptLink,
         })),
     };
 
@@ -241,7 +270,9 @@ export const SWDDashboard = () => {
           <div className="absolute inset-0 blur-xl bg-gradient-to-r from-purple-600 to-pink-600 rounded-full animate-pulse"></div>
           <Loader2 className="relative w-16 h-16 text-white animate-spin" />
         </div>
-        <h2 className="text-2xl font-bold text-white">Loading Script Data...</h2>
+        <h2 className="text-2xl font-bold text-white">
+          Loading Script Data...
+        </h2>
         <p className="text-gray-400">Fetching your dashboard information</p>
       </div>
     );
@@ -251,7 +282,9 @@ export const SWDDashboard = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-8">
-          <h2 className="text-2xl font-bold text-red-400 mb-2">Error Loading Data</h2>
+          <h2 className="text-2xl font-bold text-red-400 mb-2">
+            Error Loading Data
+          </h2>
           <p className="text-gray-400 mb-4">{error}</p>
           <button
             onClick={fetchAllData}
@@ -282,7 +315,10 @@ export const SWDDashboard = () => {
                 Submit Script Request
               </DialogTitle>
             </DialogHeader>
-            <RequestForm onRequestSubmitted={fetchAllData} onSuccess={() => setShowRequestSuccess(true)} />
+            <RequestForm
+              onRequestSubmitted={fetchAllData}
+              onSuccess={() => setShowRequestSuccess(true)}
+            />
           </DialogContent>
         </Dialog>
 
@@ -301,7 +337,10 @@ export const SWDDashboard = () => {
                   Quick Data Entry - Send+Buy Input
                 </DialogTitle>
               </DialogHeader>
-              <QuickDataEntry onDataSubmitted={fetchAllData} onSuccess={() => setShowQuickDataSuccess(true)} />
+              <QuickDataEntry
+                onDataSubmitted={fetchAllData}
+                onSuccess={() => setShowQuickDataSuccess(true)}
+              />
             </DialogContent>
           </Dialog>
         )}
@@ -350,22 +389,32 @@ export const SWDDashboard = () => {
 
       {/* Model Stats */}
       {currentModelData && (
-        <ModelStats modelData={currentModelData} selectedModel={selectedModel} />
+        <ModelStats
+          modelData={currentModelData}
+          selectedModel={selectedModel}
+        />
       )}
 
       {/* Best Scripts */}
-      <BestScripts bestScripts={bestScripts} selectedModel={selectedModel} />
+      <BestScripts
+        bestScripts={bestScripts}
+        selectedModel={selectedModel}
+        onScriptClick={onScriptClick}
+      />
 
       {/* Leaderboard */}
-      <Leaderboard 
-        leaderboard={leaderboard} 
-        selectedMonth={selectedMonth} 
+      <Leaderboard
+        leaderboard={leaderboard}
+        selectedMonth={selectedMonth}
         onMonthChange={setSelectedMonth}
         availableMonths={apiData?.availableMonths || []}
       />
 
       {/* Success Modals */}
-      <Dialog open={showQuickDataSuccess} onOpenChange={setShowQuickDataSuccess}>
+      <Dialog
+        open={showQuickDataSuccess}
+        onOpenChange={setShowQuickDataSuccess}
+      >
         <DialogContent className="bg-gray-900 border-gray-800">
           <DialogHeader>
             <DialogTitle className="text-white flex items-center gap-2">
@@ -375,7 +424,8 @@ export const SWDDashboard = () => {
           </DialogHeader>
           <div className="p-4">
             <p className="text-gray-300 mb-4">
-              Your script data has been successfully submitted and added to the spreadsheet.
+              Your script data has been successfully submitted and added to the
+              spreadsheet.
             </p>
             <Button
               onClick={() => setShowQuickDataSuccess(false)}
@@ -397,7 +447,8 @@ export const SWDDashboard = () => {
           </DialogHeader>
           <div className="p-4">
             <p className="text-gray-300 mb-4">
-              Your script request has been successfully submitted. We&apos;ll process it and get back to you soon.
+              Your script request has been successfully submitted. We&apos;ll
+              process it and get back to you soon.
             </p>
             <Button
               onClick={() => setShowRequestSuccess(false)}

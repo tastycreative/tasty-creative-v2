@@ -36,6 +36,8 @@ import {
 
 interface ScriptWritingTabProps {
   onDocumentSaved?: () => void;
+  scriptToLoad?: string | null;
+  onScriptLoaded?: () => void;
 }
 
 interface GoogleDoc {
@@ -49,12 +51,15 @@ interface GoogleDoc {
 
 export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
   onDocumentSaved,
+  scriptToLoad,
+  onScriptLoaded,
 }) => {
   const [documentTitle, setDocumentTitle] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [uploadedDocUrl, setUploadedDocUrl] = useState("");
   const [currentDocId, setCurrentDocId] = useState<string | null>(null);
+  const [currentFontSize, setCurrentFontSize] = useState("12pt");
 
   // Document management states
   const [documents, setDocuments] = useState<GoogleDoc[]>([]);
@@ -71,6 +76,134 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
     const defaultTitle = `Script Draft - ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
     setDocumentTitle(defaultTitle);
   }, []);
+
+  const updateCurrentFontSize = useCallback(() => {
+    if (!editorRef.current) return;
+
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      let targetElement: Element | null = null;
+
+      if (range.collapsed) {
+        // No selection, check the element at cursor position
+        targetElement =
+          selection.anchorNode?.nodeType === Node.TEXT_NODE
+            ? selection.anchorNode.parentElement
+            : (selection.anchorNode as Element);
+      } else {
+        // Text is selected, check the first element in selection
+        const startContainer = range.startContainer;
+        targetElement =
+          startContainer.nodeType === Node.TEXT_NODE
+            ? startContainer.parentElement
+            : (startContainer as Element);
+      }
+
+      if (targetElement) {
+        // Walk up the DOM to find an element with explicit font-size
+        let element: Element | null = targetElement;
+        while (element && element !== editorRef.current) {
+          const style = element.getAttribute("style") || "";
+          const computedStyle = window.getComputedStyle(element);
+
+          // Check for explicit font-size in style attribute first
+          const fontSizeMatch = style.match(/font-size:\s*(\d+)pt/);
+          if (fontSizeMatch) {
+            const size = fontSizeMatch[1] + "pt";
+            setCurrentFontSize(size);
+            return;
+          }
+
+          // Check computed style
+          const fontSize = computedStyle.fontSize;
+          if (fontSize && fontSize !== "medium" && !fontSize.includes("16px")) {
+            const sizeInPt = fontSize.includes("px")
+              ? Math.round(parseFloat(fontSize) * 0.75) + "pt"
+              : fontSize.includes("pt")
+                ? fontSize
+                : "12pt";
+            setCurrentFontSize(sizeInPt);
+            return;
+          }
+
+          element = element.parentElement;
+        }
+      }
+    }
+
+    // Default fallback
+    setCurrentFontSize("12pt");
+  }, []);
+
+  const applyListFontSizes = useCallback(() => {
+    if (!editorRef.current) return;
+
+    const lists = editorRef.current.querySelectorAll("ul, ol");
+    lists.forEach((list) => {
+      const listItems = list.querySelectorAll("li");
+      let maxFontSize = "12pt";
+
+      // Find the largest font size in the list items
+      listItems.forEach((li) => {
+        const style = li.getAttribute("style") || "";
+        const computedStyle = window.getComputedStyle(li);
+
+        // Check explicit style first
+        const fontSizeMatch = style.match(/font-size:\s*(\d+)pt/);
+        if (fontSizeMatch) {
+          const size = parseInt(fontSizeMatch[1]);
+          if (size > parseInt(maxFontSize)) {
+            maxFontSize = size + "pt";
+          }
+        } else {
+          // Check computed style
+          const fontSize = computedStyle.fontSize;
+          if (fontSize && !fontSize.includes("16px")) {
+            const sizeInPt = fontSize.includes("px")
+              ? Math.round(parseFloat(fontSize) * 0.75) + "pt"
+              : fontSize.includes("pt")
+                ? fontSize
+                : "12pt";
+            const size = parseInt(sizeInPt);
+            if (size > parseInt(maxFontSize)) {
+              maxFontSize = sizeInPt;
+            }
+          }
+        }
+      });
+
+      // Apply data attributes and ensure font size is set
+      (list as HTMLElement).setAttribute("data-list-font-size", maxFontSize);
+      const currentListStyle =
+        (list as HTMLElement).getAttribute("style") || "";
+      if (!currentListStyle.includes("font-size")) {
+        (list as HTMLElement).style.fontSize = `${maxFontSize} !important`;
+      }
+
+      listItems.forEach((li) => {
+        (li as HTMLElement).setAttribute("data-list-font-size", maxFontSize);
+        const currentStyle = (li as HTMLElement).getAttribute("style") || "";
+        if (!currentStyle.includes("font-size")) {
+          (li as HTMLElement).style.fontSize = `${maxFontSize} !important`;
+        }
+      });
+    });
+  }, []);
+
+  const setDocumentContent = useCallback(
+    (content: string) => {
+      if (editorRef.current) {
+        editorRef.current.innerHTML = content;
+        // Update font size selector and apply list font sizes after content is loaded
+        setTimeout(() => {
+          updateCurrentFontSize();
+          applyListFontSizes();
+        }, 100);
+      }
+    },
+    [updateCurrentFontSize, applyListFontSizes]
+  );
 
   const fetchDocuments = async () => {
     setIsLoadingDocs(true);
@@ -89,42 +222,45 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
     }
   };
 
-  const loadDocumentContent = useCallback(async (doc: GoogleDoc) => {
-    setIsLoadingDocContent(true);
-    try {
-      const response = await fetch(
-        `/api/google/get-script-content?docId=${doc.id}`
-      );
-      if (!response.ok) {
-        throw new Error("Failed to load document content");
+  const loadDocumentContent = useCallback(
+    async (doc: GoogleDoc) => {
+      setIsLoadingDocContent(true);
+      try {
+        const response = await fetch(
+          `/api/google/get-script-content?docId=${doc.id}`
+        );
+        if (!response.ok) {
+          throw new Error("Failed to load document content");
+        }
+        const data = await response.json();
+
+        // Load the content into the editor, preserving HTML formatting
+        setDocumentTitle(doc.name);
+
+        // Use htmlContent if available, otherwise fall back to plain content
+        const contentToLoad = data.htmlContent || data.content || "";
+        setDocumentContent(contentToLoad);
+        setCurrentDocId(doc.id);
+        setShowDocumentsModal(false);
+
+        // Save to local storage with both content types
+        const saveData = {
+          title: doc.name,
+          content: contentToLoad,
+          htmlContent: data.htmlContent,
+          lastSaved: new Date().toISOString(),
+          docId: doc.id,
+        };
+        localStorage.setItem("swd-script-draft", JSON.stringify(saveData));
+      } catch (error) {
+        console.error("Error loading document content:", error);
+        alert("Failed to load document content. Please try again.");
+      } finally {
+        setIsLoadingDocContent(false);
       }
-      const data = await response.json();
-
-      // Load the content into the editor, preserving HTML formatting
-      setDocumentTitle(doc.name);
-
-      // Use htmlContent if available, otherwise fall back to plain content
-      const contentToLoad = data.htmlContent || data.content || "";
-      setDocumentContent(contentToLoad);
-      setCurrentDocId(doc.id);
-      setShowDocumentsModal(false);
-
-      // Save to local storage with both content types
-      const saveData = {
-        title: doc.name,
-        content: contentToLoad,
-        htmlContent: data.htmlContent,
-        lastSaved: new Date().toISOString(),
-        docId: doc.id,
-      };
-      localStorage.setItem("swd-script-draft", JSON.stringify(saveData));
-    } catch (error) {
-      console.error("Error loading document content:", error);
-      alert("Failed to load document content. Please try again.");
-    } finally {
-      setIsLoadingDocContent(false);
-    }
-  }, []);
+    },
+    [setDocumentContent]
+  );
 
   const processHtmlContent = (
     htmlContent: string
@@ -168,6 +304,52 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
         );
         element.setAttribute("style", updatedStyle);
       }
+    });
+
+    // Handle lists specifically to ensure font size inheritance for bullets/numbers
+    const lists = tempDiv.querySelectorAll("ul, ol");
+    lists.forEach((list) => {
+      const listItems = list.querySelectorAll("li");
+      let maxFontSize = "12pt";
+
+      // Find the largest font size in the list items
+      listItems.forEach((li) => {
+        const style = li.getAttribute("style") || "";
+        const fontSizeMatch = style.match(/font-size:\s*(\d+)pt/);
+        if (fontSizeMatch) {
+          const size = parseInt(fontSizeMatch[1]);
+          if (size > parseInt(maxFontSize)) {
+            maxFontSize = size + "pt";
+          }
+        }
+      });
+
+      // Apply the max font size to the list container with !important
+      const currentListStyle = list.getAttribute("style") || "";
+      const updatedListStyle = currentListStyle.includes("font-size")
+        ? currentListStyle.replace(
+            /font-size:\s*[^;]+/,
+            `font-size: ${maxFontSize} !important`
+          )
+        : `${currentListStyle}; font-size: ${maxFontSize} !important`;
+      list.setAttribute("style", updatedListStyle);
+
+      // Ensure all list items also have the correct font size
+      listItems.forEach((li) => {
+        const currentStyle = li.getAttribute("style") || "";
+        if (!currentStyle.includes("font-size")) {
+          li.setAttribute(
+            "style",
+            `${currentStyle}; font-size: ${maxFontSize} !important`
+          );
+        }
+
+        // Add data attribute for CSS targeting
+        li.setAttribute("data-list-font-size", maxFontSize);
+      });
+
+      // Add data attribute to list container for CSS targeting
+      list.setAttribute("data-list-font-size", maxFontSize);
     });
 
     // Get clean text content without duplication
@@ -249,45 +431,11 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
     editorRef.current?.focus();
   };
 
-  const handleFontSizeChange = (size: string) => {
-    // Extract the numeric value from the point size (e.g., "12pt" -> "12")
-    // Use the actual point size for better consistency
-    if (editorRef.current) {
-      document.execCommand("fontSize", false, "7"); // Use a standard HTML size first
-      // Then apply the actual point size via CSS
-      const selection = window.getSelection();
-      if (selection && selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0);
-        if (!range.collapsed) {
-          const span = document.createElement("span");
-          span.style.fontSize = size;
-          try {
-            range.surroundContents(span);
-          } catch {
-            // If surroundContents fails, extract and wrap contents
-            const contents = range.extractContents();
-            span.appendChild(contents);
-            range.insertNode(span);
-          }
-          selection.removeAllRanges();
-          selection.addRange(range);
-        }
-      }
-    }
-    editorRef.current?.focus();
-  };
-
   const getDocumentContent = () => {
     return editorRef.current?.innerHTML || "";
   };
 
-  const setDocumentContent = (content: string) => {
-    if (editorRef.current) {
-      editorRef.current.innerHTML = content;
-    }
-  };
-
-  const saveToLocalStorage = () => {
+  const saveToLocalStorage = useCallback(() => {
     const content = getDocumentContent();
     const saveData = {
       title: documentTitle,
@@ -307,6 +455,240 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
         saveBtn.textContent = originalText;
       }, 1000);
     }
+  }, [documentTitle, currentDocId]);
+
+  const handleListCommand = useCallback(
+    (listType: "ul" | "ol") => {
+      if (!editorRef.current) return;
+
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0) return;
+
+      // Focus the editor first
+      editorRef.current.focus();
+
+      // Try the standard document.execCommand first
+      const command =
+        listType === "ul" ? "insertUnorderedList" : "insertOrderedList";
+
+      try {
+        const success = document.execCommand(command, false);
+        if (success) {
+          return;
+        }
+      } catch {
+        console.log(
+          "Standard list command failed, using manual implementation"
+        );
+      }
+
+      // If execCommand fails, implement manual list creation
+      const range = selection.getRangeAt(0);
+
+      // Check if we're already in a list
+      let listElement = range.commonAncestorContainer;
+      while (listElement && listElement.nodeType !== Node.ELEMENT_NODE) {
+        listElement = listElement.parentNode!;
+      }
+
+      // Find existing list
+      let existingList = null;
+      let currentElement = listElement as Element;
+      while (currentElement && currentElement !== editorRef.current) {
+        if (
+          currentElement.tagName === "UL" ||
+          currentElement.tagName === "OL"
+        ) {
+          existingList = currentElement;
+          break;
+        }
+        currentElement = currentElement.parentElement!;
+      }
+
+      if (existingList) {
+        // If we're in a list, remove it
+        const listItems = existingList.querySelectorAll("li");
+        const fragment = document.createDocumentFragment();
+
+        listItems.forEach((li) => {
+          const p = document.createElement("p");
+          p.innerHTML = li.innerHTML;
+          fragment.appendChild(p);
+        });
+
+        existingList.parentNode?.replaceChild(fragment, existingList);
+      } else {
+        // Create a new list
+        const listTag = listType === "ul" ? "ul" : "ol";
+        const list = document.createElement(listTag);
+        list.style.marginLeft = "20px";
+        list.style.paddingLeft = "20px";
+        list.className = "prose-lists-item"; // Add specific class for targeting
+
+        // Get current font size from selection or default
+        let currentFontSize = "12pt";
+        const selectedElement =
+          selection.anchorNode?.nodeType === Node.TEXT_NODE
+            ? selection.anchorNode.parentElement
+            : (selection.anchorNode as Element);
+
+        if (selectedElement) {
+          const computedStyle = window.getComputedStyle(selectedElement);
+          const fontSize = computedStyle.fontSize;
+          if (fontSize && fontSize !== "medium") {
+            currentFontSize = fontSize.includes("px")
+              ? Math.round(parseFloat(fontSize) * 0.75) + "pt"
+              : fontSize;
+          }
+        }
+
+        // Apply font size to the list container with !important to ensure bullets/numbers inherit
+        list.style.fontSize = `${currentFontSize} !important`;
+        list.setAttribute("data-font-size", currentFontSize);
+        list.setAttribute("data-list-font-size", currentFontSize);
+
+        // If there's selected text, use it for the list item
+        let content = "";
+        if (!range.collapsed) {
+          content = range.toString();
+          range.deleteContents();
+        }
+
+        const listItem = document.createElement("li");
+        listItem.style.marginBottom = "4px";
+        listItem.style.fontSize = `${currentFontSize} !important`;
+        listItem.setAttribute("data-list-font-size", currentFontSize);
+        listItem.innerHTML = content || "<br>";
+        list.appendChild(listItem);
+
+        range.insertNode(list);
+
+        // Position cursor in the list item
+        const newRange = document.createRange();
+        newRange.setStart(listItem, 0);
+        newRange.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(newRange);
+      }
+
+      // Save to local storage after change
+      setTimeout(() => {
+        saveToLocalStorage();
+        applyListFontSizes();
+      }, 100);
+    },
+    [saveToLocalStorage, applyListFontSizes]
+  );
+
+  const handleFontSizeChange = (size: string) => {
+    setCurrentFontSize(size);
+
+    if (editorRef.current) {
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+
+        if (!range.collapsed) {
+          // Text is selected
+          const span = document.createElement("span");
+          span.style.fontSize = `${size} !important`;
+
+          // Check if selection includes list items
+          try {
+            range.surroundContents(span);
+
+            // Apply font size to any list containers and items in the selection
+            const wrappedLists = span.querySelectorAll("ul, ol");
+            const wrappedListItems = span.querySelectorAll("li");
+
+            wrappedLists.forEach((list) => {
+              (list as HTMLElement).style.fontSize = `${size} !important`;
+              (list as HTMLElement).setAttribute("data-list-font-size", size);
+            });
+
+            wrappedListItems.forEach((li) => {
+              (li as HTMLElement).style.fontSize = `${size} !important`;
+              (li as HTMLElement).setAttribute("data-list-font-size", size);
+            });
+          } catch {
+            // If surroundContents fails, extract and wrap contents
+            const contents = range.extractContents();
+            span.appendChild(contents);
+            range.insertNode(span);
+
+            // Apply font size to lists in the extracted content
+            const extractedLists = span.querySelectorAll("ul, ol");
+            const extractedListItems = span.querySelectorAll("li");
+
+            extractedLists.forEach((list) => {
+              (list as HTMLElement).style.fontSize = `${size} !important`;
+              (list as HTMLElement).setAttribute("data-list-font-size", size);
+            });
+
+            extractedListItems.forEach((li) => {
+              (li as HTMLElement).style.fontSize = `${size} !important`;
+              (li as HTMLElement).setAttribute("data-list-font-size", size);
+            });
+          }
+
+          selection.removeAllRanges();
+          selection.addRange(range);
+        } else {
+          // No selection, check if we're inside a list item
+          let currentNode = selection.anchorNode;
+          let foundListItem = false;
+          let foundList = false;
+
+          while (currentNode && currentNode !== editorRef.current) {
+            if (currentNode.nodeType === Node.ELEMENT_NODE) {
+              const element = currentNode as HTMLElement;
+
+              if (element.tagName === "LI") {
+                element.style.fontSize = `${size} !important`;
+                element.setAttribute("data-list-font-size", size);
+                foundListItem = true;
+
+                // Also apply to parent list
+                const parentList = element.closest("ul, ol") as HTMLElement;
+                if (parentList) {
+                  parentList.style.fontSize = `${size} !important`;
+                  parentList.setAttribute("data-list-font-size", size);
+                  foundList = true;
+                }
+              } else if (
+                (element.tagName === "UL" || element.tagName === "OL") &&
+                !foundList
+              ) {
+                element.style.fontSize = `${size} !important`;
+                element.setAttribute("data-list-font-size", size);
+                foundList = true;
+              }
+            }
+            currentNode = currentNode.parentNode;
+          }
+
+          // If not in a list, set font size for future typing
+          if (!foundListItem && !foundList) {
+            document.execCommand("fontSize", false, "7");
+            // Apply the size to the current position
+            const span = document.createElement("span");
+            span.style.fontSize = `${size} !important`;
+            span.innerHTML = "&#8203;"; // Zero-width space
+            range.insertNode(span);
+            range.setStartAfter(span);
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+          }
+        }
+      }
+    }
+
+    editorRef.current?.focus();
+    setTimeout(() => {
+      updateCurrentFontSize();
+      applyListFontSizes();
+    }, 50);
   };
 
   const loadFromLocalStorage = useCallback(() => {
@@ -321,7 +703,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
       return true; // Return true if local draft was loaded
     }
     return false; // Return false if no local draft exists
-  }, []);
+  }, [setDocumentContent]);
 
   const uploadToGoogleDrive = async () => {
     if (!documentTitle.trim()) {
@@ -451,24 +833,83 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
       console.log("🚀 Initializing script editor...");
       setIsInitializing(true);
 
-      // Always try to load the latest document from Google Drive first
-      // This ensures we get the most up-to-date content
       try {
-        await loadLatestDocument();
-        console.log("✅ Successfully loaded latest document from Google Drive");
-      } catch (error) {
-        // If loading from Google Drive fails, fall back to local storage
-        console.log(
-          "⚠️ Failed to load from Google Drive, checking local storage:",
-          error
-        );
+        // First check if we have a local draft
         const saved = localStorage.getItem("swd-script-draft");
         if (saved) {
-          console.log("💾 Loading content from local storage");
-          loadFromLocalStorage();
+          const saveData = JSON.parse(saved);
+          console.log("💾 Found local draft:", saveData.title);
+
+          // If the local draft has a docId, load the latest content from Google Drive
+          if (saveData.docId) {
+            console.log(
+              "🔄 Local draft has docId, loading latest from Google Drive:",
+              saveData.docId
+            );
+            try {
+              const response = await fetch(
+                `/api/google/get-script-content?docId=${saveData.docId}`
+              );
+              if (response.ok) {
+                const data = await response.json();
+                console.log(
+                  "✅ Successfully loaded latest content from Google Drive"
+                );
+
+                // Load the latest content from Google Drive
+                setDocumentTitle(data.name || saveData.title);
+                const contentToLoad = data.htmlContent || data.content || "";
+                setDocumentContent(contentToLoad);
+                setCurrentDocId(saveData.docId);
+
+                // Update local storage with the latest content
+                const updatedSaveData = {
+                  title: data.name || saveData.title,
+                  content: contentToLoad,
+                  htmlContent: data.htmlContent,
+                  lastSaved: new Date().toISOString(),
+                  docId: saveData.docId,
+                };
+                localStorage.setItem(
+                  "swd-script-draft",
+                  JSON.stringify(updatedSaveData)
+                );
+              } else {
+                throw new Error("Failed to fetch latest content");
+              }
+            } catch (error) {
+              console.log(
+                "⚠️ Failed to load latest from Google Drive, using local content:",
+                error
+              );
+              // Fall back to local content if Google Drive fails
+              loadFromLocalStorage();
+            }
+          } else {
+            // Local draft without docId, just use local content
+            console.log("📄 Using local draft content (no docId)");
+            loadFromLocalStorage();
+          }
         } else {
-          console.log("📄 No local content found, starting with empty editor");
+          // No local draft, try to load the latest document from Google Drive
+          console.log(
+            "� No local draft found, loading latest document from Google Drive"
+          );
+          try {
+            await loadLatestDocument();
+            console.log(
+              "✅ Successfully loaded latest document from Google Drive"
+            );
+          } catch (error) {
+            console.log(
+              "⚠️ No documents found in Google Drive, starting with empty editor:",
+              error
+            );
+            // Start with empty editor if no documents exist
+          }
         }
+      } catch (error) {
+        console.error("❌ Error during editor initialization:", error);
       } finally {
         setIsInitializing(false);
         console.log("🏁 Editor initialization complete");
@@ -476,7 +917,109 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
     };
 
     initializeEditor();
-  }, [loadFromLocalStorage, loadLatestDocument]);
+  }, [loadFromLocalStorage, loadLatestDocument, setDocumentContent]);
+
+  // Handle loading a specific script when requested from dashboard
+  useEffect(() => {
+    const loadSpecificScript = async () => {
+      if (scriptToLoad) {
+        console.log("📄 Loading specific script with ID:", scriptToLoad);
+        try {
+          const response = await fetch(
+            `/api/google/get-script-content?docId=${scriptToLoad}`
+          );
+          if (!response.ok) {
+            throw new Error("Failed to load document content");
+          }
+          const data = await response.json();
+
+          // Load the content into the editor, preserving HTML formatting
+          setDocumentTitle(data.name || "Loaded Script");
+
+          // Use htmlContent if available, otherwise fall back to plain content
+          const contentToLoad = data.htmlContent || data.content || "";
+          setDocumentContent(contentToLoad);
+          setCurrentDocId(scriptToLoad);
+
+          // Save to local storage with both content types
+          const saveData = {
+            title: data.name || "Loaded Script",
+            content: contentToLoad,
+            htmlContent: data.htmlContent,
+            lastSaved: new Date().toISOString(),
+            docId: scriptToLoad,
+          };
+          localStorage.setItem("swd-script-draft", JSON.stringify(saveData));
+
+          console.log(
+            `✅ Successfully loaded script: ${data.name || "Loaded Script"}`
+          );
+
+          // Call the callback to clear the scriptToLoad state
+          if (onScriptLoaded) {
+            onScriptLoaded();
+          }
+        } catch (error) {
+          console.error("❌ Error loading specific script:", error);
+          alert("Failed to load the requested script. Please try again.");
+        }
+      }
+    };
+
+    loadSpecificScript();
+  }, [scriptToLoad, onScriptLoaded, setDocumentContent]);
+
+  // Add keyboard shortcuts for lists
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + Shift + 8 for bullet list
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "8") {
+        e.preventDefault();
+        handleListCommand("ul");
+      }
+      // Ctrl/Cmd + Shift + 7 for numbered list
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "7") {
+        e.preventDefault();
+        handleListCommand("ol");
+      }
+    };
+
+    const editor = editorRef.current;
+    if (editor) {
+      editor.addEventListener("keydown", handleKeyDown);
+      return () => {
+        editor.removeEventListener("keydown", handleKeyDown);
+      };
+    }
+  }, [handleListCommand]);
+
+  // Add event listeners to track cursor position and update font size
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const handleSelectionChange = () => {
+      updateCurrentFontSize();
+    };
+
+    const handleClick = () => {
+      setTimeout(() => updateCurrentFontSize(), 10);
+    };
+
+    const handleKeyUp = () => {
+      setTimeout(() => updateCurrentFontSize(), 10);
+    };
+
+    editor.addEventListener("click", handleClick);
+    editor.addEventListener("keyup", handleKeyUp);
+    document.addEventListener("selectionchange", handleSelectionChange);
+
+    return () => {
+      editor.removeEventListener("click", handleClick);
+      editor.removeEventListener("keyup", handleKeyUp);
+      document.removeEventListener("selectionchange", handleSelectionChange);
+    };
+  }, [updateCurrentFontSize]);
 
   return (
     <div className="space-y-6">
@@ -641,7 +1184,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => executeCommand("insertUnorderedList")}
+                onClick={() => handleListCommand("ul")}
                 className="border-gray-700 text-gray-300 hover:bg-gray-800"
               >
                 <List className="w-4 h-4" />
@@ -649,7 +1192,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => executeCommand("insertOrderedList")}
+                onClick={() => handleListCommand("ol")}
                 className="border-gray-700 text-gray-300 hover:bg-gray-800"
               >
                 <ListOrdered className="w-4 h-4" />
@@ -661,6 +1204,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
             {/* Font Size */}
             <div className="flex gap-1">
               <select
+                value={currentFontSize}
                 onChange={(e) => handleFontSizeChange(e.target.value)}
                 className="px-2 py-1 text-sm bg-gray-800 border border-gray-700 text-gray-300 rounded"
               >
@@ -668,9 +1212,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                 <option value="9pt">9 pt</option>
                 <option value="10pt">10 pt</option>
                 <option value="11pt">11 pt</option>
-                <option value="12pt" selected>
-                  12 pt
-                </option>
+                <option value="12pt">12 pt</option>
                 <option value="14pt">14 pt</option>
                 <option value="16pt">16 pt</option>
                 <option value="18pt">18 pt</option>
@@ -718,7 +1260,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
             <div
               ref={editorRef}
               contentEditable
-              className="min-h-[11in] text-white bg-transparent outline-none resize-none leading-relaxed text-[12pt]"
+              className="min-h-[11in] text-white bg-transparent outline-none resize-none leading-relaxed text-[12pt] prose-lists"
               style={{
                 lineHeight: "1.15",
                 fontFamily: 'Times, "Times New Roman", serif',
@@ -734,6 +1276,201 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
               onBlur={saveToLocalStorage}
             />
           </div>
+          <style
+            dangerouslySetInnerHTML={{
+              __html: `
+              .prose-lists ul {
+                list-style-type: disc !important;
+                margin-left: 20px !important;
+                padding-left: 20px !important;
+                color: white !important;
+                font-size: inherit !important;
+              }
+              .prose-lists ol {
+                list-style-type: decimal !important;
+                margin-left: 20px !important;
+                padding-left: 20px !important;
+                color: white !important;
+                font-size: inherit !important;
+              }
+              .prose-lists li {
+                margin-bottom: 4px !important;
+                display: list-item !important;
+                color: white !important;
+                font-size: inherit !important;
+              }
+              .prose-lists ul ul {
+                list-style-type: circle !important;
+              }
+              .prose-lists ul ul ul {
+                list-style-type: square !important;
+              }
+              /* Ensure list markers (bullets/numbers) inherit font size */
+              .prose-lists ul::marker,
+              .prose-lists ol::marker,
+              .prose-lists-item::marker {
+                font-size: inherit !important;
+                color: white !important;
+              }
+              .prose-lists li::marker,
+              .prose-lists-item li::marker {
+                font-size: inherit !important;
+                color: white !important;
+              }
+              /* Additional specificity for list containers */
+              .prose-lists ul,
+              .prose-lists ol,
+              .prose-lists-item {
+                font-size: inherit !important;
+              }
+              .prose-lists li,
+              .prose-lists-item li {
+                font-size: inherit !important;
+              }
+              /* Force marker inheritance for all scenarios */
+              ul[style*="font-size"]::marker,
+              ol[style*="font-size"]::marker,
+              li[style*="font-size"]::marker {
+                font-size: inherit !important;
+                color: white !important;
+              }
+              /* Data attribute targeting for precise font size control */
+              ul[data-list-font-size="8pt"]::marker,
+              ol[data-list-font-size="8pt"]::marker,
+              li[data-list-font-size="8pt"]::marker {
+                font-size: 8pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="9pt"]::marker,
+              ol[data-list-font-size="9pt"]::marker,
+              li[data-list-font-size="9pt"]::marker {
+                font-size: 9pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="10pt"]::marker,
+              ol[data-list-font-size="10pt"]::marker,
+              li[data-list-font-size="10pt"]::marker {
+                font-size: 10pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="11pt"]::marker,
+              ol[data-list-font-size="11pt"]::marker,
+              li[data-list-font-size="11pt"]::marker {
+                font-size: 11pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="12pt"]::marker,
+              ol[data-list-font-size="12pt"]::marker,
+              li[data-list-font-size="12pt"]::marker {
+                font-size: 12pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="14pt"]::marker,
+              ol[data-list-font-size="14pt"]::marker,
+              li[data-list-font-size="14pt"]::marker {
+                font-size: 14pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="16pt"]::marker,
+              ol[data-list-font-size="16pt"]::marker,
+              li[data-list-font-size="16pt"]::marker {
+                font-size: 16pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="18pt"]::marker,
+              ol[data-list-font-size="18pt"]::marker,
+              li[data-list-font-size="18pt"]::marker {
+                font-size: 18pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="20pt"]::marker,
+              ol[data-list-font-size="20pt"]::marker,
+              li[data-list-font-size="20pt"]::marker {
+                font-size: 20pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="22pt"]::marker,
+              ol[data-list-font-size="22pt"]::marker,
+              li[data-list-font-size="22pt"]::marker {
+                font-size: 22pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="24pt"]::marker,
+              ol[data-list-font-size="24pt"]::marker,
+              li[data-list-font-size="24pt"]::marker {
+                font-size: 24pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="26pt"]::marker,
+              ol[data-list-font-size="26pt"]::marker,
+              li[data-list-font-size="26pt"]::marker {
+                font-size: 26pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="28pt"]::marker,
+              ol[data-list-font-size="28pt"]::marker,
+              li[data-list-font-size="28pt"]::marker {
+                font-size: 28pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="36pt"]::marker,
+              ol[data-list-font-size="36pt"]::marker,
+              li[data-list-font-size="36pt"]::marker {
+                font-size: 36pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="48pt"]::marker,
+              ol[data-list-font-size="48pt"]::marker,
+              li[data-list-font-size="48pt"]::marker {
+                font-size: 48pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="72pt"]::marker,
+              ol[data-list-font-size="72pt"]::marker,
+              li[data-list-font-size="72pt"]::marker {
+                font-size: 72pt !important;
+                color: white !important;
+              }
+              /* Even more specific targeting for inline font sizes */
+              ul[style*="72pt"]::marker,
+              ol[style*="72pt"]::marker,
+              li[style*="72pt"]::marker {
+                font-size: 72pt !important;
+                color: white !important;
+              }
+              ul[style*="48pt"]::marker,
+              ol[style*="48pt"]::marker,
+              li[style*="48pt"]::marker {
+                font-size: 48pt !important;
+                color: white !important;
+              }
+              ul[style*="36pt"]::marker,
+              ol[style*="36pt"]::marker,
+              li[style*="36pt"]::marker {
+                font-size: 36pt !important;
+                color: white !important;
+              }
+              ul[style*="28pt"]::marker,
+              ol[style*="28pt"]::marker,
+              li[style*="28pt"]::marker {
+                font-size: 28pt !important;
+                color: white !important;
+              }
+              ul[style*="24pt"]::marker,
+              ol[style*="24pt"]::marker,
+              li[style*="24pt"]::marker {
+                font-size: 24pt !important;
+                color: white !important;
+              }
+              /* Override any browser defaults */
+              *[style*="font-size"] ul::marker,
+              *[style*="font-size"] ol::marker,
+              *[style*="font-size"] li::marker {
+                font-size: inherit !important;
+              }
+            `,
+            }}
+          />
         </CardContent>
       </Card>
 

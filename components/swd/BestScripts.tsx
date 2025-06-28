@@ -1,15 +1,15 @@
-
 "use client";
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, Zap } from 'lucide-react';
+import { TrendingUp, Zap } from "lucide-react";
 
 interface BestScript {
   title: string;
   totalBuy?: string;
   totalSend?: number;
+  scriptLink?: string;
 }
 
 interface BestScriptsProps {
@@ -18,9 +18,14 @@ interface BestScriptsProps {
     topSent: BestScript[];
   };
   selectedModel: string;
+  onScriptClick?: (scriptLink: string) => void;
 }
 
-export const BestScripts = ({ bestScripts, selectedModel }: BestScriptsProps) => {
+export const BestScripts = ({
+  bestScripts,
+  selectedModel,
+  onScriptClick,
+}: BestScriptsProps) => {
   return (
     <div className="grid md:grid-cols-2 gap-6">
       <Card className="bg-gradient-to-br from-amber-900/20 to-orange-900/20 border-amber-800/30 backdrop-blur-xl">
@@ -45,11 +50,18 @@ export const BestScripts = ({ bestScripts, selectedModel }: BestScriptsProps) =>
             bestScripts.bestSeller.map((script, index) => (
               <div
                 key={index}
-                className="flex justify-between items-center p-3 bg-gray-900/50 rounded-lg border border-amber-800/20 hover:border-amber-600/40 transition-all duration-200"
+                className={`flex justify-between items-center p-3 bg-gray-900/50 rounded-lg border border-amber-800/20 hover:border-amber-600/40 transition-all duration-200 ${
+                  script.scriptLink && onScriptClick
+                    ? "cursor-pointer hover:bg-gray-800/50 hover:scale-[1.02]"
+                    : ""
+                }`}
+                onClick={() => {
+                  if (script.scriptLink && onScriptClick) {
+                    onScriptClick(script.scriptLink);
+                  }
+                }}
               >
-                <span className="text-white font-medium">
-                  {script.title}
-                </span>
+                <span className="text-white font-medium">{script.title}</span>
                 <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30">
                   {script.totalBuy}
                 </Badge>
@@ -81,11 +93,18 @@ export const BestScripts = ({ bestScripts, selectedModel }: BestScriptsProps) =>
             bestScripts.topSent.map((script, index) => (
               <div
                 key={index}
-                className="flex justify-between items-center p-3 bg-gray-900/50 rounded-lg border border-blue-800/20 hover:border-blue-600/40 transition-all duration-200"
+                className={`flex justify-between items-center p-3 bg-gray-900/50 rounded-lg border border-blue-800/20 hover:border-blue-600/40 transition-all duration-200 ${
+                  script.scriptLink && onScriptClick
+                    ? "cursor-pointer hover:bg-gray-800/50 hover:scale-[1.02]"
+                    : ""
+                }`}
+                onClick={() => {
+                  if (script.scriptLink && onScriptClick) {
+                    onScriptClick(script.scriptLink);
+                  }
+                }}
               >
-                <span className="text-white font-medium">
-                  {script.title}
-                </span>
+                <span className="text-white font-medium">{script.title}</span>
                 <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">
                   {script.totalSend?.toLocaleString() || 0}
                 </Badge>
