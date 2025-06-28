@@ -249,7 +249,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         // Fetch both SWD performance data and script lists
         const [swdResponse, driveResponse] = await Promise.all([
           fetch("/api/google/swd-data"),
-          fetch("/api/google/list-scripts")
+          fetch("/api/google/list-scripts"),
         ]);
 
         if (swdResponse.ok && driveResponse.ok) {
@@ -307,16 +307,24 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             }));
 
           // Count scripts
-          const totalDriveScripts = driveStats.documents ? driveStats.documents.length : 0;
-          const totalPerformanceScripts = swdStats.sendBuyData ? swdStats.sendBuyData.length : 0;
-          
+          const totalDriveScripts = driveStats.documents
+            ? driveStats.documents.length
+            : 0;
+          const totalPerformanceScripts = swdStats.sendBuyData
+            ? swdStats.sendBuyData.length
+            : 0;
+
           // Unique scripts (avoid double counting by checking for duplicates)
           const uniqueScriptTitles = new Set();
           if (driveStats.documents) {
-            driveStats.documents.forEach((doc: any) => uniqueScriptTitles.add(doc.name.toLowerCase()));
+            driveStats.documents.forEach((doc: any) =>
+              uniqueScriptTitles.add(doc.name.toLowerCase())
+            );
           }
           if (swdStats.sendBuyData) {
-            swdStats.sendBuyData.forEach((script: any) => uniqueScriptTitles.add(script.scriptTitle.toLowerCase()));
+            swdStats.sendBuyData.forEach((script: any) =>
+              uniqueScriptTitles.add(script.scriptTitle.toLowerCase())
+            );
           }
           const totalUniqueScripts = uniqueScriptTitles.size;
 
@@ -1514,7 +1522,8 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                 <div className="text-center text-gray-500 py-8">
                   <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p className="text-sm">
-                    No SWD send data found. Upload script performance data to see the leaderboard!
+                    No SWD send data found. Upload script performance data to
+                    see the leaderboard!
                   </p>
                 </div>
               )}
@@ -1608,7 +1617,8 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                 <div className="text-center text-gray-500 py-8">
                   <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p className="text-sm">
-                    No SWD buy data found. Upload script performance data to see the leaderboard!
+                    No SWD buy data found. Upload script performance data to see
+                    the leaderboard!
                   </p>
                 </div>
               )}
