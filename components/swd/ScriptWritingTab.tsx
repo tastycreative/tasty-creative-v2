@@ -36,6 +36,8 @@ import {
 
 interface ScriptWritingTabProps {
   onDocumentSaved?: () => void;
+  scriptToLoad?: string | null;
+  onScriptLoaded?: () => void;
 }
 
 interface GoogleDoc {
@@ -49,6 +51,8 @@ interface GoogleDoc {
 
 export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
   onDocumentSaved,
+  scriptToLoad,
+  onScriptLoaded,
 }) => {
   const [documentTitle, setDocumentTitle] = useState("");
   const [isUploading, setIsUploading] = useState(false);
@@ -855,6 +859,56 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
 
     initializeEditor();
   }, [loadFromLocalStorage, loadLatestDocument]);
+
+  // Handle loading a specific script when requested from dashboard
+  useEffect(() => {
+    const loadSpecificScript = async () => {
+      if (scriptToLoad) {
+        console.log("📄 Loading specific script with ID:", scriptToLoad);
+        try {
+          const response = await fetch(
+            `/api/google/get-script-content?docId=${scriptToLoad}`
+          );
+          if (!response.ok) {
+            throw new Error("Failed to load document content");
+          }
+          const data = await response.json();
+
+          // Load the content into the editor, preserving HTML formatting
+          setDocumentTitle(data.name || "Loaded Script");
+
+          // Use htmlContent if available, otherwise fall back to plain content
+          const contentToLoad = data.htmlContent || data.content || "";
+          setDocumentContent(contentToLoad);
+          setCurrentDocId(scriptToLoad);
+
+          // Save to local storage with both content types
+          const saveData = {
+            title: data.name || "Loaded Script",
+            content: contentToLoad,
+            htmlContent: data.htmlContent,
+            lastSaved: new Date().toISOString(),
+            docId: scriptToLoad,
+          };
+          localStorage.setItem("swd-script-draft", JSON.stringify(saveData));
+
+          console.log(
+            `✅ Successfully loaded script: ${data.name || "Loaded Script"}`
+          );
+
+          // Call the callback to clear the scriptToLoad state
+          if (onScriptLoaded) {
+            onScriptLoaded();
+          }
+        } catch (error) {
+          console.error("❌ Error loading specific script:", error);
+          alert("Failed to load the requested script. Please try again.");
+        }
+      }
+    };
+
+    loadSpecificScript();
+  }, [scriptToLoad, onScriptLoaded, setDocumentContent]);
 
   // Add keyboard shortcuts for lists
   useEffect(() => {

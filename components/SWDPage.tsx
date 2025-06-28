@@ -21,6 +21,8 @@ const SWDPage = () => {
   const [requests, setRequests] = useState<Request[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(true);
   const [requestsError, setRequestsError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [scriptToLoad, setScriptToLoad] = useState<string | null>(null);
 
   const { data: session } = useSession();
   const userRole = session?.user?.role || "GUEST";
@@ -53,6 +55,16 @@ const SWDPage = () => {
     }
   };
 
+  const handleScriptClick = (scriptLink: string) => {
+    // Extract document ID from Google Docs URL
+    const docIdMatch = scriptLink.match(/\/document\/d\/([a-zA-Z0-9-_]+)/);
+    if (docIdMatch) {
+      const docId = docIdMatch[1];
+      setScriptToLoad(docId);
+      setActiveTab("writing");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-950 bg-gradient-to-br from-gray-950 via-purple-950/20 to-gray-950">
       <div className="max-w-7xl mx-auto p-6 space-y-8">
@@ -71,7 +83,11 @@ const SWDPage = () => {
 
         {/* Updated Tabs with theme styling */}
         <div className="relative">
-          <Tabs defaultValue="dashboard" className="w-full space-y-6">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full space-y-6"
+          >
             {(userRole === "SWD" || userRole === "ADMIN") && (
               <div className="flex justify-center">
                 <TabsList className="bg-gray-900/50 border border-gray-800 backdrop-blur-xl rounded-2xl p-2 shadow-2xl">
@@ -101,7 +117,7 @@ const SWDPage = () => {
             )}
 
             <TabsContent value="dashboard" className="space-y-4 mt-8">
-              <SWDDashboard />
+              <SWDDashboard onScriptClick={handleScriptClick} />
             </TabsContent>
 
             {(userRole === "SWD" || userRole === "ADMIN") && (
@@ -141,7 +157,10 @@ const SWDPage = () => {
                 </TabsContent>
 
                 <TabsContent value="writing" className="space-y-4 mt-8">
-                  <ScriptWritingTab />
+                  <ScriptWritingTab
+                    scriptToLoad={scriptToLoad}
+                    onScriptLoaded={() => setScriptToLoad(null)}
+                  />
                 </TabsContent>
               </>
             )}
