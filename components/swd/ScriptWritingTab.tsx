@@ -833,24 +833,63 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
       console.log("🚀 Initializing script editor...");
       setIsInitializing(true);
 
-      // Always try to load the latest document from Google Drive first
-      // This ensures we get the most up-to-date content
       try {
-        await loadLatestDocument();
-        console.log("✅ Successfully loaded latest document from Google Drive");
-      } catch (error) {
-        // If loading from Google Drive fails, fall back to local storage
-        console.log(
-          "⚠️ Failed to load from Google Drive, checking local storage:",
-          error
-        );
+        // First check if we have a local draft
         const saved = localStorage.getItem("swd-script-draft");
         if (saved) {
-          console.log("💾 Loading content from local storage");
-          loadFromLocalStorage();
+          const saveData = JSON.parse(saved);
+          console.log("💾 Found local draft:", saveData.title);
+          
+          // If the local draft has a docId, load the latest content from Google Drive
+          if (saveData.docId) {
+            console.log("🔄 Local draft has docId, loading latest from Google Drive:", saveData.docId);
+            try {
+              const response = await fetch(`/api/google/get-script-content?docId=${saveData.docId}`);
+              if (response.ok) {
+                const data = await response.json();
+                console.log("✅ Successfully loaded latest content from Google Drive");
+                
+                // Load the latest content from Google Drive
+                setDocumentTitle(data.name || saveData.title);
+                const contentToLoad = data.htmlContent || data.content || "";
+                setDocumentContent(contentToLoad);
+                setCurrentDocId(saveData.docId);
+
+                // Update local storage with the latest content
+                const updatedSaveData = {
+                  title: data.name || saveData.title,
+                  content: contentToLoad,
+                  htmlContent: data.htmlContent,
+                  lastSaved: new Date().toISOString(),
+                  docId: saveData.docId,
+                };
+                localStorage.setItem("swd-script-draft", JSON.stringify(updatedSaveData));
+              } else {
+                throw new Error("Failed to fetch latest content");
+              }
+            } catch (error) {
+              console.log("⚠️ Failed to load latest from Google Drive, using local content:", error);
+              // Fall back to local content if Google Drive fails
+              loadFromLocalStorage();
+            }
+          } else {
+            // Local draft without docId, just use local content
+            console.log("📄 Using local draft content (no docId)");
+            loadFromLocalStorage();
+          }
         } else {
-          console.log("📄 No local content found, starting with empty editor");
+          // No local draft, try to load the latest document from Google Drive
+          console.log("� No local draft found, loading latest document from Google Drive");
+          try {
+            await loadLatestDocument();
+            console.log("✅ Successfully loaded latest document from Google Drive");
+          } catch (error) {
+            console.log("⚠️ No documents found in Google Drive, starting with empty editor:", error);
+            // Start with empty editor if no documents exist
+          }
         }
+      } catch (error) {
+        console.error("❌ Error during editor initialization:", error);
       } finally {
         setIsInitializing(false);
         console.log("🏁 Editor initialization complete");
@@ -858,7 +897,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
     };
 
     initializeEditor();
-  }, [loadFromLocalStorage, loadLatestDocument]);
+  }, [loadFromLocalStorage, loadLatestDocument, setDocumentContent]);
 
   // Handle loading a specific script when requested from dashboard
   useEffect(() => {
