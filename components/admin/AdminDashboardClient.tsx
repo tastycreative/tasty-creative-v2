@@ -175,12 +175,14 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     totalScripts: number;
     totalDriveScripts: number;
     totalPerformanceScripts: number;
+    totalRevenue: number; // Add total revenue from all creators
   }>({
     totalSend: [],
     totalBuy: [],
     totalScripts: 0,
     totalDriveScripts: 0,
     totalPerformanceScripts: 0,
+    totalRevenue: 0,
   });
   const [isLoadingSwdData, setIsLoadingSwdData] = useState(true);
 
@@ -306,6 +308,12 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
               rank: index,
             }));
 
+          // Calculate total revenue from ALL creators (not just top 5)
+          const totalRevenueFromAllCreators = creatorStatsArray.reduce(
+            (total: number, creator: any) => total + (creator.totalBuy || 0),
+            0
+          );
+
           // Count scripts
           const totalDriveScripts = driveStats.documents
             ? driveStats.documents.length
@@ -334,6 +342,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             totalScripts: totalUniqueScripts,
             totalDriveScripts,
             totalPerformanceScripts,
+            totalRevenue: totalRevenueFromAllCreators,
           });
         }
       } catch (error) {
@@ -751,23 +760,14 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     },
     {
       title: "SWD Total Revenue",
-      value: isLoadingSwdData
-        ? 0
-        : swdData.totalBuy.reduce((total, entry) => {
-            // Extract numeric value from formatted string like "$1,234.56"
-            const numericValue = parseFloat(entry.amount.replace(/[$,]/g, "")) || 0;
-            return total + numericValue;
-          }, 0),
+      value: isLoadingSwdData ? 0 : swdData.totalRevenue,
       formattedValue: isLoadingSwdData
         ? "Loading..."
-        : `$${swdData.totalBuy.reduce((total, entry) => {
-            const numericValue = parseFloat(entry.amount.replace(/[$,]/g, "")) || 0;
-            return total + numericValue;
-          }, 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+        : `$${swdData.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       icon: DollarSign,
       description: isLoadingSwdData
         ? "Fetching from Google Sheets..."
-        : `Total revenue from ${swdData.totalBuy.length} script creators`,
+        : `Total revenue from all script creators`,
       color: "text-green-600",
       bgColor: "bg-green-50",
       iconBgColor: "bg-green-100",
