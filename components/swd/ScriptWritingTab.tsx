@@ -55,6 +55,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [uploadedDocUrl, setUploadedDocUrl] = useState("");
   const [currentDocId, setCurrentDocId] = useState<string | null>(null);
+  const [currentFontSize, setCurrentFontSize] = useState("12pt");
 
   // Document management states
   const [documents, setDocuments] = useState<GoogleDoc[]>([]);
@@ -71,6 +72,76 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
     const defaultTitle = `Script Draft - ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
     setDocumentTitle(defaultTitle);
   }, []);
+
+  const updateCurrentFontSize = useCallback(() => {
+    if (!editorRef.current) return;
+
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      let targetElement: Element | null = null;
+
+      if (range.collapsed) {
+        // No selection, check the element at cursor position
+        targetElement =
+          selection.anchorNode?.nodeType === Node.TEXT_NODE
+            ? selection.anchorNode.parentElement
+            : (selection.anchorNode as Element);
+      } else {
+        // Text is selected, check the first element in selection
+        const startContainer = range.startContainer;
+        targetElement =
+          startContainer.nodeType === Node.TEXT_NODE
+            ? startContainer.parentElement
+            : (startContainer as Element);
+      }
+
+      if (targetElement) {
+        // Walk up the DOM to find an element with explicit font-size
+        let element: Element | null = targetElement;
+        while (element && element !== editorRef.current) {
+          const style = element.getAttribute("style") || "";
+          const computedStyle = window.getComputedStyle(element);
+
+          // Check for explicit font-size in style attribute first
+          const fontSizeMatch = style.match(/font-size:\s*(\d+)pt/);
+          if (fontSizeMatch) {
+            const size = fontSizeMatch[1] + "pt";
+            setCurrentFontSize(size);
+            return;
+          }
+
+          // Check computed style
+          const fontSize = computedStyle.fontSize;
+          if (fontSize && fontSize !== "medium" && !fontSize.includes("16px")) {
+            const sizeInPt = fontSize.includes("px")
+              ? Math.round(parseFloat(fontSize) * 0.75) + "pt"
+              : fontSize.includes("pt")
+                ? fontSize
+                : "12pt";
+            setCurrentFontSize(sizeInPt);
+            return;
+          }
+
+          element = element.parentElement;
+        }
+      }
+    }
+
+    // Default fallback
+    setCurrentFontSize("12pt");
+  }, []);
+
+  const setDocumentContent = useCallback(
+    (content: string) => {
+      if (editorRef.current) {
+        editorRef.current.innerHTML = content;
+        // Update font size selector after content is loaded
+        setTimeout(() => updateCurrentFontSize(), 100);
+      }
+    },
+    [updateCurrentFontSize]
+  );
 
   const fetchDocuments = async () => {
     setIsLoadingDocs(true);
@@ -89,42 +160,45 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
     }
   };
 
-  const loadDocumentContent = useCallback(async (doc: GoogleDoc) => {
-    setIsLoadingDocContent(true);
-    try {
-      const response = await fetch(
-        `/api/google/get-script-content?docId=${doc.id}`
-      );
-      if (!response.ok) {
-        throw new Error("Failed to load document content");
+  const loadDocumentContent = useCallback(
+    async (doc: GoogleDoc) => {
+      setIsLoadingDocContent(true);
+      try {
+        const response = await fetch(
+          `/api/google/get-script-content?docId=${doc.id}`
+        );
+        if (!response.ok) {
+          throw new Error("Failed to load document content");
+        }
+        const data = await response.json();
+
+        // Load the content into the editor, preserving HTML formatting
+        setDocumentTitle(doc.name);
+
+        // Use htmlContent if available, otherwise fall back to plain content
+        const contentToLoad = data.htmlContent || data.content || "";
+        setDocumentContent(contentToLoad);
+        setCurrentDocId(doc.id);
+        setShowDocumentsModal(false);
+
+        // Save to local storage with both content types
+        const saveData = {
+          title: doc.name,
+          content: contentToLoad,
+          htmlContent: data.htmlContent,
+          lastSaved: new Date().toISOString(),
+          docId: doc.id,
+        };
+        localStorage.setItem("swd-script-draft", JSON.stringify(saveData));
+      } catch (error) {
+        console.error("Error loading document content:", error);
+        alert("Failed to load document content. Please try again.");
+      } finally {
+        setIsLoadingDocContent(false);
       }
-      const data = await response.json();
-
-      // Load the content into the editor, preserving HTML formatting
-      setDocumentTitle(doc.name);
-
-      // Use htmlContent if available, otherwise fall back to plain content
-      const contentToLoad = data.htmlContent || data.content || "";
-      setDocumentContent(contentToLoad);
-      setCurrentDocId(doc.id);
-      setShowDocumentsModal(false);
-
-      // Save to local storage with both content types
-      const saveData = {
-        title: doc.name,
-        content: contentToLoad,
-        htmlContent: data.htmlContent,
-        lastSaved: new Date().toISOString(),
-        docId: doc.id,
-      };
-      localStorage.setItem("swd-script-draft", JSON.stringify(saveData));
-    } catch (error) {
-      console.error("Error loading document content:", error);
-      alert("Failed to load document content. Please try again.");
-    } finally {
-      setIsLoadingDocContent(false);
-    }
-  }, []);
+    },
+    [setDocumentContent]
+  );
 
   const processHtmlContent = (
     htmlContent: string
@@ -293,12 +367,6 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
     return editorRef.current?.innerHTML || "";
   };
 
-  const setDocumentContent = (content: string) => {
-    if (editorRef.current) {
-      editorRef.current.innerHTML = content;
-    }
-  };
-
   const saveToLocalStorage = useCallback(() => {
     const content = getDocumentContent();
     const saveData = {
@@ -440,62 +508,104 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
   );
 
   const handleFontSizeChange = (size: string) => {
-    // Extract the numeric value from the point size (e.g., "12pt" -> "12")
-    // Use the actual point size for better consistency
+    setCurrentFontSize(size);
+
     if (editorRef.current) {
-      document.execCommand("fontSize", false, "7"); // Use a standard HTML size first
-      // Then apply the actual point size via CSS
       const selection = window.getSelection();
       if (selection && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
+
         if (!range.collapsed) {
+          // Text is selected
           const span = document.createElement("span");
-          span.style.fontSize = size;
+          span.style.fontSize = `${size} !important`;
 
-          // If we're inside a list item, also apply font size to the list item itself
-          const listItem =
-            range.commonAncestorContainer.nodeType === Node.TEXT_NODE
-              ? range.commonAncestorContainer.parentElement?.closest("li")
-              : (range.commonAncestorContainer as Element)?.closest("li");
-
-          if (listItem) {
-            listItem.style.fontSize = size;
-          }
-
+          // Check if selection includes list items
           try {
             range.surroundContents(span);
+
+            // Apply font size to any list containers and items in the selection
+            const wrappedLists = span.querySelectorAll("ul, ol");
+            const wrappedListItems = span.querySelectorAll("li");
+
+            wrappedLists.forEach((list) => {
+              (list as HTMLElement).style.fontSize = `${size} !important`;
+            });
+
+            wrappedListItems.forEach((li) => {
+              (li as HTMLElement).style.fontSize = `${size} !important`;
+            });
           } catch {
             // If surroundContents fails, extract and wrap contents
             const contents = range.extractContents();
             span.appendChild(contents);
             range.insertNode(span);
-          }
 
-          // Apply font size to any list items within the selection
-          const listItems = span.querySelectorAll("li");
-          listItems.forEach((li) => {
-            li.style.fontSize = size;
-          });
+            // Apply font size to lists in the extracted content
+            const extractedLists = span.querySelectorAll("ul, ol");
+            const extractedListItems = span.querySelectorAll("li");
+
+            extractedLists.forEach((list) => {
+              (list as HTMLElement).style.fontSize = `${size} !important`;
+            });
+
+            extractedListItems.forEach((li) => {
+              (li as HTMLElement).style.fontSize = `${size} !important`;
+            });
+          }
 
           selection.removeAllRanges();
           selection.addRange(range);
         } else {
-          // If no selection, check if we're inside a list item and apply font size
+          // No selection, check if we're inside a list item
           let currentNode = selection.anchorNode;
+          let foundListItem = false;
+          let foundList = false;
+
           while (currentNode && currentNode !== editorRef.current) {
-            if (
-              currentNode.nodeType === Node.ELEMENT_NODE &&
-              (currentNode as Element).tagName === "LI"
-            ) {
-              (currentNode as HTMLElement).style.fontSize = size;
-              break;
+            if (currentNode.nodeType === Node.ELEMENT_NODE) {
+              const element = currentNode as HTMLElement;
+
+              if (element.tagName === "LI") {
+                element.style.fontSize = `${size} !important`;
+                foundListItem = true;
+
+                // Also apply to parent list
+                const parentList = element.closest("ul, ol") as HTMLElement;
+                if (parentList) {
+                  parentList.style.fontSize = `${size} !important`;
+                  foundList = true;
+                }
+              } else if (
+                (element.tagName === "UL" || element.tagName === "OL") &&
+                !foundList
+              ) {
+                element.style.fontSize = `${size} !important`;
+                foundList = true;
+              }
             }
             currentNode = currentNode.parentNode;
+          }
+
+          // If not in a list, set font size for future typing
+          if (!foundListItem && !foundList) {
+            document.execCommand("fontSize", false, "7");
+            // Apply the size to the current position
+            const span = document.createElement("span");
+            span.style.fontSize = `${size} !important`;
+            span.innerHTML = "&#8203;"; // Zero-width space
+            range.insertNode(span);
+            range.setStartAfter(span);
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
           }
         }
       }
     }
+
     editorRef.current?.focus();
+    setTimeout(() => updateCurrentFontSize(), 50);
   };
 
   const loadFromLocalStorage = useCallback(() => {
@@ -510,7 +620,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
       return true; // Return true if local draft was loaded
     }
     return false; // Return false if no local draft exists
-  }, []);
+  }, [setDocumentContent]);
 
   const uploadToGoogleDrive = async () => {
     if (!documentTitle.trim()) {
@@ -690,6 +800,34 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
       };
     }
   }, [handleListCommand]);
+
+  // Add event listeners to track cursor position and update font size
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const handleSelectionChange = () => {
+      updateCurrentFontSize();
+    };
+
+    const handleClick = () => {
+      setTimeout(() => updateCurrentFontSize(), 10);
+    };
+
+    const handleKeyUp = () => {
+      setTimeout(() => updateCurrentFontSize(), 10);
+    };
+
+    editor.addEventListener("click", handleClick);
+    editor.addEventListener("keyup", handleKeyUp);
+    document.addEventListener("selectionchange", handleSelectionChange);
+
+    return () => {
+      editor.removeEventListener("click", handleClick);
+      editor.removeEventListener("keyup", handleKeyUp);
+      document.removeEventListener("selectionchange", handleSelectionChange);
+    };
+  }, [updateCurrentFontSize]);
 
   return (
     <div className="space-y-6">
@@ -874,6 +1012,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
             {/* Font Size */}
             <div className="flex gap-1">
               <select
+                value={currentFontSize}
                 onChange={(e) => handleFontSizeChange(e.target.value)}
                 className="px-2 py-1 text-sm bg-gray-800 border border-gray-700 text-gray-300 rounded"
               >
@@ -881,9 +1020,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                 <option value="9pt">9 pt</option>
                 <option value="10pt">10 pt</option>
                 <option value="11pt">11 pt</option>
-                <option value="12pt" selected>
-                  12 pt
-                </option>
+                <option value="12pt">12 pt</option>
                 <option value="14pt">14 pt</option>
                 <option value="16pt">16 pt</option>
                 <option value="18pt">18 pt</option>
@@ -1004,6 +1141,43 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
               li[style*="font-size"]::marker {
                 font-size: inherit !important;
                 color: white !important;
+              }
+              /* Even more specific targeting for inline font sizes */
+              ul[style*="72pt"]::marker,
+              ol[style*="72pt"]::marker,
+              li[style*="72pt"]::marker {
+                font-size: 72pt !important;
+                color: white !important;
+              }
+              ul[style*="48pt"]::marker,
+              ol[style*="48pt"]::marker,
+              li[style*="48pt"]::marker {
+                font-size: 48pt !important;
+                color: white !important;
+              }
+              ul[style*="36pt"]::marker,
+              ol[style*="36pt"]::marker,
+              li[style*="36pt"]::marker {
+                font-size: 36pt !important;
+                color: white !important;
+              }
+              ul[style*="28pt"]::marker,
+              ol[style*="28pt"]::marker,
+              li[style*="28pt"]::marker {
+                font-size: 28pt !important;
+                color: white !important;
+              }
+              ul[style*="24pt"]::marker,
+              ol[style*="24pt"]::marker,
+              li[style*="24pt"]::marker {
+                font-size: 24pt !important;
+                color: white !important;
+              }
+              /* Override any browser defaults */
+              *[style*="font-size"] ul::marker,
+              *[style*="font-size"] ol::marker,
+              *[style*="font-size"] li::marker {
+                font-size: inherit !important;
               }
             `,
             }}
