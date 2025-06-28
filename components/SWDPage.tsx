@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SWDDashboard } from "./swd/SWDDashboard";
 import { SWDRequestsTab } from "./swd/SWDRequestsTab";
 import { ScriptWritingTab } from "./swd/ScriptWritingTab";
+import { ScriptListTab } from "./swd/ScriptListTab";
+
 
 interface Request {
   timestamp: string;
@@ -103,6 +105,12 @@ const SWDPage = () => {
                       <span className="relative z-10">Requests</span>
                     </TabsTrigger>
                     <TabsTrigger
+                      value="scripts"
+                      className="relative px-8 py-3 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-600 data-[state=active]:to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-yellow-500/25 text-gray-400 hover:text-white hover:bg-gray-800/50 font-medium"
+                    >
+                      <span className="relative z-10">Script List</span>
+                    </TabsTrigger>
+                    <TabsTrigger
                       value="writing"
                       className="relative px-8 py-3 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-green-500/25 text-gray-400 hover:text-white hover:bg-gray-800/50 font-medium"
                     >
@@ -151,6 +159,10 @@ const SWDPage = () => {
                   ) : (
                     <SWDRequestsTab requests={requests} />
                   )}
+                </TabsContent>
+
+                <TabsContent value="scripts" className="space-y-4 mt-8">
+                  <ScriptListTab />
                 </TabsContent>
 
                 <TabsContent value="writing" className="space-y-4 mt-8">
