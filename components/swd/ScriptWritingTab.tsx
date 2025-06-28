@@ -132,15 +132,73 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
     setCurrentFontSize("12pt");
   }, []);
 
+  const applyListFontSizes = useCallback(() => {
+    if (!editorRef.current) return;
+
+    const lists = editorRef.current.querySelectorAll("ul, ol");
+    lists.forEach((list) => {
+      const listItems = list.querySelectorAll("li");
+      let maxFontSize = "12pt";
+
+      // Find the largest font size in the list items
+      listItems.forEach((li) => {
+        const style = li.getAttribute("style") || "";
+        const computedStyle = window.getComputedStyle(li);
+
+        // Check explicit style first
+        const fontSizeMatch = style.match(/font-size:\s*(\d+)pt/);
+        if (fontSizeMatch) {
+          const size = parseInt(fontSizeMatch[1]);
+          if (size > parseInt(maxFontSize)) {
+            maxFontSize = size + "pt";
+          }
+        } else {
+          // Check computed style
+          const fontSize = computedStyle.fontSize;
+          if (fontSize && !fontSize.includes("16px")) {
+            const sizeInPt = fontSize.includes("px")
+              ? Math.round(parseFloat(fontSize) * 0.75) + "pt"
+              : fontSize.includes("pt")
+                ? fontSize
+                : "12pt";
+            const size = parseInt(sizeInPt);
+            if (size > parseInt(maxFontSize)) {
+              maxFontSize = sizeInPt;
+            }
+          }
+        }
+      });
+
+      // Apply data attributes and ensure font size is set
+      (list as HTMLElement).setAttribute("data-list-font-size", maxFontSize);
+      const currentListStyle =
+        (list as HTMLElement).getAttribute("style") || "";
+      if (!currentListStyle.includes("font-size")) {
+        (list as HTMLElement).style.fontSize = `${maxFontSize} !important`;
+      }
+
+      listItems.forEach((li) => {
+        (li as HTMLElement).setAttribute("data-list-font-size", maxFontSize);
+        const currentStyle = (li as HTMLElement).getAttribute("style") || "";
+        if (!currentStyle.includes("font-size")) {
+          (li as HTMLElement).style.fontSize = `${maxFontSize} !important`;
+        }
+      });
+    });
+  }, []);
+
   const setDocumentContent = useCallback(
     (content: string) => {
       if (editorRef.current) {
         editorRef.current.innerHTML = content;
-        // Update font size selector after content is loaded
-        setTimeout(() => updateCurrentFontSize(), 100);
+        // Update font size selector and apply list font sizes after content is loaded
+        setTimeout(() => {
+          updateCurrentFontSize();
+          applyListFontSizes();
+        }, 100);
       }
     },
-    [updateCurrentFontSize]
+    [updateCurrentFontSize, applyListFontSizes]
   );
 
   const fetchDocuments = async () => {
@@ -281,7 +339,13 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
             `${currentStyle}; font-size: ${maxFontSize} !important`
           );
         }
+
+        // Add data attribute for CSS targeting
+        li.setAttribute("data-list-font-size", maxFontSize);
       });
+
+      // Add data attribute to list container for CSS targeting
+      list.setAttribute("data-list-font-size", maxFontSize);
     });
 
     // Get clean text content without duplication
@@ -477,6 +541,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
         // Apply font size to the list container with !important to ensure bullets/numbers inherit
         list.style.fontSize = `${currentFontSize} !important`;
         list.setAttribute("data-font-size", currentFontSize);
+        list.setAttribute("data-list-font-size", currentFontSize);
 
         // If there's selected text, use it for the list item
         let content = "";
@@ -488,6 +553,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
         const listItem = document.createElement("li");
         listItem.style.marginBottom = "4px";
         listItem.style.fontSize = `${currentFontSize} !important`;
+        listItem.setAttribute("data-list-font-size", currentFontSize);
         listItem.innerHTML = content || "<br>";
         list.appendChild(listItem);
 
@@ -502,9 +568,12 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
       }
 
       // Save to local storage after change
-      setTimeout(() => saveToLocalStorage(), 100);
+      setTimeout(() => {
+        saveToLocalStorage();
+        applyListFontSizes();
+      }, 100);
     },
-    [saveToLocalStorage]
+    [saveToLocalStorage, applyListFontSizes]
   );
 
   const handleFontSizeChange = (size: string) => {
@@ -530,10 +599,12 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
 
             wrappedLists.forEach((list) => {
               (list as HTMLElement).style.fontSize = `${size} !important`;
+              (list as HTMLElement).setAttribute("data-list-font-size", size);
             });
 
             wrappedListItems.forEach((li) => {
               (li as HTMLElement).style.fontSize = `${size} !important`;
+              (li as HTMLElement).setAttribute("data-list-font-size", size);
             });
           } catch {
             // If surroundContents fails, extract and wrap contents
@@ -547,10 +618,12 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
 
             extractedLists.forEach((list) => {
               (list as HTMLElement).style.fontSize = `${size} !important`;
+              (list as HTMLElement).setAttribute("data-list-font-size", size);
             });
 
             extractedListItems.forEach((li) => {
               (li as HTMLElement).style.fontSize = `${size} !important`;
+              (li as HTMLElement).setAttribute("data-list-font-size", size);
             });
           }
 
@@ -568,12 +641,14 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
 
               if (element.tagName === "LI") {
                 element.style.fontSize = `${size} !important`;
+                element.setAttribute("data-list-font-size", size);
                 foundListItem = true;
 
                 // Also apply to parent list
                 const parentList = element.closest("ul, ol") as HTMLElement;
                 if (parentList) {
                   parentList.style.fontSize = `${size} !important`;
+                  parentList.setAttribute("data-list-font-size", size);
                   foundList = true;
                 }
               } else if (
@@ -581,6 +656,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                 !foundList
               ) {
                 element.style.fontSize = `${size} !important`;
+                element.setAttribute("data-list-font-size", size);
                 foundList = true;
               }
             }
@@ -605,7 +681,10 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
     }
 
     editorRef.current?.focus();
-    setTimeout(() => updateCurrentFontSize(), 50);
+    setTimeout(() => {
+      updateCurrentFontSize();
+      applyListFontSizes();
+    }, 50);
   };
 
   const loadFromLocalStorage = useCallback(() => {
@@ -1140,6 +1219,103 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
               ol[style*="font-size"]::marker,
               li[style*="font-size"]::marker {
                 font-size: inherit !important;
+                color: white !important;
+              }
+              /* Data attribute targeting for precise font size control */
+              ul[data-list-font-size="8pt"]::marker,
+              ol[data-list-font-size="8pt"]::marker,
+              li[data-list-font-size="8pt"]::marker {
+                font-size: 8pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="9pt"]::marker,
+              ol[data-list-font-size="9pt"]::marker,
+              li[data-list-font-size="9pt"]::marker {
+                font-size: 9pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="10pt"]::marker,
+              ol[data-list-font-size="10pt"]::marker,
+              li[data-list-font-size="10pt"]::marker {
+                font-size: 10pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="11pt"]::marker,
+              ol[data-list-font-size="11pt"]::marker,
+              li[data-list-font-size="11pt"]::marker {
+                font-size: 11pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="12pt"]::marker,
+              ol[data-list-font-size="12pt"]::marker,
+              li[data-list-font-size="12pt"]::marker {
+                font-size: 12pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="14pt"]::marker,
+              ol[data-list-font-size="14pt"]::marker,
+              li[data-list-font-size="14pt"]::marker {
+                font-size: 14pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="16pt"]::marker,
+              ol[data-list-font-size="16pt"]::marker,
+              li[data-list-font-size="16pt"]::marker {
+                font-size: 16pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="18pt"]::marker,
+              ol[data-list-font-size="18pt"]::marker,
+              li[data-list-font-size="18pt"]::marker {
+                font-size: 18pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="20pt"]::marker,
+              ol[data-list-font-size="20pt"]::marker,
+              li[data-list-font-size="20pt"]::marker {
+                font-size: 20pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="22pt"]::marker,
+              ol[data-list-font-size="22pt"]::marker,
+              li[data-list-font-size="22pt"]::marker {
+                font-size: 22pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="24pt"]::marker,
+              ol[data-list-font-size="24pt"]::marker,
+              li[data-list-font-size="24pt"]::marker {
+                font-size: 24pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="26pt"]::marker,
+              ol[data-list-font-size="26pt"]::marker,
+              li[data-list-font-size="26pt"]::marker {
+                font-size: 26pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="28pt"]::marker,
+              ol[data-list-font-size="28pt"]::marker,
+              li[data-list-font-size="28pt"]::marker {
+                font-size: 28pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="36pt"]::marker,
+              ol[data-list-font-size="36pt"]::marker,
+              li[data-list-font-size="36pt"]::marker {
+                font-size: 36pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="48pt"]::marker,
+              ol[data-list-font-size="48pt"]::marker,
+              li[data-list-font-size="48pt"]::marker {
+                font-size: 48pt !important;
+                color: white !important;
+              }
+              ul[data-list-font-size="72pt"]::marker,
+              ol[data-list-font-size="72pt"]::marker,
+              li[data-list-font-size="72pt"]::marker {
+                font-size: 72pt !important;
                 color: white !important;
               }
               /* Even more specific targeting for inline font sizes */
