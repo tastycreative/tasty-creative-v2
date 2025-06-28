@@ -170,6 +170,46 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
       }
     });
 
+    // Handle lists specifically to ensure font size inheritance for bullets/numbers
+    const lists = tempDiv.querySelectorAll("ul, ol");
+    lists.forEach((list) => {
+      const listItems = list.querySelectorAll("li");
+      let maxFontSize = "12pt";
+
+      // Find the largest font size in the list items
+      listItems.forEach((li) => {
+        const style = li.getAttribute("style") || "";
+        const fontSizeMatch = style.match(/font-size:\s*(\d+)pt/);
+        if (fontSizeMatch) {
+          const size = parseInt(fontSizeMatch[1]);
+          if (size > parseInt(maxFontSize)) {
+            maxFontSize = size + "pt";
+          }
+        }
+      });
+
+      // Apply the max font size to the list container with !important
+      const currentListStyle = list.getAttribute("style") || "";
+      const updatedListStyle = currentListStyle.includes("font-size")
+        ? currentListStyle.replace(
+            /font-size:\s*[^;]+/,
+            `font-size: ${maxFontSize} !important`
+          )
+        : `${currentListStyle}; font-size: ${maxFontSize} !important`;
+      list.setAttribute("style", updatedListStyle);
+
+      // Ensure all list items also have the correct font size
+      listItems.forEach((li) => {
+        const currentStyle = li.getAttribute("style") || "";
+        if (!currentStyle.includes("font-size")) {
+          li.setAttribute(
+            "style",
+            `${currentStyle}; font-size: ${maxFontSize} !important`
+          );
+        }
+      });
+    });
+
     // Get clean text content without duplication
     const plainTextContent = tempDiv.textContent || tempDiv.innerText || "";
 
@@ -347,6 +387,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
         const list = document.createElement(listTag);
         list.style.marginLeft = "20px";
         list.style.paddingLeft = "20px";
+        list.className = "prose-lists-item"; // Add specific class for targeting
 
         // Get current font size from selection or default
         let currentFontSize = "12pt";
@@ -365,6 +406,10 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
           }
         }
 
+        // Apply font size to the list container with !important to ensure bullets/numbers inherit
+        list.style.fontSize = `${currentFontSize} !important`;
+        list.setAttribute("data-font-size", currentFontSize);
+
         // If there's selected text, use it for the list item
         let content = "";
         if (!range.collapsed) {
@@ -374,7 +419,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
 
         const listItem = document.createElement("li");
         listItem.style.marginBottom = "4px";
-        listItem.style.fontSize = currentFontSize;
+        listItem.style.fontSize = `${currentFontSize} !important`;
         listItem.innerHTML = content || "<br>";
         list.appendChild(listItem);
 
@@ -930,6 +975,35 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
               }
               .prose-lists ul ul ul {
                 list-style-type: square !important;
+              }
+              /* Ensure list markers (bullets/numbers) inherit font size */
+              .prose-lists ul::marker,
+              .prose-lists ol::marker,
+              .prose-lists-item::marker {
+                font-size: inherit !important;
+                color: white !important;
+              }
+              .prose-lists li::marker,
+              .prose-lists-item li::marker {
+                font-size: inherit !important;
+                color: white !important;
+              }
+              /* Additional specificity for list containers */
+              .prose-lists ul,
+              .prose-lists ol,
+              .prose-lists-item {
+                font-size: inherit !important;
+              }
+              .prose-lists li,
+              .prose-lists-item li {
+                font-size: inherit !important;
+              }
+              /* Force marker inheritance for all scenarios */
+              ul[style*="font-size"]::marker,
+              ol[style*="font-size"]::marker,
+              li[style*="font-size"]::marker {
+                font-size: inherit !important;
+                color: white !important;
               }
             `,
             }}
