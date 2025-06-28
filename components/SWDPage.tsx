@@ -56,12 +56,9 @@ const SWDPage = () => {
   };
 
   const handleScriptClick = (scriptLink: string) => {
-    // Extract document ID from Google Docs URL
-    const docIdMatch = scriptLink.match(/\/document\/d\/([a-zA-Z0-9-_]+)/);
-    if (docIdMatch) {
-      const docId = docIdMatch[1];
-      setScriptToLoad(docId);
-      setActiveTab("writing");
+    // Open the Google Docs link directly in a new tab
+    if (scriptLink) {
+      window.open(scriptLink, "_blank");
     }
   };
 
