@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import {
   XAxis,
   YAxis,
@@ -166,6 +167,23 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       rank: number;
     }>
   >([]);
+
+  // State for SWD leaderboard data
+  const [swdData, setSwdData] = useState<{
+    totalSend: Array<{ creator: string; amount: number; rank: number }>;
+    totalBuy: Array<{ creator: string; amount: string; rank: number }>;
+    totalScripts: number;
+    totalDriveScripts: number;
+    totalPerformanceScripts: number;
+  }>({
+    totalSend: [],
+    totalBuy: [],
+    totalScripts: 0,
+    totalDriveScripts: 0,
+    totalPerformanceScripts: 0,
+  });
+  const [isLoadingSwdData, setIsLoadingSwdData] = useState(true);
+
   // Fetch real VN sales and voice data
   useEffect(() => {
     const fetchVnSalesData = async () => {
@@ -223,6 +241,97 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         console.error("Error fetching content generation data:", error);
       } finally {
         setIsLoadingContentStats(false);
+      }
+    };
+
+    const fetchSwdData = async () => {
+      try {
+        // Fetch both SWD performance data and script lists
+        const [swdResponse, driveResponse] = await Promise.all([
+          fetch("/api/google/swd-data"),
+          fetch("/api/google/list-scripts")
+        ]);
+
+        if (swdResponse.ok && driveResponse.ok) {
+          const swdStats = await swdResponse.json();
+          const driveStats = await driveResponse.json();
+
+          // Calculate leaderboard data for all months (no filtering)
+          const creatorStats: Record<string, any> = {};
+
+          // Initialize creator stats from model data
+          if (swdStats.modelData) {
+            swdStats.modelData.forEach((model: any) => {
+              creatorStats[model.creator] = {
+                creator: model.creator,
+                totalSend: 0,
+                totalBuy: 0,
+              };
+            });
+          }
+
+          // Aggregate all send/buy data across all months
+          if (swdStats.sendBuyData) {
+            swdStats.sendBuyData.forEach((item: any) => {
+              if (!creatorStats[item.creator]) {
+                creatorStats[item.creator] = {
+                  creator: item.creator,
+                  totalSend: 0,
+                  totalBuy: 0,
+                };
+              }
+              creatorStats[item.creator].totalSend += item.totalSend || 0;
+              creatorStats[item.creator].totalBuy += item.totalBuy || 0;
+            });
+          }
+
+          const creatorStatsArray = Object.values(creatorStats);
+
+          // Create leaderboards
+          const totalSendLeaderboard = creatorStatsArray
+            .sort((a: any, b: any) => b.totalSend - a.totalSend)
+            .slice(0, 5)
+            .map((creator: any, index) => ({
+              creator: creator.creator,
+              amount: creator.totalSend,
+              rank: index,
+            }));
+
+          const totalBuyLeaderboard = creatorStatsArray
+            .sort((a: any, b: any) => b.totalBuy - a.totalBuy)
+            .slice(0, 5)
+            .map((creator: any, index) => ({
+              creator: creator.creator,
+              amount: `$${creator.totalBuy.toLocaleString("en-US", { minimumFractionDigits: 2 })}`,
+              rank: index,
+            }));
+
+          // Count scripts
+          const totalDriveScripts = driveStats.documents ? driveStats.documents.length : 0;
+          const totalPerformanceScripts = swdStats.sendBuyData ? swdStats.sendBuyData.length : 0;
+          
+          // Unique scripts (avoid double counting by checking for duplicates)
+          const uniqueScriptTitles = new Set();
+          if (driveStats.documents) {
+            driveStats.documents.forEach((doc: any) => uniqueScriptTitles.add(doc.name.toLowerCase()));
+          }
+          if (swdStats.sendBuyData) {
+            swdStats.sendBuyData.forEach((script: any) => uniqueScriptTitles.add(script.scriptTitle.toLowerCase()));
+          }
+          const totalUniqueScripts = uniqueScriptTitles.size;
+
+          setSwdData({
+            totalSend: totalSendLeaderboard,
+            totalBuy: totalBuyLeaderboard,
+            totalScripts: totalUniqueScripts,
+            totalDriveScripts,
+            totalPerformanceScripts,
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching SWD data:", error);
+      } finally {
+        setIsLoadingSwdData(false);
       }
     };
 
@@ -443,6 +552,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     fetchVnSalesData();
     fetchVoiceData();
     fetchContentGenerationData();
+    fetchSwdData();
     fetchTotalMassMessages();
   }, []);
 
@@ -614,6 +724,23 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       prefix: "",
       suffix: "%",
     },
+    {
+      title: "Total Scripts",
+      value: swdData.totalScripts,
+      formattedValue: isLoadingSwdData
+        ? "Loading..."
+        : swdData.totalScripts.toLocaleString(),
+      icon: FileText,
+      description: isLoadingSwdData
+        ? "Fetching from Google Drive & Sheets..."
+        : `${swdData.totalDriveScripts} from Drive, ${swdData.totalPerformanceScripts} from performance data`,
+      color: "text-orange-600",
+      bgColor: "bg-orange-50",
+      iconBgColor: "bg-orange-100",
+      prefix: "",
+      suffix: "",
+      isLoading: isLoadingSwdData,
+    },
   ];
 
   return (
@@ -743,7 +870,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
           {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
           </div>
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
@@ -807,9 +934,11 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                             {getRankIcon(message.rank)}
                             <div className="flex items-center space-x-3">
                               {message.modelAvatar ? (
-                                <img
+                                <Image
                                   src={`/api/image-proxy?url=${encodeURIComponent(message.modelAvatar)}`}
                                   alt={message.modelName}
+                                  width={32}
+                                  height={32}
                                   className="h-8 w-8 rounded-full object-cover border border-gray-200"
                                 />
                               ) : (
@@ -972,7 +1101,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
           {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
           </div>
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
@@ -1036,9 +1165,11 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                             {getTrophyIcon(model.rank)}
                             <div className="flex items-center space-x-3">
                               {model.avatar ? (
-                                <img
+                                <Image
                                   src={`/api/image-proxy?url=${encodeURIComponent(model.avatar)}`}
                                   alt={model.name}
+                                  width={40}
+                                  height={40}
                                   className="h-10 w-10 rounded-full object-cover border border-gray-200"
                                 />
                               ) : (
@@ -1234,7 +1365,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
           {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
           </div>
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
@@ -1296,12 +1427,203 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             </div>
           </CardContent>
         </Card>
+      </div>
 
+      {/* SWD Leaderboards */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Total Send Leaderboard */}
+        <Card className="bg-white border border-gray-200 hover:border-purple-300 transition-all duration-300 relative group overflow-hidden">
+          {/* Glass reflection effect */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-100/30 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+          </div>
+          <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50 border-b">
+            <CardTitle className="flex items-center space-x-2 text-gray-900">
+              <Trophy className="h-5 w-5 text-purple-500" />
+              <span>SWD Total Send Leaderboard</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {isLoadingSwdData ? (
+                <div className="flex justify-center py-8">
+                  <div className="flex items-center text-gray-500">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2 text-purple-500" />
+                    <span>Loading SWD leaderboard...</span>
+                  </div>
+                </div>
+              ) : swdData.totalSend.length > 0 ? (
+                <>
+                  {swdData.totalSend.map((entry, index) => {
+                    const getRankIcon = (rank: number) => {
+                      switch (rank) {
+                        case 0:
+                          return <Trophy className="h-6 w-6 text-yellow-500" />;
+                        case 1:
+                          return <Medal className="h-6 w-6 text-gray-400" />;
+                        case 2:
+                          return <Award className="h-6 w-6 text-amber-600" />;
+                        default:
+                          return (
+                            <div className="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-sm font-bold">
+                              {rank + 1}
+                            </div>
+                          );
+                      }
+                    };
+
+                    const getRankStyle = (rank: number) => {
+                      switch (rank) {
+                        case 0:
+                          return "bg-gradient-to-r from-yellow-50 to-yellow-100 border-yellow-200 hover:border-yellow-300";
+                        case 1:
+                          return "bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200 hover:border-gray-300";
+                        case 2:
+                          return "bg-gradient-to-r from-amber-50 to-amber-100 border-amber-200 hover:border-amber-300";
+                        default:
+                          return "bg-gray-50 border-gray-200 hover:border-gray-300";
+                      }
+                    };
+
+                    return (
+                      <div
+                        key={index}
+                        className={`flex items-center justify-between p-4 rounded-lg border ${getRankStyle(entry.rank)} transition-all duration-300 hover:scale-[1.02] hover:shadow-md`}
+                      >
+                        <div className="flex items-center space-x-4">
+                          {getRankIcon(entry.rank)}
+                          <div>
+                            <h3 className="font-medium text-gray-900">
+                              {entry.creator}
+                            </h3>
+                            <p className="text-sm text-gray-500">
+                              {entry.amount.toLocaleString()} total sent
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-purple-600">
+                            #{entry.rank + 1}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </>
+              ) : (
+                <div className="text-center text-gray-500 py-8">
+                  <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-sm">
+                    No SWD send data found. Upload script performance data to see the leaderboard!
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Total Buy Leaderboard */}
+        <Card className="bg-white border border-gray-200 hover:border-green-300 transition-all duration-300 relative group overflow-hidden">
+          {/* Glass reflection effect */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-green-100/30 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+          </div>
+          <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b">
+            <CardTitle className="flex items-center space-x-2 text-gray-900">
+              <TrendingUp className="h-5 w-5 text-green-500" />
+              <span>SWD Total Buy Leaderboard</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {isLoadingSwdData ? (
+                <div className="flex justify-center py-8">
+                  <div className="flex items-center text-gray-500">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2 text-green-500" />
+                    <span>Loading SWD leaderboard...</span>
+                  </div>
+                </div>
+              ) : swdData.totalBuy.length > 0 ? (
+                <>
+                  {swdData.totalBuy.map((entry, index) => {
+                    const getRankIcon = (rank: number) => {
+                      switch (rank) {
+                        case 0:
+                          return <Trophy className="h-6 w-6 text-yellow-500" />;
+                        case 1:
+                          return <Medal className="h-6 w-6 text-gray-400" />;
+                        case 2:
+                          return <Award className="h-6 w-6 text-amber-600" />;
+                        default:
+                          return (
+                            <div className="h-6 w-6 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-sm font-bold">
+                              {rank + 1}
+                            </div>
+                          );
+                      }
+                    };
+
+                    const getRankStyle = (rank: number) => {
+                      switch (rank) {
+                        case 0:
+                          return "bg-gradient-to-r from-yellow-50 to-yellow-100 border-yellow-200 hover:border-yellow-300";
+                        case 1:
+                          return "bg-gradient-to-r from-gray-50 to-gray-100 border-gray-200 hover:border-gray-300";
+                        case 2:
+                          return "bg-gradient-to-r from-amber-50 to-amber-100 border-amber-200 hover:border-amber-300";
+                        default:
+                          return "bg-gray-50 border-gray-200 hover:border-gray-300";
+                      }
+                    };
+
+                    return (
+                      <div
+                        key={index}
+                        className={`flex items-center justify-between p-4 rounded-lg border ${getRankStyle(entry.rank)} transition-all duration-300 hover:scale-[1.02] hover:shadow-md`}
+                      >
+                        <div className="flex items-center space-x-4">
+                          {getRankIcon(entry.rank)}
+                          <div>
+                            <h3 className="font-medium text-gray-900">
+                              {entry.creator}
+                            </h3>
+                            <p className="text-sm text-gray-500">
+                              Revenue generated
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-green-600">
+                            {entry.amount}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            #{entry.rank + 1}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </>
+              ) : (
+                <div className="text-center text-gray-500 py-8">
+                  <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-sm">
+                    No SWD buy data found. Upload script performance data to see the leaderboard!
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Content Generation by Tracker */}
         <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
           {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
           </div>
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
@@ -1374,7 +1696,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
           {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
           </div>
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
@@ -1410,9 +1732,11 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                       <td className="py-3 px-4">
                         <div className="flex items-center space-x-3">
                           {user.image ? (
-                            <img
+                            <Image
                               src={`/api/image-proxy?url=${encodeURIComponent(user.image)}`}
                               alt={user.name || ""}
+                              width={32}
+                              height={32}
                               className="h-8 w-8 rounded-full object-cover border border-gray-200"
                             />
                           ) : (
@@ -1454,7 +1778,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
           {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
           </div>
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
@@ -1500,9 +1824,11 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                             <div className="flex items-center space-x-3">
                               <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
                                 {activity.image ? (
-                                  <img
+                                  <Image
                                     src={`/api/image-proxy?url=${encodeURIComponent(activity.image)}`}
                                     alt={activity.name}
+                                    width={32}
+                                    height={32}
                                     className="w-full h-full object-cover"
                                     onError={(e) => {
                                       const target =
@@ -1610,7 +1936,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
           {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
           </div>
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
@@ -1659,7 +1985,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
           {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
           </div>
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
