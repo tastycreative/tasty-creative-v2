@@ -1370,12 +1370,12 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       {/* SWD Leaderboards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Total Send Leaderboard */}
-        <Card className="bg-white border border-gray-200 hover:border-purple-300 transition-all duration-300 relative group overflow-hidden">
+        <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
           {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-100/30 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
           </div>
-          <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50 border-b">
+          <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
               <Trophy className="h-5 w-5 text-purple-500" />
               <span>SWD Total Send Leaderboard</span>
@@ -1462,12 +1462,12 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         </Card>
 
         {/* Total Buy Leaderboard */}
-        <Card className="bg-white border border-gray-200 hover:border-green-300 transition-all duration-300 relative group overflow-hidden">
+        <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
           {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-green-100/30 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
           </div>
-          <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 border-b">
+          <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
               <TrendingUp className="h-5 w-5 text-green-500" />
               <span>SWD Total Buy Leaderboard</span>
@@ -1559,6 +1559,72 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* VN Sales by Model */}
+        <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
+          {/* Glass reflection effect */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+          </div>
+          <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
+            <CardTitle className="flex items-center space-x-2 text-gray-900">
+              <DollarSign className="h-5 w-5 text-orange-500" />
+              <span>VN Sales by Model</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {isLoadingVnStats ? (
+                <div className="flex justify-center py-8">
+                  <div className="flex items-center text-gray-500">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2 text-pink-500" />
+                    <span>Fetching sales data from Google Sheets...</span>
+                  </div>
+                </div>
+              ) : vnSales.salesByModel.length > 0 ? (
+                <>
+                  {vnSales.salesByModel.map((model, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-all duration-300"
+                    >
+                      <div>
+                        <h3 className="font-medium text-gray-900">
+                          {model.name}
+                        </h3>
+                        <p className="text-sm text-gray-500">
+                          {model.sales} VN sales
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-green-600">
+                          ${model.revenue.toFixed(2)}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {model.loyaltyPoints} loyalty pts
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="text-center text-gray-500 py-4">
+                    <p className="text-sm">
+                      Average VN Price:{" "}
+                      <span className="text-orange-600 font-semibold">
+                        ${vnSales.averageVnPrice.toFixed(2)}
+                      </span>{" "}
+                      (+${vnSales.priceIncrease} from last week)
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center text-gray-500 py-4">
+                  <p className="text-sm">
+                    No sales data found. Submit some sales to see analytics!
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
         {/* Content Generation by Tracker */}
         <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
           {/* Glass reflection effect */}
@@ -1622,73 +1688,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                   <p className="text-sm">
                     No content generation data found. Generate some content to
                     see analytics!
-                  </p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* VN Sales by Model */}
-        <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
-          {/* Glass reflection effect */}
-          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
-          </div>
-          <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
-            <CardTitle className="flex items-center space-x-2 text-gray-900">
-              <DollarSign className="h-5 w-5 text-orange-500" />
-              <span>VN Sales by Model</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              {isLoadingVnStats ? (
-                <div className="flex justify-center py-8">
-                  <div className="flex items-center text-gray-500">
-                    <Loader2 className="h-6 w-6 animate-spin mr-2 text-pink-500" />
-                    <span>Fetching sales data from Google Sheets...</span>
-                  </div>
-                </div>
-              ) : vnSales.salesByModel.length > 0 ? (
-                <>
-                  {vnSales.salesByModel.map((model, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-all duration-300"
-                    >
-                      <div>
-                        <h3 className="font-medium text-gray-900">
-                          {model.name}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          {model.sales} VN sales
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-green-600">
-                          ${model.revenue.toFixed(2)}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {model.loyaltyPoints} loyalty pts
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                  <div className="text-center text-gray-500 py-4">
-                    <p className="text-sm">
-                      Average VN Price:{" "}
-                      <span className="text-orange-600 font-semibold">
-                        ${vnSales.averageVnPrice.toFixed(2)}
-                      </span>{" "}
-                      (+${vnSales.priceIncrease} from last week)
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center text-gray-500 py-4">
-                  <p className="text-sm">
-                    No sales data found. Submit some sales to see analytics!
                   </p>
                 </div>
               )}
