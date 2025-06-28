@@ -749,6 +749,32 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       suffix: "",
       isLoading: isLoadingSwdData,
     },
+    {
+      title: "SWD Total Revenue",
+      value: isLoadingSwdData
+        ? 0
+        : swdData.totalBuy.reduce((total, entry) => {
+            // Extract numeric value from formatted string like "$1,234.56"
+            const numericValue = parseFloat(entry.amount.replace(/[$,]/g, "")) || 0;
+            return total + numericValue;
+          }, 0),
+      formattedValue: isLoadingSwdData
+        ? "Loading..."
+        : `$${swdData.totalBuy.reduce((total, entry) => {
+            const numericValue = parseFloat(entry.amount.replace(/[$,]/g, "")) || 0;
+            return total + numericValue;
+          }, 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      icon: DollarSign,
+      description: isLoadingSwdData
+        ? "Fetching from Google Sheets..."
+        : `Total revenue from ${swdData.totalBuy.length} script creators`,
+      color: "text-green-600",
+      bgColor: "bg-green-50",
+      iconBgColor: "bg-green-100",
+      prefix: "$",
+      suffix: "",
+      isLoading: isLoadingSwdData,
+    },
   ];
 
   return (
