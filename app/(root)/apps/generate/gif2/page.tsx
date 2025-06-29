@@ -1,20 +1,16 @@
 "use client";
 
-import GifMaker from "@/components/GifMaker";
 import { Film } from "lucide-react";
 import { useState } from "react";
+import { VideoEditor } from "@/components/video-editor/VideoEditor";
 
 export default function GIFPage() {
-  const [startCreating, setStartCreating] = useState(true);
+  const [startCreating, setStartCreating] = useState(false);
+
   if (!startCreating) {
     return (
       <div className="flex flex-col items-center justify-center h-full">
-        <div
-          //initial={{ scale: 0.9, opacity: 0 }}
-          //animate={{ scale: 1, opacity: 1 }}
-          //transition={{ duration: 0.3, delay: 0.1 }}
-          className="text-center"
-        >
+        <div className="text-center">
           <div className="mb-6 p-6 rounded-full bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-sm">
             <Film className="w-16 h-16 text-green-500" />
           </div>
@@ -38,11 +34,5 @@ export default function GIFPage() {
     );
   }
 
-  if (startCreating) {
-    return (
-      <div>
-        <GifMaker />
-      </div>
-    );
-  }
+  return <VideoEditor />;
 }

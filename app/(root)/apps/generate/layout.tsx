@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
 import { useRouter, usePathname } from "next/navigation";
 import { Sparkles, Crown, Gamepad2, Zap, Twitter, Film } from "lucide-react";
 
-type TabType = "live" | "vip" | "game" | "ftt" | "twitter" | "gif";
+type TabType = "live" | "vip" | "game" | "ftt" | "twitter" | "gif" | "gif2";
 
 interface Tab {
   id: TabType;
@@ -83,6 +82,13 @@ export default function GenerateLayout({ children }: GenerateLayoutProps) {
       icon: Film,
       color: "from-green-500 to-emerald-500",
       href: "/apps/generate/gif",
+    },
+     {
+      id: "gif2",
+      label: "GIF Maker2",
+      icon: Film,
+      color: "from-green-500 to-emerald-500",
+      href: "/apps/generate/gif2",
     },
   ];
 
