@@ -785,8 +785,8 @@ export default function ImageCropper({
                             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
                           </svg>
                         ) : file.thumbnailLink ? (
-                          <Image
-                            src={file.thumbnailLink}
+                          <img
+                            src={`/api/image-proxy?url=${encodeURIComponent(file.thumbnailLink)}`}
                             width={200}
                             height={200}
                             alt={file.name}
