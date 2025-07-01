@@ -238,18 +238,20 @@ const GifMaker = () => {
     (time: number) => {
       setCurrentTime((prevTime) => {
         if (Math.abs(prevTime - time) > 0.05) {
-          if (activeVideoIndex !== null && videoRefs.current) {
+          // In grid mode, update the active video
+          if (timelineMode === 'grid' && activeVideoIndex !== null && videoRefs.current) {
             const activeVideo = videoRefs.current[activeVideoIndex];
             if (activeVideo && activeVideo.readyState >= 2) {
               activeVideo.currentTime = time;
             }
           }
+          // In sequence mode, the SequenceVideoPlayer handles video synchronization
           return time;
         }
         return prevTime;
       });
     },
-    [activeVideoIndex]
+    [activeVideoIndex, timelineMode]
   );
 
   const handlePlayPause = useCallback(() => {
@@ -809,7 +811,7 @@ const GifMaker = () => {
       // Handle sequence playback logic here
       const totalDuration = timelineClips.length > 0 ? Math.max(...timelineClips.map(clip => clip.timelineEndTime)) : 0;
       
-      if (isPlaying) {
+      if (isPlaying && totalDuration > 0) {
         // Create a timer to advance the timeline
         const interval = setInterval(() => {
           setCurrentTime(prevTime => {
@@ -825,8 +827,27 @@ const GifMaker = () => {
         
         return () => clearInterval(interval);
       }
-    } else if (timelineMode === 'grid' && activeVideoIndex !== null && videoClips[activeVideoIndex]?.file) {
-      // Handle grid mode playback (existing logic)
+    } else if (timelineMode === 'grid' && isPlaying && activeVideoIndex !== null && videoClips[activeVideoIndex]?.file) {
+      // Handle grid mode playback with video element synchronization
+      const activeVideo = videoRefs.current?.[activeVideoIndex];
+      if (activeVideo) {
+        const updateTime = () => {
+          if (activeVideo.readyState >= 2) {
+            setCurrentTime(activeVideo.currentTime);
+          }
+        };
+        
+        // Sync with video playback
+        const interval = setInterval(updateTime, 100);
+        
+        // Also listen to video timeupdate events for better sync
+        activeVideo.addEventListener('timeupdate', updateTime);
+        
+        return () => {
+          clearInterval(interval);
+          activeVideo.removeEventListener('timeupdate', updateTime);
+        };
+      }
     }
   }, [isPlaying, timelineMode, timelineClips, activeVideoIndex, videoClips]);
 
@@ -924,8 +945,11 @@ const GifMaker = () => {
     };
   }, []);
 
-  // Video playback control
+  // Video playback control (for grid mode only)
   useEffect(() => {
+    // Only run this effect in grid mode
+    if (timelineMode !== 'grid') return;
+    
     if (activeVideoIndex === null || !videoRefs.current) return;
 
     const activeVideo = videoRefs.current[activeVideoIndex];
@@ -982,7 +1006,7 @@ const GifMaker = () => {
         cancelAnimationFrame(rafId);
       }
     };
-  }, [isPlaying, activeVideoIndex, videoClips, currentTime]);
+  }, [isPlaying, activeVideoIndex, videoClips, currentTime, timelineMode]);
 
   // Update video clips when max duration changes
   useEffect(() => {

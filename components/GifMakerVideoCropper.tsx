@@ -27,16 +27,37 @@ const SequenceVideoPlayer: React.FC<{
   currentTime?: number;
   isPlaying?: boolean;
   videoRefs: React.RefObject<(HTMLVideoElement)[]>;
-}> = ({ timelineClips, currentTime = 0, isPlaying = false, videoRefs }) => {
+  width?: number;
+  height?: number;
+}> = ({ timelineClips, currentTime = 0, isPlaying = false, videoRefs, width = 360, height = 360 }) => {
   const [activeClipIndex, setActiveClipIndex] = useState(0);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Find which clip should be active at current time
   const findActiveClip = useCallback(() => {
-    return timelineClips.findIndex(clip => 
-      currentTime >= clip.timelineStartTime && currentTime < clip.timelineEndTime
-    );
+    for (let i = 0; i < timelineClips.length; i++) {
+      const clip = timelineClips[i];
+      // Use slightly more precise boundary checking
+      if (currentTime >= clip.timelineStartTime && currentTime < clip.timelineEndTime) {
+        return i;
+      }
+      // Handle the exact end boundary for the last clip
+      if (i === timelineClips.length - 1 && currentTime >= clip.timelineStartTime && currentTime <= clip.timelineEndTime) {
+        return i;
+      }
+    }
+    // If no exact match, find the closest clip
+    if (timelineClips.length > 0) {
+      if (currentTime < timelineClips[0].timelineStartTime) {
+        return 0;
+      }
+      const lastClip = timelineClips[timelineClips.length - 1];
+      if (currentTime >= lastClip.timelineEndTime) {
+        return timelineClips.length - 1;
+      }
+    }
+    return -1;
   }, [currentTime, timelineClips]);
 
   // Update active clip when currentTime changes
@@ -75,7 +96,7 @@ const SequenceVideoPlayer: React.FC<{
 
   // Update video time when clip or currentTime changes
   useEffect(() => {
-    if (!videoRef.current || timelineClips.length === 0) return;
+    if (!videoRef.current || timelineClips.length === 0 || activeClipIndex === -1) return;
 
     const video = videoRef.current;
     const activeClip = timelineClips[activeClipIndex];
@@ -91,8 +112,8 @@ const SequenceVideoPlayer: React.FC<{
         Math.min(activeClip.endTime, videoTime)
       );
       
-      // Update video time if different
-      if (Math.abs(video.currentTime - clampedTime) > 0.1) {
+      // Update video time if different (with smaller threshold for smoother sync)
+      if (Math.abs(video.currentTime - clampedTime) > 0.05) {
         video.currentTime = clampedTime;
       }
     }
@@ -105,13 +126,27 @@ const SequenceVideoPlayer: React.FC<{
     const video = videoRef.current;
     
     if (isPlaying) {
-      video.play().catch(() => {
-        // Video play failed, ignore
-      });
+      // Make sure video is properly loaded before playing
+      if (video.readyState >= 2) {
+        video.play().catch(() => {
+          // Video play failed, ignore
+        });
+      } else {
+        // Wait for video to load before playing
+        const handleCanPlay = () => {
+          video.play().catch(() => {
+            // Video play failed, ignore
+          });
+          video.removeEventListener('canplay', handleCanPlay);
+        };
+        video.addEventListener('canplay', handleCanPlay);
+        
+        return () => video.removeEventListener('canplay', handleCanPlay);
+      }
     } else {
       video.pause();
     }
-  }, [isPlaying]);
+  }, [isPlaying, videoUrl]); // Include videoUrl to ensure we handle play state on clip changes
 
   // Register video element with parent refs
   useEffect(() => {
@@ -122,7 +157,10 @@ const SequenceVideoPlayer: React.FC<{
 
   if (timelineClips.length === 0) {
     return (
-      <div className="w-full max-w-md h-64 bg-gray-700 rounded-lg flex items-center justify-center text-gray-400">
+      <div 
+        className="bg-gray-700 rounded-lg flex items-center justify-center text-gray-400"
+        style={{ width: `${width}px`, height: `${height}px` }}
+      >
         <div className="text-center">
           <p className="text-sm">No videos in timeline</p>
           <p className="text-xs text-gray-500 mt-1">Add clips to see preview</p>
@@ -137,11 +175,14 @@ const SequenceVideoPlayer: React.FC<{
   return (
     <div className="bg-gray-900 p-4 rounded-lg border border-gray-700">
       <div className="flex flex-col items-center">
-        <div className="relative w-full max-w-md bg-gray-800 rounded-lg overflow-hidden">
+        <div 
+          className="relative bg-gray-800 rounded-lg overflow-hidden"
+          style={{ width: `${width}px`, height: `${height}px` }}
+        >
           <video
             ref={videoRef}
             src={videoUrl || ''}
-            className="w-full h-64 object-contain"
+            className="w-full h-full object-contain"
             muted
             playsInline
             onLoadedMetadata={() => {
@@ -504,9 +545,17 @@ const GifMakerVideoCropper = ({
                   currentTime={currentTime}
                   isPlaying={isPlaying}
                   videoRefs={videoRefs}
+                  width={getAspectRatioSize(selectedTemplate).width}
+                  height={getAspectRatioSize(selectedTemplate).height}
                 />
               ) : (
-                <div className="w-full max-w-md h-64 bg-gray-700 rounded-lg flex items-center justify-center text-gray-400">
+                <div 
+                  className="bg-gray-700 rounded-lg flex items-center justify-center text-gray-400"
+                  style={{ 
+                    width: `${getAspectRatioSize(selectedTemplate).width}px`, 
+                    height: `${getAspectRatioSize(selectedTemplate).height}px` 
+                  }}
+                >
                   <div className="text-center">
                     <p className="text-sm">No videos in timeline</p>
                     <p className="text-xs text-gray-500 mt-1">Use &quot;Add Video&quot; to add clips to the sequence</p>

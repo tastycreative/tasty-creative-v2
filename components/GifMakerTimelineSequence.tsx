@@ -38,15 +38,18 @@ const GifMakerTimelineSequence = ({
   const [dragStartX, setDragStartX] = useState(0);
   const [dragStartValue, setDragStartValue] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [selectedClipIndex, setSelectedClipIndex] = useState<number | null>(null);
+  const [selectedClipIndex, setSelectedClipIndex] = useState<number | null>(
+    null
+  );
   const timelineRef = useRef<HTMLDivElement>(null);
   const extractionAbortRef = useRef<AbortController | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Calculate total timeline duration
-  const totalDuration = timelineClips.length > 0 
-    ? Math.max(...timelineClips.map(clip => clip.timelineEndTime)) 
-    : 0;
+  const totalDuration =
+    timelineClips.length > 0
+      ? Math.max(...timelineClips.map((clip) => clip.timelineEndTime))
+      : 0;
 
   const frameCount = 12; // More frames for timeline view
 
@@ -59,8 +62,10 @@ const GifMakerTimelineSequence = ({
 
   // Get current active clip based on current time
   const getCurrentClip = () => {
-    return timelineClips.find(clip => 
-      currentTime >= clip.timelineStartTime && currentTime <= clip.timelineEndTime
+    return timelineClips.find(
+      (clip) =>
+        currentTime >= clip.timelineStartTime &&
+        currentTime <= clip.timelineEndTime
     );
   };
 
@@ -202,12 +207,12 @@ const GifMakerTimelineSequence = ({
         extractionAbortRef.current.abort();
       }
     };
-  }, [timelineClips, extractFrames]);
+  }, [extractFrames]);
 
   // Handle clip removal
   const handleRemoveClip = (clipIndex: number) => {
     const newClips = timelineClips.filter((_, index) => index !== clipIndex);
-    
+
     // Recalculate timeline positions
     let currentTime = 0;
     const updatedClips = newClips.map((clip, index) => {
@@ -226,7 +231,11 @@ const GifMakerTimelineSequence = ({
   };
 
   // Handle clip time editing
-  const handleClipTimeChange = (clipIndex: number, startTime: number, endTime: number) => {
+  const handleClipTimeChange = (
+    clipIndex: number,
+    startTime: number,
+    endTime: number
+  ) => {
     const newClips = [...timelineClips];
     const clip = newClips[clipIndex];
     const oldDuration = clip.endTime - clip.startTime;
@@ -254,7 +263,9 @@ const GifMakerTimelineSequence = ({
   };
 
   // Handle timeline click
-  const handleTimelineClick = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+  const handleTimelineClick = (
+    e: React.MouseEvent<HTMLDivElement, MouseEvent>
+  ) => {
     if (!timelineRef.current || isDragging) return;
 
     const rect = timelineRef.current.getBoundingClientRect();
@@ -265,17 +276,21 @@ const GifMakerTimelineSequence = ({
   };
 
   // Handle direct file upload
-  const handleDirectUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && onDirectUpload) {
-      onDirectUpload(file);
-    }
-    // Reset the input value so the same file can be selected again
-    event.target.value = '';
-  }, [onDirectUpload]);
+  const handleDirectUpload = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (file && onDirectUpload) {
+        onDirectUpload(file);
+      }
+      // Reset the input value so the same file can be selected again
+      event.target.value = "";
+    },
+    [onDirectUpload]
+  );
 
   // Calculate positions as percentages
-  const currentPercent = totalDuration > 0 ? (currentTime / totalDuration) * 100 : 0;
+  const currentPercent =
+    totalDuration > 0 ? (currentTime / totalDuration) * 100 : 0;
 
   return (
     <div className="bg-gray-900 p-4 rounded-lg border border-gray-700">
@@ -284,10 +299,10 @@ const GifMakerTimelineSequence = ({
         type="file"
         accept="video/*"
         onChange={handleDirectUpload}
-        style={{ display: 'none' }}
+        style={{ display: "none" }}
         ref={fileInputRef}
       />
-      
+
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-4">
@@ -334,7 +349,11 @@ const GifMakerTimelineSequence = ({
             disabled={isProcessing || timelineClips.length === 0}
             className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700 disabled:cursor-not-allowed text-white p-2 rounded-full transition-colors"
           >
-            {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+            {isPlaying ? (
+              <Pause className="w-4 h-4" />
+            ) : (
+              <Play className="w-4 h-4" />
+            )}
           </button>
         </div>
       </div>
@@ -360,7 +379,11 @@ const GifMakerTimelineSequence = ({
                     ? "border-blue-400 bg-blue-400/10"
                     : "border-gray-600 bg-gray-800/50"
                 }`}
-                onClick={() => setSelectedClipIndex(selectedClipIndex === index ? null : index)}
+                onClick={() =>
+                  setSelectedClipIndex(
+                    selectedClipIndex === index ? null : index
+                  )
+                }
               >
                 <div className="flex items-center gap-3 flex-1">
                   <span className="text-xs text-gray-400 w-6">{index + 1}</span>
@@ -404,7 +427,7 @@ const GifMakerTimelineSequence = ({
                   <Upload className="w-4 h-4" />
                   Upload Video
                 </button>
-                
+
                 {/* Add from grid button (if available) */}
                 {hasAvailableVideos && (
                   <button
@@ -504,7 +527,8 @@ const GifMakerTimelineSequence = ({
       {selectedClipIndex !== null && timelineClips[selectedClipIndex] && (
         <div className="mt-4 p-3 bg-gray-800 rounded border border-blue-400">
           <h4 className="text-sm font-medium text-blue-300 mb-2">
-            Edit Clip {selectedClipIndex + 1}: {timelineClips[selectedClipIndex].file.name}
+            Edit Clip {selectedClipIndex + 1}:{" "}
+            {timelineClips[selectedClipIndex].file.name}
           </h4>
           <div className="grid grid-cols-2 gap-3">
             <div>
