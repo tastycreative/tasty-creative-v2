@@ -157,11 +157,10 @@ export default function EnhancedAIInstagramScraperPage() {
 
   // Updated to use your Cloudflare tunnel URL
   const API_BASE =
-    "https://removing-illness-cutting-expense.trycloudflare.com/api";
-  const IMAGE_BASE =
-    "https://removing-illness-cutting-expense.trycloudflare.com"; // For serving images
+    "https://grip-terrible-documented-paul.trycloudflare.com/api";
+  const IMAGE_BASE = "https://grip-terrible-documented-paul.trycloudflare.com"; // For serving images
   const WEBSOCKET_BASE =
-    "https://removing-illness-cutting-expense.trycloudflare.com"; // For WebSocket
+    "https://grip-terrible-documented-paul.trycloudflare.com"; // For WebSocket
 
   // NEW: Initialize WebSocket connection
   useEffect(() => {
