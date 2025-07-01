@@ -200,7 +200,30 @@ const VaultSelector = ({
     >
       {/* Header */}
       <div className="flex rounded-t-lg items-center justify-between p-6 border-b border-gray-700 bg-gray-800 shadow-lg">
-        <h2 className="text-white text-xl font-semibold">Vault Selector</h2>
+        <div className="flex items-center gap-4">
+          <h2 className="text-white text-xl font-semibold">Vault Selector</h2>
+          
+          {/* Custom Upload Button */}
+          <div className="relative">
+            <input
+              type="file"
+              accept={imageOnly ? "image/*" : includeImage ? "image/*,video/*" : "video/*"}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  onUpload(file);
+                  onClose();
+                }
+                e.target.value = '';
+              }}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            />
+            <button className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              📁 Upload from Device
+            </button>
+          </div>
+        </div>
+        
         <button
           onClick={onClose}
           className="text-gray-400 hover:text-white transition-colors text-xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-700"

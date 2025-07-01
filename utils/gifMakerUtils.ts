@@ -9,6 +9,20 @@ export interface VideoClip {
   positionX?: number;
   positionY?: number;
   scale?: number;
+  // For timeline-based clips (merged videos)
+  timelineStartTime?: number; // When this clip starts in the overall timeline
+  timelineEndTime?: number;   // When this clip ends in the overall timeline
+  clipIndex?: number;         // Order in the timeline
+}
+
+export interface TimelineClip {
+  file: File;
+  startTime: number;
+  endTime: number;
+  duration: number;
+  timelineStartTime: number;
+  timelineEndTime: number;
+  clipIndex: number;
 }
 
 export interface BlurSettings {

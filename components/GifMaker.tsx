@@ -29,10 +29,12 @@ const ModelsDropdown = lazy(() => import("./ModelsDropdown"));
 const GifMakerVideoTimeline = lazy(() => import("./GifMakerVideoTimeline").then(module => ({ default: module.GifMakerVideoTimeline })));
 const GifMakerGifSettings = lazy(() => import("./GifMakerGifSettings"));
 const ModelCaptionSelector = lazy(() => import("./ModelCaptionSelector"));
+const GifMakerTimelineSequence = lazy(() => import("./GifMakerTimelineSequence"));
 
 // Import utility functions
 import {
   VideoClip,
+  TimelineClip,
   BlurSettings,
   GifSettings,
   Layout,
@@ -152,6 +154,7 @@ const GifMaker = () => {
   const [originalGifData, setOriginalGifData] = useState<OriginalGifData | null>(null);
   const [activeVideoIndex, setActiveVideoIndex] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(true);
+  const [timelineMode, setTimelineMode] = useState<'grid' | 'sequence'>('grid');
 
   // Refs
   const canvasBlurRef = useRef<HTMLCanvasElement>(null);
@@ -201,6 +204,9 @@ const GifMaker = () => {
       scale: 1,
     }))
   );
+
+  // Timeline functionality state
+  const [timelineClips, setTimelineClips] = useState<TimelineClip[]>([]);
 
   const videoUrls = useMemo(() => {
     return videoClips.map((clip) =>
@@ -261,8 +267,47 @@ const GifMaker = () => {
         setActiveVideoIndex,
         objectUrlsRef
       );
+      
+      // In sequence mode, automatically add the uploaded video to timeline
+      if (timelineMode === 'sequence' && file) {
+        // Use a longer delay and check if the clip was already added
+        setTimeout(() => {
+          setVideoClips(currentVideoClips => {
+            const clip = currentVideoClips[index];
+            if (clip?.file && clip.duration > 0) {
+              setTimelineClips(currentTimelineClips => {
+                // Check if this clip is already in the timeline to avoid duplicates
+                const isAlreadyAdded = currentTimelineClips.some(timelineClip => 
+                  timelineClip.file.name === clip.file!.name && 
+                  timelineClip.file.size === clip.file!.size
+                );
+                
+                if (!isAlreadyAdded) {
+                  const lastEnd = currentTimelineClips.length > 0 
+                    ? Math.max(...currentTimelineClips.map(c => c.timelineEndTime)) 
+                    : 0;
+                  
+                  const newClip: TimelineClip = {
+                    file: clip.file!,
+                    startTime: clip.startTime,
+                    endTime: clip.endTime,
+                    duration: clip.endTime - clip.startTime,
+                    timelineStartTime: lastEnd,
+                    timelineEndTime: lastEnd + (clip.endTime - clip.startTime),
+                    clipIndex: currentTimelineClips.length,
+                  };
+                  
+                  return [...currentTimelineClips, newClip];
+                }
+                return currentTimelineClips;
+              });
+            }
+            return currentVideoClips;
+          });
+        }, 500); // Longer delay to ensure video metadata is fully loaded
+      }
     },
-    [videoUrls, gifSettings]
+    [videoUrls, gifSettings, timelineMode]
   );
 
   const onStartTimeChange = useCallback(
@@ -400,6 +445,131 @@ const GifMaker = () => {
     }
   }, [gifFrames, originalGifData, gifSettings, clearMask]);
 
+  // Create sequence GIF from timeline clips
+  const createSequenceGif = useCallback(async () => {
+    if (!ffmpeg || !ffmpeg.isLoaded()) {
+      throw new Error("FFmpeg not loaded");
+    }
+
+    // Sort timeline clips by timeline start time to ensure correct order
+    const sortedClips = [...timelineClips].sort((a, b) => a.timelineStartTime - b.timelineStartTime);
+    
+    // Write all clip files to FFmpeg file system
+    for (let i = 0; i < sortedClips.length; i++) {
+      const data = await fetchFile(sortedClips[i].file);
+      ffmpeg.FS("writeFile", `seq_input${i}.mp4`, data);
+    }
+
+    setProcessingProgress(10);
+
+    // Create filter for concatenating videos
+    let filterComplex = "";
+    const inputArgs: string[] = [];
+    
+    // Add inputs with proper trimming and scaling
+    for (let i = 0; i < sortedClips.length; i++) {
+      const clip = sortedClips[i];
+      inputArgs.push("-ss", String(clip.startTime));
+      inputArgs.push("-t", String(clip.endTime - clip.startTime));
+      inputArgs.push("-i", `seq_input${i}.mp4`);
+      
+      // Scale each input to the target dimensions and add to filter
+      filterComplex += `[${i}:v]scale=${dimensions.width}:${dimensions.height}:force_original_aspect_ratio=decrease,pad=${dimensions.width}:${dimensions.height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=${gifSettings.fps}[v${i}];`;
+    }
+    
+    // Concatenate all scaled videos
+    filterComplex += sortedClips.map((_, i) => `[v${i}]`).join('') + `concat=n=${sortedClips.length}:v=1[vout]`;
+
+    setProcessingProgress(30);
+
+    // Create the concatenated video
+    await ffmpeg.run(
+      ...inputArgs,
+      "-filter_complex", filterComplex,
+      "-map", "[vout]",
+      "-y",
+      "sequence_temp.mp4"
+    );
+
+    setProcessingProgress(50);
+
+    // Generate palette for the concatenated video
+    await ffmpeg.run(
+      "-i", "sequence_temp.mp4",
+      "-filter_complex", `fps=${gifSettings.fps},scale=${dimensions.width}:${dimensions.height}:flags=lanczos,palettegen`,
+      "-y",
+      "palette.png"
+    );
+
+    setProcessingProgress(70);
+
+    // Create final GIF using the palette
+    await ffmpeg.run(
+      "-i", "sequence_temp.mp4",
+      "-i", "palette.png",
+      "-filter_complex", `fps=${gifSettings.fps},scale=${dimensions.width}:${dimensions.height}:flags=lanczos[x];[x][1:v]paletteuse`,
+      "-loop", "0",
+      "-y",
+      "output.gif"
+    );
+
+    setProcessingProgress(90);
+
+    // Read the output GIF and create blob
+    const data = ffmpeg.FS("readFile", "output.gif");
+    const gifBlob = new Blob([new Uint8Array(data.buffer)], {
+      type: "image/gif",
+    });
+
+    // Set canvas dimensions
+    const canvas = canvasBlurRef.current;
+    if (canvas) {
+      canvas.width = dimensions.width;
+      canvas.height = dimensions.height;
+    }
+
+    const maskCanvas = maskCanvasRef.current;
+    if (maskCanvas) {
+      maskCanvas.width = dimensions.width;
+      maskCanvas.height = dimensions.height;
+      const maskCtx = maskCanvas.getContext("2d");
+      if (maskCtx) {
+        maskCtx.clearRect(0, 0, dimensions.width, dimensions.height);
+        maskCtx.fillStyle = "rgba(0,0,0,0)";
+        maskCtx.fillRect(0, 0, dimensions.width, dimensions.height);
+      }
+    }
+
+    // Create GIF URL and extract frames
+    const url = URL.createObjectURL(gifBlob);
+    setGifUrl(url);
+    setGifUrlHistory((prev) => [...prev, url]);
+
+    const { extractedFrames, originalGifData: gifData } = await extractGifFrames(
+      gifBlob,
+      dimensions.width,
+      dimensions.height
+    );
+    setGifFrames(extractedFrames);
+    setOriginalFrames(extractedFrames.map(frame => 
+      new ImageData(new Uint8ClampedArray(frame.data), frame.width, frame.height)
+    ));
+    setOriginalGifData(gifData);
+    setIsGifLoaded(true);
+    displayFrame(0, extractedFrames, canvasBlurRef, maskCanvas, setCurrentFrameIndex);
+
+    // Cleanup sequence files
+    for (let i = 0; i < sortedClips.length; i++) {
+      ffmpeg.FS("unlink", `seq_input${i}.mp4`);
+    }
+    ffmpeg.FS("unlink", "sequence_temp.mp4");
+    ffmpeg.FS("unlink", "palette.png");
+    ffmpeg.FS("unlink", "output.gif");
+
+    setProcessingProgress(100);
+    setError(null);
+  }, [ffmpeg, timelineClips, dimensions, gifSettings]);
+
   // Create GIF function
   const createGif = useCallback(async () => {
     if (!ffmpeg || !ffmpeg.isLoaded()) {
@@ -416,6 +586,14 @@ const GifMaker = () => {
     setProcessingProgress(0);
 
     try {
+      // Check if we're in sequence mode with timeline clips
+      if (timelineMode === 'sequence' && timelineClips.length > 0) {
+        // Handle sequence mode - concatenate timeline clips
+        await createSequenceGif();
+        return;
+      }
+
+      // Handle grid mode - existing logic
       const validClips = videoClips.filter((clip) => clip.file);
       if (validClips.length === 0) throw new Error("No video clips with files");
 
@@ -567,7 +745,90 @@ const GifMaker = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [ffmpeg, videoClips, selectedTemplate, gifSettings, dimensions]);
+  }, [ffmpeg, videoClips, timelineClips, timelineMode, selectedTemplate, gifSettings, dimensions, createSequenceGif]);
+
+  // Timeline handler functions
+  const handleAddToTimeline = useCallback(() => {
+    // Find the first available video if no active video is selected
+    let videoIndex = activeVideoIndex;
+    if (videoIndex === null) {
+      // Look for the first video with a file
+      for (let i = 0; i < videoClips.length; i++) {
+        if (videoClips[i]?.file) {
+          videoIndex = i;
+          setActiveVideoIndex(i); // Set it as active
+          break;
+        }
+      }
+    }
+    
+    // If still no video found, return early
+    if (videoIndex === null || !videoClips[videoIndex]?.file) return;
+    
+    const clip = videoClips[videoIndex];
+    const lastEnd = timelineClips.length > 0 ? timelineClips[timelineClips.length - 1].timelineEndTime : 0;
+    
+    const newClip: TimelineClip = {
+      file: clip.file!,
+      startTime: clip.startTime,
+      endTime: clip.endTime,
+      duration: clip.endTime - clip.startTime,
+      timelineStartTime: lastEnd,
+      timelineEndTime: lastEnd + (clip.endTime - clip.startTime),
+      clipIndex: timelineClips.length,
+    };
+    
+    setTimelineClips([...timelineClips, newClip]);
+  }, [activeVideoIndex, videoClips, timelineClips, setActiveVideoIndex]);
+
+  // Direct upload handler for sequence mode
+  const handleDirectUploadToSequence = useCallback((file: File) => {
+    // Find an empty slot or use the next available index
+    let targetIndex = videoClips.findIndex(clip => !clip.file);
+    if (targetIndex === -1) {
+      // If no empty slots, extend the array
+      targetIndex = videoClips.length;
+      setVideoClips(prev => [...prev, {
+        file: null,
+        startTime: 0,
+        endTime: 5,
+        duration: 0,
+        positionX: 0,
+        positionY: 0,
+        scale: 1,
+      }]);
+    }
+    
+    // Upload the video to that slot
+    handleVideoChange(targetIndex, file);
+  }, [videoClips, handleVideoChange]);
+
+  // Playback control for sequence mode
+  useEffect(() => {
+    if (timelineMode === 'sequence' && timelineClips.length > 0) {
+      // Handle sequence playback logic here
+      const totalDuration = timelineClips.length > 0 ? Math.max(...timelineClips.map(clip => clip.timelineEndTime)) : 0;
+      
+      if (isPlaying) {
+        // Create a timer to advance the timeline
+        const interval = setInterval(() => {
+          setCurrentTime(prevTime => {
+            const nextTime = prevTime + 0.1; // Advance by 100ms
+            
+            if (nextTime >= totalDuration) {
+              return 0; // Loop back to start
+            }
+            
+            return nextTime;
+          });
+        }, 100); // Update every 100ms for smooth playback
+        
+        return () => clearInterval(interval);
+      }
+    } else if (timelineMode === 'grid' && activeVideoIndex !== null && videoClips[activeVideoIndex]?.file) {
+      // Handle grid mode playback (existing logic)
+    }
+  }, [isPlaying, timelineMode, timelineClips, activeVideoIndex, videoClips]);
 
   // Download GIF
   const downloadGif = useCallback(async () => {
@@ -839,28 +1100,102 @@ const GifMaker = () => {
                 onCurrentTimeChange={handleCurrentTimeChange}
                 videoUrls={videoUrls}
                 vaultName={vaultName}
+                timelineClips={timelineClips}
+                timelineMode={timelineMode}
               />
             </Suspense>
 
+            {/* Timeline Mode Selector */}
+            <div className="bg-gray-800/50 rounded-xl p-4 mb-4 shadow-lg border border-gray-700/50 backdrop-blur-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-gray-300 font-medium">Timeline Mode</h3>
+                <div className="text-sm text-gray-400">
+                  {timelineMode === 'grid' ? 'Individual video timelines for grid layouts' : 'Merged timeline for sequence of videos'}
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setTimelineMode('grid')}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    timelineMode === 'grid' 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  Grid Mode
+                </button>
+                <button
+                  onClick={() => setTimelineMode('sequence')}
+                  className={`px-4 py-2 rounded-lg transition-colors ${
+                    timelineMode === 'sequence' 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  Sequence Mode
+                </button>
+              </div>
+              
+              {timelineMode === 'sequence' && (
+                <div className="mt-3 p-3 bg-blue-900/20 rounded-lg border border-blue-700/30">
+                  <p className="text-sm text-blue-300">
+                    <strong>Sequence Mode:</strong> Add videos to create a merged timeline. 
+                    Videos will be concatenated in order to create a single GIF.
+                  </p>
+                  <button
+                    onClick={handleAddToTimeline}
+                    disabled={activeVideoIndex === null || !videoClips[activeVideoIndex]?.file}
+                    className="mt-2 bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-3 py-1 rounded text-sm"
+                  >
+                    Add Current Video to Timeline
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Timeline Sequence Editor */}
+            {timelineMode === 'sequence' && (
+              <Suspense fallback={<div>Loading timeline...</div>}>
+                <GifMakerTimelineSequence
+                  timelineClips={timelineClips}
+                  onTimelineClipsChange={setTimelineClips}
+                  currentTime={currentTime}
+                  isPlaying={isPlaying}
+                  onCurrentTimeChange={handleCurrentTimeChange}
+                  onPlayPause={handlePlayPause}
+                  targetWidth={120}
+                  setMaxDuration={setMaxDuration}
+                  maxDuration={gifSettings.maxDuration}
+                  setIsGifSettingsOpen={setIsGifSettingsOpen}
+                  onAddClip={handleAddToTimeline}
+                  hasAvailableVideos={videoClips.some(clip => clip?.file)}
+                  onDirectUpload={handleDirectUploadToSequence}
+                />
+              </Suspense>
+            )}
+
             {/* Timeframe Editor */}
-            {activeVideoIndex !== null &&
+            {((timelineMode === 'grid' && activeVideoIndex !== null &&
               videoClips[activeVideoIndex]?.file &&
-              videoClips[activeVideoIndex]?.duration > 0 && (
+              videoClips[activeVideoIndex]?.duration > 0) ||
+              (timelineMode === 'sequence' && timelineClips.length > 0)) && (
                 <Suspense fallback={<div>Loading...</div>}>
                   <GifMakerVideoTimeline
-                    videoFile={videoClips[activeVideoIndex].file}
-                    duration={videoClips[activeVideoIndex].duration}
-                    startTime={videoClips[activeVideoIndex].startTime}
-                    endTime={videoClips[activeVideoIndex].endTime}
+                    videoClips={timelineMode === 'grid' ? videoClips : []}
+                    onVideoClipsChange={setVideoClips}
                     currentTime={currentTime}
                     isPlaying={isPlaying}
-                    onStartTimeChange={onStartTimeChange}
-                    onEndTimeChange={onEndTimeChange}
                     onCurrentTimeChange={handleCurrentTimeChange}
                     onPlayPause={handlePlayPause}
                     setMaxDuration={setMaxDuration}
                     maxDuration={gifSettings.maxDuration}
                     setIsGifSettingsOpen={setIsGifSettingsOpen}
+                    activeVideoIndex={activeVideoIndex}
+                    setActiveVideoIndex={setActiveVideoIndex}
+                    timelineClips={timelineClips}
+                    onTimelineClipsChange={setTimelineClips}
+                    mode={timelineMode}
                   />
                 </Suspense>
               )}
