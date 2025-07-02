@@ -535,6 +535,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                         </span>
                       )}
                     </div>
+                    {hasSelectiveBlur && settings.format !== 'gif' && (
+                      <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded text-xs">
+                        <p className="text-amber-800 dark:text-amber-200">
+                          <strong>Note:</strong> Selective blur uses canvas-based processing for MP4/WebM exports, which may take longer than regular exports.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 );
               }

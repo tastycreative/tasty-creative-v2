@@ -187,6 +187,17 @@ const ffmpegVideoExport = async (
 ): Promise<Blob> => {
   console.log(`Starting FFmpeg video export as ${settings.format.toUpperCase()}`);
   
+  // Check if any video has selective blur regions
+  const hasSelectiveBlur = videos.some(video => 
+    video.effects.selectiveBlur && video.effects.selectiveBlur.length > 0
+  );
+
+  if (hasSelectiveBlur) {
+    console.warn('Selective blur regions detected. MP4/WebM export uses canvas-based processing for selective blur support.');
+    // Use canvas-based export for selective blur support
+    return await canvasBasedVideoExport(videos, settings, onProgress);
+  }
+  
   if (onProgress) onProgress(5);
 
   // Initialize FFmpeg
@@ -237,7 +248,7 @@ const ffmpegVideoExport = async (
     // Scale and pad to target dimensions
     videoFilter += `scale=${settings.width}:${settings.height}:force_original_aspect_ratio=decrease,pad=${settings.width}:${settings.height}:(ow-iw)/2:(oh-ih)/2,setsar=1`;
     
-    // Apply blur effects
+    // Apply global blur effects (selective blur handled by canvas-based export)
     if (video.effects.blur > 0) {
       videoFilter += `,boxblur=${video.effects.blur}:${video.effects.blur}`;
     }
@@ -358,27 +369,83 @@ const mediaRecorderVideoExport = async (
 
 // Selective blur application function
 const applySelectiveBlur = (
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   ctx: CanvasRenderingContext2D,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   video: HTMLVideoElement,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   selectiveBlurRegions: SelectiveBlurRegion[],
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   offsetX: number,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   offsetY: number,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   drawWidth: number,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   drawHeight: number,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   targetWidth: number,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   targetHeight: number
 ): void => {
-  // Implementation would go here - for now just log
-  console.log("Selective blur not implemented in new FFmpeg export");
+  // Create a temporary canvas for blurring specific regions
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = targetWidth;
+  tempCanvas.height = targetHeight;
+  const tempCtx = tempCanvas.getContext("2d");
+  
+  if (!tempCtx) return;
+
+  // Process each blur region
+  selectiveBlurRegions.forEach((region) => {
+    // Convert percentage-based coordinates to actual canvas coordinates
+    const regionX = Math.round((region.x / 100) * drawWidth) + offsetX;
+    const regionY = Math.round((region.y / 100) * drawHeight) + offsetY;
+    const regionWidth = Math.round((region.width / 100) * drawWidth);
+    const regionHeight = Math.round((region.height / 100) * drawHeight);
+
+    // Ensure region stays within canvas bounds
+    const clampedX = Math.max(0, Math.min(regionX, targetWidth));
+    const clampedY = Math.max(0, Math.min(regionY, targetHeight));
+    const clampedWidth = Math.min(regionWidth, targetWidth - clampedX);
+    const clampedHeight = Math.min(regionHeight, targetHeight - clampedY);
+
+    if (clampedWidth <= 0 || clampedHeight <= 0) return;
+
+    // Clear temp canvas
+    tempCtx.clearRect(0, 0, targetWidth, targetHeight);
+
+    // Draw the video to temp canvas with blur
+    tempCtx.save();
+    tempCtx.filter = `blur(${Math.max(0, region.intensity)}px)`;
+    tempCtx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
+    tempCtx.restore();
+
+    // Create a clipping path for the blur region
+    ctx.save();
+    
+    if (region.shape === 'circle') {
+      // Create circular clipping path
+      const centerX = clampedX + clampedWidth / 2;
+      const centerY = clampedY + clampedHeight / 2;
+      const radius = Math.min(clampedWidth, clampedHeight) / 2;
+      
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+      ctx.clip();
+    } else {
+      // Create rectangular clipping path
+      ctx.beginPath();
+      ctx.rect(clampedX, clampedY, clampedWidth, clampedHeight);
+      ctx.clip();
+    }
+
+    // Draw the blurred region from the temp canvas
+    ctx.drawImage(
+      tempCanvas,
+      clampedX,
+      clampedY,
+      clampedWidth,
+      clampedHeight,
+      clampedX,
+      clampedY,
+      clampedWidth,
+      clampedHeight
+    );
+
+    ctx.restore();
+  });
 };
 
 // GIF export function (using existing reliable implementation)
@@ -651,4 +718,185 @@ export const exportToGif = async (
     console.error("Error during GIF export:", error);
     throw error;
   }
+};
+
+// Canvas-based video export for selective blur support
+const canvasBasedVideoExport = async (
+  videos: VideoSequenceItem[],
+  settings: ExportSettings,
+  onProgress?: (progress: number) => void
+): Promise<Blob> => {
+  console.log(`Starting canvas-based video export as ${settings.format.toUpperCase()} with selective blur support`);
+  
+  if (onProgress) onProgress(5);
+
+  // Initialize FFmpeg
+  const ffmpeg = await initFFmpeg();
+  
+  if (!ffmpeg || !ffmpeg.isLoaded()) {
+    throw new Error("FFmpeg not loaded");
+  }
+
+  if (onProgress) onProgress(10);
+
+  // Create canvas for frame processing
+  const canvas = document.createElement('canvas');
+  canvas.width = settings.width;
+  canvas.height = settings.height;
+  const ctx = canvas.getContext('2d');
+  
+  if (!ctx) {
+    throw new Error('Could not get canvas context');
+  }
+
+  // Sort videos by start time
+  const sortedVideos = [...videos].sort((a, b) => a.startTime - b.startTime);
+  
+  // Calculate total duration with speed effects
+  let totalFrames = 0;
+  const videoFrameCounts: number[] = [];
+  
+  for (const video of sortedVideos) {
+    const speedMultiplier = video.effects.speed || 1;
+    const effectiveDuration = video.duration / speedMultiplier;
+    const frameCount = Math.ceil(effectiveDuration * settings.fps);
+    videoFrameCounts.push(frameCount);
+    totalFrames += frameCount;
+  }
+
+  if (onProgress) onProgress(15);
+
+  // Process each video to create frames
+  let currentFrame = 0;
+  const frameFiles: string[] = [];
+
+  for (let videoIndex = 0; videoIndex < sortedVideos.length; videoIndex++) {
+    const video = sortedVideos[videoIndex];
+    const frameCount = videoFrameCounts[videoIndex];
+    const speedMultiplier = video.effects.speed || 1;
+    
+    // Create video element for processing
+    const videoElement = document.createElement('video');
+    videoElement.src = video.url;
+    videoElement.muted = true;
+    videoElement.crossOrigin = 'anonymous';
+    
+    // Wait for video to load
+    await new Promise<void>((resolve, reject) => {
+      videoElement.onloadeddata = () => resolve();
+      videoElement.onerror = () => reject(new Error('Failed to load video'));
+    });
+
+    // Generate frames for this video
+    for (let frame = 0; frame < frameCount; frame++) {
+      const frameTime = (frame / settings.fps) * speedMultiplier;
+      videoElement.currentTime = Math.min(frameTime, video.duration - 0.01);
+      
+      // Wait for seek to complete
+      await new Promise<void>((resolve) => {
+        videoElement.onseeked = () => resolve();
+        if (videoElement.readyState >= 2) resolve(); // Already at the right position
+      });
+
+      // Apply effects and draw frame
+      applyVideoEffects(
+        videoElement,
+        canvas,
+        video.effects,
+        settings.width,
+        settings.height
+      );
+
+      // Convert canvas to image data
+      const frameImageData = canvas.toDataURL('image/png');
+      const frameData = frameImageData.split(',')[1];
+      const frameBytes = Uint8Array.from(atob(frameData), c => c.charCodeAt(0));
+      
+      // Write frame to FFmpeg file system
+      const frameFilename = `frame_${currentFrame.toString().padStart(6, '0')}.png`;
+      ffmpeg.FS('writeFile', frameFilename, frameBytes);
+      frameFiles.push(frameFilename);
+      
+      currentFrame++;
+      
+      // Update progress
+      const progress = 15 + (currentFrame / totalFrames) * 60;
+      if (onProgress) onProgress(Math.min(75, progress));
+    }
+  }
+
+  if (onProgress) onProgress(75);
+
+  // Create video from frames using FFmpeg
+  const outputFilename = `output.${settings.format}`;
+  
+  // Calculate bitrate based on resolution and quality
+  const pixelCount = settings.width * settings.height;
+  const baseBitrate = Math.min(8000, Math.max(2000, Math.floor(pixelCount * 2 / 1000)));
+  const qualityMultiplier = settings.quality / 100;
+  const targetBitrate = Math.floor(baseBitrate * qualityMultiplier);
+
+  let outputArgs: string[];
+
+  if (settings.format === 'mp4') {
+    outputArgs = [
+      '-framerate', String(settings.fps),
+      '-i', 'frame_%06d.png',
+      '-c:v', 'libx264',
+      '-pix_fmt', 'yuv420p',
+      '-b:v', `${targetBitrate}k`,
+      '-preset', 'fast',
+      '-movflags', '+faststart',
+      '-y',
+      outputFilename
+    ];
+  } else {
+    // WebM
+    outputArgs = [
+      '-framerate', String(settings.fps),
+      '-i', 'frame_%06d.png',
+      '-c:v', 'libvpx-vp9',
+      '-b:v', `${targetBitrate}k`,
+      '-crf', '30',
+      '-speed', '4',
+      '-y',
+      outputFilename
+    ];
+  }
+
+  if (onProgress) onProgress(80);
+
+  // Encode final video
+  await ffmpeg.run(...outputArgs);
+
+  if (onProgress) onProgress(90);
+
+  // Read the output file
+  const outputData = ffmpeg.FS('readFile', outputFilename);
+  
+  if (onProgress) onProgress(95);
+
+  // Clean up frame files
+  for (const frameFile of frameFiles) {
+    try {
+      ffmpeg.FS('unlink', frameFile);
+    } catch {
+      // Ignore cleanup errors
+    }
+  }
+  
+  try {
+    ffmpeg.FS('unlink', outputFilename);
+  } catch {
+    // Ignore cleanup errors
+  }
+
+  if (onProgress) onProgress(100);
+
+  // Create blob from output data
+  const mimeType = settings.format === 'mp4' ? 'video/mp4' : 'video/webm';
+  const blob = new Blob([outputData], { type: mimeType });
+  
+  console.log(`Canvas-based video export complete. Size: ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
+  return blob;
 };
