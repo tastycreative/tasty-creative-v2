@@ -6,18 +6,23 @@ import VaultSelector from "./VaultSelector";
 import { TimelineClip } from "@/utils/gifMakerUtils";
 
 // Helper function for file validation
-const validateVideoFile = (file: File): { isValid: boolean; error?: string } => {
+const validateVideoFile = (
+  file: File
+): { isValid: boolean; error?: string } => {
   // Check file type
-  if (!file.type.startsWith('video/')) {
-    return { isValid: false, error: 'Please select a valid video file (MP4, WebM, MOV, etc.)' };
+  if (!file.type.startsWith("video/")) {
+    return {
+      isValid: false,
+      error: "Please select a valid video file (MP4, WebM, MOV, etc.)",
+    };
   }
-  
+
   // Check file size (max 100MB)
   const maxSize = 100 * 1024 * 1024; // 100MB
   if (file.size > maxSize) {
-    return { isValid: false, error: 'File size must be less than 100MB' };
+    return { isValid: false, error: "File size must be less than 100MB" };
   }
-  
+
   return { isValid: true };
 };
 
@@ -26,10 +31,17 @@ const SequenceVideoPlayer: React.FC<{
   timelineClips: TimelineClip[];
   currentTime?: number;
   isPlaying?: boolean;
-  videoRefs: React.RefObject<(HTMLVideoElement)[]>;
+  videoRefs: React.RefObject<HTMLVideoElement[]>;
   width?: number;
   height?: number;
-}> = ({ timelineClips, currentTime = 0, isPlaying = false, videoRefs, width = 360, height = 360 }) => {
+}> = ({
+  timelineClips,
+  currentTime = 0,
+  isPlaying = false,
+  videoRefs,
+  width = 360,
+  height = 360,
+}) => {
   const [activeClipIndex, setActiveClipIndex] = useState(0);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -39,11 +51,18 @@ const SequenceVideoPlayer: React.FC<{
     for (let i = 0; i < timelineClips.length; i++) {
       const clip = timelineClips[i];
       // Use slightly more precise boundary checking
-      if (currentTime >= clip.timelineStartTime && currentTime < clip.timelineEndTime) {
+      if (
+        currentTime >= clip.timelineStartTime &&
+        currentTime < clip.timelineEndTime
+      ) {
         return i;
       }
       // Handle the exact end boundary for the last clip
-      if (i === timelineClips.length - 1 && currentTime >= clip.timelineStartTime && currentTime <= clip.timelineEndTime) {
+      if (
+        i === timelineClips.length - 1 &&
+        currentTime >= clip.timelineStartTime &&
+        currentTime <= clip.timelineEndTime
+      ) {
         return i;
       }
     }
@@ -67,12 +86,12 @@ const SequenceVideoPlayer: React.FC<{
     const newActiveIndex = findActiveClip();
     if (newActiveIndex !== -1 && newActiveIndex !== activeClipIndex) {
       setActiveClipIndex(newActiveIndex);
-      
+
       // Clean up previous URL
       if (videoUrl) {
         URL.revokeObjectURL(videoUrl);
       }
-      
+
       // Create new URL for the new active clip
       const newUrl = URL.createObjectURL(timelineClips[newActiveIndex].file);
       setVideoUrl(newUrl);
@@ -96,22 +115,27 @@ const SequenceVideoPlayer: React.FC<{
 
   // Update video time when clip or currentTime changes
   useEffect(() => {
-    if (!videoRef.current || timelineClips.length === 0 || activeClipIndex === -1) return;
+    if (
+      !videoRef.current ||
+      timelineClips.length === 0 ||
+      activeClipIndex === -1
+    )
+      return;
 
     const video = videoRef.current;
     const activeClip = timelineClips[activeClipIndex];
-    
+
     if (activeClip) {
       // Calculate time within the clip
       const relativeTime = currentTime - activeClip.timelineStartTime;
       const videoTime = activeClip.startTime + relativeTime;
-      
+
       // Clamp to clip bounds
       const clampedTime = Math.max(
-        activeClip.startTime, 
+        activeClip.startTime,
         Math.min(activeClip.endTime, videoTime)
       );
-      
+
       // Update video time if different (with smaller threshold for smoother sync)
       if (Math.abs(video.currentTime - clampedTime) > 0.05) {
         video.currentTime = clampedTime;
@@ -122,9 +146,9 @@ const SequenceVideoPlayer: React.FC<{
   // Handle play/pause state
   useEffect(() => {
     if (!videoRef.current) return;
-    
+
     const video = videoRef.current;
-    
+
     if (isPlaying) {
       // Make sure video is properly loaded before playing
       if (video.readyState >= 2) {
@@ -137,11 +161,11 @@ const SequenceVideoPlayer: React.FC<{
           video.play().catch(() => {
             // Video play failed, ignore
           });
-          video.removeEventListener('canplay', handleCanPlay);
+          video.removeEventListener("canplay", handleCanPlay);
         };
-        video.addEventListener('canplay', handleCanPlay);
-        
-        return () => video.removeEventListener('canplay', handleCanPlay);
+        video.addEventListener("canplay", handleCanPlay);
+
+        return () => video.removeEventListener("canplay", handleCanPlay);
       }
     } else {
       video.pause();
@@ -157,7 +181,7 @@ const SequenceVideoPlayer: React.FC<{
 
   if (timelineClips.length === 0) {
     return (
-      <div 
+      <div
         className="bg-gray-700 rounded-lg flex items-center justify-center text-gray-400"
         style={{ width: `${width}px`, height: `${height}px` }}
       >
@@ -170,18 +194,19 @@ const SequenceVideoPlayer: React.FC<{
   }
 
   const activeClip = timelineClips[activeClipIndex] || timelineClips[0];
-  const timeInClip = currentTime - activeClip.timelineStartTime + activeClip.startTime;
+  const timeInClip =
+    currentTime - activeClip.timelineStartTime + activeClip.startTime;
 
   return (
     <div className="bg-gray-900 p-4 rounded-lg border border-gray-700">
       <div className="flex flex-col items-center">
-        <div 
+        <div
           className="relative bg-gray-800 rounded-lg overflow-hidden"
           style={{ width: `${width}px`, height: `${height}px` }}
         >
           <video
             ref={videoRef}
-            src={videoUrl || ''}
+            src={videoUrl || ""}
             className="w-full h-full object-contain"
             muted
             playsInline
@@ -190,7 +215,7 @@ const SequenceVideoPlayer: React.FC<{
                 const relativeTime = currentTime - activeClip.timelineStartTime;
                 const videoTime = activeClip.startTime + relativeTime;
                 const clampedTime = Math.max(
-                  activeClip.startTime, 
+                  activeClip.startTime,
                   Math.min(activeClip.endTime, videoTime)
                 );
                 videoRef.current.currentTime = clampedTime;
@@ -208,15 +233,23 @@ const SequenceVideoPlayer: React.FC<{
               }
             }}
           />
-          
+
           {/* Clip info overlay */}
           <div className="absolute bottom-2 left-2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded">
-            Clip {activeClipIndex + 1}/{timelineClips.length}: {activeClip.file.name.slice(0, 15)}...
+            Clip {activeClipIndex + 1}/{timelineClips.length}:{" "}
+            {activeClip.file.name.slice(0, 15)}...
           </div>
-          
+
           {/* Time overlay */}
           <div className="absolute bottom-2 right-2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded">
-            {Math.floor(timeInClip / 60)}:{Math.floor(timeInClip % 60).toString().padStart(2, '0')} / {Math.floor(activeClip.duration / 60)}:{Math.floor(activeClip.duration % 60).toString().padStart(2, '0')}
+            {Math.floor(timeInClip / 60)}:
+            {Math.floor(timeInClip % 60)
+              .toString()
+              .padStart(2, "0")}{" "}
+            / {Math.floor(activeClip.duration / 60)}:
+            {Math.floor(activeClip.duration % 60)
+              .toString()
+              .padStart(2, "0")}
           </div>
         </div>
       </div>
@@ -253,7 +286,7 @@ type GifMakerVideoCropperProps = {
     clips: VideoClip[] | ((prevClips: VideoClip[]) => VideoClip[])
   ) => void;
   setActiveVideoIndex: (index: number | null) => void;
-  videoRefs: React.RefObject<(HTMLVideoElement)[]>;
+  videoRefs: React.RefObject<HTMLVideoElement[]>;
   selectedTemplate: string;
   outputGridRef: React.RefObject<HTMLDivElement>;
   activeVideoIndex: number | null;
@@ -268,7 +301,7 @@ type GifMakerVideoCropperProps = {
   vaultName?: string;
   // Timeline sequence props
   timelineClips?: TimelineClip[];
-  timelineMode?: 'grid' | 'sequence';
+  timelineMode?: "grid" | "sequence";
 };
 
 const GifMakerVideoCropper = ({
@@ -290,7 +323,7 @@ const GifMakerVideoCropper = ({
   videoUrls,
   vaultName,
   timelineClips = [],
-  timelineMode = 'grid',
+  timelineMode = "grid",
 }: GifMakerVideoCropperProps) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const baseHeight = 360;
@@ -458,20 +491,20 @@ const GifMakerVideoCropper = ({
 
       <h2 className="text-xl font-semibold text-blue-300">GIF Template</h2>
       <p className="text-gray-300 mb-2">Choose a template for your GIF.</p>
-      
+
       {/* Video Status */}
       <div className="mb-4 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
         <div className="flex items-center justify-between">
           <div>
             <span className="text-sm text-gray-400">Videos loaded: </span>
             <span className="text-white font-medium">
-              {videoClips.filter(clip => clip.file).length} / {totalCells}
+              {videoClips.filter((clip) => clip.file).length} / {totalCells}
             </span>
           </div>
-          {videoClips.filter(clip => clip.file).length < totalCells && (
+          {videoClips.filter((clip) => clip.file).length < totalCells && (
             <button
               onClick={() => {
-                const emptyIndex = videoClips.findIndex(clip => !clip.file);
+                const emptyIndex = videoClips.findIndex((clip) => !clip.file);
                 if (emptyIndex !== -1) {
                   handleOpenUploadModal(emptyIndex);
                 }
@@ -483,10 +516,9 @@ const GifMakerVideoCropper = ({
           )}
         </div>
         <p className="text-xs text-gray-500 mt-1">
-          {totalCells > 1 ? 
-            `Upload up to ${totalCells} videos to create a multi-video GIF with this template` :
-            "Upload 1 video for this template"
-          }
+          {totalCells > 1
+            ? `Upload up to ${totalCells} videos to create a multi-video GIF with this template`
+            : "Upload 1 video for this template"}
         </p>
       </div>
 
@@ -534,8 +566,8 @@ const GifMakerVideoCropper = ({
       {/* Grid Preview */}
       <div className="mb-6">
         <h3 className="text-gray-300 mb-2 font-medium">Preview</h3>
-        
-        {timelineMode === 'sequence' ? (
+
+        {timelineMode === "sequence" ? (
           /* Sequence Mode - Single Video Preview */
           <div className="bg-gray-900 p-4 rounded-lg border border-gray-700">
             <div className="flex flex-col items-center">
@@ -549,16 +581,18 @@ const GifMakerVideoCropper = ({
                   height={getAspectRatioSize(selectedTemplate).height}
                 />
               ) : (
-                <div 
+                <div
                   className="bg-gray-700 rounded-lg flex items-center justify-center text-gray-400"
-                  style={{ 
-                    width: `${getAspectRatioSize(selectedTemplate).width}px`, 
-                    height: `${getAspectRatioSize(selectedTemplate).height}px` 
+                  style={{
+                    width: `${getAspectRatioSize(selectedTemplate).width}px`,
+                    height: `${getAspectRatioSize(selectedTemplate).height}px`,
                   }}
                 >
                   <div className="text-center">
                     <p className="text-sm">No videos in timeline</p>
-                    <p className="text-xs text-gray-500 mt-1">Use &quot;Add Video&quot; to add clips to the sequence</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Use &quot;Add Video&quot; to add clips to the sequence
+                    </p>
                   </div>
                 </div>
               )}
@@ -582,139 +616,182 @@ const GifMakerVideoCropper = ({
                 }`,
               }}
             >
-            {Array.from({ length: totalCells }).map((_, i) => (
-              <div key={i} className="relative">
-                <div
-                  className={`relative bg-gray-700 w-full h-full flex items-center justify-center text-gray-400 transition overflow-hidden ${
-                    activeVideoIndex === i ? "ring-2 ring-blue-500" : ""
-                  }`}
-                >
-                  {videoClips[i]?.file ? (
-                    <>
-                      <div
-                        ref={i === activeVideoIndex ? dragTargetRef : null}
-                        {...(i === activeVideoIndex ? bind() : {})}
-                        className="w-full h-full relative overflow-hidden"
-                        style={{
-                          transform: `translate(var(--translate-x, ${
-                            videoClips[i].positionX || 0
-                          }px), var(--translate-y, ${
-                            videoClips[i].positionY || 0
-                          }px)) scale(var(--scale, ${
-                            videoClips[i].scale || 1
-                          }))`,
-                          transformOrigin: "center",
-                          willChange: "transform",
-                        }}
-                        onWheel={(e) => {
-                          if (activeVideoIndex !== i) return;
-                          e.preventDefault();
-                          const delta = e.deltaY * -0.01;
-                          handleVideoScale(
-                            i,
-                            (videoClips[i].scale || 1) + delta
-                          );
-                        }}
-                      >
-                        <video
-                          ref={(el) => {
-                            if (!el || !videoRefs.current) return;
-                            videoRefs.current[i] = el;
-                          }}
-                          src={videoUrls[i] || ""}
-                          className="absolute inset-0 w-full h-full object-contain"
-                          muted
-                          playsInline
-                          autoPlay={i === activeVideoIndex}
-                          onLoadedMetadata={(e) => {
-                            const video = e.currentTarget;
-                            const clip = videoClips[i];
-
-                            if (i === activeVideoIndex) {
-                              // For active video, set to current time or start time
-                              video.currentTime = currentTime || clip.startTime;
-                              // Don't auto-play - let parent control
-                            } else {
-                              // For non-active videos, set up preview loop
-                              video.currentTime = clip.startTime;
-
-                              const loopVideo = () => {
-                                if (video.currentTime >= clip.endTime) {
-                                  video.currentTime = clip.startTime;
-                                }
-                              };
-
-                              video.addEventListener("timeupdate", loopVideo);
-                              video.play().catch(() => {});
-
-                              // Return cleanup function
-                              return () => {
-                                video.removeEventListener(
-                                  "timeupdate",
-                                  loopVideo
-                                );
-                              };
-                            }
-                          }}
-                        />
-                        {renderVideoOverlay(i)}
-                      </div>
-
-                      {videoClips[i]?.file && activeVideoIndex === i && (
+              {Array.from({ length: totalCells }).map((_, i) => (
+                <div key={i} className="relative">
+                  <div
+                    className={`relative bg-gray-700 w-full h-full flex items-center justify-center text-gray-400 transition overflow-hidden ${
+                      activeVideoIndex === i ? "ring-2 ring-blue-500" : ""
+                    }`}
+                  >
+                    {videoClips[i]?.file ? (
+                      <>
                         <div
-                          key={`slider-${i}`}
-                          className="absolute right-0 bottom-12 -mr-[41px] opacity-70 hover:opacity-100 transition-all duration-300"
+                          ref={i === activeVideoIndex ? dragTargetRef : null}
+                          {...(i === activeVideoIndex ? bind() : {})}
+                          className="w-full h-full relative overflow-hidden"
+                          style={{
+                            transform: `translate(var(--translate-x, ${
+                              videoClips[i].positionX || 0
+                            }px), var(--translate-y, ${
+                              videoClips[i].positionY || 0
+                            }px)) scale(var(--scale, ${
+                              videoClips[i].scale || 1
+                            }))`,
+                            transformOrigin: "center",
+                            willChange: "transform",
+                          }}
+                          onWheel={(e) => {
+                            if (activeVideoIndex !== i) return;
+                            e.preventDefault();
+                            const delta = e.deltaY * -0.01;
+                            handleVideoScale(
+                              i,
+                              (videoClips[i].scale || 1) + delta
+                            );
+                          }}
                         >
-                          <div className="flex flex-col items-end text-end justify-end">
-                            <input
-                              name={i.toString()}
-                              id={`video-scale-${i}`}
-                              type="range"
-                              min="0.1"
-                              max="3"
-                              step="0.05"
-                              value={videoClips[i].scale || 1}
-                              onChange={(e) =>
-                                handleVideoScale(i, parseFloat(e.target.value))
+                          <video
+                            ref={(el) => {
+                              if (!el || !videoRefs.current) return;
+                              videoRefs.current[i] = el;
+                            }}
+                            src={videoUrls[i] || ""}
+                            className="absolute inset-0 w-full h-full object-contain"
+                            muted
+                            playsInline
+                            autoPlay={i === activeVideoIndex}
+                            onLoadedMetadata={(e) => {
+                              const video = e.currentTarget;
+                              const clip = videoClips[i];
+
+                              if (i === activeVideoIndex) {
+                                // For active video, set to current time or start time
+                                video.currentTime =
+                                  currentTime || clip.startTime;
+                                // Don't auto-play - let parent control
+                              } else {
+                                // For non-active videos, set up preview loop
+                                video.currentTime = clip.startTime;
+
+                                const loopVideo = () => {
+                                  if (video.currentTime >= clip.endTime) {
+                                    video.currentTime = clip.startTime;
+                                  }
+                                };
+
+                                video.addEventListener("timeupdate", loopVideo);
+                                video.play().catch(() => {});
+
+                                // Return cleanup function
+                                return () => {
+                                  video.removeEventListener(
+                                    "timeupdate",
+                                    loopVideo
+                                  );
+                                };
                               }
-                              className="h-32 vertical-slider text-blue-500 accent-blue-500"
-                              style={{
-                                WebkitAppearance: "slider-vertical",
+                            }}
+                          />
+                          {renderVideoOverlay(i)}
+                        </div>
+
+                        {videoClips[i]?.file && activeVideoIndex === i && (
+                          <div
+                            key={`slider-${i}`}
+                            className="absolute right-0 bottom-12 -mr-[41px] opacity-70 hover:opacity-100 transition-all duration-300"
+                          >
+                            <div className="flex flex-col items-end text-end justify-end">
+                              <input
+                                name={i.toString()}
+                                id={`video-scale-${i}`}
+                                type="range"
+                                min="0.1"
+                                max="3"
+                                step="0.05"
+                                value={videoClips[i].scale || 1}
+                                onChange={(e) =>
+                                  handleVideoScale(
+                                    i,
+                                    parseFloat(e.target.value)
+                                  )
+                                }
+                                className="h-32 vertical-slider text-blue-500 accent-blue-500"
+                                style={{
+                                  WebkitAppearance: "slider-vertical",
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="absolute bottom-2 right-2 flex gap-2 z-30">
+                          <button
+                            className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-full"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              setActiveVideoIndex(i);
+                              setIsPlaying(false);
+                              document
+                                .getElementById("timeframe-editor")
+                                ?.scrollIntoView({
+                                  behavior: "smooth",
+                                  block: "center",
+                                });
+                            }}
+                          >
+                            <Clock className="w-4 h-4" />
+                          </button>
+
+                          <button
+                            className="bg-gray-600 hover:bg-gray-500 text-white p-2 rounded-full"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleOpenUploadModal(i);
+                            }}
+                          >
+                            <UploadIcon className="w-4 h-4" />
+                          </button>
+
+                          {/* Direct file upload button */}
+                          <div className="relative">
+                            <input
+                              type="file"
+                              accept="video/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  const validation = validateVideoFile(file);
+                                  if (!validation.isValid) {
+                                    alert(validation.error);
+                                    return;
+                                  }
+
+                                  handleVideoChange(i, file);
+                                }
+                                e.target.value = "";
                               }}
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                             />
+                            <button className="bg-green-600 hover:bg-green-500 text-white p-2 rounded-full">
+                              📁
+                            </button>
                           </div>
                         </div>
-                      )}
-
-                      <div className="absolute bottom-2 right-2 flex gap-2 z-30">
+                      </>
+                    ) : (
+                      <div className="absolute inset-0 bg-gray-700 flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-gray-600 transition z-10 w-full h-full">
+                        {/* Vault Upload Button */}
                         <button
-                          className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-full"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setActiveVideoIndex(i);
-                            setIsPlaying(false);
-                            document
-                              .getElementById("timeframe-editor")
-                              ?.scrollIntoView({
-                                behavior: "smooth",
-                                block: "center",
-                              });
-                          }}
-                        >
-                          <Clock className="w-4 h-4" />
-                        </button>
-
-                        <button
-                          className="bg-gray-600 hover:bg-gray-500 text-white p-2 rounded-full"
                           onClick={(e) => {
                             e.preventDefault();
                             handleOpenUploadModal(i);
                           }}
+                          className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors"
                         >
-                          <UploadIcon className="w-4 h-4" />
+                          <Clock className="w-4 h-4" /> Upload from Vault
                         </button>
 
-                        {/* Direct file upload button */}
+                        {/* Direct File Upload */}
                         <div className="relative">
                           <input
                             type="file"
@@ -730,62 +807,23 @@ const GifMakerVideoCropper = ({
 
                                 handleVideoChange(i, file);
                               }
-                              e.target.value = '';
+                              e.target.value = "";
                             }}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                           />
-                          <button className="bg-green-600 hover:bg-green-500 text-white p-2 rounded-full">
-                            📁
+                          <button className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+                            📁 Upload from Device
                           </button>
                         </div>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="absolute inset-0 bg-gray-700 flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-gray-600 transition z-10 w-full h-full">
-                      {/* Vault Upload Button */}
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleOpenUploadModal(i);
-                        }}
-                        className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors"
-                      >
-                        <Clock className="w-4 h-4" /> Upload from Vault
-                      </button>
-                      
-                      {/* Direct File Upload */}
-                      <div className="relative">
-                        <input
-                          type="file"
-                          accept="video/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const validation = validateVideoFile(file);
-                              if (!validation.isValid) {
-                                alert(validation.error);
-                                return;
-                              }
 
-                              handleVideoChange(i, file);
-                            }
-                            e.target.value = '';
-                          }}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        />
-                        <button className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm transition-colors">
-                          📁 Upload from Device
-                        </button>
+                        <span className="text-xs text-gray-400">or</span>
                       </div>
-                      
-                      <span className="text-xs text-gray-400">or</span>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
         )}
       </div>
     </div>

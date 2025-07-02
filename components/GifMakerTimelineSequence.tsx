@@ -33,8 +33,13 @@ const GifMakerTimelineSequence = ({
   hasAvailableVideos = false,
   onDirectUpload,
 }: TimelineSequenceProps) => {
-  const [frames, setFrames] = useState<{ time: number; src: string; clipIndex: number }[]>([]);
-  const [isDragging, setIsDragging] = useState<{ type: "clip" | "current"; clipIndex?: number } | null>(null);
+  const [frames, setFrames] = useState<
+    { time: number; src: string; clipIndex: number }[]
+  >([]);
+  const [isDragging, setIsDragging] = useState<{
+    type: "clip" | "current";
+    clipIndex?: number;
+  } | null>(null);
   const [dragStartX, setDragStartX] = useState(0);
   const [dragStartValue, setDragStartValue] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -109,15 +114,23 @@ const GifMakerTimelineSequence = ({
               reject(new Error("Video metadata loading timeout"));
             }, 5000);
 
-            video.addEventListener("loadedmetadata", () => {
-              clearTimeout(timeoutId);
-              resolve();
-            }, { once: true });
+            video.addEventListener(
+              "loadedmetadata",
+              () => {
+                clearTimeout(timeoutId);
+                resolve();
+              },
+              { once: true }
+            );
 
-            video.addEventListener("error", () => {
-              clearTimeout(timeoutId);
-              reject(new Error("Video loading error"));
-            }, { once: true });
+            video.addEventListener(
+              "error",
+              () => {
+                clearTimeout(timeoutId);
+                reject(new Error("Video loading error"));
+              },
+              { once: true }
+            );
 
             video.load();
           });
@@ -141,26 +154,34 @@ const GifMakerTimelineSequence = ({
 
           // Extract 3-4 frames per clip
           const clipDuration = clip.endTime - clip.startTime;
-          const framesPerClip = Math.min(4, Math.max(2, Math.ceil(clipDuration)));
-          
+          const framesPerClip = Math.min(
+            4,
+            Math.max(2, Math.ceil(clipDuration))
+          );
+
           for (let i = 0; i < framesPerClip; i++) {
             if (abortSignal.aborted) break;
 
-            const timeInClip = clip.startTime + (clipDuration / (framesPerClip - 1)) * i;
-            const timelineTime = clip.timelineStartTime + (clipDuration / (framesPerClip - 1)) * i;
+            const timeInClip =
+              clip.startTime + (clipDuration / (framesPerClip - 1)) * i;
+            const timelineTime =
+              clip.timelineStartTime + (clipDuration / (framesPerClip - 1)) * i;
 
             await new Promise<void>((resolve) => {
               const seekHandler = () => {
                 try {
                   ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
                   const dataUrl = canvas.toDataURL("image/jpeg", 0.5);
-                  allFrames.push({ 
-                    time: timelineTime, 
-                    src: dataUrl, 
-                    clipIndex 
+                  allFrames.push({
+                    time: timelineTime,
+                    src: dataUrl,
+                    clipIndex,
                   });
                 } catch (error) {
-                  console.error(`Error extracting frame at ${timeInClip}s:`, error);
+                  console.error(
+                    `Error extracting frame at ${timeInClip}s:`,
+                    error
+                  );
                 }
                 resolve();
               };
@@ -451,9 +472,10 @@ const GifMakerTimelineSequence = ({
             <>
               {/* Render frames across timeline */}
               {frames.map((frame, index) => {
-                const leftPercent = totalDuration > 0 ? (frame.time / totalDuration) * 100 : 0;
+                const leftPercent =
+                  totalDuration > 0 ? (frame.time / totalDuration) * 100 : 0;
                 const clip = timelineClips[frame.clipIndex];
-                
+
                 return (
                   <div
                     key={index}
@@ -483,11 +505,12 @@ const GifMakerTimelineSequence = ({
               {/* Clip separators */}
               {timelineClips.map((clip, index) => {
                 if (index === timelineClips.length - 1) return null;
-                
-                const separatorPercent = totalDuration > 0 
-                  ? (clip.timelineEndTime / totalDuration) * 100 
-                  : 0;
-                
+
+                const separatorPercent =
+                  totalDuration > 0
+                    ? (clip.timelineEndTime / totalDuration) * 100
+                    : 0;
+
                 return (
                   <div
                     key={`sep-${index}`}

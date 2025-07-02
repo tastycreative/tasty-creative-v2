@@ -20,7 +20,7 @@ type VideoTimelineProps = {
   // New props for timeline sequence support
   timelineClips?: TimelineClip[];
   onTimelineClipsChange?: (clips: TimelineClip[]) => void;
-  mode?: 'grid' | 'sequence'; // grid for multi-video layouts, sequence for merged timeline
+  mode?: "grid" | "sequence"; // grid for multi-video layouts, sequence for merged timeline
 };
 
 export const GifMakerVideoTimeline = ({
@@ -36,9 +36,11 @@ export const GifMakerVideoTimeline = ({
   activeVideoIndex = null,
   setActiveVideoIndex,
   timelineClips = [],
-  mode = 'grid',
+  mode = "grid",
 }: VideoTimelineProps) => {
-  const [frames, setFrames] = useState<{ time: number; src: string; videoIndex: number; clipIndex?: number }[]>([]);
+  const [frames, setFrames] = useState<
+    { time: number; src: string; videoIndex: number; clipIndex?: number }[]
+  >([]);
   const [isDragging, setIsDragging] = useState<
     "start" | "end" | "current" | null
   >(null);
@@ -49,34 +51,53 @@ export const GifMakerVideoTimeline = ({
   const extractionAbortRef = useRef<AbortController | null>(null);
 
   // For sequence mode, use timeline clips; for grid mode, use active video clip
-  const isSequenceMode = mode === 'sequence';
-  const totalDuration = isSequenceMode 
-    ? (timelineClips.length > 0 ? Math.max(...timelineClips.map(clip => clip.timelineEndTime)) : 0)
+  const isSequenceMode = mode === "sequence";
+  const totalDuration = isSequenceMode
+    ? timelineClips.length > 0
+      ? Math.max(...timelineClips.map((clip) => clip.timelineEndTime))
+      : 0
     : 0;
-  
+
   // Get active video clip for grid mode
-  const activeClip = !isSequenceMode && activeVideoIndex !== null ? videoClips[activeVideoIndex] : null;
-  const duration = isSequenceMode ? totalDuration : (activeClip?.duration || 0);
-  const startTime = isSequenceMode ? 0 : (activeClip?.startTime || 0);
-  const actualEndTime = isSequenceMode ? totalDuration : (activeClip?.endTime || duration);
-  const videoFile = isSequenceMode ? null : (activeClip?.file || null);
+  const activeClip =
+    !isSequenceMode && activeVideoIndex !== null
+      ? videoClips[activeVideoIndex]
+      : null;
+  const duration = isSequenceMode ? totalDuration : activeClip?.duration || 0;
+  const startTime = isSequenceMode ? 0 : activeClip?.startTime || 0;
+  const actualEndTime = isSequenceMode
+    ? totalDuration
+    : activeClip?.endTime || duration;
+  const videoFile = isSequenceMode ? null : activeClip?.file || null;
 
   // Handler functions for video clip changes
-  const onStartTimeChange = useCallback((time: number) => {
-    if (activeVideoIndex !== null && onVideoClipsChange) {
-      const newClips = [...videoClips];
-      newClips[activeVideoIndex] = { ...newClips[activeVideoIndex], startTime: time };
-      onVideoClipsChange(newClips);
-    }
-  }, [activeVideoIndex, onVideoClipsChange, videoClips]);
+  const onStartTimeChange = useCallback(
+    (time: number) => {
+      if (activeVideoIndex !== null && onVideoClipsChange) {
+        const newClips = [...videoClips];
+        newClips[activeVideoIndex] = {
+          ...newClips[activeVideoIndex],
+          startTime: time,
+        };
+        onVideoClipsChange(newClips);
+      }
+    },
+    [activeVideoIndex, onVideoClipsChange, videoClips]
+  );
 
-  const onEndTimeChange = useCallback((time: number) => {
-    if (activeVideoIndex !== null && onVideoClipsChange) {
-      const newClips = [...videoClips];
-      newClips[activeVideoIndex] = { ...newClips[activeVideoIndex], endTime: time };
-      onVideoClipsChange(newClips);
-    }
-  }, [activeVideoIndex, onVideoClipsChange, videoClips]);
+  const onEndTimeChange = useCallback(
+    (time: number) => {
+      if (activeVideoIndex !== null && onVideoClipsChange) {
+        const newClips = [...videoClips];
+        newClips[activeVideoIndex] = {
+          ...newClips[activeVideoIndex],
+          endTime: time,
+        };
+        onVideoClipsChange(newClips);
+      }
+    },
+    [activeVideoIndex, onVideoClipsChange, videoClips]
+  );
 
   const frameCount = 8; // Reduced for faster initial load
 
@@ -114,7 +135,12 @@ export const GifMakerVideoTimeline = ({
     setFrames([]);
 
     try {
-      const extractedFrames: { time: number; src: string; videoIndex: number; clipIndex?: number }[] = [];
+      const extractedFrames: {
+        time: number;
+        src: string;
+        videoIndex: number;
+        clipIndex?: number;
+      }[] = [];
 
       if (isSequenceMode) {
         // Extract frames from all timeline clips
@@ -137,15 +163,23 @@ export const GifMakerVideoTimeline = ({
                 reject(new Error("Video metadata loading timeout"));
               }, 5000);
 
-              video.addEventListener("loadedmetadata", () => {
-                clearTimeout(timeoutId);
-                resolve();
-              }, { once: true });
+              video.addEventListener(
+                "loadedmetadata",
+                () => {
+                  clearTimeout(timeoutId);
+                  resolve();
+                },
+                { once: true }
+              );
 
-              video.addEventListener("error", () => {
-                clearTimeout(timeoutId);
-                reject(new Error("Video loading error"));
-              }, { once: true });
+              video.addEventListener(
+                "error",
+                () => {
+                  clearTimeout(timeoutId);
+                  reject(new Error("Video loading error"));
+                },
+                { once: true }
+              );
 
               video.load();
             });
@@ -169,27 +203,36 @@ export const GifMakerVideoTimeline = ({
 
             // Extract 3-4 frames per clip
             const clipDuration = clip.endTime - clip.startTime;
-            const framesPerClip = Math.min(4, Math.max(2, Math.ceil(clipDuration)));
-            
+            const framesPerClip = Math.min(
+              4,
+              Math.max(2, Math.ceil(clipDuration))
+            );
+
             for (let i = 0; i < framesPerClip; i++) {
               if (abortSignal.aborted) break;
 
-              const timeInClip = clip.startTime + (clipDuration / (framesPerClip - 1)) * i;
-              const timelineTime = clip.timelineStartTime + (clipDuration / (framesPerClip - 1)) * i;
+              const timeInClip =
+                clip.startTime + (clipDuration / (framesPerClip - 1)) * i;
+              const timelineTime =
+                clip.timelineStartTime +
+                (clipDuration / (framesPerClip - 1)) * i;
 
               await new Promise<void>((resolve) => {
                 const seekHandler = () => {
                   try {
                     ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
                     const dataUrl = canvas.toDataURL("image/jpeg", 0.5);
-                    extractedFrames.push({ 
-                      time: timelineTime, 
-                      src: dataUrl, 
+                    extractedFrames.push({
+                      time: timelineTime,
+                      src: dataUrl,
                       videoIndex: activeVideoIndex || 0,
-                      clipIndex 
+                      clipIndex,
                     });
                   } catch (error) {
-                    console.error(`Error extracting frame at ${timeInClip}s:`, error);
+                    console.error(
+                      `Error extracting frame at ${timeInClip}s:`,
+                      error
+                    );
                   }
                   resolve();
                 };
@@ -263,7 +306,8 @@ export const GifMakerVideoTimeline = ({
           if (abortSignal.aborted) throw new Error("Extraction aborted");
 
           // Calculate dimensions
-          const aspectRatio = videoPool[0].videoWidth / videoPool[0].videoHeight;
+          const aspectRatio =
+            videoPool[0].videoWidth / videoPool[0].videoHeight;
           const targetHeight = Math.round(targetWidth / aspectRatio);
 
           // Create canvas pool for parallel rendering
@@ -289,7 +333,11 @@ export const GifMakerVideoTimeline = ({
             canvas: HTMLCanvasElement,
             ctx: CanvasRenderingContext2D | null,
             time: number
-          ): Promise<{ time: number; src: string; videoIndex: number } | null> => {
+          ): Promise<{
+            time: number;
+            src: string;
+            videoIndex: number;
+          } | null> => {
             if (!ctx || abortSignal.aborted) return null;
 
             return new Promise((resolve) => {
@@ -304,7 +352,11 @@ export const GifMakerVideoTimeline = ({
                 try {
                   ctx.drawImage(video, 0, 0, targetWidth, targetHeight);
                   const dataUrl = canvas.toDataURL("image/jpeg", 0.5);
-                  resolve({ time, src: dataUrl, videoIndex: activeVideoIndex || 0 });
+                  resolve({
+                    time,
+                    src: dataUrl,
+                    videoIndex: activeVideoIndex || 0,
+                  });
                 } catch (error) {
                   console.error(`Error extracting frame at ${time}s:`, error);
                   resolve(null);
@@ -341,7 +393,8 @@ export const GifMakerVideoTimeline = ({
 
             const batchResults = await Promise.all(batchPromises);
             const validFrames = batchResults.filter(
-              (f): f is { time: number; src: string; videoIndex: number } => f !== null
+              (f): f is { time: number; src: string; videoIndex: number } =>
+                f !== null
             );
 
             extractedFrames.push(...validFrames);
@@ -352,7 +405,9 @@ export const GifMakerVideoTimeline = ({
             }
           }
 
-          console.log(`Extracted ${extractedFrames.length} frames successfully`);
+          console.log(
+            `Extracted ${extractedFrames.length} frames successfully`
+          );
 
           // Clean up video elements
           videoPool.forEach((video) => {
@@ -383,7 +438,16 @@ export const GifMakerVideoTimeline = ({
         setIsProcessing(false);
       }
     }
-  }, [videoFile, duration, frameCount, targetWidth, activeVideoIndex, isSequenceMode, timelineClips, totalDuration]);
+  }, [
+    videoFile,
+    duration,
+    frameCount,
+    targetWidth,
+    activeVideoIndex,
+    isSequenceMode,
+    timelineClips,
+    totalDuration,
+  ]);
 
   // Extract frames when video changes
   useEffect(() => {
@@ -405,7 +469,14 @@ export const GifMakerVideoTimeline = ({
         extractionAbortRef.current.abort();
       }
     };
-  }, [videoFile, duration, extractFrames, isSequenceMode, timelineClips.length, totalDuration]);
+  }, [
+    videoFile,
+    duration,
+    extractFrames,
+    isSequenceMode,
+    timelineClips.length,
+    totalDuration,
+  ]);
 
   // Handle mouse events for dragging
   const handleMouseDown = (
@@ -528,17 +599,19 @@ export const GifMakerVideoTimeline = ({
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center gap-4">
           <h3 className="text-gray-300 font-medium">GIF Timeline Editor</h3>
-          
+
           {/* Video Selector */}
-          {videoClips.filter(clip => clip.file).length > 1 && (
+          {videoClips.filter((clip) => clip.file).length > 1 && (
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-400">Video:</span>
               <select
                 value={activeVideoIndex || 0}
-                onChange={(e) => setActiveVideoIndex?.(parseInt(e.target.value))}
+                onChange={(e) =>
+                  setActiveVideoIndex?.(parseInt(e.target.value))
+                }
                 className="bg-gray-800 border border-gray-600 rounded px-2 py-1 text-sm text-white"
               >
-                {videoClips.map((clip, index) => 
+                {videoClips.map((clip, index) =>
                   clip.file ? (
                     <option key={index} value={index}>
                       Video {index + 1} ({clip.file.name.slice(0, 20)})
@@ -568,7 +641,11 @@ export const GifMakerVideoTimeline = ({
           </button>
           <button
             onClick={onPlayPause}
-            disabled={isProcessing || (!videoFile && !isSequenceMode) || (isSequenceMode && timelineClips.length === 0)}
+            disabled={
+              isProcessing ||
+              (!videoFile && !isSequenceMode) ||
+              (isSequenceMode && timelineClips.length === 0)
+            }
             className="bg-blue-600 hover:bg-blue-500 disabled:bg-gray-700  disabled:cursor-not-allowed text-white p-2 rounded-full transition-colors"
           >
             {isPlaying ? (
@@ -595,9 +672,13 @@ export const GifMakerVideoTimeline = ({
           className="relative flex rounded-md overflow-hidden bg-gray-800 border border-gray-600 cursor-pointer min-h-[80px]"
           onClick={handleTimelineClick}
         >
-          {(!videoFile && !isSequenceMode) || (isSequenceMode && timelineClips.length === 0) || duration === 0 ? (
+          {(!videoFile && !isSequenceMode) ||
+          (isSequenceMode && timelineClips.length === 0) ||
+          duration === 0 ? (
             <div className="w-full h-20 flex items-center justify-center text-gray-500 text-sm">
-              {isSequenceMode ? "Add videos to timeline sequence" : "Load a video to start"}
+              {isSequenceMode
+                ? "Add videos to timeline sequence"
+                : "Load a video to start"}
             </div>
           ) : frames.length === 0 ? (
             <div className="w-full h-20 flex items-center justify-center text-gray-500 text-sm">
@@ -650,7 +731,10 @@ export const GifMakerVideoTimeline = ({
             </>
           )}
 
-          {((videoFile && duration > 0) || (isSequenceMode && timelineClips.length > 0 && totalDuration > 0)) && (
+          {((videoFile && duration > 0) ||
+            (isSequenceMode &&
+              timelineClips.length > 0 &&
+              totalDuration > 0)) && (
             <>
               {/* Selected Range Overlay */}
               <div

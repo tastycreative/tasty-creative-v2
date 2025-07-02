@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from "react";
 import { VideoClip, TimelineClip } from "@/utils/gifMakerUtils";
 
 type LivePreviewProps = {
-  timelineMode: 'grid' | 'sequence';
+  timelineMode: "grid" | "sequence";
   currentTime: number;
   isPlaying: boolean;
   // Grid mode props
@@ -24,7 +24,8 @@ export const GifMakerLivePreview = ({
 }: LivePreviewProps) => {
   const sequenceVideoRefs = useRef<HTMLVideoElement[]>([]);
   const gridVideoRef = useRef<HTMLVideoElement>(null);
-  const [currentActiveClip, setCurrentActiveClip] = useState<TimelineClip | null>(null);
+  const [currentActiveClip, setCurrentActiveClip] =
+    useState<TimelineClip | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
   // Format time helper
@@ -36,15 +37,19 @@ export const GifMakerLivePreview = ({
 
   // Update video time based on currentTime
   useEffect(() => {
-    if (timelineMode === 'sequence') {
+    if (timelineMode === "sequence") {
       // Find which clip should be active at current time
       let activeClip: TimelineClip | null = null;
       let videoCurrentTime = 0;
 
       for (const clip of timelineClips) {
-        if (currentTime >= clip.timelineStartTime && currentTime < clip.timelineEndTime) {
+        if (
+          currentTime >= clip.timelineStartTime &&
+          currentTime < clip.timelineEndTime
+        ) {
           activeClip = clip;
-          videoCurrentTime = (currentTime - clip.timelineStartTime) + clip.startTime;
+          videoCurrentTime =
+            currentTime - clip.timelineStartTime + clip.startTime;
           break;
         }
       }
@@ -55,25 +60,42 @@ export const GifMakerLivePreview = ({
       if (activeClip && !isPlaying) {
         const clipIndex = timelineClips.indexOf(activeClip);
         const videoElement = sequenceVideoRefs.current[clipIndex];
-        if (videoElement && videoElement.readyState >= 2 && Math.abs(videoElement.currentTime - videoCurrentTime) > 0.1) {
+        if (
+          videoElement &&
+          videoElement.readyState >= 2 &&
+          Math.abs(videoElement.currentTime - videoCurrentTime) > 0.1
+        ) {
           videoElement.currentTime = videoCurrentTime;
         }
       }
-    } else if (timelineMode === 'grid' && activeVideoIndex !== null) {
+    } else if (timelineMode === "grid" && activeVideoIndex !== null) {
       // Grid mode - update active video - only when not playing to avoid interference
       const activeClip = videoClips[activeVideoIndex];
       const videoElement = gridVideoRef.current;
-      
-      if (activeClip?.file && videoElement && videoElement.readyState >= 2 && !isPlaying && Math.abs(videoElement.currentTime - currentTime) > 0.1) {
+
+      if (
+        activeClip?.file &&
+        videoElement &&
+        videoElement.readyState >= 2 &&
+        !isPlaying &&
+        Math.abs(videoElement.currentTime - currentTime) > 0.1
+      ) {
         videoElement.currentTime = currentTime;
       }
     }
-  }, [currentTime, timelineMode, timelineClips, activeVideoIndex, videoClips, isPlaying]);
+  }, [
+    currentTime,
+    timelineMode,
+    timelineClips,
+    activeVideoIndex,
+    videoClips,
+    isPlaying,
+  ]);
 
   // Handle playback state changes
   useEffect(() => {
     const updateVideoPlayback = () => {
-      if (timelineMode === 'sequence') {
+      if (timelineMode === "sequence") {
         // Update all sequence videos
         sequenceVideoRefs.current.forEach((video, index) => {
           if (video) {
@@ -86,7 +108,7 @@ export const GifMakerLivePreview = ({
             }
           }
         });
-      } else if (timelineMode === 'grid') {
+      } else if (timelineMode === "grid") {
         // Update grid video
         const videoElement = gridVideoRef.current;
         if (videoElement) {
@@ -115,25 +137,40 @@ export const GifMakerLivePreview = ({
     }
 
     const syncVideoTime = () => {
-      if (timelineMode === 'sequence' && currentActiveClip) {
+      if (timelineMode === "sequence" && currentActiveClip) {
         const clipIndex = timelineClips.indexOf(currentActiveClip);
         const videoElement = sequenceVideoRefs.current[clipIndex];
-        
+
         if (videoElement && !videoElement.paused && !videoElement.ended) {
           const videoTime = videoElement.currentTime;
-          const timelineTime = (videoTime - currentActiveClip.startTime) + currentActiveClip.timelineStartTime;
-          
+          const timelineTime =
+            videoTime -
+            currentActiveClip.startTime +
+            currentActiveClip.timelineStartTime;
+
           // Only update if there's a significant difference to avoid jitter
-          if (onCurrentTimeChange && Math.abs(timelineTime - currentTime) > 0.05) {
+          if (
+            onCurrentTimeChange &&
+            Math.abs(timelineTime - currentTime) > 0.05
+          ) {
             onCurrentTimeChange(timelineTime);
           }
         }
-      } else if (timelineMode === 'grid' && activeVideoIndex !== null && videoClips[activeVideoIndex]?.file) {
+      } else if (
+        timelineMode === "grid" &&
+        activeVideoIndex !== null &&
+        videoClips[activeVideoIndex]?.file
+      ) {
         const videoElement = gridVideoRef.current;
-        
-        if (videoElement && !videoElement.paused && !videoElement.ended && onCurrentTimeChange) {
+
+        if (
+          videoElement &&
+          !videoElement.paused &&
+          !videoElement.ended &&
+          onCurrentTimeChange
+        ) {
           const videoTime = videoElement.currentTime;
-          
+
           // Only update if there's a significant difference to avoid jitter
           if (Math.abs(videoTime - currentTime) > 0.05) {
             onCurrentTimeChange(videoTime);
@@ -153,21 +190,30 @@ export const GifMakerLivePreview = ({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [isPlaying, timelineMode, currentActiveClip, timelineClips, activeVideoIndex, videoClips, currentTime, onCurrentTimeChange]);
+  }, [
+    isPlaying,
+    timelineMode,
+    currentActiveClip,
+    timelineClips,
+    activeVideoIndex,
+    videoClips,
+    currentTime,
+    onCurrentTimeChange,
+  ]);
 
   // Cleanup object URLs on unmount
   useEffect(() => {
     const sequenceVideos = sequenceVideoRefs.current;
     const gridVideo = gridVideoRef.current;
-    
+
     return () => {
       // Cleanup video object URLs
-      sequenceVideos.forEach(video => {
+      sequenceVideos.forEach((video) => {
         if (video?.src) {
           URL.revokeObjectURL(video.src);
         }
       });
-      
+
       if (gridVideo?.src) {
         URL.revokeObjectURL(gridVideo.src);
       }
@@ -175,9 +221,10 @@ export const GifMakerLivePreview = ({
   }, []);
 
   // Don't render if no content available
-  const hasContent = timelineMode === 'sequence' 
-    ? timelineClips.length > 0 
-    : (activeVideoIndex !== null && videoClips[activeVideoIndex]?.file);
+  const hasContent =
+    timelineMode === "sequence"
+      ? timelineClips.length > 0
+      : activeVideoIndex !== null && videoClips[activeVideoIndex]?.file;
 
   if (!hasContent) {
     return null;
@@ -186,10 +233,10 @@ export const GifMakerLivePreview = ({
   return (
     <div className="bg-gray-800/50 rounded-xl p-4 mb-4 shadow-lg border border-gray-700/50 backdrop-blur-sm">
       <h3 className="text-gray-300 font-medium mb-3">Live Preview</h3>
-      
+
       <div className="flex items-center justify-center">
         <div className="relative w-80 h-44 bg-black rounded-lg overflow-hidden">
-          {timelineMode === 'sequence' ? (
+          {timelineMode === "sequence" ? (
             // Sequence mode preview
             <>
               {timelineClips.map((clip, index) => (
@@ -200,7 +247,7 @@ export const GifMakerLivePreview = ({
                   }}
                   src={URL.createObjectURL(clip.file)}
                   className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${
-                    currentActiveClip === clip ? 'opacity-100' : 'opacity-0'
+                    currentActiveClip === clip ? "opacity-100" : "opacity-0"
                   }`}
                   muted
                   playsInline
@@ -215,7 +262,8 @@ export const GifMakerLivePreview = ({
             </>
           ) : (
             // Grid mode preview
-            activeVideoIndex !== null && videoClips[activeVideoIndex]?.file && (
+            activeVideoIndex !== null &&
+            videoClips[activeVideoIndex]?.file && (
               <video
                 ref={gridVideoRef}
                 src={URL.createObjectURL(videoClips[activeVideoIndex].file)}
@@ -226,29 +274,31 @@ export const GifMakerLivePreview = ({
               />
             )
           )}
-          
+
           {/* Current time overlay */}
           <div className="absolute bottom-2 left-2 text-xs text-white bg-black bg-opacity-70 px-2 py-1 rounded">
             {formatTime(currentTime)}
           </div>
-          
+
           {/* Grid mode selection overlay */}
-          {timelineMode === 'grid' && activeVideoIndex !== null && videoClips[activeVideoIndex] && (
-            <div className="absolute inset-0 pointer-events-none">
-              {/* Before start time overlay */}
-              {currentTime < videoClips[activeVideoIndex].startTime && (
-                <div className="absolute inset-0 bg-black opacity-70 flex items-center justify-center text-white text-sm">
-                  Before start
-                </div>
-              )}
-              {/* After end time overlay */}
-              {currentTime > videoClips[activeVideoIndex].endTime && (
-                <div className="absolute inset-0 bg-black opacity-70 flex items-center justify-center text-white text-sm">
-                  After end
-                </div>
-              )}
-            </div>
-          )}
+          {timelineMode === "grid" &&
+            activeVideoIndex !== null &&
+            videoClips[activeVideoIndex] && (
+              <div className="absolute inset-0 pointer-events-none">
+                {/* Before start time overlay */}
+                {currentTime < videoClips[activeVideoIndex].startTime && (
+                  <div className="absolute inset-0 bg-black opacity-70 flex items-center justify-center text-white text-sm">
+                    Before start
+                  </div>
+                )}
+                {/* After end time overlay */}
+                {currentTime > videoClips[activeVideoIndex].endTime && (
+                  <div className="absolute inset-0 bg-black opacity-70 flex items-center justify-center text-white text-sm">
+                    After end
+                  </div>
+                )}
+              </div>
+            )}
         </div>
       </div>
     </div>
