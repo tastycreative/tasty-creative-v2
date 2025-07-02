@@ -62,18 +62,29 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
         <div className={`bg-gray-300 dark:bg-gray-600 flex items-center justify-center ${className}`} style={{ width, height }}>
           <div className="text-center">
             <Video className="w-4 h-4 text-gray-500 mx-auto mb-1" />
-            <div className="text-xs text-gray-500">No preview</div>
+            <div className="text-xs text-gray-500">Restricted</div>
           </div>
         </div>
       );
     }
 
+    const handleImageError = () => {
+      console.log('Image failed to load:', src);
+      setHasError(true);
+      setIsLoading(false);
+    };
+
+    const handleImageLoad = () => {
+      console.log('Image loaded successfully:', src);
+      setIsLoading(false);
+    };
+
     return (
       <div className="relative" style={{ width, height }}>
         {isLoading && (
-          <div className={`absolute inset-0 bg-gray-300 dark:bg-gray-600 flex items-center justify-center ${className}`}>
+          <div className={`absolute inset-0 bg-gray-200 dark:bg-gray-700 flex items-center justify-center ${className}`}>
             <div className="text-center">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500 mx-auto mb-1"></div>
+              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500 mx-auto mb-1"></div>
               <div className="text-xs text-gray-500">Loading...</div>
             </div>
           </div>
@@ -83,10 +94,10 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
           alt={alt}
           width={width}
           height={height}
-          className={className}
+          className={`${className} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity`}
           loading="lazy"
-          onError={() => setHasError(true)}
-          onLoad={() => setIsLoading(false)}
+          onError={handleImageError}
+          onLoad={handleImageLoad}
           style={{ width, height, objectFit: 'cover' }}
         />
       </div>
@@ -242,15 +253,12 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                             list.medias.slice(0, 3).map((media, index) => (
                               <div
                                 key={index}
-                                className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded overflow-hidden"
+                                className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded overflow-hidden relative"
                               >
-                                <ImageWithFallback
-                                  src={getProxiedImageUrl(media.url)}
-                                  alt=""
-                                  width={48}
-                                  height={48}
-                                  className="w-full h-full object-cover"
-                                />
+                                {/* Always show fallback for vault list thumbnails since they're likely to fail due to CDN restrictions */}
+                                <div className="w-full h-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                                  <Video className="w-3 h-3 text-gray-500" />
+                                </div>
                               </div>
                             ))
                           ) : (
