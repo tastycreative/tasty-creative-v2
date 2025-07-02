@@ -9,7 +9,15 @@ import { EffectsPanel } from "./EffectsPanel";
 import { ExportModal } from "./ExportModal";
 import { BlurEditorPanel } from "./BlurEditorPanel";
 import ModelsDropdown from "../ModelsDropdown";
-import { Play, Upload, Download, Trash2, RotateCcw, User, DollarSign } from "lucide-react";
+import {
+  Play,
+  Upload,
+  Download,
+  Trash2,
+  RotateCcw,
+  User,
+  DollarSign,
+} from "lucide-react";
 
 export const VideoEditor: React.FC = () => {
   // Model selection state compatible with ModelsDropdown
@@ -135,7 +143,9 @@ export const VideoEditor: React.FC = () => {
                   {formData.model && (
                     <>
                       <span>•</span>
-                      <span className={`font-medium ${modelType === "FREE" ? "text-green-600 dark:text-green-400" : "text-blue-600 dark:text-blue-400"}`}>
+                      <span
+                        className={`font-medium ${modelType === "FREE" ? "text-green-600 dark:text-green-400" : "text-blue-600 dark:text-blue-400"}`}
+                      >
                         {getFinalModelValue()}
                       </span>
                     </>
@@ -196,8 +206,8 @@ export const VideoEditor: React.FC = () => {
                 Create Your Video Sequence
               </h2>
               <p className="text-gray-600 dark:text-gray-400">
-                Select a model and upload multiple videos to create a custom sequence with effects
-                and export as GIF
+                Select a model and upload multiple videos to create a custom
+                sequence with effects and export as GIF
               </p>
             </div>
 
@@ -258,7 +268,9 @@ export const VideoEditor: React.FC = () => {
                 {formData.model && (
                   <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
                     <div className="flex items-center space-x-2">
-                      <div className={`w-3 h-3 rounded-full ${modelType === "FREE" ? "bg-green-500" : "bg-blue-500"}`} />
+                      <div
+                        className={`w-3 h-3 rounded-full ${modelType === "FREE" ? "bg-green-500" : "bg-blue-500"}`}
+                      />
                       <span className="text-sm font-medium text-green-800 dark:text-green-200">
                         Selected: {getFinalModelValue()}
                       </span>

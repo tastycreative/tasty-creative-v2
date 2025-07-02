@@ -46,20 +46,23 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
     return `/api/proxy-image?url=${encodeURIComponent(originalUrl)}`;
   };
 
-  const ImageWithFallback: React.FC<{ src: string; alt: string; className?: string; width?: number; height?: number }> = ({ 
-    src, 
-    alt, 
-    className = "", 
-    width, 
-    height 
-  }) => {
+  const ImageWithFallback: React.FC<{
+    src: string;
+    alt: string;
+    className?: string;
+    width?: number;
+    height?: number;
+  }> = ({ src, alt, className = "", width, height }) => {
     const [hasError, setHasError] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
     if (hasError) {
       // Show simple fallback UI
       return (
-        <div className={`bg-gray-300 dark:bg-gray-600 flex items-center justify-center ${className}`} style={{ width, height }}>
+        <div
+          className={`bg-gray-300 dark:bg-gray-600 flex items-center justify-center ${className}`}
+          style={{ width, height }}
+        >
           <div className="text-center">
             <Video className="w-4 h-4 text-gray-500 mx-auto mb-1" />
             <div className="text-xs text-gray-500">Restricted</div>
@@ -69,20 +72,22 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
     }
 
     const handleImageError = () => {
-      console.log('Image failed to load:', src);
+      console.log("Image failed to load:", src);
       setHasError(true);
       setIsLoading(false);
     };
 
     const handleImageLoad = () => {
-      console.log('Image loaded successfully:', src);
+      console.log("Image loaded successfully:", src);
       setIsLoading(false);
     };
 
     return (
       <div className="relative" style={{ width, height }}>
         {isLoading && (
-          <div className={`absolute inset-0 bg-gray-200 dark:bg-gray-700 flex items-center justify-center ${className}`}>
+          <div
+            className={`absolute inset-0 bg-gray-200 dark:bg-gray-700 flex items-center justify-center ${className}`}
+          >
             <div className="text-center">
               <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500 mx-auto mb-1"></div>
               <div className="text-xs text-gray-500">Loading...</div>
@@ -94,11 +99,11 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
           alt={alt}
           width={width}
           height={height}
-          className={`${className} ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity`}
+          className={`${className} ${isLoading ? "opacity-0" : "opacity-100"} transition-opacity`}
           loading="lazy"
           onError={handleImageError}
           onLoad={handleImageLoad}
-          style={{ width, height, objectFit: 'cover' }}
+          style={{ width, height, objectFit: "cover" }}
         />
       </div>
     );
@@ -119,11 +124,11 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
       const response = await fetch(
         `/api/onlyfans/models?endpoint=vault-lists&accountId=${ACCOUNT_ID}`
       );
-      
+
       if (!response.ok) {
         throw new Error("Failed to fetch vault lists");
       }
-      
+
       const data = await response.json();
       setVaultLists(data.data?.list || []);
     } catch (err) {
@@ -136,7 +141,7 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
   const handleListSelect = async (list: VaultList) => {
     setSelectedList(list);
     setSelectedMedia([]);
-    
+
     // If the list doesn't have media loaded, fetch the detailed list
     if (!list.medias || list.medias.length === 0) {
       setLoading(true);
@@ -145,21 +150,23 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
         const response = await fetch(
           `/api/onlyfans/models?endpoint=vault-list-details&accountId=${ACCOUNT_ID}&listId=${list.id}`
         );
-        
+
         if (!response.ok) {
           throw new Error("Failed to fetch vault list details");
         }
-        
+
         const data = await response.json();
         const updatedList = { ...list, medias: data.data?.medias || [] };
         setSelectedList(updatedList);
-        
+
         // Update the vault lists array as well
-        setVaultLists(prev => 
-          prev.map(l => l.id === list.id ? updatedList : l)
+        setVaultLists((prev) =>
+          prev.map((l) => (l.id === list.id ? updatedList : l))
         );
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load vault details");
+        setError(
+          err instanceof Error ? err.message : "Failed to load vault details"
+        );
       } finally {
         setLoading(false);
       }
@@ -167,9 +174,9 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
   };
 
   const handleMediaToggle = (mediaUrl: string) => {
-    setSelectedMedia(prev => 
+    setSelectedMedia((prev) =>
       prev.includes(mediaUrl)
-        ? prev.filter(url => url !== mediaUrl)
+        ? prev.filter((url) => url !== mediaUrl)
         : [...prev, mediaUrl]
     );
   };
@@ -199,8 +206,9 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
         {/* Info notice about thumbnail limitations */}
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
           <p className="text-sm text-blue-800 dark:text-blue-200">
-            <strong>Note:</strong> Thumbnails may not display due to OnlyFans CDN authentication restrictions. 
-            Video files can still be selected and imported once the feature is fully implemented.
+            <strong>Note:</strong> Thumbnails may not display due to OnlyFans
+            CDN authentication restrictions. Video files can still be selected
+            and imported once the feature is fully implemented.
           </p>
         </div>
 
@@ -224,9 +232,12 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                 {vaultLists.length === 0 ? (
                   <div className="text-center py-8">
                     <Folder className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500 dark:text-gray-400">No vault lists found</p>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      No vault lists found
+                    </p>
                     <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
-                      Create vault lists in your OnlyFans account to organize your media
+                      Create vault lists in your OnlyFans account to organize
+                      your media
                     </p>
                   </div>
                 ) : (
@@ -244,7 +255,8 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                               {list.name}
                             </h3>
                             <p className="text-sm text-gray-500 dark:text-gray-400">
-                              {list.videosCount} videos, {list.photosCount} photos
+                              {list.videosCount} videos, {list.photosCount}{" "}
+                              photos
                             </p>
                           </div>
                         </div>
@@ -262,7 +274,9 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                               </div>
                             ))
                           ) : (
-                            <div className="text-xs text-gray-400">Click to view media</div>
+                            <div className="text-xs text-gray-400">
+                              Click to view media
+                            </div>
                           )}
                         </div>
                       </div>
@@ -289,56 +303,66 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                   {loading ? (
                     <div className="flex items-center justify-center py-8">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
-                      <span className="ml-2 text-gray-600 dark:text-gray-400">Loading media...</span>
+                      <span className="ml-2 text-gray-600 dark:text-gray-400">
+                        Loading media...
+                      </span>
                     </div>
                   ) : (
                     <>
-                      {selectedList.medias.filter(media => media.type === "video").length === 0 ? (
+                      {selectedList.medias.filter(
+                        (media) => media.type === "video"
+                      ).length === 0 ? (
                         <div className="text-center py-8">
                           <Video className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                          <p className="text-gray-500 dark:text-gray-400">No videos found in this vault</p>
+                          <p className="text-gray-500 dark:text-gray-400">
+                            No videos found in this vault
+                          </p>
                         </div>
                       ) : (
                         <>
                           {/* Info banner about thumbnail limitations */}
                           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
                             <p className="text-sm text-blue-800 dark:text-blue-200">
-                              <strong>Note:</strong> Video thumbnails may not display due to OnlyFans CDN restrictions. 
-                              Videos can still be selected for import (when feature is ready).
+                              <strong>Note:</strong> Video thumbnails may not
+                              display due to OnlyFans CDN restrictions. Videos
+                              can still be selected for import (when feature is
+                              ready).
                             </p>
                           </div>
-                          
+
                           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                          {selectedList.medias
-                            .filter(media => media.type === "video")
-                            .map((media, index) => (
-                              <div
-                                key={index}
-                                onClick={() => handleMediaToggle(media.url)}
-                                className={`relative aspect-square bg-gray-200 dark:bg-gray-600 rounded-lg overflow-hidden cursor-pointer border-2 transition-colors ${
-                                  selectedMedia.includes(media.url)
-                                    ? "border-green-500"
-                                    : "border-transparent hover:border-gray-300"
-                                }`}
-                              >
-                              <ImageWithFallback
-                                src={getProxiedImageUrl(media.url)}
-                                alt=""
-                                className="absolute inset-0 w-full h-full object-cover"
-                              />
-                                <div className="absolute top-2 left-2">
-                                  <Video className="w-4 h-4 text-white bg-black bg-opacity-50 rounded p-0.5" />
-                                </div>
-                                {selectedMedia.includes(media.url) && (
-                                  <div className="absolute inset-0 bg-green-500 bg-opacity-20 flex items-center justify-center">
-                                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                                      <span className="text-white text-sm">✓</span>
-                                    </div>
+                            {selectedList.medias
+                              .filter((media) => media.type === "video")
+                              .map((media, index) => (
+                                <div
+                                  key={index}
+                                  onClick={() => handleMediaToggle(media.url)}
+                                  className={`relative aspect-square bg-gray-200 dark:bg-gray-600 rounded-lg overflow-hidden cursor-pointer border-2 transition-colors ${
+                                    selectedMedia.includes(media.url)
+                                      ? "border-green-500"
+                                      : "border-transparent hover:border-gray-300"
+                                  }`}
+                                >
+                                  <ImageWithFallback
+                                    src={getProxiedImageUrl(media.url)}
+                                    alt=""
+                                    className="absolute inset-0 w-full h-full object-cover"
+                                  />
+                                  <div className="absolute top-2 left-2">
+                                    <Video className="w-4 h-4 text-white bg-black bg-opacity-50 rounded p-0.5" />
                                   </div>
-                                )}
-                              </div>
-                            ))}
-                        </div>
+                                  {selectedMedia.includes(media.url) && (
+                                    <div className="absolute inset-0 bg-green-500 bg-opacity-20 flex items-center justify-center">
+                                      <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                                        <span className="text-white text-sm">
+                                          ✓
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                          </div>
                         </>
                       )}
                     </>
@@ -354,13 +378,17 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                   </button>
                   <button
                     onClick={() => {
-                      alert("Video downloading from vault is currently being implemented. The current API only provides thumbnail URLs.");
+                      alert(
+                        "Video downloading from vault is currently being implemented. The current API only provides thumbnail URLs."
+                      );
                     }}
                     disabled={selectedMedia.length === 0}
                     className="px-4 py-2 bg-gray-400 cursor-not-allowed text-white rounded-lg transition-colors flex items-center space-x-2"
                   >
                     <Download className="w-4 h-4" />
-                    <span>Import {selectedMedia.length} Videos (Coming Soon)</span>
+                    <span>
+                      Import {selectedMedia.length} Videos (Coming Soon)
+                    </span>
                   </button>
                 </div>
               </div>
