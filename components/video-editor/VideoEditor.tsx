@@ -8,9 +8,15 @@ import { VideoPreview } from "./VideoPreview";
 import { EffectsPanel } from "./EffectsPanel";
 import { ExportModal } from "./ExportModal";
 import { BlurEditorPanel } from "./BlurEditorPanel";
-import { Play, Upload, Download, Trash2, RotateCcw } from "lucide-react";
+import ModelsDropdown from "../ModelsDropdown";
+import { Play, Upload, Download, Trash2, RotateCcw, User, DollarSign } from "lucide-react";
 
 export const VideoEditor: React.FC = () => {
+  // Model selection state compatible with ModelsDropdown
+  const [formData, setFormData] = useState<{ model?: string }>({ model: "" });
+  const [modelType, setModelType] = useState<"FREE" | "PAID">("FREE");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
   const {
     videos,
     selectedVideoId,
@@ -41,6 +47,7 @@ export const VideoEditor: React.FC = () => {
   const handleVideosAdded = async (files: File[]) => {
     setIsUploading(true);
     try {
+      console.log("Final model value:", getFinalModelValue());
       await addVideos(files);
     } catch (error) {
       console.error("Error adding videos:", error);
@@ -78,6 +85,12 @@ export const VideoEditor: React.FC = () => {
 
   const handleCloseBlurEditor = () => {
     setEditingBlur(null);
+  };
+
+  // Get the final formatted model value
+  const getFinalModelValue = () => {
+    if (!formData.model) return "";
+    return `${formData.model.toUpperCase()}_${modelType}`;
   };
 
   const selectedVideo = videos.find((v) => v.id === selectedVideoId) || null;
@@ -119,6 +132,14 @@ export const VideoEditor: React.FC = () => {
                       .toString()
                       .padStart(2, "0")}
                   </span>
+                  {formData.model && (
+                    <>
+                      <span>•</span>
+                      <span className={`font-medium ${modelType === "FREE" ? "text-green-600 dark:text-green-400" : "text-blue-600 dark:text-blue-400"}`}>
+                        {getFinalModelValue()}
+                      </span>
+                    </>
+                  )}
                   {currentVideo && (
                     <>
                       <span>•</span>
@@ -175,15 +196,95 @@ export const VideoEditor: React.FC = () => {
                 Create Your Video Sequence
               </h2>
               <p className="text-gray-600 dark:text-gray-400">
-                Upload multiple videos to create a custom sequence with effects
+                Select a model and upload multiple videos to create a custom sequence with effects
                 and export as GIF
               </p>
             </div>
 
-            <VideoUploader
-              onVideosAdded={handleVideosAdded}
-              isUploading={isUploading}
-            />
+            {/* Model Selection */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 mb-6">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    Select Model
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    Choose a model and type before uploading videos
+                  </p>
+                </div>
+
+                {/* Model Type Toggle */}
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Model Type:
+                  </span>
+                  <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                    <button
+                      onClick={() => setModelType("FREE")}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${
+                        modelType === "FREE"
+                          ? "bg-green-600 text-white"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                      }`}
+                    >
+                      <User className="w-4 h-4" />
+                      <span>FREE</span>
+                    </button>
+                    <button
+                      onClick={() => setModelType("PAID")}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${
+                        modelType === "PAID"
+                          ? "bg-blue-600 text-white"
+                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                      }`}
+                    >
+                      <DollarSign className="w-4 h-4" />
+                      <span>PAID</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Model Dropdown */}
+                <div className="space-y-4">
+                  <ModelsDropdown
+                    formData={formData}
+                    setFormData={setFormData}
+                    error={fieldErrors.model}
+                    setFieldErrors={setFieldErrors}
+                  />
+                </div>
+
+                {/* Selected Model Info */}
+                {formData.model && (
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-3 h-3 rounded-full ${modelType === "FREE" ? "bg-green-500" : "bg-blue-500"}`} />
+                      <span className="text-sm font-medium text-green-800 dark:text-green-200">
+                        Selected: {getFinalModelValue()}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Video Upload - Only show if model is selected */}
+            {formData.model ? (
+              <VideoUploader
+                onVideosAdded={handleVideosAdded}
+                isUploading={isUploading}
+              />
+            ) : (
+              <div className="bg-gray-50 dark:bg-gray-800/50 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center">
+                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                  Select a Model First
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Please select a model and type before you can upload videos
+                </p>
+              </div>
+            )}
 
             <div className="mt-8 text-center">
               <div className="inline-flex items-center space-x-8 text-sm text-gray-500 dark:text-gray-400">
@@ -291,6 +392,11 @@ export const VideoEditor: React.FC = () => {
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Upload additional videos to extend your sequence
+                    {formData.model && (
+                      <span className="text-green-600 dark:text-green-400 ml-1">
+                        • Using {getFinalModelValue()}
+                      </span>
+                    )}
                   </p>
                 </div>
                 <div className="flex-shrink-0">
