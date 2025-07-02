@@ -99,15 +99,15 @@ export async function GET(request: NextRequest) {
         if (!accountId) {
           return NextResponse.json({ error: "Account ID required for vault lists data" }, { status: 400 });
         }
-        // GET /media-vault-lists endpoint
-        apiUrl = `${ONLYFANS_API_BASE}/media-vault-lists`;
+        // GET /{account}/media/vault/lists endpoint
+        apiUrl = `${ONLYFANS_API_BASE}/${accountId}/media/vault/lists`;
         break;
       case "vault-list-details":
         if (!accountId || !listId) {
           return NextResponse.json({ error: "Account ID and List ID required for vault list details" }, { status: 400 });
         }
-        // GET /media-vault-lists/{list_id} endpoint
-        apiUrl = `${ONLYFANS_API_BASE}/media-vault-lists/${listId}`;
+        // GET /{account}/media/vault/lists/{list_id} endpoint
+        apiUrl = `${ONLYFANS_API_BASE}/${accountId}/media/vault/lists/${listId}`;
         break;
       case "account-balances":
         if (!accountId) {

@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useCallback, useState } from "react";
-import { Upload, X, Film } from "lucide-react";
+import { Upload, X, Film, Folder } from "lucide-react";
 import { generateVideoThumbnail } from "@/lib/videoProcessor";
+import { VaultPicker } from "./VaultPicker";
 
 interface VideoUploaderProps {
   onVideosAdded: (files: File[]) => void;
@@ -15,6 +16,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
 }) => {
   const [dragActive, setDragActive] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<File[]>([]);
+  const [showVaultPicker, setShowVaultPicker] = useState(false);
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -93,6 +95,29 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
     setUploadingFiles((prev) => prev.filter((file) => file !== fileToRemove));
   };
 
+  const handleVaultMediaSelected = async (mediaUrls: string[]) => {
+    const vaultFiles: File[] = [];
+    
+    try {
+      for (const url of mediaUrls) {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const filename = `vault-video-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.mp4`;
+        const file = new File([blob], filename, { type: "video/mp4" });
+        vaultFiles.push(file);
+      }
+      
+      if (vaultFiles.length > 0) {
+        setUploadingFiles(vaultFiles);
+        await handleFiles(vaultFiles);
+        setUploadingFiles([]);
+      }
+    } catch (error) {
+      console.error("Error downloading vault media:", error);
+      alert("Failed to download some videos from vault. Please try again.");
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Upload Area */}
@@ -136,6 +161,32 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Alternative Upload Options */}
+      <div className="flex items-center justify-center">
+        <div className="flex items-center space-x-4">
+          <span className="text-sm text-gray-500 dark:text-gray-400">or</span>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowVaultPicker(true);
+            }}
+            disabled={isUploading}
+            className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
+          >
+            <Folder className="w-4 h-4" />
+            <span>Choose from OnlyFans Vault</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Vault Picker Modal */}
+      <VaultPicker
+        isOpen={showVaultPicker}
+        onClose={() => setShowVaultPicker(false)}
+        onMediaSelected={handleVaultMediaSelected}
+      />
 
       {/* Uploading Files Preview */}
       {uploadingFiles.length > 0 && (

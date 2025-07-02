@@ -30,7 +30,14 @@ const nextConfig = {
         hostname: "drive.google.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "cdn2.onlyfans.com",
+        pathname: "/**",
+      },
     ],
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   async headers() {
     return [
