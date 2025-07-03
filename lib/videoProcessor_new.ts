@@ -185,13 +185,15 @@ const ffmpegVideoExport = async (
   settings: ExportSettings,
   onProgress?: (progress: number) => void
 ): Promise<Blob> => {
-  console.log(`Starting FFmpeg video export as ${settings.format.toUpperCase()}`);
-  
+  console.log(
+    `Starting FFmpeg video export as ${settings.format.toUpperCase()}`
+  );
+
   if (onProgress) onProgress(5);
 
   // Initialize FFmpeg
   const ffmpeg = await initFFmpeg();
-  
+
   if (!ffmpeg || !ffmpeg.isLoaded()) {
     throw new Error("FFmpeg not loaded");
   }
@@ -217,10 +219,10 @@ const ffmpegVideoExport = async (
   // Add inputs with proper trimming, scaling, and effects
   for (let i = 0; i < sortedVideos.length; i++) {
     const video = sortedVideos[i];
-    
+
     // Calculate adjusted duration based on speed effect
     const speedMultiplier = video.effects.speed || 1;
-    
+
     // Add input arguments
     inputArgs.push("-ss", String(0)); // Start from beginning of each file
     inputArgs.push("-t", String(video.duration)); // Use original duration, we'll adjust with setpts
@@ -228,23 +230,23 @@ const ffmpegVideoExport = async (
 
     // Build filter for this input
     let videoFilter = `[${i}:v]`;
-    
+
     // Apply speed effect using setpts
     if (speedMultiplier !== 1) {
-      videoFilter += `setpts=${1/speedMultiplier}*PTS,`;
+      videoFilter += `setpts=${1 / speedMultiplier}*PTS,`;
     }
-    
+
     // Scale and pad to target dimensions
     videoFilter += `scale=${settings.width}:${settings.height}:force_original_aspect_ratio=decrease,pad=${settings.width}:${settings.height}:(ow-iw)/2:(oh-ih)/2,setsar=1`;
-    
+
     // Apply blur effects
     if (video.effects.blur > 0) {
       videoFilter += `,boxblur=${video.effects.blur}:${video.effects.blur}`;
     }
-    
+
     // Set fps
     videoFilter += `,fps=${settings.fps}`;
-    
+
     videoFilter += `[v${i}];`;
     filterComplex += videoFilter;
   }
@@ -252,7 +254,8 @@ const ffmpegVideoExport = async (
   if (onProgress) onProgress(30);
 
   // Concatenate all processed videos
-  filterComplex += sortedVideos.map((_, i) => `[v${i}]`).join("") + 
+  filterComplex +=
+    sortedVideos.map((_, i) => `[v${i}]`).join("") +
     `concat=n=${sortedVideos.length}:v=1:a=0[vout]`;
 
   console.log("Filter complex:", filterComplex);
@@ -276,31 +279,45 @@ const ffmpegVideoExport = async (
 
   // Calculate bitrate based on resolution and quality
   const pixelCount = settings.width * settings.height;
-  const baseBitrate = Math.min(8000, Math.max(2000, Math.floor(pixelCount * 2 / 1000)));
+  const baseBitrate = Math.min(
+    8000,
+    Math.max(2000, Math.floor((pixelCount * 2) / 1000))
+  );
   const qualityMultiplier = settings.quality / 100;
   const targetBitrate = Math.floor(baseBitrate * qualityMultiplier);
 
-  if (settings.format === 'mp4') {
+  if (settings.format === "mp4") {
     outputArgs = [
-      "-i", "concatenated.mp4",
-      "-c:v", "libx264",
-      "-pix_fmt", "yuv420p",
-      "-b:v", `${targetBitrate}k`,
-      "-preset", "fast", // Use faster preset for better performance
-      "-movflags", "+faststart",
+      "-i",
+      "concatenated.mp4",
+      "-c:v",
+      "libx264",
+      "-pix_fmt",
+      "yuv420p",
+      "-b:v",
+      `${targetBitrate}k`,
+      "-preset",
+      "fast", // Use faster preset for better performance
+      "-movflags",
+      "+faststart",
       "-y",
-      outputFilename
+      outputFilename,
     ];
   } else {
     // WebM
     outputArgs = [
-      "-i", "concatenated.mp4", 
-      "-c:v", "libvpx-vp9",
-      "-b:v", `${targetBitrate}k`,
-      "-crf", "30",
-      "-speed", "4", // Faster encoding
+      "-i",
+      "concatenated.mp4",
+      "-c:v",
+      "libvpx-vp9",
+      "-b:v",
+      `${targetBitrate}k`,
+      "-crf",
+      "30",
+      "-speed",
+      "4", // Faster encoding
       "-y",
-      outputFilename
+      outputFilename,
     ];
   }
 
@@ -313,7 +330,7 @@ const ffmpegVideoExport = async (
 
   // Read the output file
   const outputData = ffmpeg.FS("readFile", outputFilename);
-  
+
   if (onProgress) onProgress(95);
 
   // Clean up files
@@ -324,7 +341,7 @@ const ffmpegVideoExport = async (
       // Ignore cleanup errors
     }
   }
-  
+
   try {
     ffmpeg.FS("unlink", "concatenated.mp4");
     ffmpeg.FS("unlink", outputFilename);
@@ -335,10 +352,12 @@ const ffmpegVideoExport = async (
   if (onProgress) onProgress(100);
 
   // Create blob from output data
-  const mimeType = settings.format === 'mp4' ? 'video/mp4' : 'video/webm';
+  const mimeType = settings.format === "mp4" ? "video/mp4" : "video/webm";
   const blob = new Blob([outputData], { type: mimeType });
-  
-  console.log(`FFmpeg export complete. Size: ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
+
+  console.log(
+    `FFmpeg export complete. Size: ${(blob.size / 1024 / 1024).toFixed(2)}MB`
+  );
   return blob;
 };
 

@@ -185,24 +185,29 @@ const ffmpegVideoExport = async (
   settings: ExportSettings,
   onProgress?: (progress: number) => void
 ): Promise<Blob> => {
-  console.log(`Starting FFmpeg video export as ${settings.format.toUpperCase()}`);
-  
+  console.log(
+    `Starting FFmpeg video export as ${settings.format.toUpperCase()}`
+  );
+
   // Check if any video has selective blur regions
-  const hasSelectiveBlur = videos.some(video => 
-    video.effects.selectiveBlur && video.effects.selectiveBlur.length > 0
+  const hasSelectiveBlur = videos.some(
+    (video) =>
+      video.effects.selectiveBlur && video.effects.selectiveBlur.length > 0
   );
 
   if (hasSelectiveBlur) {
-    console.warn('Selective blur regions detected. MP4/WebM export uses canvas-based processing for selective blur support.');
+    console.warn(
+      "Selective blur regions detected. MP4/WebM export uses canvas-based processing for selective blur support."
+    );
     // Use canvas-based export for selective blur support
     return await canvasBasedVideoExport(videos, settings, onProgress);
   }
-  
+
   if (onProgress) onProgress(5);
 
   // Initialize FFmpeg
   const ffmpeg = await initFFmpeg();
-  
+
   if (!ffmpeg || !ffmpeg.isLoaded()) {
     throw new Error("FFmpeg not loaded");
   }
@@ -228,10 +233,10 @@ const ffmpegVideoExport = async (
   // Add inputs with proper trimming, scaling, and effects
   for (let i = 0; i < sortedVideos.length; i++) {
     const video = sortedVideos[i];
-    
+
     // Calculate adjusted duration based on speed effect
     const speedMultiplier = video.effects.speed || 1;
-    
+
     // Add input arguments
     inputArgs.push("-ss", String(0)); // Start from beginning of each file
     inputArgs.push("-t", String(video.duration)); // Use original duration, we'll adjust with setpts
@@ -239,23 +244,23 @@ const ffmpegVideoExport = async (
 
     // Build filter for this input
     let videoFilter = `[${i}:v]`;
-    
+
     // Apply speed effect using setpts
     if (speedMultiplier !== 1) {
-      videoFilter += `setpts=${1/speedMultiplier}*PTS,`;
+      videoFilter += `setpts=${1 / speedMultiplier}*PTS,`;
     }
-    
+
     // Scale and pad to target dimensions
     videoFilter += `scale=${settings.width}:${settings.height}:force_original_aspect_ratio=decrease,pad=${settings.width}:${settings.height}:(ow-iw)/2:(oh-ih)/2,setsar=1`;
-    
+
     // Apply global blur effects (selective blur handled by canvas-based export)
     if (video.effects.blur > 0) {
       videoFilter += `,boxblur=${video.effects.blur}:${video.effects.blur}`;
     }
-    
+
     // Set fps
     videoFilter += `,fps=${settings.fps}`;
-    
+
     videoFilter += `[v${i}];`;
     filterComplex += videoFilter;
   }
@@ -263,7 +268,8 @@ const ffmpegVideoExport = async (
   if (onProgress) onProgress(30);
 
   // Concatenate all processed videos
-  filterComplex += sortedVideos.map((_, i) => `[v${i}]`).join("") + 
+  filterComplex +=
+    sortedVideos.map((_, i) => `[v${i}]`).join("") +
     `concat=n=${sortedVideos.length}:v=1:a=0[vout]`;
 
   console.log("Filter complex:", filterComplex);
@@ -287,31 +293,45 @@ const ffmpegVideoExport = async (
 
   // Calculate bitrate based on resolution and quality
   const pixelCount = settings.width * settings.height;
-  const baseBitrate = Math.min(8000, Math.max(2000, Math.floor(pixelCount * 2 / 1000)));
+  const baseBitrate = Math.min(
+    8000,
+    Math.max(2000, Math.floor((pixelCount * 2) / 1000))
+  );
   const qualityMultiplier = settings.quality / 100;
   const targetBitrate = Math.floor(baseBitrate * qualityMultiplier);
 
-  if (settings.format === 'mp4') {
+  if (settings.format === "mp4") {
     outputArgs = [
-      "-i", "concatenated.mp4",
-      "-c:v", "libx264",
-      "-pix_fmt", "yuv420p",
-      "-b:v", `${targetBitrate}k`,
-      "-preset", "fast", // Use faster preset for better performance
-      "-movflags", "+faststart",
+      "-i",
+      "concatenated.mp4",
+      "-c:v",
+      "libx264",
+      "-pix_fmt",
+      "yuv420p",
+      "-b:v",
+      `${targetBitrate}k`,
+      "-preset",
+      "fast", // Use faster preset for better performance
+      "-movflags",
+      "+faststart",
       "-y",
-      outputFilename
+      outputFilename,
     ];
   } else {
     // WebM
     outputArgs = [
-      "-i", "concatenated.mp4", 
-      "-c:v", "libvpx-vp9",
-      "-b:v", `${targetBitrate}k`,
-      "-crf", "30",
-      "-speed", "4", // Faster encoding
+      "-i",
+      "concatenated.mp4",
+      "-c:v",
+      "libvpx-vp9",
+      "-b:v",
+      `${targetBitrate}k`,
+      "-crf",
+      "30",
+      "-speed",
+      "4", // Faster encoding
       "-y",
-      outputFilename
+      outputFilename,
     ];
   }
 
@@ -324,7 +344,7 @@ const ffmpegVideoExport = async (
 
   // Read the output file
   const outputData = ffmpeg.FS("readFile", outputFilename);
-  
+
   if (onProgress) onProgress(95);
 
   // Clean up files
@@ -335,7 +355,7 @@ const ffmpegVideoExport = async (
       // Ignore cleanup errors
     }
   }
-  
+
   try {
     ffmpeg.FS("unlink", "concatenated.mp4");
     ffmpeg.FS("unlink", outputFilename);
@@ -346,10 +366,12 @@ const ffmpegVideoExport = async (
   if (onProgress) onProgress(100);
 
   // Create blob from output data
-  const mimeType = settings.format === 'mp4' ? 'video/mp4' : 'video/webm';
+  const mimeType = settings.format === "mp4" ? "video/mp4" : "video/webm";
   const blob = new Blob([outputData], { type: mimeType });
-  
-  console.log(`FFmpeg export complete. Size: ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
+
+  console.log(
+    `FFmpeg export complete. Size: ${(blob.size / 1024 / 1024).toFixed(2)}MB`
+  );
   return blob;
 };
 
@@ -384,7 +406,7 @@ const applySelectiveBlur = (
   tempCanvas.width = targetWidth;
   tempCanvas.height = targetHeight;
   const tempCtx = tempCanvas.getContext("2d");
-  
+
   if (!tempCtx) return;
 
   // Process each blur region
@@ -414,13 +436,13 @@ const applySelectiveBlur = (
 
     // Create a clipping path for the blur region
     ctx.save();
-    
-    if (region.shape === 'circle') {
+
+    if (region.shape === "circle") {
       // Create circular clipping path
       const centerX = clampedX + clampedWidth / 2;
       const centerY = clampedY + clampedHeight / 2;
       const radius = Math.min(clampedWidth, clampedHeight) / 2;
-      
+
       ctx.beginPath();
       ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
       ctx.clip();
@@ -726,13 +748,15 @@ const canvasBasedVideoExport = async (
   settings: ExportSettings,
   onProgress?: (progress: number) => void
 ): Promise<Blob> => {
-  console.log(`Starting canvas-based video export as ${settings.format.toUpperCase()} with selective blur support`);
-  
+  console.log(
+    `Starting canvas-based video export as ${settings.format.toUpperCase()} with selective blur support`
+  );
+
   if (onProgress) onProgress(5);
 
   // Initialize FFmpeg
   const ffmpeg = await initFFmpeg();
-  
+
   if (!ffmpeg || !ffmpeg.isLoaded()) {
     throw new Error("FFmpeg not loaded");
   }
@@ -740,22 +764,22 @@ const canvasBasedVideoExport = async (
   if (onProgress) onProgress(10);
 
   // Create canvas for frame processing
-  const canvas = document.createElement('canvas');
+  const canvas = document.createElement("canvas");
   canvas.width = settings.width;
   canvas.height = settings.height;
-  const ctx = canvas.getContext('2d');
-  
+  const ctx = canvas.getContext("2d");
+
   if (!ctx) {
-    throw new Error('Could not get canvas context');
+    throw new Error("Could not get canvas context");
   }
 
   // Sort videos by start time
   const sortedVideos = [...videos].sort((a, b) => a.startTime - b.startTime);
-  
+
   // Calculate total duration with speed effects
   let totalFrames = 0;
   const videoFrameCounts: number[] = [];
-  
+
   for (const video of sortedVideos) {
     const speedMultiplier = video.effects.speed || 1;
     const effectiveDuration = video.duration / speedMultiplier;
@@ -774,24 +798,24 @@ const canvasBasedVideoExport = async (
     const video = sortedVideos[videoIndex];
     const frameCount = videoFrameCounts[videoIndex];
     const speedMultiplier = video.effects.speed || 1;
-    
+
     // Create video element for processing
-    const videoElement = document.createElement('video');
+    const videoElement = document.createElement("video");
     videoElement.src = video.url;
     videoElement.muted = true;
-    videoElement.crossOrigin = 'anonymous';
-    
+    videoElement.crossOrigin = "anonymous";
+
     // Wait for video to load
     await new Promise<void>((resolve, reject) => {
       videoElement.onloadeddata = () => resolve();
-      videoElement.onerror = () => reject(new Error('Failed to load video'));
+      videoElement.onerror = () => reject(new Error("Failed to load video"));
     });
 
     // Generate frames for this video
     for (let frame = 0; frame < frameCount; frame++) {
       const frameTime = (frame / settings.fps) * speedMultiplier;
       videoElement.currentTime = Math.min(frameTime, video.duration - 0.01);
-      
+
       // Wait for seek to complete
       await new Promise<void>((resolve) => {
         videoElement.onseeked = () => resolve();
@@ -808,17 +832,19 @@ const canvasBasedVideoExport = async (
       );
 
       // Convert canvas to image data
-      const frameImageData = canvas.toDataURL('image/png');
-      const frameData = frameImageData.split(',')[1];
-      const frameBytes = Uint8Array.from(atob(frameData), c => c.charCodeAt(0));
-      
+      const frameImageData = canvas.toDataURL("image/png");
+      const frameData = frameImageData.split(",")[1];
+      const frameBytes = Uint8Array.from(atob(frameData), (c) =>
+        c.charCodeAt(0)
+      );
+
       // Write frame to FFmpeg file system
-      const frameFilename = `frame_${currentFrame.toString().padStart(6, '0')}.png`;
-      ffmpeg.FS('writeFile', frameFilename, frameBytes);
+      const frameFilename = `frame_${currentFrame.toString().padStart(6, "0")}.png`;
+      ffmpeg.FS("writeFile", frameFilename, frameBytes);
       frameFiles.push(frameFilename);
-      
+
       currentFrame++;
-      
+
       // Update progress
       const progress = 15 + (currentFrame / totalFrames) * 60;
       if (onProgress) onProgress(Math.min(75, progress));
@@ -829,38 +855,54 @@ const canvasBasedVideoExport = async (
 
   // Create video from frames using FFmpeg
   const outputFilename = `output.${settings.format}`;
-  
+
   // Calculate bitrate based on resolution and quality
   const pixelCount = settings.width * settings.height;
-  const baseBitrate = Math.min(8000, Math.max(2000, Math.floor(pixelCount * 2 / 1000)));
+  const baseBitrate = Math.min(
+    8000,
+    Math.max(2000, Math.floor((pixelCount * 2) / 1000))
+  );
   const qualityMultiplier = settings.quality / 100;
   const targetBitrate = Math.floor(baseBitrate * qualityMultiplier);
 
   let outputArgs: string[];
 
-  if (settings.format === 'mp4') {
+  if (settings.format === "mp4") {
     outputArgs = [
-      '-framerate', String(settings.fps),
-      '-i', 'frame_%06d.png',
-      '-c:v', 'libx264',
-      '-pix_fmt', 'yuv420p',
-      '-b:v', `${targetBitrate}k`,
-      '-preset', 'fast',
-      '-movflags', '+faststart',
-      '-y',
-      outputFilename
+      "-framerate",
+      String(settings.fps),
+      "-i",
+      "frame_%06d.png",
+      "-c:v",
+      "libx264",
+      "-pix_fmt",
+      "yuv420p",
+      "-b:v",
+      `${targetBitrate}k`,
+      "-preset",
+      "fast",
+      "-movflags",
+      "+faststart",
+      "-y",
+      outputFilename,
     ];
   } else {
     // WebM
     outputArgs = [
-      '-framerate', String(settings.fps),
-      '-i', 'frame_%06d.png',
-      '-c:v', 'libvpx-vp9',
-      '-b:v', `${targetBitrate}k`,
-      '-crf', '30',
-      '-speed', '4',
-      '-y',
-      outputFilename
+      "-framerate",
+      String(settings.fps),
+      "-i",
+      "frame_%06d.png",
+      "-c:v",
+      "libvpx-vp9",
+      "-b:v",
+      `${targetBitrate}k`,
+      "-crf",
+      "30",
+      "-speed",
+      "4",
+      "-y",
+      outputFilename,
     ];
   }
 
@@ -872,21 +914,21 @@ const canvasBasedVideoExport = async (
   if (onProgress) onProgress(90);
 
   // Read the output file
-  const outputData = ffmpeg.FS('readFile', outputFilename);
-  
+  const outputData = ffmpeg.FS("readFile", outputFilename);
+
   if (onProgress) onProgress(95);
 
   // Clean up frame files
   for (const frameFile of frameFiles) {
     try {
-      ffmpeg.FS('unlink', frameFile);
+      ffmpeg.FS("unlink", frameFile);
     } catch {
       // Ignore cleanup errors
     }
   }
-  
+
   try {
-    ffmpeg.FS('unlink', outputFilename);
+    ffmpeg.FS("unlink", outputFilename);
   } catch {
     // Ignore cleanup errors
   }
@@ -894,9 +936,11 @@ const canvasBasedVideoExport = async (
   if (onProgress) onProgress(100);
 
   // Create blob from output data
-  const mimeType = settings.format === 'mp4' ? 'video/mp4' : 'video/webm';
+  const mimeType = settings.format === "mp4" ? "video/mp4" : "video/webm";
   const blob = new Blob([outputData], { type: mimeType });
-  
-  console.log(`Canvas-based video export complete. Size: ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
+
+  console.log(
+    `Canvas-based video export complete. Size: ${(blob.size / 1024 / 1024).toFixed(2)}MB`
+  );
   return blob;
 };
