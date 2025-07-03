@@ -143,32 +143,40 @@ export const useVideoSequence = () => {
 
   const getTotalDuration = useCallback(() => {
     if (videos.length === 0) return 0;
-    
-    // Calculate total duration accounting for speed effects
+
+    // Calculate total duration accounting for speed effects and trimming
     let totalDuration = 0;
     videos.forEach((video) => {
+      const trimStart = video.trimStart || 0;
+      const trimEnd = video.trimEnd || video.duration;
+      const trimmedDuration = trimEnd - trimStart;
       const speedMultiplier = video.effects.speed || 1;
-      const effectiveDuration = video.duration / speedMultiplier;
-      totalDuration += effectiveDuration;
+      totalDuration += trimmedDuration / speedMultiplier;
     });
-    
+
     return totalDuration;
   }, [videos]);
 
   const getCurrentVideo = useCallback(() => {
     let cumulativeTime = 0;
-    
+
     for (const video of videos) {
+      const trimStart = video.trimStart || 0;
+      const trimEnd = video.trimEnd || video.duration;
+      const trimmedDuration = trimEnd - trimStart;
       const speedMultiplier = video.effects.speed || 1;
-      const effectiveDuration = video.duration / speedMultiplier;
-      
-      if (currentTime >= cumulativeTime && currentTime < cumulativeTime + effectiveDuration) {
+      const effectiveDuration = trimmedDuration / speedMultiplier;
+
+      if (
+        currentTime >= cumulativeTime &&
+        currentTime < cumulativeTime + effectiveDuration
+      ) {
         return video;
       }
-      
+
       cumulativeTime += effectiveDuration;
     }
-    
+
     return undefined;
   }, [videos, currentTime]);
 
@@ -279,6 +287,45 @@ export const useVideoSequence = () => {
     []
   );
 
+  const updateVideoTrim = useCallback(
+    (id: string, trimStart?: number, trimEnd?: number) => {
+      setVideos((prev) =>
+        prev.map((video) => {
+          if (video.id === id) {
+            const updatedVideo = {
+              ...video,
+              trimStart:
+                trimStart !== undefined
+                  ? Math.max(0, Math.min(trimStart, video.duration))
+                  : video.trimStart,
+              trimEnd:
+                trimEnd !== undefined
+                  ? Math.max(0, Math.min(trimEnd, video.duration))
+                  : video.trimEnd,
+            };
+
+            // Ensure trimStart is less than trimEnd
+            if (
+              updatedVideo.trimStart !== undefined &&
+              updatedVideo.trimEnd !== undefined
+            ) {
+              if (updatedVideo.trimStart >= updatedVideo.trimEnd) {
+                updatedVideo.trimStart = Math.max(
+                  0,
+                  updatedVideo.trimEnd - 0.1
+                );
+              }
+            }
+
+            return updatedVideo;
+          }
+          return video;
+        })
+      );
+    },
+    []
+  );
+
   return {
     videos,
     selectedVideoId,
@@ -297,5 +344,6 @@ export const useVideoSequence = () => {
     addSelectiveBlurRegion,
     updateSelectiveBlurRegion,
     removeSelectiveBlurRegion,
+    updateVideoTrim,
   };
 };

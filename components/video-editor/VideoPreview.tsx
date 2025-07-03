@@ -115,7 +115,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
       return;
     }
 
-    // Calculate video time within the clip (accounting for speed and cumulative timing)
+    // Calculate video time within the clip (accounting for speed, cumulative timing, and trimming)
     const speedMultiplier = currentVideo.effects.speed || 1;
     
     // Find the cumulative start time for this video
@@ -125,17 +125,26 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
         break;
       }
       const videoSpeedMultiplier = video.effects.speed || 1;
-      const videoEffectiveDuration = video.duration / videoSpeedMultiplier;
+      // Account for trimming in cumulative time calculation
+      const trimStart = video.trimStart || 0;
+      const trimEnd = video.trimEnd || video.duration;
+      const trimmedDuration = trimEnd - trimStart;
+      const videoEffectiveDuration = trimmedDuration / videoSpeedMultiplier;
       cumulativeTime += videoEffectiveDuration;
     }
     
     const relativeTime = currentTime - cumulativeTime;
     const videoTime = relativeTime * speedMultiplier;
+    
+    // Apply trimming - offset by trimStart and constrain within trim bounds
+    const trimStart = currentVideo.trimStart || 0;
+    const trimEnd = currentVideo.trimEnd || currentVideo.duration;
+    const adjustedVideoTime = trimStart + Math.max(0, Math.min(videoTime, trimEnd - trimStart));
 
     // Only update video time if there's a significant difference to reduce seeking and lag
-    const timeDiff = Math.abs(videoElement.currentTime - videoTime);
+    const timeDiff = Math.abs(videoElement.currentTime - adjustedVideoTime);
     if (timeDiff > 0.5) { // Increased threshold significantly to reduce lag
-      videoElement.currentTime = Math.max(0, Math.min(videoTime, videoElement.duration - 0.01));
+      videoElement.currentTime = Math.max(0, Math.min(adjustedVideoTime, videoElement.duration - 0.01));
     }
 
     // Check if video is ready to render

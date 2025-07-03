@@ -11,7 +11,7 @@ export interface SelectiveBlurRegion {
   width: number; // Width as percentage (0-100)
   height: number; // Height as percentage (0-100)
   intensity: number; // Blur intensity (0-50)
-  shape: 'rectangle' | 'circle'; // Shape of the blur region
+  shape: "rectangle" | "circle"; // Shape of the blur region
 }
 
 export interface VideoSequenceItem {
@@ -23,6 +23,8 @@ export interface VideoSequenceItem {
   endTime: number;
   effects: VideoEffects;
   thumbnail?: string;
+  trimStart?: number; // Time (in seconds) to start the video from (default: 0)
+  trimEnd?: number; // Time (in seconds) to end the video at (default: duration)
 }
 
 export interface ExportSettings {
@@ -32,7 +34,7 @@ export interface ExportSettings {
   quality: number;
   startTime: number;
   endTime: number;
-  format: 'gif' | 'mp4' | 'webm'; // Export format options
+  format: "gif" | "mp4" | "webm"; // Export format options
 }
 
 export interface TimelinePosition {

@@ -8,6 +8,7 @@ import { VideoPreview } from "./VideoPreview";
 import { EffectsPanel } from "./EffectsPanel";
 import { ExportModal } from "./ExportModal";
 import { BlurEditorPanel } from "./BlurEditorPanel";
+import { TrimmerPanel } from "./TrimmerPanel";
 import ModelsDropdown from "../ModelsDropdown";
 import {
   Play,
@@ -34,6 +35,7 @@ export const VideoEditor: React.FC = () => {
     removeVideo,
     reorderVideos,
     updateVideoEffects,
+    updateVideoTrim,
     addSelectiveBlurRegion,
     updateSelectiveBlurRegion,
     removeSelectiveBlurRegion,
@@ -50,6 +52,9 @@ export const VideoEditor: React.FC = () => {
   const [editingBlur, setEditingBlur] = useState<{
     videoId: string;
     regionId: string;
+  } | null>(null);
+  const [trimmingVideo, setTrimmingVideo] = useState<{
+    videoId: string;
   } | null>(null);
 
   const handleVideosAdded = async (files: File[]) => {
@@ -93,6 +98,21 @@ export const VideoEditor: React.FC = () => {
 
   const handleCloseBlurEditor = () => {
     setEditingBlur(null);
+  };
+
+  const handleTrimVideo = (videoId: string) => {
+    setTrimmingVideo({ videoId });
+  };
+
+  const handleCloseTrimmer = () => {
+    setTrimmingVideo(null);
+  };
+
+  const handleTrimSave = (trimStart: number, trimEnd: number) => {
+    if (trimmingVideo) {
+      updateVideoTrim(trimmingVideo.videoId, trimStart, trimEnd);
+      setTrimmingVideo(null);
+    }
   };
 
   // Get the final formatted model value
@@ -367,6 +387,7 @@ export const VideoEditor: React.FC = () => {
                     selectedVideo={selectedVideo}
                     onEffectsChange={updateVideoEffects}
                     onRemoveVideo={handleRemoveVideo}
+                    onTrimVideo={handleTrimVideo}
                     onAddSelectiveBlurRegion={addSelectiveBlurRegion}
                     onUpdateSelectiveBlurRegion={updateSelectiveBlurRegion}
                     onRemoveSelectiveBlurRegion={removeSelectiveBlurRegion}
@@ -430,6 +451,15 @@ export const VideoEditor: React.FC = () => {
         onClose={() => setShowExportModal(false)}
         totalDuration={totalDuration}
       />
+
+      {/* Trimmer Panel */}
+      {trimmingVideo && (
+        <TrimmerPanel
+          video={videos.find((v) => v.id === trimmingVideo.videoId)!}
+          onSave={handleTrimSave}
+          onClose={handleCloseTrimmer}
+        />
+      )}
     </div>
   );
 };

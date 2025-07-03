@@ -91,12 +91,20 @@ export const Timeline: React.FC<TimelineProps> = ({
           break;
         }
         const speedMultiplier = v.effects.speed || 1;
-        const effectiveDuration = v.duration / speedMultiplier;
+        // Account for trimming in cumulative time calculation
+        const trimStart = v.trimStart || 0;
+        const trimEnd = v.trimEnd || v.duration;
+        const trimmedDuration = trimEnd - trimStart;
+        const effectiveDuration = trimmedDuration / speedMultiplier;
         cumulativeTime += effectiveDuration;
       }
 
       const speedMultiplier = video.effects.speed || 1;
-      const effectiveDuration = video.duration / speedMultiplier;
+      // Account for trimming in this video's duration
+      const trimStart = video.trimStart || 0;
+      const trimEnd = video.trimEnd || video.duration;
+      const trimmedDuration = trimEnd - trimStart;
+      const effectiveDuration = trimmedDuration / speedMultiplier;
 
       const leftPercent = Math.max(0, (cumulativeTime / totalDuration) * 100);
       const widthPercent = Math.max(0.5, (effectiveDuration / totalDuration) * 100);
@@ -143,7 +151,11 @@ export const Timeline: React.FC<TimelineProps> = ({
       let clickedVideo: VideoSequenceItem | undefined;
       for (const video of videos) {
         const speedMultiplier = video.effects.speed || 1;
-        const effectiveDuration = video.duration / speedMultiplier;
+        // Account for trimming in timeline click detection
+        const trimStart = video.trimStart || 0;
+        const trimEnd = video.trimEnd || video.duration;
+        const trimmedDuration = trimEnd - trimStart;
+        const effectiveDuration = trimmedDuration / speedMultiplier;
         
         if (clickTime >= cumulativeTime && clickTime < cumulativeTime + effectiveDuration) {
           clickedVideo = video;
@@ -428,7 +440,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                   marginLeft: index > 0 ? '1px' : '0', // Small gap between segments
                 }}
                 onClick={(e) => handleVideoClick(video, e)}
-                title={`${video.file.name} (${formatTime(video.duration)})`}
+                title={`${video.file.name} (${formatTime(video.trimEnd || video.duration)} ${video.trimStart || video.trimEnd ? 'trimmed' : 'full'})`}
               >
                 {/* Video text content - adaptive based on segment width and selection state */}
                 {widthPercent > 15 ? (
@@ -438,7 +450,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                       {video.file.name}
                     </div>
                     <div className={`absolute ${isSelected ? 'left-1 right-1' : 'left-3 right-3'} ${isSelected ? 'bottom-1' : 'bottom-1.5'} text-xs text-white/90 font-medium drop-shadow-sm`}>
-                      {formatTime(video.duration)}
+                      {formatTime((video.trimEnd || video.duration) - (video.trimStart || 0))}
                     </div>
                   </>
                 ) : widthPercent > 8 ? (
@@ -448,14 +460,14 @@ export const Timeline: React.FC<TimelineProps> = ({
                       {video.file.name.split('.')[0]} {/* Remove extension for space */}
                     </div>
                     <div className="text-xs text-white/90 font-medium leading-tight drop-shadow-sm">
-                      {formatTime(video.duration)}
+                      {formatTime((video.trimEnd || video.duration) - (video.trimStart || 0))}
                     </div>
                   </div>
                 ) : (
                   /* Narrow segments: show only duration in center with background */
                   <div className={`absolute ${isSelected ? 'inset-0.5' : 'inset-1'} flex items-center justify-center`}>
                     <div className={`text-xs text-white font-medium bg-black/40 ${isSelected ? 'px-0.5 py-0.5' : 'px-1.5 py-0.5'} rounded shadow-sm border border-white/20`}>
-                      {formatTime(video.duration)}
+                      {formatTime((video.trimEnd || video.duration) - (video.trimStart || 0))}
                     </div>
                   </div>
                 )}

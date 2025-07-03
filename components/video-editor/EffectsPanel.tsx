@@ -6,13 +6,14 @@ import {
   VideoEffects,
   SelectiveBlurRegion,
 } from "@/types/video";
-import { Sliders, Trash2, Eye } from "lucide-react";
+import { Sliders, Trash2, Eye, Scissors } from "lucide-react";
 import { SelectiveBlurPanel } from "./SelectiveBlurPanel";
 
 interface EffectsPanelProps {
   selectedVideo: VideoSequenceItem | null;
   onEffectsChange: (id: string, effects: Partial<VideoEffects>) => void;
   onRemoveVideo: (id: string) => void;
+  onTrimVideo?: (id: string) => void;
   onAddSelectiveBlurRegion: (
     videoId: string,
     region: Omit<SelectiveBlurRegion, "id">
@@ -31,6 +32,7 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
   selectedVideo,
   onEffectsChange,
   onRemoveVideo,
+  onTrimVideo,
   onAddSelectiveBlurRegion,
   onUpdateSelectiveBlurRegion,
   onRemoveSelectiveBlurRegion,
@@ -202,6 +204,16 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
         >
           Reset Effects
         </button>
+
+        {onTrimVideo && (
+          <button
+            onClick={() => onTrimVideo(selectedVideo.id)}
+            className="w-full px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors flex items-center justify-center space-x-2"
+          >
+            <Scissors className="w-4 h-4" />
+            <span>Trim Video</span>
+          </button>
+        )}
 
         <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
           <div className="flex items-center space-x-1">
