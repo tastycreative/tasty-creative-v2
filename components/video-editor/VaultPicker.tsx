@@ -43,9 +43,9 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const getProxiedImageUrl = (originalUrl: string) => {
-    // Add refresh parameter to bypass cache if needed
-    const refreshParam = Math.random() > 0.8 ? `&refresh=true` : "";
-    return `/api/proxy-image?url=${encodeURIComponent(originalUrl)}${refreshParam}`;
+    const proxyUrl = `/api/proxy-image?url=${encodeURIComponent(originalUrl)}`;
+    console.log("Generating proxy URL:", { originalUrl, proxyUrl });
+    return proxyUrl;
   };
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -80,6 +80,7 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
 
     const handleImageError = () => {
       console.log("Image failed to load:", src);
+      console.log("Setting hasError to true for:", src);
       setHasError(true);
       setIsLoading(false);
     };
@@ -116,7 +117,7 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
     );
   };
 
-  const ACCOUNT_ID = "acct_a362b5a389d14ae49e3b27e6029b17e3";
+  const ACCOUNT_ID = "acct_0a4c116d5a104a37a8526087c68d4e61";
 
   useEffect(() => {
     if (isOpen) {
@@ -137,6 +138,7 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
       }
 
       const data = await response.json();
+      console.log("Vault lists received:", data.data?.list);
       setVaultLists(data.data?.list || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load vault");
@@ -210,11 +212,12 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
           </button>
         </div>
 
-        {/* Info notice about improved image loading */}
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-4">
-          <p className="text-sm text-green-800 dark:text-green-200">
-            <strong>Improved:</strong> Images are now cached server-side for faster loading. 
-            Thumbnails may take a moment to load initially but will be cached for 24 hours.
+        {/* Info notice about streaming proxy */}
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+          <p className="text-sm text-blue-800 dark:text-blue-200">
+            <strong>Streaming:</strong> Images are streamed securely through our
+            proxy to bypass CDN restrictions. Thumbnails load directly from
+            OnlyFans.
           </p>
         </div>
 
@@ -273,10 +276,13 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                                 key={index}
                                 className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded overflow-hidden relative"
                               >
-                                {/* Always show fallback for vault list thumbnails since they're likely to fail due to CDN restrictions */}
-                                <div className="w-full h-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
-                                  <Video className="w-3 h-3 text-gray-500" />
-                                </div>
+                                <ImageWithFallback
+                                  src={getProxiedImageUrl(media.url)}
+                                  alt={`Preview ${index + 1}`}
+                                  className="absolute inset-0 w-full h-full object-cover"
+                                  width={48}
+                                  height={48}
+                                />
                               </div>
                             ))
                           ) : (
@@ -326,11 +332,13 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                         </div>
                       ) : (
                         <>
-                          {/* Enhanced loading info */}
-                          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-4">
-                            <p className="text-sm text-green-800 dark:text-green-200">
-                              <strong>Enhanced:</strong> Videos are now streamed through our proxy with server-side caching. 
-                              Thumbnails load faster and videos can be previewed securely.
+                          {/* Enhanced streaming info */}
+                          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+                            <p className="text-sm text-blue-800 dark:text-blue-200">
+                              <strong>Enhanced:</strong> Videos are now streamed
+                              through our proxy with CloudFront authentication.
+                              Thumbnails load directly and videos can be
+                              previewed securely.
                             </p>
                           </div>
 
@@ -383,7 +391,7 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                   <button
                     onClick={() => {
                       alert(
-                        "Video importing from vault is being implemented. The new proxy system allows for secure streaming and caching of OnlyFans media."
+                        "Video importing from vault is being implemented. The streaming proxy successfully handles OnlyFans authentication and media access."
                       );
                     }}
                     disabled={selectedMedia.length === 0}

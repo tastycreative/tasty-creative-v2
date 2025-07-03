@@ -1,49 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
-import { createHash } from "crypto";
-import { promises as fs } from "fs";
-import path from "path";
-
-// Cache directory for downloaded images
-const CACHE_DIR = path.join(process.cwd(), "temp", "image-cache");
-const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-
-// Ensure cache directory exists
-async function ensureCacheDir() {
-  try {
-    await fs.mkdir(CACHE_DIR, { recursive: true });
-  } catch (error) {
-    console.error("Failed to create cache directory:", error);
-  }
-}
-
-// Generate cache key from URL
-function getCacheKey(url: string): string {
-  return createHash("md5").update(url).digest("hex");
-}
-
-// Check if cache file exists and is valid
-async function isCacheValid(filePath: string): Promise<boolean> {
-  try {
-    const stats = await fs.stat(filePath);
-    const age = Date.now() - stats.mtime.getTime();
-    return age < CACHE_DURATION;
-  } catch {
-    return false;
-  }
-}
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session || session.user?.role !== "ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
 
     const { searchParams } = new URL(request.url);
     const imageUrl = searchParams.get("url");
-    const forceRefresh = searchParams.get("refresh") === "true";
 
     if (!imageUrl) {
       return NextResponse.json(
@@ -55,48 +16,27 @@ export async function GET(request: NextRequest) {
     // Allow OnlyFans CDN URLs and other common CDN patterns
     const allowedDomains = [
       "cdn2.onlyfans.com",
-      "cdn3.onlyfans.com", 
+      "cdn3.onlyfans.com",
       "cdn4.onlyfans.com",
       "cdn5.onlyfans.com",
-      "public.onlyfans.com"
+      "public.onlyfans.com",
     ];
-    
-    const isAllowedDomain = allowedDomains.some(domain => imageUrl.includes(domain));
-    
+
+    const isAllowedDomain = allowedDomains.some((domain) =>
+      imageUrl.includes(domain)
+    );
+
     if (!isAllowedDomain) {
-      return NextResponse.json({ error: "Invalid image URL domain" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid image URL domain" },
+        { status: 400 }
+      );
     }
 
-    await ensureCacheDir();
-
-    const cacheKey = getCacheKey(imageUrl);
-    console.log(`Processing image request for cache key: ${cacheKey}`);
+    console.log(`Processing image stream request`);
     console.log(`Original URL: ${imageUrl}`);
 
-    // Check cache first (unless force refresh)
-    if (!forceRefresh) {
-      const tempExtensions = ["jpg", "jpeg", "png", "gif", "webp"];
-      
-      for (const ext of tempExtensions) {
-        const tempPath = path.join(CACHE_DIR, `${cacheKey}.${ext}`);
-        if (await isCacheValid(tempPath)) {
-          console.log(`Serving cached image: ${tempPath}`);
-          
-          const cachedBuffer = await fs.readFile(tempPath);
-          const mimeType = `image/${ext === "jpg" ? "jpeg" : ext}`;
-          
-          return new NextResponse(cachedBuffer, {
-            headers: {
-              "Content-Type": mimeType,
-              "Cache-Control": "public, max-age=86400", // 24 hours
-              "X-Cache": "HIT",
-            },
-          });
-        }
-      }
-    }
-
-    // Cache miss - need to download the image
+    // Note: Removed caching for streaming approach - direct stream from CDN
     console.log("Cache miss - downloading image from OnlyFans CDN");
 
     // Parse the URL to check for AWS authentication parameters
@@ -110,18 +50,17 @@ export async function GET(request: NextRequest) {
     const requestHeaders: Record<string, string> = {
       "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      "Accept": "image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+      Accept: "image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
       "Accept-Language": "en-US,en;q=0.9",
       "Accept-Encoding": "gzip, deflate, br",
-      "Referer": "https://onlyfans.com/",
-      "Origin": "https://onlyfans.com",
+      Referer: "https://onlyfans.com/",
+      Origin: "https://onlyfans.com",
       "Sec-Fetch-Dest": "image",
       "Sec-Fetch-Mode": "no-cors",
       "Sec-Fetch-Site": "cross-site",
       "Cache-Control": "no-cache",
     };
 
-    // Add CloudFront authentication if available
     if (hasAwsAuth) {
       const policy = parsedUrl.searchParams.get("Policy");
       const signature = parsedUrl.searchParams.get("Signature");
@@ -129,50 +68,44 @@ export async function GET(request: NextRequest) {
 
       if (policy && signature && keyPairId) {
         console.log("Adding CloudFront authentication parameters");
+
+        requestHeaders["Cookie"] = 
+          `CloudFront-Policy=${policy}; CloudFront-Signature=${signature}; CloudFront-Key-Pair-Id=${keyPairId}`;
+        
+
         requestHeaders["CloudFront-Policy"] = policy;
         requestHeaders["CloudFront-Signature"] = signature;
         requestHeaders["CloudFront-Key-Pair-Id"] = keyPairId;
+        
+        console.log("Authentication methods applied: query params (preserved), cookies, headers");
       }
     }
 
-    // Download the image with retries
+    // Stream the image directly without downloading
+    console.log("Streaming image from OnlyFans CDN");
+
     let response: Response | null = null;
     let lastError: Error | null = null;
-    
-    const maxRetries = 3;
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        console.log(`Download attempt ${attempt}/${maxRetries}`);
-        
-        response = await fetch(imageUrl, {
-          headers: requestHeaders,
-          // Add a timeout to prevent hanging
-          signal: AbortSignal.timeout(30000), // 30 second timeout
-        });
 
-        if (response.ok) {
-          break; // Success!
-        } else {
-          console.warn(`Attempt ${attempt} failed with status: ${response.status}`);
-          if (attempt === maxRetries) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-          }
-        }
-      } catch (error) {
-        lastError = error as Error;
-        console.error(`Download attempt ${attempt} failed:`, error);
-        
-        if (attempt < maxRetries) {
-          // Wait before retrying (exponential backoff)
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000));
-        }
+    try {
+      response = await fetch(imageUrl, {
+        headers: requestHeaders,
+        signal: AbortSignal.timeout(30000), // 30 second timeout
+      });
+
+      if (!response.ok) {
+        lastError = new Error(`HTTP ${response.status}: ${response.statusText}`);
+        console.error(`Stream failed with status: ${response.status}`);
       }
+    } catch (error) {
+      lastError = error as Error;
+      console.error("Stream attempt failed:", error);
     }
 
     if (!response || !response.ok) {
-      console.error("All download attempts failed");
-      
-      // Return a styled placeholder for failed downloads
+      console.error("Stream failed:", lastError?.message);
+
+      // Return a styled placeholder for failed streams
       const placeholderSvg = `
         <svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
           <defs>
@@ -191,7 +124,7 @@ export async function GET(request: NextRequest) {
             OnlyFans Media
           </text>
           <text x="150" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#6b7280">
-            Unable to Load
+            Stream Failed
           </text>
           <text x="150" y="240" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#9ca3af">
             ${lastError?.message || "CDN Access Restricted"}
@@ -202,18 +135,21 @@ export async function GET(request: NextRequest) {
       return new NextResponse(placeholderSvg, {
         headers: {
           "Content-Type": "image/svg+xml",
-          "Cache-Control": "public, max-age=300", // Cache error for 5 minutes
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Pragma": "no-cache", 
+          "Expires": "0",
           "X-Cache": "ERROR",
         },
       });
     }
 
     const contentType = response.headers.get("content-type") || "image/jpeg";
-    
+    const contentLength = response.headers.get("content-length");
+
     // Validate content type
     if (!contentType.startsWith("image/")) {
       console.error(`Invalid content type received: ${contentType}`);
-      
+
       const errorSvg = `
         <svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">
           <rect width="300" height="300" fill="#fef2f2"/>
@@ -227,43 +163,41 @@ export async function GET(request: NextRequest) {
       return new NextResponse(errorSvg, {
         headers: {
           "Content-Type": "image/svg+xml",
-          "Cache-Control": "public, max-age=300",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Pragma": "no-cache",
+          "Expires": "0", 
           "X-Cache": "ERROR",
         },
       });
     }
 
-    // Download and cache the image
-    const imageBuffer = await response.arrayBuffer();
-    const imageSize = imageBuffer.byteLength;
-    
-    console.log(`Successfully downloaded image: ${imageSize} bytes, type: ${contentType}`);
+    console.log(`Streaming image: ${contentType}, length: ${contentLength || 'unknown'}`);
 
-    // Save to cache
-    try {
-      const extension = contentType.split("/")[1] || "jpg";
-      const cacheFilePath = path.join(CACHE_DIR, `${cacheKey}.${extension}`);
-      
-      await fs.writeFile(cacheFilePath, Buffer.from(imageBuffer));
-      console.log(`Image cached to: ${cacheFilePath}`);
-    } catch (cacheError) {
-      console.error("Failed to cache image:", cacheError);
-      // Continue anyway - we can still serve the image
+    // Stream the image directly
+    const imageStream = response.body;
+    
+    if (!imageStream) {
+      return NextResponse.json(
+        { error: "No image stream available" },
+        { status: 500 }
+      );
     }
 
-    // Return the image
-    return new NextResponse(imageBuffer, {
+    // Return streaming response with no caching (fresh URLs each time)
+    return new NextResponse(imageStream, {
       headers: {
         "Content-Type": contentType,
-        "Cache-Control": "public, max-age=86400", // 24 hours
-        "X-Cache": "MISS",
-        "X-Image-Size": imageSize.toString(),
+        "Cache-Control": "no-cache, no-store, must-revalidate", // No caching for fresh URLs
+        "Pragma": "no-cache",
+        "Expires": "0",
+        "Access-Control-Allow-Origin": "*",
+        "X-Cache": "STREAM",
+        ...(contentLength && { "Content-Length": contentLength }),
       },
     });
-
   } catch (error) {
     console.error("Image proxy error:", error);
-    
+
     // Return error placeholder
     const errorSvg = `
       <svg width="300" height="300" xmlns="http://www.w3.org/2000/svg">

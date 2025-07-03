@@ -22,20 +22,20 @@ export async function DELETE(request: NextRequest) {
 
     try {
       const files = await fs.readdir(CACHE_DIR);
-      
+
       for (const file of files) {
         const filePath = path.join(CACHE_DIR, file);
         const stats = await fs.stat(filePath);
-        
+
         let shouldDelete = false;
-        
+
         if (action === "all") {
           shouldDelete = true;
         } else if (action === "expired") {
           const age = Date.now() - stats.mtime.getTime();
           shouldDelete = age > CACHE_DURATION;
         }
-        
+
         if (shouldDelete) {
           totalSize += stats.size;
           await fs.unlink(filePath);
@@ -54,7 +54,7 @@ export async function DELETE(request: NextRequest) {
       success: true,
       message: `Deleted ${deletedCount} cached images`,
       deletedCount,
-      totalSizeMB: Math.round(totalSize / 1024 / 1024 * 100) / 100,
+      totalSizeMB: Math.round((totalSize / 1024 / 1024) * 100) / 100,
     });
   } catch (error) {
     console.error("Cache cleanup error:", error);
@@ -79,14 +79,14 @@ export async function GET() {
 
     try {
       const files = await fs.readdir(CACHE_DIR);
-      
+
       for (const file of files) {
         const filePath = path.join(CACHE_DIR, file);
         const stats = await fs.stat(filePath);
-        
+
         totalFiles++;
         totalSize += stats.size;
-        
+
         const age = Date.now() - stats.mtime.getTime();
         if (age > CACHE_DURATION) {
           expiredFiles++;
@@ -94,14 +94,14 @@ export async function GET() {
       }
     } catch (error) {
       // Cache directory might not exist yet
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
         console.error("Cache status error:", error);
       }
     }
 
     return NextResponse.json({
       totalFiles,
-      totalSizeMB: Math.round(totalSize / 1024 / 1024 * 100) / 100,
+      totalSizeMB: Math.round((totalSize / 1024 / 1024) * 100) / 100,
       expiredFiles,
       cacheDir: CACHE_DIR,
     });

@@ -22,16 +22,21 @@ export async function GET(request: NextRequest) {
     // Allow OnlyFans CDN URLs and other common CDN patterns
     const allowedDomains = [
       "cdn2.onlyfans.com",
-      "cdn3.onlyfans.com", 
+      "cdn3.onlyfans.com",
       "cdn4.onlyfans.com",
       "cdn5.onlyfans.com",
-      "public.onlyfans.com"
+      "public.onlyfans.com",
     ];
-    
-    const isAllowedDomain = allowedDomains.some(domain => videoUrl.includes(domain));
-    
+
+    const isAllowedDomain = allowedDomains.some((domain) =>
+      videoUrl.includes(domain)
+    );
+
     if (!isAllowedDomain) {
-      return NextResponse.json({ error: "Invalid video URL domain" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid video URL domain" },
+        { status: 400 }
+      );
     }
 
     console.log("Streaming video from OnlyFans CDN:", videoUrl);
@@ -47,11 +52,12 @@ export async function GET(request: NextRequest) {
     const requestHeaders: Record<string, string> = {
       "User-Agent":
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-      "Accept": "video/webm,video/ogg,video/*;q=0.9,application/ogg;q=0.7,audio/*;q=0.6,*/*;q=0.5",
+      Accept:
+        "video/webm,video/ogg,video/*;q=0.9,application/ogg;q=0.7,audio/*;q=0.6,*/*;q=0.5",
       "Accept-Language": "en-US,en;q=0.9",
       "Accept-Encoding": "identity", // Don't compress for streaming
-      "Referer": "https://onlyfans.com/",
-      "Origin": "https://onlyfans.com",
+      Referer: "https://onlyfans.com/",
+      Origin: "https://onlyfans.com",
       "Sec-Fetch-Dest": "video",
       "Sec-Fetch-Mode": "no-cors",
       "Sec-Fetch-Site": "cross-site",
@@ -85,10 +91,14 @@ export async function GET(request: NextRequest) {
     });
 
     if (!response.ok) {
-      console.error(`Video fetch failed: ${response.status} ${response.statusText}`);
-      
+      console.error(
+        `Video fetch failed: ${response.status} ${response.statusText}`
+      );
+
       return NextResponse.json(
-        { error: `Failed to fetch video: ${response.status} ${response.statusText}` },
+        {
+          error: `Failed to fetch video: ${response.status} ${response.statusText}`,
+        },
         { status: response.status }
       );
     }
@@ -99,16 +109,21 @@ export async function GET(request: NextRequest) {
     const contentRange = response.headers.get("content-range");
 
     // Validate content type
-    if (!contentType.startsWith("video/") && !contentType.includes("octet-stream")) {
+    if (
+      !contentType.startsWith("video/") &&
+      !contentType.includes("octet-stream")
+    ) {
       console.error(`Invalid content type for video: ${contentType}`);
-      
+
       return NextResponse.json(
         { error: "Invalid video content type" },
         { status: 400 }
       );
     }
 
-    console.log(`Streaming video: ${contentType}, length: ${contentLength || 'unknown'}`);
+    console.log(
+      `Streaming video: ${contentType}, length: ${contentLength || "unknown"}`
+    );
 
     // Prepare response headers
     const responseHeaders: Record<string, string> = {
@@ -132,7 +147,7 @@ export async function GET(request: NextRequest) {
 
     // Stream the video content
     const videoStream = response.body;
-    
+
     if (!videoStream) {
       return NextResponse.json(
         { error: "No video stream available" },
@@ -145,10 +160,9 @@ export async function GET(request: NextRequest) {
       status: response.status,
       headers: responseHeaders,
     });
-
   } catch (error) {
     console.error("Video streaming error:", error);
-    
+
     return NextResponse.json(
       { error: "Failed to stream video" },
       { status: 500 }
@@ -175,14 +189,16 @@ export async function HEAD(request: NextRequest) {
     // Allow OnlyFans CDN URLs
     const allowedDomains = [
       "cdn2.onlyfans.com",
-      "cdn3.onlyfans.com", 
+      "cdn3.onlyfans.com",
       "cdn4.onlyfans.com",
       "cdn5.onlyfans.com",
-      "public.onlyfans.com"
+      "public.onlyfans.com",
     ];
-    
-    const isAllowedDomain = allowedDomains.some(domain => videoUrl.includes(domain));
-    
+
+    const isAllowedDomain = allowedDomains.some((domain) =>
+      videoUrl.includes(domain)
+    );
+
     if (!isAllowedDomain) {
       return new NextResponse(null, { status: 400 });
     }
@@ -193,7 +209,7 @@ export async function HEAD(request: NextRequest) {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-        "Referer": "https://onlyfans.com/",
+        Referer: "https://onlyfans.com/",
       },
       signal: AbortSignal.timeout(30000),
     });
@@ -214,7 +230,6 @@ export async function HEAD(request: NextRequest) {
         "Cache-Control": "public, max-age=3600",
       },
     });
-
   } catch (error) {
     console.error("Video HEAD request error:", error);
     return new NextResponse(null, { status: 500 });
