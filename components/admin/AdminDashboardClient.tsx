@@ -18,16 +18,25 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { DateTime } from "luxon";
+import {
   Users,
   TrendingUp,
   Activity,
   UserCheck,
   Calendar,
+  CalendarDays,
   DollarSign,
   FileText,
-  Star,
   BarChart3,
-  Percent,
   Loader2,
   MessageCircle,
   Trophy,
@@ -186,20 +195,65 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
   });
   const [isLoadingSwdData, setIsLoadingSwdData] = useState(true);
 
-  // Fetch real VN sales and voice data
+  // Date range state
+  const [dateRange, setDateRange] = useState<"30" | "60" | "90" | "custom">(
+    "30"
+  );
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
+  const [showCustomDateInputs, setShowCustomDateInputs] = useState(false);
+
+  // State for storing all raw data (unfiltered)
+  const [allVnSalesData, setAllVnSalesData] = useState<any>(null);
+  const [allContentData, setAllContentData] = useState<any>(null);
+  const [allMassMessages, setAllMassMessages] = useState<any[]>([]);
+
+  // Helper functions (moved outside useEffect to avoid dependency issues)
+  const getCurrentDateRange = React.useCallback(() => {
+    const now = DateTime.now();
+    let startDate: DateTime;
+    let endDate = now;
+
+    if (dateRange === "custom") {
+      if (customStartDate && customEndDate) {
+        const customStart = DateTime.fromISO(customStartDate);
+        const customEnd = DateTime.fromISO(customEndDate);
+        if (customStart.isValid && customEnd.isValid) {
+          startDate = customStart;
+          endDate = customEnd;
+        } else {
+          startDate = now.minus({ days: 30 });
+        }
+      } else {
+        startDate = now.minus({ days: 30 });
+      }
+    } else {
+      const days = parseInt(dateRange);
+      startDate = now.minus({ days });
+    }
+
+    return { startDate, endDate };
+  }, [dateRange, customStartDate, customEndDate]);
+
+  // Client-side filtering function
+  const filterDataByDateRange = React.useCallback((data: any[], dateField: string = 'date') => {
+    const { startDate, endDate } = getCurrentDateRange();
+    
+    return data.filter(item => {
+      if (!item[dateField]) return false;
+      const itemDate = DateTime.fromISO(item[dateField]) || DateTime.fromJSDate(new Date(item[dateField]));
+      return itemDate >= startDate && itemDate <= endDate;
+    });
+  }, [getCurrentDateRange]);
+
+  // Fetch all data once (no date filtering on server)
   useEffect(() => {
     const fetchVnSalesData = async () => {
       try {
-        const response = await fetch("/api/vn-sales/stats");
+        const response = await fetch(`/api/vn-sales/stats`);
         if (response.ok) {
           const vnStats = await response.json();
-          setVnSalesData((prev) => ({
-            ...prev,
-            vnSalesToday: vnStats.vnSalesToday || 0,
-            totalRevenue: vnStats.totalRevenue || 0,
-            averageVnPrice: vnStats.averageVnPrice || 0,
-            salesByModel: vnStats.salesByModel || [],
-          }));
+          setAllVnSalesData(vnStats);
         }
       } catch (error) {
         console.error("Error fetching VN sales data:", error);
@@ -228,16 +282,10 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
 
     const fetchContentGenerationData = async () => {
       try {
-        const response = await fetch("/api/content-generated/stats");
+        const response = await fetch(`/api/content-generated/stats`);
         if (response.ok) {
           const contentStats = await response.json();
-          setContentGenerationData({
-            totalContentGenerated: contentStats.totalContentGenerated || 0,
-            contentGeneratedToday: contentStats.contentGeneratedToday || 0,
-            contentGrowth: contentStats.contentGrowth || 0,
-            contentByTracker: contentStats.contentByTracker || [],
-          });
-          setRecentActivities(contentStats.recentActivities || []);
+          setAllContentData(contentStats);
         }
       } catch (error) {
         console.error("Error fetching content generation data:", error);
@@ -250,7 +298,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       try {
         // Fetch both SWD performance data and script lists
         const [swdResponse, driveResponse] = await Promise.all([
-          fetch("/api/google/swd-data"),
+          fetch(`/api/google/swd-data`),
           fetch("/api/google/list-scripts"),
         ]);
 
@@ -527,6 +575,9 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             }
           }
 
+          // Store all raw messages for client-side filtering
+          setAllMassMessages(allMessages);
+
           // Sort by total revenue (primary), then view count (secondary), then view rate (tertiary)
           leaderboardData.sort((a, b) => {
             if (b.totalRevenue !== a.totalRevenue) {
@@ -541,23 +592,8 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             item.rank = index + 1;
           });
 
-          // Sort all messages by views (primary), then by view rate (secondary), then by revenue (tertiary)
-          allMessages.sort((a, b) => {
-            if (b.viewedCount !== a.viewedCount) {
-              return b.viewedCount - a.viewedCount;
-            }
-            if (b.viewRate !== a.viewRate) {
-              return b.viewRate - a.viewRate;
-            }
-            return b.revenue - a.revenue;
-          });
-          allMessages.forEach((msg, index) => {
-            msg.rank = index + 1;
-          });
-
           setTotalMassMessages(totalMessages);
           setMassMessagingLeaderboard(leaderboardData.slice(0, 5)); // Top 5
-          setTopPerformingMessages(allMessages.slice(0, 10)); // Top 10 messages
         }
       } catch (error) {
         console.error("Error fetching total mass messages:", error);
@@ -566,12 +602,88 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       }
     };
 
+    // Only fetch data once on component mount
     fetchVnSalesData();
     fetchVoiceData();
     fetchContentGenerationData();
     fetchSwdData();
     fetchTotalMassMessages();
-  }, []);
+  }, []); // Empty dependency array - only run once
+
+  // Separate useEffect for client-side filtering when date range changes
+  useEffect(() => {
+    if (!allVnSalesData || !allContentData || !allMassMessages.length) {
+      return; // Wait for data to be loaded
+    }
+
+    // Apply client-side filtering
+    const { startDate, endDate } = getCurrentDateRange();
+
+    // Filter VN Sales data
+    if (allVnSalesData.salesByModel) {
+      const filteredSales = allVnSalesData.salesByModel.filter((sale: any) => {
+        if (!sale.date) return false;
+        const saleDate = DateTime.fromISO(sale.date) || DateTime.fromJSDate(new Date(sale.date));
+        return saleDate >= startDate && saleDate <= endDate;
+      });
+
+      const totalRevenue = filteredSales.reduce((sum: number, sale: any) => sum + (sale.revenue || 0), 0);
+      const totalSales = filteredSales.length;
+      const averagePrice = totalSales > 0 ? totalRevenue / totalSales : 0;
+
+      setVnSalesData(prev => ({
+        ...prev,
+        totalRevenue,
+        salesByModel: filteredSales,
+        averageVnPrice: averagePrice,
+        vnSalesToday: filteredSales.filter((sale: any) => {
+          const saleDate = DateTime.fromISO(sale.date) || DateTime.fromJSDate(new Date(sale.date));
+          return saleDate.hasSame(DateTime.now(), 'day');
+        }).length,
+      }));
+    }
+
+    // Filter Content Generation data
+    if (allContentData.recentActivities) {
+      const filteredActivities = allContentData.recentActivities.filter((activity: any) => {
+        if (!activity.date) return false;
+        const activityDate = DateTime.fromISO(activity.date) || DateTime.fromJSDate(new Date(activity.date));
+        return activityDate >= startDate && activityDate <= endDate;
+      });
+
+      setContentGenerationData({
+        totalContentGenerated: filteredActivities.length,
+        contentGeneratedToday: filteredActivities.filter((activity: any) => {
+          const activityDate = DateTime.fromISO(activity.date) || DateTime.fromJSDate(new Date(activity.date));
+          return activityDate.hasSame(DateTime.now(), 'day');
+        }).length,
+        contentGrowth: 0, // Calculate based on previous period if needed
+        contentByTracker: allContentData.contentByTracker || [],
+      });
+      
+      setRecentActivities(filteredActivities.slice(0, 10)); // Show top 10 recent
+    }
+
+    // Filter Mass Messages
+    const filteredMessages = filterDataByDateRange(allMassMessages, 'date');
+
+    // Sort filtered messages by views (primary), then by view rate (secondary), then by revenue (tertiary)
+    filteredMessages.sort((a, b) => {
+      if (b.viewedCount !== a.viewedCount) {
+        return b.viewedCount - a.viewedCount;
+      }
+      if (b.viewRate !== a.viewRate) {
+        return b.viewRate - a.viewRate;
+      }
+      return b.revenue - a.revenue;
+    });
+    filteredMessages.forEach((msg, index) => {
+      msg.rank = index + 1;
+    });
+
+    setTopPerformingMessages(filteredMessages.slice(0, 10)); // Top 10 messages
+
+  }, [filterDataByDateRange, getCurrentDateRange, allVnSalesData, allContentData, allMassMessages]);
 
   const vnSales = vnSalesData;
 
@@ -690,58 +802,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       isLoading: isLoadingMassMessages,
     },
     {
-      title: "Conversion Rate",
-      value: analytics.conversionRate,
-      formattedValue: `${analytics.conversionRate}%`,
-      icon: Percent,
-      description: `+${analytics.conversionGrowth}% from last week`,
-      color: "text-green-600",
-      bgColor: "bg-green-50",
-      iconBgColor: "bg-green-100",
-      prefix: "",
-      suffix: "%",
-    },
-
-    {
-      title: "Loyalty Points",
-      value: isLoadingVnStats
-        ? 0
-        : vnSalesData?.salesByModel?.reduce(
-            (total: number, model: any) => total + (model.loyaltyPoints || 0),
-            0
-          ) || 0,
-      formattedValue: isLoadingVnStats
-        ? "Loading..."
-        : (
-            vnSalesData?.salesByModel?.reduce(
-              (total: number, model: any) => total + (model.loyaltyPoints || 0),
-              0
-            ) || 0
-          ).toLocaleString(),
-      icon: Star,
-      description: isLoadingVnStats
-        ? "Fetching from Google Sheets..."
-        : `+${vnSales.loyaltyPointsGrowth}% this week`,
-      color: "text-yellow-600",
-      bgColor: "bg-yellow-50",
-      iconBgColor: "bg-yellow-100",
-      prefix: "",
-      suffix: "",
-      isLoading: isLoadingVnStats,
-    },
-    {
-      title: "ROI",
-      value: analytics.roi,
-      formattedValue: `${analytics.roi}%`,
-      icon: BarChart3,
-      description: `+${analytics.roiGrowth}% from last week`,
-      color: "text-purple-600",
-      bgColor: "bg-purple-50",
-      iconBgColor: "bg-purple-100",
-      prefix: "",
-      suffix: "%",
-    },
-    {
       title: "Total Scripts",
       value: swdData.totalScripts,
       formattedValue: isLoadingSwdData
@@ -783,9 +843,66 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     <div className="min-h-screen p-6 space-y-6 bg-gradient-to-br from-gray-50 via-white to-pink-50">
       {/* Header */}
       <div className="mb-8 p-6 bg-gradient-to-r from-gray-50 to-pink-50 rounded-lg border">
-        <div className="flex items-center space-x-3 mb-2">
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <Sparkles className="h-6 w-6 text-pink-500" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4">
+          <div className="flex items-center space-x-3 mb-2 sm:mb-0">
+            <h1 className="text-3xl font-bold text-gray-900">
+              Admin Dashboard
+            </h1>
+            <Sparkles className="h-6 w-6 text-pink-500" />
+          </div>
+
+          {/* Date Range Selector */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+            <div className="flex items-center space-x-2">
+              <CalendarDays className="h-4 w-4 text-gray-500" />
+              <Label className="text-sm font-medium text-gray-700">
+                Date Range:
+              </Label>
+            </div>
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 relative">
+              <div className="relative">
+                <Select
+                  value={dateRange}
+                  onValueChange={(value: "30" | "60" | "90" | "custom") => {
+                    setDateRange(value);
+                    if (value !== "custom") {
+                      setShowCustomDateInputs(false);
+                    } else {
+                      setShowCustomDateInputs(true);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-auto min-w-[180px]">
+                    <SelectValue>
+                      {dateRange === "custom" &&
+                      customStartDate &&
+                      customEndDate
+                        ? `${DateTime.fromISO(customStartDate).toLocaleString(DateTime.DATE_MED)} - ${DateTime.fromISO(customEndDate).toLocaleString(DateTime.DATE_MED)}`
+                        : `Last ${dateRange} days`}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="30">Last 30 days</SelectItem>
+                    <SelectItem value="60">Last 60 days</SelectItem>
+                    <SelectItem value="90">Last 90 days</SelectItem>
+                    <SelectItem value="custom">Custom range</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {showCustomDateInputs && (
+                  <DateRangePicker
+                    startDate={customStartDate}
+                    endDate={customEndDate}
+                    onDateRangeChange={(start, end) => {
+                      setCustomStartDate(start);
+                      setCustomEndDate(end);
+                    }}
+                    onClose={() => setShowCustomDateInputs(false)}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
         </div>
         <p className="text-gray-600">
           Monitor your application&apos;s performance and user activity
