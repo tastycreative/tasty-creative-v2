@@ -179,8 +179,6 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
   const handleGoogleDriveSelect = async () => {
     try {
       startListTransition(async () => {
-        setIsGooglePickerLoading(true);
-
         try {
           // Start from root or model folder
           let url = "/api/google-drive/list?includeVideos=true";
@@ -196,13 +194,14 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
             setCurrentFolder(initialData.currentFolder || null);
             setParentFolder(initialData.parentFolder || null);
             setShowGoogleDrivePicker(true);
+            // Reset loading state immediately when modal opens
+            setIsGooglePickerLoading(false);
           } else {
             alert("No videos found in Google Drive");
           }
         } catch (error) {
           console.error("Error fetching drive files:", error);
           alert("Failed to load Google Drive files");
-        } finally {
           setIsGooglePickerLoading(false);
         }
       });
@@ -227,10 +226,11 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
       setGoogleFiles(data.files);
       setCurrentFolder(data.currentFolder || null);
       setParentFolder(data.parentFolder || null);
+      // Reset loading state when folder content is loaded
+      setIsGooglePickerLoading(false);
     } catch (error) {
       console.error("Error opening folder:", error);
       alert("Failed to open folder");
-    } finally {
       setIsGooglePickerLoading(false);
     }
   };
@@ -251,10 +251,11 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
         setGoogleFiles(data.files);
         setCurrentFolder(data.currentFolder || null);
         setParentFolder(data.parentFolder || null);
+        // Reset loading state when navigation is complete
+        setIsGooglePickerLoading(false);
       } catch (error) {
         console.error("Error navigating up:", error);
         alert("Failed to navigate up");
-      } finally {
         setIsGooglePickerLoading(false);
       }
     }
@@ -368,17 +369,19 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              // Immediately set loading state for instant feedback
+              setIsGooglePickerLoading(true);
               handleGoogleDriveSelect();
             }}
             disabled={isUploading || isGooglePickerLoading || !model}
             className="inline-flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
           >
-            <HardDrive className="w-4 h-4" />
+            <HardDrive className={`w-4 h-4 ${isGooglePickerLoading ? 'animate-pulse' : ''}`} />
             <span>
               {!model
                 ? "Select Model First"
                 : isGooglePickerLoading
-                  ? "Loading..."
+                  ? "Opening Drive..."
                   : `Google Drive (${model})`}
             </span>
           </button>
