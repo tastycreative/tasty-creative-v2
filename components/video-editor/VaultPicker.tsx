@@ -43,7 +43,9 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scrapingQueue, setScrapingQueue] = useState<Set<string>>(new Set());
-  const [scrapedUrls, setScrapedUrls] = useState<Map<string, { url: string; expiration: string }>>(new Map());
+  const [scrapedUrls, setScrapedUrls] = useState<
+    Map<string, { url: string; expiration: string }>
+  >(new Map());
   const [rateLimitStatus, setRateLimitStatus] = useState<{
     remaining_minute: number;
     remaining_day: number;
@@ -52,25 +54,30 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
   } | null>(null);
 
   // Throttled scraping queue to limit concurrent requests
-  const [scrapingPromises, setScrapingPromises] = useState<Map<string, Promise<string>>>(new Map());
+  const [scrapingPromises, setScrapingPromises] = useState<
+    Map<string, Promise<string>>
+  >(new Map());
   const MAX_CONCURRENT_SCRAPING = 3; // Limit concurrent scraping requests
 
   // Rate limiting: Only allow scraping if we have sufficient rate limit remaining
   const canMakeApiRequest = () => {
     if (!rateLimitStatus) return true; // Allow if we don't know the limits yet
-    return rateLimitStatus.remaining_minute > 10 && rateLimitStatus.remaining_day > 50; // Keep some buffer
+    return (
+      rateLimitStatus.remaining_minute > 10 &&
+      rateLimitStatus.remaining_day > 50
+    ); // Keep some buffer
   };
 
   // Update rate limit status from API response
-  const updateRateLimitStatus = (responseData: { 
-    _meta?: { 
+  const updateRateLimitStatus = (responseData: {
+    _meta?: {
       _rate_limits?: {
         remaining_minute: number;
         remaining_day: number;
         limit_minute: number;
         limit_day: number;
-      } 
-    } 
+      };
+    };
   }) => {
     if (responseData._meta?._rate_limits) {
       setRateLimitStatus(responseData._meta._rate_limits);
@@ -88,7 +95,7 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
           return cached.url;
         } else {
           // Remove expired entry
-          setScrapedUrls(prev => {
+          setScrapedUrls((prev) => {
             const newMap = new Map(prev);
             newMap.delete(originalUrl);
             return newMap;
@@ -98,7 +105,10 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
 
       // Check rate limits before making API request
       if (!canMakeApiRequest()) {
-        console.warn("Rate limit approaching, skipping scraping for:", originalUrl);
+        console.warn(
+          "Rate limit approaching, skipping scraping for:",
+          originalUrl
+        );
         return originalUrl; // Return original URL without scraping
       }
 
@@ -109,30 +119,35 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
       }
 
       // Add to scraping queue
-      setScrapingQueue(prev => new Set(prev).add(originalUrl));
+      setScrapingQueue((prev) => new Set(prev).add(originalUrl));
 
       // Add a small delay to avoid overwhelming the API
-      await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 200)); // 100-300ms delay
+      await new Promise((resolve) =>
+        setTimeout(resolve, 100 + Math.random() * 200)
+      ); // 100-300ms delay
 
       console.log("Scraping image URL:", originalUrl);
       const requestBody = {
-        endpoint: 'media-scrape',
+        endpoint: "media-scrape",
         accountId: ACCOUNT_ID,
         url: originalUrl,
-        expiration_date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ') // 24 hours from now
+        expiration_date: new Date(Date.now() + 24 * 60 * 60 * 1000)
+          .toISOString()
+          .slice(0, 19)
+          .replace("T", " "), // 24 hours from now
       };
       console.log("Sending request body:", requestBody);
-      
+
       const response = await fetch(`/api/onlyfans/models`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify(requestBody),
       });
 
       // Remove from scraping queue
-      setScrapingQueue(prev => {
+      setScrapingQueue((prev) => {
         const newSet = new Set(prev);
         newSet.delete(originalUrl);
         return newSet;
@@ -141,49 +156,55 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
       if (!response.ok) {
         const errorText = await response.text();
         console.error("Media scrape failed:", errorText);
-        
+
         // Check if it's a rate limit error
         if (response.status === 429) {
           console.warn("Rate limit exceeded, will retry later");
           return originalUrl;
         }
-        
+
         throw new Error(`Failed to scrape media: ${response.status}`);
       }
 
       const data = await response.json();
       console.log("OnlyFans Media Scrape response:", data);
-      
+
       // Update rate limit status from response
       updateRateLimitStatus(data);
-      
+
       if (data.scrapedUrl) {
         // Cache the scraped URL with expiration
-        setScrapedUrls(prev => new Map(prev).set(originalUrl, {
-          url: data.scrapedUrl,
-          expiration: data.expiration_date || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-        }));
-        
+        setScrapedUrls((prev) =>
+          new Map(prev).set(originalUrl, {
+            url: data.scrapedUrl,
+            expiration:
+              data.expiration_date ||
+              new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          })
+        );
+
         return data.scrapedUrl;
       }
-      
+
       return originalUrl; // Fallback to original if scraping fails
     } catch (error) {
       console.error("Media scrape failed:", error);
-      
+
       // Remove from scraping queue on error
-      setScrapingQueue(prev => {
+      setScrapingQueue((prev) => {
         const newSet = new Set(prev);
         newSet.delete(originalUrl);
         return newSet;
       });
-      
+
       return originalUrl; // Fallback to original URL
     }
   };
 
   // Throttled scraping function to limit concurrent requests
-  const throttledGetScrapedImageUrl = async (originalUrl: string): Promise<string> => {
+  const throttledGetScrapedImageUrl = async (
+    originalUrl: string
+  ): Promise<string> => {
     // Check if we already have a promise for this URL
     const existingPromise = scrapingPromises.get(originalUrl);
     if (existingPromise) {
@@ -198,12 +219,12 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
 
     // Create and store the promise
     const promise = getScrapedImageUrl(originalUrl);
-    setScrapingPromises(prev => new Map(prev).set(originalUrl, promise));
+    setScrapingPromises((prev) => new Map(prev).set(originalUrl, promise));
 
     try {
       const result = await promise;
       // Remove from promises map when done
-      setScrapingPromises(prev => {
+      setScrapingPromises((prev) => {
         const newMap = new Map(prev);
         newMap.delete(originalUrl);
         return newMap;
@@ -211,7 +232,7 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
       return result;
     } catch (error) {
       // Remove from promises map on error
-      setScrapingPromises(prev => {
+      setScrapingPromises((prev) => {
         const newMap = new Map(prev);
         newMap.delete(originalUrl);
         return newMap;
@@ -413,27 +434,40 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
         {/* Info notice about media scraping */}
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
           <p className="text-sm text-blue-800 dark:text-blue-200">
-            <strong>Enhanced Media Access:</strong> Images are now fetched using OnlyFans API media scraping for better authentication and CDN access.
+            <strong>Enhanced Media Access:</strong> Images are now fetched using
+            OnlyFans API media scraping for better authentication and CDN
+            access.
           </p>
         </div>
 
         {/* Rate limit status indicator */}
         {rateLimitStatus && (
-          <div className={`border rounded-lg p-3 mb-4 ${
-            rateLimitStatus.remaining_minute > 50 && rateLimitStatus.remaining_day > 1000
-              ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-              : rateLimitStatus.remaining_minute > 10 && rateLimitStatus.remaining_day > 50
-              ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'
-              : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
-          }`}>
-            <p className={`text-sm font-medium ${
-              rateLimitStatus.remaining_minute > 50 && rateLimitStatus.remaining_day > 1000
-                ? 'text-green-800 dark:text-green-200'
-                : rateLimitStatus.remaining_minute > 10 && rateLimitStatus.remaining_day > 50
-                ? 'text-yellow-800 dark:text-yellow-200'
-                : 'text-red-800 dark:text-red-200'
-            }`}>
-              API Rate Limits: {rateLimitStatus.remaining_minute}/{rateLimitStatus.limit_minute} per minute, {rateLimitStatus.remaining_day}/{rateLimitStatus.limit_day} per day
+          <div
+            className={`border rounded-lg p-3 mb-4 ${
+              rateLimitStatus.remaining_minute > 50 &&
+              rateLimitStatus.remaining_day > 1000
+                ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+                : rateLimitStatus.remaining_minute > 10 &&
+                    rateLimitStatus.remaining_day > 50
+                  ? "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800"
+                  : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
+            }`}
+          >
+            <p
+              className={`text-sm font-medium ${
+                rateLimitStatus.remaining_minute > 50 &&
+                rateLimitStatus.remaining_day > 1000
+                  ? "text-green-800 dark:text-green-200"
+                  : rateLimitStatus.remaining_minute > 10 &&
+                      rateLimitStatus.remaining_day > 50
+                    ? "text-yellow-800 dark:text-yellow-200"
+                    : "text-red-800 dark:text-red-200"
+              }`}
+            >
+              API Rate Limits: {rateLimitStatus.remaining_minute}/
+              {rateLimitStatus.limit_minute} per minute,{" "}
+              {rateLimitStatus.remaining_day}/{rateLimitStatus.limit_day} per
+              day
             </p>
             {rateLimitStatus.remaining_minute <= 10 && (
               <p className="text-xs text-red-600 dark:text-red-400 mt-1">
@@ -447,7 +481,8 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
         {scrapingQueue.size > 0 && (
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-2 mb-4">
             <p className="text-xs text-blue-600 dark:text-blue-400">
-              🔄 Scraping {scrapingQueue.size} image{scrapingQueue.size !== 1 ? 's' : ''}...
+              🔄 Scraping {scrapingQueue.size} image
+              {scrapingQueue.size !== 1 ? "s" : ""}...
             </p>
           </div>
         )}
@@ -566,7 +601,10 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                           {/* Enhanced scraping info */}
                           <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-4">
                             <p className="text-sm text-green-800 dark:text-green-200">
-                              <strong>Media Scraping:</strong> Using OnlyFans API media scraping endpoint for secure and authenticated access to CDN content with proper expiration handling.
+                              <strong>Media Scraping:</strong> Using OnlyFans
+                              API media scraping endpoint for secure and
+                              authenticated access to CDN content with proper
+                              expiration handling.
                             </p>
                           </div>
 

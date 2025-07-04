@@ -25,31 +25,53 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
   model,
 }) => {
   // Helper function to check if a file is a video
-  const isVideoFile = useCallback((fileName: string, mimeType?: string): boolean => {
-    // Check by MIME type first
-    if (mimeType && mimeType.startsWith('video/')) {
-      return true;
-    }
-    
-    // Check by file extension
-    const videoExtensions = [
-      '.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv', '.webm', '.m4v', 
-      '.3gp', '.ogv', '.m2v', '.asf', '.vob', '.mts', '.m2ts'
-    ];
-    
-    const extension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'));
-    return videoExtensions.includes(extension);
-  }, []);
+  const isVideoFile = useCallback(
+    (fileName: string, mimeType?: string): boolean => {
+      // Check by MIME type first
+      if (mimeType && mimeType.startsWith("video/")) {
+        return true;
+      }
+
+      // Check by file extension
+      const videoExtensions = [
+        ".mp4",
+        ".avi",
+        ".mov",
+        ".mkv",
+        ".wmv",
+        ".flv",
+        ".webm",
+        ".m4v",
+        ".3gp",
+        ".ogv",
+        ".m2v",
+        ".asf",
+        ".vob",
+        ".mts",
+        ".m2ts",
+      ];
+
+      const extension = fileName
+        .toLowerCase()
+        .substring(fileName.lastIndexOf("."));
+      return videoExtensions.includes(extension);
+    },
+    []
+  );
 
   const [dragActive, setDragActive] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState<File[]>([]);
   const [showVaultPicker, setShowVaultPicker] = useState(false);
-  
+
   // Google Drive states
   const [showGoogleDrivePicker, setShowGoogleDrivePicker] = useState(false);
   const [googleFiles, setGoogleFiles] = useState<GoogleDriveFile[]>([]);
-  const [currentFolder, setCurrentFolder] = useState<GoogleDriveFile | null>(null);
-  const [parentFolder, setParentFolder] = useState<GoogleDriveFile | null>(null);
+  const [currentFolder, setCurrentFolder] = useState<GoogleDriveFile | null>(
+    null
+  );
+  const [parentFolder, setParentFolder] = useState<GoogleDriveFile | null>(
+    null
+  );
   const [isGooglePickerLoading, setIsGooglePickerLoading] = useState(false);
   const [isDownloading, startDownloadTransition] = useTransition();
   const [, startListTransition] = useTransition();
@@ -96,25 +118,32 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
       e.stopPropagation();
       setDragActive(false);
 
-      const files = Array.from(e.dataTransfer.files).filter((file) =>
-        file.type.startsWith("video/") || isVideoFile(file.name, file.type)
+      const files = Array.from(e.dataTransfer.files).filter(
+        (file) =>
+          file.type.startsWith("video/") || isVideoFile(file.name, file.type)
       );
 
       if (files.length > 0) {
         // Additional validation - remove any files that aren't actually videos
-        const validVideoFiles = files.filter(file => isVideoFile(file.name, file.type));
-        
+        const validVideoFiles = files.filter((file) =>
+          isVideoFile(file.name, file.type)
+        );
+
         if (validVideoFiles.length !== files.length) {
-          alert(`Some files were not valid video files and were skipped. Only ${validVideoFiles.length} out of ${files.length} files will be processed.`);
+          alert(
+            `Some files were not valid video files and were skipped. Only ${validVideoFiles.length} out of ${files.length} files will be processed.`
+          );
         }
-        
+
         if (validVideoFiles.length > 0) {
           setUploadingFiles(validVideoFiles);
           await handleFiles(validVideoFiles);
           setUploadingFiles([]);
         }
       } else {
-        alert("Please drop video files only. Supported formats: mp4, avi, mov, mkv, wmv, flv, webm, m4v, 3gp, ogv, etc.");
+        alert(
+          "Please drop video files only. Supported formats: mp4, avi, mov, mkv, wmv, flv, webm, m4v, 3gp, ogv, etc."
+        );
       }
     },
     [handleFiles, isVideoFile]
@@ -122,25 +151,32 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
 
   const handleFileInput = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const files = Array.from(e.target.files || []).filter((file) =>
-        file.type.startsWith("video/") || isVideoFile(file.name, file.type)
+      const files = Array.from(e.target.files || []).filter(
+        (file) =>
+          file.type.startsWith("video/") || isVideoFile(file.name, file.type)
       );
 
       if (files.length > 0) {
         // Additional validation - remove any files that aren't actually videos
-        const validVideoFiles = files.filter(file => isVideoFile(file.name, file.type));
-        
+        const validVideoFiles = files.filter((file) =>
+          isVideoFile(file.name, file.type)
+        );
+
         if (validVideoFiles.length !== files.length) {
-          alert(`Some files were not valid video files and were skipped. Only ${validVideoFiles.length} out of ${files.length} files will be processed.`);
+          alert(
+            `Some files were not valid video files and were skipped. Only ${validVideoFiles.length} out of ${files.length} files will be processed.`
+          );
         }
-        
+
         if (validVideoFiles.length > 0) {
           setUploadingFiles(validVideoFiles);
           await handleFiles(validVideoFiles);
           setUploadingFiles([]);
         }
       } else if (e.target.files && e.target.files.length > 0) {
-        alert("Please select video files only. Supported formats: mp4, avi, mov, mkv, wmv, flv, webm, m4v, 3gp, ogv, etc.");
+        alert(
+          "Please select video files only. Supported formats: mp4, avi, mov, mkv, wmv, flv, webm, m4v, 3gp, ogv, etc."
+        );
       }
 
       // Reset input
@@ -155,7 +191,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
 
   const handleVaultMediaSelected = async (mediaUrls: string[]) => {
     const vaultFiles: File[] = [];
-    
+
     try {
       for (const url of mediaUrls) {
         const response = await fetch(url);
@@ -164,7 +200,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
         const file = new File([blob], filename, { type: "video/mp4" });
         vaultFiles.push(file);
       }
-      
+
       if (vaultFiles.length > 0) {
         setUploadingFiles(vaultFiles);
         await handleFiles(vaultFiles);
@@ -269,33 +305,37 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
 
     // Check if the file is a video before attempting to download
     if (!isVideoFile(file.name)) {
-      alert(`"${file.name}" is not a supported video file. Please select a video file (mp4, avi, mov, etc.)`);
+      alert(
+        `"${file.name}" is not a supported video file. Please select a video file (mp4, avi, mov, etc.)`
+      );
       return;
     }
 
     try {
       startDownloadTransition(async () => {
-        const response = await fetch(`/api/google-drive/download?id=${file.id}`);
+        const response = await fetch(
+          `/api/google-drive/download?id=${file.id}`
+        );
         if (!response.ok) {
           throw new Error("Failed to download video");
         }
 
         const blob = await response.blob();
-        
+
         // Validate the blob type as well
         if (!isVideoFile(file.name, blob.type)) {
           alert(`"${file.name}" does not appear to be a valid video file.`);
           return;
         }
-        
+
         // Create a File object from the blob with proper type detection
         const videoFile = new File([blob], file.name, {
-          type: blob.type.startsWith('video/') ? blob.type : 'video/mp4'
+          type: blob.type.startsWith("video/") ? blob.type : "video/mp4",
         });
 
         // Add the video to the sequence
         await onVideosAdded([videoFile]);
-        
+
         // Close the Google Drive picker
         setShowGoogleDrivePicker(false);
       });
@@ -376,7 +416,9 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
             disabled={isUploading || isGooglePickerLoading || !model}
             className="inline-flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
           >
-            <HardDrive className={`w-4 h-4 ${isGooglePickerLoading ? 'animate-pulse' : ''}`} />
+            <HardDrive
+              className={`w-4 h-4 ${isGooglePickerLoading ? "animate-pulse" : ""}`}
+            />
             <span>
               {!model
                 ? "Select Model First"
@@ -398,11 +440,15 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
       {/* Google Drive Picker Modal */}
       {showGoogleDrivePicker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-4xl max-h-[80vh] overflow-hidden relative ${isDownloading ? 'overflow-hidden' : ''}`}>
+          <div
+            className={`bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-4xl max-h-[80vh] overflow-hidden relative ${isDownloading ? "overflow-hidden" : ""}`}
+          >
             {isDownloading && (
               <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-black/90 z-50">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mb-2"></div>
-                <span className="text-sm text-gray-300">Downloading Video...</span>
+                <span className="text-sm text-gray-300">
+                  Downloading Video...
+                </span>
               </div>
             )}
             {/* Header */}
@@ -476,33 +522,37 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                           {file.isFolder ? (
                             <Folder className="w-8 h-8 text-gray-400" />
                           ) : file.thumbnailLink ? (
-                          <Image
-                            src={`/api/image-proxy?url=${encodeURIComponent(file.thumbnailLink)}`}
-                            width={120}
-                            height={68}
-                            alt={file.name}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                            unoptimized
-                          />
-                        ) : (
-                          <Film className={`w-8 h-8 ${isVideo ? "text-gray-400" : "text-red-400"}`} />
-                        )}
-                        {!file.isFolder && !isVideo && (
-                          <div className="absolute top-1 right-1 bg-red-500 text-white text-xs px-1 rounded">
-                            Not Video
-                          </div>
-                        )}
-                      </div>
-                      <p className={`text-sm font-medium truncate ${
-                        isVideo || file.isFolder 
-                          ? "text-gray-900 dark:text-white" 
-                          : "text-gray-500 dark:text-gray-400"
-                      }`}>
-                        {file.name}
-                      </p>
-                    </button>
-                  );
+                            <Image
+                              src={`/api/image-proxy?url=${encodeURIComponent(file.thumbnailLink)}`}
+                              width={120}
+                              height={68}
+                              alt={file.name}
+                              className="w-full h-full object-cover"
+                              loading="lazy"
+                              unoptimized
+                            />
+                          ) : (
+                            <Film
+                              className={`w-8 h-8 ${isVideo ? "text-gray-400" : "text-red-400"}`}
+                            />
+                          )}
+                          {!file.isFolder && !isVideo && (
+                            <div className="absolute top-1 right-1 bg-red-500 text-white text-xs px-1 rounded">
+                              Not Video
+                            </div>
+                          )}
+                        </div>
+                        <p
+                          className={`text-sm font-medium truncate ${
+                            isVideo || file.isFolder
+                              ? "text-gray-900 dark:text-white"
+                              : "text-gray-500 dark:text-gray-400"
+                          }`}
+                        >
+                          {file.name}
+                        </p>
+                      </button>
+                    );
                   })}
                 </div>
               )}
