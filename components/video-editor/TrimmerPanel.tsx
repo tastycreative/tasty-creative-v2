@@ -394,7 +394,7 @@ export const TrimmerPanel: React.FC<TrimmerPanelProps> = ({
       if (isDragging === "start") {
         const constrainedStart = Math.max(0, Math.min(newTime, endTime - 0.1));
         setStartTime(constrainedStart);
-        
+
         // If current time is before new start, move it to start
         if (currentTime < constrainedStart) {
           setCurrentTime(constrainedStart);
@@ -408,7 +408,7 @@ export const TrimmerPanel: React.FC<TrimmerPanelProps> = ({
           Math.max(newTime, startTime + 0.1)
         );
         setEndTime(constrainedEnd);
-        
+
         // If current time is after new end, move it to end
         if (currentTime > constrainedEnd) {
           setCurrentTime(constrainedEnd);

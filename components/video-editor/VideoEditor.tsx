@@ -305,6 +305,7 @@ export const VideoEditor: React.FC = () => {
               <VideoUploader
                 onVideosAdded={handleVideosAdded}
                 isUploading={isUploading}
+                model={formData.model}
               />
             ) : (
               <div className="bg-gray-50 dark:bg-gray-800/50 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center">
@@ -436,6 +437,7 @@ export const VideoEditor: React.FC = () => {
                   <VideoUploader
                     onVideosAdded={handleVideosAdded}
                     isUploading={isUploading}
+                    model={formData.model}
                   />
                 </div>
               </div>

@@ -300,3 +300,93 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session || session.user?.role !== "ADMIN") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    console.log("POST request body:", body);
+    const { endpoint, accountId, url, expiration_date } = body;
+    console.log("Extracted values:", { endpoint, accountId, url, expiration_date });
+
+    const apiKey = process.env.ONLYFANS_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "OnlyFans API key not configured" },
+        { status: 500 }
+      );
+    }
+
+    if (endpoint === "media-scrape") {
+      console.log("Media scrape endpoint - checking params:", { accountId, url });
+      if (!accountId || !url) {
+        console.log("Missing required params for media scraping");
+        return NextResponse.json(
+          { error: "Account ID and URL required for media scraping" },
+          { status: 400 }
+        );
+      }
+
+      const apiUrl = `${ONLYFANS_API_BASE}/${accountId}/media/scrape`;
+
+      const requestBody = {
+        url: url,
+        expiration_date:
+          expiration_date ||
+          new Date(Date.now() + 24 * 60 * 60 * 1000)
+            .toISOString()
+            .slice(0, 19)
+            .replace("T", " "),
+      };
+
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(
+          "OnlyFans Media Scrape Error:",
+          response.status,
+          errorText
+        );
+        return NextResponse.json(
+          { error: `OnlyFans API Error: ${response.status} - ${errorText}` },
+          { status: response.status }
+        );
+      }
+
+      const data = await response.json();
+      console.log("OnlyFans Media Scrape response:", data);
+      
+      // Normalize the response to provide a consistent scrapedUrl field
+      const normalizedResponse = {
+        ...data,
+        scrapedUrl: data.temporary_url || data.url // Support both field names
+      };
+      
+      return NextResponse.json(normalizedResponse);
+    }
+
+    return NextResponse.json(
+      { error: "Unsupported POST endpoint" },
+      { status: 400 }
+    );
+  } catch (error) {
+    console.error("OnlyFans API POST error:", error);
+    return NextResponse.json(
+      { error: "Failed to process OnlyFans POST request" },
+      { status: 500 }
+    );
+  }
+}

@@ -40,34 +40,45 @@ export const Timeline: React.FC<TimelineProps> = ({
 
   // Calculate dynamic blur area height based on total number of blur regions across all videos
   const totalBlurRegions = useMemo(() => {
-    return videos.reduce((total, video) => 
-      total + (video.effects.selectiveBlur ? video.effects.selectiveBlur.length : 0), 0
+    return videos.reduce(
+      (total, video) =>
+        total +
+        (video.effects.selectiveBlur ? video.effects.selectiveBlur.length : 0),
+      0
     );
   }, [videos]);
 
   // Dynamic blur area height - minimum 28px, grows with more regions
   const blurAreaHeight = useMemo(() => {
     if (totalBlurRegions === 0) return 28;
-    
+
     // Calculate required height for all regions
     const overlayHeight = 10;
     const overlaySpacing = 1;
     const topPadding = 4;
     const bottomPadding = 4;
-    const requiredHeight = topPadding + bottomPadding + (totalBlurRegions * overlayHeight) + ((totalBlurRegions - 1) * overlaySpacing);
-    
+    const requiredHeight =
+      topPadding +
+      bottomPadding +
+      totalBlurRegions * overlayHeight +
+      (totalBlurRegions - 1) * overlaySpacing;
+
     // Use calculated height with a reasonable maximum, but ensure we can fit all regions
     const maxHeight = 160; // Increased cap to allow more regions
     const calculatedHeight = Math.min(Math.max(28, requiredHeight), maxHeight);
-    
+
     // If we hit the max height, ensure we can still fit all regions (they'll just be smaller)
     if (requiredHeight > maxHeight && totalBlurRegions > 0) {
       // Calculate minimum height needed with smaller overlays
       const minOverlayHeight = 8; // Minimum 8px height
-      const minRequiredHeight = topPadding + bottomPadding + (totalBlurRegions * minOverlayHeight) + ((totalBlurRegions - 1) * overlaySpacing);
+      const minRequiredHeight =
+        topPadding +
+        bottomPadding +
+        totalBlurRegions * minOverlayHeight +
+        (totalBlurRegions - 1) * overlaySpacing;
       return Math.min(maxHeight, Math.max(calculatedHeight, minRequiredHeight));
     }
-    
+
     return calculatedHeight;
   }, [totalBlurRegions]);
 
@@ -107,8 +118,11 @@ export const Timeline: React.FC<TimelineProps> = ({
       const effectiveDuration = trimmedDuration / speedMultiplier;
 
       const leftPercent = Math.max(0, (cumulativeTime / totalDuration) * 100);
-      const widthPercent = Math.max(0.5, (effectiveDuration / totalDuration) * 100);
-      
+      const widthPercent = Math.max(
+        0.5,
+        (effectiveDuration / totalDuration) * 100
+      );
+
       // Ensure the video segment doesn't overflow the container
       const maxWidth = 100 - leftPercent;
       const constrainedWidthPercent = Math.min(widthPercent, maxWidth);
@@ -132,20 +146,20 @@ export const Timeline: React.FC<TimelineProps> = ({
   const handleTimelineMouseDown = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       const target = e.target as HTMLElement;
-      
+
       // Don't interfere with blur overlays or video segments - let them handle their own clicks
-      if (target.closest('.blur-overlay') || target.closest('.video-segment')) {
+      if (target.closest(".blur-overlay") || target.closest(".video-segment")) {
         return;
       }
-      
+
       // Only allow seeking when clicking on empty timeline areas
       const rect = e.currentTarget.getBoundingClientRect();
       const clickX = e.clientX - rect.left;
       const percentage = Math.max(0, Math.min(1, clickX / rect.width));
-      
+
       // Check if the click is within any video segment bounds
       const clickTime = percentage * totalDuration;
-      
+
       // Find clicked video using cumulative timing
       let cumulativeTime = 0;
       let clickedVideo: VideoSequenceItem | undefined;
@@ -156,32 +170,35 @@ export const Timeline: React.FC<TimelineProps> = ({
         const trimEnd = video.trimEnd || video.duration;
         const trimmedDuration = trimEnd - trimStart;
         const effectiveDuration = trimmedDuration / speedMultiplier;
-        
-        if (clickTime >= cumulativeTime && clickTime < cumulativeTime + effectiveDuration) {
+
+        if (
+          clickTime >= cumulativeTime &&
+          clickTime < cumulativeTime + effectiveDuration
+        ) {
           clickedVideo = video;
           break;
         }
-        
+
         cumulativeTime += effectiveDuration;
       }
-      
+
       // If we clicked on a video segment area but not on the actual segment element,
       // don't seek (this handles edge cases where the click goes through)
       if (clickedVideo) {
         return;
       }
-      
+
       // Only seek when clicking in empty timeline space
       const newTime = percentage * totalDuration;
-      
+
       setHoverPosition(null);
-      
+
       // Start dragging mode for timeline interactions
       setIsDragging(true);
-      
+
       // Immediately seek to clicked position
       onSeek(newTime);
-      
+
       e.preventDefault();
     },
     [totalDuration, onSeek, videos]
@@ -191,12 +208,14 @@ export const Timeline: React.FC<TimelineProps> = ({
     (e: React.MouseEvent<HTMLDivElement>) => {
       // Check if we're hovering over a blur overlay or its controls
       const target = e.target as HTMLElement;
-      const isBlurOverlay = target.closest('.blur-overlay') || target.closest('[data-blur-controls]');
-      
+      const isBlurOverlay =
+        target.closest(".blur-overlay") ||
+        target.closest("[data-blur-controls]");
+
       const rect = e.currentTarget.getBoundingClientRect();
       const moveX = e.clientX - rect.left;
       const percentage = Math.max(0, Math.min(1, moveX / rect.width));
-      
+
       if (isDragging) {
         // Update time while dragging
         const newTime = percentage * totalDuration;
@@ -222,7 +241,9 @@ export const Timeline: React.FC<TimelineProps> = ({
     if (isDragging) {
       const handleGlobalMouseUp = () => setIsDragging(false);
       const handleGlobalMouseMove = (e: MouseEvent) => {
-        const timelineContainer = document.querySelector('.timeline-track-container');
+        const timelineContainer = document.querySelector(
+          ".timeline-track-container"
+        );
         if (timelineContainer) {
           const rect = timelineContainer.getBoundingClientRect();
           const moveX = e.clientX - rect.left;
@@ -231,13 +252,13 @@ export const Timeline: React.FC<TimelineProps> = ({
           onSeek(newTime);
         }
       };
-      
-      document.addEventListener('mouseup', handleGlobalMouseUp);
-      document.addEventListener('mousemove', handleGlobalMouseMove);
-      
+
+      document.addEventListener("mouseup", handleGlobalMouseUp);
+      document.addEventListener("mousemove", handleGlobalMouseMove);
+
       return () => {
-        document.removeEventListener('mouseup', handleGlobalMouseUp);
-        document.removeEventListener('mousemove', handleGlobalMouseMove);
+        document.removeEventListener("mouseup", handleGlobalMouseUp);
+        document.removeEventListener("mousemove", handleGlobalMouseMove);
       };
     }
   }, [isDragging, totalDuration, onSeek]);
@@ -246,23 +267,23 @@ export const Timeline: React.FC<TimelineProps> = ({
     (video: VideoSequenceItem, e: React.MouseEvent) => {
       e.stopPropagation();
       e.preventDefault();
-      
+
       // Select the video first
       onVideoSelect(video.id);
-      
+
       // Calculate the click position within the video and seek to that time
       const videoElement = e.currentTarget;
       const rect = videoElement.getBoundingClientRect();
       const clickX = e.clientX - rect.left;
       const videoWidth = rect.width;
-      
+
       // Calculate the percentage within this video segment
       const percentage = Math.max(0, Math.min(1, clickX / videoWidth));
-      
+
       // Calculate the actual time within the video
       const timeWithinVideo = percentage * video.duration;
       const absoluteTime = video.startTime + timeWithinVideo;
-      
+
       // Seek to that position
       onSeek(absoluteTime);
     },
@@ -327,7 +348,7 @@ export const Timeline: React.FC<TimelineProps> = ({
       {/* Timeline Track */}
       <div
         className="timeline-track-container relative bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-600 rounded-xl cursor-pointer select-none shadow-inner border border-gray-200 dark:border-gray-600 overflow-hidden"
-        style={{ 
+        style={{
           height: 88 + (blurAreaHeight - 28), // Dynamic height based on blur regions
         }}
         onClick={handleTimelineClick}
@@ -336,13 +357,13 @@ export const Timeline: React.FC<TimelineProps> = ({
         onMouseLeave={handleTimelineMouseLeave}
       >
         {/* Blur overlay area */}
-        <div 
+        <div
           className="absolute top-0 left-0 right-0 bg-gray-50 dark:bg-gray-800/50 rounded-t-xl border-b border-gray-200 dark:border-gray-600"
           style={{ height: blurAreaHeight }}
         />
-        
+
         {/* Blur Overlays in the dedicated blur overlay area */}
-        <div 
+        <div
           className="absolute top-0 left-0 right-0"
           style={{ height: blurAreaHeight, left: 4, right: 4 }}
         >
@@ -356,7 +377,10 @@ export const Timeline: React.FC<TimelineProps> = ({
             }> = [];
 
             videos.forEach((video) => {
-              if (video.effects.selectiveBlur && video.effects.selectiveBlur.length > 0) {
+              if (
+                video.effects.selectiveBlur &&
+                video.effects.selectiveBlur.length > 0
+              ) {
                 const { leftPercent, widthPercent } = getVideoPosition(video);
                 video.effects.selectiveBlur.forEach((region) => {
                   allBlurRegions.push({
@@ -398,7 +422,7 @@ export const Timeline: React.FC<TimelineProps> = ({
 
         <div
           className="timeline-track absolute inset-x-0 bg-transparent"
-          style={{ 
+          style={{
             top: timelineTrackTop, // Start after blur overlay area
             bottom: 4,
             left: 4,
@@ -409,15 +433,15 @@ export const Timeline: React.FC<TimelineProps> = ({
           {videos.map((video, index) => {
             const { leftPercent, widthPercent } = getVideoPosition(video);
             const isSelected = video.id === selectedVideoId;
-            
+
             // Generate distinct colors for each video segment
             const colors = [
-              'from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700',
-              'from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700',
-              'from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700',
-              'from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700',
-              'from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700',
-              'from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700',
+              "from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700",
+              "from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700",
+              "from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700",
+              "from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700",
+              "from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700",
+              "from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700",
             ];
             const colorClass = colors[index % colors.length];
 
@@ -432,42 +456,62 @@ export const Timeline: React.FC<TimelineProps> = ({
                       : `bg-gradient-to-r ${colorClass} hover:shadow-lg z-20`
                   }
                 `}
-                style={{ 
-                  left: `${leftPercent}%`, 
+                style={{
+                  left: `${leftPercent}%`,
                   width: `${widthPercent}%`,
                   top: 4,
                   bottom: 4,
-                  marginLeft: index > 0 ? '1px' : '0', // Small gap between segments
+                  marginLeft: index > 0 ? "1px" : "0", // Small gap between segments
                 }}
                 onClick={(e) => handleVideoClick(video, e)}
-                title={`${video.file.name} (${formatTime(video.trimEnd || video.duration)} ${video.trimStart || video.trimEnd ? 'trimmed' : 'full'})`}
+                title={`${video.file.name} (${formatTime(video.trimEnd || video.duration)} ${video.trimStart || video.trimEnd ? "trimmed" : "full"})`}
               >
                 {/* Video text content - adaptive based on segment width and selection state */}
                 {widthPercent > 15 ? (
                   /* Wide segments: show both name and duration separately */
                   <>
-                    <div className={`absolute ${isSelected ? 'left-1 right-1' : 'left-3 right-3'} ${isSelected ? 'top-1' : 'top-1.5'} text-xs text-white font-semibold truncate drop-shadow-sm`}>
+                    <div
+                      className={`absolute ${isSelected ? "left-1 right-1" : "left-3 right-3"} ${isSelected ? "top-1" : "top-1.5"} text-xs text-white font-semibold truncate drop-shadow-sm`}
+                    >
                       {video.file.name}
                     </div>
-                    <div className={`absolute ${isSelected ? 'left-1 right-1' : 'left-3 right-3'} ${isSelected ? 'bottom-1' : 'bottom-1.5'} text-xs text-white/90 font-medium drop-shadow-sm`}>
-                      {formatTime((video.trimEnd || video.duration) - (video.trimStart || 0))}
+                    <div
+                      className={`absolute ${isSelected ? "left-1 right-1" : "left-3 right-3"} ${isSelected ? "bottom-1" : "bottom-1.5"} text-xs text-white/90 font-medium drop-shadow-sm`}
+                    >
+                      {formatTime(
+                        (video.trimEnd || video.duration) -
+                          (video.trimStart || 0)
+                      )}
                     </div>
                   </>
                 ) : widthPercent > 8 ? (
                   /* Medium segments: show name and duration stacked compactly */
-                  <div className={`absolute ${isSelected ? 'left-0.5 right-0.5' : 'left-2 right-2'} ${isSelected ? 'top-0.5 bottom-0.5' : 'top-1 bottom-1'} flex flex-col justify-center items-center text-center`}>
+                  <div
+                    className={`absolute ${isSelected ? "left-0.5 right-0.5" : "left-2 right-2"} ${isSelected ? "top-0.5 bottom-0.5" : "top-1 bottom-1"} flex flex-col justify-center items-center text-center`}
+                  >
                     <div className="text-xs text-white font-semibold truncate max-w-full leading-tight drop-shadow-sm">
-                      {video.file.name.split('.')[0]} {/* Remove extension for space */}
+                      {video.file.name.split(".")[0]}{" "}
+                      {/* Remove extension for space */}
                     </div>
                     <div className="text-xs text-white/90 font-medium leading-tight drop-shadow-sm">
-                      {formatTime((video.trimEnd || video.duration) - (video.trimStart || 0))}
+                      {formatTime(
+                        (video.trimEnd || video.duration) -
+                          (video.trimStart || 0)
+                      )}
                     </div>
                   </div>
                 ) : (
                   /* Narrow segments: show only duration in center with background */
-                  <div className={`absolute ${isSelected ? 'inset-0.5' : 'inset-1'} flex items-center justify-center`}>
-                    <div className={`text-xs text-white font-medium bg-black/40 ${isSelected ? 'px-0.5 py-0.5' : 'px-1.5 py-0.5'} rounded shadow-sm border border-white/20`}>
-                      {formatTime((video.trimEnd || video.duration) - (video.trimStart || 0))}
+                  <div
+                    className={`absolute ${isSelected ? "inset-0.5" : "inset-1"} flex items-center justify-center`}
+                  >
+                    <div
+                      className={`text-xs text-white font-medium bg-black/40 ${isSelected ? "px-0.5 py-0.5" : "px-1.5 py-0.5"} rounded shadow-sm border border-white/20`}
+                    >
+                      {formatTime(
+                        (video.trimEnd || video.duration) -
+                          (video.trimStart || 0)
+                      )}
                     </div>
                   </div>
                 )}
