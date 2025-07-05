@@ -43,9 +43,6 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scrapingQueue, setScrapingQueue] = useState<Set<string>>(new Set());
-  const [scrapedUrls, setScrapedUrls] = useState<
-    Map<string, { url: string; expiration: string }>
-  >(new Map());
   const [rateLimitStatus, setRateLimitStatus] = useState<{
     remaining_minute: number;
     remaining_day: number;
@@ -86,23 +83,8 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
 
   const getScrapedImageUrl = async (originalUrl: string): Promise<string> => {
     try {
-      // Check if we already have a cached, non-expired URL
-      const cached = scrapedUrls.get(originalUrl);
-      if (cached) {
-        const expirationDate = new Date(cached.expiration);
-        if (expirationDate > new Date()) {
-          console.log("Using cached scraped URL for:", originalUrl);
-          return cached.url;
-        } else {
-          // Remove expired entry
-          setScrapedUrls((prev) => {
-            const newMap = new Map(prev);
-            newMap.delete(originalUrl);
-            return newMap;
-          });
-        }
-      }
-
+      // Always fetch fresh temporary URLs - no caching
+      
       // Check rate limits before making API request
       if (!canMakeApiRequest()) {
         console.warn(
@@ -126,7 +108,7 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
         setTimeout(resolve, 100 + Math.random() * 200)
       ); // 100-300ms delay
 
-      console.log("Scraping image URL:", originalUrl);
+      console.log("Scraping fresh image URL:", originalUrl);
       const requestBody = {
         endpoint: "media-scrape",
         accountId: ACCOUNT_ID,
@@ -136,7 +118,6 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
           .slice(0, 19)
           .replace("T", " "), // 24 hours from now
       };
-      console.log("Sending request body:", requestBody);
 
       const response = await fetch(`/api/onlyfans/models`, {
         method: "POST",
@@ -173,16 +154,6 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
       updateRateLimitStatus(data);
 
       if (data.scrapedUrl) {
-        // Cache the scraped URL with expiration
-        setScrapedUrls((prev) =>
-          new Map(prev).set(originalUrl, {
-            url: data.scrapedUrl,
-            expiration:
-              data.expiration_date ||
-              new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-          })
-        );
-
         return data.scrapedUrl;
       }
 
@@ -247,13 +218,39 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
     className?: string;
     width?: number;
     height?: number;
-  }> = ({ src, alt, className = "", width, height }) => {
+    lazy?: boolean;
+  }> = ({ src, alt, className = "", width = 200, height = 200, lazy = false }) => {
     const [hasError, setHasError] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [scrapedSrc, setScrapedSrc] = useState<string | null>(null);
+    const [isInView, setIsInView] = useState(!lazy);
+    const imgRef = React.useRef<HTMLDivElement>(null);
 
-    // Try to scrape the image URL when component mounts
+    // Intersection Observer for lazy loading
     useEffect(() => {
+      if (!lazy || isInView) return;
+
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            setIsInView(true);
+            observer.disconnect();
+          }
+        },
+        { threshold: 0.1, rootMargin: '50px' }
+      );
+
+      if (imgRef.current) {
+        observer.observe(imgRef.current);
+      }
+
+      return () => observer.disconnect();
+    }, [lazy, isInView]);
+
+    // Only scrape image when it's in view
+    useEffect(() => {
+      if (!isInView) return;
+
       const scrapeImage = async () => {
         try {
           const scrapedUrl = await throttledGetScrapedImageUrl(src);
@@ -265,14 +262,22 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
       };
 
       scrapeImage();
-    }, [src]);
+    }, [src, isInView]);
+
+    // Fixed container with consistent dimensions
+    const containerStyle = {
+      width: width,
+      height: height,
+      minWidth: width,
+      minHeight: height,
+    };
 
     if (hasError) {
-      // Show simple fallback UI
       return (
         <div
+          ref={imgRef}
           className={`bg-gray-300 dark:bg-gray-600 flex items-center justify-center ${className}`}
-          style={{ width, height }}
+          style={containerStyle}
         >
           <div className="text-center">
             <Video className="w-4 h-4 text-gray-500 mx-auto mb-1" />
@@ -284,7 +289,6 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
 
     const handleImageError = () => {
       console.log("Image failed to load:", scrapedSrc || src);
-      console.log("Setting hasError to true for:", scrapedSrc || src);
       setHasError(true);
       setIsLoading(false);
     };
@@ -294,12 +298,29 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
       setIsLoading(false);
     };
 
-    // Don't render anything until we have a scraped URL
+    // Show placeholder when not in view (lazy loading)
+    if (!isInView) {
+      return (
+        <div
+          ref={imgRef}
+          className={`bg-gray-200 dark:bg-gray-700 flex items-center justify-center ${className}`}
+          style={containerStyle}
+        >
+          <div className="text-center">
+            <div className="w-3 h-3 bg-gray-400 rounded-full mx-auto mb-1"></div>
+            <div className="text-xs text-gray-500">Loading...</div>
+          </div>
+        </div>
+      );
+    }
+
+    // Show scraping state with fixed dimensions
     if (!scrapedSrc) {
       return (
         <div
+          ref={imgRef}
           className={`bg-gray-200 dark:bg-gray-700 flex items-center justify-center ${className}`}
-          style={{ width, height }}
+          style={containerStyle}
         >
           <div className="text-center">
             <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500 mx-auto mb-1"></div>
@@ -310,7 +331,7 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
     }
 
     return (
-      <div className="relative" style={{ width, height }}>
+      <div ref={imgRef} className="relative" style={containerStyle}>
         {isLoading && (
           <div
             className={`absolute inset-0 bg-gray-200 dark:bg-gray-700 flex items-center justify-center ${className}`}
@@ -324,13 +345,13 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
         <Image
           src={scrapedSrc}
           alt={alt}
-          width={width || 200}
-          height={height || 200}
+          width={width}
+          height={height}
           className={`${className} ${isLoading ? "opacity-0" : "opacity-100"} transition-opacity`}
           style={{ width, height, objectFit: "cover" }}
           onError={handleImageError}
           onLoad={handleImageLoad}
-          unoptimized={true} // Since these are external URLs that might change
+          unoptimized={true}
         />
       </div>
     );
@@ -434,9 +455,8 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
         {/* Info notice about media scraping */}
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
           <p className="text-sm text-blue-800 dark:text-blue-200">
-            <strong>Enhanced Media Access:</strong> Images are now fetched using
-            OnlyFans API media scraping for better authentication and CDN
-            access.
+            <strong>Fresh Media Access:</strong> Images are fetched fresh using
+            OnlyFans API media scraping with lazy loading for optimal performance.
           </p>
         </div>
 
@@ -548,6 +568,7 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                                   className="absolute inset-0 w-full h-full object-cover"
                                   width={48}
                                   height={48}
+                                  lazy={true}
                                 />
                               </div>
                             ))
@@ -601,10 +622,9 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                           {/* Enhanced scraping info */}
                           <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-4">
                             <p className="text-sm text-green-800 dark:text-green-200">
-                              <strong>Media Scraping:</strong> Using OnlyFans
-                              API media scraping endpoint for secure and
-                              authenticated access to CDN content with proper
-                              expiration handling.
+                              <strong>Fresh Media Scraping:</strong> Using OnlyFans
+                              API media scraping endpoint for fresh temporary URLs
+                              with lazy loading to prevent layout shifts.
                             </p>
                           </div>
 
@@ -613,18 +633,22 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                               .filter((media) => media.type === "video")
                               .map((media, index) => (
                                 <div
-                                  key={index}
+                                  key={`${media.url}-${index}`}
                                   onClick={() => handleMediaToggle(media.url)}
-                                  className={`relative aspect-square bg-gray-200 dark:bg-gray-600 rounded-lg overflow-hidden cursor-pointer border-2 transition-colors ${
+                                  className={`relative bg-gray-200 dark:bg-gray-600 rounded-lg overflow-hidden cursor-pointer border-2 transition-colors ${
                                     selectedMedia.includes(media.url)
                                       ? "border-green-500"
                                       : "border-transparent hover:border-gray-300"
                                   }`}
+                                  style={{ aspectRatio: '1/1', minHeight: '200px' }}
                                 >
                                   <ImageWithFallback
                                     src={media.url}
-                                    alt=""
+                                    alt={`Video ${index + 1}`}
                                     className="absolute inset-0 w-full h-full object-cover"
+                                    width={200}
+                                    height={200}
+                                    lazy={true}
                                   />
                                   <div className="absolute top-2 left-2">
                                     <Video className="w-4 h-4 text-white bg-black bg-opacity-50 rounded p-0.5" />
