@@ -312,7 +312,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     console.log("POST request body:", body);
     const { endpoint, accountId, url, expiration_date } = body;
-    console.log("Extracted values:", { endpoint, accountId, url, expiration_date });
+    console.log("Extracted values:", {
+      endpoint,
+      accountId,
+      url,
+      expiration_date,
+    });
 
     const apiKey = process.env.ONLYFANS_API_KEY;
     if (!apiKey) {
@@ -323,7 +328,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (endpoint === "media-scrape") {
-      console.log("Media scrape endpoint - checking params:", { accountId, url });
       if (!accountId || !url) {
         console.log("Missing required params for media scraping");
         return NextResponse.json(
@@ -368,13 +372,13 @@ export async function POST(request: NextRequest) {
 
       const data = await response.json();
       console.log("OnlyFans Media Scrape response:", data);
-      
+
       // Normalize the response to provide a consistent scrapedUrl field
       const normalizedResponse = {
         ...data,
-        scrapedUrl: data.temporary_url || data.url // Support both field names
+        scrapedUrl: data.temporary_url || data.url, // Support both field names
       };
-      
+
       return NextResponse.json(normalizedResponse);
     }
 

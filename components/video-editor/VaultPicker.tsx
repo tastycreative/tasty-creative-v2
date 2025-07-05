@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Image from "next/image";
+import React, { useState, useEffect, useCallback } from "react";
 import { Folder, Video, X, Download } from "lucide-react";
 
 interface VaultMedia {
   type: "video" | "photo" | "gif" | "audio";
   url: string;
+  temporary_url?: string; // Scraped temporary URL from OnlyFans API
   videoUrl?: string; // For actual video file
   id?: string;
   title?: string;
@@ -37,179 +37,69 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
   onClose,
   // onMediaSelected, // Currently unused as we show "Coming Soon" message
 }) => {
+  const ACCOUNT_ID = "acct_0a4c116d5a104a37a8526087c68d4e61";
+
   const [vaultLists, setVaultLists] = useState<VaultList[]>([]);
   const [selectedList, setSelectedList] = useState<VaultList | null>(null);
   const [selectedMedia, setSelectedMedia] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [scrapingQueue, setScrapingQueue] = useState<Set<string>>(new Set());
-  const [rateLimitStatus, setRateLimitStatus] = useState<{
-    remaining_minute: number;
-    remaining_day: number;
-    limit_minute: number;
-    limit_day: number;
-  } | null>(null);
 
-  // Throttled scraping queue to limit concurrent requests
-  const [scrapingPromises, setScrapingPromises] = useState<
-    Map<string, Promise<string>>
-  >(new Map());
-  const MAX_CONCURRENT_SCRAPING = 3; // Limit concurrent scraping requests
+  const DirectImagePreview: React.FC<{
+    src: string;
+    alt: string;
+    className?: string;
+    width?: number;
+    height?: number;
+  }> = ({ src, alt, className = "", width = 48, height = 48 }) => {
+    const [imageLoaded, setImageLoaded] = useState<boolean>(false);
 
-  // Rate limiting: Only allow scraping if we have sufficient rate limit remaining
-  const canMakeApiRequest = () => {
-    if (!rateLimitStatus) return true; // Allow if we don't know the limits yet
-    return (
-      rateLimitStatus.remaining_minute > 10 &&
-      rateLimitStatus.remaining_day > 50
-    ); // Keep some buffer
-  };
+    // Create the proxy URL that will return the actual image data
+    const proxyUrl = `/api/onlyfans/image-scraper?url=${encodeURIComponent(src)}&accountId=${ACCOUNT_ID}`;
 
-  // Update rate limit status from API response
-  const updateRateLimitStatus = (responseData: {
-    _meta?: {
-      _rate_limits?: {
-        remaining_minute: number;
-        remaining_day: number;
-        limit_minute: number;
-        limit_day: number;
-      };
+    // Reset imageLoaded when src changes
+    useEffect(() => {
+      console.log("DirectImagePreview src changed:", src);
+      setImageLoaded(false);
+    }, [src]);
+
+    const containerStyle = {
+      width: width,
+      height: height,
+      minWidth: width,
+      minHeight: height,
     };
-  }) => {
-    if (responseData._meta?._rate_limits) {
-      setRateLimitStatus(responseData._meta._rate_limits);
-    }
-  };
 
-  const getScrapedImageUrl = async (originalUrl: string): Promise<string> => {
-    try {
-      // Always fetch fresh temporary URLs - no caching
-      
-      // Check rate limits before making API request
-      if (!canMakeApiRequest()) {
-        console.warn(
-          "Rate limit approaching, skipping scraping for:",
-          originalUrl
-        );
-        return originalUrl; // Return original URL without scraping
-      }
+    return (
+      <div className="relative" style={containerStyle}>
+        {/* Show loading spinner when image not loaded */}
+        <div
+          className={`absolute inset-0 bg-gray-200 dark:bg-gray-700 flex items-center justify-center ${
+            !imageLoaded ? "opacity-100" : "opacity-0"
+          } transition-opacity duration-200`}
+        >
+          <div className="animate-spin rounded-full h-2 w-2 border-b-2 border-blue-500"></div>
+        </div>
 
-      // Check if already in scraping queue to avoid duplicate requests
-      if (scrapingQueue.has(originalUrl)) {
-        console.log("Already scraping, waiting for:", originalUrl);
-        return originalUrl; // Return original for now, will be updated when scraping completes
-      }
-
-      // Add to scraping queue
-      setScrapingQueue((prev) => new Set(prev).add(originalUrl));
-
-      // Add a small delay to avoid overwhelming the API
-      await new Promise((resolve) =>
-        setTimeout(resolve, 100 + Math.random() * 200)
-      ); // 100-300ms delay
-
-      console.log("Scraping fresh image URL:", originalUrl);
-      const requestBody = {
-        endpoint: "media-scrape",
-        accountId: ACCOUNT_ID,
-        url: originalUrl,
-        expiration_date: new Date(Date.now() + 24 * 60 * 60 * 1000)
-          .toISOString()
-          .slice(0, 19)
-          .replace("T", " "), // 24 hours from now
-      };
-
-      const response = await fetch(`/api/onlyfans/models`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      // Remove from scraping queue
-      setScrapingQueue((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(originalUrl);
-        return newSet;
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Media scrape failed:", errorText);
-
-        // Check if it's a rate limit error
-        if (response.status === 429) {
-          console.warn("Rate limit exceeded, will retry later");
-          return originalUrl;
-        }
-
-        throw new Error(`Failed to scrape media: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log("OnlyFans Media Scrape response:", data);
-
-      // Update rate limit status from response
-      updateRateLimitStatus(data);
-
-      if (data.scrapedUrl) {
-        return data.scrapedUrl;
-      }
-
-      return originalUrl; // Fallback to original if scraping fails
-    } catch (error) {
-      console.error("Media scrape failed:", error);
-
-      // Remove from scraping queue on error
-      setScrapingQueue((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(originalUrl);
-        return newSet;
-      });
-
-      return originalUrl; // Fallback to original URL
-    }
-  };
-
-  // Throttled scraping function to limit concurrent requests
-  const throttledGetScrapedImageUrl = async (
-    originalUrl: string
-  ): Promise<string> => {
-    // Check if we already have a promise for this URL
-    const existingPromise = scrapingPromises.get(originalUrl);
-    if (existingPromise) {
-      return existingPromise;
-    }
-
-    // Check if we're already at the concurrent limit
-    if (scrapingPromises.size >= MAX_CONCURRENT_SCRAPING) {
-      console.log("Max concurrent scraping reached, waiting for:", originalUrl);
-      return originalUrl; // Return original URL for now
-    }
-
-    // Create and store the promise
-    const promise = getScrapedImageUrl(originalUrl);
-    setScrapingPromises((prev) => new Map(prev).set(originalUrl, promise));
-
-    try {
-      const result = await promise;
-      // Remove from promises map when done
-      setScrapingPromises((prev) => {
-        const newMap = new Map(prev);
-        newMap.delete(originalUrl);
-        return newMap;
-      });
-      return result;
-    } catch (error) {
-      // Remove from promises map on error
-      setScrapingPromises((prev) => {
-        const newMap = new Map(prev);
-        newMap.delete(originalUrl);
-        return newMap;
-      });
-      throw error;
-    }
+        {/* Use the proxy URL directly as the image source */}
+        <img
+          src={proxyUrl}
+          alt={alt}
+          className={`${className} absolute inset-0 ${
+            imageLoaded ? "opacity-100" : "opacity-0"
+          } transition-opacity duration-200`}
+          style={{ width, height, objectFit: "cover" }}
+          onLoad={() => {
+            console.log("DirectImagePreview image loaded:", proxyUrl);
+            setImageLoaded(true);
+          }}
+          onError={() => {
+            console.log("DirectImagePreview image error:", proxyUrl);
+            setImageLoaded(true); // Still hide spinner even on error
+          }}
+        />
+      </div>
+    );
   };
 
   const ImageWithFallback: React.FC<{
@@ -219,12 +109,20 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
     width?: number;
     height?: number;
     lazy?: boolean;
-  }> = ({ src, alt, className = "", width = 200, height = 200, lazy = false }) => {
-    const [hasError, setHasError] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
-    const [scrapedSrc, setScrapedSrc] = useState<string | null>(null);
+  }> = ({
+    src,
+    alt,
+    className = "",
+    width = 200,
+    height = 200,
+    lazy = false,
+  }) => {
+    const [imageLoaded, setImageLoaded] = useState<boolean>(false);
     const [isInView, setIsInView] = useState(!lazy);
     const imgRef = React.useRef<HTMLDivElement>(null);
+
+    // Create the proxy URL that will return the actual image data
+    const proxyUrl = `/api/onlyfans/image-scraper?url=${encodeURIComponent(src)}&accountId=${ACCOUNT_ID}`;
 
     // Intersection Observer for lazy loading
     useEffect(() => {
@@ -233,11 +131,12 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
       const observer = new IntersectionObserver(
         ([entry]) => {
           if (entry.isIntersecting) {
+            console.log("ImageWithFallback now in view:", src);
             setIsInView(true);
             observer.disconnect();
           }
         },
-        { threshold: 0.1, rootMargin: '50px' }
+        { threshold: 0.1, rootMargin: "50px" }
       );
 
       if (imgRef.current) {
@@ -245,24 +144,13 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
       }
 
       return () => observer.disconnect();
-    }, [lazy, isInView]);
+    }, [lazy, isInView, src]);
 
-    // Only scrape image when it's in view
+    // Reset imageLoaded when src changes
     useEffect(() => {
-      if (!isInView) return;
-
-      const scrapeImage = async () => {
-        try {
-          const scrapedUrl = await throttledGetScrapedImageUrl(src);
-          setScrapedSrc(scrapedUrl);
-        } catch (error) {
-          console.error("Failed to scrape image:", error);
-          setScrapedSrc(src); // Fallback to original
-        }
-      };
-
-      scrapeImage();
-    }, [src, isInView]);
+      console.log("ImageWithFallback src changed:", src);
+      setImageLoaded(false);
+    }, [src]);
 
     // Fixed container with consistent dimensions
     const containerStyle = {
@@ -272,69 +160,22 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
       minHeight: height,
     };
 
-    if (hasError) {
-      return (
-        <div
-          ref={imgRef}
-          className={`bg-gray-300 dark:bg-gray-600 flex items-center justify-center ${className}`}
-          style={containerStyle}
-        >
-          <div className="text-center">
-            <Video className="w-4 h-4 text-gray-500 mx-auto mb-1" />
-            <div className="text-xs text-gray-500">Restricted</div>
-          </div>
-        </div>
-      );
-    }
+    const handleImageLoad = () => {
+      console.log("ImageWithFallback image loaded:", proxyUrl);
+      setImageLoaded(true);
+    };
 
     const handleImageError = () => {
-      console.log("Image failed to load:", scrapedSrc || src);
-      setHasError(true);
-      setIsLoading(false);
+      console.log("ImageWithFallback image error:", proxyUrl);
+      setImageLoaded(true); // Still hide spinner even on error
     };
-
-    const handleImageLoad = () => {
-      console.log("Image loaded successfully:", scrapedSrc || src);
-      setIsLoading(false);
-    };
-
-    // Show placeholder when not in view (lazy loading)
-    if (!isInView) {
-      return (
-        <div
-          ref={imgRef}
-          className={`bg-gray-200 dark:bg-gray-700 flex items-center justify-center ${className}`}
-          style={containerStyle}
-        >
-          <div className="text-center">
-            <div className="w-3 h-3 bg-gray-400 rounded-full mx-auto mb-1"></div>
-            <div className="text-xs text-gray-500">Loading...</div>
-          </div>
-        </div>
-      );
-    }
-
-    // Show scraping state with fixed dimensions
-    if (!scrapedSrc) {
-      return (
-        <div
-          ref={imgRef}
-          className={`bg-gray-200 dark:bg-gray-700 flex items-center justify-center ${className}`}
-          style={containerStyle}
-        >
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500 mx-auto mb-1"></div>
-            <div className="text-xs text-gray-500">Scraping...</div>
-          </div>
-        </div>
-      );
-    }
 
     return (
       <div ref={imgRef} className="relative" style={containerStyle}>
-        {isLoading && (
+        {/* Show loading spinner when not in view or image not loaded */}
+        {(!isInView || !imageLoaded) && (
           <div
-            className={`absolute inset-0 bg-gray-200 dark:bg-gray-700 flex items-center justify-center ${className}`}
+            className={`absolute inset-0 bg-gray-200 dark:bg-gray-700 flex items-center justify-center z-10`}
           >
             <div className="text-center">
               <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500 mx-auto mb-1"></div>
@@ -342,30 +183,25 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
             </div>
           </div>
         )}
-        <Image
-          src={scrapedSrc}
-          alt={alt}
-          width={width}
-          height={height}
-          className={`${className} ${isLoading ? "opacity-0" : "opacity-100"} transition-opacity`}
-          style={{ width, height, objectFit: "cover" }}
-          onError={handleImageError}
-          onLoad={handleImageLoad}
-          unoptimized={true}
-        />
+
+        {/* Show image when in view */}
+        {isInView && (
+          <img
+            src={proxyUrl}
+            alt={alt}
+            className={`${className} ${
+              imageLoaded ? "opacity-100" : "opacity-0"
+            } transition-opacity duration-300`}
+            style={{ width, height, objectFit: "cover" }}
+            onError={handleImageError}
+            onLoad={handleImageLoad}
+          />
+        )}
       </div>
     );
   };
 
-  const ACCOUNT_ID = "acct_0a4c116d5a104a37a8526087c68d4e61";
-
-  useEffect(() => {
-    if (isOpen) {
-      fetchVaultLists();
-    }
-  }, [isOpen]);
-
-  const fetchVaultLists = async () => {
+  const fetchVaultLists = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -379,13 +215,26 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
 
       const data = await response.json();
       console.log("Vault lists received:", data.data?.list);
-      setVaultLists(data.data?.list || []);
+      const vaultLists = data.data?.list || [];
+
+      // Set vault lists immediately - images will be scraped via API endpoints
+      setVaultLists(vaultLists);
+      setLoading(false);
+
+      console.log(
+        "Vault lists displayed immediately. Images will be scraped via API as needed."
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load vault");
-    } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchVaultLists();
+    }
+  }, [isOpen, fetchVaultLists]);
 
   const handleListSelect = async (list: VaultList) => {
     setSelectedList(list);
@@ -405,7 +254,10 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
         }
 
         const data = await response.json();
-        const updatedList = { ...list, medias: data.data?.medias || [] };
+        const medias = data.data?.medias || [];
+
+        console.log("Vault list details loaded:", medias.length, "media items");
+        const updatedList = { ...list, medias };
         setSelectedList(updatedList);
 
         // Update the vault lists array as well
@@ -455,57 +307,11 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
         {/* Info notice about media scraping */}
         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
           <p className="text-sm text-blue-800 dark:text-blue-200">
-            <strong>Fresh Media Access:</strong> Images are fetched fresh using
-            OnlyFans API media scraping with lazy loading for optimal performance.
+            <strong>Instant Display:</strong> Vault lists appear immediately
+            with loading placeholders. Thumbnails update individually using
+            fresh OnlyFans temporary URLs via our scraping API endpoint.
           </p>
         </div>
-
-        {/* Rate limit status indicator */}
-        {rateLimitStatus && (
-          <div
-            className={`border rounded-lg p-3 mb-4 ${
-              rateLimitStatus.remaining_minute > 50 &&
-              rateLimitStatus.remaining_day > 1000
-                ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
-                : rateLimitStatus.remaining_minute > 10 &&
-                    rateLimitStatus.remaining_day > 50
-                  ? "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800"
-                  : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
-            }`}
-          >
-            <p
-              className={`text-sm font-medium ${
-                rateLimitStatus.remaining_minute > 50 &&
-                rateLimitStatus.remaining_day > 1000
-                  ? "text-green-800 dark:text-green-200"
-                  : rateLimitStatus.remaining_minute > 10 &&
-                      rateLimitStatus.remaining_day > 50
-                    ? "text-yellow-800 dark:text-yellow-200"
-                    : "text-red-800 dark:text-red-200"
-              }`}
-            >
-              API Rate Limits: {rateLimitStatus.remaining_minute}/
-              {rateLimitStatus.limit_minute} per minute,{" "}
-              {rateLimitStatus.remaining_day}/{rateLimitStatus.limit_day} per
-              day
-            </p>
-            {rateLimitStatus.remaining_minute <= 10 && (
-              <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                ⚠️ Low rate limit - image loading may be throttled
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Queue status */}
-        {scrapingQueue.size > 0 && (
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-2 mb-4">
-            <p className="text-xs text-blue-600 dark:text-blue-400">
-              🔄 Scraping {scrapingQueue.size} image
-              {scrapingQueue.size !== 1 ? "s" : ""}...
-            </p>
-          </div>
-        )}
 
         {loading && (
           <div className="flex items-center justify-center py-8">
@@ -562,13 +368,12 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                                 key={index}
                                 className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded overflow-hidden relative"
                               >
-                                <ImageWithFallback
+                                <DirectImagePreview
                                   src={media.url}
                                   alt={`Preview ${index + 1}`}
                                   className="absolute inset-0 w-full h-full object-cover"
                                   width={48}
                                   height={48}
-                                  lazy={true}
                                 />
                               </div>
                             ))
@@ -622,9 +427,9 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                           {/* Enhanced scraping info */}
                           <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-4">
                             <p className="text-sm text-green-800 dark:text-green-200">
-                              <strong>Fresh Media Scraping:</strong> Using OnlyFans
-                              API media scraping endpoint for fresh temporary URLs
-                              with lazy loading to prevent layout shifts.
+                              <strong>Fresh Media Loading:</strong> Using
+                              OnlyFans scraping API endpoint for fresh temporary
+                              URLs with lazy loading for optimal performance.
                             </p>
                           </div>
 
@@ -640,7 +445,10 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                                       ? "border-green-500"
                                       : "border-transparent hover:border-gray-300"
                                   }`}
-                                  style={{ aspectRatio: '1/1', minHeight: '200px' }}
+                                  style={{
+                                    aspectRatio: "1/1",
+                                    minHeight: "200px",
+                                  }}
                                 >
                                   <ImageWithFallback
                                     src={media.url}
