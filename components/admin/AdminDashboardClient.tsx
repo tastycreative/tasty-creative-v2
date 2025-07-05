@@ -128,15 +128,11 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
 
   // State for real-time VN sales and voice data
   const [vnSalesData, setVnSalesData] = useState(data.vnSales);
-  const [isLoadingVnStats, setIsLoadingVnStats] = useState(true);
   const [isLoadingVoiceStats, setIsLoadingVoiceStats] = useState(true);
 
-  // State for content generation data
-  const [contentGenerationData, setContentGenerationData] = useState(
-    data.contentGeneration
-  );
-  const [isLoadingContentStats, setIsLoadingContentStats] = useState(true);
-  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  // State for content generation data (using original data from server)
+  const [contentGenerationData] = useState(data.contentGeneration);
+  const [recentActivities] = useState<any[]>([]);
 
   const [isLoadingMassMessages, setIsLoadingMassMessages] = useState(false);
   const [totalMassMessages, setTotalMassMessages] = useState(0);
@@ -203,9 +199,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
   const [customEndDate, setCustomEndDate] = useState("");
   const [showCustomDateInputs, setShowCustomDateInputs] = useState(false);
 
-  // State for storing all raw data (unfiltered)
-  const [allVnSalesData, setAllVnSalesData] = useState<any>(null);
-  const [allContentData, setAllContentData] = useState<any>(null);
+  // State for storing all raw data (unfiltered) - only MM messages needed
   const [allMassMessages, setAllMassMessages] = useState<any[]>([]);
 
   // Helper functions (moved outside useEffect to avoid dependency issues)
@@ -248,20 +242,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
 
   // Fetch all data once (no date filtering on server)
   useEffect(() => {
-    const fetchVnSalesData = async () => {
-      try {
-        const response = await fetch(`/api/vn-sales/stats`);
-        if (response.ok) {
-          const vnStats = await response.json();
-          setAllVnSalesData(vnStats);
-        }
-      } catch (error) {
-        console.error("Error fetching VN sales data:", error);
-      } finally {
-        setIsLoadingVnStats(false);
-      }
-    };
-
     const fetchVoiceData = async () => {
       try {
         const response = await fetch("/api/elevenlabs/total-history");
@@ -277,20 +257,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         console.error("Error fetching voice data:", error);
       } finally {
         setIsLoadingVoiceStats(false);
-      }
-    };
-
-    const fetchContentGenerationData = async () => {
-      try {
-        const response = await fetch(`/api/content-generated/stats`);
-        if (response.ok) {
-          const contentStats = await response.json();
-          setAllContentData(contentStats);
-        }
-      } catch (error) {
-        console.error("Error fetching content generation data:", error);
-      } finally {
-        setIsLoadingContentStats(false);
       }
     };
 
@@ -603,79 +569,29 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     };
 
     // Only fetch data once on component mount
-    fetchVnSalesData();
     fetchVoiceData();
-    fetchContentGenerationData();
     fetchSwdData();
     fetchTotalMassMessages();
   }, []); // Empty dependency array - only run once
 
-  // Separate useEffect for client-side filtering when date range changes
+  // Separate useEffect for client-side filtering when date range changes (MM only)
   useEffect(() => {
-    if (!allVnSalesData || !allContentData || !allMassMessages.length) {
-      return; // Wait for data to be loaded
+    if (!allMassMessages.length) {
+      return; // Wait for mass messages data to be loaded
     }
 
-    // Apply client-side filtering
-    const { startDate, endDate } = getCurrentDateRange();
-
-    // Filter VN Sales data
-    if (allVnSalesData.salesByModel) {
-      const filteredSales = allVnSalesData.salesByModel.filter((sale: any) => {
-        if (!sale.date) return false;
-        const saleDate = DateTime.fromISO(sale.date) || DateTime.fromJSDate(new Date(sale.date));
-        return saleDate >= startDate && saleDate <= endDate;
-      });
-
-      const totalRevenue = filteredSales.reduce((sum: number, sale: any) => sum + (sale.revenue || 0), 0);
-      const totalSales = filteredSales.length;
-      const averagePrice = totalSales > 0 ? totalRevenue / totalSales : 0;
-
-      setVnSalesData(prev => ({
-        ...prev,
-        totalRevenue,
-        salesByModel: filteredSales,
-        averageVnPrice: averagePrice,
-        vnSalesToday: filteredSales.filter((sale: any) => {
-          const saleDate = DateTime.fromISO(sale.date) || DateTime.fromJSDate(new Date(sale.date));
-          return saleDate.hasSame(DateTime.now(), 'day');
-        }).length,
-      }));
-    }
-
-    // Filter Content Generation data
-    if (allContentData.recentActivities) {
-      const filteredActivities = allContentData.recentActivities.filter((activity: any) => {
-        if (!activity.date) return false;
-        const activityDate = DateTime.fromISO(activity.date) || DateTime.fromJSDate(new Date(activity.date));
-        return activityDate >= startDate && activityDate <= endDate;
-      });
-
-      setContentGenerationData({
-        totalContentGenerated: filteredActivities.length,
-        contentGeneratedToday: filteredActivities.filter((activity: any) => {
-          const activityDate = DateTime.fromISO(activity.date) || DateTime.fromJSDate(new Date(activity.date));
-          return activityDate.hasSame(DateTime.now(), 'day');
-        }).length,
-        contentGrowth: 0, // Calculate based on previous period if needed
-        contentByTracker: allContentData.contentByTracker || [],
-      });
-      
-      setRecentActivities(filteredActivities.slice(0, 10)); // Show top 10 recent
-    }
-
-    // Filter Mass Messages
+    // Apply client-side filtering to mass messages only
     const filteredMessages = filterDataByDateRange(allMassMessages, 'date');
 
-    // Sort filtered messages by views (primary), then by view rate (secondary), then by revenue (tertiary)
+    // Sort filtered messages by revenue (primary), then by views (secondary), then by view rate (tertiary)
     filteredMessages.sort((a, b) => {
+      if (b.revenue !== a.revenue) {
+        return b.revenue - a.revenue;
+      }
       if (b.viewedCount !== a.viewedCount) {
         return b.viewedCount - a.viewedCount;
       }
-      if (b.viewRate !== a.viewRate) {
-        return b.viewRate - a.viewRate;
-      }
-      return b.revenue - a.revenue;
+      return b.viewRate - a.viewRate;
     });
     filteredMessages.forEach((msg, index) => {
       msg.rank = index + 1;
@@ -683,7 +599,84 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
 
     setTopPerformingMessages(filteredMessages.slice(0, 10)); // Top 10 messages
 
-  }, [filterDataByDateRange, getCurrentDateRange, allVnSalesData, allContentData, allMassMessages]);
+    // Update MM leaderboard with filtered data
+    const modelStats: Record<string, any> = {};
+
+    // Group filtered messages by model and calculate revenue-based stats
+    filteredMessages.forEach((msg) => {
+      const key = `${msg.modelName}_${msg.modelUsername}`;
+      if (!modelStats[key]) {
+        modelStats[key] = {
+          name: msg.modelName,
+          username: msg.modelUsername,
+          avatar: msg.modelAvatar,
+          totalMessages: 0,
+          totalViews: 0,
+          totalSent: 0,
+          totalRevenue: 0,
+          totalPurchases: 0,
+          paidMessages: 0,
+          freeMessages: 0,
+          priceSum: 0,
+          paidMessageCount: 0,
+        };
+      }
+
+      const stats = modelStats[key];
+      stats.totalMessages++;
+      stats.totalViews += msg.viewedCount;
+      stats.totalSent += msg.sentCount;
+      stats.totalRevenue += msg.revenue;
+      stats.totalPurchases += msg.purchasedCount || 0;
+
+      if (msg.isFree) {
+        stats.freeMessages++;
+      } else {
+        stats.paidMessages++;
+        if (msg.price) {
+          const price = parseFloat(msg.price);
+          if (!isNaN(price)) {
+            stats.priceSum += price;
+            stats.paidMessageCount++;
+          }
+        }
+      }
+    });
+
+    // Convert to array and calculate derived stats
+    const leaderboardData = Object.values(modelStats).map((stats: any) => ({
+      name: stats.name,
+      username: stats.username,
+      avatar: stats.avatar,
+      totalMessages: stats.totalMessages,
+      totalViews: stats.totalViews,
+      totalSent: stats.totalSent,
+      viewRate: stats.totalSent > 0 ? (stats.totalViews / stats.totalSent) * 100 : 0,
+      paidMessages: stats.paidMessages,
+      freeMessages: stats.freeMessages,
+      totalRevenue: stats.totalRevenue,
+      averagePrice: stats.paidMessageCount > 0 ? stats.priceSum / stats.paidMessageCount : 0,
+      totalPurchases: stats.totalPurchases,
+      rank: 0, // Will be set after sorting
+    }));
+
+    // Sort by total revenue (primary), then view count (secondary), then view rate (tertiary)
+    leaderboardData.sort((a, b) => {
+      if (b.totalRevenue !== a.totalRevenue) {
+        return b.totalRevenue - a.totalRevenue;
+      }
+      if (b.totalViews !== a.totalViews) {
+        return b.totalViews - a.totalViews;
+      }
+      return b.viewRate - a.viewRate;
+    });
+    leaderboardData.forEach((item, index) => {
+      item.rank = index + 1;
+    });
+
+    setMassMessagingLeaderboard(leaderboardData.slice(0, 5)); // Top 5 revenue generators
+
+  }, [filterDataByDateRange, allMassMessages, dateRange, customStartDate, customEndDate]);
 
   const vnSales = vnSalesData;
 
@@ -699,19 +692,15 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     {
       title: "Total Revenue",
       value: vnSales.totalRevenue,
-      formattedValue: isLoadingVnStats
-        ? "Loading..."
-        : `$${vnSales.totalRevenue.toLocaleString()}`,
+      formattedValue: `$${vnSales.totalRevenue.toLocaleString()}`,
       icon: TrendingUp,
-      description: isLoadingVnStats
-        ? "Fetching from Google Sheets..."
-        : `+${analytics.revenueGrowth}% from last week`,
+      description: `+${analytics.revenueGrowth}% from last week`,
       color: "text-green-600",
       bgColor: "bg-green-50",
       iconBgColor: "bg-green-100",
-      prefix: isLoadingVnStats ? "" : "$",
+      prefix: "$",
       suffix: "",
-      isLoading: isLoadingVnStats,
+      isLoading: false,
     },
     {
       title: "Total Users",
@@ -728,19 +717,15 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     {
       title: "VN Sales Today",
       value: vnSales.vnSalesToday,
-      formattedValue: isLoadingVnStats
-        ? "Loading..."
-        : `$${vnSales.vnSalesToday.toLocaleString()}`,
+      formattedValue: `$${vnSales.vnSalesToday.toLocaleString()}`,
       icon: DollarSign,
-      description: isLoadingVnStats
-        ? "Fetching from Google Sheets..."
-        : `+${vnSales.vnSalesGrowth}% from yesterday`,
+      description: `+${vnSales.vnSalesGrowth}% from yesterday`,
       color: "text-green-600",
       bgColor: "bg-green-50",
       iconBgColor: "bg-green-100",
-      prefix: isLoadingVnStats ? "" : "$",
+      prefix: "$",
       suffix: "",
-      isLoading: isLoadingVnStats,
+      isLoading: false,
     },
     {
       title: "Total VN Count",
@@ -772,19 +757,15 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     {
       title: "Content Generated",
       value: contentGenerationData.totalContentGenerated,
-      formattedValue: isLoadingContentStats
-        ? "Loading..."
-        : contentGenerationData.totalContentGenerated.toLocaleString(),
+      formattedValue: contentGenerationData.totalContentGenerated.toLocaleString(),
       icon: FileText,
-      description: isLoadingContentStats
-        ? "Fetching from Google Sheets..."
-        : `${contentGenerationData.contentGeneratedToday} generated today`,
+      description: `${contentGenerationData.contentGeneratedToday} generated today`,
       color: "text-purple-600",
       bgColor: "bg-purple-50",
       iconBgColor: "bg-purple-100",
       prefix: "",
       suffix: "",
-      isLoading: isLoadingContentStats,
+      isLoading: false,
     },
     {
       title: "Total Mass Messages",
@@ -851,58 +832,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             <Sparkles className="h-6 w-6 text-pink-500" />
           </div>
 
-          {/* Date Range Selector */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
-            <div className="flex items-center space-x-2">
-              <CalendarDays className="h-4 w-4 text-gray-500" />
-              <Label className="text-sm font-medium text-gray-700">
-                Date Range:
-              </Label>
-            </div>
-            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 relative">
-              <div className="relative">
-                <Select
-                  value={dateRange}
-                  onValueChange={(value: "30" | "60" | "90" | "custom") => {
-                    setDateRange(value);
-                    if (value !== "custom") {
-                      setShowCustomDateInputs(false);
-                    } else {
-                      setShowCustomDateInputs(true);
-                    }
-                  }}
-                >
-                  <SelectTrigger className="w-auto min-w-[180px]">
-                    <SelectValue>
-                      {dateRange === "custom" &&
-                      customStartDate &&
-                      customEndDate
-                        ? `${DateTime.fromISO(customStartDate).toLocaleString(DateTime.DATE_MED)} - ${DateTime.fromISO(customEndDate).toLocaleString(DateTime.DATE_MED)}`
-                        : `Last ${dateRange} days`}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="30">Last 30 days</SelectItem>
-                    <SelectItem value="60">Last 60 days</SelectItem>
-                    <SelectItem value="90">Last 90 days</SelectItem>
-                    <SelectItem value="custom">Custom range</SelectItem>
-                  </SelectContent>
-                </Select>
 
-                {showCustomDateInputs && (
-                  <DateRangePicker
-                    startDate={customStartDate}
-                    endDate={customEndDate}
-                    onDateRangeChange={(start, end) => {
-                      setCustomStartDate(start);
-                      setCustomEndDate(end);
-                    }}
-                    onClose={() => setShowCustomDateInputs(false)}
-                  />
-                )}
-              </div>
-            </div>
-          </div>
         </div>
         <p className="text-gray-600">
           Monitor your application&apos;s performance and user activity
@@ -1021,6 +951,64 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
 
       {/* MM Leaderboards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Date Range Selector for MM Campaigns */}
+        <div className="lg:col-span-2 mb-4">
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">Mass Messaging Analytics</h3>
+                <p className="text-sm text-gray-600">Filter campaigns and leaderboards by date range</p>
+              </div>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                <div className="flex items-center space-x-2">
+                  <CalendarDays className="h-4 w-4 text-gray-500" />
+                  <Label className="text-sm font-medium text-gray-700">Date Range:</Label>
+                </div>
+                <div className="relative">
+                  <Select
+                    value={dateRange}
+                    onValueChange={(value: "30" | "60" | "90" | "custom") => {
+                      setDateRange(value);
+                      if (value !== "custom") {
+                        setShowCustomDateInputs(false);
+                      } else {
+                        setShowCustomDateInputs(true);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-auto min-w-[180px]">
+                      <SelectValue>
+                        {dateRange === "custom" &&
+                        customStartDate &&
+                        customEndDate
+                          ? `${DateTime.fromISO(customStartDate).toLocaleString(DateTime.DATE_MED)} - ${DateTime.fromISO(customEndDate).toLocaleString(DateTime.DATE_MED)}`
+                          : `Last ${dateRange} days`}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="30">Last 30 days</SelectItem>
+                      <SelectItem value="60">Last 60 days</SelectItem>
+                      <SelectItem value="90">Last 90 days</SelectItem>
+                      <SelectItem value="custom">Custom range</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {showCustomDateInputs && (
+                    <DateRangePicker
+                      startDate={customStartDate}
+                      endDate={customEndDate}
+                      onDateRangeChange={(start, end) => {
+                        setCustomStartDate(start);
+                        setCustomEndDate(end);
+                      }}
+                      onClose={() => setShowCustomDateInputs(false)}
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
         {/* Top Performing Messages Leaderboard */}
         <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
           {/* Glass reflection effect */}
@@ -1030,7 +1018,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
               <Trophy className="h-5 w-5 text-pink-500" />
-              <span>MM Campaigns Leaderboard</span>
+              <span>Top Revenue MM Messages</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
@@ -1261,7 +1249,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
               <Trophy className="h-5 w-5 text-yellow-500" />
-              <span>MM Campaign Champion Leaderboards</span>
+              <span>MM Revenue Champion Leaderboards</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
@@ -1720,14 +1708,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           </CardHeader>
           <CardContent className="p-6">
             <div className="space-y-4">
-              {isLoadingVnStats ? (
-                <div className="flex justify-center py-8">
-                  <div className="flex items-center text-gray-500">
-                    <Loader2 className="h-6 w-6 animate-spin mr-2 text-pink-500" />
-                    <span>Fetching sales data from Google Sheets...</span>
-                  </div>
-                </div>
-              ) : vnSales.salesByModel.length > 0 ? (
+              {vnSales.salesByModel.length > 0 ? (
                 <>
                   {vnSales.salesByModel.map((model, index) => (
                     <div
@@ -1786,14 +1767,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           </CardHeader>
           <CardContent className="p-6">
             <div className="space-y-4">
-              {isLoadingContentStats ? (
-                <div className="flex justify-center py-8">
-                  <div className="flex items-center text-gray-500">
-                    <Loader2 className="h-6 w-6 animate-spin mr-2 text-pink-500" />
-                    <span>Fetching content data from Google Sheets...</span>
-                  </div>
-                </div>
-              ) : contentGenerationData.contentByTracker.length > 0 ? (
+              {contentGenerationData.contentByTracker.length > 0 ? (
                 <>
                   {contentGenerationData.contentByTracker.map(
                     (tracker, index) => (
@@ -1940,14 +1914,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            {isLoadingContentStats ? (
-              <div className="flex justify-center py-8">
-                <div className="flex items-center text-gray-500">
-                  <Loader2 className="h-6 w-6 animate-spin mr-2 text-pink-500" />
-                  <span>Loading recent activity...</span>
-                </div>
-              </div>
-            ) : recentActivities.length > 0 ? (
+            {recentActivities.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
