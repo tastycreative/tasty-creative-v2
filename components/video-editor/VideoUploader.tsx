@@ -17,13 +17,20 @@ interface VideoUploaderProps {
   onVideosAdded: (files: File[]) => void;
   isUploading: boolean;
   model?: string; // Add model prop for Google Drive filtering
+  modelType?: string; // Add modelType prop for display
 }
 
 export const VideoUploader: React.FC<VideoUploaderProps> = ({
   onVideosAdded,
   isUploading,
   model,
+  modelType,
 }) => {
+  // Get the final formatted model value
+  const getFinalModelValue = () => {
+    if (!model || model.trim() === "") return "";
+    return `${model.toUpperCase()}_${modelType || "FREE"}`;
+  };
   // Helper function to check if a file is a video
   const isVideoFile = useCallback(
     (fileName: string, mimeType?: string): boolean => {
@@ -347,6 +354,20 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
 
   return (
     <div className="space-y-4">
+      {/* Selected Model Info */}
+      {model && (
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+          <div className="flex items-center space-x-2">
+            <div
+              className={`w-3 h-3 rounded-full ${(modelType || "FREE") === "FREE" ? "bg-green-500" : "bg-blue-500"}`}
+            />
+            <span className="text-sm font-medium text-green-800 dark:text-green-200">
+              Selected: {getFinalModelValue()}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Upload Area */}
       <div
         className={`
@@ -435,6 +456,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
         isOpen={showVaultPicker}
         onClose={() => setShowVaultPicker(false)}
         onMediaSelected={handleVaultMediaSelected}
+        combinedModel={getFinalModelValue()}
       />
 
       {/* Google Drive Picker Modal */}

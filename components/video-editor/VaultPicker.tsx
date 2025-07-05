@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Folder, Video, X, Download } from "lucide-react";
+import { getAccountId } from "@/lib/onlyfans-accounts";
 
 interface VaultMedia {
   type: "video" | "photo" | "gif" | "audio";
@@ -30,20 +31,34 @@ interface VaultPickerProps {
   isOpen: boolean;
   onClose: () => void;
   onMediaSelected: (mediaUrls: string[]) => void;
+  combinedModel?: string; // e.g., "AUTUMN_FREE" - optional since it might be empty
 }
 
 export const VaultPicker: React.FC<VaultPickerProps> = ({
   isOpen,
   onClose,
-  // onMediaSelected, // Currently unused as we show "Coming Soon" message
+  onMediaSelected,
+  combinedModel,
 }) => {
-  const ACCOUNT_ID = "acct_0a4c116d5a104a37a8526087c68d4e61";
+  // Handle empty or undefined combinedModel
+  const validCombinedModel =
+    combinedModel && combinedModel.trim() !== "" ? combinedModel : null;
+  const ACCOUNT_ID = validCombinedModel
+    ? getAccountId(validCombinedModel)
+    : null;
+
+  console.log(
+    `VaultPicker initialized for ${validCombinedModel || "no model"} with account ID: ${ACCOUNT_ID}`
+  );
 
   const [vaultLists, setVaultLists] = useState<VaultList[]>([]);
   const [selectedList, setSelectedList] = useState<VaultList | null>(null);
   const [selectedMedia, setSelectedMedia] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Check if account ID exists for the selected model
+  const hasValidAccount = ACCOUNT_ID !== null;
 
   const DirectImagePreview: React.FC<{
     src: string;
@@ -202,6 +217,11 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
   };
 
   const fetchVaultLists = useCallback(async () => {
+    if (!ACCOUNT_ID) {
+      setError("No account ID available for this model");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -228,13 +248,13 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
       setError(err instanceof Error ? err.message : "Failed to load vault");
       setLoading(false);
     }
-  }, []);
+  }, [ACCOUNT_ID]);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && hasValidAccount) {
       fetchVaultLists();
     }
-  }, [isOpen, fetchVaultLists]);
+  }, [isOpen, fetchVaultLists, hasValidAccount]);
 
   const handleListSelect = async (list: VaultList) => {
     setSelectedList(list);
@@ -288,6 +308,78 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
   };
 
   if (!isOpen) return null;
+
+  // Show error if no account is registered for the selected model/type
+  if (!hasValidAccount) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              Account Not Found
+            </h2>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
+            <div className="flex items-center space-x-3">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 bg-red-100 dark:bg-red-800 rounded-full flex items-center justify-center">
+                  <X className="w-4 h-4 text-red-600 dark:text-red-300" />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                  No Account Registered
+                </h3>
+                <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                  {validCombinedModel
+                    ? `No account ID is registered for model "${validCombinedModel}".`
+                    : "No model selected. Please select a model in VideoEditor first."}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              {validCombinedModel ? (
+                <>
+                  <strong>To add this model:</strong> Update the account
+                  configuration in
+                  <code className="mx-1 px-1 bg-blue-100 dark:bg-blue-800 rounded">
+                    lib/onlyfans-accounts.ts
+                  </code>
+                  with the OnlyFans account ID for &ldquo;{validCombinedModel}
+                  &rdquo;.
+                </>
+              ) : (
+                <>
+                  <strong>Select a model first:</strong> Go back to VideoEditor
+                  and choose a model (e.g., &ldquo;Autumn&rdquo;) and type
+                  (FREE/PAID) before accessing the vault.
+                </>
+              )}
+            </p>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -488,16 +580,18 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                   </button>
                   <button
                     onClick={() => {
-                      alert(
-                        "Video importing from vault is being implemented. The streaming proxy successfully handles OnlyFans authentication and media access."
-                      );
+                      if (selectedMedia.length > 0) {
+                        onMediaSelected(selectedMedia);
+                        onClose();
+                      }
                     }}
                     disabled={selectedMedia.length === 0}
                     className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center space-x-2"
                   >
                     <Download className="w-4 h-4" />
                     <span>
-                      Import {selectedMedia.length} Videos (In Progress)
+                      Import {selectedMedia.length} Video
+                      {selectedMedia.length !== 1 ? "s" : ""}
                     </span>
                   </button>
                 </div>

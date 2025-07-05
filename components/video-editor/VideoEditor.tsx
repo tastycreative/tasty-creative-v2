@@ -22,7 +22,7 @@ import {
 
 export const VideoEditor: React.FC = () => {
   // Model selection state compatible with ModelsDropdown
-  const [formData, setFormData] = useState<{ model?: string }>({ model: "" });
+  const [formData, setFormData] = useState<{ model?: string }>({});
   const [modelType, setModelType] = useState<"FREE" | "PAID">("FREE");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -117,7 +117,7 @@ export const VideoEditor: React.FC = () => {
 
   // Get the final formatted model value
   const getFinalModelValue = () => {
-    if (!formData.model) return "";
+    if (!formData.model || formData.model.trim() === "") return "";
     return `${formData.model.toUpperCase()}_${modelType}`;
   };
 
@@ -283,20 +283,6 @@ export const VideoEditor: React.FC = () => {
                     setFieldErrors={setFieldErrors}
                   />
                 </div>
-
-                {/* Selected Model Info */}
-                {formData.model && (
-                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
-                    <div className="flex items-center space-x-2">
-                      <div
-                        className={`w-3 h-3 rounded-full ${modelType === "FREE" ? "bg-green-500" : "bg-blue-500"}`}
-                      />
-                      <span className="text-sm font-medium text-green-800 dark:text-green-200">
-                        Selected: {getFinalModelValue()}
-                      </span>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -306,6 +292,7 @@ export const VideoEditor: React.FC = () => {
                 onVideosAdded={handleVideosAdded}
                 isUploading={isUploading}
                 model={formData.model}
+                modelType={modelType}
               />
             ) : (
               <div className="bg-gray-50 dark:bg-gray-800/50 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center">
