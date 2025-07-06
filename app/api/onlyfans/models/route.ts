@@ -119,8 +119,15 @@ export async function GET(request: NextRequest) {
             { status: 400 }
           );
         }
-        // GET /media-vault endpoint
-        apiUrl = `${ONLYFANS_API_BASE}/media-vault`;
+        const listParam = searchParams.get("list");
+        if (!listParam) {
+          return NextResponse.json(
+            { error: "List ID required for vault media data" },
+            { status: 400 }
+          );
+        }
+        // GET /{account}/media/vault?list={list_id} endpoint
+        apiUrl = `${ONLYFANS_API_BASE}/${accountId}/media/vault?list=${listParam}`;
         break;
       case "vault-lists":
         if (!accountId) {
@@ -373,10 +380,13 @@ export async function POST(request: NextRequest) {
       const data = await response.json();
       console.log("OnlyFans Media Scrape response:", data);
 
-      // Normalize the response to provide a consistent scrapedUrl field
+      // Normalize the response to provide a consistent structure
       const normalizedResponse = {
-        ...data,
+        success: true,
+        data: data,
         scrapedUrl: data.temporary_url || data.url, // Support both field names
+        temporary_url: data.temporary_url, // Keep original field
+        url: data.url // Keep original field
       };
 
       return NextResponse.json(normalizedResponse);

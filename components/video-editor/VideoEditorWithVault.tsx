@@ -17,12 +17,12 @@ export const VideoEditorWithVault: React.FC = () => {
     return "AUTUMN_FREE";
   };
 
-  const handleVaultMediaSelected = (mediaUrls: string[]) => {
-    console.log("Selected vault media URLs:", mediaUrls);
-    // Here you would integrate the selected media URLs with VideoEditor
-    // For example, convert them to File objects and add to the video sequence
+  const handleVaultMediaSelected = (files: File[]) => {
+    console.log("Selected vault media files:", files);
+    // Here you would integrate the selected files with VideoEditor
+    // The VaultPicker already downloaded and converted them to File objects
     alert(
-      `Selected ${mediaUrls.length} videos from vault. Integration in progress.`
+      `Successfully imported ${files.length} videos from vault. Integration with VideoEditor in progress.`
     );
     setIsVaultOpen(false);
   };

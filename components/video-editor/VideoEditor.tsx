@@ -160,16 +160,6 @@ export const VideoEditor: React.FC = () => {
                       .toString()
                       .padStart(2, "0")}
                   </span>
-                  {formData.model && (
-                    <>
-                      <span>•</span>
-                      <span
-                        className={`font-medium ${modelType === "FREE" ? "text-green-600 dark:text-green-400" : "text-blue-600 dark:text-blue-400"}`}
-                      >
-                        {getFinalModelValue()}
-                      </span>
-                    </>
-                  )}
                   {currentVideo && (
                     <>
                       <span>•</span>
@@ -413,11 +403,6 @@ export const VideoEditor: React.FC = () => {
                   </h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Upload additional videos to extend your sequence
-                    {formData.model && (
-                      <span className="text-green-600 dark:text-green-400 ml-1">
-                        • Using {getFinalModelValue()}
-                      </span>
-                    )}
                   </p>
                 </div>
                 <div className="flex-shrink-0">

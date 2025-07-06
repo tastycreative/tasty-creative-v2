@@ -196,26 +196,11 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
     setUploadingFiles((prev) => prev.filter((file) => file !== fileToRemove));
   };
 
-  const handleVaultMediaSelected = async (mediaUrls: string[]) => {
-    const vaultFiles: File[] = [];
-
-    try {
-      for (const url of mediaUrls) {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        const filename = `vault-video-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.mp4`;
-        const file = new File([blob], filename, { type: "video/mp4" });
-        vaultFiles.push(file);
-      }
-
-      if (vaultFiles.length > 0) {
-        setUploadingFiles(vaultFiles);
-        await handleFiles(vaultFiles);
-        setUploadingFiles([]);
-      }
-    } catch (error) {
-      console.error("Error downloading vault media:", error);
-      alert("Failed to download some videos from vault. Please try again.");
+  const handleVaultMediaSelected = async (files: File[]) => {
+    if (files.length > 0) {
+      setUploadingFiles(files);
+      await handleFiles(files);
+      setUploadingFiles([]);
     }
   };
 
