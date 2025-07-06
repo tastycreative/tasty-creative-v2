@@ -237,9 +237,14 @@ const ffmpegVideoExport = async (
     // Calculate adjusted duration based on speed effect
     const speedMultiplier = video.effects.speed || 1;
 
-    // Add input arguments
-    inputArgs.push("-ss", String(0)); // Start from beginning of each file
-    inputArgs.push("-t", String(video.duration)); // Use original duration, we'll adjust with setpts
+    // Apply trimming - use trimStart and trimEnd if they exist
+    const trimStart = video.trimStart || 0;
+    const trimEnd = video.trimEnd || video.duration;
+    const trimmedDuration = Math.max(0.1, trimEnd - trimStart); // Ensure minimum duration
+
+    // Add input arguments with trimming
+    inputArgs.push("-ss", String(trimStart)); // Start from trim point
+    inputArgs.push("-t", String(trimmedDuration)); // Use trimmed duration
     inputArgs.push("-i", `input${i}.mp4`);
 
     // Build filter for this input
@@ -536,10 +541,13 @@ export const exportToGif = async (
 
     if (onProgress) onProgress(30);
 
-    // Calculate frame timing accounting for speed effects
+    // Calculate frame timing accounting for speed effects and trimming
     const totalDuration = videos.reduce((total, video) => {
       const speedMultiplier = video.effects.speed || 1;
-      const effectiveDuration = video.duration / speedMultiplier;
+      const trimStart = video.trimStart || 0;
+      const trimEnd = video.trimEnd || video.duration;
+      const trimmedDuration = Math.max(0.1, trimEnd - trimStart);
+      const effectiveDuration = trimmedDuration / speedMultiplier;
       return total + effectiveDuration;
     }, 0);
 
@@ -563,7 +571,10 @@ export const exportToGif = async (
       for (let i = 0; i < videos.length; i++) {
         const video = videos[i];
         const speedMultiplier = video.effects.speed || 1;
-        const effectiveDuration = video.duration / speedMultiplier;
+        const trimStart = video.trimStart || 0;
+        const trimEnd = video.trimEnd || video.duration;
+        const trimmedDuration = Math.max(0.1, trimEnd - trimStart);
+        const effectiveDuration = trimmedDuration / speedMultiplier;
 
         if (
           time >= cumulativeTime &&
@@ -597,17 +608,22 @@ export const exportToGif = async (
           for (let i = 0; i < videoIndex; i++) {
             const video = videos[i];
             const videoSpeedMultiplier = video.effects.speed || 1;
-            const videoEffectiveDuration =
-              video.duration / videoSpeedMultiplier;
+            const videoTrimStart = video.trimStart || 0;
+            const videoTrimEnd = video.trimEnd || video.duration;
+            const videoTrimmedDuration = Math.max(0.1, videoTrimEnd - videoTrimStart);
+            const videoEffectiveDuration = videoTrimmedDuration / videoSpeedMultiplier;
             videoStartTime += videoEffectiveDuration;
           }
 
           const relativeTime = time - videoStartTime;
+          // Map the relative time to the trimmed range
+          const trimStart = currentVideo.trimStart || 0;
+          const trimEnd = currentVideo.trimEnd || currentVideo.duration;
           const videoTime = Math.max(
-            0,
+            trimStart,
             Math.min(
-              relativeTime * speedMultiplier,
-              videoElement.duration - 0.01
+              trimStart + (relativeTime * speedMultiplier),
+              trimEnd - 0.01
             )
           );
 
@@ -776,13 +792,17 @@ const canvasBasedVideoExport = async (
   // Sort videos by start time
   const sortedVideos = [...videos].sort((a, b) => a.startTime - b.startTime);
 
-  // Calculate total duration with speed effects
+  // Calculate total duration with speed effects and trimming
   let totalFrames = 0;
   const videoFrameCounts: number[] = [];
 
   for (const video of sortedVideos) {
     const speedMultiplier = video.effects.speed || 1;
-    const effectiveDuration = video.duration / speedMultiplier;
+    // Apply trimming
+    const trimStart = video.trimStart || 0;
+    const trimEnd = video.trimEnd || video.duration;
+    const trimmedDuration = Math.max(0.1, trimEnd - trimStart);
+    const effectiveDuration = trimmedDuration / speedMultiplier;
     const frameCount = Math.ceil(effectiveDuration * settings.fps);
     videoFrameCounts.push(frameCount);
     totalFrames += frameCount;
@@ -797,7 +817,6 @@ const canvasBasedVideoExport = async (
   for (let videoIndex = 0; videoIndex < sortedVideos.length; videoIndex++) {
     const video = sortedVideos[videoIndex];
     const frameCount = videoFrameCounts[videoIndex];
-    const speedMultiplier = video.effects.speed || 1;
 
     // Create video element for processing
     const videoElement = document.createElement("video");
@@ -811,10 +830,16 @@ const canvasBasedVideoExport = async (
       videoElement.onerror = () => reject(new Error("Failed to load video"));
     });
 
-    // Generate frames for this video
+    // Generate frames for this video with trimming applied
+    const trimStart = video.trimStart || 0;
+    const trimEnd = video.trimEnd || video.duration;
+    const trimmedDuration = Math.max(0.1, trimEnd - trimStart);
+    
     for (let frame = 0; frame < frameCount; frame++) {
-      const frameTime = (frame / settings.fps) * speedMultiplier;
-      videoElement.currentTime = Math.min(frameTime, video.duration - 0.01);
+      // Calculate the time within the trimmed segment
+      const normalizedTime = frame / (frameCount - 1); // 0 to 1
+      const frameTime = trimStart + normalizedTime * trimmedDuration;
+      videoElement.currentTime = Math.min(Math.max(frameTime, trimStart), trimEnd - 0.01);
 
       // Wait for seek to complete
       await new Promise<void>((resolve) => {
