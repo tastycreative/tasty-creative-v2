@@ -1018,7 +1018,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
               <Trophy className="h-5 w-5 text-pink-500" />
-              <span>Top Revenue MM Messages</span>
+              <span>MM Campaigns Leaderboard</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
@@ -1133,22 +1133,22 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                           </p>
                         </div>
 
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-6">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-x-6">
                             <div className="text-center">
-                              <p className="font-bold text-xl text-pink-600">
+                              <p className="font-bold text-lg sm:text-xl text-pink-600">
                                 {message.viewedCount.toLocaleString()}
                               </p>
                               <p className="text-xs text-gray-500">views</p>
                             </div>
                             <div className="text-center">
-                              <p className="font-semibold text-lg text-gray-700">
+                              <p className="font-semibold text-base sm:text-lg text-gray-700">
                                 {message.sentCount.toLocaleString()}
                               </p>
                               <p className="text-xs text-gray-500">sent</p>
                             </div>
                             <div className="text-center">
-                              <p className="font-semibold text-lg text-green-600">
+                              <p className="font-semibold text-base sm:text-lg text-green-600">
                                 {message.viewRate.toFixed(1)}%
                               </p>
                               <p className="text-xs text-gray-500">view rate</p>
@@ -1156,7 +1156,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                             {!message.isFree && (
                               <>
                                 <div className="text-center">
-                                  <p className="font-semibold text-lg text-purple-600">
+                                  <p className="font-semibold text-base sm:text-lg text-purple-600">
                                     {message.purchasedCount}
                                   </p>
                                   <p className="text-xs text-gray-500">
@@ -1164,7 +1164,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                                   </p>
                                 </div>
                                 <div className="text-center">
-                                  <p className="font-semibold text-lg text-yellow-600">
+                                  <p className="font-semibold text-base sm:text-lg text-yellow-600">
                                     ${message.revenue.toFixed(2)}
                                   </p>
                                   <p className="text-xs text-gray-500">
@@ -1187,7 +1187,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                     );
                   })}
                   <div className="text-center text-gray-500 py-4 border-t border-gray-200 mt-4">
-                    <div className="flex justify-center space-x-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-center">
                       <div>
                         <p className="text-sm">
                           Top Message Views:{" "}
@@ -1249,7 +1249,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
               <Trophy className="h-5 w-5 text-yellow-500" />
-              <span>MM Revenue Champion Leaderboards</span>
+              <span>MM Campaign Champion Leaderboards</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
@@ -1297,133 +1297,135 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                     return (
                       <div
                         key={index}
-                        className={`flex items-center justify-between p-4 rounded-lg border ${getRankStyle(model.rank)} transition-all duration-300 hover:scale-[1.02] hover:shadow-md relative group overflow-hidden`}
+                        className={`p-4 rounded-lg border ${getRankStyle(model.rank)} transition-all duration-300 hover:scale-[1.02] hover:shadow-md relative group overflow-hidden`}
                       >
                         {/* Glass reflection effect for individual model items */}
                         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-500 ease-in-out"></div>
                         </div>
-                        <div className="flex items-center space-x-4">
-                          <div className="flex items-center space-x-3">
-                            {getTrophyIcon(model.rank)}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="flex items-center space-x-4">
                             <div className="flex items-center space-x-3">
-                              {model.avatar ? (
-                                <Image
-                                  src={`/api/image-proxy?url=${model.avatar}`}
-                                  alt={model.name}
-                                  width={40}
-                                  height={40}
-                                  className="h-10 w-10 rounded-full object-cover border border-gray-200"
-                                />
-                              ) : (
-                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                                  <span className="text-white font-bold text-lg">
-                                    {model.name.charAt(0).toUpperCase()}
+                              {getTrophyIcon(model.rank)}
+                              <div className="flex items-center space-x-3">
+                                {model.avatar ? (
+                                  <Image
+                                    src={`/api/image-proxy?url=${model.avatar}`}
+                                    alt={model.name}
+                                    width={40}
+                                    height={40}
+                                    className="h-10 w-10 rounded-full object-cover border border-gray-200"
+                                  />
+                                ) : (
+                                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                                    <span className="text-white font-bold text-lg">
+                                      {model.name.charAt(0).toUpperCase()}
+                                    </span>
+                                  </div>
+                                )}
+                                <div>
+                                  <h3 className="font-semibold text-gray-900">
+                                    {model.name}
+                                  </h3>
+                                  <p className="text-sm text-gray-500">
+                                    @{model.username}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="w-full sm:w-auto">
+                            <div className="flex flex-col space-y-3">
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                                <div className="text-center sm:text-right">
+                                  <p className="font-bold text-xl sm:text-2xl text-green-600">
+                                    ${model.totalRevenue.toLocaleString()}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    total revenue
+                                  </p>
+                                </div>
+                                <div className="text-center sm:text-right">
+                                  <p className="font-bold text-lg sm:text-xl text-purple-600">
+                                    {model.totalViews.toLocaleString()}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    total views
+                                  </p>
+                                </div>
+                                <div className="text-center sm:text-right">
+                                  <p className="font-bold text-base sm:text-lg text-pink-600">
+                                    {model.viewRate.toFixed(1)}%
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    view rate
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-3 gap-y-1">
+                                <div className="flex items-center space-x-1">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                  <span className="text-xs text-green-600">
+                                    {model.freeMessages} free
                                   </span>
                                 </div>
-                              )}
-                              <div>
-                                <h3 className="font-semibold text-gray-900">
-                                  {model.name}
-                                </h3>
-                                <p className="text-sm text-gray-500">
-                                  @{model.username}
+                                <div className="flex items-center space-x-1">
+                                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                                  <span className="text-xs text-yellow-600">
+                                    {model.paidMessages} paid
+                                  </span>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                                  <span className="text-xs text-orange-600">
+                                    {model.totalPurchases} purchases
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-4 gap-y-1">
+                                <p className="text-xs text-gray-500">
+                                  Avg Price:{" "}
+                                  <span className="text-green-600">
+                                    ${model.averagePrice.toFixed(2)}
+                                  </span>
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {model.totalMessages} msgs •{" "}
+                                  {model.totalSent.toLocaleString()} sent
                                 </p>
                               </div>
                             </div>
+
+                            {model.rank === 1 && (
+                              <div className="flex items-center justify-center sm:justify-end mt-2">
+                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full border border-green-200">
+                                  💰 Revenue Champion
+                                </span>
+                              </div>
+                            )}
+                            {model.rank === 2 && (
+                              <div className="flex items-center justify-center sm:justify-end mt-2">
+                                <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full border border-gray-200">
+                                  🥈 Runner-up
+                                </span>
+                              </div>
+                            )}
+                            {model.rank === 3 && (
+                              <div className="flex items-center justify-center sm:justify-end mt-2">
+                                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full border border-amber-200">
+                                  🥉 Third Place
+                                </span>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <div className="flex flex-col space-y-1">
-                            <div className="flex items-center justify-end space-x-4">
-                              <div className="text-right">
-                                <p className="font-bold text-2xl text-green-600">
-                                  ${model.totalRevenue.toLocaleString()}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  total revenue
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-bold text-xl text-purple-600">
-                                  {model.totalViews.toLocaleString()}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  total views
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-bold text-lg text-pink-600">
-                                  {model.viewRate.toFixed(1)}%
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  view rate
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center justify-end space-x-3 mt-2">
-                              <div className="flex items-center space-x-1">
-                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                <span className="text-xs text-green-600">
-                                  {model.freeMessages} free
-                                </span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                                <span className="text-xs text-yellow-600">
-                                  {model.paidMessages} paid
-                                </span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                                <span className="text-xs text-orange-600">
-                                  {model.totalPurchases} purchases
-                                </span>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center justify-end space-x-4 mt-1">
-                              <p className="text-xs text-gray-500">
-                                Avg Price:{" "}
-                                <span className="text-green-600">
-                                  ${model.averagePrice.toFixed(2)}
-                                </span>
-                              </p>
-                              <p className="text-xs text-gray-500">
-                                {model.totalMessages} msgs •{" "}
-                                {model.totalSent.toLocaleString()} sent
-                              </p>
-                            </div>
-                          </div>
-
-                          {model.rank === 1 && (
-                            <div className="flex items-center justify-end mt-2">
-                              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full border border-green-200">
-                                💰 Revenue Champion
-                              </span>
-                            </div>
-                          )}
-                          {model.rank === 2 && (
-                            <div className="flex items-center justify-end mt-2">
-                              <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full border border-gray-200">
-                                🥈 Runner-up
-                              </span>
-                            </div>
-                          )}
-                          {model.rank === 3 && (
-                            <div className="flex items-center justify-end mt-2">
-                              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full border border-amber-200">
-                                🥉 Third Place
-                              </span>
-                            </div>
-                          )}
                         </div>
                       </div>
                     );
                   })}
                   <div className="text-center text-gray-500 py-4 border-t border-gray-200 mt-4">
-                    <div className="flex justify-center space-x-8">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 text-center">
                       <div>
                         <p className="text-sm">
                           Total Messages:{" "}
