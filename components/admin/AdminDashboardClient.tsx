@@ -1303,121 +1303,107 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-500 ease-in-out"></div>
                         </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                          <div className="flex items-center space-x-4">
-                            <div className="flex items-center space-x-3">
-                              {getTrophyIcon(model.rank)}
-                              <div className="flex items-center space-x-3">
-                                {model.avatar ? (
-                                  <Image
-                                    src={`/api/image-proxy?url=${model.avatar}`}
-                                    alt={model.name}
-                                    width={40}
-                                    height={40}
-                                    className="h-10 w-10 rounded-full object-cover border border-gray-200"
-                                  />
-                                ) : (
-                                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                                    <span className="text-white font-bold text-lg">
-                                      {model.name.charAt(0).toUpperCase()}
-                                    </span>
-                                  </div>
-                                )}
-                                <div>
-                                  <h3 className="font-semibold text-gray-900">
-                                    {model.name}
-                                  </h3>
-                                  <p className="text-sm text-gray-500">
-                                    @{model.username}
-                                  </p>
+                        <div className="space-y-4">
+                          {/* Header with model info */}
+                          <div className="flex items-center space-x-3">
+                            {getTrophyIcon(model.rank)}
+                            <div className="flex items-center space-x-3 flex-1 min-w-0">
+                              {model.avatar ? (
+                                <Image
+                                  src={`/api/image-proxy?url=${model.avatar}`}
+                                  alt={model.name}
+                                  width={40}
+                                  height={40}
+                                  className="h-10 w-10 rounded-full object-cover border border-gray-200 flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
+                                  <span className="text-white font-bold text-lg">
+                                    {model.name.charAt(0).toUpperCase()}
+                                  </span>
                                 </div>
+                              )}
+                              <div className="min-w-0 flex-1">
+                                <h3 className="font-semibold text-gray-900 truncate">
+                                  {model.name}
+                                </h3>
+                                <p className="text-sm text-gray-500 truncate">
+                                  @{model.username}
+                                </p>
                               </div>
                             </div>
                           </div>
-                          <div className="w-full sm:w-auto">
-                            <div className="flex flex-col space-y-3">
-                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-                                <div className="text-center sm:text-right">
-                                  <p className="font-bold text-xl sm:text-2xl text-green-600">
-                                    ${model.totalRevenue.toLocaleString()}
-                                  </p>
-                                  <p className="text-xs text-gray-500">
-                                    total revenue
-                                  </p>
-                                </div>
-                                <div className="text-center sm:text-right">
-                                  <p className="font-bold text-lg sm:text-xl text-purple-600">
-                                    {model.totalViews.toLocaleString()}
-                                  </p>
-                                  <p className="text-xs text-gray-500">
-                                    total views
-                                  </p>
-                                </div>
-                                <div className="text-center sm:text-right">
-                                  <p className="font-bold text-base sm:text-lg text-pink-600">
-                                    {model.viewRate.toFixed(1)}%
-                                  </p>
-                                  <p className="text-xs text-gray-500">
-                                    view rate
-                                  </p>
-                                </div>
-                              </div>
 
-                              <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-3 gap-y-1">
-                                <div className="flex items-center space-x-1">
-                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                  <span className="text-xs text-green-600">
-                                    {model.freeMessages} free
-                                  </span>
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                                  <span className="text-xs text-yellow-600">
-                                    {model.paidMessages} paid
-                                  </span>
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                                  <span className="text-xs text-orange-600">
-                                    {model.totalPurchases} purchases
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="flex flex-wrap items-center justify-center sm:justify-end gap-x-4 gap-y-1">
-                                <p className="text-xs text-gray-500">
-                                  Avg Price:{" "}
-                                  <span className="text-green-600">
-                                    ${model.averagePrice.toFixed(2)}
-                                  </span>
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  {model.totalMessages} msgs •{" "}
-                                  {model.totalSent.toLocaleString()} sent
-                                </p>
-                              </div>
+                          {/* Main stats - responsive grid */}
+                          <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-3">
+                            <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
+                              <p className="font-bold text-lg sm:text-xl text-green-600">
+                                ${model.totalRevenue.toLocaleString()}
+                              </p>
+                              <p className="text-xs text-gray-500">total revenue</p>
                             </div>
+                            <div className="text-center p-3 bg-purple-50 rounded-lg border border-purple-200">
+                              <p className="font-bold text-lg sm:text-xl text-purple-600">
+                                {model.totalViews.toLocaleString()}
+                              </p>
+                              <p className="text-xs text-gray-500">total views</p>
+                            </div>
+                            <div className="text-center p-3 bg-pink-50 rounded-lg border border-pink-200 xs:col-span-2 lg:col-span-1">
+                              <p className="font-bold text-lg sm:text-xl text-pink-600">
+                                {model.viewRate.toFixed(1)}%
+                              </p>
+                              <p className="text-xs text-gray-500">view rate</p>
+                            </div>
+                          </div>
 
+                          {/* Message breakdown */}
+                          <div className="flex flex-wrap items-center justify-center gap-3">
+                            <div className="flex items-center space-x-1 bg-green-50 px-2 py-1 rounded-full border border-green-200">
+                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                              <span className="text-xs text-green-600 font-medium">
+                                {model.freeMessages} free
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-1 bg-yellow-50 px-2 py-1 rounded-full border border-yellow-200">
+                              <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                              <span className="text-xs text-yellow-600 font-medium">
+                                {model.paidMessages} paid
+                              </span>
+                            </div>
+                            <div className="flex items-center space-x-1 bg-orange-50 px-2 py-1 rounded-full border border-orange-200">
+                              <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                              <span className="text-xs text-orange-600 font-medium">
+                                {model.totalPurchases} purchases
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Additional details */}
+                          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-gray-500">
+                            <span>
+                              Avg Price: <span className="text-green-600 font-medium">${model.averagePrice.toFixed(2)}</span>
+                            </span>
+                            <span>
+                              {model.totalMessages} msgs • {model.totalSent.toLocaleString()} sent
+                            </span>
+                          </div>
+
+                          {/* Rank badges */}
+                          <div className="flex justify-center">
                             {model.rank === 1 && (
-                              <div className="flex items-center justify-center sm:justify-end mt-2">
-                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full border border-green-200">
-                                  💰 Revenue Champion
-                                </span>
-                              </div>
+                              <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full border border-green-200 font-medium">
+                                💰 Revenue Champion
+                              </span>
                             )}
                             {model.rank === 2 && (
-                              <div className="flex items-center justify-center sm:justify-end mt-2">
-                                <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full border border-gray-200">
-                                  🥈 Runner-up
-                                </span>
-                              </div>
+                              <span className="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded-full border border-gray-200 font-medium">
+                                🥈 Runner-up
+                              </span>
                             )}
                             {model.rank === 3 && (
-                              <div className="flex items-center justify-center sm:justify-end mt-2">
-                                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-full border border-amber-200">
-                                  🥉 Third Place
-                                </span>
-                              </div>
+                              <span className="text-xs bg-amber-100 text-amber-700 px-3 py-1 rounded-full border border-amber-200 font-medium">
+                                🥉 Third Place
+                              </span>
                             )}
                           </div>
                         </div>
@@ -1425,19 +1411,19 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                     );
                   })}
                   <div className="text-center text-gray-500 py-4 border-t border-gray-200 mt-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 text-center">
-                      <div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 text-center">
+                      <div className="p-2">
                         <p className="text-sm">
                           Total Messages:{" "}
-                          <span className="text-orange-600 font-semibold">
+                          <span className="text-orange-600 font-semibold block sm:inline">
                             {totalMassMessages.toLocaleString()}
                           </span>
                         </p>
                       </div>
-                      <div>
+                      <div className="p-2">
                         <p className="text-sm">
                           Total Revenue:{" "}
-                          <span className="text-green-600 font-semibold">
+                          <span className="text-green-600 font-semibold block sm:inline">
                             $
                             {massMessagingLeaderboard
                               .reduce(
@@ -1448,20 +1434,20 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                           </span>
                         </p>
                       </div>
-                      <div>
+                      <div className="p-2 col-span-2 sm:col-span-1">
                         <p className="text-sm">
                           Total Views:{" "}
-                          <span className="text-purple-600 font-semibold">
+                          <span className="text-purple-600 font-semibold block sm:inline">
                             {massMessagingLeaderboard
                               .reduce((sum, model) => sum + model.totalViews, 0)
                               .toLocaleString()}
                           </span>
                         </p>
                       </div>
-                      <div>
+                      <div className="p-2">
                         <p className="text-sm">
                           Avg View Rate:{" "}
-                          <span className="text-pink-600 font-semibold">
+                          <span className="text-pink-600 font-semibold block sm:inline">
                             {massMessagingLeaderboard.length > 0
                               ? (
                                   massMessagingLeaderboard.reduce(
@@ -1474,10 +1460,10 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                           </span>
                         </p>
                       </div>
-                      <div>
+                      <div className="p-2">
                         <p className="text-sm">
                           Total Purchases:{" "}
-                          <span className="text-orange-600 font-semibold">
+                          <span className="text-orange-600 font-semibold block sm:inline">
                             {massMessagingLeaderboard
                               .reduce(
                                 (sum, model) => sum + model.totalPurchases,
