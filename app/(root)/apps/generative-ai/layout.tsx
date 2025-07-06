@@ -16,6 +16,7 @@ import {
   ChevronDown,
   Menu,
   X,
+  ImageIcon,
 } from "lucide-react";
 
 type TabType =
@@ -27,6 +28,7 @@ type TabType =
   | "vault"
   | "text2image"
   | "image2image"
+  | "img2img"
   | "instagram";
 
 interface Tab {
@@ -85,8 +87,16 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
       group: "generation",
     },
     {
-      id: "image2image",
+      id: "img2img",
       label: "Image-2-Image",
+      icon: ImageIcon,
+      color: "from-teal-500 to-green-500",
+      href: "/apps/generative-ai/img2img",
+      group: "generation",
+    },
+    {
+      id: "image2image",
+      label: "Image-2-Image Masking",
       icon: RefreshCw,
       color: "from-cyan-500 to-blue-500",
       href: "/apps/generative-ai/image2image",
