@@ -44,6 +44,8 @@ import {
   Award,
   Eye,
   Sparkles,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import CountUp from "react-countup";
 import { API_KEY_PROFILES } from "@/app/services/elevenlabs-implementation";
@@ -126,6 +128,29 @@ const ROLE_COLORS = {
 export function AdminDashboardClient({ data }: { data: DashboardData }) {
   const { stats, recentUsers, userGrowthData, analytics } = data;
 
+  // Add custom CSS for animations
+  React.useEffect(() => {
+    if (typeof document !== 'undefined') {
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes fadeInSlideUp {
+          0% {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `;
+      document.head.appendChild(style);
+      return () => {
+        document.head.removeChild(style);
+      };
+    }
+  }, []);
+
   // State for real-time VN sales and voice data
   const [vnSalesData, setVnSalesData] = useState(data.vnSales);
   const [isLoadingVoiceStats, setIsLoadingVoiceStats] = useState(true);
@@ -198,6 +223,37 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
   const [showCustomDateInputs, setShowCustomDateInputs] = useState(false);
+
+  // State for managing expanded messages in leaderboard
+  const [expandedMessages, setExpandedMessages] = useState<Set<number>>(new Set());
+
+  // State for managing loading messages transition
+  const [currentLoadingMessageIndex, setCurrentLoadingMessageIndex] = useState(0);
+  
+  // Loading messages for mass messaging campaigns
+  const loadingMessages = [
+    "Initializing mass messaging analysis...",
+    "Fetching account data...",
+    "Processing campaign statistics...",
+    "Analyzing message performance...",
+    "Calculating revenue metrics...",
+    "Aggregating view rates...",
+    "Sorting by performance...",
+    "Finalizing results..."
+  ];
+
+  // Function to toggle message expansion
+  const toggleMessageExpansion = (messageId: number) => {
+    setExpandedMessages(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(messageId)) {
+        newSet.delete(messageId);
+      } else {
+        newSet.add(messageId);
+      }
+      return newSet;
+    });
+  };
 
   // Helper functions (moved outside useEffect to avoid dependency issues)
   const getCurrentDateRange = React.useCallback(() => {
@@ -596,8 +652,26 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
 
   // Fetch mass messages when component mounts or date range changes
   useEffect(() => {
+    // Reset expanded messages when date range changes
+    setExpandedMessages(new Set());
     fetchTotalMassMessages();
   }, [fetchTotalMassMessages]); // Re-fetch when date range changes
+
+  // Loading message cycling effect for mass messaging
+  useEffect(() => {
+    if (!isLoadingMassMessages) {
+      setCurrentLoadingMessageIndex(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setCurrentLoadingMessageIndex((prevIndex) => 
+        (prevIndex + 1) % loadingMessages.length
+      );
+    }, 2500); // Change message every 2.5 seconds for better readability
+
+    return () => clearInterval(interval);
+  }, [isLoadingMassMessages, loadingMessages.length]);
 
   const vnSales = vnSalesData;
 
@@ -945,10 +1019,37 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           <CardContent className="p-6">
             <div className="space-y-4">
               {isLoadingMassMessages ? (
-                <div className="flex justify-center py-8">
-                  <div className="flex items-center text-gray-500">
-                    <Loader2 className="h-6 w-6 animate-spin mr-2 text-pink-500" />
-                    <span>Loading top performing messages...</span>
+                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <Loader2 className="h-8 w-8 animate-spin text-pink-500" />
+                    <div className="flex flex-col items-start">
+                      <div className="h-6 overflow-hidden">
+                        <span 
+                          key={currentLoadingMessageIndex} 
+                          className="block text-gray-600 font-medium transition-all duration-700 ease-in-out transform animate-pulse"
+                          style={{
+                            animation: 'fadeInSlideUp 0.7s ease-in-out'
+                          }}
+                        >
+                          {loadingMessages[currentLoadingMessageIndex]}
+                        </span>
+                      </div>
+                      <div className="flex space-x-1 mt-2">
+                        {loadingMessages.map((_, index) => (
+                          <div
+                            key={index}
+                            className={`h-1 w-3 rounded-full transition-all duration-500 ${
+                              index === currentLoadingMessageIndex 
+                                ? 'bg-pink-500 scale-110' 
+                                : 'bg-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-400 text-center max-w-md">
+                    This may take a moment as we fetch and analyze data from multiple accounts...
                   </div>
                 </div>
               ) : topPerformingMessages.length > 0 ? (
@@ -1042,12 +1143,36 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                         </div>
 
                         <div className="mb-3">
-                          <div
-                            className="text-sm text-gray-700 line-clamp-2"
-                            dangerouslySetInnerHTML={{
-                              __html: message.textCropped,
-                            }}
-                          />
+                          <div className="text-sm text-gray-700">
+                            <div 
+                              className={`transition-all duration-300 ease-in-out ${expandedMessages.has(message.id) ? "max-h-none" : "line-clamp-2"}`}
+                              dangerouslySetInnerHTML={{
+                                __html: expandedMessages.has(message.id) ? message.text : message.textCropped,
+                              }}
+                            />
+                            {/* Show read more button if the full text is longer than the cropped text or if text is longer than 150 characters */}
+                            {message.text && (
+                              (message.text.length > 150) || 
+                              (message.textCropped && message.text.length > message.textCropped.length)
+                            ) && (
+                              <button
+                                onClick={() => toggleMessageExpansion(message.id)}
+                                className="inline-flex items-center mt-2 px-2 py-1 text-xs text-pink-600 hover:text-pink-700 hover:bg-pink-50 rounded-md font-medium transition-all duration-200 border border-transparent hover:border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-opacity-20"
+                              >
+                                {expandedMessages.has(message.id) ? (
+                                  <>
+                                    <span>Read less</span>
+                                    <ChevronUp className="h-3 w-3 ml-1 transition-transform duration-200" />
+                                  </>
+                                ) : (
+                                  <>
+                                    <span>Read more</span>
+                                    <ChevronDown className="h-3 w-3 ml-1 transition-transform duration-200" />
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
                           <p className="text-xs text-gray-400 mt-1">
                             {new Date(message.date).toLocaleDateString()} at{" "}
                             {new Date(message.date).toLocaleTimeString()}
@@ -1176,10 +1301,37 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           <CardContent className="p-6">
             <div className="space-y-4">
               {isLoadingMassMessages ? (
-                <div className="flex justify-center py-8">
-                  <div className="flex items-center text-gray-500">
-                    <Loader2 className="h-6 w-6 animate-spin mr-2 text-pink-500" />
-                    <span>Loading MM leaderboard...</span>
+                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <Loader2 className="h-8 w-8 animate-spin text-pink-500" />
+                    <div className="flex flex-col items-start">
+                      <div className="h-6 overflow-hidden">
+                        <span 
+                          key={currentLoadingMessageIndex} 
+                          className="block text-gray-600 font-medium transition-all duration-700 ease-in-out transform animate-pulse"
+                          style={{
+                            animation: 'fadeInSlideUp 0.7s ease-in-out'
+                          }}
+                        >
+                          {loadingMessages[currentLoadingMessageIndex]}
+                        </span>
+                      </div>
+                      <div className="flex space-x-1 mt-2">
+                        {loadingMessages.map((_, index) => (
+                          <div
+                            key={index}
+                            className={`h-1 w-3 rounded-full transition-all duration-500 ${
+                              index === currentLoadingMessageIndex 
+                                ? 'bg-pink-500 scale-110' 
+                                : 'bg-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-400 text-center max-w-md">
+                    Calculating campaign performance metrics across all models...
                   </div>
                 </div>
               ) : massMessagingLeaderboard.length > 0 ? (
