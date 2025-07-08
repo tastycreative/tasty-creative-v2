@@ -199,9 +199,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
   const [customEndDate, setCustomEndDate] = useState("");
   const [showCustomDateInputs, setShowCustomDateInputs] = useState(false);
 
-  // State for storing all raw data (unfiltered) - only MM messages needed
-  const [allMassMessages, setAllMassMessages] = useState<any[]>([]);
-
   // Helper functions (moved outside useEffect to avoid dependency issues)
   const getCurrentDateRange = React.useCallback(() => {
     const now = DateTime.now();
@@ -229,16 +226,242 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     return { startDate, endDate };
   }, [dateRange, customStartDate, customEndDate]);
 
-  // Client-side filtering function
-  const filterDataByDateRange = React.useCallback((data: any[], dateField: string = 'date') => {
-    const { startDate, endDate } = getCurrentDateRange();
-    
-    return data.filter(item => {
-      if (!item[dateField]) return false;
-      const itemDate = DateTime.fromISO(item[dateField]) || DateTime.fromJSDate(new Date(item[dateField]));
-      return itemDate >= startDate && itemDate <= endDate;
-    });
-  }, [getCurrentDateRange]);
+  // Helper function for paginated mass messaging fetch
+  const fetchMassMessagesWithPagination = React.useCallback(async (accountId: string, startDate: DateTime, endDate: DateTime) => {
+    const allMessages: any[] = [];
+    let offset = 0;
+    const limit = 100;
+    let hasMoreData = true;
+
+    while (hasMoreData) {
+      try {
+        const messagesResponse = await fetch(
+          `/api/onlyfans/models?accountId=${encodeURIComponent(accountId)}&endpoint=mass-messaging&limit=${limit}&offset=${offset}`
+        );
+
+        if (messagesResponse.ok) {
+          const messagesData = await messagesResponse.json();
+          const messages = messagesData.data?.list || messagesData.list || messagesData.data || [];
+          
+          if (!Array.isArray(messages) || messages.length === 0) {
+            hasMoreData = false;
+            break;
+          }
+
+          // Filter messages by date range on the client side
+          const filteredMessages = messages.filter((msg: any) => {
+            if (!msg.date) return false;
+            const messageDate = DateTime.fromISO(msg.date) || DateTime.fromJSDate(new Date(msg.date));
+            return messageDate >= startDate && messageDate <= endDate;
+          });
+
+          allMessages.push(...filteredMessages);
+
+          // If we got fewer messages than the limit, we've reached the end
+          if (messages.length < limit) {
+            hasMoreData = false;
+          } else {
+            offset += limit;
+          }
+
+          // If all messages in this batch are outside our date range and we're getting older data,
+          // we can stop fetching (assuming messages are sorted by date desc)
+          if (filteredMessages.length === 0 && messages.length > 0) {
+            const oldestMessageInBatch = messages[messages.length - 1];
+            if (oldestMessageInBatch.date) {
+              const oldestDate = DateTime.fromISO(oldestMessageInBatch.date) || DateTime.fromJSDate(new Date(oldestMessageInBatch.date));
+              if (oldestDate < startDate) {
+                hasMoreData = false;
+              }
+            }
+          }
+        } else {
+          hasMoreData = false;
+        }
+      } catch (error) {
+        console.error(`Error fetching mass messages for account ${accountId} at offset ${offset}:`, error);
+        hasMoreData = false;
+      }
+    }
+
+    return allMessages;
+  }, []);
+
+  const fetchTotalMassMessages = React.useCallback(async () => {
+    setIsLoadingMassMessages(true);
+    try {
+      // Get current date range
+      const { startDate, endDate } = getCurrentDateRange();
+
+      // First get all OnlyFans accounts
+      const accountsResponse = await fetch(
+        "/api/onlyfans/models?endpoint=accounts"
+      );
+      if (accountsResponse.ok) {
+        const accountsData = await accountsResponse.json();
+        const accounts = accountsData.accounts || accountsData || [];
+
+        let totalMessages = 0;
+        const leaderboardData: Array<{
+          name: string;
+          username: string;
+          totalMessages: number;
+          totalViews: number;
+          totalSent: number;
+          viewRate: number;
+          paidMessages: number;
+          freeMessages: number;
+          totalRevenue: number;
+          averagePrice: number;
+          totalPurchases: number;
+          avatar?: string;
+          rank: number;
+        }> = [];
+
+        // Fetch mass messages for each account with pagination and date filtering
+        const allMessages: Array<{
+          id: number;
+          text: string;
+          textCropped: string;
+          viewedCount: number;
+          sentCount: number;
+          viewRate: number;
+          isFree: boolean;
+          price?: string;
+          purchasedCount?: number;
+          revenue: number;
+          date: string;
+          modelName: string;
+          modelUsername: string;
+          modelAvatar?: string;
+          rank: number;
+        }> = [];
+
+        for (const account of accounts) {
+          const accountId = account.id || account.onlyfans_user_data?.id;
+          if (accountId) {
+            const accountMessages = await fetchMassMessagesWithPagination(accountId, startDate, endDate);
+            
+            totalMessages += accountMessages.length;
+
+            // Add individual messages to the global list
+            accountMessages.forEach((msg) => {
+              const viewRate = msg.sentCount > 0 ? (msg.viewedCount / msg.sentCount) * 100 : 0;
+              const revenue = !msg.isFree && msg.price ? parseFloat(msg.price) * (msg.purchasedCount || 0) : 0;
+
+              allMessages.push({
+                id: msg.id,
+                text: msg.text,
+                textCropped: msg.textCropped,
+                viewedCount: msg.viewedCount || 0,
+                sentCount: msg.sentCount || 0,
+                viewRate,
+                isFree: msg.isFree,
+                price: msg.price,
+                purchasedCount: msg.purchasedCount || 0,
+                revenue,
+                date: msg.date,
+                modelName: account.onlyfans_user_data?.name || account.name || "Unknown",
+                modelUsername: account.onlyfans_user_data?.username || account.username || "N/A",
+                modelAvatar: account.onlyfans_user_data?.avatar || account.avatar,
+                rank: 0, // Will be set after sorting
+              });
+            });
+
+            // Calculate detailed metrics for this account
+            let totalViews = 0;
+            let totalSent = 0;
+            let paidMessages = 0;
+            let freeMessages = 0;
+            let totalRevenue = 0;
+            let totalPurchases = 0;
+            let priceSum = 0;
+            let paidMessageCount = 0;
+
+            accountMessages.forEach((msg) => {
+              totalViews += msg.viewedCount || 0;
+              totalSent += msg.sentCount || 0;
+              totalPurchases += msg.purchasedCount || 0;
+
+              if (msg.isFree) {
+                freeMessages++;
+              } else {
+                paidMessages++;
+                if (msg.price) {
+                  const price = parseFloat(msg.price);
+                  if (!isNaN(price)) {
+                    priceSum += price;
+                    paidMessageCount++;
+                    totalRevenue += price * (msg.purchasedCount || 0);
+                  }
+                }
+              }
+            });
+
+            const viewRate = totalSent > 0 ? (totalViews / totalSent) * 100 : 0;
+            const averagePrice = paidMessageCount > 0 ? priceSum / paidMessageCount : 0;
+
+            // Add to leaderboard data if there are messages
+            if (accountMessages.length > 0) {
+              leaderboardData.push({
+                name: account.onlyfans_user_data?.name || account.name || "Unknown",
+                username: account.onlyfans_user_data?.username || account.username || "N/A",
+                totalMessages: accountMessages.length,
+                totalViews,
+                totalSent,
+                viewRate,
+                paidMessages,
+                freeMessages,
+                totalRevenue,
+                averagePrice,
+                totalPurchases,
+                avatar: account.onlyfans_user_data?.avatar || account.avatar,
+                rank: 0, // Will be set after sorting
+              });
+            }
+          }
+        }
+
+        // Sort messages by revenue (primary), then by views (secondary), then by view rate (tertiary)
+        allMessages.sort((a, b) => {
+          if (b.revenue !== a.revenue) {
+            return b.revenue - a.revenue;
+          }
+          if (b.viewedCount !== a.viewedCount) {
+            return b.viewedCount - a.viewedCount;
+          }
+          return b.viewRate - a.viewRate;
+        });
+        allMessages.forEach((msg, index) => {
+          msg.rank = index + 1;
+        });
+
+        // Set top performing messages
+        setTopPerformingMessages(allMessages.slice(0, 10));
+
+        // Sort leaderboard by total revenue (primary), then view count (secondary), then view rate (tertiary)
+        leaderboardData.sort((a, b) => {
+          if (b.totalRevenue !== a.totalRevenue) {
+            return b.totalRevenue - a.totalRevenue;
+          }
+          if (b.totalViews !== a.totalViews) {
+            return b.totalViews - a.totalViews;
+          }
+          return b.viewRate - a.viewRate;
+        });
+        leaderboardData.forEach((item, index) => {
+          item.rank = index + 1;
+        });
+
+        setTotalMassMessages(totalMessages);
+        setMassMessagingLeaderboard(leaderboardData.slice(0, 5)); // Top 5
+      }
+    } catch (error) {
+      console.error("Error fetching total mass messages:", error);
+    } finally {
+      setIsLoadingMassMessages(false);
+    }
+  }, [getCurrentDateRange, fetchMassMessagesWithPagination]);
 
   // Fetch all data once (no date filtering on server)
   useEffect(() => {
@@ -366,317 +589,15 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       }
     };
 
-    const fetchTotalMassMessages = async () => {
-      setIsLoadingMassMessages(true);
-      try {
-        // First get all OnlyFans accounts
-        const accountsResponse = await fetch(
-          "/api/onlyfans/models?endpoint=accounts"
-        );
-        if (accountsResponse.ok) {
-          const accountsData = await accountsResponse.json();
-          const accounts = accountsData.accounts || accountsData || [];
-
-          let totalMessages = 0;
-          const leaderboardData: Array<{
-            name: string;
-            username: string;
-            totalMessages: number;
-            totalViews: number;
-            totalSent: number;
-            viewRate: number;
-            paidMessages: number;
-            freeMessages: number;
-            totalRevenue: number;
-            averagePrice: number;
-            totalPurchases: number;
-            avatar?: string;
-            rank: number;
-          }> = [];
-
-          // Fetch mass messages for each account
-          const allMessages: Array<{
-            id: number;
-            text: string;
-            textCropped: string;
-            viewedCount: number;
-            sentCount: number;
-            viewRate: number;
-            isFree: boolean;
-            price?: string;
-            purchasedCount?: number;
-            revenue: number;
-            date: string;
-            modelName: string;
-            modelUsername: string;
-            modelAvatar?: string;
-            rank: number;
-          }> = [];
-
-          for (const account of accounts) {
-            try {
-              const accountId = account.id || account.onlyfans_user_data?.id;
-              if (accountId) {
-                const messagesResponse = await fetch(
-                  `/api/onlyfans/models?accountId=${encodeURIComponent(accountId)}&endpoint=mass-messaging`
-                );
-                if (messagesResponse.ok) {
-                  const messagesData = await messagesResponse.json();
-                  const messages =
-                    messagesData.data?.list ||
-                    messagesData.list ||
-                    messagesData.data ||
-                    [];
-                  const messageCount = Array.isArray(messages)
-                    ? messages.length
-                    : 0;
-                  totalMessages += messageCount;
-
-                  // Add individual messages to the global list
-                  if (Array.isArray(messages)) {
-                    messages.forEach((msg) => {
-                      const viewRate =
-                        msg.sentCount > 0
-                          ? (msg.viewedCount / msg.sentCount) * 100
-                          : 0;
-                      const revenue =
-                        !msg.isFree && msg.price
-                          ? parseFloat(msg.price) * (msg.purchasedCount || 0)
-                          : 0;
-
-                      allMessages.push({
-                        id: msg.id,
-                        text: msg.text,
-                        textCropped: msg.textCropped,
-                        viewedCount: msg.viewedCount || 0,
-                        sentCount: msg.sentCount || 0,
-                        viewRate,
-                        isFree: msg.isFree,
-                        price: msg.price,
-                        purchasedCount: msg.purchasedCount || 0,
-                        revenue,
-                        date: msg.date,
-                        modelName:
-                          account.onlyfans_user_data?.name ||
-                          account.name ||
-                          "Unknown",
-                        modelUsername:
-                          account.onlyfans_user_data?.username ||
-                          account.username ||
-                          "N/A",
-                        modelAvatar:
-                          account.onlyfans_user_data?.avatar || account.avatar,
-                        rank: 0, // Will be set after sorting
-                      });
-                    });
-                  }
-
-                  // Calculate detailed metrics
-                  let totalViews = 0;
-                  let totalSent = 0;
-                  let paidMessages = 0;
-                  let freeMessages = 0;
-                  let totalRevenue = 0;
-                  let totalPurchases = 0;
-                  let priceSum = 0;
-                  let paidMessageCount = 0;
-
-                  if (Array.isArray(messages)) {
-                    messages.forEach((msg) => {
-                      totalViews += msg.viewedCount || 0;
-                      totalSent += msg.sentCount || 0;
-                      totalPurchases += msg.purchasedCount || 0;
-
-                      if (msg.isFree) {
-                        freeMessages++;
-                      } else {
-                        paidMessages++;
-                        if (msg.price) {
-                          const price = parseFloat(msg.price);
-                          if (!isNaN(price)) {
-                            priceSum += price;
-                            paidMessageCount++;
-                            totalRevenue += price * (msg.purchasedCount || 0);
-                          }
-                        }
-                      }
-                    });
-                  }
-
-                  const viewRate =
-                    totalSent > 0 ? (totalViews / totalSent) * 100 : 0;
-                  const averagePrice =
-                    paidMessageCount > 0 ? priceSum / paidMessageCount : 0;
-
-                  // Add to leaderboard data
-                  leaderboardData.push({
-                    name:
-                      account.onlyfans_user_data?.name ||
-                      account.name ||
-                      "Unknown",
-                    username:
-                      account.onlyfans_user_data?.username ||
-                      account.username ||
-                      "N/A",
-                    totalMessages: messageCount,
-                    totalViews,
-                    totalSent,
-                    viewRate,
-                    paidMessages,
-                    freeMessages,
-                    totalRevenue,
-                    averagePrice,
-                    totalPurchases,
-                    avatar:
-                      account.onlyfans_user_data?.avatar || account.avatar,
-                    rank: 0, // Will be set after sorting
-                  });
-                }
-              }
-            } catch (error) {
-              console.error(
-                `Error fetching mass messages for account ${account.id}:`,
-                error
-              );
-            }
-          }
-
-          // Store all raw messages for client-side filtering
-          setAllMassMessages(allMessages);
-
-          // Sort by total revenue (primary), then view count (secondary), then view rate (tertiary)
-          leaderboardData.sort((a, b) => {
-            if (b.totalRevenue !== a.totalRevenue) {
-              return b.totalRevenue - a.totalRevenue;
-            }
-            if (b.totalViews !== a.totalViews) {
-              return b.totalViews - a.totalViews;
-            }
-            return b.viewRate - a.viewRate;
-          });
-          leaderboardData.forEach((item, index) => {
-            item.rank = index + 1;
-          });
-
-          setTotalMassMessages(totalMessages);
-          setMassMessagingLeaderboard(leaderboardData.slice(0, 5)); // Top 5
-        }
-      } catch (error) {
-        console.error("Error fetching total mass messages:", error);
-      } finally {
-        setIsLoadingMassMessages(false);
-      }
-    };
-
     // Only fetch data once on component mount
     fetchVoiceData();
     fetchSwdData();
-    fetchTotalMassMessages();
   }, []); // Empty dependency array - only run once
 
-  // Separate useEffect for client-side filtering when date range changes (MM only)
+  // Fetch mass messages when component mounts or date range changes
   useEffect(() => {
-    if (!allMassMessages.length) {
-      return; // Wait for mass messages data to be loaded
-    }
-
-    // Apply client-side filtering to mass messages only
-    const filteredMessages = filterDataByDateRange(allMassMessages, 'date');
-
-    // Sort filtered messages by revenue (primary), then by views (secondary), then by view rate (tertiary)
-    filteredMessages.sort((a, b) => {
-      if (b.revenue !== a.revenue) {
-        return b.revenue - a.revenue;
-      }
-      if (b.viewedCount !== a.viewedCount) {
-        return b.viewedCount - a.viewedCount;
-      }
-      return b.viewRate - a.viewRate;
-    });
-    filteredMessages.forEach((msg, index) => {
-      msg.rank = index + 1;
-    });
-
-    setTopPerformingMessages(filteredMessages.slice(0, 10)); // Top 10 messages
-
-    // Update MM leaderboard with filtered data
-    const modelStats: Record<string, any> = {};
-
-    // Group filtered messages by model and calculate revenue-based stats
-    filteredMessages.forEach((msg) => {
-      const key = `${msg.modelName}_${msg.modelUsername}`;
-      if (!modelStats[key]) {
-        modelStats[key] = {
-          name: msg.modelName,
-          username: msg.modelUsername,
-          avatar: msg.modelAvatar,
-          totalMessages: 0,
-          totalViews: 0,
-          totalSent: 0,
-          totalRevenue: 0,
-          totalPurchases: 0,
-          paidMessages: 0,
-          freeMessages: 0,
-          priceSum: 0,
-          paidMessageCount: 0,
-        };
-      }
-
-      const stats = modelStats[key];
-      stats.totalMessages++;
-      stats.totalViews += msg.viewedCount;
-      stats.totalSent += msg.sentCount;
-      stats.totalRevenue += msg.revenue;
-      stats.totalPurchases += msg.purchasedCount || 0;
-
-      if (msg.isFree) {
-        stats.freeMessages++;
-      } else {
-        stats.paidMessages++;
-        if (msg.price) {
-          const price = parseFloat(msg.price);
-          if (!isNaN(price)) {
-            stats.priceSum += price;
-            stats.paidMessageCount++;
-          }
-        }
-      }
-    });
-
-    // Convert to array and calculate derived stats
-    const leaderboardData = Object.values(modelStats).map((stats: any) => ({
-      name: stats.name,
-      username: stats.username,
-      avatar: stats.avatar,
-      totalMessages: stats.totalMessages,
-      totalViews: stats.totalViews,
-      totalSent: stats.totalSent,
-      viewRate: stats.totalSent > 0 ? (stats.totalViews / stats.totalSent) * 100 : 0,
-      paidMessages: stats.paidMessages,
-      freeMessages: stats.freeMessages,
-      totalRevenue: stats.totalRevenue,
-      averagePrice: stats.paidMessageCount > 0 ? stats.priceSum / stats.paidMessageCount : 0,
-      totalPurchases: stats.totalPurchases,
-      rank: 0, // Will be set after sorting
-    }));
-
-    // Sort by total revenue (primary), then view count (secondary), then view rate (tertiary)
-    leaderboardData.sort((a, b) => {
-      if (b.totalRevenue !== a.totalRevenue) {
-        return b.totalRevenue - a.totalRevenue;
-      }
-      if (b.totalViews !== a.totalViews) {
-        return b.totalViews - a.totalViews;
-      }
-      return b.viewRate - a.viewRate;
-    });
-    leaderboardData.forEach((item, index) => {
-      item.rank = index + 1;
-    });
-
-    setMassMessagingLeaderboard(leaderboardData.slice(0, 5)); // Top 5 revenue generators
-
-  }, [filterDataByDateRange, allMassMessages, dateRange, customStartDate, customEndDate]);
+    fetchTotalMassMessages();
+  }, [fetchTotalMassMessages]); // Re-fetch when date range changes
 
   const vnSales = vnSalesData;
 
