@@ -232,14 +232,14 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
   
   // Loading messages for mass messaging campaigns
   const loadingMessages = [
-    "Initializing mass messaging analysis...",
-    "Fetching account data...",
-    "Processing campaign statistics...",
-    "Analyzing message performance...",
-    "Calculating revenue metrics...",
-    "Aggregating view rates...",
-    "Sorting by performance...",
-    "Finalizing results..."
+    "Loading mass messaging data...",
+    "Fetching campaign analytics...",
+    "Processing message statistics...",
+    "Analyzing performance metrics...",
+    "Gathering revenue data...",
+    "Collecting view statistics...",
+    "Compiling results...",
+    "Preparing dashboard..."
   ];
 
   // Function to toggle message expansion
@@ -664,13 +664,30 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       return;
     }
 
-    const interval = setInterval(() => {
+    const scheduleNextMessage = () => {
+      // Random interval between 5-10 seconds (5000-10000ms)
+      const randomInterval = Math.floor(Math.random() * 5000) + 5000;
+      
+      const timeout = setTimeout(() => {
+        setCurrentLoadingMessageIndex((prevIndex) => 
+          (prevIndex + 1) % loadingMessages.length
+        );
+        scheduleNextMessage(); // Schedule the next message change
+      }, randomInterval);
+
+      return timeout;
+    };
+
+    // Initial delay before first message change (3-7 seconds)
+    const initialDelay = Math.floor(Math.random() * 4000) + 3000;
+    const initialTimeout = setTimeout(() => {
       setCurrentLoadingMessageIndex((prevIndex) => 
         (prevIndex + 1) % loadingMessages.length
       );
-    }, 2500); // Change message every 2.5 seconds for better readability
+      scheduleNextMessage(); // Start the recurring schedule
+    }, initialDelay);
 
-    return () => clearInterval(interval);
+    return () => clearTimeout(initialTimeout);
   }, [isLoadingMassMessages, loadingMessages.length]);
 
   const vnSales = vnSalesData;
