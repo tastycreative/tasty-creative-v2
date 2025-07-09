@@ -331,28 +331,49 @@ const GifMakerVideoCropper = ({
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   const dragTargetRef = useRef<HTMLDivElement | null>(null);
 
-  // Calculate aspect ratio dimensions
+  // Calculate grid layout for square templates
+  const getGridLayout = (layout: string) => {
+    switch (layout) {
+      case "single":
+        return { cols: 1, rows: 1, totalCells: 1 };
+      case "sideBySide":
+        return { cols: 2, rows: 1, totalCells: 2 }; // 2 horizontal rectangles
+      case "triptychHorizontal":
+        return { cols: 3, rows: 1, totalCells: 3 }; // 3 horizontal rectangles
+      case "triptychVertical":
+        return { cols: 1, rows: 3, totalCells: 3 }; // 3 vertical rectangles
+      case "grid2x2":
+        return { cols: 2, rows: 2, totalCells: 4 }; // Standard 2x2 grid
+      default:
+        return { cols: 1, rows: 1, totalCells: 1 };
+    }
+  };
+
+  // Get which cells should be visible for each layout
+  const getVisibleCells = (layout: string, totalGridCells: number) => {
+    switch (layout) {
+      case "single":
+        return [0]; // Only first cell
+      case "sideBySide":
+        return [0, 1]; // Both horizontal cells
+      case "triptychHorizontal":
+        return [0, 1, 2]; // All 3 horizontal cells
+      case "triptychVertical":
+        return [0, 1, 2]; // All 3 vertical cells
+      case "grid2x2":
+        return [0, 1, 2, 3]; // All 4 cells
+      default:
+        return [0];
+    }
+  };
+
+  // Calculate aspect ratio dimensions - Always square
   const getAspectRatioSize = (layout: string) => {
     const template = templates[layout];
     if (!template) return { width: baseHeight, height: baseHeight };
 
-    switch (layout) {
-      case "Single":
-        return { width: baseHeight * (16 / 9), height: baseHeight };
-      case "Side by Side":
-        return { width: baseHeight * 2, height: baseHeight };
-      case "Horizontal Triptych":
-        return { width: baseHeight * 3, height: baseHeight };
-      case "Vertical Triptych":
-        return { width: baseHeight, height: baseHeight * 3 };
-      case "2x2 Grid":
-        return { width: baseHeight * 2, height: baseHeight * 2 };
-      default:
-        return {
-          width: baseHeight * template.cols,
-          height: baseHeight * template.rows,
-        };
-    }
+    // All templates now return square dimensions
+    return { width: baseHeight, height: baseHeight };
   };
 
   // Handle video scaling with performance optimization
@@ -366,13 +387,13 @@ const GifMakerVideoCropper = ({
       const newClips = [...prevClips];
       newClips[index] = {
         ...newClips[index],
-        scale: Math.max(0.1, Math.min(3, newScale)),
+        scale: Math.max(0.1, Math.min(10, newScale)), // Increased max scale from 5 to 10
       };
       return newClips;
     });
   };
 
-  // Use react-use-gesture for smooth dragging
+  // Use react-use-gesture for smooth dragging with layout-aware sensitivity
   const bind = useDrag(({ movement: [mx, my], down }) => {
     if (activeVideoIndex === null || !dragTargetRef.current) return;
 
@@ -380,10 +401,25 @@ const GifMakerVideoCropper = ({
     const baseX = currentClip?.positionX || 0;
     const baseY = currentClip?.positionY || 0;
 
+    // Adjust sensitivity based on layout
+    let sensitivityX = 0.5;
+    let sensitivityY = 0.5;
+
+    // For vertical triptych, each cell is 1/3 height, so we need different Y sensitivity
+    if (selectedTemplate === "triptychVertical") {
+      sensitivityY = 0.3; // Reduced Y sensitivity for smaller cells
+    }
+    // For horizontal layouts, cells are narrower, so adjust X sensitivity
+    else if (selectedTemplate === "sideBySide") {
+      sensitivityX = 0.3; // Reduced X sensitivity for narrower cells
+    } else if (selectedTemplate === "triptychHorizontal") {
+      sensitivityX = 0.25; // Even more reduced X sensitivity for 1/3 width cells
+    }
+
     if (down) {
-      // Apply live drag offset using base position + current drag movement
-      const offsetX = baseX + mx * 0.3;
-      const offsetY = baseY + my * 0.3;
+      // Apply live drag offset using base position + current drag movement with layout-aware sensitivity
+      const offsetX = baseX + mx * sensitivityX;
+      const offsetY = baseY + my * sensitivityY;
 
       dragTargetRef.current.style.setProperty("--translate-x", `${offsetX}px`);
       dragTargetRef.current.style.setProperty("--translate-y", `${offsetY}px`);
@@ -395,8 +431,8 @@ const GifMakerVideoCropper = ({
         const newClips = [...prevClips];
         newClips[activeVideoIndex] = {
           ...newClips[activeVideoIndex],
-          positionX: baseX + mx * 0.3,
-          positionY: baseY + my * 0.3,
+          positionX: baseX + mx * sensitivityX,
+          positionY: baseY + my * sensitivityY,
         };
         return newClips;
       });
@@ -608,151 +644,235 @@ const GifMakerVideoCropper = ({
               ref={outputGridRef}
               className="grid"
               style={{
-                gridTemplateColumns: `repeat(${templates[selectedTemplate].cols}, 1fr)`,
-                gridTemplateRows: `repeat(${templates[selectedTemplate].rows}, 1fr)`,
+                gridTemplateColumns: `repeat(${getGridLayout(selectedTemplate).cols}, 1fr)`,
+                gridTemplateRows: `repeat(${getGridLayout(selectedTemplate).rows}, 1fr)`,
                 gap: "2px",
-                aspectRatio: `${getAspectRatioSize(selectedTemplate).width}/${
-                  getAspectRatioSize(selectedTemplate).height
-                }`,
+                aspectRatio: `1`, // Always square
               }}
             >
-              {Array.from({ length: totalCells }).map((_, i) => (
-                <div key={i} className="relative">
-                  <div
-                    className={`relative bg-gray-700 w-full h-full flex items-center justify-center text-gray-400 transition overflow-hidden ${
-                      activeVideoIndex === i ? "ring-2 ring-blue-500" : ""
-                    }`}
-                  >
-                    {videoClips[i]?.file ? (
-                      <>
-                        <div
-                          ref={i === activeVideoIndex ? dragTargetRef : null}
-                          {...(i === activeVideoIndex ? bind() : {})}
-                          className="w-full h-full relative overflow-hidden"
-                          style={{
-                            transform: `translate(var(--translate-x, ${
-                              videoClips[i].positionX || 0
-                            }px), var(--translate-y, ${
-                              videoClips[i].positionY || 0
-                            }px)) scale(var(--scale, ${
-                              videoClips[i].scale || 1
-                            }))`,
-                            transformOrigin: "center",
-                            willChange: "transform",
-                          }}
-                          onWheel={(e) => {
-                            if (activeVideoIndex !== i) return;
-                            e.preventDefault();
-                            const delta = e.deltaY * -0.01;
-                            handleVideoScale(
-                              i,
-                              (videoClips[i].scale || 1) + delta
-                            );
-                          }}
-                        >
-                          <video
-                            ref={(el) => {
-                              if (!el || !videoRefs.current) return;
-                              videoRefs.current[i] = el;
+              {Array.from({
+                length:
+                  getGridLayout(selectedTemplate).cols *
+                  getGridLayout(selectedTemplate).rows,
+              }).map((_, i) => {
+                const visibleCells = getVisibleCells(
+                  selectedTemplate,
+                  getGridLayout(selectedTemplate).cols *
+                    getGridLayout(selectedTemplate).rows
+                );
+                const isVisible = visibleCells.includes(i);
+                const videoIndex = visibleCells.indexOf(i); // Map grid position to video index
+
+                return (
+                  <div key={i} className="relative">
+                    <div
+                      className={`relative w-full h-full flex items-center justify-center text-gray-400 transition overflow-hidden ${
+                        !isVisible
+                          ? "bg-black"
+                          : activeVideoIndex === videoIndex
+                            ? "ring-2 ring-blue-500 bg-gray-700"
+                            : "bg-gray-700"
+                      }`}
+                    >
+                      {isVisible &&
+                      videoIndex >= 0 &&
+                      videoClips[videoIndex]?.file ? (
+                        <>
+                          <div
+                            ref={
+                              activeVideoIndex === videoIndex
+                                ? dragTargetRef
+                                : null
+                            }
+                            {...(activeVideoIndex === videoIndex ? bind() : {})}
+                            className="w-full h-full relative overflow-hidden"
+                            style={{
+                              transform: `translate(var(--translate-x, ${
+                                videoClips[videoIndex].positionX || 0
+                              }px), var(--translate-y, ${
+                                videoClips[videoIndex].positionY || 0
+                              }px)) scale(var(--scale, ${
+                                videoClips[videoIndex].scale || 1
+                              }))`,
+                              transformOrigin: "center",
+                              willChange: "transform",
                             }}
-                            src={videoUrls[i] || ""}
-                            className="absolute inset-0 w-full h-full object-contain"
-                            muted
-                            playsInline
-                            autoPlay={i === activeVideoIndex}
-                            onLoadedMetadata={(e) => {
-                              const video = e.currentTarget;
-                              const clip = videoClips[i];
+                            onWheel={(e) => {
+                              if (activeVideoIndex !== videoIndex) return;
+                              e.preventDefault();
+                              const delta = e.deltaY * -0.03; // Further increased sensitivity for faster scaling
+                              handleVideoScale(
+                                videoIndex,
+                                (videoClips[videoIndex].scale || 1) + delta
+                              );
+                            }}
+                          >
+                            <video
+                              ref={(el) => {
+                                if (!el || !videoRefs.current) return;
+                                videoRefs.current[videoIndex] = el;
+                              }}
+                              src={videoUrls[videoIndex] || ""}
+                              className="absolute inset-0 w-full h-full object-contain"
+                              muted
+                              playsInline
+                              autoPlay={videoIndex === activeVideoIndex}
+                              onLoadedMetadata={(e) => {
+                                const video = e.currentTarget;
+                                const clip = videoClips[videoIndex];
 
-                              if (i === activeVideoIndex) {
-                                // For active video, set to current time or start time
-                                video.currentTime =
-                                  currentTime || clip.startTime;
-                                // Don't auto-play - let parent control
-                              } else {
-                                // For non-active videos, set up preview loop
-                                video.currentTime = clip.startTime;
+                                if (videoIndex === activeVideoIndex) {
+                                  // For active video, set to current time or start time
+                                  video.currentTime =
+                                    currentTime || clip.startTime;
+                                  // Don't auto-play - let parent control
+                                } else {
+                                  // For non-active videos, set up preview loop
+                                  video.currentTime = clip.startTime;
 
-                                const loopVideo = () => {
-                                  if (video.currentTime >= clip.endTime) {
-                                    video.currentTime = clip.startTime;
-                                  }
-                                };
+                                  const loopVideo = () => {
+                                    if (video.currentTime >= clip.endTime) {
+                                      video.currentTime = clip.startTime;
+                                    }
+                                  };
 
-                                video.addEventListener("timeupdate", loopVideo);
-                                video.play().catch(() => {});
-
-                                // Return cleanup function
-                                return () => {
-                                  video.removeEventListener(
+                                  video.addEventListener(
                                     "timeupdate",
                                     loopVideo
                                   );
-                                };
-                              }
-                            }}
-                          />
-                          {renderVideoOverlay(i)}
-                        </div>
+                                  video.play().catch(() => {});
 
-                        {videoClips[i]?.file && activeVideoIndex === i && (
-                          <div
-                            key={`slider-${i}`}
-                            className="absolute right-0 bottom-12 -mr-[41px] opacity-70 hover:opacity-100 transition-all duration-300"
-                          >
-                            <div className="flex flex-col items-end text-end justify-end">
-                              <input
-                                name={i.toString()}
-                                id={`video-scale-${i}`}
-                                type="range"
-                                min="0.1"
-                                max="3"
-                                step="0.05"
-                                value={videoClips[i].scale || 1}
-                                onChange={(e) =>
-                                  handleVideoScale(
-                                    i,
-                                    parseFloat(e.target.value)
-                                  )
+                                  // Return cleanup function
+                                  return () => {
+                                    video.removeEventListener(
+                                      "timeupdate",
+                                      loopVideo
+                                    );
+                                  };
                                 }
-                                className="h-32 vertical-slider text-blue-500 accent-blue-500"
-                                style={{
-                                  WebkitAppearance: "slider-vertical",
+                              }}
+                            />
+                            {renderVideoOverlay(videoIndex)}
+                          </div>
+
+                          {videoClips[videoIndex]?.file &&
+                            activeVideoIndex === videoIndex && (
+                              <div
+                                key={`slider-${videoIndex}`}
+                                className={`absolute opacity-70 hover:opacity-100 transition-all duration-300 ${
+                                  selectedTemplate === "triptychVertical"
+                                    ? "left-2 bottom-2" // Lower left for vertical triptych
+                                    : "right-0 bottom-12 -mr-[41px]" // Default position for other templates
+                                }`}
+                              >
+                                <div
+                                  className={`flex ${
+                                    selectedTemplate === "triptychVertical"
+                                      ? "flex-row items-center" // Horizontal layout for vertical triptych
+                                      : "flex-col items-end text-end justify-end" // Default vertical layout
+                                  }`}
+                                >
+                                  <input
+                                    name={videoIndex.toString()}
+                                    id={`video-scale-${videoIndex}`}
+                                    type="range"
+                                    min="0.1"
+                                    max="10"
+                                    step="0.1"
+                                    value={videoClips[videoIndex].scale || 1}
+                                    onChange={(e) =>
+                                      handleVideoScale(
+                                        videoIndex,
+                                        parseFloat(e.target.value)
+                                      )
+                                    }
+                                    className={`text-blue-500 accent-blue-500 ${
+                                      selectedTemplate === "triptychVertical"
+                                        ? "w-24 h-2" // Horizontal slider for vertical triptych
+                                        : "h-32 vertical-slider" // Default vertical slider
+                                    }`}
+                                    style={
+                                      selectedTemplate === "triptychVertical"
+                                        ? {} // No special styling needed for horizontal
+                                        : {
+                                            WebkitAppearance: "slider-vertical",
+                                          } // Vertical styling for others
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            )}
+
+                          <div className="absolute bottom-2 right-2 flex gap-2 z-30">
+                            <button
+                              className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-full"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setActiveVideoIndex(videoIndex);
+                                setIsPlaying(false);
+                                document
+                                  .getElementById("timeframe-editor")
+                                  ?.scrollIntoView({
+                                    behavior: "smooth",
+                                    block: "center",
+                                  });
+                              }}
+                            >
+                              <Clock className="w-4 h-4" />
+                            </button>
+
+                            <button
+                              className="bg-gray-600 hover:bg-gray-500 text-white p-2 rounded-full"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleOpenUploadModal(videoIndex);
+                              }}
+                            >
+                              <UploadIcon className="w-4 h-4" />
+                            </button>
+
+                            {/* Direct file upload button */}
+                            <div className="relative">
+                              <input
+                                type="file"
+                                accept="video/*"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    const validation = validateVideoFile(file);
+                                    if (!validation.isValid) {
+                                      alert(validation.error);
+                                      return;
+                                    }
+
+                                    handleVideoChange(videoIndex, file);
+                                  }
+                                  e.target.value = "";
                                 }}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                               />
+                              <button className="bg-green-600 hover:bg-green-500 text-white p-2 rounded-full">
+                                📁
+                              </button>
                             </div>
                           </div>
-                        )}
-
-                        <div className="absolute bottom-2 right-2 flex gap-2 z-30">
+                        </>
+                      ) : isVisible ? (
+                        <div className="absolute inset-0 bg-gray-700 flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-gray-600 transition z-10 w-full h-full">
+                          {/* Vault Upload Button */}
                           <button
-                            className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-full"
                             onClick={(e) => {
                               e.preventDefault();
-                              setActiveVideoIndex(i);
-                              setIsPlaying(false);
-                              document
-                                .getElementById("timeframe-editor")
-                                ?.scrollIntoView({
-                                  behavior: "smooth",
-                                  block: "center",
-                                });
+                              handleOpenUploadModal(
+                                videoIndex >= 0 ? videoIndex : 0
+                              );
                             }}
+                            className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors"
                           >
-                            <Clock className="w-4 h-4" />
+                            <Clock className="w-4 h-4" /> Upload from Vault
                           </button>
 
-                          <button
-                            className="bg-gray-600 hover:bg-gray-500 text-white p-2 rounded-full"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handleOpenUploadModal(i);
-                            }}
-                          >
-                            <UploadIcon className="w-4 h-4" />
-                          </button>
-
-                          {/* Direct file upload button */}
+                          {/* Direct File Upload */}
                           <div className="relative">
                             <input
                               type="file"
@@ -766,62 +886,27 @@ const GifMakerVideoCropper = ({
                                     return;
                                   }
 
-                                  handleVideoChange(i, file);
+                                  handleVideoChange(
+                                    videoIndex >= 0 ? videoIndex : 0,
+                                    file
+                                  );
                                 }
                                 e.target.value = "";
                               }}
                               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                             />
-                            <button className="bg-green-600 hover:bg-green-500 text-white p-2 rounded-full">
-                              📁
+                            <button className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+                              📁 Upload from Device
                             </button>
                           </div>
+
+                          <span className="text-xs text-gray-400">or</span>
                         </div>
-                      </>
-                    ) : (
-                      <div className="absolute inset-0 bg-gray-700 flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-gray-600 transition z-10 w-full h-full">
-                        {/* Vault Upload Button */}
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleOpenUploadModal(i);
-                          }}
-                          className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors"
-                        >
-                          <Clock className="w-4 h-4" /> Upload from Vault
-                        </button>
-
-                        {/* Direct File Upload */}
-                        <div className="relative">
-                          <input
-                            type="file"
-                            accept="video/*"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                const validation = validateVideoFile(file);
-                                if (!validation.isValid) {
-                                  alert(validation.error);
-                                  return;
-                                }
-
-                                handleVideoChange(i, file);
-                              }
-                              e.target.value = "";
-                            }}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                          />
-                          <button className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm transition-colors">
-                            📁 Upload from Device
-                          </button>
-                        </div>
-
-                        <span className="text-xs text-gray-400">or</span>
-                      </div>
-                    )}
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

@@ -103,6 +103,7 @@ export const templates: Record<
     icon: React.JSX.Element;
     cols: number;
     rows: number;
+    aspectRatio: number; // Always 1 for square
   }
 > = {
   single: {
@@ -110,30 +111,35 @@ export const templates: Record<
     icon: <Square className="w-5 h-5" />,
     cols: 1,
     rows: 1,
+    aspectRatio: 1, // Square
   },
   sideBySide: {
     name: "Side by Side",
     icon: <Columns2 className="w-5 h-5" />,
     cols: 2,
-    rows: 1,
+    rows: 1, // 2 horizontal rectangles in a square
+    aspectRatio: 1, // Square overall
   },
   triptychHorizontal: {
     name: "Horizontal Triptych",
     icon: <Columns3 className="w-5 h-5" />,
     cols: 3,
-    rows: 1,
+    rows: 1, // 3 horizontal rectangles in a square
+    aspectRatio: 1, // Square overall
   },
   triptychVertical: {
     name: "Vertical Triptych",
     icon: <Rows3 className="w-5 h-5" />,
     cols: 1,
-    rows: 3,
+    rows: 3, // 3 vertical rectangles in a square
+    aspectRatio: 1, // Square overall
   },
   grid2x2: {
     name: "2x2 Grid",
     icon: <Grid2X2 className="w-5 h-5" />,
     cols: 2,
     rows: 2,
+    aspectRatio: 1, // Square
   },
 };
 
