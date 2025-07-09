@@ -11,8 +11,8 @@ export interface VideoClip {
   scale?: number;
   // For timeline-based clips (merged videos)
   timelineStartTime?: number; // When this clip starts in the overall timeline
-  timelineEndTime?: number;   // When this clip ends in the overall timeline
-  clipIndex?: number;         // Order in the timeline
+  timelineEndTime?: number; // When this clip ends in the overall timeline
+  clipIndex?: number; // Order in the timeline
 }
 
 export interface TimelineClip {
@@ -37,7 +37,12 @@ export interface GifSettings {
   quality: number;
 }
 
-export type Layout = "Single" | "Side by Side" | "Horizontal Triptych" | "Vertical Triptych" | "2x2 Grid";
+export type Layout =
+  | "Single"
+  | "Side by Side"
+  | "Horizontal Triptych"
+  | "Vertical Triptych"
+  | "2x2 Grid";
 
 export const fetchFile = async (file: File): Promise<Uint8Array> => {
   return new Uint8Array(await file.arrayBuffer());
@@ -56,26 +61,47 @@ export const createFilterComplex = (
 
   const clipCount = clips.length;
 
+  // Calculate base dimensions for each cell in the square grid
   const baseW =
-    width /
-    (layout === "Side by Side"
-      ? 2
+    layout === "Side by Side"
+      ? width / 2 // 2 horizontal rectangles
       : layout === "Horizontal Triptych"
-      ? 3
-      : layout === "2x2 Grid"
-      ? 2
-      : 1);
+        ? width / 3 // 3 horizontal rectangles
+        : layout === "Vertical Triptych"
+          ? width // 1 vertical rectangle per row, full width
+          : layout === "2x2 Grid"
+            ? width / 2 // 2x2 grid
+            : width; // Single
+
   const baseH =
-    height /
-    (layout === "Vertical Triptych" ? 3 : layout === "2x2 Grid" ? 2 : 1);
+    layout === "Side by Side"
+      ? height // Full height for horizontal rectangles
+      : layout === "Horizontal Triptych"
+        ? height // Full height for horizontal rectangles
+        : layout === "Vertical Triptych"
+          ? height / 3 // 3 vertical rectangles
+          : layout === "2x2 Grid"
+            ? height / 2 // 2x2 grid
+            : height; // Single
 
   const scale = (index: number) => {
     const clip = clips[index];
     const scaleFactor = clip.scale || 1;
     const scaledW = baseW * scaleFactor;
     const scaledH = baseH * scaleFactor;
-    const offsetX = (scaledW - baseW) / 2 - (clip.positionX || 0);
-    const offsetY = (scaledH - baseH) / 2 - (clip.positionY || 0);
+
+    // Scale position values based on cell size relative to full dimensions
+    // This ensures consistent positioning across different layouts
+    const positionScaleX = baseW / width;
+    const positionScaleY = baseH / height;
+
+    const scaledPositionX = (clip.positionX || 0) * positionScaleX;
+    const scaledPositionY = (clip.positionY || 0) * positionScaleY;
+
+    // Fix positioning: crop offset should be from center minus position movement
+    // When user drags right (+positionX), we crop from further left to show content on the right
+    const offsetX = Math.max(0, (scaledW - baseW) / 2 - scaledPositionX);
+    const offsetY = Math.max(0, (scaledH - baseH) / 2 - scaledPositionY);
 
     return `[${index}:v]scale=${scaledW}:${scaledH}:force_original_aspect_ratio=decrease,crop=${baseW}:${baseH}:${offsetX}:${offsetY}[v${index}];`;
   };
@@ -104,55 +130,47 @@ export const createFilterComplex = (
   }
 
   if (layout === "Side by Side" && clipCount === 2) {
+    // Simple horizontal stack for 2 videos side by side
     return (
       scale(0) +
       scale(1) +
-      `${label(0)}${label(
-        1
-      )}hstack=inputs=2,fps=${fps},palettegen=stats_mode=diff[p]`
+      `${label(0)}${label(1)}hstack=inputs=2,fps=${fps},palettegen=stats_mode=diff[p]`
     );
   }
 
   if (layout === "Horizontal Triptych" && clipCount === 3) {
+    // Simple horizontal stack for 3 videos
     return (
       scale(0) +
       scale(1) +
       scale(2) +
-      `${label(0)}${label(1)}${label(
-        2
-      )}hstack=inputs=3[v];[v]fps=${fps},palettegen=stats_mode=diff[p]`
+      `${label(0)}${label(1)}${label(2)}hstack=inputs=3,fps=${fps},palettegen=stats_mode=diff[p]`
     );
   }
 
   if (layout === "Vertical Triptych" && clipCount === 3) {
+    // Simple vertical stack for 3 videos
     return (
       scale(0) +
       scale(1) +
       scale(2) +
-      `${label(0)}${label(1)}${label(
-        2
-      )}vstack=inputs=3[v];[v]fps=${fps},palettegen=stats_mode=diff[p]`
+      `${label(0)}${label(1)}${label(2)}vstack=inputs=3,fps=${fps},palettegen=stats_mode=diff[p]`
     );
   }
 
   if (layout === "2x2 Grid" && clipCount === 4) {
-    const layoutStr = clips
-      .map(
-        (clip) =>
-          `${Math.round((clip.positionX ?? 0) * baseW)}_${Math.round(
-            (clip.positionY ?? 0) * baseH
-          )}`
-      )
-      .join("|");
-
+    // Standard 2x2 grid
     return (
       scale(0) +
       scale(1) +
       scale(2) +
       scale(3) +
-      `${label(0)}${label(1)}${label(2)}${label(
-        3
-      )}xstack=inputs=4:layout=${layoutStr},fps=${fps},palettegen=stats_mode=diff[p]`
+      `color=black:size=${width}x${height}[bg];` +
+      `[bg]${label(0)}overlay=0:0[tmp1];` +
+      `[tmp1]${label(1)}overlay=${baseW}:0[tmp2];` +
+      `[tmp2]${label(2)}overlay=0:${baseH}[tmp3];` +
+      `[tmp3]${label(3)}overlay=${baseW}:${baseH}[v];` +
+      `[v]fps=${fps},palettegen=stats_mode=diff[p]`
     );
   }
 
@@ -172,26 +190,47 @@ export const createUseFilterComplex = (
 
   const clipCount = clips.length;
 
+  // Calculate base dimensions for each cell in the square grid
   const baseW =
-    width /
-    (layout === "Side by Side"
-      ? 2
+    layout === "Side by Side"
+      ? width / 2 // 2 horizontal rectangles
       : layout === "Horizontal Triptych"
-      ? 3
-      : layout === "2x2 Grid"
-      ? 2
-      : 1);
+        ? width / 3 // 3 horizontal rectangles
+        : layout === "Vertical Triptych"
+          ? width // 1 vertical rectangle per row, full width
+          : layout === "2x2 Grid"
+            ? width / 2 // 2x2 grid
+            : width; // Single
+
   const baseH =
-    height /
-    (layout === "Vertical Triptych" ? 3 : layout === "2x2 Grid" ? 2 : 1);
+    layout === "Side by Side"
+      ? height // Full height for horizontal rectangles
+      : layout === "Horizontal Triptych"
+        ? height // Full height for horizontal rectangles
+        : layout === "Vertical Triptych"
+          ? height / 3 // 3 vertical rectangles
+          : layout === "2x2 Grid"
+            ? height / 2 // 2x2 grid
+            : height; // Single
 
   const scale = (index: number) => {
     const clip = clips[index];
     const scaleFactor = clip.scale || 1;
     const scaledW = baseW * scaleFactor;
     const scaledH = baseH * scaleFactor;
-    const offsetX = (scaledW - baseW) / 2 - (clip.positionX || 0);
-    const offsetY = (scaledH - baseH) / 2 - (clip.positionY || 0);
+
+    // Scale position values based on cell size relative to full dimensions
+    // This ensures consistent positioning across different layouts
+    const positionScaleX = baseW / width;
+    const positionScaleY = baseH / height;
+
+    const scaledPositionX = (clip.positionX || 0) * positionScaleX;
+    const scaledPositionY = (clip.positionY || 0) * positionScaleY;
+
+    // Fix positioning: crop offset should be from center minus position movement
+    // When user drags right (+positionX), we crop from further left to show content on the right
+    const offsetX = Math.max(0, (scaledW - baseW) / 2 - scaledPositionX);
+    const offsetY = Math.max(0, (scaledH - baseH) / 2 - scaledPositionY);
 
     return `[${index}:v]scale=${scaledW}:${scaledH}:force_original_aspect_ratio=decrease,crop=${baseW}:${baseH}:${offsetX}:${offsetY}[v${index}];`;
   };
@@ -222,55 +261,47 @@ export const createUseFilterComplex = (
   }
 
   if (layout === "Side by Side" && clipCount === 2) {
+    // Simple horizontal stack for 2 videos side by side
     return (
       scale(0) +
       scale(1) +
-      `${label(0)}${label(
-        1
-      )}hstack=inputs=2,fps=${fps}[x];[x][2:v]paletteuse=dither=bayer`
+      `${label(0)}${label(1)}hstack=inputs=2,fps=${fps}[x];[x][2:v]paletteuse=dither=bayer`
     );
   }
 
   if (layout === "Horizontal Triptych" && clipCount === 3) {
+    // Simple horizontal stack for 3 videos
     return (
       scale(0) +
       scale(1) +
       scale(2) +
-      `${label(0)}${label(1)}${label(
-        2
-      )}hstack=inputs=3,fps=${fps}[x];[x][3:v]paletteuse=dither=bayer`
+      `${label(0)}${label(1)}${label(2)}hstack=inputs=3,fps=${fps}[x];[x][3:v]paletteuse=dither=bayer`
     );
   }
 
   if (layout === "Vertical Triptych" && clipCount === 3) {
+    // Simple vertical stack for 3 videos
     return (
       scale(0) +
       scale(1) +
       scale(2) +
-      `${label(0)}${label(1)}${label(
-        2
-      )}vstack=inputs=3,fps=${fps}[x];[x][3:v]paletteuse=dither=bayer`
+      `${label(0)}${label(1)}${label(2)}vstack=inputs=3,fps=${fps}[x];[x][3:v]paletteuse=dither=bayer`
     );
   }
 
   if (layout === "2x2 Grid" && clipCount === 4) {
-    const layoutStr = clips
-      .map(
-        (clip) =>
-          `${Math.round((clip.positionX ?? 0) * baseW)}_${Math.round(
-            (clip.positionY ?? 0) * baseH
-          )}`
-      )
-      .join("|");
-
+    // Standard 2x2 grid
     return (
       scale(0) +
       scale(1) +
       scale(2) +
       scale(3) +
-      `${label(0)}${label(1)}${label(2)}${label(
-        3
-      )}xstack=inputs=4:layout=${layoutStr},fps=${fps}[x];[x][4:v]paletteuse=dither=bayer`
+      `color=black:size=${width}x${height}[bg];` +
+      `[bg]${label(0)}overlay=0:0[tmp1];` +
+      `[tmp1]${label(1)}overlay=${baseW}:0[tmp2];` +
+      `[tmp2]${label(2)}overlay=0:${baseH}[tmp3];` +
+      `[tmp3]${label(3)}overlay=${baseW}:${baseH}[v];` +
+      `[v]fps=${fps}[x];[x][4:v]paletteuse=dither=bayer`
     );
   }
 

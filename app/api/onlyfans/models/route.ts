@@ -248,8 +248,10 @@ export async function GET(request: NextRequest) {
             { status: 400 }
           );
         }
-        // GET /{account}/mass-messaging/statistics endpoint
-        apiUrl = `${ONLYFANS_API_BASE}/${accountId}/mass-messaging/statistics`;
+        // GET /{account}/mass-messaging/statistics endpoint with pagination
+        const limit = searchParams.get("limit") || "100";
+        const offset = searchParams.get("offset") || "0";
+        apiUrl = `${ONLYFANS_API_BASE}/${accountId}/mass-messaging/statistics?limit=${limit}&offset=${offset}`;
         break;
       default:
         return NextResponse.json(
