@@ -136,8 +136,10 @@ export async function GET(request: NextRequest) {
             { status: 400 }
           );
         }
-        // GET /{account}/media/vault/lists endpoint
-        apiUrl = `${ONLYFANS_API_BASE}/${accountId}/media/vault/lists`;
+        // GET /{account}/media/vault/lists endpoint with pagination
+        const listLimit = searchParams.get("limit") || "20";
+        const listOffset = searchParams.get("offset") || "0";
+        apiUrl = `${ONLYFANS_API_BASE}/${accountId}/media/vault/lists?limit=${listLimit}&offset=${listOffset}`;
         break;
       case "vault-list-details":
         if (!accountId || !listId) {
