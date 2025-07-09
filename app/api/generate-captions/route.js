@@ -43,7 +43,7 @@ export async function POST(request) {
     const prompt = `${contextPrompt}
 
 Generate 5 suggestive, engaging captions for OnlyFans mass messaging campaigns. The captions should:
-- Be flirty and suggestive but not explicitly sexual
+- Be flirty, suggestive and explicitly sexual
 - Create curiosity and encourage responses
 - Be around 1-3 sentences each
 - Include emojis where appropriate

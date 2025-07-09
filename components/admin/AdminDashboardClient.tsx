@@ -46,6 +46,9 @@ import {
   Sparkles,
   ChevronDown,
   ChevronUp,
+  Copy,
+  Wand2,
+  CheckCircle,
 } from "lucide-react";
 import CountUp from "react-countup";
 import { API_KEY_PROFILES } from "@/app/services/elevenlabs-implementation";
@@ -216,6 +219,12 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
   });
   const [isLoadingSwdData, setIsLoadingSwdData] = useState(true);
 
+  // State for generated captions
+  const [generatedCaptions, setGeneratedCaptions] = useState<string[]>([]);
+  const [isGeneratingCaptions, setIsGeneratingCaptions] = useState(false);
+  const [showGeneratedCaptions, setShowGeneratedCaptions] = useState(false);
+  const [copiedCaptionId, setCopiedCaptionId] = useState<string | null>(null);
+
   // Date range state
   const [dateRange, setDateRange] = useState<"30" | "60" | "90" | "custom">(
     "30"
@@ -256,6 +265,115 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       }
       return newSet;
     });
+  };
+
+  // Function to generate captions based on top performing messages
+  const generateCaptions = async () => {
+    if (topPerformingMessages.length === 0) {
+      console.error("No top messages available for caption generation");
+      return;
+    }
+
+    setIsGeneratingCaptions(true);
+    setShowGeneratedCaptions(false);
+
+    try {
+      const response = await fetch("/api/generate-captions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          topMessages: topPerformingMessages.slice(0, 5), // Use top 5 messages
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to generate captions");
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.captions) {
+        setGeneratedCaptions(data.captions);
+        setShowGeneratedCaptions(true);
+      } else {
+        throw new Error(data.message || "Failed to generate captions");
+      }
+    } catch (error) {
+      console.error("Error generating captions:", error);
+      // You might want to show a toast or error message here
+    } finally {
+      setIsGeneratingCaptions(false);
+    }
+  };
+
+  // Function to generate captions based on top performing leaderboard models
+  const generateLeaderboardCaptions = async () => {
+    if (massMessagingLeaderboard.length === 0) {
+      console.error("No leaderboard data available for caption generation");
+      return;
+    }
+
+    setIsGeneratingCaptions(true);
+    setShowGeneratedCaptions(false);
+
+    try {
+      const response = await fetch("/api/generate-captions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          topLeaderboard: massMessagingLeaderboard.slice(0, 5), // Use top 5 from leaderboard
+          topMessages: topPerformingMessages.slice(0, 5), // Also include top messages for context
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to generate captions");
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.captions) {
+        setGeneratedCaptions(data.captions);
+        setShowGeneratedCaptions(true);
+      } else {
+        throw new Error(data.message || "Failed to generate captions");
+      }
+    } catch (error) {
+      console.error("Error generating captions:", error);
+      // You might want to show a toast or error message here
+    } finally {
+      setIsGeneratingCaptions(false);
+    }
+  };
+
+  // Enhanced copy function
+  const copyToClipboard = async (caption: string, captionId: string) => {
+    try {
+      await navigator.clipboard.writeText(caption);
+      setCopiedCaptionId(captionId);
+
+      // Reset the copied state after 2 seconds
+      setTimeout(() => {
+        setCopiedCaptionId(null);
+      }, 2000);
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement("textarea");
+      textArea.value = caption;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+
+      setCopiedCaptionId(captionId);
+      setTimeout(() => {
+        setCopiedCaptionId(null);
+      }, 2000);
+    }
   };
 
   // Helper functions (moved outside useEffect to avoid dependency issues)
@@ -1068,10 +1186,32 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
           </div>
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
-            <CardTitle className="flex items-center space-x-2 text-gray-900">
-              <Trophy className="h-5 w-5 text-pink-500" />
-              <span>MM Campaigns Leaderboard</span>
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center space-x-2 text-gray-900">
+                <Trophy className="h-5 w-5 text-pink-500" />
+                <span>MM Campaigns Leaderboard</span>
+              </CardTitle>
+              <button
+                onClick={generateCaptions}
+                disabled={
+                  isGeneratingCaptions || topPerformingMessages.length === 0
+                }
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+                  isGeneratingCaptions || topPerformingMessages.length === 0
+                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:from-purple-600 hover:to-pink-600 hover:shadow-lg hover:scale-105"
+                }`}
+              >
+                {isGeneratingCaptions ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Wand2 className="h-4 w-4" />
+                )}
+                <span>
+                  {isGeneratingCaptions ? "Generating..." : "Generate Captions"}
+                </span>
+              </button>
+            </div>
           </CardHeader>
           <CardContent className="p-6">
             <div className="space-y-4">
@@ -1346,6 +1486,74 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                 </div>
               )}
             </div>
+            {/* Generated Captions Section */}
+            {showGeneratedCaptions && generatedCaptions.length > 0 && (
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
+                    <Sparkles className="h-5 w-5 text-purple-500" />
+                    <span>AI-Generated Captions</span>
+                  </h3>
+                  <Badge className="bg-purple-100 text-purple-700 border-purple-200">
+                    {generatedCaptions.length} Generated
+                  </Badge>
+                </div>
+                <div className="space-y-3">
+                  {generatedCaptions.map((caption, index) => (
+                    <div
+                      key={index}
+                      className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200 hover:border-purple-300 transition-all duration-300 group"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <span className="text-sm font-medium text-purple-600">
+                              Caption #{index + 1}
+                            </span>
+                            <Badge
+                              variant="secondary"
+                              className="bg-white/50 text-purple-700 border-purple-200 text-xs"
+                            >
+                              AI Generated
+                            </Badge>
+                          </div>
+                          <p className="text-gray-800 text-sm leading-relaxed">
+                            {caption}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() =>
+                            copyToClipboard(caption, `caption-${index}`)
+                          }
+                          className={`ml-3 p-2 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100 ${
+                            copiedCaptionId === `caption-${index}`
+                              ? "text-green-600 bg-green-100"
+                              : "text-gray-400 hover:text-purple-600 hover:bg-white/50"
+                          }`}
+                          title={
+                            copiedCaptionId === `caption-${index}`
+                              ? "Copied!"
+                              : "Copy caption"
+                          }
+                        >
+                          {copiedCaptionId === `caption-${index}` ? (
+                            <CheckCircle className="h-4 w-4" />
+                          ) : (
+                            <Copy className="h-4 w-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 text-center">
+                  <p className="text-xs text-gray-500">
+                    💡 These captions are generated based on your top-performing
+                    messages. Review and customize them before use.
+                  </p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

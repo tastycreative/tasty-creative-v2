@@ -8,6 +8,9 @@ import {
   Download,
   Mic,
   Clock,
+  DollarSign,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { Alert, AlertTitle, AlertDescription } from "./ui/alert";
@@ -100,6 +103,31 @@ const AIVoicePage = () => {
   const [speakerBoost, setSpeakerBoost] = useState(true);
 
   const [audioNo, setAudioNo] = useState<number>(1);
+
+  // Voice Note Sale states
+  const [salePrice, setSalePrice] = useState("");
+  const [isSubmittingSale, setIsSubmittingSale] = useState(false);
+  const [saleSubmitStatus, setSaleSubmitStatus] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+
+  // History sale states
+  const [historySalePrice, setHistorySalePrice] = useState<
+    Record<string, string>
+  >({});
+  const [isSubmittingHistorySale, setIsSubmittingHistorySale] = useState<
+    Record<string, boolean>
+  >({});
+  const [historySaleStatus, setHistorySaleStatus] = useState<
+    Record<
+      string,
+      {
+        type: "success" | "error";
+        message: string;
+      }
+    >
+  >({});
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const historyAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -377,6 +405,250 @@ const AIVoicePage = () => {
       setGenerationStatus("");
     } finally {
       setIsGeneratingVoice(false);
+    }
+  };
+
+  // Function to handle voice note sale submission
+  const handleSubmitSale = async () => {
+    if (!generatedAudio || !selectedApiKeyProfile || !salePrice) {
+      setSaleSubmitStatus({
+        type: "error",
+        message: "Please generate a voice note first and enter a sale price",
+      });
+      return;
+    }
+
+    const price = parseFloat(salePrice);
+    if (isNaN(price) || price <= 0) {
+      setSaleSubmitStatus({
+        type: "error",
+        message: "Please enter a valid sale price",
+      });
+      return;
+    }
+
+    setIsSubmittingSale(true);
+    setSaleSubmitStatus(null);
+
+    try {
+      // Generate a unique ID for this sale (since we don't have history_item_id for newly generated audio)
+      const saleId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      const response = await fetch("/api/vn-sales/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: saleId,
+          model:
+            generatedAudio.voiceName ||
+            availableVoices.find((v) => v.voiceId === selectedVoice)?.name ||
+            "Unknown Voice",
+          voiceNote: voiceText,
+          sale: price,
+          soldDate: new Date().toISOString(),
+          status: "Completed",
+        }),
+      });
+
+      if (response.ok) {
+        setSaleSubmitStatus({
+          type: "success",
+          message: `Voice note sale of ${price.toFixed(2)} submitted successfully!`,
+        });
+        setSalePrice("");
+
+        // Clear the status after 5 seconds
+        setTimeout(() => {
+          setSaleSubmitStatus(null);
+        }, 5000);
+      } else {
+        const errorData = await response.json();
+
+        // Handle specific authentication errors
+        if (response.status === 401) {
+          setSaleSubmitStatus({
+            type: "error",
+            message:
+              "Authentication required. Please sign in as an admin to submit sales.",
+          });
+        } else if (response.status === 403) {
+          if (errorData.error === "GooglePermissionDenied") {
+            setSaleSubmitStatus({
+              type: "error",
+              message:
+                "Google authentication expired. Please refresh the page and sign in again.",
+            });
+          } else {
+            setSaleSubmitStatus({
+              type: "error",
+              message: "Admin access required to submit sales.",
+            });
+          }
+        } else {
+          throw new Error(
+            errorData.error || "Failed to submit voice note sale"
+          );
+        }
+      }
+    } catch (error: any) {
+      console.error("Sale submission error:", error);
+
+      // Handle specific error messages
+      if (error.message.includes("Access token expired")) {
+        setSaleSubmitStatus({
+          type: "error",
+          message:
+            "Google authentication expired. Please refresh the page and sign in again.",
+        });
+      } else if (error.message.includes("Not authenticated")) {
+        setSaleSubmitStatus({
+          type: "error",
+          message: "Please sign in as an admin to submit sales.",
+        });
+      } else {
+        setSaleSubmitStatus({
+          type: "error",
+          message: error.message || "Failed to submit voice note sale",
+        });
+      }
+    } finally {
+      setIsSubmittingSale(false);
+    }
+  };
+
+  // Function to handle history item sale submission
+  const handleSubmitHistorySale = async (historyItem: HistoryItem) => {
+    const itemId = historyItem.history_item_id;
+    const price = parseFloat(historySalePrice[itemId] || "");
+
+    if (isNaN(price) || price <= 0) {
+      setHistorySaleStatus((prev) => ({
+        ...prev,
+        [itemId]: {
+          type: "error",
+          message: "Please enter a valid sale price",
+        },
+      }));
+      return;
+    }
+
+    setIsSubmittingHistorySale((prev) => ({ ...prev, [itemId]: true }));
+    setHistorySaleStatus((prev) => {
+      const newStatus = { ...prev };
+      delete newStatus[itemId];
+      return newStatus;
+    });
+
+    try {
+      const response = await fetch("/api/vn-sales/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: historyItem.history_item_id,
+          model:
+            historyItem.voice_name ||
+            availableVoices.find((v) => v.voiceId === selectedVoice)?.name ||
+            "Unknown Voice",
+          voiceNote: historyItem.text,
+          sale: price,
+          soldDate: new Date().toISOString(),
+          status: "Completed",
+          generatedDate: new Date(historyItem.date_unix * 1000).toISOString(),
+        }),
+      });
+
+      if (response.ok) {
+        setHistorySaleStatus((prev) => ({
+          ...prev,
+          [itemId]: {
+            type: "success",
+            message: `Sale of ${price.toFixed(2)} submitted successfully!`,
+          },
+        }));
+        setHistorySalePrice((prev) => ({ ...prev, [itemId]: "" }));
+
+        // Clear the status after 5 seconds
+        setTimeout(() => {
+          setHistorySaleStatus((prev) => {
+            const newStatus = { ...prev };
+            delete newStatus[itemId];
+            return newStatus;
+          });
+        }, 5000);
+      } else {
+        const errorData = await response.json();
+
+        // Handle specific authentication errors
+        if (response.status === 401) {
+          setHistorySaleStatus((prev) => ({
+            ...prev,
+            [itemId]: {
+              type: "error",
+              message:
+                "Authentication required. Please sign in as an admin to submit sales.",
+            },
+          }));
+        } else if (response.status === 403) {
+          if (errorData.error === "GooglePermissionDenied") {
+            setHistorySaleStatus((prev) => ({
+              ...prev,
+              [itemId]: {
+                type: "error",
+                message:
+                  "Google authentication expired. Please refresh the page and sign in again.",
+              },
+            }));
+          } else {
+            setHistorySaleStatus((prev) => ({
+              ...prev,
+              [itemId]: {
+                type: "error",
+                message: "Admin access required to submit sales.",
+              },
+            }));
+          }
+        } else {
+          throw new Error(
+            errorData.error || "Failed to submit voice note sale"
+          );
+        }
+      }
+    } catch (error: any) {
+      console.error("History sale submission error:", error);
+
+      // Handle specific error messages
+      if (error.message.includes("Access token expired")) {
+        setHistorySaleStatus((prev) => ({
+          ...prev,
+          [itemId]: {
+            type: "error",
+            message:
+              "Google authentication expired. Please refresh the page and sign in again.",
+          },
+        }));
+      } else if (error.message.includes("Not authenticated")) {
+        setHistorySaleStatus((prev) => ({
+          ...prev,
+          [itemId]: {
+            type: "error",
+            message: "Please sign in as an admin to submit sales.",
+          },
+        }));
+      } else {
+        setHistorySaleStatus((prev) => ({
+          ...prev,
+          [itemId]: {
+            type: "error",
+            message: error.message || "Failed to submit voice note sale",
+          },
+        }));
+      }
+    } finally {
+      setIsSubmittingHistorySale((prev) => ({ ...prev, [itemId]: false }));
     }
   };
 
@@ -1032,6 +1304,128 @@ const AIVoicePage = () => {
               </CardContent>
             </Card>
 
+            {/* Voice Note Sale Submission */}
+            {generatedAudio && (
+              <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-white flex items-center">
+                    <DollarSign size={20} className="mr-2" />
+                    Submit Voice Note Sale
+                  </CardTitle>
+                  <CardDescription className="text-gray-400">
+                    Record a sale for your generated voice note (requires admin
+                    access)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertCircle size={16} className="text-blue-400" />
+                      <span className="text-blue-300 font-medium">
+                        Admin Required
+                      </span>
+                    </div>
+                    <p className="text-blue-200 text-sm">
+                      Voice note sales are saved to Google Sheets and require
+                      admin authentication. If you get an authentication error,
+                      please refresh the page and sign in again.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-gray-300 mb-2 block">
+                        API Profile
+                      </Label>
+                      <div className="bg-black/60 border border-white/10 rounded-lg p-3">
+                        <div className="flex items-center gap-2">
+                          <StatusIndicator
+                            status={
+                              profileStatuses[selectedApiKeyProfile] || "error"
+                            }
+                            profileKey={selectedApiKeyProfile}
+                          />
+                          <span className="text-white">
+                            {
+                              API_KEY_PROFILES[
+                                selectedApiKeyProfile as keyof typeof API_KEY_PROFILES
+                              ]?.name
+                            }
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <Label className="text-gray-300 mb-2 block">
+                        Sale Price ($)
+                      </Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={salePrice}
+                        onChange={(e) => setSalePrice(e.target.value)}
+                        placeholder="Enter sale amount"
+                        className="bg-black/60 border-white/10 text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="bg-black/60 border border-white/10 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Volume2 size={16} className="text-purple-400" />
+                      <span className="text-white font-medium">
+                        {generatedAudio.voiceName}
+                      </span>
+                    </div>
+                    <p className="text-gray-300 text-sm leading-relaxed">
+                      {voiceText.length > 100
+                        ? voiceText.substring(0, 100) + "..."
+                        : voiceText}
+                    </p>
+                  </div>
+
+                  {saleSubmitStatus && (
+                    <Alert
+                      className={
+                        saleSubmitStatus.type === "success"
+                          ? "bg-green-900/20 border-green-500/30 text-green-200"
+                          : "bg-red-900/20 border-red-500/30 text-red-200"
+                      }
+                    >
+                      {saleSubmitStatus.type === "success" ? (
+                        <CheckCircle className="h-4 w-4" />
+                      ) : (
+                        <AlertCircle className="h-4 w-4" />
+                      )}
+                      <AlertDescription>
+                        {saleSubmitStatus.message}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  <Button
+                    className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white"
+                    onClick={handleSubmitSale}
+                    disabled={isSubmittingSale || !salePrice || !generatedAudio}
+                  >
+                    {isSubmittingSale ? (
+                      <>
+                        <Loader2 size={16} className="mr-2 animate-spin" />
+                        Submitting Sale...
+                      </>
+                    ) : (
+                      <>
+                        <DollarSign size={16} className="mr-2" />
+                        Submit Sale
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Voice History */}
             {selectedVoice && (
               <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
@@ -1209,6 +1603,107 @@ const AIVoicePage = () => {
                                           </Button>
                                         </>
                                       )}
+                                  </div>
+
+                                  {/* History Sale Submission Section */}
+                                  <div className="mt-4 pt-4 border-t border-white/10">
+                                    <div className="flex items-center gap-2 mb-3">
+                                      <DollarSign
+                                        size={14}
+                                        className="text-green-400"
+                                      />
+                                      <span className="text-sm font-medium text-white">
+                                        Submit Sale
+                                      </span>
+                                    </div>
+
+                                    <div className="flex gap-2 items-end">
+                                      <div className="flex-1">
+                                        <Input
+                                          type="number"
+                                          step="0.01"
+                                          min="0"
+                                          value={
+                                            historySalePrice[
+                                              item.history_item_id
+                                            ] || ""
+                                          }
+                                          onChange={(e) =>
+                                            setHistorySalePrice((prev) => ({
+                                              ...prev,
+                                              [item.history_item_id]:
+                                                e.target.value,
+                                            }))
+                                          }
+                                          placeholder="Sale price ($)"
+                                          className="bg-white/5 border-white/10 text-white text-sm h-8"
+                                        />
+                                      </div>
+                                      <Button
+                                        size="sm"
+                                        className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white h-8"
+                                        onClick={() =>
+                                          handleSubmitHistorySale(item)
+                                        }
+                                        disabled={
+                                          isSubmittingHistorySale[
+                                            item.history_item_id
+                                          ] ||
+                                          !historySalePrice[
+                                            item.history_item_id
+                                          ]
+                                        }
+                                      >
+                                        {isSubmittingHistorySale[
+                                          item.history_item_id
+                                        ] ? (
+                                          <>
+                                            <Loader2
+                                              size={12}
+                                              className="mr-1 animate-spin"
+                                            />
+                                            Submitting
+                                          </>
+                                        ) : (
+                                          <>
+                                            <DollarSign
+                                              size={12}
+                                              className="mr-1"
+                                            />
+                                            Submit
+                                          </>
+                                        )}
+                                      </Button>
+                                    </div>
+
+                                    {/* History Sale Status */}
+                                    {historySaleStatus[
+                                      item.history_item_id
+                                    ] && (
+                                      <Alert
+                                        className={`mt-2 ${
+                                          historySaleStatus[
+                                            item.history_item_id
+                                          ].type === "success"
+                                            ? "bg-green-900/20 border-green-500/30 text-green-200"
+                                            : "bg-red-900/20 border-red-500/30 text-red-200"
+                                        }`}
+                                      >
+                                        {historySaleStatus[item.history_item_id]
+                                          .type === "success" ? (
+                                          <CheckCircle className="h-3 w-3" />
+                                        ) : (
+                                          <AlertCircle className="h-3 w-3" />
+                                        )}
+                                        <AlertDescription className="text-xs">
+                                          {
+                                            historySaleStatus[
+                                              item.history_item_id
+                                            ].message
+                                          }
+                                        </AlertDescription>
+                                      </Alert>
+                                    )}
                                   </div>
                                 </div>
                               </AccordionContent>
