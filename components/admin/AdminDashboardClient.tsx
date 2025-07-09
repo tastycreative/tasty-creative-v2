@@ -44,6 +44,8 @@ import {
   Award,
   Eye,
   Sparkles,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import CountUp from "react-countup";
 import { API_KEY_PROFILES } from "@/app/services/elevenlabs-implementation";
@@ -126,6 +128,29 @@ const ROLE_COLORS = {
 export function AdminDashboardClient({ data }: { data: DashboardData }) {
   const { stats, recentUsers, userGrowthData, analytics } = data;
 
+  // Add custom CSS for animations
+  React.useEffect(() => {
+    if (typeof document !== "undefined") {
+      const style = document.createElement("style");
+      style.textContent = `
+        @keyframes fadeInSlideUp {
+          0% {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          100% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `;
+      document.head.appendChild(style);
+      return () => {
+        document.head.removeChild(style);
+      };
+    }
+  }, []);
+
   // State for real-time VN sales and voice data
   const [vnSalesData, setVnSalesData] = useState(data.vnSales);
   const [isLoadingVoiceStats, setIsLoadingVoiceStats] = useState(true);
@@ -199,8 +224,39 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
   const [customEndDate, setCustomEndDate] = useState("");
   const [showCustomDateInputs, setShowCustomDateInputs] = useState(false);
 
-  // State for storing all raw data (unfiltered) - only MM messages needed
-  const [allMassMessages, setAllMassMessages] = useState<any[]>([]);
+  // State for managing expanded messages in leaderboard
+  const [expandedMessages, setExpandedMessages] = useState<Set<number>>(
+    new Set()
+  );
+
+  // State for managing loading messages transition
+  const [currentLoadingMessageIndex, setCurrentLoadingMessageIndex] =
+    useState(0);
+
+  // Loading messages for mass messaging campaigns
+  const loadingMessages = [
+    "Loading mass messaging data...",
+    "Fetching campaign analytics...",
+    "Processing message statistics...",
+    "Analyzing performance metrics...",
+    "Gathering revenue data...",
+    "Collecting view statistics...",
+    "Compiling results...",
+    "Preparing dashboard...",
+  ];
+
+  // Function to toggle message expansion
+  const toggleMessageExpansion = (messageId: number) => {
+    setExpandedMessages((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(messageId)) {
+        newSet.delete(messageId);
+      } else {
+        newSet.add(messageId);
+      }
+      return newSet;
+    });
+  };
 
   // Helper functions (moved outside useEffect to avoid dependency issues)
   const getCurrentDateRange = React.useCallback(() => {
@@ -229,16 +285,274 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     return { startDate, endDate };
   }, [dateRange, customStartDate, customEndDate]);
 
-  // Client-side filtering function
-  const filterDataByDateRange = React.useCallback((data: any[], dateField: string = 'date') => {
-    const { startDate, endDate } = getCurrentDateRange();
-    
-    return data.filter(item => {
-      if (!item[dateField]) return false;
-      const itemDate = DateTime.fromISO(item[dateField]) || DateTime.fromJSDate(new Date(item[dateField]));
-      return itemDate >= startDate && itemDate <= endDate;
-    });
-  }, [getCurrentDateRange]);
+  // Helper function for paginated mass messaging fetch
+  const fetchMassMessagesWithPagination = React.useCallback(
+    async (accountId: string, startDate: DateTime, endDate: DateTime) => {
+      const allMessages: any[] = [];
+      let offset = 0;
+      const limit = 100;
+      let hasMoreData = true;
+
+      while (hasMoreData) {
+        try {
+          const messagesResponse = await fetch(
+            `/api/onlyfans/models?accountId=${encodeURIComponent(accountId)}&endpoint=mass-messaging&limit=${limit}&offset=${offset}`
+          );
+
+          if (messagesResponse.ok) {
+            const messagesData = await messagesResponse.json();
+            const messages =
+              messagesData.data?.list ||
+              messagesData.list ||
+              messagesData.data ||
+              [];
+
+            if (!Array.isArray(messages) || messages.length === 0) {
+              hasMoreData = false;
+              break;
+            }
+
+            // Filter messages by date range on the client side
+            const filteredMessages = messages.filter((msg: any) => {
+              if (!msg.date) return false;
+              const messageDate =
+                DateTime.fromISO(msg.date) ||
+                DateTime.fromJSDate(new Date(msg.date));
+              return messageDate >= startDate && messageDate <= endDate;
+            });
+
+            allMessages.push(...filteredMessages);
+
+            // If we got fewer messages than the limit, we've reached the end
+            if (messages.length < limit) {
+              hasMoreData = false;
+            } else {
+              offset += limit;
+            }
+
+            // If all messages in this batch are outside our date range and we're getting older data,
+            // we can stop fetching (assuming messages are sorted by date desc)
+            if (filteredMessages.length === 0 && messages.length > 0) {
+              const oldestMessageInBatch = messages[messages.length - 1];
+              if (oldestMessageInBatch.date) {
+                const oldestDate =
+                  DateTime.fromISO(oldestMessageInBatch.date) ||
+                  DateTime.fromJSDate(new Date(oldestMessageInBatch.date));
+                if (oldestDate < startDate) {
+                  hasMoreData = false;
+                }
+              }
+            }
+          } else {
+            hasMoreData = false;
+          }
+        } catch (error) {
+          console.error(
+            `Error fetching mass messages for account ${accountId} at offset ${offset}:`,
+            error
+          );
+          hasMoreData = false;
+        }
+      }
+
+      return allMessages;
+    },
+    []
+  );
+
+  const fetchTotalMassMessages = React.useCallback(async () => {
+    setIsLoadingMassMessages(true);
+    try {
+      // Get current date range
+      const { startDate, endDate } = getCurrentDateRange();
+
+      // First get all OnlyFans accounts
+      const accountsResponse = await fetch(
+        "/api/onlyfans/models?endpoint=accounts"
+      );
+      if (accountsResponse.ok) {
+        const accountsData = await accountsResponse.json();
+        const accounts = accountsData.accounts || accountsData || [];
+
+        let totalMessages = 0;
+        const leaderboardData: Array<{
+          name: string;
+          username: string;
+          totalMessages: number;
+          totalViews: number;
+          totalSent: number;
+          viewRate: number;
+          paidMessages: number;
+          freeMessages: number;
+          totalRevenue: number;
+          averagePrice: number;
+          totalPurchases: number;
+          avatar?: string;
+          rank: number;
+        }> = [];
+
+        // Fetch mass messages for each account with pagination and date filtering
+        const allMessages: Array<{
+          id: number;
+          text: string;
+          textCropped: string;
+          viewedCount: number;
+          sentCount: number;
+          viewRate: number;
+          isFree: boolean;
+          price?: string;
+          purchasedCount?: number;
+          revenue: number;
+          date: string;
+          modelName: string;
+          modelUsername: string;
+          modelAvatar?: string;
+          rank: number;
+        }> = [];
+
+        for (const account of accounts) {
+          const accountId = account.id || account.onlyfans_user_data?.id;
+          if (accountId) {
+            const accountMessages = await fetchMassMessagesWithPagination(
+              accountId,
+              startDate,
+              endDate
+            );
+
+            totalMessages += accountMessages.length;
+
+            // Add individual messages to the global list
+            accountMessages.forEach((msg) => {
+              const viewRate =
+                msg.sentCount > 0 ? (msg.viewedCount / msg.sentCount) * 100 : 0;
+              const revenue =
+                !msg.isFree && msg.price
+                  ? parseFloat(msg.price) * (msg.purchasedCount || 0)
+                  : 0;
+
+              allMessages.push({
+                id: msg.id,
+                text: msg.text,
+                textCropped: msg.textCropped,
+                viewedCount: msg.viewedCount || 0,
+                sentCount: msg.sentCount || 0,
+                viewRate,
+                isFree: msg.isFree,
+                price: msg.price,
+                purchasedCount: msg.purchasedCount || 0,
+                revenue,
+                date: msg.date,
+                modelName:
+                  account.onlyfans_user_data?.name || account.name || "Unknown",
+                modelUsername:
+                  account.onlyfans_user_data?.username ||
+                  account.username ||
+                  "N/A",
+                modelAvatar:
+                  account.onlyfans_user_data?.avatar || account.avatar,
+                rank: 0, // Will be set after sorting
+              });
+            });
+
+            // Calculate detailed metrics for this account
+            let totalViews = 0;
+            let totalSent = 0;
+            let paidMessages = 0;
+            let freeMessages = 0;
+            let totalRevenue = 0;
+            let totalPurchases = 0;
+            let priceSum = 0;
+            let paidMessageCount = 0;
+
+            accountMessages.forEach((msg) => {
+              totalViews += msg.viewedCount || 0;
+              totalSent += msg.sentCount || 0;
+              totalPurchases += msg.purchasedCount || 0;
+
+              if (msg.isFree) {
+                freeMessages++;
+              } else {
+                paidMessages++;
+                if (msg.price) {
+                  const price = parseFloat(msg.price);
+                  if (!isNaN(price)) {
+                    priceSum += price;
+                    paidMessageCount++;
+                    totalRevenue += price * (msg.purchasedCount || 0);
+                  }
+                }
+              }
+            });
+
+            const viewRate = totalSent > 0 ? (totalViews / totalSent) * 100 : 0;
+            const averagePrice =
+              paidMessageCount > 0 ? priceSum / paidMessageCount : 0;
+
+            // Add to leaderboard data if there are messages
+            if (accountMessages.length > 0) {
+              leaderboardData.push({
+                name:
+                  account.onlyfans_user_data?.name || account.name || "Unknown",
+                username:
+                  account.onlyfans_user_data?.username ||
+                  account.username ||
+                  "N/A",
+                totalMessages: accountMessages.length,
+                totalViews,
+                totalSent,
+                viewRate,
+                paidMessages,
+                freeMessages,
+                totalRevenue,
+                averagePrice,
+                totalPurchases,
+                avatar: account.onlyfans_user_data?.avatar || account.avatar,
+                rank: 0, // Will be set after sorting
+              });
+            }
+          }
+        }
+
+        // Sort messages by revenue (primary), then by views (secondary), then by view rate (tertiary)
+        allMessages.sort((a, b) => {
+          if (b.revenue !== a.revenue) {
+            return b.revenue - a.revenue;
+          }
+          if (b.viewedCount !== a.viewedCount) {
+            return b.viewedCount - a.viewedCount;
+          }
+          return b.viewRate - a.viewRate;
+        });
+        allMessages.forEach((msg, index) => {
+          msg.rank = index + 1;
+        });
+
+        // Set top performing messages
+        setTopPerformingMessages(allMessages.slice(0, 10));
+
+        // Sort leaderboard by total revenue (primary), then view count (secondary), then view rate (tertiary)
+        leaderboardData.sort((a, b) => {
+          if (b.totalRevenue !== a.totalRevenue) {
+            return b.totalRevenue - a.totalRevenue;
+          }
+          if (b.totalViews !== a.totalViews) {
+            return b.totalViews - a.totalViews;
+          }
+          return b.viewRate - a.viewRate;
+        });
+        leaderboardData.forEach((item, index) => {
+          item.rank = index + 1;
+        });
+
+        setTotalMassMessages(totalMessages);
+        setMassMessagingLeaderboard(leaderboardData.slice(0, 5)); // Top 5
+      }
+    } catch (error) {
+      console.error("Error fetching total mass messages:", error);
+    } finally {
+      setIsLoadingMassMessages(false);
+    }
+  }, [getCurrentDateRange, fetchMassMessagesWithPagination]);
 
   // Fetch all data once (no date filtering on server)
   useEffect(() => {
@@ -366,317 +680,50 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       }
     };
 
-    const fetchTotalMassMessages = async () => {
-      setIsLoadingMassMessages(true);
-      try {
-        // First get all OnlyFans accounts
-        const accountsResponse = await fetch(
-          "/api/onlyfans/models?endpoint=accounts"
-        );
-        if (accountsResponse.ok) {
-          const accountsData = await accountsResponse.json();
-          const accounts = accountsData.accounts || accountsData || [];
-
-          let totalMessages = 0;
-          const leaderboardData: Array<{
-            name: string;
-            username: string;
-            totalMessages: number;
-            totalViews: number;
-            totalSent: number;
-            viewRate: number;
-            paidMessages: number;
-            freeMessages: number;
-            totalRevenue: number;
-            averagePrice: number;
-            totalPurchases: number;
-            avatar?: string;
-            rank: number;
-          }> = [];
-
-          // Fetch mass messages for each account
-          const allMessages: Array<{
-            id: number;
-            text: string;
-            textCropped: string;
-            viewedCount: number;
-            sentCount: number;
-            viewRate: number;
-            isFree: boolean;
-            price?: string;
-            purchasedCount?: number;
-            revenue: number;
-            date: string;
-            modelName: string;
-            modelUsername: string;
-            modelAvatar?: string;
-            rank: number;
-          }> = [];
-
-          for (const account of accounts) {
-            try {
-              const accountId = account.id || account.onlyfans_user_data?.id;
-              if (accountId) {
-                const messagesResponse = await fetch(
-                  `/api/onlyfans/models?accountId=${encodeURIComponent(accountId)}&endpoint=mass-messaging`
-                );
-                if (messagesResponse.ok) {
-                  const messagesData = await messagesResponse.json();
-                  const messages =
-                    messagesData.data?.list ||
-                    messagesData.list ||
-                    messagesData.data ||
-                    [];
-                  const messageCount = Array.isArray(messages)
-                    ? messages.length
-                    : 0;
-                  totalMessages += messageCount;
-
-                  // Add individual messages to the global list
-                  if (Array.isArray(messages)) {
-                    messages.forEach((msg) => {
-                      const viewRate =
-                        msg.sentCount > 0
-                          ? (msg.viewedCount / msg.sentCount) * 100
-                          : 0;
-                      const revenue =
-                        !msg.isFree && msg.price
-                          ? parseFloat(msg.price) * (msg.purchasedCount || 0)
-                          : 0;
-
-                      allMessages.push({
-                        id: msg.id,
-                        text: msg.text,
-                        textCropped: msg.textCropped,
-                        viewedCount: msg.viewedCount || 0,
-                        sentCount: msg.sentCount || 0,
-                        viewRate,
-                        isFree: msg.isFree,
-                        price: msg.price,
-                        purchasedCount: msg.purchasedCount || 0,
-                        revenue,
-                        date: msg.date,
-                        modelName:
-                          account.onlyfans_user_data?.name ||
-                          account.name ||
-                          "Unknown",
-                        modelUsername:
-                          account.onlyfans_user_data?.username ||
-                          account.username ||
-                          "N/A",
-                        modelAvatar:
-                          account.onlyfans_user_data?.avatar || account.avatar,
-                        rank: 0, // Will be set after sorting
-                      });
-                    });
-                  }
-
-                  // Calculate detailed metrics
-                  let totalViews = 0;
-                  let totalSent = 0;
-                  let paidMessages = 0;
-                  let freeMessages = 0;
-                  let totalRevenue = 0;
-                  let totalPurchases = 0;
-                  let priceSum = 0;
-                  let paidMessageCount = 0;
-
-                  if (Array.isArray(messages)) {
-                    messages.forEach((msg) => {
-                      totalViews += msg.viewedCount || 0;
-                      totalSent += msg.sentCount || 0;
-                      totalPurchases += msg.purchasedCount || 0;
-
-                      if (msg.isFree) {
-                        freeMessages++;
-                      } else {
-                        paidMessages++;
-                        if (msg.price) {
-                          const price = parseFloat(msg.price);
-                          if (!isNaN(price)) {
-                            priceSum += price;
-                            paidMessageCount++;
-                            totalRevenue += price * (msg.purchasedCount || 0);
-                          }
-                        }
-                      }
-                    });
-                  }
-
-                  const viewRate =
-                    totalSent > 0 ? (totalViews / totalSent) * 100 : 0;
-                  const averagePrice =
-                    paidMessageCount > 0 ? priceSum / paidMessageCount : 0;
-
-                  // Add to leaderboard data
-                  leaderboardData.push({
-                    name:
-                      account.onlyfans_user_data?.name ||
-                      account.name ||
-                      "Unknown",
-                    username:
-                      account.onlyfans_user_data?.username ||
-                      account.username ||
-                      "N/A",
-                    totalMessages: messageCount,
-                    totalViews,
-                    totalSent,
-                    viewRate,
-                    paidMessages,
-                    freeMessages,
-                    totalRevenue,
-                    averagePrice,
-                    totalPurchases,
-                    avatar:
-                      account.onlyfans_user_data?.avatar || account.avatar,
-                    rank: 0, // Will be set after sorting
-                  });
-                }
-              }
-            } catch (error) {
-              console.error(
-                `Error fetching mass messages for account ${account.id}:`,
-                error
-              );
-            }
-          }
-
-          // Store all raw messages for client-side filtering
-          setAllMassMessages(allMessages);
-
-          // Sort by total revenue (primary), then view count (secondary), then view rate (tertiary)
-          leaderboardData.sort((a, b) => {
-            if (b.totalRevenue !== a.totalRevenue) {
-              return b.totalRevenue - a.totalRevenue;
-            }
-            if (b.totalViews !== a.totalViews) {
-              return b.totalViews - a.totalViews;
-            }
-            return b.viewRate - a.viewRate;
-          });
-          leaderboardData.forEach((item, index) => {
-            item.rank = index + 1;
-          });
-
-          setTotalMassMessages(totalMessages);
-          setMassMessagingLeaderboard(leaderboardData.slice(0, 5)); // Top 5
-        }
-      } catch (error) {
-        console.error("Error fetching total mass messages:", error);
-      } finally {
-        setIsLoadingMassMessages(false);
-      }
-    };
-
     // Only fetch data once on component mount
     fetchVoiceData();
     fetchSwdData();
-    fetchTotalMassMessages();
   }, []); // Empty dependency array - only run once
 
-  // Separate useEffect for client-side filtering when date range changes (MM only)
+  // Fetch mass messages when component mounts or date range changes
   useEffect(() => {
-    if (!allMassMessages.length) {
-      return; // Wait for mass messages data to be loaded
+    // Reset expanded messages when date range changes
+    setExpandedMessages(new Set());
+    fetchTotalMassMessages();
+  }, [fetchTotalMassMessages]); // Re-fetch when date range changes
+
+  // Loading message cycling effect for mass messaging
+  useEffect(() => {
+    if (!isLoadingMassMessages) {
+      setCurrentLoadingMessageIndex(0);
+      return;
     }
 
-    // Apply client-side filtering to mass messages only
-    const filteredMessages = filterDataByDateRange(allMassMessages, 'date');
+    const scheduleNextMessage = () => {
+      // Random interval between 5-10 seconds (5000-10000ms)
+      const randomInterval = Math.floor(Math.random() * 5000) + 5000;
 
-    // Sort filtered messages by revenue (primary), then by views (secondary), then by view rate (tertiary)
-    filteredMessages.sort((a, b) => {
-      if (b.revenue !== a.revenue) {
-        return b.revenue - a.revenue;
-      }
-      if (b.viewedCount !== a.viewedCount) {
-        return b.viewedCount - a.viewedCount;
-      }
-      return b.viewRate - a.viewRate;
-    });
-    filteredMessages.forEach((msg, index) => {
-      msg.rank = index + 1;
-    });
+      const timeout = setTimeout(() => {
+        setCurrentLoadingMessageIndex(
+          (prevIndex) => (prevIndex + 1) % loadingMessages.length
+        );
+        scheduleNextMessage(); // Schedule the next message change
+      }, randomInterval);
 
-    setTopPerformingMessages(filteredMessages.slice(0, 10)); // Top 10 messages
+      return timeout;
+    };
 
-    // Update MM leaderboard with filtered data
-    const modelStats: Record<string, any> = {};
+    // Initial delay before first message change (3-7 seconds)
+    const initialDelay = Math.floor(Math.random() * 4000) + 3000;
+    const initialTimeout = setTimeout(() => {
+      setCurrentLoadingMessageIndex(
+        (prevIndex) => (prevIndex + 1) % loadingMessages.length
+      );
+      scheduleNextMessage(); // Start the recurring schedule
+    }, initialDelay);
 
-    // Group filtered messages by model and calculate revenue-based stats
-    filteredMessages.forEach((msg) => {
-      const key = `${msg.modelName}_${msg.modelUsername}`;
-      if (!modelStats[key]) {
-        modelStats[key] = {
-          name: msg.modelName,
-          username: msg.modelUsername,
-          avatar: msg.modelAvatar,
-          totalMessages: 0,
-          totalViews: 0,
-          totalSent: 0,
-          totalRevenue: 0,
-          totalPurchases: 0,
-          paidMessages: 0,
-          freeMessages: 0,
-          priceSum: 0,
-          paidMessageCount: 0,
-        };
-      }
-
-      const stats = modelStats[key];
-      stats.totalMessages++;
-      stats.totalViews += msg.viewedCount;
-      stats.totalSent += msg.sentCount;
-      stats.totalRevenue += msg.revenue;
-      stats.totalPurchases += msg.purchasedCount || 0;
-
-      if (msg.isFree) {
-        stats.freeMessages++;
-      } else {
-        stats.paidMessages++;
-        if (msg.price) {
-          const price = parseFloat(msg.price);
-          if (!isNaN(price)) {
-            stats.priceSum += price;
-            stats.paidMessageCount++;
-          }
-        }
-      }
-    });
-
-    // Convert to array and calculate derived stats
-    const leaderboardData = Object.values(modelStats).map((stats: any) => ({
-      name: stats.name,
-      username: stats.username,
-      avatar: stats.avatar,
-      totalMessages: stats.totalMessages,
-      totalViews: stats.totalViews,
-      totalSent: stats.totalSent,
-      viewRate: stats.totalSent > 0 ? (stats.totalViews / stats.totalSent) * 100 : 0,
-      paidMessages: stats.paidMessages,
-      freeMessages: stats.freeMessages,
-      totalRevenue: stats.totalRevenue,
-      averagePrice: stats.paidMessageCount > 0 ? stats.priceSum / stats.paidMessageCount : 0,
-      totalPurchases: stats.totalPurchases,
-      rank: 0, // Will be set after sorting
-    }));
-
-    // Sort by total revenue (primary), then view count (secondary), then view rate (tertiary)
-    leaderboardData.sort((a, b) => {
-      if (b.totalRevenue !== a.totalRevenue) {
-        return b.totalRevenue - a.totalRevenue;
-      }
-      if (b.totalViews !== a.totalViews) {
-        return b.totalViews - a.totalViews;
-      }
-      return b.viewRate - a.viewRate;
-    });
-    leaderboardData.forEach((item, index) => {
-      item.rank = index + 1;
-    });
-
-    setMassMessagingLeaderboard(leaderboardData.slice(0, 5)); // Top 5 revenue generators
-
-  }, [filterDataByDateRange, allMassMessages, dateRange, customStartDate, customEndDate]);
+    return () => clearTimeout(initialTimeout);
+  }, [isLoadingMassMessages, loadingMessages.length]);
 
   const vnSales = vnSalesData;
 
@@ -757,7 +804,8 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     {
       title: "Content Generated",
       value: contentGenerationData.totalContentGenerated,
-      formattedValue: contentGenerationData.totalContentGenerated.toLocaleString(),
+      formattedValue:
+        contentGenerationData.totalContentGenerated.toLocaleString(),
       icon: FileText,
       description: `${contentGenerationData.contentGeneratedToday} generated today`,
       color: "text-purple-600",
@@ -831,8 +879,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             </h1>
             <Sparkles className="h-6 w-6 text-pink-500" />
           </div>
-
-
         </div>
         <p className="text-gray-600">
           Monitor your application&apos;s performance and user activity
@@ -956,13 +1002,19 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           <div className="bg-white border border-gray-200 rounded-lg p-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-1">Mass Messaging Analytics</h3>
-                <p className="text-sm text-gray-600">Filter campaigns and leaderboards by date range</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  Mass Messaging Analytics
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Filter campaigns and leaderboards by date range
+                </p>
               </div>
               <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                 <div className="flex items-center space-x-2">
                   <CalendarDays className="h-4 w-4 text-gray-500" />
-                  <Label className="text-sm font-medium text-gray-700">Date Range:</Label>
+                  <Label className="text-sm font-medium text-gray-700">
+                    Date Range:
+                  </Label>
                 </div>
                 <div className="relative">
                   <Select
@@ -1024,10 +1076,38 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           <CardContent className="p-6">
             <div className="space-y-4">
               {isLoadingMassMessages ? (
-                <div className="flex justify-center py-8">
-                  <div className="flex items-center text-gray-500">
-                    <Loader2 className="h-6 w-6 animate-spin mr-2 text-pink-500" />
-                    <span>Loading top performing messages...</span>
+                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <Loader2 className="h-8 w-8 animate-spin text-pink-500" />
+                    <div className="flex flex-col items-start">
+                      <div className="h-6 overflow-hidden">
+                        <span
+                          key={currentLoadingMessageIndex}
+                          className="block text-gray-600 font-medium transition-all duration-700 ease-in-out transform animate-pulse"
+                          style={{
+                            animation: "fadeInSlideUp 0.7s ease-in-out",
+                          }}
+                        >
+                          {loadingMessages[currentLoadingMessageIndex]}
+                        </span>
+                      </div>
+                      <div className="flex space-x-1 mt-2">
+                        {loadingMessages.map((_, index) => (
+                          <div
+                            key={index}
+                            className={`h-1 w-3 rounded-full transition-all duration-500 ${
+                              index === currentLoadingMessageIndex
+                                ? "bg-pink-500 scale-110"
+                                : "bg-gray-300"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-400 text-center max-w-md">
+                    This may take a moment as we fetch and analyze data from
+                    multiple accounts...
                   </div>
                 </div>
               ) : topPerformingMessages.length > 0 ? (
@@ -1121,12 +1201,41 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                         </div>
 
                         <div className="mb-3">
-                          <div
-                            className="text-sm text-gray-700 line-clamp-2"
-                            dangerouslySetInnerHTML={{
-                              __html: message.textCropped,
-                            }}
-                          />
+                          <div className="text-sm text-gray-700">
+                            <div
+                              className={`transition-all duration-300 ease-in-out ${expandedMessages.has(message.id) ? "max-h-none" : "line-clamp-2"}`}
+                              dangerouslySetInnerHTML={{
+                                __html: expandedMessages.has(message.id)
+                                  ? message.text
+                                  : message.textCropped,
+                              }}
+                            />
+                            {/* Show read more button if the full text is longer than the cropped text or if text is longer than 150 characters */}
+                            {message.text &&
+                              (message.text.length > 150 ||
+                                (message.textCropped &&
+                                  message.text.length >
+                                    message.textCropped.length)) && (
+                                <button
+                                  onClick={() =>
+                                    toggleMessageExpansion(message.id)
+                                  }
+                                  className="inline-flex items-center mt-2 px-2 py-1 text-xs text-pink-600 hover:text-pink-700 hover:bg-pink-50 rounded-md font-medium transition-all duration-200 border border-transparent hover:border-pink-200 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-opacity-20"
+                                >
+                                  {expandedMessages.has(message.id) ? (
+                                    <>
+                                      <span>Read less</span>
+                                      <ChevronUp className="h-3 w-3 ml-1 transition-transform duration-200" />
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span>Read more</span>
+                                      <ChevronDown className="h-3 w-3 ml-1 transition-transform duration-200" />
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                          </div>
                           <p className="text-xs text-gray-400 mt-1">
                             {new Date(message.date).toLocaleDateString()} at{" "}
                             {new Date(message.date).toLocaleTimeString()}
@@ -1255,10 +1364,38 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           <CardContent className="p-6">
             <div className="space-y-4">
               {isLoadingMassMessages ? (
-                <div className="flex justify-center py-8">
-                  <div className="flex items-center text-gray-500">
-                    <Loader2 className="h-6 w-6 animate-spin mr-2 text-pink-500" />
-                    <span>Loading MM leaderboard...</span>
+                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <Loader2 className="h-8 w-8 animate-spin text-pink-500" />
+                    <div className="flex flex-col items-start">
+                      <div className="h-6 overflow-hidden">
+                        <span
+                          key={currentLoadingMessageIndex}
+                          className="block text-gray-600 font-medium transition-all duration-700 ease-in-out transform animate-pulse"
+                          style={{
+                            animation: "fadeInSlideUp 0.7s ease-in-out",
+                          }}
+                        >
+                          {loadingMessages[currentLoadingMessageIndex]}
+                        </span>
+                      </div>
+                      <div className="flex space-x-1 mt-2">
+                        {loadingMessages.map((_, index) => (
+                          <div
+                            key={index}
+                            className={`h-1 w-3 rounded-full transition-all duration-500 ${
+                              index === currentLoadingMessageIndex
+                                ? "bg-pink-500 scale-110"
+                                : "bg-gray-300"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-400 text-center max-w-md">
+                    Calculating campaign performance metrics across all
+                    models...
                   </div>
                 </div>
               ) : massMessagingLeaderboard.length > 0 ? (
@@ -1340,13 +1477,17 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                               <p className="font-bold text-lg sm:text-xl text-green-600">
                                 ${model.totalRevenue.toLocaleString()}
                               </p>
-                              <p className="text-xs text-gray-500">total revenue</p>
+                              <p className="text-xs text-gray-500">
+                                total revenue
+                              </p>
                             </div>
                             <div className="text-center p-3 bg-purple-50 rounded-lg border border-purple-200">
                               <p className="font-bold text-lg sm:text-xl text-purple-600">
                                 {model.totalViews.toLocaleString()}
                               </p>
-                              <p className="text-xs text-gray-500">total views</p>
+                              <p className="text-xs text-gray-500">
+                                total views
+                              </p>
                             </div>
                             <div className="text-center p-3 bg-pink-50 rounded-lg border border-pink-200 xs:col-span-2 lg:col-span-1">
                               <p className="font-bold text-lg sm:text-xl text-pink-600">
@@ -1381,10 +1522,14 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                           {/* Additional details */}
                           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-gray-500">
                             <span>
-                              Avg Price: <span className="text-green-600 font-medium">${model.averagePrice.toFixed(2)}</span>
+                              Avg Price:{" "}
+                              <span className="text-green-600 font-medium">
+                                ${model.averagePrice.toFixed(2)}
+                              </span>
                             </span>
                             <span>
-                              {model.totalMessages} msgs • {model.totalSent.toLocaleString()} sent
+                              {model.totalMessages} msgs •{" "}
+                              {model.totalSent.toLocaleString()} sent
                             </span>
                           </div>
 
