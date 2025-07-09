@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Folder, Video, X, Download } from "lucide-react";
 import { getAccountId } from "@/lib/onlyfans-accounts";
 
@@ -85,7 +85,9 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
   const [selectedList, setSelectedList] = useState<VaultList | null>(null);
   const [selectedMediaSet, setSelectedMediaSet] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
   const [downloadProgress, setDownloadProgress] = useState<{
     current: number;
     total: number;
@@ -94,6 +96,11 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
 
   // Convert Set to Array for compatibility with existing code
   const selectedMedia = useMemo(() => Array.from(selectedMediaSet), [selectedMediaSet]);
+
+  // Intersection observer for infinite scroll
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const offsetRef = useRef(0);
 
   console.log(
     `VaultPicker initialized for ${validCombinedModel || "no model"} with account ID: ${ACCOUNT_ID}`
@@ -392,45 +399,243 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
   });
   VaultListItem.displayName = 'VaultListItem';
 
-  const fetchVaultLists = useCallback(async () => {
-    if (!ACCOUNT_ID) {
-      setError("No account ID available for this model");
+  // Loading skeleton component for vault lists
+  const VaultListSkeleton: React.FC = React.memo(() => {
+    return (
+      <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 animate-pulse">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-5 h-5 bg-gray-300 dark:bg-gray-600 rounded"></div>
+            <div>
+              <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-32 mb-2"></div>
+              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            {[...Array(3)].map((_, index) => (
+              <div
+                key={index}
+                className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded"
+              ></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  });
+  VaultListSkeleton.displayName = 'VaultListSkeleton';
+
+  useEffect(() => {
+    if (!isOpen || !hasValidAccount || !ACCOUNT_ID) return;
+
+    // Reset pagination state and fetch initial data
+    console.log("VaultPicker opened, initializing...");
+    setVaultLists([]);
+    offsetRef.current = 0;
+    setHasMore(true);
+    setError(null);
+    
+    // Create the fetch function locally to avoid dependency issues
+    const fetchInitialData = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(
+          `/api/onlyfans/models?endpoint=vault-lists&accountId=${ACCOUNT_ID}&limit=20&offset=0`
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("API Error:", response.status, errorText);
+          throw new Error(`Failed to fetch vault lists: ${response.status} - ${errorText}`);
+        }      const data = await response.json();
+      console.log("Initial vault lists response:", data);
+      console.log("Initial response structure check:", {
+        hasDataProperty: !!data.data,
+        hasListProperty: !!data.data?.list,
+        listLength: data.data?.list?.length || 0,
+        hasMoreProperty: data.data?.hasMore,
+        rawHasMore: data.data?.hasMore
+      });
+      
+      const newVaultLists = data.data?.list || [];
+      const hasMoreData = data.data?.hasMore !== false; // Default to true unless explicitly false
+
+      setVaultLists(newVaultLists);
+      offsetRef.current = newVaultLists.length;
+      setHasMore(hasMoreData);
+      
+      console.log("Initial vault lists loaded:", newVaultLists.length, "items, hasMore:", hasMoreData, "offset:", newVaultLists.length);
+      } catch (err) {
+        console.error("Error fetching initial vault lists:", err);
+        setError(err instanceof Error ? err.message : "Failed to load vault");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchInitialData();
+  }, [isOpen, hasValidAccount, ACCOUNT_ID]);
+
+  const loadMoreVaultLists = useCallback(async () => {
+    if (loadingMore || !hasMore || !ACCOUNT_ID) {
+      console.log("Skipping load more:", { loadingMore, hasMore, hasAccountId: !!ACCOUNT_ID });
       return;
     }
-
-    setLoading(true);
-    setError(null);
+    
+    const currentOffset = offsetRef.current;
+    console.log("Loading more vault lists, current offset:", currentOffset);
+    setLoadingMore(true);
+    
     try {
-      const response = await fetch(
-        `/api/onlyfans/models?endpoint=vault-lists&accountId=${ACCOUNT_ID}`
-      );
+      const url = `/api/onlyfans/models?endpoint=vault-lists&accountId=${ACCOUNT_ID}&limit=20&offset=${currentOffset}`;
+      console.log("Making API request to:", url);
+      
+      const response = await fetch(url);
 
       if (!response.ok) {
-        throw new Error("Failed to fetch vault lists");
+        const errorText = await response.text();
+        console.error("Load more API Error:", response.status, errorText);
+        throw new Error(`Failed to load more vault lists: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
-      console.log("Vault lists received:", data.data?.list);
-      const vaultLists = data.data?.list || [];
+      console.log("Load more vault lists response:", data);
+      console.log("Raw API data structure:", {
+        hasDataProperty: !!data.data,
+        hasListProperty: !!data.data?.list,
+        listLength: data.data?.list?.length || 0,
+        hasMoreProperty: data.data?.hasMore,
+        rawHasMore: data.data?.hasMore
+      });
+      
+      const newVaultLists = data.data?.list || [];
+      const hasMoreData = data.data?.hasMore !== false;
 
-      // Set vault lists immediately - images will be scraped via API endpoints
-      setVaultLists(vaultLists);
-      setLoading(false);
+      console.log("Processed pagination data:", {
+        newItemsCount: newVaultLists.length,
+        hasMoreData,
+        currentOffset
+      });
 
-      console.log(
-        "Vault lists displayed immediately. Images will be scraped via API as needed."
-      );
+      if (newVaultLists.length > 0) {
+        setVaultLists(prev => {
+          const updated = [...prev, ...newVaultLists];
+          console.log("Appended vault lists, new total:", updated.length);
+          return updated;
+        });
+        offsetRef.current = currentOffset + newVaultLists.length;
+        console.log("Updated offset to:", offsetRef.current);
+      } else {
+        console.log("No new items received, setting hasMore to false");
+        setHasMore(false);
+        return;
+      }
+      
+      setHasMore(hasMoreData);
+      console.log("Load more completed, hasMore:", hasMoreData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load vault");
-      setLoading(false);
+      console.error("Error loading more vault lists:", err);
+      setError(err instanceof Error ? err.message : "Failed to load more vault lists");
+    } finally {
+      setLoadingMore(false);
     }
-  }, [ACCOUNT_ID]);
+  }, [loadingMore, hasMore, ACCOUNT_ID]);
 
+  // Intersection observer for infinite scroll
   useEffect(() => {
-    if (isOpen && hasValidAccount) {
-      fetchVaultLists();
+    const currentLoadMoreRef = loadMoreRef.current;
+    const scrollContainer = scrollContainerRef.current;
+    
+    // Only set up observer if the element exists and we have more content to load
+    if (!currentLoadMoreRef || !hasMore || loadingMore || loading) {
+      console.log("Skipping intersection observer setup:", {
+        hasLoadMoreRef: !!currentLoadMoreRef,
+        hasScrollContainer: !!scrollContainer,
+        hasMore,
+        loadingMore,
+        loading
+      });
+      return;
     }
-  }, [isOpen, fetchVaultLists, hasValidAccount]);
+
+    console.log("Setting up intersection observer for infinite scroll", {
+      hasScrollContainer: !!scrollContainer,
+      scrollContainerHeight: scrollContainer?.scrollHeight,
+      scrollContainerClientHeight: scrollContainer?.clientHeight
+    });
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        console.log("Intersection observer triggered:", {
+          isIntersecting: entry.isIntersecting,
+          hasMore,
+          loadingMore,
+          loading,
+          boundingClientRect: entry.boundingClientRect,
+          intersectionRatio: entry.intersectionRatio,
+          rootBounds: entry.rootBounds,
+          target: entry.target
+        });
+        
+        if (entry.isIntersecting && hasMore && !loadingMore && !loading) {
+          console.log("Triggering load more vault lists from intersection observer");
+          loadMoreVaultLists();
+        }
+      },
+      { 
+        root: scrollContainer, // Use the scroll container as root
+        threshold: 0.1, // Trigger when 10% of the element is visible
+        rootMargin: '100px' // Start loading 100px before reaching the element
+      }
+    );
+
+    observer.observe(currentLoadMoreRef);
+    console.log("Intersection observer attached to loadMoreRef");
+
+    return () => {
+      console.log("Cleaning up intersection observer");
+      if (currentLoadMoreRef) {
+        observer.unobserve(currentLoadMoreRef);
+      }
+    };
+  }, [hasMore, loadingMore, loading, loadMoreVaultLists]);
+
+  // Fallback scroll listener for more reliable infinite scroll
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    
+    if (!scrollContainer || !hasMore || loadingMore || loading) {
+      return;
+    }
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+      const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
+      
+      console.log("Scroll event:", {
+        scrollTop,
+        scrollHeight,
+        clientHeight,
+        scrollPercentage,
+        hasMore,
+        loadingMore,
+        loading
+      });
+      
+      // Trigger load more when user scrolls to 90% of the content
+      if (scrollPercentage >= 0.9 && hasMore && !loadingMore && !loading) {
+        console.log("Triggering load more vault lists from scroll event");
+        loadMoreVaultLists();
+      }
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      scrollContainer.removeEventListener('scroll', handleScroll);
+    };
+  }, [hasMore, loadingMore, loading, loadMoreVaultLists]);
 
   const handleListSelect = async (list: VaultList) => {
     setSelectedList(list);
@@ -663,7 +868,7 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
         }
 
         // Close the vault picker after successful import
-        onClose();
+        handleClose();
       } else {
         console.error("No files were successfully downloaded");
         alert(
@@ -688,6 +893,17 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
     }
   };
 
+  const handleClose = useCallback(() => {
+    // Reset pagination state when closing
+    setVaultLists([]);
+    setSelectedList(null);
+    setSelectedMediaSet(new Set());
+    offsetRef.current = 0;
+    setHasMore(true);
+    setError(null);
+    onClose();
+  }, [onClose]);
+
   if (!isOpen) return null;
 
   // Show error if no account is registered for the selected model/type
@@ -700,7 +916,7 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
               Account Not Found
             </h2>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
               <X className="w-5 h-5" />
@@ -751,7 +967,7 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
 
           <div className="flex justify-end">
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
             >
               Close
@@ -764,7 +980,7 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-hidden flex flex-col relative">
+      <div className="bg-white dark:bg-gray-800 rounded-xl max-w-4xl w-full mx-4 h-[80vh] overflow-hidden flex flex-col relative">
         {/* Header - Fixed */}
         <div className="p-6 pb-0 flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
@@ -772,7 +988,7 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
               {selectedList ? selectedList.name : "Select from Vault"}
             </h2>
             <button
-              onClick={onClose}
+              onClick={handleClose}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
               <X className="w-5 h-5" />
@@ -790,7 +1006,7 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
         </div>
 
         {/* Content Area - Scrollable */}
-        <div className="flex-1 overflow-hidden px-6">
+        <div className="flex-1 flex flex-col min-h-0 px-6 pb-6">
           {loading && downloadProgress && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm w-full mx-4">
@@ -820,23 +1036,55 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
           )}
 
           {loading && !downloadProgress && (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+            <div className="flex-1 flex flex-col min-h-0">
+              <div className="flex-1 overflow-y-auto space-y-2 pr-2">
+                {[...Array(6)].map((_, index) => (
+                  <VaultListSkeleton key={index} />
+                ))}
+              </div>
             </div>
           )}
 
-          {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
+          {error && !loading && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4 flex-shrink-0">
               <p className="text-red-800 dark:text-red-200">{error}</p>
             </div>
           )}
 
           {!loading && !error && (
-            <div className="h-full overflow-hidden">
+            <div className="flex-1 flex flex-col min-h-0">
+              {/* Debug info - remove in production */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-2 mb-4 flex-shrink-0">
+                  <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                    Debug: {vaultLists.length} vault lists loaded, hasMore: {String(hasMore)}, loading: {String(loading)}, loadingMore: {String(loadingMore)}, offset: {offsetRef.current}
+                  </p>
+                  <div className="mt-2 space-x-2">
+                    <button
+                      onClick={loadMoreVaultLists}
+                      disabled={loadingMore || !hasMore}
+                      className="px-2 py-1 bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-400 text-white text-xs rounded"
+                    >
+                      Test Load More
+                    </button>
+                    <button
+                      onClick={() => console.log("Current state:", { vaultLists: vaultLists.length, hasMore, offsetRef: offsetRef.current })}
+                      className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded"
+                    >
+                      Log State
+                    </button>
+                  </div>
+                </div>
+              )}
+              
               {!selectedList ? (
                 // Vault Lists View
-                <div className="space-y-2 overflow-y-auto h-full pb-20">
-                  {vaultLists.length === 0 ? (
+                <div 
+                  ref={scrollContainerRef}
+                  className="flex-1 overflow-y-auto space-y-2 pr-2" 
+                  style={{ scrollBehavior: 'smooth' }}
+                >
+                  {vaultLists.length === 0 && !loading ? (
                     <div className="text-center py-8">
                       <Folder className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-500 dark:text-gray-400">
@@ -848,19 +1096,55 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                       </p>
                     </div>
                   ) : (
-                    vaultLists.map((list) => (
-                      <VaultListItem
-                        key={list.id}
-                        list={list}
-                        onSelect={() => handleListSelect(list)}
-                      />
-                    ))
+                    <>
+                      {vaultLists.map((list) => (
+                        <VaultListItem
+                          key={list.id}
+                          list={list}
+                          onSelect={() => handleListSelect(list)}
+                        />
+                      ))}
+                      
+                      {/* Load More Trigger - Always present for intersection observer */}
+                      <div ref={loadMoreRef} className="py-4 min-h-[1px]">
+                        {process.env.NODE_ENV === 'development' && (
+                          <div className="text-xs text-gray-400 mb-2">
+                            [Load More Trigger - Offset: {offsetRef.current}, HasMore: {String(hasMore)}, LoadingMore: {String(loadingMore)}]
+                          </div>
+                        )}
+                        {hasMore ? (
+                          loadingMore ? (
+                            <div className="flex items-center justify-center">
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500"></div>
+                              <span className="ml-2 text-gray-500">Loading more...</span>
+                            </div>
+                          ) : (
+                            <div className="text-center space-y-2">
+                              <div className="text-gray-500">
+                                <span className="text-sm">Scroll to load more...</span>
+                              </div>
+                              <button
+                                onClick={loadMoreVaultLists}
+                                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm transition-colors"
+                                disabled={loadingMore}
+                              >
+                                Load More
+                              </button>
+                            </div>
+                          )
+                        ) : vaultLists.length > 0 ? (
+                          <div className="text-center text-gray-500">
+                            <span className="text-sm">You&apos;ve reached the end of the list</span>
+                          </div>
+                        ) : null}
+                      </div>
+                    </>
                   )}
                 </div>
               ) : (
                 // Media Grid View
-                <div className="flex flex-col h-full">
-                  <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col flex-1 min-h-0">
+                  <div className="flex items-center justify-between mb-4 flex-shrink-0">
                     <button
                       onClick={handleBack}
                       className="text-blue-600 dark:text-blue-400 hover:underline"
@@ -872,7 +1156,7 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex-1 overflow-y-auto pb-20">
+                  <div className="flex-1 overflow-y-auto">
                     {loading ? (
                       <div className="flex items-center justify-center py-8">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
@@ -899,7 +1183,8 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                                 temporary URLs with lazy loading for optimal
                                 performance.
                               </p>
-                            </div>                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-4">
                               {filteredVideos.map((media, index) => {
                                 const mediaUrl =
                                   media.files?.full?.url ||
@@ -928,9 +1213,9 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
           )}
 
           {/* Action Buttons - Fixed at bottom */}
-          <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-6">
-            <div className="flex justify-end space-x-3">
-              {selectedList && (
+          {selectedList && (
+            <div className="border-t border-gray-200 dark:border-gray-700 p-6 flex-shrink-0">
+              <div className="flex justify-end space-x-3">
                 <button
                   onClick={handleBack}
                   className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -938,15 +1223,13 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                 >
                   Back
                 </button>
-              )}
-              <button
-                onClick={onClose}
-                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                disabled={loading}
-              >
-                Cancel
-              </button>
-              {selectedList && (
+                <button
+                  onClick={handleClose}
+                  className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  disabled={loading}
+                >
+                  Cancel
+                </button>
                 <button
                   onClick={() => {
                     if (selectedMedia.length > 0) {
@@ -975,9 +1258,9 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                     </>
                   )}
                 </button>
-              )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
