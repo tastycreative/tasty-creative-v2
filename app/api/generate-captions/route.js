@@ -5,82 +5,122 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Helper function to clean text and strip HTML
+function stripHtmlAndClean(text) {
+  if (!text) return text;
+
+  let cleaned = text.replace(/<\/p>\s*<p[^>]*>/gi, "\n\n");
+  cleaned = cleaned.replace(/<p[^>]*>/gi, "");
+  cleaned = cleaned.replace(/<\/p>/gi, "\n\n");
+  cleaned = cleaned.replace(/<[^>]*>/g, "");
+
+  cleaned = cleaned
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, " ");
+
+  cleaned = cleaned.replace(/[ \t]+/g, " ");
+  cleaned = cleaned.replace(/\n[ \t]+/g, "\n");
+  cleaned = cleaned.replace(/[ \t]+\n/g, "\n");
+  cleaned = cleaned.replace(/\n{3,}/g, "\n\n");
+
+  return cleaned.trim();
+}
+
 export async function POST(request) {
   try {
-    const { topMessages, topLeaderboard } = await request.json();
+    const { topMessages = [], topLeaderboard = [] } = await request.json();
 
-    if (!topMessages && !topLeaderboard) {
+    if (!topMessages || topMessages.length === 0) {
       return Response.json(
-        {
-          success: false,
-          message: "Either topMessages or topLeaderboard data is required",
-        },
+        { success: false, message: "topMessages is required" },
         { status: 400 }
       );
     }
 
-    // Prepare context for GPT
-    let contextPrompt = "";
+    const contextPromptParts = [];
 
-    if (topMessages && topMessages.length > 0) {
-      contextPrompt += "Based on these top-performing mass messages:\n\n";
+    if (topMessages.length > 0) {
+      contextPromptParts.push("Based on these top-performing mass messages:\n");
       topMessages.forEach((msg, index) => {
-        contextPrompt += `${index + 1}. "${msg.textCropped}" - ${msg.viewedCount} views, ${msg.viewRate.toFixed(1)}% view rate`;
-        if (!msg.isFree && msg.revenue) {
-          contextPrompt += `, ${msg.revenue.toFixed(2)} revenue`;
-        }
-        contextPrompt += `\n`;
+        const cleanText = stripHtmlAndClean(msg.textCropped);
+        contextPromptParts.push(
+          `${index + 1}. "${cleanText}" - ${msg.viewedCount} views, ${msg.viewRate.toFixed(1)}% view rate` +
+            (!msg.isFree && msg.revenue
+              ? `, $${msg.revenue.toFixed(2)} revenue`
+              : "")
+        );
       });
     }
 
-    if (topLeaderboard && topLeaderboard.length > 0) {
-      contextPrompt += "\nAnd these top-performing campaign leaders:\n\n";
+    if (topLeaderboard.length > 0) {
+      contextPromptParts.push("\nTop-performing campaign leaders:\n");
       topLeaderboard.forEach((leader, index) => {
-        contextPrompt += `${index + 1}. ${leader.name} (@${leader.username}) - ${leader.totalViews.toLocaleString()} total views, ${leader.viewRate.toFixed(1)}% view rate, ${leader.totalRevenue.toLocaleString()} revenue\n`;
+        contextPromptParts.push(
+          `${index + 1}. ${leader.name} (@${leader.username}) - ${leader.totalViews.toLocaleString()} views, ${leader.viewRate.toFixed(
+            1
+          )}% view rate, $${leader.totalRevenue.toLocaleString()} revenue`
+        );
       });
     }
 
-    const prompt = `${contextPrompt}
+    const contextPrompt = contextPromptParts.join("\n");
 
-Generate 5 suggestive, engaging captions for OnlyFans mass messaging campaigns. The captions should:
-- Be flirty, suggestive and explicitly sexual
-- Create curiosity and encourage responses
-- Be around 1-3 sentences each
-- Include emojis where appropriate
-- Be designed to get high view rates and engagement
-- Feel personal and intimate
-- Use proven psychological triggers from the top-performing examples above
+    const baseCaptions = topMessages
+      .slice(0, 5)
+      .map((msg) => stripHtmlAndClean(msg.textCropped));
 
-Focus on elements that made the top messages successful while creating fresh, original content.
+    const generatedCaptions = [];
 
-Return only the 5 captions, one per line, without numbering or additional text.`;
+    for (const baseCaption of baseCaptions) {
+      const prompt = `${contextPrompt}
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are an expert copywriter specializing in OnlyFans marketing and engagement. You create suggestive, compelling captions that drive high engagement rates while maintaining platform compliance.",
-        },
-        {
-          role: "user",
-          content: prompt,
-        },
-      ],
-      max_tokens: 1000,
-      temperature: 0.8,
-    });
+Rephrase this caption into 1 engaging variation:
 
-    const generatedText = completion.choices[0].message.content;
-    const captions = generatedText
-      .split("\n")
-      .filter((caption) => caption.trim() !== "");
+"${baseCaption}"
+
+Requirements:
+- Keep the same structure and tone
+- Make it click-baity, attractive, and engaging
+- Use emojis where applicable
+- Preserve the number of paragraphs and core intent
+- Format output with paragraph breaks (double line breaks)
+- Output ONLY the new caption, no extras`;
+
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are an expert copywriter for OnlyFans models. You specialize in creating engaging and effective mass message captions that drive clicks and revenue. Always preserve structure, tone, and use natural paragraph breaks.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        max_tokens: 800,
+        temperature: 0.8,
+      });
+
+      const newCaption = stripHtmlAndClean(
+        completion.choices[0].message.content
+      );
+
+      if (newCaption && newCaption.length > 0) {
+        generatedCaptions.push(newCaption);
+      }
+    }
 
     return Response.json({
       success: true,
-      captions: captions.slice(0, 5), // Ensure we only return 5 captions
-      usage: completion.usage,
+      captions: generatedCaptions,
+      totalGenerated: generatedCaptions.length,
+      paragraphStructured: true,
     });
   } catch (error) {
     console.error("Error generating captions:", error);

@@ -1541,9 +1541,20 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                               AI Generated
                             </Badge>
                           </div>
-                          <p className="text-gray-800 text-sm leading-relaxed">
-                            {caption}
-                          </p>
+
+                          {/* Display caption with paragraph breaks */}
+                          <div className="text-gray-800 text-sm leading-relaxed">
+                            {caption
+                              .split("\n\n")
+                              .map((paragraph, paragraphIndex) => (
+                                <p
+                                  key={paragraphIndex}
+                                  className="mb-3 last:mb-0"
+                                >
+                                  {paragraph}
+                                </p>
+                              ))}
+                          </div>
                         </div>
                         <button
                           onClick={() =>
@@ -1572,8 +1583,9 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                 </div>
                 <div className="mt-4 text-center">
                   <p className="text-xs text-gray-500">
-                    💡 These captions are generated based on your top-performing
-                    messages. Review and customize them before use.
+                    💡 These captions are generated with proper paragraph
+                    structure based on your top-performing messages. Review and
+                    customize them before use.
                   </p>
                 </div>
               </div>

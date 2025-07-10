@@ -11,6 +11,8 @@ import {
   DollarSign,
   CheckCircle,
   AlertCircle,
+  ArrowRight,
+  ShoppingCart,
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { Alert, AlertTitle, AlertDescription } from "./ui/alert";
@@ -112,28 +114,77 @@ const AIVoicePage = () => {
     message: string;
   } | null>(null);
 
-  // History sale states
-  const [historySalePrice, setHistorySalePrice] = useState<
-    Record<string, string>
-  >({});
-  const [isSubmittingHistorySale, setIsSubmittingHistorySale] = useState<
-    Record<string, boolean>
-  >({});
-  const [historySaleStatus, setHistorySaleStatus] = useState<
-    Record<
-      string,
-      {
-        type: "success" | "error";
-        message: string;
-      }
-    >
-  >({});
+  // VN Stats states
+  const [vnStats, setVnStats] = useState<any>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [showSaleSuccess, setShowSaleSuccess] = useState(false);
+
+  // State for history item prepared for sale
+  const [historyItemForSale, setHistoryItemForSale] =
+    useState<HistoryItem | null>(null);
+  const [saleFormHighlighted, setSaleFormHighlighted] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const historyAudioRef = useRef<HTMLAudioElement | null>(null);
+  const saleFormRef = useRef<HTMLDivElement | null>(null);
   const characterLimit = 1000;
 
   const [generationStatus, setGenerationStatus] = useState("");
+
+  // Function to load VN stats
+  const loadVnStats = async () => {
+    setIsLoadingStats(true);
+    try {
+      const response = await fetch("/api/vn-sales/stats");
+      if (response.ok) {
+        const stats = await response.json();
+        setVnStats(stats);
+        console.log("VN Stats loaded in AIVoicePage:", stats);
+      } else {
+        console.error("Failed to load VN stats:", response.status);
+      }
+    } catch (error) {
+      console.error("Error loading VN stats:", error);
+    } finally {
+      setIsLoadingStats(false);
+    }
+  };
+
+  // Function to prepare history item for sale
+  const prepareHistoryItemForSale = (historyItem: HistoryItem) => {
+    // Set the history item for sale
+    setHistoryItemForSale(historyItem);
+
+    // Update the voice text to match the history item
+    setVoiceText(historyItem.text);
+
+    // Clear any existing sale price and status
+    setSalePrice("");
+    setSaleSubmitStatus(null);
+    setShowSaleSuccess(false);
+
+    // Highlight the sale form
+    setSaleFormHighlighted(true);
+
+    // Scroll to the sale form
+    if (saleFormRef.current) {
+      saleFormRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+
+    // Remove highlight after 3 seconds
+    setTimeout(() => {
+      setSaleFormHighlighted(false);
+    }, 3000);
+
+    // Show success message
+    setGenerationStatus(
+      `History item loaded for sale: "${truncateText(historyItem.text, 50)}"`
+    );
+    setTimeout(() => setGenerationStatus(""), 4000);
+  };
 
   // Function to determine profile status - simplified to 3 states
   const determineProfileStatus = (
@@ -408,12 +459,29 @@ const AIVoicePage = () => {
     }
   };
 
-  // Function to handle voice note sale submission
+  // Enhanced function to handle voice note sale submission
   const handleSubmitSale = async () => {
-    if (!generatedAudio || !selectedApiKeyProfile || !salePrice) {
+    // Determine the source of the sale (generated audio or history item)
+    const isHistorySale = historyItemForSale && !generatedAudio;
+
+    if (
+      !isHistorySale &&
+      (!generatedAudio || !selectedApiKeyProfile || !salePrice)
+    ) {
       setSaleSubmitStatus({
         type: "error",
         message: "Please generate a voice note first and enter a sale price",
+      });
+      return;
+    }
+
+    if (
+      isHistorySale &&
+      (!historyItemForSale || !selectedApiKeyProfile || !salePrice)
+    ) {
+      setSaleSubmitStatus({
+        type: "error",
+        message: "Please select a history item and enter a sale price",
       });
       return;
     }
@@ -429,39 +497,114 @@ const AIVoicePage = () => {
 
     setIsSubmittingSale(true);
     setSaleSubmitStatus(null);
+    setShowSaleSuccess(false);
 
     try {
-      // Generate a unique ID for this sale (since we don't have history_item_id for newly generated audio)
-      const saleId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      let saleData;
+
+      if (isHistorySale && historyItemForSale) {
+        // History item sale
+        const uniqueSaleId = `${historyItemForSale.history_item_id}-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+        const voiceName =
+          historyItemForSale.voice_name ||
+          availableVoices.find((v) => v.voiceId === selectedVoice)?.name ||
+          "Unknown Voice";
+
+        saleData = {
+          id: uniqueSaleId,
+          model: voiceName,
+          voiceNote: historyItemForSale.text,
+          sale: price,
+          soldDate: new Date().toISOString(),
+          status: "Completed",
+          generatedDate: new Date(
+            historyItemForSale.date_unix * 1000
+          ).toISOString(),
+          originalHistoryId: historyItemForSale.history_item_id,
+        };
+      } else {
+        // Generated audio sale
+        const saleId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const voiceName =
+          availableVoices.find((v) => v.voiceId === selectedVoice)?.name ||
+          "Unknown Voice";
+
+        saleData = {
+          id: saleId,
+          model: voiceName,
+          voiceNote: voiceText,
+          sale: price,
+          soldDate: new Date().toISOString(),
+          status: "Completed",
+          generatedDate: new Date().toISOString(),
+        };
+      }
 
       const response = await fetch("/api/vn-sales/submit", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          id: saleId,
-          model:
-            generatedAudio.voiceName ||
-            availableVoices.find((v) => v.voiceId === selectedVoice)?.name ||
-            "Unknown Voice",
-          voiceNote: voiceText,
-          sale: price,
-          soldDate: new Date().toISOString(),
-          status: "Completed",
-        }),
+        body: JSON.stringify(saleData),
       });
 
       if (response.ok) {
+        const responseData = await response.json();
+
+        setShowSaleSuccess(true);
         setSaleSubmitStatus({
           type: "success",
-          message: `Voice note sale of ${price.toFixed(2)} submitted successfully!`,
+          message: `Voice note sale of $${price.toFixed(2)} submitted successfully! 🎉`,
         });
-        setSalePrice("");
 
-        // Clear the status after 5 seconds
+        // Clear the form
+        setSalePrice("");
+        setHistoryItemForSale(null); // Clear history item selection
+
+        // Refresh VN stats to show updated revenue
+        await loadVnStats();
+
+        // Refresh API balance to show updated usage
+        if (selectedApiKeyProfile) {
+          const balance = await checkApiKeyBalance(selectedApiKeyProfile);
+          setApiKeyBalance(balance);
+
+          const errorMessage = balance?.error || "";
+          const newStatus = determineProfileStatus(balance, errorMessage);
+          setProfileStatuses((prev) => ({
+            ...prev,
+            [selectedApiKeyProfile]: newStatus,
+          }));
+        }
+
+        // Dispatch event to notify VN Sales page
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("vnSaleSubmitted", {
+              detail: {
+                sale: price,
+                model: saleData.model,
+                saleData: responseData,
+                source: isHistorySale
+                  ? "AIVoicePage-history"
+                  : "AIVoicePage-generated",
+              },
+            })
+          );
+        }
+
+        console.log("Sale submitted successfully:", {
+          saleId: saleData.id,
+          price,
+          model: saleData.model,
+          isHistorySale,
+          responseData,
+        });
+
+        // Auto-hide success message after 5 seconds
         setTimeout(() => {
           setSaleSubmitStatus(null);
+          setShowSaleSuccess(false);
         }, 5000);
       } else {
         const errorData = await response.json();
@@ -515,140 +658,6 @@ const AIVoicePage = () => {
       }
     } finally {
       setIsSubmittingSale(false);
-    }
-  };
-
-  // Function to handle history item sale submission
-  const handleSubmitHistorySale = async (historyItem: HistoryItem) => {
-    const itemId = historyItem.history_item_id;
-    const price = parseFloat(historySalePrice[itemId] || "");
-
-    if (isNaN(price) || price <= 0) {
-      setHistorySaleStatus((prev) => ({
-        ...prev,
-        [itemId]: {
-          type: "error",
-          message: "Please enter a valid sale price",
-        },
-      }));
-      return;
-    }
-
-    setIsSubmittingHistorySale((prev) => ({ ...prev, [itemId]: true }));
-    setHistorySaleStatus((prev) => {
-      const newStatus = { ...prev };
-      delete newStatus[itemId];
-      return newStatus;
-    });
-
-    try {
-      const response = await fetch("/api/vn-sales/submit", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: historyItem.history_item_id,
-          model:
-            historyItem.voice_name ||
-            availableVoices.find((v) => v.voiceId === selectedVoice)?.name ||
-            "Unknown Voice",
-          voiceNote: historyItem.text,
-          sale: price,
-          soldDate: new Date().toISOString(),
-          status: "Completed",
-          generatedDate: new Date(historyItem.date_unix * 1000).toISOString(),
-        }),
-      });
-
-      if (response.ok) {
-        setHistorySaleStatus((prev) => ({
-          ...prev,
-          [itemId]: {
-            type: "success",
-            message: `Sale of ${price.toFixed(2)} submitted successfully!`,
-          },
-        }));
-        setHistorySalePrice((prev) => ({ ...prev, [itemId]: "" }));
-
-        // Clear the status after 5 seconds
-        setTimeout(() => {
-          setHistorySaleStatus((prev) => {
-            const newStatus = { ...prev };
-            delete newStatus[itemId];
-            return newStatus;
-          });
-        }, 5000);
-      } else {
-        const errorData = await response.json();
-
-        // Handle specific authentication errors
-        if (response.status === 401) {
-          setHistorySaleStatus((prev) => ({
-            ...prev,
-            [itemId]: {
-              type: "error",
-              message:
-                "Authentication required. Please sign in as an admin to submit sales.",
-            },
-          }));
-        } else if (response.status === 403) {
-          if (errorData.error === "GooglePermissionDenied") {
-            setHistorySaleStatus((prev) => ({
-              ...prev,
-              [itemId]: {
-                type: "error",
-                message:
-                  "Google authentication expired. Please refresh the page and sign in again.",
-              },
-            }));
-          } else {
-            setHistorySaleStatus((prev) => ({
-              ...prev,
-              [itemId]: {
-                type: "error",
-                message: "Admin access required to submit sales.",
-              },
-            }));
-          }
-        } else {
-          throw new Error(
-            errorData.error || "Failed to submit voice note sale"
-          );
-        }
-      }
-    } catch (error: any) {
-      console.error("History sale submission error:", error);
-
-      // Handle specific error messages
-      if (error.message.includes("Access token expired")) {
-        setHistorySaleStatus((prev) => ({
-          ...prev,
-          [itemId]: {
-            type: "error",
-            message:
-              "Google authentication expired. Please refresh the page and sign in again.",
-          },
-        }));
-      } else if (error.message.includes("Not authenticated")) {
-        setHistorySaleStatus((prev) => ({
-          ...prev,
-          [itemId]: {
-            type: "error",
-            message: "Please sign in as an admin to submit sales.",
-          },
-        }));
-      } else {
-        setHistorySaleStatus((prev) => ({
-          ...prev,
-          [itemId]: {
-            type: "error",
-            message: error.message || "Failed to submit voice note sale",
-          },
-        }));
-      }
-    } finally {
-      setIsSubmittingHistorySale((prev) => ({ ...prev, [itemId]: false }));
     }
   };
 
@@ -753,6 +762,11 @@ const AIVoicePage = () => {
       setTimeout(() => setGenerationStatus(""), 3000);
     }
   };
+
+  // Load VN stats on component mount
+  useEffect(() => {
+    loadVnStats();
+  }, []);
 
   useEffect(() => {
     const fetchApiData = async () => {
@@ -1042,6 +1056,18 @@ const AIVoicePage = () => {
                     {voiceText.length}/{characterLimit} characters
                   </div>
                 </div>
+                {/* Show if text is from history item */}
+                {historyItemForSale && (
+                  <div className="flex items-center gap-2 p-2 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                    <CheckCircle
+                      size={16}
+                      className="text-blue-400 flex-shrink-0"
+                    />
+                    <span className="text-blue-300 text-sm">
+                      Text loaded from history item for sale submission
+                    </span>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -1304,20 +1330,90 @@ const AIVoicePage = () => {
               </CardContent>
             </Card>
 
-            {/* Voice Note Sale Submission */}
-            {generatedAudio && (
-              <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+            {/* Enhanced Voice Note Sale Submission */}
+            {(generatedAudio || historyItemForSale) && (
+              <Card
+                ref={saleFormRef}
+                className={`bg-black/30 backdrop-blur-md border-white/10 rounded-xl transition-all duration-300 ${
+                  saleFormHighlighted
+                    ? "ring-2 ring-green-500 ring-opacity-50 bg-green-900/10"
+                    : ""
+                }`}
+              >
                 <CardHeader className="pb-4">
-                  <CardTitle className="text-white flex items-center">
-                    <DollarSign size={20} className="mr-2" />
-                    Submit Voice Note Sale
+                  <CardTitle className="text-white flex items-center justify-between">
+                    <div className="flex items-center">
+                      <DollarSign size={20} className="mr-2" />
+                      Submit Voice Note Sale
+                    </div>
+                    {vnStats && (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="bg-black/60 border-white/10 text-white hover:bg-black/80 text-xs"
+                          onClick={loadVnStats}
+                          disabled={isLoadingStats}
+                        >
+                          {isLoadingStats ? (
+                            <Loader2 size={12} className="mr-1 animate-spin" />
+                          ) : (
+                            <RefreshCw size={12} className="mr-1" />
+                          )}
+                          Refresh Stats
+                        </Button>
+                      </div>
+                    )}
                   </CardTitle>
                   <CardDescription className="text-gray-400">
-                    Record a sale for your generated voice note (requires admin
-                    access)
+                    Record a sale for your{" "}
+                    {historyItemForSale ? "selected history" : "generated"}{" "}
+                    voice note (requires admin access)
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {/* Current Stats Display */}
+                  {vnStats && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-gradient-to-r from-green-900/20 to-blue-900/20 rounded-lg border border-white/10">
+                      <div className="text-center">
+                        <p className="text-sm text-gray-400">Today's Sales</p>
+                        <p className="text-lg font-bold text-green-400">
+                          $
+                          {isLoadingStats
+                            ? "..."
+                            : vnStats.vnSalesToday?.toFixed(2) || "0.00"}
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm text-gray-400">Total Revenue</p>
+                        <p className="text-lg font-bold text-white">
+                          $
+                          {isLoadingStats
+                            ? "..."
+                            : vnStats.totalRevenue?.toFixed(2) || "0.00"}
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm text-gray-400">Total VN Count</p>
+                        <p className="text-lg font-bold text-blue-400">
+                          {isLoadingStats
+                            ? "..."
+                            : vnStats.totalVnCount?.toLocaleString() || "0"}
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm text-gray-400">Avg Price</p>
+                        <p className="text-lg font-bold text-purple-400">
+                          $
+                          {isLoadingStats
+                            ? "..."
+                            : vnStats.averageVnPrice?.toFixed(2) || "0.00"}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Admin Access Notice */}
                   <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-2">
                       <AlertCircle size={16} className="text-blue-400" />
@@ -1332,6 +1428,7 @@ const AIVoicePage = () => {
                     </p>
                   </div>
 
+                  {/* Form Section */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-gray-300 mb-2 block">
@@ -1360,39 +1457,73 @@ const AIVoicePage = () => {
                       <Label className="text-gray-300 mb-2 block">
                         Sale Price ($)
                       </Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={salePrice}
-                        onChange={(e) => setSalePrice(e.target.value)}
-                        placeholder="Enter sale amount"
-                        className="bg-black/60 border-white/10 text-white"
-                      />
+                      <div className="relative">
+                        <DollarSign
+                          size={16}
+                          className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        />
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={salePrice}
+                          onChange={(e) => setSalePrice(e.target.value)}
+                          placeholder="0.00"
+                          className="pl-8 bg-black/60 border-white/10 text-white focus:border-green-500 focus:ring-2 focus:ring-green-500/20"
+                        />
+                      </div>
+                      {salePrice && parseFloat(salePrice) > 0 && (
+                        <p className="text-xs text-green-400 mt-1">
+                          Loyalty points:{" "}
+                          {Math.floor(parseFloat(salePrice) * 0.8)}
+                        </p>
+                      )}
                     </div>
                   </div>
 
+                  {/* Voice Note Preview */}
                   <div className="bg-black/60 border border-white/10 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Volume2 size={16} className="text-purple-400" />
                       <span className="text-white font-medium">
-                        {generatedAudio.voiceName}
+                        {historyItemForSale
+                          ? historyItemForSale.voice_name
+                          : generatedAudio?.voiceName}
                       </span>
+                      <span className="text-xs text-gray-400 bg-black/40 px-2 py-1 rounded">
+                        {voiceText.length} characters
+                      </span>
+                      {historyItemForSale && (
+                        <span className="text-xs text-blue-400 bg-blue-900/40 px-2 py-1 rounded">
+                          From History
+                        </span>
+                      )}
                     </div>
                     <p className="text-gray-300 text-sm leading-relaxed">
-                      {voiceText.length > 100
-                        ? voiceText.substring(0, 100) + "..."
+                      {voiceText.length > 150
+                        ? voiceText.substring(0, 150) + "..."
                         : voiceText}
                     </p>
+                    {historyItemForSale && (
+                      <div className="flex items-center gap-2 mt-2 pt-2 border-t border-white/10">
+                        <span className="text-xs text-gray-400">
+                          Generated:
+                        </span>
+                        <span className="text-xs text-gray-300">
+                          {formatDate(historyItemForSale.date_unix * 1000)}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
+                  {/* Status Messages */}
                   {saleSubmitStatus && (
                     <Alert
-                      className={
+                      className={`${
                         saleSubmitStatus.type === "success"
                           ? "bg-green-900/20 border-green-500/30 text-green-200"
                           : "bg-red-900/20 border-red-500/30 text-red-200"
-                      }
+                      } ${showSaleSuccess ? "animate-pulse" : ""}`}
                     >
                       {saleSubmitStatus.type === "success" ? (
                         <CheckCircle className="h-4 w-4" />
@@ -1405,23 +1536,73 @@ const AIVoicePage = () => {
                     </Alert>
                   )}
 
+                  {/* Submit Button */}
                   <Button
-                    className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white"
+                    className={`w-full h-12 text-white font-semibold transition-all duration-300 ${
+                      showSaleSuccess
+                        ? "bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+                        : "bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+                    }`}
                     onClick={handleSubmitSale}
-                    disabled={isSubmittingSale || !salePrice || !generatedAudio}
+                    disabled={
+                      isSubmittingSale ||
+                      !salePrice ||
+                      (!generatedAudio && !historyItemForSale) ||
+                      parseFloat(salePrice || "0") <= 0
+                    }
                   >
                     {isSubmittingSale ? (
                       <>
                         <Loader2 size={16} className="mr-2 animate-spin" />
                         Submitting Sale...
                       </>
+                    ) : showSaleSuccess ? (
+                      <>
+                        <CheckCircle size={16} className="mr-2" />
+                        Sale Submitted Successfully!
+                      </>
                     ) : (
                       <>
                         <DollarSign size={16} className="mr-2" />
-                        Submit Sale
+                        Submit Sale $
+                        {salePrice ? parseFloat(salePrice).toFixed(2) : "0.00"}
                       </>
                     )}
                   </Button>
+
+                  {/* Quick Price Buttons */}
+                  <div className="flex gap-2 flex-wrap">
+                    <span className="text-sm text-gray-400 w-full mb-1">
+                      Quick prices:
+                    </span>
+                    {[5, 10, 15, 20, 25, 30].map((price) => (
+                      <Button
+                        key={price}
+                        variant="outline"
+                        size="sm"
+                        className="bg-white/5 border-white/10 hover:bg-white/10 text-white text-xs"
+                        onClick={() => setSalePrice(price.toString())}
+                      >
+                        ${price}
+                      </Button>
+                    ))}
+                  </div>
+
+                  {/* Clear History Selection Button */}
+                  {historyItemForSale && (
+                    <Button
+                      variant="outline"
+                      className="w-full bg-white/5 border-white/10 hover:bg-white/10 text-white"
+                      onClick={() => {
+                        setHistoryItemForSale(null);
+                        setSalePrice("");
+                        setSaleSubmitStatus(null);
+                      }}
+                    >
+                      <X size={16} className="mr-2" />
+                      Clear History Selection
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -1574,6 +1755,21 @@ const AIVoicePage = () => {
                                       Use Text
                                     </Button>
 
+                                    {/* New Submit Sale Button */}
+                                    <Button
+                                      size="sm"
+                                      className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white"
+                                      onClick={() =>
+                                        prepareHistoryItemForSale(item)
+                                      }
+                                    >
+                                      <ShoppingCart
+                                        size={12}
+                                        className="mr-1"
+                                      />
+                                      Submit Sale
+                                    </Button>
+
                                     {selectedHistoryItem?.history_item_id ===
                                       item.history_item_id &&
                                       historyAudio && (
@@ -1603,107 +1799,6 @@ const AIVoicePage = () => {
                                           </Button>
                                         </>
                                       )}
-                                  </div>
-
-                                  {/* History Sale Submission Section */}
-                                  <div className="mt-4 pt-4 border-t border-white/10">
-                                    <div className="flex items-center gap-2 mb-3">
-                                      <DollarSign
-                                        size={14}
-                                        className="text-green-400"
-                                      />
-                                      <span className="text-sm font-medium text-white">
-                                        Submit Sale
-                                      </span>
-                                    </div>
-
-                                    <div className="flex gap-2 items-end">
-                                      <div className="flex-1">
-                                        <Input
-                                          type="number"
-                                          step="0.01"
-                                          min="0"
-                                          value={
-                                            historySalePrice[
-                                              item.history_item_id
-                                            ] || ""
-                                          }
-                                          onChange={(e) =>
-                                            setHistorySalePrice((prev) => ({
-                                              ...prev,
-                                              [item.history_item_id]:
-                                                e.target.value,
-                                            }))
-                                          }
-                                          placeholder="Sale price ($)"
-                                          className="bg-white/5 border-white/10 text-white text-sm h-8"
-                                        />
-                                      </div>
-                                      <Button
-                                        size="sm"
-                                        className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white h-8"
-                                        onClick={() =>
-                                          handleSubmitHistorySale(item)
-                                        }
-                                        disabled={
-                                          isSubmittingHistorySale[
-                                            item.history_item_id
-                                          ] ||
-                                          !historySalePrice[
-                                            item.history_item_id
-                                          ]
-                                        }
-                                      >
-                                        {isSubmittingHistorySale[
-                                          item.history_item_id
-                                        ] ? (
-                                          <>
-                                            <Loader2
-                                              size={12}
-                                              className="mr-1 animate-spin"
-                                            />
-                                            Submitting
-                                          </>
-                                        ) : (
-                                          <>
-                                            <DollarSign
-                                              size={12}
-                                              className="mr-1"
-                                            />
-                                            Submit
-                                          </>
-                                        )}
-                                      </Button>
-                                    </div>
-
-                                    {/* History Sale Status */}
-                                    {historySaleStatus[
-                                      item.history_item_id
-                                    ] && (
-                                      <Alert
-                                        className={`mt-2 ${
-                                          historySaleStatus[
-                                            item.history_item_id
-                                          ].type === "success"
-                                            ? "bg-green-900/20 border-green-500/30 text-green-200"
-                                            : "bg-red-900/20 border-red-500/30 text-red-200"
-                                        }`}
-                                      >
-                                        {historySaleStatus[item.history_item_id]
-                                          .type === "success" ? (
-                                          <CheckCircle className="h-3 w-3" />
-                                        ) : (
-                                          <AlertCircle className="h-3 w-3" />
-                                        )}
-                                        <AlertDescription className="text-xs">
-                                          {
-                                            historySaleStatus[
-                                              item.history_item_id
-                                            ].message
-                                          }
-                                        </AlertDescription>
-                                      </Alert>
-                                    )}
                                   </div>
                                 </div>
                               </AccordionContent>
