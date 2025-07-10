@@ -159,8 +159,11 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
   const [isLoadingVoiceStats, setIsLoadingVoiceStats] = useState(true);
 
   // State for content generation data (using original data from server)
-  const [contentGenerationData] = useState(data.contentGeneration);
-  const [recentActivities] = useState<any[]>([]);
+  const [contentGenerationData, setContentGenerationData] = useState(
+    data.contentGeneration
+  );
+  const [isLoadingContentStats, setIsLoadingContentStats] = useState(true);
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
 
   const [isLoadingMassMessages, setIsLoadingMassMessages] = useState(false);
   const [totalMassMessages, setTotalMassMessages] = useState(0);
@@ -241,6 +244,26 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
   // State for managing loading messages transition
   const [currentLoadingMessageIndex, setCurrentLoadingMessageIndex] =
     useState(0);
+
+  const fetchContentGenerationData = async () => {
+    try {
+      const response = await fetch("/api/content-generated/stats");
+      if (response.ok) {
+        const contentStats = await response.json();
+        setContentGenerationData({
+          totalContentGenerated: contentStats.totalContentGenerated || 0,
+          contentGeneratedToday: contentStats.contentGeneratedToday || 0,
+          contentGrowth: contentStats.contentGrowth || 0,
+          contentByTracker: contentStats.contentByTracker || [],
+        });
+        setRecentActivities(contentStats.recentActivities || []);
+      }
+    } catch (error) {
+      console.error("Error fetching content generation data:", error);
+    } finally {
+      setIsLoadingContentStats(false);
+    }
+  };
 
   // Loading messages for mass messaging campaigns
   const loadingMessages = [
@@ -801,6 +824,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     // Only fetch data once on component mount
     fetchVoiceData();
     fetchSwdData();
+    fetchContentGenerationData();
   }, []); // Empty dependency array - only run once
 
   // Fetch mass messages when component mounts or date range changes
@@ -2098,7 +2122,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
           {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
           </div>
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
@@ -2108,7 +2132,14 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           </CardHeader>
           <CardContent className="p-6">
             <div className="space-y-4">
-              {contentGenerationData.contentByTracker.length > 0 ? (
+              {isLoadingContentStats ? (
+                <div className="flex justify-center py-8">
+                  <div className="flex items-center text-gray-500">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2 text-pink-500" />
+                    <span>Fetching content data from Google Sheets...</span>
+                  </div>
+                </div>
+              ) : contentGenerationData.contentByTracker.length > 0 ? (
                 <>
                   {contentGenerationData.contentByTracker.map(
                     (tracker, index) => (
@@ -2157,7 +2188,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           </CardContent>
         </Card>
       </div>
-
       {/* Tables Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Users Table */}
