@@ -2276,7 +2276,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
           {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
           </div>
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
             <CardTitle className="flex items-center space-x-2 text-gray-900">
@@ -2285,7 +2285,14 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            {recentActivities.length > 0 ? (
+            {isLoadingContentStats ? (
+              <div className="flex justify-center py-8">
+                <div className="flex items-center text-gray-500">
+                  <Loader2 className="h-6 w-6 animate-spin mr-2 text-pink-500" />
+                  <span>Loading recent activity...</span>
+                </div>
+              </div>
+            ) : recentActivities.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
@@ -2315,11 +2322,9 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                             <div className="flex items-center space-x-3">
                               <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
                                 {activity.image ? (
-                                  <Image
-                                    src={`/api/image-proxy?url=${activity.image}`}
+                                  <img
+                                    src={`/api/image-proxy?url=${encodeURIComponent(activity.image)}`}
                                     alt={activity.name}
-                                    width={32}
-                                    height={32}
                                     className="w-full h-full object-cover"
                                     onError={(e) => {
                                       const target =
