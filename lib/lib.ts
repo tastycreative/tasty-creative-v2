@@ -10,7 +10,8 @@ import {
   Package,
   FileSpreadsheet,
   CalendarRange,
-  PenTool
+  PenTool,
+  MessageCircle,
 } from "lucide-react";
 
 export const TIMEZONES = [
@@ -193,7 +194,6 @@ export const MODELS_FINISHED_WEEKS_IDS = {
   },
 };
 
-
 // Clean app pages without size property
 export const appPages = [
   {
@@ -262,6 +262,14 @@ export const appPages = [
   },
   {
     id: 9,
+    name: "Forum",
+    path: "/apps/forum",
+    icon: MessageCircle,
+    color: "from-teal-500 to-cyan-500",
+    description: "Community Discussions",
+  },
+  {
+    id: 10,
     name: "SWD",
     path: "/apps/swd",
     icon: PenTool,

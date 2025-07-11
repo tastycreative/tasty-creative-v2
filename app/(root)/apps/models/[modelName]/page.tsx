@@ -8,6 +8,7 @@ import ModelInfoTab from "@/components/models/ModelInfoTab";
 import ModelAssetsTab from "@/components/models/ModelAssetTabs";
 import ModelChattersTab from "@/components/models/tabs/ModelChattersTab";
 import ModelAppsTab from "@/components/models/tabs/ModelAppsTab";
+import ModelForumTab from "@/components/models/tabs/ModelForumTab";
 import { transformRawModel } from "@/lib/utils";
 import Loader from "../loading";
 
@@ -43,7 +44,7 @@ export default function ModelDetailsPage() {
   modelName = modelName.charAt(0).toUpperCase() + modelName.slice(1);
 
   const [activeTab, setActiveTab] = useState<
-    "info" | "assets" | "chatters" | "apps"
+    "info" | "assets" | "chatters" | "apps" | "forum"
   >("info");
 
   const [model, setModel] = useState<ModelDetails | null>(null);
@@ -108,7 +109,9 @@ export default function ModelDetailsPage() {
               {model && <ModelImage model={model} />}
               <div>
                 <h1 className="text-3xl font-bold text-white">{model?.name}</h1>
-                <p className="text-gray-400 text-lg">{model?.personalityType}</p>
+                <p className="text-gray-400 text-lg">
+                  {model?.personalityType}
+                </p>
               </div>
             </div>
           </div>
@@ -125,7 +128,12 @@ export default function ModelDetailsPage() {
             {activeTab === "chatters" && model?.name && (
               <ModelChattersTab modelName={model.name} />
             )}
-            {activeTab === "apps" && model?.name && <ModelAppsTab modelName={model.name} />}
+            {activeTab === "apps" && model?.name && (
+              <ModelAppsTab modelName={model.name} />
+            )}
+            {activeTab === "forum" && model?.name && (
+              <ModelForumTab modelName={model.name} />
+            )}
           </div>
         </div>
       </div>
