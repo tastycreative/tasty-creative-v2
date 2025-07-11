@@ -49,6 +49,8 @@ import {
   Copy,
   Wand2,
   CheckCircle,
+  RefreshCw,
+  Mic,
 } from "lucide-react";
 import CountUp from "react-countup";
 import { API_KEY_PROFILES } from "@/app/services/elevenlabs-implementation";
@@ -157,6 +159,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
   // State for real-time VN sales and voice data
   const [vnSalesData, setVnSalesData] = useState(data.vnSales);
   const [isLoadingVoiceStats, setIsLoadingVoiceStats] = useState(true);
+  const [isLoadingVnSales, setIsLoadingVnSales] = useState(false); // NEW STATE
 
   // State for content generation data (using original data from server)
   const [contentGenerationData, setContentGenerationData] = useState(
@@ -211,7 +214,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     totalScripts: number;
     totalDriveScripts: number;
     totalPerformanceScripts: number;
-    totalRevenue: number; // Add total revenue from all creators
+    totalRevenue: number;
   }>({
     totalSend: [],
     totalBuy: [],
@@ -244,6 +247,102 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
   // State for managing loading messages transition
   const [currentLoadingMessageIndex, setCurrentLoadingMessageIndex] =
     useState(0);
+
+  // Helper function to calculate growth percentage
+  const calculateGrowthPercentage = (current: number, previous: number) => {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return Math.round(((current - previous) / previous) * 100);
+  };
+
+  // Helper function to calculate price increase
+  const calculatePriceIncrease = (current: number, previous: number) => {
+    return Math.round((current - previous) * 100) / 100;
+  };
+
+  // Helper function to calculate total loyalty points
+  const calculateTotalLoyaltyPoints = (salesByModel: any[]) => {
+    return salesByModel.reduce(
+      (total, model) => total + (model.loyaltyPoints || 0),
+      0
+    );
+  };
+
+  // CORRECTED: VN Sales data fetching function (only updates sales data, not voice generation stats)
+  const fetchVnSalesData = async () => {
+    try {
+      setIsLoadingVnSales(true);
+      const response = await fetch("/api/vn-sales/stats");
+      if (response.ok) {
+        const vnSalesStats = await response.json();
+
+        console.log("Fetched VN Sales stats:", vnSalesStats);
+
+        // Calculate total loyalty points
+        const loyaltyPointsEarned =
+          vnSalesStats.salesByModel?.reduce(
+            (total: number, model: any) => total + (model.loyaltyPoints || 0),
+            0
+          ) || 0;
+
+        // Update vnSalesData with SALES data only (NOT voice generation counts)
+        setVnSalesData((prev) => ({
+          ...prev,
+          // Sales-related data from VN sales API
+          vnSalesToday: vnSalesStats.vnSalesToday || 0,
+          vnSalesGrowth: calculateGrowthPercentage(
+            vnSalesStats.vnSalesToday || 0,
+            prev.vnSalesToday
+          ),
+          totalRevenue: vnSalesStats.totalRevenue || 0,
+          averageVnPrice: vnSalesStats.averageVnPrice || 0,
+          priceIncrease: calculatePriceIncrease(
+            vnSalesStats.averageVnPrice || 0,
+            prev.averageVnPrice
+          ),
+          salesByModel: vnSalesStats.salesByModel || [],
+          loyaltyPointsEarned: loyaltyPointsEarned,
+          loyaltyPointsGrowth: calculateGrowthPercentage(
+            loyaltyPointsEarned,
+            prev.loyaltyPointsEarned
+          ),
+
+          // Keep existing totalVnCount and newVnToday from ElevenLabs (don't overwrite)
+          // totalVnCount: prev.totalVnCount, // Keep existing
+          // newVnToday: prev.newVnToday, // Keep existing
+        }));
+      } else {
+        console.error("Failed to fetch VN sales data:", response.status);
+      }
+    } catch (error) {
+      console.error("Error fetching VN sales data:", error);
+    } finally {
+      setIsLoadingVnSales(false);
+    }
+  };
+
+  // Function to fetch voice stats separately
+  const fetchVoiceStatsOnly = async () => {
+    try {
+      setIsLoadingVoiceStats(true);
+      const response = await fetch("/api/elevenlabs/total-history");
+      if (response.ok) {
+        const voiceStats = await response.json();
+
+        // Update vnSalesData with VOICE GENERATION stats only
+        setVnSalesData((prev) => ({
+          ...prev,
+          totalVnCount: voiceStats.totalVoiceGenerated || 0, // From ElevenLabs
+          newVnToday: voiceStats.newVoicesToday || 0, // From ElevenLabs
+        }));
+
+        console.log("Voice stats fetched:", voiceStats);
+      }
+    } catch (error) {
+      console.error("Error fetching voice data:", error);
+    } finally {
+      setIsLoadingVoiceStats(false);
+    }
+  };
 
   const fetchContentGenerationData = async () => {
     try {
@@ -325,7 +424,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       }
     } catch (error) {
       console.error("Error generating captions:", error);
-      // You might want to show a toast or error message here
     } finally {
       setIsGeneratingCaptions(false);
     }
@@ -367,7 +465,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       }
     } catch (error) {
       console.error("Error generating captions:", error);
-      // You might want to show a toast or error message here
     } finally {
       setIsGeneratingCaptions(false);
     }
@@ -695,18 +792,23 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     }
   }, [getCurrentDateRange, fetchMassMessagesWithPagination]);
 
-  // Fetch all data once (no date filtering on server)
+  // CORRECTED: Fetch all data once (proper separation of voice stats and sales stats)
   useEffect(() => {
+    // CORRECTED: Fetch voice data separately and only update voice generation stats
     const fetchVoiceData = async () => {
       try {
         const response = await fetch("/api/elevenlabs/total-history");
         if (response.ok) {
           const voiceStats = await response.json();
+
+          // Update vnSalesData with VOICE GENERATION stats only
           setVnSalesData((prev) => ({
             ...prev,
-            totalVnCount: voiceStats.totalVoiceGenerated || 0,
-            newVnToday: voiceStats.newVoicesToday || 0,
+            totalVnCount: voiceStats.totalVoiceGenerated || 0, // From ElevenLabs
+            newVnToday: voiceStats.newVoicesToday || 0, // From ElevenLabs
           }));
+
+          console.log("Voice stats fetched:", voiceStats);
         }
       } catch (error) {
         console.error("Error fetching voice data:", error);
@@ -821,11 +923,35 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       }
     };
 
-    // Only fetch data once on component mount
-    fetchVoiceData();
+    // Fetch VN sales data, voice data, SWD data, and content data
+    fetchVnSalesData(); // Fetch VN sales data
+    fetchVoiceData(); // Fetch voice generation data separately
     fetchSwdData();
     fetchContentGenerationData();
   }, []); // Empty dependency array - only run once
+
+  // Add event listener for real-time VN sales updates
+  useEffect(() => {
+    const handleVnSaleSubmitted = (event: CustomEvent) => {
+      console.log("🎉 VN Sale detected in AdminDashboard:", event.detail);
+
+      // Refresh VN sales data when a sale is submitted from other pages
+      fetchVnSalesData();
+    };
+
+    // Listen for the custom event from AIVoicePage and VNSalesPage
+    window.addEventListener(
+      "vnSaleSubmitted",
+      handleVnSaleSubmitted as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        "vnSaleSubmitted",
+        handleVnSaleSubmitted as EventListener
+      );
+    };
+  }, []);
 
   // Fetch mass messages when component mounts or date range changes
   useEffect(() => {
@@ -877,6 +1003,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     })
   );
 
+  // CORRECTED: Updated statCards with proper loading states
   const statCards = [
     {
       title: "Total Revenue",
@@ -889,7 +1016,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       iconBgColor: "bg-green-100",
       prefix: "$",
       suffix: "",
-      isLoading: false,
+      isLoading: isLoadingVnSales, // Sales loading state
     },
     {
       title: "Total Users",
@@ -914,16 +1041,16 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       iconBgColor: "bg-green-100",
       prefix: "$",
       suffix: "",
-      isLoading: false,
+      isLoading: isLoadingVnSales, // Sales loading state
     },
     {
-      title: "Total VN Count",
+      title: "Total VN Count", // CORRECTED: This tracks voice generation, not sales
       value: vnSales.totalVnCount,
-      formattedValue: isLoadingVoiceStats
+      formattedValue: isLoadingVoiceStats // CORRECTED: Use voice loading state
         ? "Loading..."
         : vnSales.totalVnCount.toLocaleString(),
       icon: FileText,
-      description: isLoadingVoiceStats ? (
+      description: isLoadingVoiceStats ? ( // CORRECTED: Use voice loading state
         "Fetching from ElevenLabs..."
       ) : (
         <div className="flex items-center space-x-3 text-sm">
@@ -941,7 +1068,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       iconBgColor: "bg-blue-100",
       prefix: "",
       suffix: "",
-      isLoading: isLoadingVoiceStats,
+      isLoading: isLoadingVoiceStats, // CORRECTED: Use voice loading state
     },
     {
       title: "Content Generated",
@@ -1009,7 +1136,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       decimals: 2,
     },
   ];
-
   return (
     <div className="min-h-screen p-6 space-y-6 bg-gradient-to-br from-gray-50 via-white to-pink-50">
       {/* Header */}
@@ -1021,10 +1147,52 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             </h1>
             <Sparkles className="h-6 w-6 text-pink-500" />
           </div>
+          {/* CORRECTED: Separate refresh buttons for VN Sales and Voice Stats */}
+          <div className="flex gap-3">
+            <button
+              onClick={fetchVnSalesData}
+              disabled={isLoadingVnSales}
+              className="inline-flex items-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white border border-green-500 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5"
+            >
+              <DollarSign
+                className={`h-4 w-4 mr-2 ${isLoadingVnSales ? "animate-spin" : ""}`}
+              />
+              {isLoadingVnSales ? "Refreshing Sales..." : "Refresh VN Sales"}
+            </button>
+
+            <button
+              onClick={fetchVoiceStatsOnly}
+              disabled={isLoadingVoiceStats}
+              className="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white border border-blue-500 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5"
+            >
+              <FileText
+                className={`h-4 w-4 mr-2 ${isLoadingVoiceStats ? "animate-spin" : ""}`}
+              />
+              {isLoadingVoiceStats
+                ? "Refreshing Voice..."
+                : "Refresh Voice Stats"}
+            </button>
+          </div>
         </div>
         <p className="text-gray-600">
           Monitor your application&apos;s performance and user activity
         </p>
+
+        {/* CORRECTED: Status indicators showing data sources */}
+        <div className="mt-4 flex flex-wrap gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-gray-600">
+              VN Sales: Real-time from Google Sheets
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+            <span className="text-gray-600">
+              Voice Generation: Live from ElevenLabs
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -2071,34 +2239,67 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* VN Sales by Model */}
+        {/* VN Sales by Model - CORRECTED WITH REAL DATA */}
         <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
           {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
           </div>
           <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
-            <CardTitle className="flex items-center space-x-2 text-gray-900">
-              <DollarSign className="h-5 w-5 text-orange-500" />
-              <span>VN Sales by Model</span>
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center space-x-2 text-gray-900">
+                <DollarSign className="h-5 w-5 text-orange-500" />
+                <span>VN Sales by Model</span>
+              </CardTitle>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={fetchVnSalesData}
+                  disabled={isLoadingVnSales}
+                  className="inline-flex items-center px-3 py-1 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-md transition-all duration-300 text-sm"
+                >
+                  {isLoadingVnSales ? (
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                  )}
+                  Refresh
+                </button>
+                {vnSales.salesByModel && vnSales.salesByModel.length > 0 && (
+                  <Badge className="bg-green-100 text-green-800 border-green-200 text-xs">
+                    {vnSales.salesByModel.length} Models
+                  </Badge>
+                )}
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="p-6">
             <div className="space-y-4">
-              {vnSales.salesByModel.length > 0 ? (
+              {isLoadingVnSales ? (
+                <div className="flex justify-center py-8">
+                  <div className="flex items-center text-gray-500">
+                    <Loader2 className="h-6 w-6 animate-spin mr-2 text-orange-500" />
+                    <span>Loading VN sales data...</span>
+                  </div>
+                </div>
+              ) : vnSales.salesByModel && vnSales.salesByModel.length > 0 ? (
                 <>
-                  {vnSales.salesByModel.map((model, index) => (
+                  {vnSales.salesByModel.map((model: any, index: number) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-all duration-300"
+                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-all duration-300 hover:shadow-sm"
                     >
-                      <div>
-                        <h3 className="font-medium text-gray-900">
-                          {model.name}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          {model.sales} VN sales
-                        </p>
+                      <div className="flex items-center space-x-3">
+                        <div className="bg-orange-100 p-2 rounded-full">
+                          <Mic className="h-4 w-4 text-orange-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-gray-900">
+                            {model.name}
+                          </h3>
+                          <p className="text-sm text-gray-500">
+                            {model.sales} VN sales
+                          </p>
+                        </div>
                       </div>
                       <div className="text-right">
                         <p className="font-semibold text-green-600">
@@ -2110,21 +2311,70 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                       </div>
                     </div>
                   ))}
-                  <div className="text-center text-gray-500 py-4">
-                    <p className="text-sm">
-                      Average VN Price:{" "}
-                      <span className="text-orange-600 font-semibold">
-                        ${vnSales.averageVnPrice.toFixed(2)}
-                      </span>{" "}
-                      (+${vnSales.priceIncrease} from last week)
-                    </p>
+
+                  {/* Summary section */}
+                  <div className="text-center text-gray-500 py-4 border-t border-gray-200 mt-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+                      <div>
+                        <p className="text-sm">
+                          Total Models:
+                          <span className="text-orange-600 font-semibold ml-1">
+                            {vnSales.salesByModel.length}
+                          </span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm">
+                          Total Sales:
+                          <span className="text-blue-600 font-semibold ml-1">
+                            {vnSales.salesByModel.reduce(
+                              (sum: number, model: any) => sum + model.sales,
+                              0
+                            )}
+                          </span>
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-sm">
+                          Average VN Price:
+                          <span className="text-purple-600 font-semibold ml-1">
+                            ${vnSales.averageVnPrice.toFixed(2)}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Real-time indicator */}
+                    <div className="flex items-center justify-center mt-3 text-xs text-gray-400">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2"></div>
+                      <span>
+                        Last updated: {new Date().toLocaleTimeString()}
+                      </span>
+                    </div>
                   </div>
                 </>
               ) : (
-                <div className="text-center text-gray-500 py-4">
-                  <p className="text-sm">
-                    No sales data found. Submit some sales to see analytics!
-                  </p>
+                <div className="text-center text-gray-500 py-8">
+                  <div className="flex flex-col items-center space-y-3">
+                    <div className="bg-gray-100 p-4 rounded-full">
+                      <DollarSign className="h-8 w-8 text-gray-400" />
+                    </div>
+                    <div>
+                      <p className="text-lg font-medium text-gray-900 mb-1">
+                        No VN sales data found
+                      </p>
+                      <p className="text-gray-500 max-w-md mx-auto">
+                        Submit some voice note sales to see analytics by model!
+                      </p>
+                    </div>
+                    <button
+                      onClick={fetchVnSalesData}
+                      className="mt-2 inline-flex items-center px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white text-sm rounded-md transition-all duration-300"
+                    >
+                      <RefreshCw className="h-3 w-3 mr-1" />
+                      Check for Sales
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
