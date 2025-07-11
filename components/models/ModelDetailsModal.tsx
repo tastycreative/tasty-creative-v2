@@ -103,7 +103,7 @@ export default function ModelDetailsModal({
   onClose,
 }: ModelDetailsModalProps) {
   const [activeTab, setActiveTab] = useState<
-    "info" | "assets" | "chatters" | "apps"
+    "info" | "assets" | "chatters" | "apps" | "forum"
   >("info");
 
   return (
