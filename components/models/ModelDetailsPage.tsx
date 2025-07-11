@@ -12,7 +12,7 @@ import Loader from "@/app/(root)/apps/models/loading";
 
 function ModelImage({ model }: { model: ModelDetails }) {
   const [imageError, setImageError] = useState(false);
-  
+
   if (imageError || !model.id) {
     return (
       <div className="relative">
@@ -25,7 +25,7 @@ function ModelImage({ model }: { model: ModelDetails }) {
       </div>
     );
   }
-  
+
   return (
     <div className="relative">
       <div className="absolute inset-0 bg-gradient-to-r from-purple-600/30 to-pink-600/30 blur-2xl" />
@@ -46,11 +46,13 @@ export default function ModelDetailsPage() {
   const router = useRouter();
   let modelName = params ? decodeURIComponent(params.modelName as string) : "";
   modelName = modelName.charAt(0).toUpperCase() + modelName.slice(1);
-  
-  const [activeTab, setActiveTab] = useState<"info" | "assets" | "chatters" | "apps">("info");
+
+  const [activeTab, setActiveTab] = useState<
+    "info" | "assets" | "chatters" | "apps" | "forum"
+  >("info");
   const [model, setModel] = useState<ModelDetails | null>(null);
   const [loading, setLoading] = useState(true);
-  
+
   useEffect(() => {
     const fetchModel = async () => {
       if (!modelName) return;
@@ -73,11 +75,11 @@ export default function ModelDetailsPage() {
     };
     fetchModel();
   }, [modelName]);
-  
+
   if (loading) {
     return <Loader />;
   }
-  
+
   if (!model) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -97,7 +99,7 @@ export default function ModelDetailsPage() {
       </div>
     );
   }
-  
+
   return (
     <div className="animate-in fade-in duration-500">
       <div className="container mx-auto px-4 py-8">
@@ -109,12 +111,12 @@ export default function ModelDetailsPage() {
           <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
           <span>Back to Models</span>
         </button>
-        
+
         {/* Main Content */}
         <div className="relative">
           {/* Background Glow */}
           <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10 rounded-3xl blur-3xl" />
-          
+
           <div className="relative bg-slate-800/40 backdrop-blur-xl rounded-3xl border border-slate-700/30 shadow-2xl overflow-hidden">
             {/* Header */}
             <div className="relative p-8 border-b border-slate-700/30 bg-gradient-to-r from-purple-600/10 via-pink-600/5 to-purple-600/10">
@@ -125,15 +127,20 @@ export default function ModelDetailsPage() {
                   <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
                     {model.name}
                   </h1>
-                  <p className="text-gray-400 text-lg mt-1">{model.personalityType}</p>
+                  <p className="text-gray-400 text-lg mt-1">
+                    {model.personalityType}
+                  </p>
                   <div className="flex items-center gap-4 mt-3">
-                    <span className={`
+                    <span
+                      className={`
                       px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm
-                      ${model.status.toLowerCase() === "active"
-                        ? "bg-green-500/20 text-green-400 border border-green-500/30"
-                        : "bg-red-500/20 text-red-400 border border-red-500/30"
+                      ${
+                        model.status.toLowerCase() === "active"
+                          ? "bg-green-500/20 text-green-400 border border-green-500/30"
+                          : "bg-red-500/20 text-red-400 border border-red-500/30"
                       }
-                    `}>
+                    `}
+                    >
                       {model.status}
                     </span>
                     {model.launchDate && (
@@ -145,15 +152,22 @@ export default function ModelDetailsPage() {
                 </div>
               </div>
             </div>
-            
+
             {/* Tabs */}
-            <ModelDetailsTabs activeTab={activeTab} setActiveTab={setActiveTab} />
-            
+            <ModelDetailsTabs
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+            />
+
             {/* Content */}
             <div className="p-8">
               {activeTab === "info" && model && <ModelInfoTab model={model} />}
-              {activeTab === "assets" && <ModelAssetsTab modelName={model.name} />}
-              {activeTab === "chatters" && <ModelChattersTab modelName={model.name} />}
+              {activeTab === "assets" && (
+                <ModelAssetsTab modelName={model.name} />
+              )}
+              {activeTab === "chatters" && (
+                <ModelChattersTab modelName={model.name} />
+              )}
               {activeTab === "apps" && <ModelAppsTab modelName={model.name} />}
             </div>
           </div>
