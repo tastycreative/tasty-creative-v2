@@ -244,7 +244,12 @@ export async function GET(request: Request) {
     );
     
     // Generate alerts
-    const alerts = [];
+    const alerts: Array<{
+      type: 'success' | 'warning' | 'info' | 'error';
+      title: string;
+      message: string;
+      account: string;
+    }> = [];
     
     // High performer alerts
     accountStats.forEach(account => {
