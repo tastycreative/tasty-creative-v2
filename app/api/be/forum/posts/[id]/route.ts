@@ -6,9 +6,9 @@ const BACKEND_URL = process.env.BACKEND_API_URL || "http://localhost:3000";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params;
+  const { id } = await params;
   const backendUrl = `${BACKEND_URL}/forum/posts/${id}`;
 
   try {
@@ -34,9 +34,9 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params;
+  const { id } = await params;
   const backendUrl = `${BACKEND_URL}/forum/posts/${id}`;
 
   try {
@@ -69,9 +69,9 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params;
+  const { id } = await params;
   const backendUrl = `${BACKEND_URL}/forum/posts/${id}`;
 
   try {

@@ -4,10 +4,10 @@ const BACKEND_URL = process.env.BACKEND_API_URL || "http://localhost:3000";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { externalId: string } }
+  { params }: { params: Promise<{ externalId: string }> }
 ) {
   try {
-    const { externalId } = params;
+    const { externalId } = await params;
 
     const response = await fetch(`${BACKEND_URL}/forum/users/external/${externalId}`, {
       method: 'GET',

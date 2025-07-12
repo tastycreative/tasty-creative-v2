@@ -6,9 +6,9 @@ const BACKEND_URL = process.env.BACKEND_API_URL || "http://localhost:3000";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { username: string } }
+  { params }: { params: Promise<{ username: string }> }
 ) {
-  const { username } = params;
+  const { username } = await params;
   const backendUrl = `${BACKEND_URL}/forum/users/username/${username}`;
 
   try {
