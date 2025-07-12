@@ -24,7 +24,6 @@ import {
   ChevronDown,
   Search,
   RefreshCw,
-  Database,
 } from "lucide-react";
 
 // Import the forum hooks and API
@@ -132,18 +131,18 @@ export default function ForumPage() {
 
   const { 
     stats, 
-    loading: statsLoading 
+    loading: statsLoading,
+    refetch: refetchStats 
   } = useForumStats();
 
   const { 
     createPost, 
-    createComment, 
-    seedForumData,
+    createComment,
     loading: actionLoading,
     error: actionError 
   } = useForumActions();
 
-  const { userVotes, handleVote, getDisplayScores, votesLoaded } = useVoteManager();
+  const { userVotes, handleVote, getDisplayScores } = useVoteManager();
 
   // Handle post creation
   const handleCreatePost = async () => {
@@ -171,6 +170,7 @@ export default function ForumPage() {
       setNewPostContent("");
       setShowCreateModal(false);
       refetchPosts(); // Refresh the posts list
+      refetchStats(); // Refresh the community stats
     }
   };
 
@@ -233,14 +233,7 @@ export default function ForumPage() {
       );
       setNewComment("");
       refetchPosts(); // Refresh to get updated comment counts
-    }
-  };
-
-  // Handle seeding data
-  const handleSeedData = async () => {
-    const success = await seedForumData();
-    if (success) {
-      refetchPosts();
+      refetchStats(); // Refresh the community stats
     }
   };
 
