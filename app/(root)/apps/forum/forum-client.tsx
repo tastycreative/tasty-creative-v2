@@ -35,7 +35,6 @@ import {
   useForumActions, 
   useVoteManager 
 } from "../../../../hooks/useForum";
-import { useUsername } from "../../../../hooks/useUsername";
 import { FrontendForumPost } from "../../../../lib/forum-api";
 import { UsernameSetupModal } from "../../../../components/UsernameSetupModal";
 
@@ -44,37 +43,20 @@ interface ModelOption {
   id?: string;
 }
 
-// Static model list
-const models: ModelOption[] = [
-  { name: "General" },
-  { name: "Amber", id: "amber" },
-  { name: "Autumn", id: "autumn" },
-  { name: "Bri", id: "bri" },
-  { name: "Alaya", id: "alaya" },
-  { name: "Ava", id: "ava" },
-  { name: "Dan Dangler", id: "dan-dangler" },
-  { name: "Lala", id: "lala" },
-  { name: "Nicole Aniston", id: "nicole-aniston" },
-  { name: "Essie", id: "essie" },
-  { name: "Kait", id: "kait" },
-  { name: "Salah", id: "salah" },
-  { name: "Victoria (V)", id: "victoria-v" },
-  { name: "Bronwin", id: "bronwin" },
-  { name: "Jaileen", id: "jaileen" },
-  { name: "Mel", id: "mel" },
-  { name: "MJ", id: "mj" },
-];
+interface User {
+  id: string;
+  username: string | null;
+  email: string;
+  name: string | null;
+  hasUsername: boolean;
+}
 
-export default function ForumPage() {
-  // Username management
-  const { 
-    user: currentUser, 
-    loading: usernameLoading, 
-    error: usernameError, 
-    hasUsername, 
-    setUsername 
-  } = useUsername();
+interface ForumPageClientProps {
+  user: User;
+  models: ModelOption[];
+}
 
+export default function ForumPageClient({ user, models }: ForumPageClientProps) {
   // State management
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedModel, setSelectedModel] = useState<string>("General");
@@ -95,12 +77,17 @@ export default function ForumPage() {
   const [newPostCategory, setNewPostCategory] = useState("General Discussion");
   const [newComment, setNewComment] = useState("");
 
+  // Username state
+  const [userState, setUserState] = useState(user);
+  const [usernameLoading, setUsernameLoading] = useState(false);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+
   // Auto-show username modal if user doesn't have username
   useEffect(() => {
-    if (!usernameLoading && !hasUsername) {
+    if (!userState.hasUsername) {
       setShowUsernameModal(true);
     }
-  }, [usernameLoading, hasUsername]);
+  }, [userState.hasUsername]);
 
   // API hooks
   const { 
@@ -125,11 +112,6 @@ export default function ForumPage() {
     refetch: refetchPosts 
   } = useForumPosts(postsOptions);
 
-  // Debug logging
-  useEffect(() => {
-    console.log('Posts state updated:', { posts, postsLoading, postsError });
-  }, [posts, postsLoading, postsError]);
-
   const { 
     stats, 
     loading: statsLoading 
@@ -143,12 +125,56 @@ export default function ForumPage() {
     error: actionError 
   } = useForumActions();
 
-  const { userVotes, handleVote, getDisplayScores, votesLoaded } = useVoteManager();
+  const { userVotes, handleVote } = useVoteManager();
+
+  // Username management functions
+  const setUsername = async (username: string): Promise<boolean> => {
+    try {
+      setUsernameLoading(true);
+      setUsernameError(null);
+
+      const response = await fetch('/api/user/username', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to set username');
+      }
+
+      const data = await response.json();
+      setUserState({
+        ...data.user,
+        hasUsername: true
+      });
+      
+      // Also update Prisma database
+      await fetch('/api/user/update-username', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username }),
+      });
+
+      return true;
+    } catch (err) {
+      setUsernameError(err instanceof Error ? err.message : 'Unknown error');
+      console.error('Error setting username:', err);
+      return false;
+    } finally {
+      setUsernameLoading(false);
+    }
+  };
 
   // Handle post creation
   const handleCreatePost = async () => {
     // Check if user has username first
-    if (!hasUsername) {
+    if (!userState.hasUsername) {
       setShowUsernameModal(true);
       return;
     }
@@ -190,7 +216,7 @@ export default function ForumPage() {
 
   // Check username before allowing forum actions
   const checkUsernameBeforeAction = (action: () => void) => {
-    if (!hasUsername) {
+    if (!userState.hasUsername) {
       setShowUsernameModal(true);
       return;
     }
@@ -198,19 +224,19 @@ export default function ForumPage() {
   };
 
   // Handle voting
-  const onVote = async (post: FrontendForumPost, voteType: "up" | "down") => {
-    if (!hasUsername) {
+  const onVote = async (postId: string, voteType: "up" | "down") => {
+    if (!userState.hasUsername) {
       setShowUsernameModal(true);
       return;
     }
     
-    const numericId = parseInt(post.id);
-    await handleVote(post.id, voteType, "post", numericId, post.upvotes, post.downvotes);
+    const numericId = parseInt(postId);
+    await handleVote(postId, voteType, "post", numericId);
   };
 
   // Handle comment creation
   const handleAddComment = async () => {
-    if (!hasUsername) {
+    if (!userState.hasUsername) {
       setShowUsernameModal(true);
       return;
     }
@@ -264,7 +290,7 @@ export default function ForumPage() {
     return cat?.color || "gray";
   };
 
-  if (categoriesLoading || statsLoading || usernameLoading) {
+  if (categoriesLoading || statsLoading) {
     return (
       <div className="min-h-screen p-4 flex items-center justify-center">
         <div className="text-center">
@@ -289,9 +315,9 @@ export default function ForumPage() {
                 Connect, discuss, and share with the community
               </p>
               {/* Username Status */}
-              {hasUsername && currentUser ? (
+              {userState.hasUsername ? (
                 <p className="text-sm text-green-600 dark:text-green-400 mt-1">
-                  ✓ Logged in as {currentUser.username}
+                  ✓ Logged in as {userState.username}
                 </p>
               ) : (
                 <p className="text-sm text-orange-600 dark:text-orange-400 mt-1">
@@ -301,14 +327,14 @@ export default function ForumPage() {
             </div>
             {/* Admin Controls */}
             <div className="flex gap-2">
-              {/* <button
+              <button
                 onClick={handleSeedData}
                 disabled={actionLoading}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all disabled:opacity-50"
               >
                 <Database className="w-4 h-4" />
                 Seed Data
-              </button> */}
+              </button>
               <button
                 onClick={refetchPosts}
                 disabled={postsLoading}
@@ -321,10 +347,10 @@ export default function ForumPage() {
           </div>
 
           {/* Error Display */}
-          {(postsError || actionError || usernameError) && (
+          {(postsError || actionError) && (
             <div className="mt-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
               <p className="text-red-600 dark:text-red-400">
-                {postsError || actionError || usernameError}
+                {postsError || actionError}
               </p>
             </div>
           )}
@@ -582,7 +608,7 @@ export default function ForumPage() {
                           {/* Vote section */}
                           <div className="flex flex-col items-center gap-1 min-w-[40px]">
                             <button
-                              onClick={() => onVote(post, "up")}
+                              onClick={() => onVote(post.id, "up")}
                               className={`p-2 rounded-full transition-all ${
                                 userVotes[post.id] === "up"
                                   ? "bg-orange-500/20 text-orange-400"
@@ -592,13 +618,10 @@ export default function ForumPage() {
                               <ArrowUp className="w-5 h-5" />
                             </button>
                             <span className="text-lg font-bold text-gray-800 dark:text-white">
-                              {(() => {
-                                const scores = getDisplayScores(post.id, post.upvotes, post.downvotes);
-                                return scores.upvotes - scores.downvotes;
-                              })()}
+                              {post.upvotes - post.downvotes}
                             </span>
                             <button
-                              onClick={() => onVote(post, "down")}
+                              onClick={() => onVote(post.id, "down")}
                               className={`p-2 rounded-full transition-all ${
                                 userVotes[post.id] === "down"
                                   ? "bg-blue-500/20 text-blue-400"
@@ -898,7 +921,7 @@ export default function ForumPage() {
                   <div className="flex gap-3">
                     <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
                       <span className="text-white text-sm font-bold">
-                        {currentUser?.username ? currentUser.username.substring(0, 2).toUpperCase() : "CU"}
+                        {userState.username ? userState.username.substring(0, 2).toUpperCase() : "CU"}
                       </span>
                     </div>
                     <div className="flex-1">
@@ -970,7 +993,7 @@ export default function ForumPage() {
           isOpen={showUsernameModal}
           onClose={() => {
             // Only allow closing if user has username
-            if (hasUsername) {
+            if (userState.hasUsername) {
               setShowUsernameModal(false);
             }
           }}
