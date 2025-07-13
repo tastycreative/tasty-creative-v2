@@ -21,16 +21,17 @@ export const useForumPosts = (options: GetPostsOptions = {}) => {
   const [total, setTotal] = useState(0);
 
   // Destructure options to individual dependencies to avoid object recreation issues
-  const { categoryId, modelName, sortBy, page, limit, search } = options;
+  const { categoryId, modelName, generalOnly, sortBy, page, limit, search } = options;
 
   const fetchPosts = useCallback(async () => {
-    console.log('Fetching posts with options:', { categoryId, modelName, sortBy, page, limit, search });
+    console.log('Fetching posts with options:', { categoryId, modelName, generalOnly, sortBy, page, limit, search });
     try {
       setLoading(true);
       setError(null);
       const requestOptions = {
         categoryId,
         modelName,
+        generalOnly,
         sortBy,
         page,
         limit,
@@ -48,7 +49,7 @@ export const useForumPosts = (options: GetPostsOptions = {}) => {
     } finally {
       setLoading(false);
     }
-  }, [categoryId, modelName, sortBy, page, limit, search]);
+  }, [categoryId, modelName, generalOnly, sortBy, page, limit, search]);
 
   useEffect(() => {
     fetchPosts();

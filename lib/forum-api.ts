@@ -123,6 +123,7 @@ export interface PostsResponse {
 export interface GetPostsOptions {
   categoryId?: number;
   modelName?: string;
+  generalOnly?: boolean;
   sortBy?: "hot" | "new" | "top";
   page?: number;
   limit?: number;
@@ -183,6 +184,7 @@ class ForumAPI {
     if (options.categoryId)
       searchParams.append("categoryId", options.categoryId.toString());
     if (options.modelName) searchParams.append("modelName", options.modelName);
+    if (options.generalOnly) searchParams.append("generalOnly", "true");
     if (options.sortBy) searchParams.append("sortBy", options.sortBy);
     if (options.page) searchParams.append("page", options.page.toString());
     if (options.limit) searchParams.append("limit", options.limit.toString());
@@ -296,7 +298,9 @@ class ForumAPI {
   // ================== STATISTICS ==================
 
   async getForumStats(): Promise<ForumStats> {
-    return this.request<ForumStats>("/stats");
+    // Get user's timezone offset in minutes
+    const timezoneOffset = new Date().getTimezoneOffset();
+    return this.request<ForumStats>(`/stats?timezoneOffset=${timezoneOffset}`);
   }
 
   // ================== ADMIN ==================

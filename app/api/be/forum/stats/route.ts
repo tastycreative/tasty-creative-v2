@@ -2,8 +2,14 @@
 
 const BACKEND_URL = process.env.BACKEND_API_URL || "http://localhost:3000";
 
-export async function GET() {
-  const backendUrl = `${BACKEND_URL}/forum/stats`;
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const timezoneOffset = searchParams.get('timezoneOffset');
+  
+  let backendUrl = `${BACKEND_URL}/forum/stats`;
+  if (timezoneOffset) {
+    backendUrl += `?timezoneOffset=${timezoneOffset}`;
+  }
 
   try {
     const fetchRes = await fetch(backendUrl, {
