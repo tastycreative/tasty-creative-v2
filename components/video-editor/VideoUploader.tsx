@@ -87,6 +87,13 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
   const [useFolderId, setUseFolderId] = useState(!!folderId);
   const [customFolderId, setCustomFolderId] = useState("");
   const [folderInputValue, setFolderInputValue] = useState("");
+  
+  // Download progress state
+  const [downloadProgress, setDownloadProgress] = useState<{
+    fileName: string;
+    progress: number;
+    isDownloading: boolean;
+  } | null>(null);
 
   // Update useFolderId when folderId prop changes
   useEffect(() => {
@@ -356,6 +363,13 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
     }
 
     try {
+      // Initialize download progress
+      setDownloadProgress({
+        fileName: file.name,
+        progress: 0,
+        isDownloading: true
+      });
+
       startDownloadTransition(async () => {
         const response = await fetch(
           `/api/google-drive/download?id=${file.id}`
@@ -364,7 +378,44 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
           throw new Error("Failed to download video");
         }
 
-        const blob = await response.blob();
+        // Get content length for progress calculation
+        const contentLength = response.headers.get('content-length');
+        const total = contentLength ? parseInt(contentLength, 10) : 0;
+        
+        if (!response.body) {
+          throw new Error("Response body is null");
+        }
+
+        // Create a readable stream to track download progress
+        const reader = response.body.getReader();
+        const chunks: Uint8Array[] = [];
+        let receivedLength = 0;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          
+          if (done) break;
+          
+          chunks.push(value);
+          receivedLength += value.length;
+          
+          // Update progress
+          if (total > 0) {
+            const progress = Math.round((receivedLength / total) * 100);
+            setDownloadProgress(prev => prev ? { ...prev, progress } : null);
+          }
+        }
+
+        // Combine all chunks into a single Uint8Array
+        const chunksAll = new Uint8Array(receivedLength);
+        let position = 0;
+        for (const chunk of chunks) {
+          chunksAll.set(chunk, position);
+          position += chunk.length;
+        }
+
+        // Create blob from combined data
+        const blob = new Blob([chunksAll]);
 
         // Validate the blob type as well
         if (!isVideoFile(file.name, blob.type)) {
@@ -382,10 +433,14 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
 
         // Close the Google Drive picker
         setShowGoogleDrivePicker(false);
+        
+        // Clear download progress
+        setDownloadProgress(null);
       });
     } catch (error) {
       console.error("Error downloading video:", error);
       alert("Failed to download selected video");
+      setDownloadProgress(null);
     }
   };
 
@@ -569,14 +624,36 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
       {showGoogleDrivePicker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div
-            className={`bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-4xl max-h-[80vh] overflow-hidden relative ${isDownloading ? "overflow-hidden" : ""}`}
+            className={`bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-4xl max-h-[80vh] overflow-hidden relative ${(isDownloading || downloadProgress?.isDownloading) ? "overflow-hidden" : ""}`}
           >
-            {isDownloading && (
+            {(isDownloading || downloadProgress?.isDownloading) && (
               <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-black/90 z-50">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mb-2"></div>
-                <span className="text-sm text-gray-300">
-                  Downloading Video...
-                </span>
+                {downloadProgress?.isDownloading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mb-4"></div>
+                    <div className="text-center mb-4">
+                      <p className="text-sm text-gray-300 mb-2">
+                        Downloading: {downloadProgress.fileName}
+                      </p>
+                      <div className="w-64 bg-gray-700 rounded-full h-2 mb-2">
+                        <div 
+                          className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${downloadProgress.progress}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-400">
+                        {downloadProgress.progress}% complete
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mb-2"></div>
+                    <span className="text-sm text-gray-300">
+                      Downloading Video...
+                    </span>
+                  </>
+                )}
               </div>
             )}
             {/* Header */}
@@ -602,7 +679,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                   {parentFolder && (
                     <button
                       onClick={handleNavigateUp}
-                      disabled={isGooglePickerLoading}
+                      disabled={isGooglePickerLoading || downloadProgress?.isDownloading}
                       className="text-blue-600 hover:text-blue-700 disabled:text-gray-400"
                     >
                       ← Back
@@ -639,7 +716,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                       <button
                         key={file.id}
                         onClick={() => handleGoogleDriveFileSelected(file)}
-                        disabled={isDownloading || (!file.isFolder && !isVideo)}
+                        disabled={isDownloading || downloadProgress?.isDownloading || (!file.isFolder && !isVideo)}
                         className={`group relative rounded-lg p-3 transition-colors text-left ${
                           isVideo || file.isFolder
                             ? "bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
