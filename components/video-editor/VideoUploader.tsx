@@ -390,6 +390,17 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
         const reader = response.body.getReader();
         const chunks: Uint8Array[] = [];
         let receivedLength = 0;
+        let progressInterval: NodeJS.Timeout | null = null;
+
+        // If we don't have content-length, use a simulated progress
+        if (total === 0) {
+          let simulatedProgress = 0;
+          progressInterval = setInterval(() => {
+            simulatedProgress += Math.random() * 15; // Increment by 0-15%
+            if (simulatedProgress > 90) simulatedProgress = 90; // Cap at 90% until complete
+            setDownloadProgress(prev => prev ? { ...prev, progress: Math.min(simulatedProgress, 90) } : null);
+          }, 500);
+        }
 
         while (true) {
           const { done, value } = await reader.read();
@@ -399,12 +410,23 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
           chunks.push(value);
           receivedLength += value.length;
           
-          // Update progress
+          // Update progress only if we have content-length
           if (total > 0) {
             const progress = Math.round((receivedLength / total) * 100);
             setDownloadProgress(prev => prev ? { ...prev, progress } : null);
           }
         }
+
+        // Clear the simulated progress interval
+        if (progressInterval) {
+          clearInterval(progressInterval);
+        }
+
+        // Set to 100% when download is complete
+        setDownloadProgress(prev => prev ? { ...prev, progress: 100 } : null);
+        
+        // Brief delay to show 100% completion
+        await new Promise(resolve => setTimeout(resolve, 500));
 
         // Combine all chunks into a single Uint8Array
         const chunksAll = new Uint8Array(receivedLength);
@@ -627,25 +649,36 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
             className={`bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-4xl max-h-[80vh] overflow-hidden relative ${(isDownloading || downloadProgress?.isDownloading) ? "overflow-hidden" : ""}`}
           >
             {(isDownloading || downloadProgress?.isDownloading) && (
-              <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-black/90 z-50">
+              <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-black/90 z-50 p-8">
                 {downloadProgress?.isDownloading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mb-4"></div>
-                    <div className="text-center mb-4">
-                      <p className="text-sm text-gray-300 mb-2">
-                        Downloading: {downloadProgress.fileName}
-                      </p>
-                      <div className="w-64 bg-gray-700 rounded-full h-2 mb-2">
+                  <div className="w-full max-w-md text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-6"></div>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-sm text-gray-300 mb-1">Downloading:</p>
+                        <p className="text-white font-medium text-base break-words px-2">
+                          {downloadProgress.fileName}
+                        </p>
+                      </div>
+                      
+                      <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
                         <div 
-                          className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                          className="bg-gradient-to-r from-green-400 to-green-500 h-full rounded-full transition-all duration-500 ease-out"
                           style={{ width: `${downloadProgress.progress}%` }}
                         />
                       </div>
-                      <p className="text-xs text-gray-400">
-                        {downloadProgress.progress}% complete
-                      </p>
+                      
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-400">
+                          {downloadProgress.progress < 100 ? 'Downloading...' : 'Processing...'}
+                        </span>
+                        <span className="text-green-400 font-medium">
+                          {downloadProgress.progress}%
+                        </span>
+                      </div>
                     </div>
-                  </>
+                  </div>
                 ) : (
                   <>
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mb-2"></div>
