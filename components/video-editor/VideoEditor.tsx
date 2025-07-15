@@ -244,7 +244,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                 }
                 {folderId && (
                   <span className="block text-sm text-blue-600 dark:text-blue-400 mt-1">
-                    📁 Folder shortcut available (ID: {folderId.substring(0, 8)}...)
+                    📁 Folder shortcut available (ID: {folderId.substring(0, 8)}...) - You can also paste any Google Drive folder link below
                   </span>
                 )}
               </p>

@@ -4,6 +4,7 @@ import { ReactNode, useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import ModelDetailsNavigation from "@/components/models/ModelDetailsNavigation";
+import PermissionGoogle from "@/components/PermissionGoogle";
 import { transformRawModel } from "@/lib/utils";
 
 interface ModelAppLayoutProps {
@@ -35,12 +36,8 @@ function ModelImage({ model }: { model: ModelDetails }) {
   );
 }
 
-export default function ModelAppLayout({ children }: ModelAppLayoutProps) {
-  const params = useParams();
+function ModelLayoutContent({ children, modelName }: { children: ReactNode; modelName: string }) {
   const router = useRouter();
-  let modelName = params ? decodeURIComponent(params.modelName as string) : "";
-  modelName = modelName.charAt(0).toUpperCase() + modelName.slice(1);
-
   const [model, setModel] = useState<ModelDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -121,5 +118,19 @@ export default function ModelAppLayout({ children }: ModelAppLayoutProps) {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ModelAppLayout({ children }: ModelAppLayoutProps) {
+  const params = useParams();
+  let modelName = params ? decodeURIComponent(params.modelName as string) : "";
+  modelName = modelName.charAt(0).toUpperCase() + modelName.slice(1);
+
+  return (
+    <PermissionGoogle apiEndpoint="/api/models">
+      <ModelLayoutContent modelName={modelName}>
+        {children}
+      </ModelLayoutContent>
+    </PermissionGoogle>
   );
 }
