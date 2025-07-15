@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useVideoSequence } from "@/hooks/useVideoSequence";
 import { VideoUploader } from "./VideoUploader";
 import { Timeline } from "./Timeline";
@@ -20,9 +21,18 @@ import {
   DollarSign,
 } from "lucide-react";
 
-export const VideoEditor: React.FC = () => {
+interface VideoEditorProps {
+  modelName?: string;
+}
+
+export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
+  const searchParams = useSearchParams();
+  const folderId = searchParams?.get('folderid') || undefined;
+
   // Model selection state compatible with ModelsDropdown
-  const [formData, setFormData] = useState<{ model?: string }>({});
+  const [formData, setFormData] = useState<{ model?: string }>({
+    model: modelName || ""
+  });
   const [modelType, setModelType] = useState<"FREE" | "PAID">("FREE");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -56,6 +66,13 @@ export const VideoEditor: React.FC = () => {
   const [trimmingVideo, setTrimmingVideo] = useState<{
     videoId: string;
   } | null>(null);
+
+  // Update formData when modelName prop changes
+  useEffect(() => {
+    if (modelName && modelName !== formData.model) {
+      setFormData({ model: modelName });
+    }
+  }, [modelName, formData.model]);
 
   const handleVideosAdded = async (files: File[]) => {
     setIsUploading(true);
@@ -214,10 +231,22 @@ export const VideoEditor: React.FC = () => {
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                 Create Your Video Sequence
+                {modelName && (
+                  <span className="block text-lg text-purple-600 dark:text-purple-400 font-normal mt-1">
+                    for {modelName}
+                  </span>
+                )}
               </h2>
               <p className="text-gray-600 dark:text-gray-400">
-                Select a model and upload multiple videos to create a custom
-                sequence with effects and export as GIF
+                {modelName 
+                  ? "Upload multiple videos to create a custom sequence with effects and export as GIF"
+                  : "Select a model and upload multiple videos to create a custom sequence with effects and export as GIF"
+                }
+                {folderId && (
+                  <span className="block text-sm text-blue-600 dark:text-blue-400 mt-1">
+                    📁 Folder shortcut available (ID: {folderId.substring(0, 8)}...)
+                  </span>
+                )}
               </p>
             </div>
 
@@ -277,12 +306,13 @@ export const VideoEditor: React.FC = () => {
             </div>
 
             {/* Video Upload - Only show if model is selected */}
-            {formData.model ? (
+            {formData.model && formData.model.trim() !== "" ? (
               <VideoUploader
                 onVideosAdded={handleVideosAdded}
                 isUploading={isUploading}
                 model={formData.model}
                 modelType={modelType}
+                folderId={folderId}
               />
             ) : (
               <div className="bg-gray-50 dark:bg-gray-800/50 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center">
@@ -410,6 +440,7 @@ export const VideoEditor: React.FC = () => {
                     onVideosAdded={handleVideosAdded}
                     isUploading={isUploading}
                     model={formData.model}
+                    folderId={folderId}
                   />
                 </div>
               </div>

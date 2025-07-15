@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useState, useTransition } from "react";
+import React, { useCallback, useState, useTransition, useEffect } from "react";
 import Image from "next/image";
 import { Upload, X, Film, Folder, HardDrive } from "lucide-react";
 import { generateVideoThumbnail } from "@/lib/videoProcessor";
@@ -18,6 +18,7 @@ interface VideoUploaderProps {
   isUploading: boolean;
   model?: string; // Add model prop for Google Drive filtering
   modelType?: string; // Add modelType prop for display
+  folderId?: string; // Add folderId prop for starting in specific folder
 }
 
 export const VideoUploader: React.FC<VideoUploaderProps> = ({
@@ -25,6 +26,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
   isUploading,
   model,
   modelType,
+  folderId,
 }) => {
   // Get the final formatted model value
   const getFinalModelValue = () => {
@@ -80,6 +82,14 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
     null
   );
   const [isGooglePickerLoading, setIsGooglePickerLoading] = useState(false);
+  
+  // State for controlling whether to use the folderId parameter
+  const [useFolderId, setUseFolderId] = useState(!!folderId);
+
+  // Update useFolderId when folderId prop changes
+  useEffect(() => {
+    setUseFolderId(!!folderId);
+  }, [folderId]);
   const [isDownloading, startDownloadTransition] = useTransition();
   const [, startListTransition] = useTransition();
 
@@ -208,10 +218,17 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
     try {
       startListTransition(async () => {
         try {
-          // Start from root or model folder
+          // Start from specific folder if folderId is provided AND useFolderId is enabled
           let url = "/api/google-drive/list?includeVideos=true";
-          if (model) {
+          
+          if (folderId && useFolderId) {
+            // If folderId is provided via URL parameter and toggle is enabled, use it directly
+            url += `&folderId=${folderId}`;
+            console.log(`Starting Google Drive picker in folder: ${folderId}`);
+          } else if (model) {
+            // Otherwise, try to find folder by model name
             url += `&folderName=${model}`;
+            console.log(`Looking for Google Drive folder with name: ${model}`);
           }
 
           const response = await fetch(url);
@@ -433,6 +450,33 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                   : `Google Drive (${model})`}
             </span>
           </button>
+          
+          {/* Folder ID Toggle Switch - Only show if folderId is provided */}
+          {folderId && (
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-gray-600 dark:text-gray-400">📁</span>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setUseFolderId(!useFolderId);
+                }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                  useFolderId ? "bg-blue-600" : "bg-gray-300"
+                }`}
+                title={useFolderId ? "Disable folder shortcut" : "Enable folder shortcut"}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    useFolderId ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+              <span className="text-xs text-gray-600 dark:text-gray-400">
+                {useFolderId ? "ON" : "OFF"}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

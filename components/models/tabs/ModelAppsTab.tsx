@@ -2,7 +2,7 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import {
   Sparkles,
   Type,
@@ -20,7 +20,6 @@ import {
   Crown,
   Mic,
   Image,
-  FileText,
   ArrowLeft,
 } from "lucide-react";
 
@@ -40,6 +39,7 @@ import GifMaker from "@/components/GifMaker";
 import LiveFlyer from "@/components/LiveFlyer";
 import VIPFlyer from "@/components/VIPFlyer";
 import TwitterAdsPage from "@/components/TwitterAdsPage";
+import { VideoEditor } from "@/components/video-editor/VideoEditor";
 
 interface ModelAppsTabProps {
   modelName: string;
@@ -52,11 +52,29 @@ interface AppItem {
   icon: React.ElementType;
   color: string;
   category: "ai" | "generate";
-  component: React.ComponentType<any>;
+  component: React.ComponentType<Record<string, unknown>>;
 }
 
 const ModelAppsTab: React.FC<ModelAppsTabProps> = ({ modelName }) => {
-  const [activeApp, setActiveApp] = React.useState<string | null>(null);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  
+  const activeApp = searchParams?.get('tab') || null;
+
+  const setActiveApp = (appId: string | null) => {
+    const params = new URLSearchParams(searchParams?.toString() || '');
+    
+    if (appId) {
+      params.set('tab', appId);
+    } else {
+      // Only remove the 'tab' parameter, keep all other parameters
+      params.delete('tab');
+    }
+    
+    const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname || '';
+    router.replace(newUrl);
+  };
 
   const apps: AppItem[] = [
     // Generate Apps
@@ -85,7 +103,7 @@ const ModelAppsTab: React.FC<ModelAppsTabProps> = ({ modelName }) => {
       icon: Image,
       color: "from-yellow-500 to-orange-500",
       category: "generate",
-      component: GifMaker,
+      component: VideoEditor,
     },
     {
       id: "live",
