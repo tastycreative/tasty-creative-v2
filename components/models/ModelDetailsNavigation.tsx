@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useParams } from "next/navigation";
-import { Info, Image, MessageSquare, Zap, Users } from "lucide-react";
+import { Info, Image, MessageSquare, Zap, Users, Images } from "lucide-react";
 
 export default function ModelDetailsNavigation() {
   const pathname = usePathname();
@@ -14,6 +14,7 @@ export default function ModelDetailsNavigation() {
     { id: "assets", label: "Assets", icon: Image, color: "pink" },
     { id: "chatters", label: "Chatters", icon: MessageSquare, color: "blue" },
     { id: "apps", label: "Apps", icon: Zap, color: "green" },
+    { id: "content-gallery", label: "Content Gallery", icon: Images, color: "cyan" },
     { id: "forum", label: "Forum", icon: Users, color: "orange" },
   ];
 
