@@ -119,9 +119,9 @@ export async function GET(request: NextRequest) {
           title: videoTitle
         });
         
-        // Generate thumbnail URL using Google's lh3.googleusercontent.com service
+        // Generate thumbnail URL using our image proxy (only for files, not folders)
         const thumbnail = driveId && !isFolder
-          ? `https://lh3.googleusercontent.com/d/${driveId}`
+          ? `/api/image-proxy?id=${driveId}`
           : `https://via.placeholder.com/400x225/374151/9ca3af?text=${isFolder ? 'Folder' : encodeURIComponent(videoTitle.substring(0, 20))}`;
 
         // Parse creation date

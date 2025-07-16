@@ -53,43 +53,6 @@ export async function GET(req: NextRequest) {
 
     const drive = google.drive({ version: "v3", auth: oauth2Client });
 
-    // First try to get the file metadata to check if it has a thumbnailLink
-    try {
-      const fileMetadata = await drive.files.get({
-        fileId,
-        fields: 'thumbnailLink,mimeType,name'
-      });
-
-      console.log('File metadata:', {
-        id: fileId,
-        name: fileMetadata.data.name,
-        mimeType: fileMetadata.data.mimeType,
-        hasThumbnailLink: !!fileMetadata.data.thumbnailLink
-      });
-
-      // If Google Drive has a thumbnail, use that
-      if (fileMetadata.data.thumbnailLink) {
-        const thumbnailRes = await fetch(fileMetadata.data.thumbnailLink, {
-          headers: {
-            'Authorization': `Bearer ${session.accessToken}`
-          }
-        });
-
-        if (thumbnailRes.ok) {
-          const contentType = thumbnailRes.headers.get("content-type") || "image/jpeg";
-          return new Response(thumbnailRes.body, {
-            headers: {
-              "Content-Type": contentType,
-              "Cache-Control": "public, max-age=3600",
-            },
-          });
-        }
-      }
-    } catch (metadataError) {
-      console.log('Failed to get file metadata, trying direct media access:', metadataError);
-    }
-
-    // Fallback to direct media access for images
     const fileRes = await drive.files.get(
       {
         fileId,
@@ -108,19 +71,14 @@ export async function GET(req: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error("Drive proxy error for file:", fileId, error);
+    console.error("Drive proxy error:", error);
 
     if (error.code === 403 && error.errors?.length > 0) {
-      console.error("Permissions error:", error.errors[0].message);
       return new Response(`Google API Error: ${error.errors[0].message}`, { status: 403 });
     }
     if (error.code === 404) {
-      console.error("File not found:", fileId);
       return new Response("File not found", { status: 404 });
     }
-    
-    // For any other error, return a placeholder image
-    console.error("Returning placeholder due to error:", error.message);
     return new Response("Failed to proxy image", { status: 500 });
   }
 }
