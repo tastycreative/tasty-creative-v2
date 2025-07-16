@@ -58,6 +58,82 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
     id: string;
     name: string;
   } | null>(null);
+  // Map of driveId to sibling thumbnailLink
+  const [siblingThumbnails, setSiblingThumbnails] = useState<Record<string, string>>(/** @type {any} */({}));
+
+  // --- Move function definitions above their first use ---
+  const getDashboardStats = () => {
+    const total = contentItems.length;
+    const hasGif = contentItems.filter(
+      (item) => item.status === "HAS_GIF"
+    ).length;
+    const needsGif = contentItems.filter(
+      (item) => item.status === "NEEDS_GIF"
+    ).length;
+    const campaignReady = contentItems.filter(
+      (item) => item.campaignReady
+    ).length;
+    return { total, hasGif, needsGif, campaignReady };
+  };
+
+  const getFilteredItems = () => {
+    let filtered = contentItems;
+    // Filter by active tab
+    switch (activeTab) {
+      case "vault-new":
+        filtered = filtered.filter((item) => item.isVaultNew === true);
+        break;
+      case "needs-gif":
+        filtered = filtered.filter((item) => item.status === "NEEDS_GIF");
+        break;
+      case "campaign-ready":
+        filtered = filtered.filter((item) => item.campaignReady);
+        break;
+      case "sexting-sets":
+      case "social-media":
+        filtered = [];
+        break;
+      default:
+        // all-content shows everything
+        break;
+    }
+    // Filter by search query
+    if (searchQuery) {
+      filtered = filtered.filter((item) =>
+        item.title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    return filtered;
+  };
+
+  // Calculate stats and filteredItems after function definitions
+  const stats = getDashboardStats();
+  const filteredItems = getFilteredItems();
+
+  // Fetch thumbnails using the same logic as FolderViewer (get parent folder, list files, match by name)
+  useEffect(() => {
+    const fetchThumbnails = async () => {
+      const driveIds = filteredItems
+        .map(item => item.driveId)
+        .filter((id): id is string => !!id);
+      const newThumbnails: Record<string, string> = {};
+      await Promise.all(driveIds.map(async (driveId) => {
+        try {
+          const res = await fetch(`/api/drive-parent-folder-contents?fileId=${driveId}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.thumbnailLink) {
+              newThumbnails[driveId] = data.thumbnailLink;
+            }
+          }
+        } catch {}
+      }));
+      setSiblingThumbnails(prev => ({ ...prev, ...newThumbnails }));
+    };
+    fetchThumbnails();
+    // Only refetch when filteredItems changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredItems.map(i => i.driveId).join(",")]);
 
   // Fetch vault content from API
   useEffect(() => {
@@ -124,7 +200,6 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
     const campaignReadyCount = contentItems.filter(
       (item) => item.campaignReady
     ).length;
-
     return {
       allCount,
       vaultNewCount,
@@ -133,9 +208,12 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
     };
   };
 
-  const { allCount, vaultNewCount, needsGifCount, campaignReadyCount } =
-    getTabCounts();
 
+  // Declare stats and filteredItems once, before any effect that uses them
+  // (Already declared above)
+
+  // Tabs variable moved up here
+  const { allCount, vaultNewCount, needsGifCount, campaignReadyCount } = getTabCounts();
   const tabs = [
     { id: "all-content", label: "All Content", count: allCount },
     {
@@ -153,58 +231,6 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
       count: campaignReadyCount,
     },
   ];
-
-  const getFilteredItems = () => {
-    let filtered = contentItems;
-
-    // Filter by active tab
-    switch (activeTab) {
-      case "vault-new":
-        // Show items that come from the Vault New sheet
-        filtered = filtered.filter((item) => item.isVaultNew === true);
-        break;
-      case "needs-gif":
-        filtered = filtered.filter((item) => item.status === "NEEDS_GIF");
-        break;
-      case "campaign-ready":
-        filtered = filtered.filter((item) => item.campaignReady);
-        break;
-      case "sexting-sets":
-      case "social-media":
-        filtered = [];
-        break;
-      default:
-        // all-content shows everything
-        break;
-    }
-
-    // Filter by search query
-    if (searchQuery) {
-      filtered = filtered.filter((item) =>
-        item.title.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    return filtered;
-  };
-
-  const getDashboardStats = () => {
-    const total = contentItems.length;
-    const hasGif = contentItems.filter(
-      (item) => item.status === "HAS_GIF"
-    ).length;
-    const needsGif = contentItems.filter(
-      (item) => item.status === "NEEDS_GIF"
-    ).length;
-    const campaignReady = contentItems.filter(
-      (item) => item.campaignReady
-    ).length;
-
-    return { total, hasGif, needsGif, campaignReady };
-  };
-
-  const stats = getDashboardStats();
-  const filteredItems = getFilteredItems();
 
   const handleItemClick = (item: ContentItem) => {
     if (item.isFolder && item.driveId) {
@@ -408,11 +434,25 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
                         <Folder className="w-16 h-16 text-blue-400" />
                       </div>
                     ) : (
-                      <img
-                        src={`/api/image-proxy?id=${item.driveId}`}
-                        alt={item.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                      />
+                      <div>
+                        <img
+                          src={item.driveId && siblingThumbnails[item.driveId]
+                            ? siblingThumbnails[item.driveId]
+                            : `/api/image-proxy?id=${item.driveId}`}
+                          alt={item.title}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            // Fallback to placeholder
+                            if (!target.src.includes('placeholder')) {
+                              target.src = `https://via.placeholder.com/400x225/374151/9ca3af?text=${encodeURIComponent(item.title.substring(0, 20))}`;
+                            }
+                          }}
+                          onLoad={() => {
+                            console.log('Image loaded successfully for:', item.title);
+                          }}
+                        />
+                      </div>
                     )}
 
                     {/* Status Badge */}
