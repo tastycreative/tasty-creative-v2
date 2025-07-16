@@ -119,10 +119,10 @@ export async function GET(request: NextRequest) {
           title: videoTitle
         });
         
-        // Generate thumbnail URL using the image proxy (only for files, not folders)
+        // Generate thumbnail URL using Google's lh3.googleusercontent.com service
         const thumbnail = driveId && !isFolder
-          ? `/api/image-proxy?id=${driveId}`
-          : 'https://via.placeholder.com/400x225/374151/9ca3af?text=' + (isFolder ? 'Folder' : 'No+Thumbnail');
+          ? `https://lh3.googleusercontent.com/d/${driveId}`
+          : `https://via.placeholder.com/400x225/374151/9ca3af?text=${isFolder ? 'Folder' : encodeURIComponent(videoTitle.substring(0, 20))}`;
 
         // Parse creation date
         const timeAgo = creationDate ? getTimeAgo(new Date(creationDate)) : 'Unknown';

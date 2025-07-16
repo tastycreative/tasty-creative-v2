@@ -106,9 +106,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({ modelNa
   // Dynamic tab counts based on actual data
   const getTabCounts = () => {
     const allCount = contentItems.length;
-    const vaultNewCount = contentItems.filter(item => 
-      item.title.includes("New") || item.timeAgo.includes("hour") || item.timeAgo.includes("minute")
-    ).length;
+    const vaultNewCount = contentItems.filter(item => item.isVaultNew === true).length;
     const needsGifCount = contentItems.filter(item => item.status === "NEEDS_GIF").length;
     const campaignReadyCount = contentItems.filter(item => item.campaignReady).length;
     
@@ -368,6 +366,16 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({ modelNa
                       src={item.thumbnail}
                       alt={item.title}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        // If the lh3.googleusercontent.com fails, try the Google Drive thumbnail service
+                        if (target.src.includes('lh3.googleusercontent.com')) {
+                          target.src = `https://drive.google.com/thumbnail?id=${item.driveId}&sz=w400-h225`;
+                        } else if (!target.src.includes('placeholder')) {
+                          // If that also fails, use placeholder
+                          target.src = `https://via.placeholder.com/400x225/374151/9ca3af?text=${encodeURIComponent(item.title.substring(0, 20))}`;
+                        }
+                      }}
                     />
                   )}
                   
