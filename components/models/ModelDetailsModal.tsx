@@ -24,7 +24,6 @@ function ModelImage({ model }: { model: ModelDetails }) {
       </div>
     );
   }
-
   return (
     <>
       <div

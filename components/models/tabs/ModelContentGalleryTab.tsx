@@ -1,21 +1,21 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { 
-  Search, 
-  Video, 
-  Image as ImageIcon, 
-  Rocket, 
-  Edit, 
-  Eye, 
-  Film, 
+import {
+  Search,
+  Video,
+  Image as ImageIcon,
+  Rocket,
+  Edit,
+  Eye,
+  Film,
   Calendar,
   Zap,
   Camera,
   Play,
   Loader2,
   AlertCircle,
-  Folder
+  Folder,
 } from "lucide-react";
 import FolderViewer from "../FolderViewer";
 
@@ -46,13 +46,18 @@ interface ContentItem {
   isFolder?: boolean;
 }
 
-const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({ modelName }) => {
+const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
+  modelName,
+}) => {
   const [activeTab, setActiveTab] = useState("all-content");
   const [searchQuery, setSearchQuery] = useState("");
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedFolder, setSelectedFolder] = useState<{ id: string; name: string } | null>(null);
+  const [selectedFolder, setSelectedFolder] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   // Fetch vault content from API
   useEffect(() => {
@@ -60,18 +65,20 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({ modelNa
       try {
         setLoading(true);
         setError(null);
-        
-        const response = await fetch(`/api/vault-content?modelName=${encodeURIComponent(modelName)}`);
-        
+
+        const response = await fetch(
+          `/api/vault-content?modelName=${encodeURIComponent(modelName)}`
+        );
+
         if (!response.ok) {
-          throw new Error('Failed to fetch vault content');
+          throw new Error("Failed to fetch vault content");
         }
-        
+
         const data = await response.json();
         setContentItems(data.contentItems || []);
       } catch (err) {
-        console.error('Error fetching vault content:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load content');
+        console.error("Error fetching vault content:", err);
+        setError(err instanceof Error ? err.message : "Failed to load content");
         // Fallback to static data for development
         setContentItems([
           {
@@ -82,7 +89,8 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({ modelNa
             timeAgo: "2 days ago",
             status: "HAS_GIF",
             campaignReady: true,
-            thumbnail: "https://via.placeholder.com/400x225/374151/9ca3af?text=Video+1",
+            thumbnail:
+              "https://via.placeholder.com/400x225/374151/9ca3af?text=Video+1",
           },
           {
             id: "2",
@@ -92,7 +100,8 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({ modelNa
             timeAgo: "1 hour ago",
             status: "NEEDS_GIF",
             campaignReady: false,
-            thumbnail: "https://via.placeholder.com/400x225/374151/9ca3af?text=Video+2",
+            thumbnail:
+              "https://via.placeholder.com/400x225/374151/9ca3af?text=Video+2",
           },
         ]);
       } finally {
@@ -106,27 +115,43 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({ modelNa
   // Dynamic tab counts based on actual data
   const getTabCounts = () => {
     const allCount = contentItems.length;
-    const vaultNewCount = contentItems.filter(item => item.isVaultNew === true).length;
-    const needsGifCount = contentItems.filter(item => item.status === "NEEDS_GIF").length;
-    const campaignReadyCount = contentItems.filter(item => item.campaignReady).length;
-    
+    const vaultNewCount = contentItems.filter(
+      (item) => item.isVaultNew === true
+    ).length;
+    const needsGifCount = contentItems.filter(
+      (item) => item.status === "NEEDS_GIF"
+    ).length;
+    const campaignReadyCount = contentItems.filter(
+      (item) => item.campaignReady
+    ).length;
+
     return {
       allCount,
       vaultNewCount,
       needsGifCount,
-      campaignReadyCount
+      campaignReadyCount,
     };
   };
 
-  const { allCount, vaultNewCount, needsGifCount, campaignReadyCount } = getTabCounts();
+  const { allCount, vaultNewCount, needsGifCount, campaignReadyCount } =
+    getTabCounts();
 
   const tabs = [
     { id: "all-content", label: "All Content", count: allCount },
-    { id: "vault-new", label: "Vault NEW", count: vaultNewCount, badge: vaultNewCount > 0 ? "NEW" : undefined },
+    {
+      id: "vault-new",
+      label: "Vault NEW",
+      count: vaultNewCount,
+      badge: vaultNewCount > 0 ? "NEW" : undefined,
+    },
     { id: "sexting-sets", label: "Sexting Sets", count: 0 },
     { id: "social-media", label: "Social Media", count: 0 },
     { id: "needs-gif", label: "Needs GIF", count: needsGifCount },
-    { id: "campaign-ready", label: "Campaign Ready", count: campaignReadyCount },
+    {
+      id: "campaign-ready",
+      label: "Campaign Ready",
+      count: campaignReadyCount,
+    },
   ];
 
   const getFilteredItems = () => {
@@ -136,13 +161,13 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({ modelNa
     switch (activeTab) {
       case "vault-new":
         // Show items that come from the Vault New sheet
-        filtered = filtered.filter(item => item.isVaultNew === true);
+        filtered = filtered.filter((item) => item.isVaultNew === true);
         break;
       case "needs-gif":
-        filtered = filtered.filter(item => item.status === "NEEDS_GIF");
+        filtered = filtered.filter((item) => item.status === "NEEDS_GIF");
         break;
       case "campaign-ready":
-        filtered = filtered.filter(item => item.campaignReady);
+        filtered = filtered.filter((item) => item.campaignReady);
         break;
       case "sexting-sets":
       case "social-media":
@@ -155,7 +180,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({ modelNa
 
     // Filter by search query
     if (searchQuery) {
-      filtered = filtered.filter(item => 
+      filtered = filtered.filter((item) =>
         item.title.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
@@ -165,9 +190,15 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({ modelNa
 
   const getDashboardStats = () => {
     const total = contentItems.length;
-    const hasGif = contentItems.filter(item => item.status === "HAS_GIF").length;
-    const needsGif = contentItems.filter(item => item.status === "NEEDS_GIF").length;
-    const campaignReady = contentItems.filter(item => item.campaignReady).length;
+    const hasGif = contentItems.filter(
+      (item) => item.status === "HAS_GIF"
+    ).length;
+    const needsGif = contentItems.filter(
+      (item) => item.status === "NEEDS_GIF"
+    ).length;
+    const campaignReady = contentItems.filter(
+      (item) => item.campaignReady
+    ).length;
 
     return { total, hasGif, needsGif, campaignReady };
   };
@@ -204,7 +235,8 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({ modelNa
           Content Gallery
         </h1>
         <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-          Manage and organize content for <span className="text-cyan-400 font-medium">{modelName}</span>
+          Manage and organize content for{" "}
+          <span className="text-cyan-400 font-medium">{modelName}</span>
         </p>
       </div>
 
@@ -217,20 +249,24 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({ modelNa
               onClick={() => setActiveTab(tab.id)}
               className={`
                 flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all
-                ${activeTab === tab.id 
-                  ? "bg-cyan-600 text-white shadow-lg shadow-cyan-600/25" 
-                  : "text-gray-400 hover:text-gray-200 hover:bg-slate-700/50"
+                ${
+                  activeTab === tab.id
+                    ? "bg-cyan-600 text-white shadow-lg shadow-cyan-600/25"
+                    : "text-gray-400 hover:text-gray-200 hover:bg-slate-700/50"
                 }
               `}
             >
               <span>{tab.label}</span>
-              <span className={`
+              <span
+                className={`
                 px-2 py-0.5 text-xs rounded-full font-semibold
-                ${activeTab === tab.id 
-                  ? "bg-white/20 text-white" 
-                  : "bg-slate-700 text-gray-300"
+                ${
+                  activeTab === tab.id
+                    ? "bg-white/20 text-white"
+                    : "bg-slate-700 text-gray-300"
                 }
-              `}>
+              `}
+              >
                 {tab.count}
               </span>
               {tab.badge && (
@@ -276,7 +312,9 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({ modelNa
                 <Film className="w-5 h-5 text-orange-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{stats.needsGif}</p>
+                <p className="text-2xl font-bold text-white">
+                  {stats.needsGif}
+                </p>
                 <p className="text-gray-400 text-sm">Needs GIF</p>
               </div>
             </div>
@@ -288,7 +326,9 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({ modelNa
                 <Rocket className="w-5 h-5 text-purple-400" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{stats.campaignReady}</p>
+                <p className="text-2xl font-bold text-white">
+                  {stats.campaignReady}
+                </p>
                 <p className="text-gray-400 text-sm">Campaign Ready</p>
               </div>
             </div>
@@ -334,139 +374,152 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({ modelNa
 
       {/* Content Items */}
       {!loading && (
-      <div>
-        {filteredItems.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 rounded-full bg-slate-700/50 flex items-center justify-center mx-auto mb-4">
-              <ImageIcon className="w-8 h-8 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-300 mb-2">No content found</h3>
-            <p className="text-gray-500">
-              {searchQuery ? "Try adjusting your search terms" : "No content available in this category"}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredItems.map((item) => (
-              <div
-                key={item.id}
-                className={`group bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-xl overflow-hidden hover:border-cyan-500/30 transition-all duration-300 hover:transform hover:scale-105 ${
-                  item.isFolder ? 'cursor-pointer' : ''
-                }`}
-                onClick={() => item.isFolder ? handleItemClick(item) : undefined}
-              >
-                {/* Thumbnail */}
-                <div className="relative aspect-video bg-slate-700/50 overflow-hidden">
-                  {item.isFolder ? (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-600/20 to-purple-600/20">
-                      <Folder className="w-16 h-16 text-blue-400" />
-                    </div>
-                  ) : (
-                    <img
-                      src={`/api/image-proxy?id=${item.driveId}`}
-                      alt={item.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                    />
-                  )}
-                  
-                  {/* Status Badge */}
-                  <div className="absolute top-2 left-2">
-                    <div className={`
-                      px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1 backdrop-blur-sm
-                      ${item.status === "HAS_GIF" 
-                        ? "bg-green-600/80 text-green-100 border border-green-400/50" 
-                        : "bg-orange-600/80 text-orange-100 border border-orange-400/50"
-                      }
-                    `}>
-                      {item.status === "HAS_GIF" ? (
-                        <>
-                          <Zap className="w-3 h-3" />
-                          GIF
-                        </>
-                      ) : (
-                        <>
-                          <Film className="w-3 h-3" />
-                          NO GIF
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Type indicator */}
-                  <div className="absolute top-2 right-2">
-                    <div className="w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center">
-                      {item.type === "video" ? (
-                        <Play className="w-4 h-4 text-white" />
-                      ) : (
-                        <Camera className="w-4 h-4 text-white" />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Duration/Count overlay */}
-                  <div className="absolute bottom-2 right-2">
-                    <div className="px-2 py-1 rounded bg-black/60 backdrop-blur-sm text-white text-xs font-medium">
-                      {item.type === "video" ? (
-                        <>📹 {item.duration} min</>
-                      ) : (
-                        <>📷 {item.imageCount} images</>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Content Info */}
-                <div className="p-4">
-                  <h3 className="text-white font-semibold text-sm mb-2 overflow-hidden text-ellipsis whitespace-nowrap group-hover:text-cyan-300 transition-colors">
-                    {item.title}
-                  </h3>
-                  
-                  <div className="flex items-center gap-1 text-gray-400 text-xs mb-3">
-                    <Calendar className="w-3 h-3" />
-                    <span>{item.timeAgo}</span>
-                  </div>
-
-                  {/* Status */}
-                  <div className="mb-4">
-                    {item.campaignReady ? (
-                      <p className="text-green-400 font-medium text-xs">Campaign Ready</p>
-                    ) : (
-                      <p className="text-orange-400 font-medium text-xs">Awaiting GIF + Caption</p>
-                    )}
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="space-y-2">
-                    {item.campaignReady ? (
-                      <>
-                        <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-xs font-medium">
-                          <Rocket className="w-3 h-3" />
-                          <span>Deploy Campaign</span>
-                        </button>
-                        <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors text-xs font-medium">
-                          <Edit className="w-3 h-3" />
-                          <span>Edit</span>
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition-colors text-xs font-medium">
-                          <Film className="w-3 h-3" />
-                          <span>Create GIF</span>
-                        </button>
-                        <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors text-xs font-medium">
-                          <Eye className="w-3 h-3" />
-                          <span>Preview</span>
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
+        <div>
+          {filteredItems.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 rounded-full bg-slate-700/50 flex items-center justify-center mx-auto mb-4">
+                <ImageIcon className="w-8 h-8 text-gray-400" />
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+              <h3 className="text-lg font-medium text-gray-300 mb-2">
+                No content found
+              </h3>
+              <p className="text-gray-500">
+                {searchQuery
+                  ? "Try adjusting your search terms"
+                  : "No content available in this category"}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filteredItems.map((item) => (
+                <div
+                  key={item.id}
+                  className={`group bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-xl overflow-hidden hover:border-cyan-500/30 transition-all duration-300 hover:transform hover:scale-105 ${
+                    item.isFolder ? "cursor-pointer" : ""
+                  }`}
+                  onClick={() =>
+                    item.isFolder ? handleItemClick(item) : undefined
+                  }
+                >
+                  {/* Thumbnail */}
+                  <div className="relative aspect-video bg-slate-700/50 overflow-hidden">
+                    {item.isFolder ? (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-600/20 to-purple-600/20">
+                        <Folder className="w-16 h-16 text-blue-400" />
+                      </div>
+                    ) : (
+                      <img
+                        src={`/api/image-proxy?id=${item.driveId}`}
+                        alt={item.title}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      />
+                    )}
+
+                    {/* Status Badge */}
+                    <div className="absolute top-2 left-2">
+                      <div
+                        className={`
+                      px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1 backdrop-blur-sm
+                      ${
+                        item.status === "HAS_GIF"
+                          ? "bg-green-600/80 text-green-100 border border-green-400/50"
+                          : "bg-orange-600/80 text-orange-100 border border-orange-400/50"
+                      }
+                    `}
+                      >
+                        {item.status === "HAS_GIF" ? (
+                          <>
+                            <Zap className="w-3 h-3" />
+                            GIF
+                          </>
+                        ) : (
+                          <>
+                            <Film className="w-3 h-3" />
+                            NO GIF
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Type indicator */}
+                    <div className="absolute top-2 right-2">
+                      <div className="w-8 h-8 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center">
+                        {item.type === "video" ? (
+                          <Play className="w-4 h-4 text-white" />
+                        ) : (
+                          <Camera className="w-4 h-4 text-white" />
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Duration/Count overlay */}
+                    <div className="absolute bottom-2 right-2">
+                      <div className="px-2 py-1 rounded bg-black/60 backdrop-blur-sm text-white text-xs font-medium">
+                        {item.type === "video" ? (
+                          <>📹 {item.duration} min</>
+                        ) : (
+                          <>📷 {item.imageCount} images</>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Content Info */}
+                  <div className="p-4">
+                    <h3 className="text-white font-semibold text-sm mb-2 overflow-hidden text-ellipsis whitespace-nowrap group-hover:text-cyan-300 transition-colors">
+                      {item.title}
+                    </h3>
+
+                    <div className="flex items-center gap-1 text-gray-400 text-xs mb-3">
+                      <Calendar className="w-3 h-3" />
+                      <span>{item.timeAgo}</span>
+                    </div>
+
+                    {/* Status */}
+                    <div className="mb-4">
+                      {item.campaignReady ? (
+                        <p className="text-green-400 font-medium text-xs">
+                          Campaign Ready
+                        </p>
+                      ) : (
+                        <p className="text-orange-400 font-medium text-xs">
+                          Awaiting GIF + Caption
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="space-y-2">
+                      {item.campaignReady ? (
+                        <>
+                          <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-xs font-medium">
+                            <Rocket className="w-3 h-3" />
+                            <span>Deploy Campaign</span>
+                          </button>
+                          <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors text-xs font-medium">
+                            <Edit className="w-3 h-3" />
+                            <span>Edit</span>
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition-colors text-xs font-medium">
+                            <Film className="w-3 h-3" />
+                            <span>Create GIF</span>
+                          </button>
+                          <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors text-xs font-medium">
+                            <Eye className="w-3 h-3" />
+                            <span>Preview</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
