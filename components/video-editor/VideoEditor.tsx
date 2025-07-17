@@ -28,7 +28,6 @@ interface VideoEditorProps {
 export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
   const searchParams = useSearchParams();
   const folderId = searchParams?.get('folderid') || undefined;
-  const fileId = searchParams?.get('fileid') || undefined;
 
   // Model selection state compatible with ModelsDropdown
   const [formData, setFormData] = useState<{ model?: string }>({
@@ -67,10 +66,6 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
   const [trimmingVideo, setTrimmingVideo] = useState<{
     videoId: string;
   } | null>(null);
-  const [isLoadingDriveFile, setIsLoadingDriveFile] = useState(false);
-  const [driveFileError, setDriveFileError] = useState<string | null>(null);
-  const [downloadProgress, setDownloadProgress] = useState(0);
-  const [isGooglePermissionReady, setIsGooglePermissionReady] = useState(false);
 
   // Update formData when modelName prop changes
   useEffect(() => {
@@ -78,163 +73,6 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
       setFormData({ model: modelName });
     }
   }, [modelName, formData.model]);
-
-  // Check if Google permissions are ready by testing the models API
-  useEffect(() => {
-    const checkGooglePermission = async () => {
-      try {
-        const response = await fetch('/api/models');
-        if (response.ok) {
-          setIsGooglePermissionReady(true);
-        }
-      } catch (error) {
-        // Retry after a delay if permission check fails
-        setTimeout(checkGooglePermission, 2000);
-      }
-    };
-    
-    checkGooglePermission();
-  }, []);
-
-  // Auto-download Google Drive file if fileid is provided (using exact VideoUploader pattern)
-  useEffect(() => {
-    const downloadDriveFile = async () => {
-      if (!fileId || !formData.model || formData.model.trim() === "" || !isGooglePermissionReady) return;
-      
-      setIsLoadingDriveFile(true);
-      setDriveFileError(null);
-      setDownloadProgress(0);
-      
-      try {
-        const response = await fetch(`/api/google-drive/download?id=${fileId}`);
-        
-        if (!response.ok) {
-          if (response.status === 401) {
-            throw new Error('Authentication required. Please sign in to Google Drive.');
-          } else if (response.status === 403) {
-            throw new Error('Permission denied. Please check your Google Drive access.');
-          }
-          throw new Error(`Failed to download file: ${response.statusText}`);
-        }
-        
-        const contentLength = response.headers.get('content-length');
-        const total = contentLength ? parseInt(contentLength, 10) : 0;
-        
-        if (!response.body) {
-          throw new Error('Response body is null');
-        }
-        
-        // Create a readable stream to track download progress
-        const reader = response.body.getReader();
-        const chunks: Uint8Array[] = [];
-        let receivedLength = 0;
-        let progressInterval: NodeJS.Timeout | null = null;
-
-        // If we don't have content-length, use a simulated progress
-        if (total === 0) {
-          let simulatedProgress = 0;
-          progressInterval = setInterval(() => {
-            simulatedProgress += Math.random() * 15; // Increment by 0-15%
-            if (simulatedProgress > 90) simulatedProgress = 90; // Cap at 90% until complete
-            setDownloadProgress(Math.min(simulatedProgress, 90));
-          }, 500);
-        }
-
-        while (true) {
-          const { done, value } = await reader.read();
-          
-          if (done) break;
-          
-          chunks.push(value);
-          receivedLength += value.length;
-          
-          // Update progress only if we have content-length
-          if (total > 0) {
-            const progress = Math.round((receivedLength / total) * 100);
-            setDownloadProgress(progress);
-          }
-        }
-
-        // Clear the simulated progress interval
-        if (progressInterval) {
-          clearInterval(progressInterval);
-        }
-
-        // Set to 100% when download is complete
-        setDownloadProgress(100);
-        
-        // Brief delay to show 100% completion
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Combine all chunks into a single Uint8Array
-        const chunksAll = new Uint8Array(receivedLength);
-        let position = 0;
-        for (const chunk of chunks) {
-          chunksAll.set(chunk, position);
-          position += chunk.length;
-        }
-
-        // Create blob from combined data
-        const blob = new Blob([chunksAll]);
-        const fileName = response.headers.get('content-disposition')?.match(/filename="(.+)"/)?.[1] || `file-${fileId}`;
-        const mimeType = response.headers.get('content-type') || blob.type;
-
-
-        // Helper function to check if a file is a video (same as VideoUploader)
-        const isVideoFile = (fileName: string, mimeType?: string): boolean => {
-          // Check by MIME type first
-          if (mimeType && mimeType.startsWith("video/")) {
-            return true;
-          }
-
-          // Check by file extension
-          const videoExtensions = [
-            ".mp4", ".avi", ".mov", ".mkv", ".wmv", ".flv", ".webm", ".m4v",
-            ".3gp", ".ogv", ".m2v", ".asf", ".vob", ".mts", ".m2ts",
-          ];
-
-          const extension = fileName.toLowerCase().substring(fileName.lastIndexOf("."));
-          return videoExtensions.includes(extension);
-        };
-
-        // Validate the file is a video
-        if (!isVideoFile(fileName, mimeType)) {
-          throw new Error(`"${fileName}" does not appear to be a valid video file. MIME type: ${mimeType}`);
-        }
-
-        // Determine the correct MIME type for the file
-        let finalMimeType = mimeType;
-        if (!finalMimeType || finalMimeType === 'application/octet-stream') {
-          // Fallback based on file extension for .mov files
-          if (fileName.toLowerCase().endsWith('.mov')) {
-            finalMimeType = 'video/quicktime';
-          } else if (fileName.toLowerCase().endsWith('.mp4')) {
-            finalMimeType = 'video/mp4';
-          } else {
-            finalMimeType = 'video/mp4'; // Default fallback
-          }
-        }
-
-
-        // Create a File object from the blob with proper type detection
-        const file = new File([blob], fileName, {
-          type: finalMimeType,
-        });
-        
-        // Add the file to the video sequence
-        await addVideos([file]);
-        
-      } catch (error) {
-        console.error('Error downloading Google Drive file:', error);
-        setDriveFileError(error instanceof Error ? error.message : 'Failed to download file');
-      } finally {
-        setIsLoadingDriveFile(false);
-        setDownloadProgress(0);
-      }
-    };
-    
-    downloadDriveFile();
-  }, [fileId, formData.model, addVideos, isGooglePermissionReady]);
 
   const handleVideosAdded = async (files: File[]) => {
     setIsUploading(true);
@@ -409,12 +247,6 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                     📁 Folder shortcut available (ID: {folderId.substring(0, 8)}...) - You can also paste any Google Drive folder link below
                   </span>
                 )}
-                {fileId && (
-                  <span className="block text-sm text-green-600 dark:text-green-400 mt-1">
-                    📎 File will be auto-loaded (ID: {fileId.substring(0, 8)}...)
-                    {!isGooglePermissionReady && " - Waiting for Google permissions..."}
-                  </span>
-                )}
               </p>
             </div>
 
@@ -469,57 +301,9 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                     error={fieldErrors.model}
                     setFieldErrors={setFieldErrors}
                   />
-                  
-                  {fileId && formData.model && formData.model.trim() !== "" && !isGooglePermissionReady && (
-                    <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                      <div className="flex items-center space-x-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600"></div>
-                        <span className="text-yellow-800 dark:text-yellow-200 text-sm">Waiting for Google Drive permissions to load file...</span>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
-
-            {/* Loading Google Drive File State */}
-            {isLoadingDriveFile && (
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6 mb-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-center space-x-3">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                    <span className="text-blue-800 dark:text-blue-200 font-medium">Downloading file from Google Drive...</span>
-                  </div>
-                  
-                  {/* Progress Bar */}
-                  <div className="w-full">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm text-blue-700 dark:text-blue-300">Progress</span>
-                      <span className="text-sm text-blue-700 dark:text-blue-300">{downloadProgress}%</span>
-                    </div>
-                    <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2.5">
-                      <div 
-                        className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-out"
-                        style={{ width: `${downloadProgress}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Drive File Error State */}
-            {driveFileError && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 mb-6">
-                <div className="flex items-center space-x-3">
-                  <div className="w-5 h-5 text-red-600 dark:text-red-400">⚠️</div>
-                  <div>
-                    <h4 className="text-red-800 dark:text-red-200 font-medium">Failed to load Google Drive file</h4>
-                    <p className="text-red-600 dark:text-red-400 text-sm mt-1">{driveFileError}</p>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Video Upload - Only show if model is selected */}
             {formData.model && formData.model.trim() !== "" ? (
