@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 // Types
 interface EditingCell {
   rowId: string;
-  field: string;
+  field: keyof VoiceGenAccount;
 }
 
 interface VoiceGenAccount {
@@ -36,6 +36,14 @@ interface VoiceGenAccount {
 
 const voiceStatusOptions = ["NA", "ACTIVE", "UPLOADING", "PITCHED", "DECLINED"];
 const accountTypeOptions = ["GMAIL", "ELEVENLABS"];
+
+// Utility function to safely access account fields
+const getAccountFieldValue = (
+  account: VoiceGenAccount,
+  field: keyof VoiceGenAccount
+): string | null => {
+  return account[field] as string | null;
+};
 
 export default function VoiceGenAccountsPage() {
   const [accountsData, setAccountsData] = useState<VoiceGenAccount[]>([]);
@@ -106,7 +114,11 @@ export default function VoiceGenAccountsPage() {
   };
 
   // Update account in database
-  const updateAccount = async (id: string, field: string, value: string) => {
+  const updateAccount = async (
+    id: string,
+    field: keyof VoiceGenAccount,
+    value: string | null
+  ) => {
     try {
       const response = await fetch("/api/voice-gen-accounts", {
         method: "PUT",
@@ -215,7 +227,7 @@ export default function VoiceGenAccountsPage() {
 
   const handleCellClick = (
     rowId: string,
-    field: string,
+    field: keyof VoiceGenAccount,
     currentValue: string | null
   ) => {
     setEditingCell({ rowId, field });
@@ -307,10 +319,13 @@ export default function VoiceGenAccountsPage() {
     }
   }, [editingCell]);
 
-  const renderCell = (account: VoiceGenAccount, field: string) => {
+  const renderCell = (
+    account: VoiceGenAccount,
+    field: keyof VoiceGenAccount
+  ) => {
     const isEditing =
       editingCell?.rowId === account.id && editingCell?.field === field;
-    const value = account[field];
+    const value = getAccountFieldValue(account, field);
 
     if (isEditing) {
       if (field === "voiceStatus") {
@@ -430,7 +445,7 @@ export default function VoiceGenAccountsPage() {
       }
     }
 
-    let cellContent = value || "";
+    let cellContent: React.ReactNode = value || "";
     let cellClass =
       "px-3 py-2 text-xs cursor-pointer hover:bg-blue-50 border-b border-r border-gray-200";
 
@@ -439,19 +454,22 @@ export default function VoiceGenAccountsPage() {
       cellClass =
         "px-3 py-2 text-sm font-medium cursor-pointer hover:bg-blue-50 border-b border-r border-gray-200";
       cellContent = (
-        <div className="truncate max-w-[120px]" title={value}>
+        <div className="truncate max-w-[120px]" title={value as string}>
           {value}
         </div>
       );
     } else if (field === "email") {
       cellContent = (
-        <div className="truncate max-w-[180px]" title={value}>
+        <div className="truncate max-w-[180px]" title={value as string}>
           {value}
         </div>
       );
     } else if (field === "password") {
       cellContent = value ? (
-        <div className="font-mono text-xs truncate max-w-[90px]" title={value}>
+        <div
+          className="font-mono text-xs truncate max-w-[90px]"
+          title={value as string}
+        >
           {value}
         </div>
       ) : (
@@ -489,7 +507,7 @@ export default function VoiceGenAccountsPage() {
       if (value && value !== "N/A" && value !== "link drive") {
         cellContent = (
           <a
-            href={value}
+            href={value as string}
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-600 hover:text-blue-800 text-xs"
@@ -519,10 +537,10 @@ export default function VoiceGenAccountsPage() {
         cellContent = (
           <div
             className="text-xs leading-relaxed max-w-[150px] line-clamp-2 cursor-pointer hover:bg-blue-50 p-1 rounded"
-            title={value}
+            title={value as string}
             onClick={(e: React.MouseEvent) => {
               e.stopPropagation();
-              handleCellClick(account.id, field, value);
+              handleCellClick(account.id, field, value as string | null);
             }}
           >
             {value}
@@ -538,8 +556,10 @@ export default function VoiceGenAccountsPage() {
     return (
       <td
         className={cellClass}
-        onClick={() => handleCellClick(account.id, field, value)}
-        title={field === "feedback" ? value : undefined}
+        onClick={() =>
+          handleCellClick(account.id, field, value as string | null)
+        }
+        title={field === "feedback" ? (value as string) : undefined}
       >
         {cellContent}
       </td>
