@@ -16,21 +16,41 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
+// Types
+interface EditingCell {
+  rowId: string;
+  field: string;
+}
+
+interface VoiceGenAccount {
+  id: string;
+  clientName: string;
+  email: string | null;
+  password: string | null;
+  voiceStatus: string;
+  accountType: string;
+  dataFolder: string | null;
+  feedback: string | null;
+  rating: string | null;
+}
+
 const voiceStatusOptions = ["NA", "ACTIVE", "UPLOADING", "PITCHED", "DECLINED"];
 const accountTypeOptions = ["GMAIL", "ELEVENLABS"];
 
 export default function VoiceGenAccountsPage() {
-  const [accountsData, setAccountsData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [editingCell, setEditingCell] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [editValue, setEditValue] = useState("");
-  const [selectedRows, setSelectedRows] = useState(new Set());
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
-  const inputRef = useRef(null);
-  const searchTimeoutRef = useRef(null);
+  const [accountsData, setAccountsData] = useState<VoiceGenAccount[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState<string>("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [editValue, setEditValue] = useState<string>("");
+  const [selectedRows, setSelectedRows] = useState<Set<string>>(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<
+    string | "bulk" | null
+  >(null);
+  const inputRef = useRef<any>(null);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Add custom CSS for line clamping
   useEffect(() => {
@@ -44,7 +64,10 @@ export default function VoiceGenAccountsPage() {
       }
     `;
     document.head.appendChild(style);
-    return () => document.head.removeChild(style);
+
+    return () => {
+      document.head.removeChild(style);
+    };
   }, []);
 
   // Debounce search term
@@ -83,7 +106,7 @@ export default function VoiceGenAccountsPage() {
   };
 
   // Update account in database
-  const updateAccount = async (id, field, value) => {
+  const updateAccount = async (id: string, field: string, value: string) => {
     try {
       const response = await fetch("/api/voice-gen-accounts", {
         method: "PUT",
@@ -132,7 +155,7 @@ export default function VoiceGenAccountsPage() {
   };
 
   // Delete single account
-  const deleteAccount = async (id) => {
+  const deleteAccount = async (id: string) => {
     try {
       const response = await fetch(`/api/voice-gen-accounts?id=${id}`, {
         method: "DELETE",
@@ -169,7 +192,7 @@ export default function VoiceGenAccountsPage() {
   };
 
   // Handle row selection
-  const toggleRowSelection = (id) => {
+  const toggleRowSelection = (id: string) => {
     setSelectedRows((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(id)) {
@@ -190,7 +213,11 @@ export default function VoiceGenAccountsPage() {
     }
   };
 
-  const handleCellClick = (rowId, field, currentValue) => {
+  const handleCellClick = (
+    rowId: string,
+    field: string,
+    currentValue: string | null
+  ) => {
     setEditingCell({ rowId, field });
     setEditValue(currentValue || "");
   };
@@ -208,7 +235,7 @@ export default function VoiceGenAccountsPage() {
     setEditValue("");
   };
 
-  const handleKeyPress = (e) => {
+  const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       handleSaveCell();
     } else if (e.key === "Escape") {
@@ -280,7 +307,7 @@ export default function VoiceGenAccountsPage() {
     }
   }, [editingCell]);
 
-  const renderCell = (account, field, displayName) => {
+  const renderCell = (account: VoiceGenAccount, field: string) => {
     const isEditing =
       editingCell?.rowId === account.id && editingCell?.field === field;
     const value = account[field];
@@ -291,9 +318,11 @@ export default function VoiceGenAccountsPage() {
           <td className="px-3 py-2 text-sm border-b border-r border-gray-200">
             <div className="flex items-center gap-1">
               <select
-                ref={inputRef}
+                ref={inputRef as React.RefObject<HTMLSelectElement>}
                 value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                  setEditValue(e.target.value)
+                }
                 onBlur={handleSaveCell}
                 onKeyDown={handleKeyPress}
                 className="w-full px-2 py-1 border border-blue-500 rounded text-xs"
@@ -312,9 +341,11 @@ export default function VoiceGenAccountsPage() {
           <td className="px-3 py-2 text-sm border-b border-r border-gray-200">
             <div className="flex items-center gap-1">
               <select
-                ref={inputRef}
+                ref={inputRef as React.RefObject<HTMLSelectElement>}
                 value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                  setEditValue(e.target.value)
+                }
                 onBlur={handleSaveCell}
                 onKeyDown={handleKeyPress}
                 className="w-full px-2 py-1 border border-blue-500 rounded text-xs"
@@ -333,11 +364,13 @@ export default function VoiceGenAccountsPage() {
           <td className="px-3 py-2 text-sm border-b border-r border-gray-200">
             <div className="flex items-start gap-1">
               <textarea
-                ref={inputRef}
+                ref={inputRef as React.RefObject<HTMLTextAreaElement>}
                 value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                  setEditValue(e.target.value)
+                }
                 onBlur={handleSaveCell}
-                onKeyDown={(e) => {
+                onKeyDown={(e: React.KeyboardEvent) => {
                   if (e.key === "Escape") handleCancelEdit();
                   // Don't close on Enter for textarea, only on Ctrl+Enter
                   if (e.key === "Enter" && e.ctrlKey) handleSaveCell();
@@ -368,10 +401,12 @@ export default function VoiceGenAccountsPage() {
           <td className="px-3 py-2 text-sm border-b border-r border-gray-200">
             <div className="flex items-center gap-1">
               <input
-                ref={inputRef}
+                ref={inputRef as React.RefObject<HTMLInputElement>}
                 type={field === "email" ? "email" : "text"}
                 value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setEditValue(e.target.value)
+                }
                 onBlur={handleSaveCell}
                 onKeyDown={handleKeyPress}
                 className="w-full px-2 py-1 border border-blue-500 rounded text-xs"
@@ -430,10 +465,9 @@ export default function VoiceGenAccountsPage() {
         DECLINED: "bg-red-100 text-red-800 border-red-200",
         NA: "bg-gray-100 text-gray-600 border-gray-200",
       };
-      cellClass += ` ${statusColors[value] || "bg-gray-100 text-gray-600"}`;
       cellContent = (
         <span
-          className={`px-2 py-1 rounded-full text-xs font-medium border ${statusColors[value]}`}
+          className={`px-2 py-1 rounded-full text-xs font-medium border ${statusColors[value as keyof typeof statusColors] || "bg-gray-100 text-gray-600 border-gray-200"}`}
         >
           {value === "NA" ? "N/A" : value}
         </span>
@@ -446,7 +480,7 @@ export default function VoiceGenAccountsPage() {
       const displayName = value === "ELEVENLABS" ? "ElevenLabs" : value;
       cellContent = (
         <span
-          className={`px-2 py-1 rounded text-xs font-medium ${typeColors[value] || "bg-gray-100 text-gray-600"}`}
+          className={`px-2 py-1 rounded text-xs font-medium ${typeColors[value as keyof typeof typeColors] || "bg-gray-100 text-gray-600"}`}
         >
           {displayName}
         </span>
@@ -459,7 +493,7 @@ export default function VoiceGenAccountsPage() {
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-600 hover:text-blue-800 text-xs"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
             title="Open Google Drive folder"
           >
             📁 Drive
@@ -486,7 +520,7 @@ export default function VoiceGenAccountsPage() {
           <div
             className="text-xs leading-relaxed max-w-[150px] line-clamp-2 cursor-pointer hover:bg-blue-50 p-1 rounded"
             title={value}
-            onClick={(e) => {
+            onClick={(e: React.MouseEvent) => {
               e.stopPropagation();
               handleCellClick(account.id, field, value);
             }}
@@ -570,7 +604,9 @@ export default function VoiceGenAccountsPage() {
               <Input
                 placeholder="Search by name or email..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  setSearchTerm(e.target.value)
+                }
                 className="pl-10"
               />
               {searchTerm !== debouncedSearchTerm && (
