@@ -490,7 +490,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
                             loading="lazy"
                           />
                         ) : (
-                          <div className="w-full h-full bg-slate-700/50 flex items-center justify-center">
+                          <div className="w-full h-full bg-slate-700/50 flex items-center justify-center absolute inset-0">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
                           </div>
                         )}
