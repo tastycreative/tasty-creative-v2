@@ -13,7 +13,6 @@ import {
   Zap,
   Camera,
   Play,
-  Loader2,
   AlertCircle,
   Folder,
 } from "lucide-react";
@@ -155,31 +154,6 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
       } catch (err) {
         console.error("Error fetching vault content:", err);
         setError(err instanceof Error ? err.message : "Failed to load content");
-        // Fallback to static data for development
-        setContentItems([
-          {
-            id: "1",
-            type: "video",
-            title: "Vault Video #1 - Solo Performance",
-            duration: "4:32",
-            timeAgo: "2 days ago",
-            status: "HAS_GIF",
-            campaignReady: true,
-            thumbnail:
-              "https://via.placeholder.com/400x225/374151/9ca3af?text=Video+1",
-          },
-          {
-            id: "2",
-            type: "video",
-            title: "Vault Video #2 - New Upload",
-            duration: "3:45",
-            timeAgo: "1 hour ago",
-            status: "NEEDS_GIF",
-            campaignReady: false,
-            thumbnail:
-              "https://via.placeholder.com/400x225/374151/9ca3af?text=Video+2",
-          },
-        ]);
       } finally {
         setLoading(false);
       }
