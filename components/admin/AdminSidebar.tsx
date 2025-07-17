@@ -73,11 +73,23 @@ const adminNavItems = [
     ],
   },
   {
-    title: "VN Sales Tracker",
-    href: "/admin/vn-sales",
+    title: "Voice Note Tracker",
+    href: "#",
     icon: FileText,
-    description: "Video note sales tracking",
+    description: "Voice note sales tracking",
     category: "main",
+    subItems: [
+      {
+        title: "Sales Overview",
+        href: "/admin/vn-sales/overview",
+        description: "Sales summary and metrics",
+      },
+      {
+        title: "Voice Gen Accounts",
+        href: "/admin/vn-sales/accounts",
+        description: "Account management",
+      },
+    ],
   },
   {
     title: "User Management",
@@ -122,6 +134,7 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
     {
       analytics: true,
+      "voice note tracker": true,
     }
   );
   const [imgError, setImgError] = useState(false);

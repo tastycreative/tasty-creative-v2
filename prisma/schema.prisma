@@ -9,6 +9,7 @@ datasource db {
 
 model User {
   id                 String              @id @default(cuid())
+  username           String?             @unique
   email              String              @unique
   emailVerified      DateTime?
   name               String?
@@ -108,4 +109,35 @@ enum Role {
   MODERATOR
   GUEST
   SWD
+}
+
+model VoiceGenAccount {
+  id           String            @id @default(cuid())
+  clientName   String
+  email        String?
+  password     String?
+  voiceStatus  VoiceStatus       @default(NA)
+  accountType  AccountType       @default(ELEVENLABS)
+  dataFolder   String?
+  feedback     String?
+  rating       String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([clientName])
+  @@index([voiceStatus])
+  @@index([accountType])
+}
+
+enum VoiceStatus {
+  NA
+  ACTIVE
+  UPLOADING
+  PITCHED
+  DECLINED
+}
+
+enum AccountType {
+  GMAIL
+  ELEVENLABS
 }
