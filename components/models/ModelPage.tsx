@@ -50,7 +50,7 @@ export default function ModelsPage() {
   });
 
   const handleModelClick = (model: ModelDetails) => {
-    router.push(`/apps/models/${encodeURIComponent(model.name.toLowerCase())}`);
+    router.push(`/apps/models/${encodeURIComponent(model.name.toLowerCase())}/info`);
   };
 
   return (

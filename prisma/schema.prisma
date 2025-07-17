@@ -19,6 +19,7 @@ model User {
   updatedAt          DateTime            @updatedAt
   password           String?
   lastAccessedAt     DateTime?           @default(now())
+  username           String?             @unique
   accounts           Account[]
   pageViews          PageView[]
   sessions           Session[]

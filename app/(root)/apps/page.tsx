@@ -22,107 +22,122 @@ export default function AppsPage() {
     (app) => !(app as any).roles || (app as any).roles.includes(session?.user?.role || "GUEST")
   );
 
-  // Dynamic grid sizing function - creates layouts that completely fill the grid
+  // Dynamic bento box grid sizing - creates visually appealing layouts
   const getGridSize = (index: number, totalVisible: number) => {
-    // Define layouts that completely fill the grid space with no gaps
+    // Bento-style layouts with varied sizes that completely fill the grid
     const layouts = {
-      // When all 9 apps are visible - 6x4 grid
+      // 10 apps - 5x4 complete fill
+      10: [
+        "col-span-2 row-span-2", // Generate Flyers (hero)
+        "col-span-2 row-span-1", // Generative AI
+        "col-span-1 row-span-1", // Onboarding
+        "col-span-1 row-span-1", // Chatting
+        "col-span-1 row-span-1", // Models
+        "col-span-1 row-span-1", // Vault
+        "col-span-2 row-span-1", // Forms
+        "col-span-1 row-span-1", // Timesheet
+        "col-span-2 row-span-1", // SWD
+        "col-span-1 row-span-1", // App 10
+      ],
+      // 9 apps - 5x3 complete fill
       9: [
-        "col-span-2 row-span-2", // Generate Flyers (0)
-        "col-span-4 row-span-1", // Generative AI (1)
-        "col-span-2 row-span-1", // Onboarding (2)
-        "col-span-2 row-span-1", // Chatting (3)
-        "col-span-2 row-span-2", // Models (4)
-        "col-span-2 row-span-1", // Vault (5)
-        "col-span-1 row-span-2", // Forms (6)
-        "col-span-2 row-span-1", // Timesheet (7)
-        "col-span-1 row-span-1", // SWD (8)
+        "col-span-2 row-span-2", // Generate Flyers (hero)
+        "col-span-2 row-span-1", // Generative AI
+        "col-span-1 row-span-1", // Onboarding
+        "col-span-1 row-span-1", // Chatting
+        "col-span-1 row-span-1", // Models
+        "col-span-1 row-span-1", // Vault
+        "col-span-2 row-span-1", // Forms
+        "col-span-2 row-span-1", // Timesheet
+        "col-span-1 row-span-1", // SWD
       ],
-      // When 8 apps are visible - 6x3 grid
+      // 8 apps - 4x3 complete fill
       8: [
-        "col-span-2 row-span-2", // Generate Flyers (0)
-        "col-span-4 row-span-1", // Generative AI (1)
-        "col-span-2 row-span-1", // Onboarding (2)
-        "col-span-2 row-span-1", // Chatting (3)
-        "col-span-2 row-span-2", // Models (4)
-        "col-span-2 row-span-1", // Vault (5)
-        "col-span-2 row-span-2", // Forms (6) - expanded
-        "col-span-2 row-span-1", // Timesheet (7)
+        "col-span-2 row-span-2", // Generate Flyers (hero)
+        "col-span-2 row-span-1", // Generative AI
+        "col-span-1 row-span-1", // Onboarding
+        "col-span-1 row-span-1", // Chatting
+        "col-span-2 row-span-1", // Models
+        "col-span-1 row-span-1", // Vault
+        "col-span-1 row-span-1", // Forms
+        "col-span-2 row-span-1", // Timesheet
       ],
-      // When 7 apps are visible - 4x3 grid
+      // 7 apps - 4x3 complete fill
       7: [
-        "col-span-2 row-span-2", // Generate Flyers (0)
-        "col-span-2 row-span-1", // Generative AI (1) - smaller
-        "col-span-2 row-span-1", // Onboarding (2)
-        "col-span-2 row-span-1", // Chatting (3)
-        "col-span-2 row-span-2", // Models (4)
-        "col-span-2 row-span-1", // Vault (5)
-        "col-span-2 row-span-1", // Forms/Timesheet (6)
+        "col-span-2 row-span-2", // Generate Flyers (hero)
+        "col-span-2 row-span-1", // Generative AI
+        "col-span-1 row-span-2", // Onboarding (tall)
+        "col-span-1 row-span-1", // Chatting
+        "col-span-2 row-span-1", // Models
+        "col-span-1 row-span-1", // Vault
+        "col-span-1 row-span-1", // Forms
       ],
-      // When 6 apps are visible - 4x3 grid
+      // 6 apps - 3x3 complete fill
       6: [
-        "col-span-2 row-span-2", // Generate Flyers (0)
-        "col-span-2 row-span-1", // Generative AI (1)
-        "col-span-2 row-span-1", // Onboarding (2)
-        "col-span-2 row-span-1", // Chatting (3)
-        "col-span-2 row-span-2", // Models (4)
-        "col-span-2 row-span-1", // Vault (5)
+        "col-span-2 row-span-2", // Generate Flyers (hero)
+        "col-span-1 row-span-1", // Generative AI
+        "col-span-1 row-span-2", // Onboarding (tall)
+        "col-span-1 row-span-1", // Chatting
+        "col-span-2 row-span-1", // Models
+        "col-span-1 row-span-1", // Vault
       ],
-      // When 5 apps are visible - 4x2 grid
+      // 5 apps - 3x2 complete fill
       5: [
-        "col-span-2 row-span-2", // Generate Flyers (0)
-        "col-span-2 row-span-1", // Generative AI (1)
-        "col-span-2 row-span-1", // Onboarding (2)
-        "col-span-2 row-span-1", // Chatting (3)
-        "col-span-2 row-span-1", // Models (4)
+        "col-span-2 row-span-2", // Generate Flyers (hero)
+        "col-span-1 row-span-1", // Generative AI
+        "col-span-1 row-span-1", // Onboarding
+        "col-span-2 row-span-1", // Chatting
+        "col-span-1 row-span-1", // Models
       ],
-      // When 4 apps are visible - 4x2 grid
+      // 4 apps - 3x2 balanced
       4: [
-        "col-span-2 row-span-2", // Generate Flyers (0)
-        "col-span-2 row-span-1", // Generative AI (1)
-        "col-span-2 row-span-1", // Onboarding (2)
-        "col-span-2 row-span-2", // Models (3)
+        "col-span-2 row-span-2", // Generate Flyers (hero)
+        "col-span-1 row-span-1", // Generative AI
+        "col-span-1 row-span-1", // Onboarding
+        "col-span-2 row-span-1", // Models
       ],
-      // When 3 apps are visible - 2x2 grid
+      // 3 apps - L-shape bento
       3: [
-        "col-span-1 row-span-2", // Generate Flyers (0)
-        "col-span-1 row-span-1", // Generative AI (1)
-        "col-span-1 row-span-1", // Onboarding (2)
+        "col-span-2 row-span-2", // Generate Flyers (hero)
+        "col-span-1 row-span-1", // Generative AI
+        "col-span-1 row-span-1", // Onboarding
       ],
-      // When 2 apps are visible - 2x1 grid
+      // 2 apps - side by side
       2: [
-        "col-span-1 row-span-1", // Generate Flyers (0)
-        "col-span-1 row-span-1", // Generative AI (1)
+        "col-span-1 row-span-1", // Generate Flyers
+        "col-span-1 row-span-1", // Generative AI
       ],
-      // When 1 app is visible - 1x1 grid
+      // 1 app - centered
       1: [
-        "col-span-1 row-span-1", // Generate Flyers (0)
+        "col-span-1 row-span-1", // Generate Flyers
       ],
     };
 
     return layouts[totalVisible as keyof typeof layouts]?.[index] || "col-span-1 row-span-1";
   };
 
-  // Dynamic grid container classes based on number of visible apps
+  // Bento box grid container classes - creates compact, complete layouts
   const getGridContainerClasses = (totalVisible: number) => {
     const baseClasses =
-      "grid gap-2 sm:gap-3 lg:gap-4 h-[calc(100%-4rem)] sm:h-[calc(100%-6rem)] lg:h-[calc(100%-8rem)]";
+      "grid gap-2 sm:gap-3 lg:gap-4 h-[calc(100%-4rem)] sm:h-[calc(100%-6rem)] lg:h-[calc(100%-8rem)] max-w-6xl mx-auto";
 
-    // Grid configurations that ensure no empty spaces
-    if (totalVisible >= 9) {
-      return `${baseClasses} grid-cols-6 grid-rows-4 auto-rows-fr`;
+    // Compact grids that completely fill all spaces
+    if (totalVisible >= 10) {
+      return `${baseClasses} grid-cols-5 grid-rows-4 auto-rows-fr`;
+    } else if (totalVisible >= 9) {
+      return `${baseClasses} grid-cols-5 grid-rows-3 auto-rows-fr`;
     } else if (totalVisible >= 8) {
-      return `${baseClasses} grid-cols-6 grid-rows-3 auto-rows-fr`;
-    } else if (totalVisible >= 6) {
       return `${baseClasses} grid-cols-4 grid-rows-3 auto-rows-fr`;
+    } else if (totalVisible >= 6) {
+      return `${baseClasses} grid-cols-3 grid-rows-3 auto-rows-fr`;
     } else if (totalVisible >= 4) {
-      return `${baseClasses} grid-cols-4 grid-rows-2 auto-rows-fr`;
+      return `${baseClasses} grid-cols-3 grid-rows-2 auto-rows-fr`;
     } else if (totalVisible >= 3) {
-      return `${baseClasses} grid-cols-2 grid-rows-2 auto-rows-fr`;
+      return `${baseClasses} grid-cols-3 grid-rows-2 auto-rows-fr`;
     } else if (totalVisible >= 2) {
       return `${baseClasses} grid-cols-2 grid-rows-1 auto-rows-fr`;
     } else {
-      return `${baseClasses} grid-cols-1 grid-rows-1 auto-rows-fr`;
+      return `${baseClasses} grid-cols-1 grid-rows-1 auto-rows-fr place-items-center`;
     }
   };
 
@@ -148,28 +163,28 @@ export default function AppsPage() {
           return (
             <button
               key={app.id}
-              className={`${dynamicSize} relative group overflow-hidden rounded-xl sm:rounded-2xl transition-shadow duration-300 hover:shadow-2xl min-h-[80px] sm:min-h-[100px] lg:min-h-[120px]`}
+              className={`${dynamicSize} relative group overflow-hidden rounded-2xl sm:rounded-3xl transition-all duration-500 hover:shadow-2xl hover:scale-[1.02] min-h-[120px] sm:min-h-[140px] lg:min-h-[160px]`}
               onMouseEnter={() => setHoveredItem(app.id)}
               onMouseLeave={() => setHoveredItem(null)}
               onClick={() => handleNavigation(app.path)}
             >
               {/* Gradient Background */}
               <div
-                className={`absolute inset-0 bg-gradient-to-br ${app.color} opacity-90 group-hover:opacity-100 transition-opacity duration-300`}
+                className={`absolute inset-0 bg-gradient-to-br ${app.color} opacity-90 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl sm:rounded-3xl`}
               />
 
               {/* Animated Glow Effect - Hidden on mobile for performance */}
               {isHovered && (
                 <div
-                  className={`absolute inset-0 bg-gradient-to-br ${app.color} blur-xl hidden sm:block`}
+                  className={`absolute inset-0 bg-gradient-to-br ${app.color} blur-xl hidden sm:block rounded-2xl sm:rounded-3xl`}
                 />
               )}
 
               {/* Glass Effect Overlay */}
-              <div className="absolute inset-0 bg-white/10 dark:bg-black/10 backdrop-blur-sm" />
+              <div className="absolute inset-0 bg-white/10 dark:bg-black/10 backdrop-blur-sm rounded-2xl sm:rounded-3xl" />
 
               {/* Animated Border */}
-              <div className="absolute inset-0 rounded-xl sm:rounded-2xl border border-white/20 group-hover:border-white/40 transition-colors duration-300" />
+              <div className="absolute inset-0 rounded-2xl sm:rounded-3xl border border-white/20 group-hover:border-white/40 transition-colors duration-300" />
 
               {/* Content - Responsive sizing */}
               <div className="relative z-10 h-full flex flex-col items-center justify-center p-2 sm:p-3 lg:p-4 text-white">

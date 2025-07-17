@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useState, useTransition } from "react";
+import React, { useCallback, useState, useTransition, useEffect } from "react";
 import Image from "next/image";
 import { Upload, X, Film, Folder, HardDrive } from "lucide-react";
 import { generateVideoThumbnail } from "@/lib/videoProcessor";
@@ -18,6 +18,7 @@ interface VideoUploaderProps {
   isUploading: boolean;
   model?: string; // Add model prop for Google Drive filtering
   modelType?: string; // Add modelType prop for display
+  folderId?: string; // Add folderId prop for starting in specific folder
 }
 
 export const VideoUploader: React.FC<VideoUploaderProps> = ({
@@ -25,6 +26,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
   isUploading,
   model,
   modelType,
+  folderId,
 }) => {
   // Get the final formatted model value
   const getFinalModelValue = () => {
@@ -80,6 +82,52 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
     null
   );
   const [isGooglePickerLoading, setIsGooglePickerLoading] = useState(false);
+  
+  // State for controlling whether to use the folderId parameter
+  const [useFolderId, setUseFolderId] = useState(!!folderId);
+  const [customFolderId, setCustomFolderId] = useState("");
+  const [folderInputValue, setFolderInputValue] = useState("");
+  
+  // Download progress state
+  const [downloadProgress, setDownloadProgress] = useState<{
+    fileName: string;
+    progress: number;
+    isDownloading: boolean;
+  } | null>(null);
+
+  // Update useFolderId when folderId prop changes
+  useEffect(() => {
+    setUseFolderId(!!folderId);
+  }, [folderId]);
+
+  // Function to extract folder ID from Google Drive URL
+  const extractFolderIdFromUrl = (url: string): string => {
+    const patterns = [
+      /\/folders\/([a-zA-Z0-9-_]+)/,  // Standard folder URL
+      /[?&]id=([a-zA-Z0-9-_]+)/,      // Alternative format
+      /^([a-zA-Z0-9-_]+)$/            // Raw folder ID
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) {
+        return match[1];
+      }
+    }
+    return "";
+  };
+
+  // Handle folder input change
+  const handleFolderInputChange = (value: string) => {
+    setFolderInputValue(value);
+    const extractedId = extractFolderIdFromUrl(value);
+    setCustomFolderId(extractedId);
+    
+    // Auto-enable toggle if valid folder ID is extracted
+    if (extractedId) {
+      setUseFolderId(true);
+    }
+  };
   const [isDownloading, startDownloadTransition] = useTransition();
   const [, startListTransition] = useTransition();
 
@@ -208,10 +256,21 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
     try {
       startListTransition(async () => {
         try {
-          // Start from root or model folder
+          // Priority: customFolderId > URL folderId > model folder
           let url = "/api/google-drive/list?includeVideos=true";
-          if (model) {
+          
+          if (customFolderId && useFolderId) {
+            // If custom folder ID is provided and toggle is enabled, use it
+            url += `&folderId=${customFolderId}`;
+            console.log(`Starting Google Drive picker in custom folder: ${customFolderId}`);
+          } else if (folderId && useFolderId) {
+            // If folderId is provided via URL parameter and toggle is enabled, use it directly
+            url += `&folderId=${folderId}`;
+            console.log(`Starting Google Drive picker in URL folder: ${folderId}`);
+          } else if (model) {
+            // Otherwise, try to find folder by model name
             url += `&folderName=${model}`;
+            console.log(`Looking for Google Drive folder with name: ${model}`);
           }
 
           const response = await fetch(url);
@@ -304,6 +363,13 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
     }
 
     try {
+      // Initialize download progress
+      setDownloadProgress({
+        fileName: file.name,
+        progress: 0,
+        isDownloading: true
+      });
+
       startDownloadTransition(async () => {
         const response = await fetch(
           `/api/google-drive/download?id=${file.id}`
@@ -312,7 +378,66 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
           throw new Error("Failed to download video");
         }
 
-        const blob = await response.blob();
+        // Get content length for progress calculation
+        const contentLength = response.headers.get('content-length');
+        const total = contentLength ? parseInt(contentLength, 10) : 0;
+        
+        if (!response.body) {
+          throw new Error("Response body is null");
+        }
+
+        // Create a readable stream to track download progress
+        const reader = response.body.getReader();
+        const chunks: Uint8Array[] = [];
+        let receivedLength = 0;
+        let progressInterval: NodeJS.Timeout | null = null;
+
+        // If we don't have content-length, use a simulated progress
+        if (total === 0) {
+          let simulatedProgress = 0;
+          progressInterval = setInterval(() => {
+            simulatedProgress += Math.random() * 15; // Increment by 0-15%
+            if (simulatedProgress > 90) simulatedProgress = 90; // Cap at 90% until complete
+            setDownloadProgress(prev => prev ? { ...prev, progress: Math.min(simulatedProgress, 90) } : null);
+          }, 500);
+        }
+
+        while (true) {
+          const { done, value } = await reader.read();
+          
+          if (done) break;
+          
+          chunks.push(value);
+          receivedLength += value.length;
+          
+          // Update progress only if we have content-length
+          if (total > 0) {
+            const progress = Math.round((receivedLength / total) * 100);
+            setDownloadProgress(prev => prev ? { ...prev, progress } : null);
+          }
+        }
+
+        // Clear the simulated progress interval
+        if (progressInterval) {
+          clearInterval(progressInterval);
+        }
+
+        // Set to 100% when download is complete
+        setDownloadProgress(prev => prev ? { ...prev, progress: 100 } : null);
+        
+        // Brief delay to show 100% completion
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Combine all chunks into a single Uint8Array
+        const chunksAll = new Uint8Array(receivedLength);
+        let position = 0;
+        for (const chunk of chunks) {
+          chunksAll.set(chunk, position);
+          position += chunk.length;
+        }
+
+        // Create blob from combined data
+        const blob = new Blob([chunksAll]);
 
         // Validate the blob type as well
         if (!isVideoFile(file.name, blob.type)) {
@@ -330,10 +455,14 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
 
         // Close the Google Drive picker
         setShowGoogleDrivePicker(false);
+        
+        // Clear download progress
+        setDownloadProgress(null);
       });
     } catch (error) {
       console.error("Error downloading video:", error);
       alert("Failed to download selected video");
+      setDownloadProgress(null);
     }
   };
 
@@ -433,6 +562,75 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                   : `Google Drive (${model})`}
             </span>
           </button>
+          
+          {/* Folder ID Toggle Switch - Show if URL folderId exists OR custom folder is entered */}
+          {(folderId || customFolderId) && (
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-gray-600 dark:text-gray-400">📁</span>
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setUseFolderId(!useFolderId);
+                }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                  useFolderId ? "bg-blue-600" : "bg-gray-300"
+                }`}
+                title={useFolderId ? "Disable folder shortcut" : "Enable folder shortcut"}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    useFolderId ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+              <span className="text-xs text-gray-600 dark:text-gray-400">
+                {useFolderId ? "ON" : "OFF"}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Google Drive Folder Input */}
+      <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+        <div className="space-y-3">
+          <div className="flex items-center space-x-2">
+            <HardDrive className="w-4 h-4 text-gray-500" />
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Google Drive Folder (Optional)
+            </label>
+          </div>
+          <div className="flex space-x-2">
+            <input
+              type="text"
+              value={folderInputValue}
+              onChange={(e) => handleFolderInputChange(e.target.value)}
+              placeholder="Paste Google Drive folder link or ID..."
+              className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+            {customFolderId && (
+              <button
+                onClick={() => {
+                  setFolderInputValue("");
+                  setCustomFolderId("");
+                  setUseFolderId(!!folderId);
+                }}
+                className="px-3 py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                title="Clear folder"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          {customFolderId && (
+            <div className="text-xs text-green-600 dark:text-green-400">
+              ✓ Folder ID extracted: {customFolderId}
+            </div>
+          )}
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            Paste a Google Drive folder URL like: https://drive.google.com/drive/folders/1GYJ...
+          </p>
         </div>
       </div>
 
@@ -448,14 +646,47 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
       {showGoogleDrivePicker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div
-            className={`bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-4xl max-h-[80vh] overflow-hidden relative ${isDownloading ? "overflow-hidden" : ""}`}
+            className={`bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-4xl max-h-[80vh] overflow-hidden relative ${(isDownloading || downloadProgress?.isDownloading) ? "overflow-hidden" : ""}`}
           >
-            {isDownloading && (
-              <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-black/90 z-50">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mb-2"></div>
-                <span className="text-sm text-gray-300">
-                  Downloading Video...
-                </span>
+            {(isDownloading || downloadProgress?.isDownloading) && (
+              <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-black/90 z-50 p-8">
+                {downloadProgress?.isDownloading ? (
+                  <div className="w-full max-w-md text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-6"></div>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-sm text-gray-300 mb-1">Downloading:</p>
+                        <p className="text-white font-medium text-base break-words px-2">
+                          {downloadProgress.fileName}
+                        </p>
+                      </div>
+                      
+                      <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
+                        <div 
+                          className="bg-gradient-to-r from-green-400 to-green-500 h-full rounded-full transition-all duration-500 ease-out"
+                          style={{ width: `${downloadProgress.progress}%` }}
+                        />
+                      </div>
+                      
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-400">
+                          {downloadProgress.progress < 100 ? 'Downloading...' : 'Processing...'}
+                        </span>
+                        <span className="text-green-400 font-medium">
+                          {downloadProgress.progress}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mb-2"></div>
+                    <span className="text-sm text-gray-300">
+                      Downloading Video...
+                    </span>
+                  </>
+                )}
               </div>
             )}
             {/* Header */}
@@ -481,7 +712,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                   {parentFolder && (
                     <button
                       onClick={handleNavigateUp}
-                      disabled={isGooglePickerLoading}
+                      disabled={isGooglePickerLoading || downloadProgress?.isDownloading}
                       className="text-blue-600 hover:text-blue-700 disabled:text-gray-400"
                     >
                       ← Back
@@ -518,7 +749,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                       <button
                         key={file.id}
                         onClick={() => handleGoogleDriveFileSelected(file)}
-                        disabled={isDownloading || (!file.isFolder && !isVideo)}
+                        disabled={isDownloading || downloadProgress?.isDownloading || (!file.isFolder && !isVideo)}
                         className={`group relative rounded-lg p-3 transition-colors text-left ${
                           isVideo || file.isFolder
                             ? "bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"

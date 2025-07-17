@@ -76,6 +76,8 @@ export default function ModelDetailsPage() {
     fetchModel();
   }, [modelName]);
 
+  console.log(model,'model')
+
   if (loading) {
     return <Loader />;
   }
