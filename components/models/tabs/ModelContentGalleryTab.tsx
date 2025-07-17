@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   Search,
   Video,
@@ -48,9 +49,12 @@ interface ContentItem {
 const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
   modelName,
 }) => {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("all-content");
   const [searchQuery, setSearchQuery] = useState("");
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
+  const [sextingItems, setSextingItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<{
@@ -89,6 +93,8 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
         filtered = filtered.filter((item) => item.campaignReady);
         break;
       case "sexting-sets":
+        filtered = sextingItems;
+        break;
       case "social-media":
         filtered = [];
         break;
@@ -162,6 +168,43 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
     fetchVaultContent();
   }, [modelName]);
 
+  // Fetch sexting sets from API
+  useEffect(() => {
+    const fetchSextingSets = async () => {
+      try {
+        const response = await fetch(
+          `/api/sexting-sets?modelName=${encodeURIComponent(modelName)}`
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch sexting sets");
+        }
+
+        const data = await response.json();
+        setSextingItems(data.contentItems || []);
+      } catch (err) {
+        console.error("Error fetching sexting sets:", err);
+        // Don't set error state here as it might interfere with main content loading
+      }
+    };
+
+    fetchSextingSets();
+  }, [modelName]);
+
+  // Check for folderid parameter and automatically open folder
+  useEffect(() => {
+    const folderId = searchParams.get('folderid');
+    if (folderId && !selectedFolder) {
+      // Find the folder item in both contentItems and sextingItems
+      const allItems = [...contentItems, ...sextingItems];
+      const folderItem = allItems.find(item => item.driveId === folderId && item.isFolder);
+      
+      if (folderItem) {
+        setSelectedFolder({ id: folderId, name: folderItem.title });
+      }
+    }
+  }, [searchParams, contentItems, sextingItems, selectedFolder]);
+
   // Dynamic tab counts based on actual data
   const getTabCounts = () => {
     const allCount = contentItems.length;
@@ -174,11 +217,13 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
     const campaignReadyCount = contentItems.filter(
       (item) => item.campaignReady
     ).length;
+    const sextingSetsCount = sextingItems.length;
     return {
       allCount,
       vaultNewCount,
       needsGifCount,
       campaignReadyCount,
+      sextingSetsCount,
     };
   };
 
@@ -187,7 +232,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
   // (Already declared above)
 
   // Tabs variable moved up here
-  const { allCount, vaultNewCount, needsGifCount, campaignReadyCount } = getTabCounts();
+  const { allCount, vaultNewCount, needsGifCount, campaignReadyCount, sextingSetsCount } = getTabCounts();
   const tabs = [
     { id: "all-content", label: "All Content", count: allCount },
     {
@@ -196,7 +241,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
       count: vaultNewCount,
       badge: vaultNewCount > 0 ? "NEW" : undefined,
     },
-    { id: "sexting-sets", label: "Sexting Sets", count: 0 },
+    { id: "sexting-sets", label: "Sexting Sets", count: sextingSetsCount },
     { id: "social-media", label: "Social Media", count: 0 },
     { id: "needs-gif", label: "Needs GIF", count: needsGifCount },
     {
@@ -209,11 +254,19 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
   const handleItemClick = (item: ContentItem) => {
     if (item.isFolder && item.driveId) {
       setSelectedFolder({ id: item.driveId, name: item.title });
+      // Update URL with folder ID
+      const params = new URLSearchParams(searchParams);
+      params.set('folderid', item.driveId);
+      router.push(`?${params.toString()}`);
     }
   };
 
   const handleBackToGallery = () => {
     setSelectedFolder(null);
+    // Clear folder ID from URL
+    const params = new URLSearchParams(searchParams);
+    params.delete('folderid');
+    router.push(`?${params.toString()}`);
   };
 
   // If viewing a folder, show the folder viewer
