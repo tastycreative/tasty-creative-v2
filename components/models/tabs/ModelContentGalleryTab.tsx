@@ -209,7 +209,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
 
   // Check for folderid parameter and automatically open folder
   useEffect(() => {
-    const folderId = searchParams.get('folderid');
+    const folderId = searchParams?.get('folderid');
     if (folderId && !selectedFolder) {
       // Find the folder item in both contentItems and sextingItems
       const allItems = [...contentItems, ...sextingItems];
@@ -274,7 +274,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
     if (item.isFolder && item.driveId) {
       setSelectedFolder({ id: item.driveId, name: item.title });
       // Update URL with folder ID
-      const params = new URLSearchParams(searchParams);
+      const params = new URLSearchParams(searchParams || '');
       params.set('folderid', item.driveId);
       router.push(`?${params.toString()}`);
     }
@@ -282,7 +282,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
 
   const handleBackToGallery = () => {
     // Clear folder ID from URL first
-    const params = new URLSearchParams(searchParams);
+    const params = new URLSearchParams(searchParams || '');
     params.delete('folderid');
     router.push(`?${params.toString()}`);
     // Then immediately update state
