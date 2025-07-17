@@ -115,26 +115,42 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
   const stats = getDashboardStats();
   const filteredItems = getFilteredItems();
 
-  // Fetch thumbnails using the same logic as FolderViewer (get parent folder, list files, match by name)
+  // Fetch thumbnails for video files by getting parent folder and searching for matching title
   useEffect(() => {
     const fetchThumbnails = async () => {
-      const driveIds = filteredItems
-        .map(item => item.driveId)
-        .filter((id): id is string => !!id);
+      const videoItems = filteredItems
+        .filter(item => item.driveId && !item.isFolder) // Only video files, not folders
+        .filter(item => item.driveId); // Ensure driveId exists
+      
       const newThumbnails: Record<string, string> = {};
-      await Promise.all(driveIds.map(async (driveId) => {
+      
+      await Promise.all(videoItems.map(async (item) => {
         try {
-          const res = await fetch(`/api/drive-parent-folder-contents?fileId=${driveId}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.thumbnailLink) {
-              newThumbnails[driveId] = data.thumbnailLink;
-            }
+          if (!item.driveId) return;
+          
+          // First, get the parent folder of the video file
+          const parentRes = await fetch(`/api/google-drive/get-parent-folder?fileId=${item.driveId}`);
+          if (!parentRes.ok) return;
+          
+          const parentData = await parentRes.json();
+          if (!parentData.parentFolderId) return;
+          
+          // Then search the parent folder contents for a file matching the video title
+          const contentsRes = await fetch(`/api/google-drive/search-folder-contents?folderId=${parentData.parentFolderId}&searchTitle=${encodeURIComponent(item.title)}`);
+          if (!contentsRes.ok) return;
+          
+          const contentsData = await contentsRes.json();
+          if (contentsData.thumbnailLink) {
+            newThumbnails[item.driveId] = contentsData.thumbnailLink;
           }
-        } catch {}
+        } catch (error) {
+          console.error(`Error fetching thumbnail for ${item.title}:`, error);
+        }
       }));
+      
       setSiblingThumbnails(prev => ({ ...prev, ...newThumbnails }));
     };
+    
     fetchThumbnails();
     // Only refetch when filteredItems changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -202,6 +218,9 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
       if (folderItem) {
         setSelectedFolder({ id: folderId, name: folderItem.title });
       }
+    } else if (!folderId && selectedFolder) {
+      // If no folderid in URL but we have a selected folder, clear it
+      setSelectedFolder(null);
     }
   }, [searchParams, contentItems, sextingItems, selectedFolder]);
 
@@ -262,11 +281,12 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
   };
 
   const handleBackToGallery = () => {
-    setSelectedFolder(null);
-    // Clear folder ID from URL
+    // Clear folder ID from URL first
     const params = new URLSearchParams(searchParams);
     params.delete('folderid');
     router.push(`?${params.toString()}`);
+    // Then immediately update state
+    setSelectedFolder(null);
   };
 
   // If viewing a folder, show the folder viewer
@@ -462,23 +482,18 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
                       </div>
                     ) : (
                       <div>
-                        <img
-                          src={item.driveId && siblingThumbnails[item.driveId]
-                            ? siblingThumbnails[item.driveId]
-                            : `/api/image-proxy?id=${item.driveId}`}
-                          alt={item.title}
-                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            // Fallback to placeholder
-                            if (!target.src.includes('placeholder')) {
-                              target.src = `https://via.placeholder.com/400x225/374151/9ca3af?text=${encodeURIComponent(item.title.substring(0, 20))}`;
-                            }
-                          }}
-                          onLoad={() => {
-                            console.log('Image loaded successfully for:', item.title);
-                          }}
-                        />
+                        {item.driveId && siblingThumbnails[item.driveId] ? (
+                          <img
+                            src={`/api/image-proxy?url=${encodeURIComponent(siblingThumbnails[item.driveId])}`}
+                            alt={item.title}
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-slate-700/50 flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -523,7 +538,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
                     <div className="absolute bottom-2 right-2">
                       <div className="px-2 py-1 rounded bg-black/60 backdrop-blur-sm text-white text-xs font-medium">
                         {item.type === "video" ? (
-                          <>📹 {item.duration} min</>
+                          <>📹 {item.duration}</>
                         ) : (
                           <>📷 {item.imageCount} images</>
                         )}
