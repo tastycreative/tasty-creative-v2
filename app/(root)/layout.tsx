@@ -8,7 +8,7 @@ import { SidebarProvider } from "@/components/SidebarProvider";
 export const metadata: Metadata = {
   title: {
     template: "%s | Tasty Creative",
-    default: "Dashboard",
+    default: "",
   },
   description: "Tasty Creative",
 };
