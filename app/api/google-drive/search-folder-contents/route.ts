@@ -41,37 +41,94 @@ export async function GET(request: NextRequest) {
 
     const drive = google.drive({ version: "v3", auth: oauth2Client });
 
-    // List files in the folder
-    const response = await drive.files.list({
-      q: `'${folderId}' in parents and trashed=false`,
-      fields: 'files(id,name,thumbnailLink,mimeType)',
-      supportsAllDrives: true,
-      includeItemsFromAllDrives: true,
-      pageSize: 1000 // Get more files to increase chance of finding match
-    });
+    // Use Google Drive's native search with multiple strategies for better performance
+    const searchStrategies = [
+      // Strategy 1: Exact name match
+      `'${folderId}' in parents and trashed=false and name='${searchTitle}'`,
+      // Strategy 2: Name contains search title
+      `'${folderId}' in parents and trashed=false and name contains '${searchTitle}'`,
+      // Strategy 3: Search without extension
+      `'${folderId}' in parents and trashed=false and name contains '${searchTitle.replace(/\.(mp4|mov|avi|mkv|webm|flv|wmv)$/i, '')}'`,
+    ];
 
-    const files = response.data.files || [];
-    
-    // Search for files that match the title
-    const matchingFiles = files.filter(file => {
-      const fileName = file.name || '';
-      const searchTitleLower = searchTitle.toLowerCase();
-      const fileNameLower = fileName.toLowerCase();
+    let matchingFiles = [];
+    let searchAttempt = 0;
+
+    // Try each search strategy until we find results
+    for (const query of searchStrategies) {
+      searchAttempt++;
+      console.log(`🔍 Search attempt ${searchAttempt} for "${searchTitle}" in folder ${folderId}`);
+      console.log(`Query: ${query}`);
       
-      // Try different matching strategies
-      return (
-        // Exact match
-        fileNameLower === searchTitleLower ||
-        // Title is contained in filename
-        fileNameLower.includes(searchTitleLower) ||
-        // Filename is contained in title
-        searchTitleLower.includes(fileNameLower) ||
-        // Remove common video extensions and try again
-        fileNameLower.replace(/\.(mp4|mov|avi|mkv|webm|flv|wmv)$/i, '') === searchTitleLower ||
-        // Remove file extension from search title and try again
-        fileNameLower === searchTitleLower.replace(/\.(mp4|mov|avi|mkv|webm|flv|wmv)$/i, '')
-      );
-    });
+      try {
+        const response = await drive.files.list({
+          q: query,
+          fields: 'files(id,name,thumbnailLink,mimeType)',
+          supportsAllDrives: true,
+          includeItemsFromAllDrives: true,
+          pageSize: 100 // Smaller page size for faster response
+        });
+
+        const files = response.data.files || [];
+        console.log(`Found ${files.length} files with search strategy ${searchAttempt}`);
+        
+        if (files.length > 0) {
+          matchingFiles = files;
+          break; // Stop searching once we find results
+        }
+      } catch (searchError) {
+        console.error(`Search strategy ${searchAttempt} failed:`, searchError);
+        // Continue to next strategy
+      }
+    }
+
+    // If no results from native search, fall back to broader search with local filtering
+    if (matchingFiles.length === 0) {
+      console.log(`🔄 Falling back to broad search with local filtering for "${searchTitle}"`);
+      
+      let allFiles = [];
+      let pageToken = null;
+      let pageCount = 0;
+      const maxPages = 5; // Limit to prevent timeout (5 * 1000 = 5000 files max)
+      
+      do {
+        pageCount++;
+        console.log(`📄 Fetching page ${pageCount} of folder contents`);
+        
+        const response = await drive.files.list({
+          q: `'${folderId}' in parents and trashed=false`,
+          fields: 'nextPageToken,files(id,name,thumbnailLink,mimeType)',
+          supportsAllDrives: true,
+          includeItemsFromAllDrives: true,
+          pageSize: 1000,
+          pageToken: pageToken || undefined
+        });
+
+        const files = response.data.files || [];
+        allFiles.push(...files);
+        pageToken = response.data.nextPageToken;
+        
+        console.log(`📄 Page ${pageCount}: ${files.length} files (total: ${allFiles.length})`);
+        
+      } while (pageToken && pageCount < maxPages);
+      
+      console.log(`📊 Total files fetched: ${allFiles.length}, searching locally...`);
+      
+      // Local filtering with multiple strategies
+      matchingFiles = allFiles.filter(file => {
+        const fileName = file.name || '';
+        const searchTitleLower = searchTitle.toLowerCase();
+        const fileNameLower = fileName.toLowerCase();
+        
+        return (
+          fileNameLower === searchTitleLower ||
+          fileNameLower.includes(searchTitleLower) ||
+          searchTitleLower.includes(fileNameLower) ||
+          fileNameLower.replace(/\.(mp4|mov|avi|mkv|webm|flv|wmv)$/i, '') === searchTitleLower ||
+          fileNameLower === searchTitleLower.replace(/\.(mp4|mov|avi|mkv|webm|flv|wmv)$/i, '')
+        );
+      });
+    }
 
     // Prioritize image files for thumbnails, then video files
     const imageFiles = matchingFiles.filter(file => 
@@ -91,22 +148,33 @@ export async function GET(request: NextRequest) {
       bestMatch = matchingFiles[0];
     }
 
+    console.log(`🎯 Search results for "${searchTitle}":`, {
+      totalMatching: matchingFiles.length,
+      imageFiles: imageFiles.length,
+      videoFiles: videoFiles.length,
+      bestMatch: bestMatch?.name || 'none'
+    });
+
     if (bestMatch && bestMatch.thumbnailLink) {
+      console.log(`✅ Found thumbnail for "${searchTitle}": ${bestMatch.name}`);
       return NextResponse.json({
         thumbnailLink: bestMatch.thumbnailLink,
         fileName: bestMatch.name,
         fileId: bestMatch.id,
         mimeType: bestMatch.mimeType,
         searchTitle,
-        matchingFilesCount: matchingFiles.length
+        matchingFilesCount: matchingFiles.length,
+        searchMethod: matchingFiles.length > 0 ? 'native_search' : 'local_filtering'
       });
     }
 
+    console.log(`❌ No thumbnail found for "${searchTitle}". Files: ${matchingFiles.length} matching`);
     return NextResponse.json({ 
       error: 'No matching file with thumbnail found',
       searchTitle,
-      filesSearched: files.length,
-      matchingFilesCount: matchingFiles.length
+      matchingFilesCount: matchingFiles.length,
+      matchingFileNames: matchingFiles.slice(0, 5).map(f => f.name), // Show first 5 matches for debugging
+      searchMethod: 'failed'
     }, { status: 404 });
     
   } catch (error: any) {

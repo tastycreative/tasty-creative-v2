@@ -150,12 +150,32 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
 
   // Fetch thumbnails for video files by getting parent folder and searching for matching title
   useEffect(() => {
+    console.log(`🚀 Thumbnail useEffect triggered for tab: ${activeTab}`, {
+      socialMediaItemsLength: socialMediaItems.length,
+      filteredItemsLength: filteredItems.length
+    });
+    
     const fetchThumbnails = async () => {
-      // Include all items (vault content, sexting sets, and social media) that need thumbnails
-      const allItems = [...filteredItems, ...socialMediaItems.filter(item => activeTab === "social-media")];
-      const videoItems = allItems
+      // Only process items that are visible on the current page
+      const currentPageItems = getPaginatedItems();
+      
+      console.log(`🔍 Fetching thumbnails for tab: ${activeTab} (page ${currentPage})`, {
+        currentPageItems: currentPageItems.length,
+        totalItems: activeTab === "social-media" ? socialMediaItems.length : filteredItems.length,
+        page: currentPage,
+        itemsPerPage: itemsPerPage
+      });
+      
+      const videoItems = currentPageItems
         .filter(item => item.driveId && !item.isFolder) // Only video files, not folders
         .filter(item => item.driveId); // Ensure driveId exists
+      
+      console.log(`📋 Items with driveId for thumbnails:`, videoItems.map(item => ({ title: item.title, driveId: item.driveId })));
+      
+      if (videoItems.length === 0) {
+        console.log(`❌ No items to process for thumbnails on tab: ${activeTab}`);
+        return;
+      }
       
       const newThumbnails: Record<string, string> = {};
       
@@ -163,33 +183,88 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
         try {
           if (!item.driveId) return;
           
+          console.log(`🔄 Starting thumbnail fetch for: ${item.title} (${item.driveId})`);
+          
+          // For social media items, first get the actual filename from Google Drive
+          let searchTitle = item.title;
+          if (activeTab === "social-media") {
+            try {
+              const fileMetaRes = await fetch(`/api/google-drive/metadata?id=${item.driveId}`);
+              if (fileMetaRes.ok) {
+                const fileMeta = await fileMetaRes.json();
+                if (fileMeta.name) {
+                  searchTitle = fileMeta.name;
+                  console.log(`📝 Using actual filename for search: ${searchTitle} (instead of ${item.title})`);
+                }
+              }
+            } catch (error) {
+              console.log(`⚠️ Could not get file metadata, using display title: ${item.title}`);
+            }
+          }
+          
           // First, get the parent folder of the video file
           const parentRes = await fetch(`/api/google-drive/get-parent-folder?fileId=${item.driveId}`);
-          if (!parentRes.ok) return;
+          console.log(`📁 Parent folder API response for ${item.title}:`, parentRes.status);
+          
+          if (!parentRes.ok) {
+            console.log(`❌ Parent folder API failed for ${item.title}`);
+            return;
+          }
           
           const parentData = await parentRes.json();
-          if (!parentData.parentFolderId) return;
+          console.log(`📁 Parent folder data for ${item.title}:`, parentData);
           
-          // Then search the parent folder contents for a file matching the video title
-          const contentsRes = await fetch(`/api/google-drive/search-folder-contents?folderId=${parentData.parentFolderId}&searchTitle=${encodeURIComponent(item.title)}`);
-          if (!contentsRes.ok) return;
+          if (!parentData.parentFolderId) {
+            console.log(`❌ No parent folder ID for ${item.title}`);
+            return;
+          }
+          
+          // Then search the parent folder contents for a file matching the actual filename
+          const contentsRes = await fetch(`/api/google-drive/search-folder-contents?folderId=${parentData.parentFolderId}&searchTitle=${encodeURIComponent(searchTitle)}`);
+          console.log(`🔍 Search folder contents API response for ${item.title} (searching for: ${searchTitle}):`, contentsRes.status);
+          
+          if (!contentsRes.ok) {
+            console.log(`❌ Search folder contents API failed for ${item.title}`);
+            return;
+          }
           
           const contentsData = await contentsRes.json();
+          console.log(`🔍 Search folder contents data for ${item.title}:`, contentsData);
+          
           if (contentsData.thumbnailLink) {
             newThumbnails[item.driveId] = contentsData.thumbnailLink;
+            console.log(`✅ Found thumbnail for ${item.title}:`, contentsData.thumbnailLink);
+          } else {
+            console.log(`❌ No thumbnail found for ${item.title}`);
           }
         } catch (error) {
-          console.error(`Error fetching thumbnail for ${item.title}:`, error);
+          console.error(`💥 Error fetching thumbnail for ${item.title}:`, error);
         }
       }));
       
-      setSiblingThumbnails(prev => ({ ...prev, ...newThumbnails }));
+      console.log(`💾 Setting thumbnails:`, newThumbnails);
+      setSiblingThumbnails(prev => {
+        const updated = { ...prev, ...newThumbnails };
+        console.log(`📸 Updated siblingThumbnails:`, updated);
+        return updated;
+      });
     };
     
-    fetchThumbnails();
-    // Only refetch when filteredItems or socialMediaItems changes
+    // Always fetch thumbnails when items are available on current page
+    if ((activeTab === "social-media" && socialMediaItems.length > 0) || 
+        (activeTab !== "social-media" && filteredItems.length > 0)) {
+      fetchThumbnails();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredItems.map(i => i.driveId).join(","), socialMediaItems.map(i => i.driveId).join(","), activeTab]);
+  }, [
+    activeTab,
+    currentPage,
+    itemsPerPage,
+    searchQuery,
+    socialMediaItems.length,
+    filteredItems.map(i => i.driveId).join(","),
+    socialMediaItems.map(i => i.driveId).join(",")
+  ]);
 
   // Fetch vault content from API
   useEffect(() => {

@@ -69,6 +69,7 @@ export async function GET(request: NextRequest) {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: RANGE,
+      valueRenderOption: 'FORMULA', // Get formulas instead of display values
     });
 
     const rows = response.data.values;
@@ -98,24 +99,33 @@ export async function GET(request: NextRequest) {
           return null;
         }
 
-        // Extract file ID from HYPERLINK formula
+        // Extract file ID from HYPERLINK formula or direct URL
         // Format: =HYPERLINK("https://drive.google.com/file/d/FILE_ID/view?usp=drivesdk", "DISPLAY_TEXT")
-        const hyperlinkMatch = contentCode.match(/=HYPERLINK\("([^"]+)"/);
-        const displayTextMatch = contentCode.match(/"([^"]+)"\s*\)$/);
-        
         let driveId = null;
         let title = contentCode; // fallback to content code
         
-        if (hyperlinkMatch) {
-          const url = hyperlinkMatch[1];
-          const fileIdMatch = url.match(/\/file\/d\/([a-zA-Z0-9-_]+)/);
-          const folderIdMatch = url.match(/\/folders\/([a-zA-Z0-9-_]+)/);
+        if (contentCode.startsWith('=HYPERLINK(')) {
+          // Parse HYPERLINK formula
+          const hyperlinkMatch = contentCode.match(/=HYPERLINK\("([^"]+)"/);
+          const displayTextMatch = contentCode.match(/"([^"]+)"\s*\)$/);
+          
+          if (hyperlinkMatch) {
+            const url = hyperlinkMatch[1];
+            const fileIdMatch = url.match(/\/file\/d\/([a-zA-Z0-9-_]+)/);
+            const folderIdMatch = url.match(/\/folders\/([a-zA-Z0-9-_]+)/);
+            
+            driveId = fileIdMatch ? fileIdMatch[1] : (folderIdMatch ? folderIdMatch[1] : null);
+            
+            if (displayTextMatch) {
+              title = displayTextMatch[1];
+            }
+          }
+        } else {
+          // Handle direct URLs or plain text
+          const fileIdMatch = contentCode.match(/\/file\/d\/([a-zA-Z0-9-_]+)/);
+          const folderIdMatch = contentCode.match(/\/folders\/([a-zA-Z0-9-_]+)/);
           
           driveId = fileIdMatch ? fileIdMatch[1] : (folderIdMatch ? folderIdMatch[1] : null);
-          
-          if (displayTextMatch) {
-            title = displayTextMatch[1];
-          }
         }
         
         const isFolder = false; // Social media items are typically files
@@ -124,7 +134,8 @@ export async function GET(request: NextRequest) {
           driveId,
           title,
           contentType,
-          platform
+          platform,
+          isHyperlink: contentCode.startsWith('=HYPERLINK(')
         });
         
         // Generate thumbnail URL using our image proxy
