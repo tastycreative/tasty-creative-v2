@@ -67,6 +67,8 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
   const [sextingItems, setSextingItems] = useState<ContentItem[]>([]);
   const [socialMediaItems, setSocialMediaItems] = useState<ContentItem[]>([]);
   const [socialMediaTotalCount, setSocialMediaTotalCount] = useState(0);
+  const [allContentItems, setAllContentItems] = useState<ContentItem[]>([]);
+  const [allContentTotalCount, setAllContentTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<{
@@ -98,6 +100,10 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
     let filtered = contentItems;
     // Filter by active tab
     switch (activeTab) {
+      case "all-content":
+        // For all content, use the paginated combined items
+        filtered = allContentItems;
+        break;
       case "vault-new":
         filtered = filtered.filter((item) => item.isVaultNew === true);
         break;
@@ -115,11 +121,10 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
         filtered = socialMediaItems;
         break;
       default:
-        // all-content shows everything
         break;
     }
-    // Filter by search query (but not for social media since it's already paginated)
-    if (searchQuery && activeTab !== "social-media") {
+    // Filter by search query (but not for paginated tabs since they're already server-side filtered)
+    if (searchQuery && !["social-media", "all-content"].includes(activeTab)) {
       filtered = filtered.filter((item) =>
         item.title.toLowerCase().includes(searchQuery.toLowerCase())
       );
@@ -129,8 +134,8 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
 
   const getPaginatedItems = () => {
     const filtered = getFilteredItems();
-    // For social media, items are already paginated server-side
-    if (activeTab === "social-media") {
+    // For server-side paginated tabs, items are already paginated
+    if (["social-media", "all-content"].includes(activeTab)) {
       return filtered;
     }
     // For other tabs, do client-side pagination
@@ -142,6 +147,9 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
   const getTotalPages = () => {
     if (activeTab === "social-media") {
       return Math.ceil(socialMediaTotalCount / itemsPerPage);
+    }
+    if (activeTab === "all-content") {
+      return Math.ceil(allContentTotalCount / itemsPerPage);
     }
     const filtered = getFilteredItems();
     return Math.ceil(filtered.length / itemsPerPage);
@@ -350,6 +358,58 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
     fetchSocialMediaCount();
   }, [modelName]);
 
+  // Fetch all content total count on mount
+  useEffect(() => {
+    const fetchAllContentCount = async () => {
+      try {
+        const countResponse = await fetch(
+          `/api/all-content?modelName=${encodeURIComponent(modelName)}&getTotalOnly=true`
+        );
+
+        if (!countResponse.ok) {
+          throw new Error("Failed to fetch all content count");
+        }
+
+        const countData = await countResponse.json();
+        setAllContentTotalCount(countData.totalItems);
+        console.log('📊 All content total items:', countData.totalItems);
+      } catch (err) {
+        console.error("Error fetching all content count:", err);
+      }
+    };
+
+    fetchAllContentCount();
+  }, [modelName]);
+
+  // Fetch all content page data only when on all-content tab
+  useEffect(() => {
+    const fetchAllContentPage = async () => {
+      if (activeTab !== "all-content") {
+        setAllContentItems([]); // Clear items when not on tab
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `/api/all-content?modelName=${encodeURIComponent(modelName)}&page=${currentPage}&limit=${itemsPerPage}`
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch all content");
+        }
+
+        const data = await response.json();
+        setAllContentItems(data.contentItems || []);
+        
+        console.log('📄 All content pagination:', data.pagination);
+      } catch (err) {
+        console.error("Error fetching all content page:", err);
+      }
+    };
+
+    fetchAllContentPage();
+  }, [modelName, activeTab, currentPage, itemsPerPage]);
+
   // Fetch social media page data only when on social media tab
   useEffect(() => {
     const fetchSocialMediaPage = async () => {
@@ -398,7 +458,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
 
   // Dynamic tab counts based on actual data
   const getTabCounts = () => {
-    const allCount = contentItems.length;
+    const allCount = allContentTotalCount;
     const vaultNewCount = contentItems.filter(
       (item) => item.isVaultNew === true
     ).length;
@@ -651,12 +711,17 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
           </div>
           
           {/* Pagination Info */}
-          {(filteredItems.length > 0 || activeTab === "social-media") && (
+          {(filteredItems.length > 0 || ["social-media", "all-content"].includes(activeTab)) && (
             <div className="mt-4 text-center text-gray-400 text-sm">
               {activeTab === "social-media" ? (
                 <>
                   Showing {Math.min((currentPage - 1) * itemsPerPage + 1, socialMediaTotalCount)} to{" "}
                   {Math.min(currentPage * itemsPerPage, socialMediaTotalCount)} of {socialMediaTotalCount} items
+                </>
+              ) : activeTab === "all-content" ? (
+                <>
+                  Showing {Math.min((currentPage - 1) * itemsPerPage + 1, allContentTotalCount)} to{" "}
+                  {Math.min(currentPage * itemsPerPage, allContentTotalCount)} of {allContentTotalCount} items
                 </>
               ) : (
                 <>
