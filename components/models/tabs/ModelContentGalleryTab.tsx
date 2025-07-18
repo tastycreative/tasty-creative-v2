@@ -289,6 +289,19 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
     setSelectedFolder(null);
   };
 
+  const handleCreateGif = (item: ContentItem) => {
+    if (!item.driveId) {
+      console.error('No driveId available for item:', item.title);
+      return;
+    }
+
+    // Determine the parameter based on whether it's a folder or file
+    const param = item.isFolder ? 'folderid' : 'fileid';
+    const redirectUrl = `/apps/models/${encodeURIComponent(modelName.toLowerCase())}/apps?tab=gif&${param}=${item.driveId}`;
+    
+    router.push(redirectUrl);
+  };
+
   // If viewing a folder, show the folder viewer
   if (selectedFolder) {
     return (
@@ -557,7 +570,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
                       <span>{item.timeAgo}</span>
                     </div>
 
-                    {/* Status */}
+                    {/* Status
                     <div className="mb-4">
                       {item.campaignReady ? (
                         <p className="text-green-400 font-medium text-xs">
@@ -568,7 +581,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
                           Awaiting GIF + Caption
                         </p>
                       )}
-                    </div>
+                    </div> */}
 
                     {/* Action Buttons */}
                     <div className="space-y-2">
@@ -585,7 +598,13 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
                         </>
                       ) : (
                         <>
-                          <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition-colors text-xs font-medium">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent triggering folder click
+                              handleCreateGif(item);
+                            }}
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition-colors text-xs font-medium"
+                          >
                             <Film className="w-3 h-3" />
                             <span>Create GIF</span>
                           </button>

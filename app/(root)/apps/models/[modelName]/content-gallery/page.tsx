@@ -16,6 +16,7 @@ export default function ModelContentGalleryPage() {
 
   return (
     <div className="p-6">
+      
       <ModelContentGalleryTab modelName={modelName} />
     </div>
   );

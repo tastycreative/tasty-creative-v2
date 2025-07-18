@@ -75,6 +75,8 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
     progress: number;
     isDownloading: boolean;
     bytesDownloaded?: string;
+    totalBytes?: number;
+    downloadedBytes?: number;
   } | null>(null);
 
   // Update formData when modelName prop changes
@@ -84,6 +86,14 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
     }
   }, [modelName, formData.model]);
 
+  // Helper function to format bytes into human-readable sizes
+  const formatBytes = (bytes: number): string => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+  };
   
   const handleVideosAdded = async (files: File[]) => {
     setIsUploading(true);
@@ -141,7 +151,9 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
         setAutoDownloadProgress({
           fileName: filename,
           progress: 0,
-          isDownloading: true
+          isDownloading: true,
+          totalBytes: total,
+          downloadedBytes: 0
         });
 
         while (true) {
@@ -154,14 +166,19 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
           // Update progress with real percentage based on known total size
           if (total > 0) {
             const progress = Math.round((receivedLength / total) * 100);
-            setAutoDownloadProgress(prev => prev ? { ...prev, progress } : null);
+            setAutoDownloadProgress(prev => prev ? { 
+              ...prev, 
+              progress,
+              downloadedBytes: receivedLength
+            } : null);
           } else {
             // Fallback to bytes downloaded if metadata didn't provide size
             const mbDownloaded = (receivedLength / (1024 * 1024)).toFixed(1);
             setAutoDownloadProgress(prev => prev ? { 
               ...prev, 
               progress: -1,
-              bytesDownloaded: mbDownloaded 
+              bytesDownloaded: mbDownloaded,
+              downloadedBytes: receivedLength
             } : null);
           }
         }
@@ -355,7 +372,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                 }
                 {folderId && (
                   <span className="block text-sm text-blue-600 dark:text-blue-400 mt-1">
-                    📁 Folder shortcut available (ID: {folderId.substring(0, 8)}...) - You can also paste any Google Drive folder link below
+                    📁 Auto-opening Google Drive folder (ID: {folderId.substring(0, 8)}...) when model is selected
                   </span>
                 )}
                 {fileId && (
@@ -374,16 +391,23 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                                 style={{ width: `${autoDownloadProgress.progress}%` }}
                               />
                             </div>
-                            <span className="text-xs text-gray-600 dark:text-gray-400">
-                              {autoDownloadProgress.progress}% completed
-                            </span>
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs text-gray-600 dark:text-gray-400">
+                                {autoDownloadProgress.progress}% completed
+                              </span>
+                              {autoDownloadProgress.downloadedBytes !== undefined && autoDownloadProgress.totalBytes && (
+                                <span className="text-xs text-gray-600 dark:text-gray-400">
+                                  {formatBytes(autoDownloadProgress.downloadedBytes)} / {formatBytes(autoDownloadProgress.totalBytes)}
+                                </span>
+                              )}
+                            </div>
                           </>
                         ) : (
                           // Show bytes downloaded when total size is unknown
                           <div className="flex items-center space-x-2">
                             <div className="animate-pulse w-3 h-3 bg-green-600 rounded-full"></div>
                             <span className="text-xs text-gray-600 dark:text-gray-400">
-                              Downloaded: {autoDownloadProgress.bytesDownloaded} MB
+                              Downloaded: {autoDownloadProgress.downloadedBytes !== undefined ? formatBytes(autoDownloadProgress.downloadedBytes) : autoDownloadProgress.bytesDownloaded + ' MB'}
                             </span>
                           </div>
                         )}

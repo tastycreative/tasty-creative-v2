@@ -87,6 +87,7 @@ function ModelLayoutContent({ children, modelName }: { children: ReactNode; mode
 
   return (
     <div className="min-h-screen">
+      <title>{modelName}| Tasty Creative</title>
       <div className="container mx-auto px-4 py-8">
         {/* Back Button */}
         <button

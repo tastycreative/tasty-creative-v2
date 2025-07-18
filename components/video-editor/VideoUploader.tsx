@@ -87,6 +87,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
   const [useFolderId, setUseFolderId] = useState(!!folderId);
   const [customFolderId, setCustomFolderId] = useState("");
   const [folderInputValue, setFolderInputValue] = useState("");
+  const [hasAutoOpened, setHasAutoOpened] = useState(false);
   
   // Download progress state
   const [downloadProgress, setDownloadProgress] = useState<{
@@ -99,6 +100,19 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
   useEffect(() => {
     setUseFolderId(!!folderId);
   }, [folderId]);
+
+  // Auto-open Google Drive picker when folderId is provided and model is selected
+  useEffect(() => {
+    if (folderId && model && !showGoogleDrivePicker && !hasAutoOpened) {
+      console.log('Auto-opening Google Drive picker with folderId:', folderId);
+      setHasAutoOpened(true);
+      // Small delay to ensure component is fully mounted
+      setTimeout(() => {
+        handleGoogleDriveSelect();
+      }, 100);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [folderId, model, showGoogleDrivePicker, hasAutoOpened]);
 
   // Function to extract folder ID from Google Drive URL
   const extractFolderIdFromUrl = (url: string): string => {
