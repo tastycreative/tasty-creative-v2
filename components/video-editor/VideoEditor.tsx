@@ -110,24 +110,23 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
       setIsAutoDownloading(true);
 
       try {
-        // Download the file using the same logic as VideoUploader
+        // First, get file metadata to know the total size and filename
+        const metadataResponse = await fetch(`/api/google-drive/metadata?id=${fileId}`);
+        if (!metadataResponse.ok) {
+          throw new Error(`Failed to fetch file metadata: ${metadataResponse.statusText}`);
+        }
+        
+        const metadata = await metadataResponse.json();
+        const filename = metadata.name || 'auto-download.mp4';
+        const total = metadata.size || 0;
+
+        console.log(`Auto-downloading file: ${filename}, Size: ${total} bytes`);
+
+        // Now download the file
         const response = await fetch(`/api/google-drive/download?id=${fileId}`);
         
         if (!response.ok) {
           throw new Error(`Failed to download file: ${response.statusText}`);
-        }
-
-        const contentLength = response.headers.get('content-length');
-        const total = contentLength ? parseInt(contentLength, 10) : 0;
-
-        // Try to get the filename from the response headers or use a default
-        const contentDisposition = response.headers.get('content-disposition');
-        let filename = 'auto-download.mp4';
-        if (contentDisposition) {
-          const filenameMatch = contentDisposition.match(/filename="(.+)"/);
-          if (filenameMatch) {
-            filename = filenameMatch[1];
-          }
         }
 
         const reader = response.body?.getReader();
@@ -138,7 +137,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
         const chunks: Uint8Array[] = [];
         let receivedLength = 0;
 
-        // Initialize progress tracking
+        // Initialize progress tracking with known total size
         setAutoDownloadProgress({
           fileName: filename,
           progress: 0,
@@ -152,16 +151,16 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
           chunks.push(value);
           receivedLength += value.length;
 
-          // Update progress - only show real progress if we know the total size
+          // Update progress with real percentage based on known total size
           if (total > 0) {
             const progress = Math.round((receivedLength / total) * 100);
             setAutoDownloadProgress(prev => prev ? { ...prev, progress } : null);
           } else {
-            // Show bytes downloaded instead of percentage when total is unknown
+            // Fallback to bytes downloaded if metadata didn't provide size
             const mbDownloaded = (receivedLength / (1024 * 1024)).toFixed(1);
             setAutoDownloadProgress(prev => prev ? { 
               ...prev, 
-              progress: -1, // Special value to indicate unknown total
+              progress: -1,
               bytesDownloaded: mbDownloaded 
             } : null);
           }
