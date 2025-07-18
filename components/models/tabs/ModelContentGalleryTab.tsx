@@ -16,6 +16,10 @@ import {
   Play,
   AlertCircle,
   Folder,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 import FolderViewer from "../FolderViewer";
 
@@ -44,6 +48,12 @@ interface ContentItem {
   isVaultNew?: boolean;
   driveId?: string | null;
   isFolder?: boolean;
+  // Social media specific properties
+  contentType?: string;
+  platform?: string;
+  description?: string;
+  postLink?: string;
+  uploadDate?: string;
 }
 
 const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
@@ -55,6 +65,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [sextingItems, setSextingItems] = useState<ContentItem[]>([]);
+  const [socialMediaItems, setSocialMediaItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<{
@@ -63,6 +74,9 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
   } | null>(null);
   // Map of driveId to sibling thumbnailLink
   const [siblingThumbnails, setSiblingThumbnails] = useState<Record<string, string>>(/** @type {any} */({}));
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
 
   // --- Move function definitions above their first use ---
   const getDashboardStats = () => {
@@ -96,7 +110,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
         filtered = sextingItems;
         break;
       case "social-media":
-        filtered = [];
+        filtered = socialMediaItems;
         break;
       default:
         // all-content shows everything
@@ -111,14 +125,35 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
     return filtered;
   };
 
+  const getPaginatedItems = () => {
+    const filtered = getFilteredItems();
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filtered.slice(startIndex, endIndex);
+  };
+
+  const getTotalPages = () => {
+    const filtered = getFilteredItems();
+    return Math.ceil(filtered.length / itemsPerPage);
+  };
+
   // Calculate stats and filteredItems after function definitions
   const stats = getDashboardStats();
   const filteredItems = getFilteredItems();
+  const paginatedItems = getPaginatedItems();
+  const totalPages = getTotalPages();
+
+  // Reset pagination when tab or search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, searchQuery]);
 
   // Fetch thumbnails for video files by getting parent folder and searching for matching title
   useEffect(() => {
     const fetchThumbnails = async () => {
-      const videoItems = filteredItems
+      // Include all items (vault content, sexting sets, and social media) that need thumbnails
+      const allItems = [...filteredItems, ...socialMediaItems.filter(item => activeTab === "social-media")];
+      const videoItems = allItems
         .filter(item => item.driveId && !item.isFolder) // Only video files, not folders
         .filter(item => item.driveId); // Ensure driveId exists
       
@@ -152,9 +187,9 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
     };
     
     fetchThumbnails();
-    // Only refetch when filteredItems changes
+    // Only refetch when filteredItems or socialMediaItems changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filteredItems.map(i => i.driveId).join(",")]);
+  }, [filteredItems.map(i => i.driveId).join(","), socialMediaItems.map(i => i.driveId).join(","), activeTab]);
 
   // Fetch vault content from API
   useEffect(() => {
@@ -207,12 +242,35 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
     fetchSextingSets();
   }, [modelName]);
 
+  // Fetch social media content from API
+  useEffect(() => {
+    const fetchSocialMediaContent = async () => {
+      try {
+        const response = await fetch(
+          `/api/social-media?modelName=${encodeURIComponent(modelName)}`
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch social media content");
+        }
+
+        const data = await response.json();
+        setSocialMediaItems(data.contentItems || []);
+      } catch (err) {
+        console.error("Error fetching social media content:", err);
+        // Don't set error state here as it might interfere with main content loading
+      }
+    };
+
+    fetchSocialMediaContent();
+  }, [modelName]);
+
   // Check for folderid parameter and automatically open folder
   useEffect(() => {
     const folderId = searchParams?.get('folderid');
     if (folderId && !selectedFolder) {
       // Find the folder item in both contentItems and sextingItems
-      const allItems = [...contentItems, ...sextingItems];
+      const allItems = [...contentItems, ...sextingItems, ...socialMediaItems];
       const folderItem = allItems.find(item => item.driveId === folderId && item.isFolder);
       
       if (folderItem) {
@@ -222,7 +280,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
       // If no folderid in URL but we have a selected folder, clear it
       setSelectedFolder(null);
     }
-  }, [searchParams, contentItems, sextingItems, selectedFolder]);
+  }, [searchParams, contentItems, sextingItems, socialMediaItems, selectedFolder]);
 
   // Dynamic tab counts based on actual data
   const getTabCounts = () => {
@@ -237,12 +295,14 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
       (item) => item.campaignReady
     ).length;
     const sextingSetsCount = sextingItems.length;
+    const socialMediaCount = socialMediaItems.length;
     return {
       allCount,
       vaultNewCount,
       needsGifCount,
       campaignReadyCount,
       sextingSetsCount,
+      socialMediaCount,
     };
   };
 
@@ -251,7 +311,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
   // (Already declared above)
 
   // Tabs variable moved up here
-  const { allCount, vaultNewCount, needsGifCount, campaignReadyCount, sextingSetsCount } = getTabCounts();
+  const { allCount, vaultNewCount, needsGifCount, campaignReadyCount, sextingSetsCount, socialMediaCount } = getTabCounts();
   const tabs = [
     { id: "all-content", label: "All Content", count: allCount },
     {
@@ -261,7 +321,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
       badge: vaultNewCount > 0 ? "NEW" : undefined,
     },
     { id: "sexting-sets", label: "Sexting Sets", count: sextingSetsCount },
-    { id: "social-media", label: "Social Media", count: 0 },
+    { id: "social-media", label: "Social Media", count: socialMediaCount },
     { id: "needs-gif", label: "Needs GIF", count: needsGifCount },
     {
       id: "campaign-ready",
@@ -442,19 +502,47 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
         </div>
       )}
 
-      {/* Search Bar */}
+      {/* Search Bar and Pagination Controls */}
       {!loading && (
         <div className="mb-8">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search content..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
-            />
+          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search content..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full sm:w-80 pl-10 pr-4 py-3 bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+              />
+            </div>
+            
+            {/* Items per page selector */}
+            <div className="flex items-center gap-2">
+              <span className="text-gray-400 text-sm">Items per page:</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="bg-slate-800/40 border border-slate-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              >
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={75}>75</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
           </div>
+          
+          {/* Pagination Info */}
+          {filteredItems.length > 0 && (
+            <div className="mt-4 text-center text-gray-400 text-sm">
+              Showing {Math.min((currentPage - 1) * itemsPerPage + 1, filteredItems.length)} to{" "}
+              {Math.min(currentPage * itemsPerPage, filteredItems.length)} of {filteredItems.length} items
+            </div>
+          )}
         </div>
       )}
 
@@ -476,8 +564,9 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredItems.map((item) => (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {paginatedItems.map((item) => (
                 <div
                   key={item.id}
                   className={`group bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-xl overflow-hidden hover:border-cyan-500/30 transition-all duration-300 hover:transform hover:scale-105 ${
@@ -618,7 +707,79 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
                   </div>
                 </div>
               ))}
-            </div>
+              </div>
+              
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="mt-8 flex justify-center items-center gap-2">
+                  {/* First page */}
+                  <button
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 text-gray-400 hover:text-white hover:border-cyan-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    <ChevronsLeft className="w-4 h-4" />
+                  </button>
+                  
+                  {/* Previous page */}
+                  <button
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 text-gray-400 hover:text-white hover:border-cyan-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  
+                  {/* Page numbers */}
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                            currentPage === pageNum
+                              ? "bg-cyan-600 text-white border border-cyan-500"
+                              : "bg-slate-800/40 border border-slate-700/50 text-gray-400 hover:text-white hover:border-cyan-500/30"
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  {/* Next page */}
+                  <button
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 text-gray-400 hover:text-white hover:border-cyan-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                  
+                  {/* Last page */}
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 text-gray-400 hover:text-white hover:border-cyan-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    <ChevronsRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
