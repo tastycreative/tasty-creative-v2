@@ -190,6 +190,17 @@ export const API_KEY_PROFILES = {
       },
     ],
   },
+  account_18: {
+    name: "OF Victoria's voice",
+    description: "Backup account for high-volume usage",
+    voices: [
+      {
+        name: "OF Victoria",
+        voiceId: "27MfWVzmwIbXIOTAiRVD",
+        category: "professional",
+      },
+    ],
+  },
 };
 
 // Available ElevenLabs models
