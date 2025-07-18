@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
       `'${folderId}' in parents and trashed=false and name contains '${searchTitle.replace(/\.(mp4|mov|avi|mkv|webm|flv|wmv)$/i, '')}'`,
     ];
 
-    let matchingFiles = [];
+    let matchingFiles: any[] = [];
     let searchAttempt = 0;
 
     // Try each search strategy until we find results
