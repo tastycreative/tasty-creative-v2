@@ -28,6 +28,7 @@ interface VideoEditorProps {
 export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
   const searchParams = useSearchParams();
   const folderId = searchParams?.get('folderid') || undefined;
+  const fileId = searchParams?.get('fileid') || undefined;
 
   // Model selection state compatible with ModelsDropdown
   const [formData, setFormData] = useState<{ model?: string }>({
@@ -66,6 +67,15 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
   const [trimmingVideo, setTrimmingVideo] = useState<{
     videoId: string;
   } | null>(null);
+  const [googlePermissionsLoaded, setGooglePermissionsLoaded] = useState(false);
+  const [hasAttemptedAutoDownload, setHasAttemptedAutoDownload] = useState(false);
+  const [isAutoDownloading, setIsAutoDownloading] = useState(false);
+  const [autoDownloadProgress, setAutoDownloadProgress] = useState<{
+    fileName: string;
+    progress: number;
+    isDownloading: boolean;
+    bytesDownloaded?: string;
+  } | null>(null);
 
   // Update formData when modelName prop changes
   useEffect(() => {
@@ -74,6 +84,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
     }
   }, [modelName, formData.model]);
 
+  
   const handleVideosAdded = async (files: File[]) => {
     setIsUploading(true);
     try {
@@ -86,6 +97,107 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
       setIsUploading(false);
     }
   };
+
+  // Auto-download Google Drive file when fileId param exists and permissions are loaded
+  useEffect(() => {
+    const attemptAutoDownload = async () => {
+      console.log('Auto-download check:', { fileId, googlePermissionsLoaded, hasAttemptedAutoDownload });
+      if (!fileId || !googlePermissionsLoaded || hasAttemptedAutoDownload) {
+        return;
+      }
+
+      setHasAttemptedAutoDownload(true);
+      setIsAutoDownloading(true);
+
+      try {
+        // Download the file using the same logic as VideoUploader
+        const response = await fetch(`/api/google-drive/download?id=${fileId}`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to download file: ${response.statusText}`);
+        }
+
+        const contentLength = response.headers.get('content-length');
+        const total = contentLength ? parseInt(contentLength, 10) : 0;
+
+        // Try to get the filename from the response headers or use a default
+        const contentDisposition = response.headers.get('content-disposition');
+        let filename = 'auto-download.mp4';
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+          if (filenameMatch) {
+            filename = filenameMatch[1];
+          }
+        }
+
+        const reader = response.body?.getReader();
+        if (!reader) {
+          throw new Error('Response body is not readable');
+        }
+
+        const chunks: Uint8Array[] = [];
+        let receivedLength = 0;
+
+        // Initialize progress tracking
+        setAutoDownloadProgress({
+          fileName: filename,
+          progress: 0,
+          isDownloading: true
+        });
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          chunks.push(value);
+          receivedLength += value.length;
+
+          // Update progress - only show real progress if we know the total size
+          if (total > 0) {
+            const progress = Math.round((receivedLength / total) * 100);
+            setAutoDownloadProgress(prev => prev ? { ...prev, progress } : null);
+          } else {
+            // Show bytes downloaded instead of percentage when total is unknown
+            const mbDownloaded = (receivedLength / (1024 * 1024)).toFixed(1);
+            setAutoDownloadProgress(prev => prev ? { 
+              ...prev, 
+              progress: -1, // Special value to indicate unknown total
+              bytesDownloaded: mbDownloaded 
+            } : null);
+          }
+        }
+
+        // Combine all chunks into a single Uint8Array
+        const chunksAll = new Uint8Array(receivedLength);
+        let position = 0;
+        for (const chunk of chunks) {
+          chunksAll.set(chunk, position);
+          position += chunk.length;
+        }
+
+        // Create a blob and file
+        const blob = new Blob([chunksAll]);
+
+        const videoFile = new File([blob], filename, {
+          type: blob.type.startsWith("video/") ? blob.type : "video/mp4",
+        });
+
+        // Add the video to the sequence
+        await handleVideosAdded([videoFile]);
+        
+        console.log(`Auto-downloaded Google Drive file: ${filename}`);
+      } catch (error) {
+        console.error("Error auto-downloading Google Drive file:", error);
+        // Don't show an alert for auto-download failures, just log it
+      } finally {
+        setIsAutoDownloading(false);
+        setAutoDownloadProgress(null);
+      }
+    };
+
+    attemptAutoDownload();
+  }, [fileId, googlePermissionsLoaded, hasAttemptedAutoDownload, handleVideosAdded]);
+
 
   const handleRemoveVideo = (id: string) => {
     removeVideo(id);
@@ -247,6 +359,49 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                     📁 Folder shortcut available (ID: {folderId.substring(0, 8)}...) - You can also paste any Google Drive folder link below
                   </span>
                 )}
+                {fileId && (
+                  <div className="block mt-1">
+                    {autoDownloadProgress ? (
+                      <div className="space-y-2">
+                        <span className="text-sm text-green-600 dark:text-green-400">
+                          🔄 Auto-downloading: {autoDownloadProgress.fileName}
+                        </span>
+                        {autoDownloadProgress.progress >= 0 ? (
+                          // Show percentage progress bar when total size is known
+                          <>
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                              <div 
+                                className="bg-green-600 h-2 rounded-full transition-all duration-300 ease-out"
+                                style={{ width: `${autoDownloadProgress.progress}%` }}
+                              />
+                            </div>
+                            <span className="text-xs text-gray-600 dark:text-gray-400">
+                              {autoDownloadProgress.progress}% completed
+                            </span>
+                          </>
+                        ) : (
+                          // Show bytes downloaded when total size is unknown
+                          <div className="flex items-center space-x-2">
+                            <div className="animate-pulse w-3 h-3 bg-green-600 rounded-full"></div>
+                            <span className="text-xs text-gray-600 dark:text-gray-400">
+                              Downloaded: {autoDownloadProgress.bytesDownloaded} MB
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-sm text-green-600 dark:text-green-400">
+                        {isAutoDownloading ? (
+                          <>🔄 Preparing auto-download for Google Drive file (ID: {fileId.substring(0, 8)}...)...</>
+                        ) : hasAttemptedAutoDownload ? (
+                          <>✅ Google Drive file auto-download completed</>
+                        ) : (
+                          <>🎬 Auto-download: Google Drive file (ID: {fileId.substring(0, 8)}...) will download automatically when permissions are ready</>
+                        )}
+                      </span>
+                    )}
+                  </div>
+                )}
               </p>
             </div>
 
@@ -300,6 +455,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                     setFormData={setFormData}
                     error={fieldErrors.model}
                     setFieldErrors={setFieldErrors}
+                    onPermissionsLoaded={() => setGooglePermissionsLoaded(true)}
                   />
                 </div>
               </div>

@@ -20,6 +20,7 @@ const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
   webhookData,
   error,
   setFieldErrors,
+  onPermissionsLoaded,
 }) => {
   const [models, setModels] = useState<Model[]>([]);
   const [loadingModels, setLoadingModels] = useState(true);
@@ -44,7 +45,7 @@ const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
   }, []);
 
   return (
-    <PermissionGoogle apiEndpoint="/api/models">
+    <PermissionGoogle apiEndpoint="/api/models" onPermissionsLoaded={onPermissionsLoaded}>
       <div className="flex flex-col">
         <label
           htmlFor="model"

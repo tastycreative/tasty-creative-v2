@@ -108,6 +108,7 @@ type ModelsDropdownProps = {
   webhookData?: any;
   error?: string;
   setFieldErrors?: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  onPermissionsLoaded?: () => void;
 };
 
 type ModelFormData = {

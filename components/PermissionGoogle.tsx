@@ -7,11 +7,13 @@ import { Button } from "@/components/ui/button";
 interface PermissionGoogleProps {
   children: ReactNode;
   apiEndpoint: string;
+  onPermissionsLoaded?: () => void;
 }
 
 const PermissionGoogle: React.FC<PermissionGoogleProps> = ({
   children,
   apiEndpoint,
+  onPermissionsLoaded,
 }) => {
   const [hasPermission, setHasPermission] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,6 +49,7 @@ const PermissionGoogle: React.FC<PermissionGoogleProps> = ({
       const response = await fetch(apiEndpoint);
       if (response.ok) {
         setHasPermission(true);
+        onPermissionsLoaded?.();
       } else if (response.status === 401) {
         setHasPermission(false);
         //console.log(
@@ -108,6 +111,13 @@ const PermissionGoogle: React.FC<PermissionGoogleProps> = ({
   useEffect(() => {
     checkPermission();
   }, [checkPermission]);
+
+  // Call onPermissionsLoaded when permissions are ready
+  useEffect(() => {
+    if (hasPermission) {
+      onPermissionsLoaded?.();
+    }
+  }, [hasPermission, onPermissionsLoaded]);
 
   const handleGrantAccess = async () => {
     setIsLoading(true);
