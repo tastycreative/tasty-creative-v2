@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
       console.log(`Query: ${query}`);
       
       try {
-        const response = await drive.files.list({
+        const response: any = await drive.files.list({
           q: query,
           fields: 'files(id,name,thumbnailLink,mimeType)',
           supportsAllDrives: true,
@@ -86,8 +86,8 @@ export async function GET(request: NextRequest) {
     if (matchingFiles.length === 0) {
       console.log(`🔄 Falling back to broad search with local filtering for "${searchTitle}"`);
       
-      let allFiles = [];
-      let pageToken = null;
+      let allFiles: any[] = [];
+      let pageToken: string | null = null;
       let pageCount = 0;
       const maxPages = 5; // Limit to prevent timeout (5 * 1000 = 5000 files max)
       
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
         pageCount++;
         console.log(`📄 Fetching page ${pageCount} of folder contents`);
         
-        const response = await drive.files.list({
+        const response: any = await drive.files.list({
           q: `'${folderId}' in parents and trashed=false`,
           fields: 'nextPageToken,files(id,name,thumbnailLink,mimeType)',
           supportsAllDrives: true,
