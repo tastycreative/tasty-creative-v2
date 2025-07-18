@@ -27,9 +27,20 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const modelName = searchParams.get('modelName');
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '100');
+    const getTotalOnly = searchParams.get('getTotalOnly') === 'true';
     
     if (!modelName) {
       return NextResponse.json({ error: 'Model name is required' }, { status: 400 });
+    }
+
+    // Validate pagination parameters
+    if (page < 1) {
+      return NextResponse.json({ error: 'Page must be >= 1' }, { status: 400 });
+    }
+    if (limit < 1 || limit > 500) {
+      return NextResponse.json({ error: 'Limit must be between 1 and 500' }, { status: 400 });
     }
 
     // Authenticate user session
@@ -64,7 +75,38 @@ export async function GET(request: NextRequest) {
     // Google Sheets API configuration
     const SPREADSHEET_ID = '1_BRrKVZbLwnHJCNYsacu5Lx25yJ7eoPpAEsbv1OBwtA';
     const SHEET_NAME = `${modelName.charAt(0).toUpperCase() + modelName.slice(1).toLowerCase()} - SOCIAL MEDIA`;
-    const RANGE = `${SHEET_NAME}!B4:L1000`; // B3:L3 for headers, B4:L for data rows
+    
+    // First, get the total count of rows to determine pagination
+    const totalCountRange = `${SHEET_NAME}!B4:B`; // Get all B column values to count rows
+    const countResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: totalCountRange,
+      valueRenderOption: 'FORMATTED_VALUE', // Just for counting, don't need formulas
+    });
+
+    const allBColumnValues = countResponse.data.values || [];
+    // Filter out empty rows
+    const totalRows = allBColumnValues.filter(row => row[0] && row[0].trim() !== '').length;
+    const totalPages = Math.ceil(totalRows / limit);
+
+    console.log(`📊 Social Media API: Total rows: ${totalRows}, Page: ${page}/${totalPages}, Limit: ${limit}`);
+
+    // If only requesting total count, return early
+    if (getTotalOnly) {
+      return NextResponse.json({ 
+        totalItems: totalRows, 
+        totalPages: totalPages,
+        currentPage: page,
+        itemsPerPage: limit
+      });
+    }
+
+    // Calculate the range for the current page
+    const startRow = 4 + (page - 1) * limit; // Start from row 4, add offset for pagination
+    const endRow = startRow + limit - 1;
+    const RANGE = `${SHEET_NAME}!B${startRow}:L${endRow}`;
+    
+    console.log(`📄 Fetching range: ${RANGE}`);
     
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
@@ -172,7 +214,17 @@ export async function GET(request: NextRequest) {
       })
       .filter((item) => item !== null) as SocialMediaItem[];
 
-    return NextResponse.json({ contentItems });
+    return NextResponse.json({ 
+      contentItems,
+      pagination: {
+        currentPage: page,
+        totalPages: totalPages,
+        totalItems: totalRows,
+        itemsPerPage: limit,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1
+      }
+    });
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {

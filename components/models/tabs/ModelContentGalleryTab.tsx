@@ -66,6 +66,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [sextingItems, setSextingItems] = useState<ContentItem[]>([]);
   const [socialMediaItems, setSocialMediaItems] = useState<ContentItem[]>([]);
+  const [socialMediaTotalCount, setSocialMediaTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<{
@@ -110,14 +111,15 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
         filtered = sextingItems;
         break;
       case "social-media":
+        // For social media, we use the paginated items already loaded
         filtered = socialMediaItems;
         break;
       default:
         // all-content shows everything
         break;
     }
-    // Filter by search query
-    if (searchQuery) {
+    // Filter by search query (but not for social media since it's already paginated)
+    if (searchQuery && activeTab !== "social-media") {
       filtered = filtered.filter((item) =>
         item.title.toLowerCase().includes(searchQuery.toLowerCase())
       );
@@ -127,12 +129,20 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
 
   const getPaginatedItems = () => {
     const filtered = getFilteredItems();
+    // For social media, items are already paginated server-side
+    if (activeTab === "social-media") {
+      return filtered;
+    }
+    // For other tabs, do client-side pagination
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return filtered.slice(startIndex, endIndex);
   };
 
   const getTotalPages = () => {
+    if (activeTab === "social-media") {
+      return Math.ceil(socialMediaTotalCount / itemsPerPage);
+    }
     const filtered = getFilteredItems();
     return Math.ceil(filtered.length / itemsPerPage);
   };
@@ -317,12 +327,40 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
     fetchSextingSets();
   }, [modelName]);
 
-  // Fetch social media content from API
+  // Fetch social media total count on mount
   useEffect(() => {
-    const fetchSocialMediaContent = async () => {
+    const fetchSocialMediaCount = async () => {
+      try {
+        const countResponse = await fetch(
+          `/api/social-media?modelName=${encodeURIComponent(modelName)}&getTotalOnly=true`
+        );
+
+        if (!countResponse.ok) {
+          throw new Error("Failed to fetch social media count");
+        }
+
+        const countData = await countResponse.json();
+        setSocialMediaTotalCount(countData.totalItems);
+        console.log('📊 Social media total items:', countData.totalItems);
+      } catch (err) {
+        console.error("Error fetching social media count:", err);
+      }
+    };
+
+    fetchSocialMediaCount();
+  }, [modelName]);
+
+  // Fetch social media page data only when on social media tab
+  useEffect(() => {
+    const fetchSocialMediaPage = async () => {
+      if (activeTab !== "social-media") {
+        setSocialMediaItems([]); // Clear items when not on tab
+        return;
+      }
+
       try {
         const response = await fetch(
-          `/api/social-media?modelName=${encodeURIComponent(modelName)}`
+          `/api/social-media?modelName=${encodeURIComponent(modelName)}&page=${currentPage}&limit=${itemsPerPage}`
         );
 
         if (!response.ok) {
@@ -331,14 +369,15 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
 
         const data = await response.json();
         setSocialMediaItems(data.contentItems || []);
+        
+        console.log('📄 Social media pagination:', data.pagination);
       } catch (err) {
-        console.error("Error fetching social media content:", err);
-        // Don't set error state here as it might interfere with main content loading
+        console.error("Error fetching social media page:", err);
       }
     };
 
-    fetchSocialMediaContent();
-  }, [modelName]);
+    fetchSocialMediaPage();
+  }, [modelName, activeTab, currentPage, itemsPerPage]);
 
   // Check for folderid parameter and automatically open folder
   useEffect(() => {
@@ -370,7 +409,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
       (item) => item.campaignReady
     ).length;
     const sextingSetsCount = sextingItems.length;
-    const socialMediaCount = socialMediaItems.length;
+    const socialMediaCount = socialMediaTotalCount;
     return {
       allCount,
       vaultNewCount,
@@ -612,10 +651,19 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
           </div>
           
           {/* Pagination Info */}
-          {filteredItems.length > 0 && (
+          {(filteredItems.length > 0 || activeTab === "social-media") && (
             <div className="mt-4 text-center text-gray-400 text-sm">
-              Showing {Math.min((currentPage - 1) * itemsPerPage + 1, filteredItems.length)} to{" "}
-              {Math.min(currentPage * itemsPerPage, filteredItems.length)} of {filteredItems.length} items
+              {activeTab === "social-media" ? (
+                <>
+                  Showing {Math.min((currentPage - 1) * itemsPerPage + 1, socialMediaTotalCount)} to{" "}
+                  {Math.min(currentPage * itemsPerPage, socialMediaTotalCount)} of {socialMediaTotalCount} items
+                </>
+              ) : (
+                <>
+                  Showing {Math.min((currentPage - 1) * itemsPerPage + 1, filteredItems.length)} to{" "}
+                  {Math.min(currentPage * itemsPerPage, filteredItems.length)} of {filteredItems.length} items
+                </>
+              )}
             </div>
           )}
         </div>
