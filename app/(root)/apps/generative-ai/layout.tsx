@@ -17,6 +17,7 @@ import {
   Menu,
   X,
   ImageIcon,
+  PaintBucket,
 } from "lucide-react";
 
 type TabType =
@@ -29,6 +30,7 @@ type TabType =
   | "text2image"
   | "image2image"
   | "img2img"
+  | "inpainting"
   | "instagram";
 
 interface Tab {
@@ -92,6 +94,14 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
       icon: ImageIcon,
       color: "from-teal-500 to-green-500",
       href: "/apps/generative-ai/img2img",
+      group: "generation",
+    },
+    {
+      id: "inpainting",
+      label: "Inpainting",
+      icon: PaintBucket,
+      color: "from-amber-500 to-orange-500",
+      href: "/apps/generative-ai/inpainting",
       group: "generation",
     },
     {
