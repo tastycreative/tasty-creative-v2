@@ -16,15 +16,9 @@ const ContentLayout = ({ children  }: { children: React.ReactNode}) => {
       {/* Desktop Main Content */}
       <div className={clsx(
         "hidden lg:flex flex-1 relative transition-all duration-300 min-w-0",
-        isCollapsed ? "ml-28" : "ml-80"
+        isCollapsed ? "ml-28" : "ml-78"
       )}>
-        <div className="w-full h-full rounded-2xl backdrop-blur-[2px] shadow-xl border border-white/50 dark:border-slate-700/50 overflow-hidden">
-          {/* Subtle dot pattern */}
-          {/* <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.02]" /> */}
-
-          {/* Gentle top gradient */}
-          {/* <div className="absolute inset-x-0 top-0 h-32" /> */}
-
+        <div className="w-full h-full rounded-2xl backdrop-blur-sm shadow-xl border border-pink-100/50 overflow-hidden bg-white/60">
           {/* Content */}
           <ProtectedFeature>
             <div className="relative h-full p-6">{children}</div>
@@ -34,13 +28,7 @@ const ContentLayout = ({ children  }: { children: React.ReactNode}) => {
 
       {/* Mobile/Tablet Main Content */}
       <div className="lg:hidden flex-1 w-full pt-16">
-        <div className="h-full rounded-2xl backdrop-blur-[2px] shadow-xl border border-white/50 dark:border-slate-700/50 overflow-hidden">
-          {/* Subtle dot pattern */}
-          <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.02]" />
-
-          {/* Gentle top gradient */}
-          <div className="absolute inset-x-0 top-0 h-32" />
-
+        <div className="h-full rounded-2xl backdrop-blur-sm shadow-xl border border-pink-100/50 overflow-hidden bg-white/60">
           {/* Content */}
           <ProtectedFeature>
             <div className="relative h-full p-4 sm:p-6">{children}</div>

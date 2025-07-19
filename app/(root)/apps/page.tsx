@@ -145,10 +145,10 @@ export default function AppsPage() {
     <div className="w-full h-full p-3 sm:p-4 lg:p-6">
       {/* Page Title - Responsive typography */}
       <div className="mb-4 sm:mb-6 lg:mb-8">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-800 dark:text-white mb-1 sm:mb-2">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent mb-1 sm:mb-2">
           Applications
         </h1>
-        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
+        <p className="text-sm sm:text-base text-gray-600">
           Choose an app to get started
         </p>
       </div>
@@ -181,10 +181,10 @@ export default function AppsPage() {
               )}
 
               {/* Glass Effect Overlay */}
-              <div className="absolute inset-0 bg-white/10 dark:bg-black/10 backdrop-blur-sm rounded-2xl sm:rounded-3xl" />
+              <div className="absolute inset-0 bg-white/10 backdrop-blur-sm rounded-2xl sm:rounded-3xl" />
 
               {/* Animated Border */}
-              <div className="absolute inset-0 rounded-2xl sm:rounded-3xl border border-white/20 group-hover:border-white/40 transition-colors duration-300" />
+              <div className="absolute inset-0 rounded-2xl sm:rounded-3xl border border-pink-200/30 group-hover:border-pink-300/50 transition-colors duration-300" />
 
               {/* Content - Responsive sizing */}
               <div className="relative z-10 h-full flex flex-col items-center justify-center p-2 sm:p-3 lg:p-4 text-white">

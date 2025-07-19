@@ -8,40 +8,55 @@ const HomePage = async () => {
   const session = await auth();
 
   return (
-    <div className="">
+    <div className="relative">
       <TastyCreativeLanding session={session} />
-      <div className="absolute top-6 right-5 z-50 md:flex hidden">
+      
+      {/* Navigation overlay - styled to match the pinkish theme */}
+      <div className="absolute top-6 right-6 z-50 flex">
         {session ? (
-          <form
-            className="flex gap-2"
-            action={async () => {
-              "use server";
-              await signOut();
-            }}
-          >
-            <p className="text-gray-600 dark:text-gray-400">
-              {session.user.name || "Not set"}
-            </p>
-
-            <Link href="/dashboard" className="text-purple-500 hover:underline">
-              Dashboard
-            </Link>
-
-            {session.user.role === "ADMIN" && (
-              <Link
-                href="/admin/dashboard"
-                className="text-purple-500 hover:underline"
+          <div className="flex items-center gap-4 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-xl border border-pink-100 shadow-lg">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-600">
+                Welcome, {session.user.name || "User"}
+              </span>
+              
+              <Link 
+                href="/dashboard" 
+                className="px-3 py-1 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-sm rounded-lg hover:shadow-md transition-all duration-300"
               >
-                Admin
+                Dashboard
               </Link>
-            )}
-            <button className="cursor-pointer" type="submit">
-              Sign Out
-            </button>
-          </form>
+
+              {session.user.role === "ADMIN" && (
+                <Link
+                  href="/admin/dashboard"
+                  className="px-3 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-sm rounded-lg hover:shadow-md transition-all duration-300"
+                >
+                  Admin
+                </Link>
+              )}
+            </div>
+            
+            <form
+              action={async () => {
+                "use server";
+                await signOut();
+              }}
+            >
+              <button 
+                className="text-sm text-gray-600 hover:text-pink-600 transition-colors"
+                type="submit"
+              >
+                Sign Out
+              </button>
+            </form>
+          </div>
         ) : (
-          <div>
-            <Link href="/sign-in" className="text-purple-500 hover:underline">
+          <div className="bg-white/80 backdrop-blur-sm px-4 py-2 rounded-xl border border-pink-100 shadow-lg">
+            <Link 
+              href="/sign-in" 
+              className="px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-sm rounded-lg hover:shadow-md transition-all duration-300"
+            >
               Sign In
             </Link>
           </div>

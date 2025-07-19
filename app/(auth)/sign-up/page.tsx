@@ -10,14 +10,14 @@ export const metadata: Metadata = {
 export default function SignUp() {
   return (
     <div className="w-full">
-      <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+      <h2 className="text-2xl font-semibold text-foreground">
         Create your account
       </h2>
-      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+      <p className="mt-2 text-sm text-muted-foreground">
         Or{" "}
         <Link
           href="/sign-in"
-          className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
+          className="font-medium text-primary hover:text-primary/90 transition-colors"
         >
           sign in to an existing account
         </Link>
@@ -27,10 +27,10 @@ export default function SignUp() {
 
       <div className="relative mt-6">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-300 dark:border-gray-700"></div>
+          <div className="w-full border-t border-border"></div>
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-2 bg-white dark:bg-gray-900 text-gray-500">
+          <span className="px-2 bg-background text-muted-foreground">
             Or continue with
           </span>
         </div>

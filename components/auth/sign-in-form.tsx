@@ -53,20 +53,20 @@ export function SignInForm() {
   return (
     <>
       {verified && (
-        <div className="mb-4 bg-green-50 dark:bg-green-900/50 text-green-600 dark:text-green-400 p-3 rounded-lg text-sm">
+        <div className="mb-4 bg-green-50 dark:bg-green-950 text-green-600 dark:text-green-400 p-3 rounded-lg text-sm border border-green-200 dark:border-green-800">
           <div className="font-semibold">Email verified successfully!</div>
           <div>Please sign in to access your account with full privileges.</div>
         </div>
       )}
 
       {message === "already-verified" && (
-        <div className="mb-4 bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 p-3 rounded-lg text-sm">
+        <div className="mb-4 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 p-3 rounded-lg text-sm border border-blue-200 dark:border-blue-800">
           Your email is already verified. Please sign in to continue.
         </div>
       )}
 
       {errorParam && (
-        <div className="mb-4 bg-red-50 dark:bg-red-900/50 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm">
+        <div className="mb-4 bg-destructive/10 text-destructive p-3 rounded-lg text-sm border border-destructive/20">
           {errorParam === "invalid-token"
             ? "The verification link is invalid or has already been used."
             : errorParam}
@@ -74,14 +74,14 @@ export function SignInForm() {
       )}
 
       {verificationError === "invalid-token" && (
-        <div className="mb-4 bg-red-50 dark:bg-red-900/50 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm">
+        <div className="mb-4 bg-destructive/10 text-destructive p-3 rounded-lg text-sm border border-destructive/20">
           Invalid or expired verification link.
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-6">
         {error && (
-          <div className="bg-red-50 dark:bg-red-900/50 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm">
+          <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm border border-destructive/20">
             {error}
           </div>
         )}
@@ -90,7 +90,7 @@ export function SignInForm() {
           <div>
             <label
               htmlFor="email"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-200"
+              className="block text-sm font-medium text-foreground"
             >
               Email address
             </label>
@@ -100,7 +100,7 @@ export function SignInForm() {
               type="email"
               autoComplete="email"
               required
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
+              className="mt-1 block w-full rounded-lg border border-input px-3 py-2 bg-background text-foreground shadow-sm placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               placeholder="you@example.com"
             />
           </div>
@@ -108,7 +108,7 @@ export function SignInForm() {
           <div>
             <label
               htmlFor="password"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-200"
+              className="block text-sm font-medium text-foreground"
             >
               Password
             </label>
@@ -118,7 +118,7 @@ export function SignInForm() {
               type="password"
               autoComplete="current-password"
               required
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
+              className="mt-1 block w-full rounded-lg border border-input px-3 py-2 bg-background text-foreground shadow-sm placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               placeholder="••••••••"
             />
           </div>
@@ -130,11 +130,11 @@ export function SignInForm() {
               id="remember-me"
               name="remember-me"
               type="checkbox"
-              className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800"
+              className="h-4 w-4 rounded border-input text-primary focus:ring-primary focus:ring-offset-2 bg-background"
             />
             <label
               htmlFor="remember-me"
-              className="ml-2 block text-sm text-gray-700 dark:text-gray-300"
+              className="ml-2 block text-sm text-muted-foreground"
             >
               Remember me
             </label>
@@ -143,7 +143,7 @@ export function SignInForm() {
           <div className="text-sm">
             <a
               href="/forgot-password"
-              className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
+              className="font-medium text-primary hover:text-primary/90 transition-colors"
             >
               Forgot password?
             </a>
@@ -153,7 +153,7 @@ export function SignInForm() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? "Signing in..." : "Sign in"}
         </button>

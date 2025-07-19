@@ -34,18 +34,18 @@ const SideMenu = ({ collapsed, onItemClick, session }: SideMenuProps) => {
     clsx(
       "flex items-center rounded-xl transition-all duration-200 group relative",
       collapsed ? "p-3 justify-center" : "gap-3 p-3",
-      "text-slate-700 dark:text-slate-300 hover:text-blue-700 dark:hover:text-blue-400",
-      "hover:bg-blue-50 dark:hover:bg-slate-800",
+      "text-slate-700 hover:text-pink-700",
+      "hover:bg-pink-50",
       isActive(path) &&
-        "bg-blue-100 dark:bg-slate-700 text-blue-700 dark:text-blue-300 shadow-sm",
+        "bg-pink-100 text-pink-700 shadow-sm",
         session?.user?.role != "ADMIN" && path === "/admin/users" && "hidden"
     );
 
   const iconClass = (path: string) =>
     clsx(
       "w-5 h-5 flex-shrink-0 transition-colors",
-      "text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400",
-      isActive(path) && "text-blue-700 dark:text-blue-300"
+      "text-slate-500 group-hover:text-pink-600",
+      isActive(path) && "text-pink-700"
     );
 
   const handleClick = (path: string) => () => {
@@ -87,7 +87,7 @@ const SideMenu = ({ collapsed, onItemClick, session }: SideMenuProps) => {
             
             {/* Active indicator for collapsed state */}
             {collapsed && isActive(href) && (
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-blue-600 dark:bg-blue-400 rounded-r-full" />
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-pink-600 rounded-r-full" />
             )}
             
             {/* Tooltip for collapsed state */}
@@ -111,18 +111,18 @@ const SideMenu = ({ collapsed, onItemClick, session }: SideMenuProps) => {
           className={clsx(
             "flex items-center rounded-xl transition-all duration-200 group relative",
             collapsed ? "p-3 justify-center" : "gap-3 p-3",
-            "hover:bg-slate-100 dark:hover:bg-slate-800",
-            "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100",
+            "hover:bg-pink-50",
+            "text-slate-600 hover:text-pink-700",
             isActive("/settings") &&
-              "bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
+              "bg-pink-100 text-pink-700 shadow-sm"
           )}
           title={collapsed ? "Settings" : undefined}
         >
           <Settings
             className={clsx(
               "w-5 h-5 flex-shrink-0 transition-colors",
-              "text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300",
-              isActive("/settings") && "text-slate-900 dark:text-slate-100"
+              "text-slate-400 group-hover:text-pink-600",
+              isActive("/settings") && "text-pink-700"
             )}
           />
           {!collapsed && (
@@ -133,7 +133,7 @@ const SideMenu = ({ collapsed, onItemClick, session }: SideMenuProps) => {
           
           {/* Active indicator for collapsed state */}
           {collapsed && isActive("/settings") && (
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-slate-700 dark:bg-slate-300 rounded-r-full" />
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-pink-600 rounded-r-full" />
           )}
           
           {/* Tooltip for collapsed state */}

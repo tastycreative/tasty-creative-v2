@@ -38,7 +38,7 @@ export function SignUpForm() {
   return (
     <form onSubmit={handleSubmit} className="mt-8 space-y-6">
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/50 text-red-600 dark:text-red-400 p-3 rounded-lg text-sm">
+        <div className="bg-destructive/10 text-destructive p-3 rounded-lg text-sm border border-destructive/20">
           {error}
         </div>
       )}
@@ -47,7 +47,7 @@ export function SignUpForm() {
         <div>
           <label
             htmlFor="name"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-200"
+            className="block text-sm font-medium text-foreground"
           >
             Full Name
           </label>
@@ -56,7 +56,7 @@ export function SignUpForm() {
             name="name"
             type="text"
             autoComplete="name"
-            className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
+            className="mt-1 block w-full rounded-lg border border-input px-3 py-2 bg-background text-foreground shadow-sm placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             placeholder="John Doe"
           />
         </div>
@@ -64,7 +64,7 @@ export function SignUpForm() {
         <div>
           <label
             htmlFor="email"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-200"
+            className="block text-sm font-medium text-foreground"
           >
             Email address
           </label>
@@ -74,7 +74,7 @@ export function SignUpForm() {
             type="email"
             autoComplete="email"
             required
-            className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
+            className="mt-1 block w-full rounded-lg border border-input px-3 py-2 bg-background text-foreground shadow-sm placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             placeholder="you@example.com"
           />
         </div>
@@ -82,7 +82,7 @@ export function SignUpForm() {
         <div>
           <label
             htmlFor="password"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-200"
+            className="block text-sm font-medium text-foreground"
           >
             Password
           </label>
@@ -93,10 +93,10 @@ export function SignUpForm() {
             autoComplete="new-password"
             required
             minLength={8}
-            className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder-gray-500"
+            className="mt-1 block w-full rounded-lg border border-input px-3 py-2 bg-background text-foreground shadow-sm placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             placeholder="••••••••"
           />
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          <p className="mt-1 text-xs text-muted-foreground">
             Must be at least 8 characters
           </p>
         </div>
@@ -105,7 +105,7 @@ export function SignUpForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? "Creating account..." : "Sign up"}
       </button>
