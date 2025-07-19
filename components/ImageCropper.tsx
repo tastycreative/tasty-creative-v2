@@ -10,6 +10,7 @@ import React, {
   useEffect,
   useTransition,
 } from "react";
+import { createPortal } from "react-dom";
 import ReactCrop, {
   Crop,
   PixelCrop,
@@ -82,6 +83,40 @@ export default function ImageCropper({
       setVaultName(model.toUpperCase() + "_FREE");
     }
   }, [model]);
+
+  // Disable body scroll when modals are open
+  useEffect(() => {
+    if (selectedImage || showFilePicker) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [selectedImage, showFilePicker]);
+
+  // Handle Escape key to close modals
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (selectedImage) {
+          setSelectedImage(null);
+          setCrop(undefined);
+          setCompletedCrop(null);
+        } else if (showFilePicker) {
+          setShowFilePicker(false);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [selectedImage, showFilePicker]);
 
   useEffect(() => {
     const setData = async () => {
@@ -387,7 +422,7 @@ export default function ImageCropper({
               }
             }}
           />
-          <label htmlFor={`${id}-custom`} className="cursor-pointer text-white">
+          <label htmlFor={`${id}-custom`} className="cursor-pointer text-gray-700">
             Custom Image
           </label>
         </div>
@@ -405,7 +440,7 @@ export default function ImageCropper({
               }
             }}
           />
-          <label htmlFor={`${id}-vault`} className="cursor-pointer text-white">
+          <label htmlFor={`${id}-vault`} className="cursor-pointer text-gray-700">
             Vault Selector
           </label>
         </div>
@@ -415,7 +450,7 @@ export default function ImageCropper({
           <div className="w-full">
             <label
               className={cn(
-                "px-4 w-full py-2 bg-black/60 text-white rounded-lg flex items-center justify-center gap-2",
+                "px-4 w-full py-2 bg-white/70 text-gray-700 border border-pink-200 rounded-lg flex items-center justify-center gap-2",
                 { "border border-red-500 text-red-500": error }
               )}
             >
@@ -435,7 +470,7 @@ export default function ImageCropper({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className={cn("text-white", { "text-red-500": error })}
+                className={cn("text-gray-700", { "text-red-500": error })}
               >
                 <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7" />
                 <line x1="16" y1="5" x2="22" y2="5" />
@@ -483,7 +518,7 @@ export default function ImageCropper({
               disabled={!model}
               onClick={handleVaultSelect}
               className={cn(
-                "px-4 w-full py-2 bg-black/60 text-white rounded-lg flex items-center justify-center gap-2",
+                "px-4 w-full py-2 bg-white/70 text-gray-700 border border-pink-200 rounded-lg flex items-center justify-center gap-2",
                 { "border border-red-500 text-red-500": error }
               )}
             >
@@ -518,7 +553,7 @@ export default function ImageCropper({
               disabled={!model}
               onClick={handleGoogleDriveSelect}
               className={cn(
-                "px-4 w-full py-2 bg-black/60 text-white rounded-lg flex items-center justify-center gap-2",
+                "px-4 w-full py-2 bg-white/70 text-gray-700 border border-pink-200 rounded-lg flex items-center justify-center gap-2",
                 { "border border-red-500 text-red-500": error }
               )}
             >
@@ -554,129 +589,176 @@ export default function ImageCropper({
         )}
       </div>
 
-      {selectedImage && (
-        <div className="flex flex-col w-full items-center gap-4">
-          {!customRequest && (
-            <p className="text-xs text-gray-300">
-              Crop area will maintain a {id === "default" ? "4:5" : "1:2"} ratio{" "}
-              {id === "default" ? "(1080x1350px)" : "(500x1000px)"}
-            </p>
-          )}
-
-          <div className="border border-gray-300 rounded-lg overflow-hidden">
-            {customRequest ? (
-              <Image
-                ref={imageRef}
-                src={selectedImage ?? ""}
-                alt="Selected"
-                className="w-full object-contain max-h-96"
-                onLoad={onImageLoad}
-                loading="lazy"
-                width={imageSize.width}
-                height={imageSize.height}
-              />
-            ) : (
-              <ReactCrop
-                crop={crop}
-                onChange={(c) => setCrop(c)}
-                onComplete={(c) => setCompletedCrop(c)}
-                aspect={aspectRatio}
-                minWidth={100}
-              >
-                <Image
-                  ref={imageRef}
-                  src={selectedImage ?? ""}
-                  alt="Selected"
-                  className="w-full object-contain max-h-96"
-                  onLoad={onImageLoad}
-                  loading="lazy"
-                  width={imageSize.width}
-                  height={imageSize.height}
-                />
-              </ReactCrop>
-            )}
-          </div>
-
-          {!customRequest && (
-            <div className="flex flex-wrap w-full items-center gap-4 pt-3">
+      {/* Fullscreen Cropping Modal - Rendered via Portal */}
+      {selectedImage && typeof window !== "undefined" && createPortal(
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[99999] p-4" style={{ zIndex: 99999 }}>
+          <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-pink-200 shadow-2xl w-full max-w-6xl max-h-[95vh] overflow-auto">
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white/95 backdrop-blur-sm p-6 border-b border-pink-200 flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">
+                  {customRequest ? "Image Preview" : "Crop Your Image"}
+                </h2>
+                {!customRequest && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    Crop area will maintain a {id === "default" ? "4:5" : "1:2"} ratio{" "}
+                    {id === "default" ? "(1080x1350px)" : "(500x1000px)"}
+                  </p>
+                )}
+              </div>
               <button
-                type="button"
-                onClick={generateCroppedImage}
-                className={`px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-medium shadow-md hover:shadow-purple-200 transition-all duration-300 hover:-translate-y-0.5 flex items-center gap-2 ${
-                  !completedCrop ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-                disabled={!completedCrop}
+                onClick={() => {
+                  setSelectedImage(null);
+                  setCrop(undefined);
+                  setCompletedCrop(null);
+                }}
+                className="p-2 hover:bg-pink-100 rounded-full transition-colors"
               >
-                <svg
-                  className="w-5 h-5"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M8 6H19C19.5523 6 20 6.44772 20 7V17C20 17.5523 19.5523 18 19 18H8M8 6C7.44772 6 7 6.44772 7 7V17C7 17.5523 7.44772 18 8 18M8 6V18"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M4 8V16"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M12 11L16 11"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
+                <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
-                Apply Crop
               </button>
+            </div>
 
-              <div className="text-sm text-gray-500 bg-black/40 px-4 py-2 rounded-lg border ">
-                {imageSize.width > 0 && (
-                  <div className="flex items-center gap-2">
-                    <svg
-                      className="w-4 h-4 text-blue-500"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M13 16H12V12H11M12 8H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
+            {/* Modal Content */}
+            <div className="p-6">
+              <div className="flex flex-col lg:flex-row gap-6">
+                {/* Image Cropping Area */}
+                <div className="flex-1 flex justify-center">
+                  <div className="relative max-w-full">
+                    {customRequest ? (
+                      <Image
+                        ref={imageRef}
+                        src={selectedImage ?? ""}
+                        alt="Selected"
+                        className="max-w-full max-h-[70vh] object-contain rounded-lg border border-pink-200"
+                        onLoad={onImageLoad}
+                        loading="lazy"
+                        width={imageSize.width}
+                        height={imageSize.height}
                       />
-                    </svg>
-                    <span>
-                      Selected area will be exported at{" "}
-                      {id === "default" ? "1080x1350px" : "500x1000px"} ratio
-                    </span>
+                    ) : (
+                      <ReactCrop
+                        crop={crop}
+                        onChange={(c) => setCrop(c)}
+                        onComplete={(c) => setCompletedCrop(c)}
+                        aspect={aspectRatio}
+                        minWidth={100}
+                      >
+                        <Image
+                          ref={imageRef}
+                          src={selectedImage ?? ""}
+                          alt="Selected"
+                          className="max-w-full max-h-[70vh] object-contain rounded-lg"
+                          onLoad={onImageLoad}
+                          loading="lazy"
+                          width={imageSize.width}
+                          height={imageSize.height}
+                        />
+                      </ReactCrop>
+                    )}
+                  </div>
+                </div>
+
+                {/* Controls Sidebar */}
+                {!customRequest && (
+                  <div className="lg:w-80 flex flex-col gap-4">
+                    <div className="bg-pink-50/60 backdrop-blur-sm rounded-xl p-4 border border-pink-200">
+                      <h3 className="font-semibold text-gray-800 mb-3">Crop Controls</h3>
+                      
+                      <button
+                        type="button"
+                        onClick={generateCroppedImage}
+                        className={`w-full px-6 py-3 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg font-medium shadow-md hover:shadow-pink-200 transition-all duration-300 hover:-translate-y-0.5 flex items-center justify-center gap-2 ${
+                          !completedCrop ? "opacity-50 cursor-not-allowed" : ""
+                        }`}
+                        disabled={!completedCrop}
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M8 6H19C19.5523 6 20 6.44772 20 7V17C20 17.5523 19.5523 18 19 18H8M8 6C7.44772 6 7 6.44772 7 7V17C7 17.5523 7.44772 18 8 18M8 6V18"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M4 8V16"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                          <path
+                            d="M12 11L16 11"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        Apply Crop
+                      </button>
+
+                      <div className="mt-4 text-sm text-gray-600 bg-white/70 px-4 py-3 rounded-lg border border-pink-200">
+                        {imageSize.width > 0 && (
+                          <div className="flex items-start gap-2">
+                            <svg
+                              className="w-4 h-4 text-pink-500 mt-0.5 flex-shrink-0"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                d="M13 16H12V12H11M12 8H12.01M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                            <span>
+                              Selected area will be exported at{" "}
+                              {id === "default" ? "1080x1350px" : "500x1000px"} ratio
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Additional Info */}
+                    <div className="bg-white/70 backdrop-blur-sm rounded-xl p-4 border border-pink-200">
+                      <h4 className="font-medium text-gray-800 mb-2">Tips</h4>
+                      <ul className="text-sm text-gray-600 space-y-1">
+                        <li>• Drag corners to resize the crop area</li>
+                        <li>• Drag inside to move the crop area</li>
+                        <li>• The aspect ratio is locked for optimal output</li>
+                      </ul>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        </div>,
+        document.body
       )}
 
-      {/* Google Drive File Picker Modal */}
-      {showFilePicker && (
-        <div className="fixed inset-0 px-4 lg:px-20 bg-black/60 flex items-center justify-center z-50">
+      {/* Google Drive File Picker Modal - Rendered via Portal */}
+      {showFilePicker && typeof window !== "undefined" && createPortal(
+        <div className="fixed inset-0 px-4 lg:px-20 bg-black/70 flex items-center justify-center z-[99998]" style={{ zIndex: 99998 }}>
           <div
             className={cn(
-              "bg-black/80 rounded-lg px-6 pb-6 w-full max-h-[80vh] overflow-auto relative",
+              "bg-white/95 backdrop-blur-xl rounded-2xl border border-pink-200 shadow-2xl px-6 pb-6 w-full max-h-[80vh] overflow-auto relative",
               { "overflow-hidden": isDownloading }
             )}
           >
             {isDownloading && (
               <div className="fixed inset-0 w-full min-h-screen flex flex-col items-center justify-center bg-black/90 overflow-hidden z-2">
                 <svg
-                  className="animate-spin h-8 w-8 text-purple-500 mb-2"
+                  className="animate-spin h-8 w-8 text-pink-500 mb-2"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
@@ -700,16 +782,16 @@ export default function ImageCropper({
                 </span>
               </div>
             )}
-            <div className="sticky top-0 pt-2 py-0.5 bg-black/60 z-50">
+            <div className="sticky top-0 pt-2 py-0.5 bg-white/80 backdrop-blur-sm z-50 border-b border-pink-200">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium">
+                <h3 className="text-lg font-semibold text-gray-800">
                   {currentFolder
                     ? `Folder: ${currentFolder.name}`
                     : "Select an image"}
                 </h3>
                 <button
                   onClick={() => setShowFilePicker(false)}
-                  className="text-gray-500 hover:text-gray-700 cursor-pointer"
+                  className="text-gray-600 hover:text-pink-600 cursor-pointer"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -765,7 +847,7 @@ export default function ImageCropper({
                   googleFiles.map((file) => (
                     <div
                       key={file.id}
-                      className="border rounded-md p-2 cursor-pointer hover:bg-gradient-to-r hover:from-purple-600 hover:to-blue-600"
+                      className="border border-pink-200 rounded-md p-2 cursor-pointer hover:bg-gradient-to-r hover:from-pink-500 hover:to-rose-500 hover:text-white"
                       onClick={() => handleFileSelected(file)}
                     >
                       <div className="h-24 bg-gray-100 flex items-center justify-center mb-2 overflow-hidden">
@@ -804,7 +886,7 @@ export default function ImageCropper({
                             strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            className="text-gray-300"
+                            className="text-gray-600"
                           >
                             <rect
                               x="3"
@@ -825,14 +907,15 @@ export default function ImageCropper({
                     </div>
                   ))
                 ) : (
-                  <div className="py-8 text-center col-span-full w-full text-gray-500">
+                  <div className="py-8 text-center col-span-full w-full text-gray-600">
                     No files found in this folder
                   </div>
                 )}
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {isVaultOpen && (

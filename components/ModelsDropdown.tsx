@@ -49,7 +49,7 @@ const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
       <div className="flex flex-col">
         <label
           htmlFor="model"
-          className="text-sm text-gray-300 font-medium mb-1"
+          className="text-sm text-gray-700 font-medium mb-1"
         >
           Select Model
         </label>
@@ -78,7 +78,7 @@ const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
         >
           <SelectTrigger
             className={cn(
-              "bg-black/60 cursor-pointer border-white/10 p-2 text-gray-400 rounded-lg w-full",
+              "bg-white/70 cursor-pointer border-pink-200 p-2 text-gray-700 rounded-lg w-full focus:border-pink-400",
               { "border-red-500 !text-red-500": error }
             )}
           >
@@ -86,7 +86,7 @@ const ModelsDropdown: React.FC<ModelsDropdownProps> = ({
               placeholder={loadingModels ? "Loading models..." : "Select Model"}
             />
           </SelectTrigger>
-          <SelectContent className="bg-black/90 border-white/10 text-gray-400 max-h-72">
+          <SelectContent className="bg-white/95 border-pink-200 text-gray-700 max-h-72">
             {models.map((model, index) => (
               <SelectItem
                 key={index}

@@ -3,6 +3,7 @@
 
 import Image from "next/image";
 import { useEffect, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 
@@ -71,14 +72,10 @@ export default function FlyerTemplates({
     if (files.length === 0) {
       fetchFiles();
     }
-    // Prevent body scrolling when overlay is active
-    document.body.style.overflow = "hidden";
   };
 
   const handleClose = () => {
     setShowFiles(false);
-    // Restore body scrolling
-    document.body.style.overflow = "auto";
   };
 
   const handleThumbnailClick = async (file: GoogleDriveFile) => {
@@ -104,19 +101,40 @@ export default function FlyerTemplates({
     }
   };
 
-  // Cleanup effect
+  // Handle body scroll and escape key when modals are open
   useEffect(() => {
+    if (showFiles || isDownloading) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    // Cleanup on unmount
     return () => {
-      document.body.style.overflow = "auto";
+      document.body.style.overflow = 'unset';
     };
-  }, []);
+  }, [showFiles, isDownloading]);
+
+  // Handle Escape key to close modal
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && showFiles) {
+        handleClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [showFiles]);
 
   return (
     <div>
       <button
         type="button"
         onClick={handleViewTemplates}
-        className="bg-black/60 text-white px-6 py-2 rounded-lg font-medium w-full flex items-center justify-center gap-2"
+        className="bg-gradient-to-r from-pink-600 to-rose-600 text-white px-6 py-2 rounded-lg font-medium w-full flex items-center justify-center gap-2 hover:from-pink-700 hover:to-rose-700 transition-all duration-200"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -136,68 +154,103 @@ export default function FlyerTemplates({
         Select Templates (optional)
       </button>
 
-      {isDownloading && (
-        <div className="fixed inset-0 w-full min-h-screen flex flex-col items-center justify-center bg-black/90 overflow-hidden z-52">
-          <svg
-            className="animate-spin h-8 w-8 text-purple-500 mb-2"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            ></circle>
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            ></path>
-          </svg>
-          <span className="text-sm text-gray-500">Downloading File...</span>
-        </div>
+      {/* Loading Modal - Rendered via Portal */}
+      {isDownloading && typeof window !== "undefined" && createPortal(
+        <div className="fixed inset-0 w-full min-h-screen flex flex-col items-center justify-center bg-black/70 overflow-hidden z-[99997]" style={{ zIndex: 99997 }}>
+          <div className="bg-white/95 backdrop-blur-xl rounded-2xl border border-pink-200 p-8 shadow-2xl">
+            <div className="flex flex-col items-center">
+              <svg
+                className="animate-spin h-8 w-8 text-pink-500 mb-4"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              <span className="text-sm text-gray-700 font-medium">Downloading Template...</span>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
-      {showFiles && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 overflow-y-auto">
-          <div className="w-full h-full max-w-7xl p-4 md:p-6">
-            <div className="bg-black/60 text-white rounded-xl shadow-2xl border border-gray-700 p-6 max-h-full overflow-auto">
+      {/* Templates Modal - Rendered via Portal */}
+      {showFiles && typeof window !== "undefined" && createPortal(
+        <div className="fixed inset-0 z-[99996] flex items-center justify-center bg-black/70 overflow-y-auto p-4" style={{ zIndex: 99996 }}>
+          <div className="w-full h-full max-w-7xl">
+            <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-pink-200 p-6 max-h-full overflow-auto">
               {/* Header */}
-              <div className="flex justify-between items-center mb-8 sticky top-0 bg-black/80 backdrop-blur-sm py-4 -mt-6 -mx-6 px-6">
-                <h2 className="text-2xl font-bold text-white">
-                  {flyer} Templates
-                </h2>
+              <div className="flex justify-between items-center mb-8 sticky top-0 bg-white/95 backdrop-blur-sm py-4 -mt-6 -mx-6 px-6 border-b border-pink-200">
+                <div>
+                  <h2 className="text-2xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">
+                    {flyer} Templates
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Choose a template for your flyer design
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="bg-transparent hover:bg-gray-800 rounded-full p-2"
+                  className="p-2 hover:bg-pink-100 rounded-full transition-colors"
                   aria-label="Close"
                 >
-                  <X size={24} />
+                  <X size={24} className="text-gray-500" />
                 </button>
               </div>
 
               {/* Loading state */}
               {loading ? (
-                <div className="flex justify-center items-center h-64">
-                  <div className="animate-pulse text-gray-400">
+                <div className="flex flex-col justify-center items-center h-64">
+                  <svg
+                    className="animate-spin h-8 w-8 text-pink-500 mb-4"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  <div className="text-gray-600 font-medium">
                     Loading Google Drive templates...
                   </div>
                 </div>
               ) : error ? (
                 <div className="flex justify-center items-center h-64">
-                  <p className="text-red-400">Error: {error}</p>
+                  <div className="text-center">
+                    <p className="text-red-600 font-medium mb-2">Error loading templates</p>
+                    <p className="text-gray-600 text-sm">{error}</p>
+                  </div>
                 </div>
               ) : (
                 <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {files.map((file) => (
                     <li
                       key={file.id}
-                      className="border border-gray-700 rounded-lg overflow-hidden bg-gray-800/40 hover:bg-gray-800/80 transition-all group"
+                      className="border border-pink-200 rounded-xl overflow-hidden bg-white/70 hover:bg-pink-50/70 hover:border-pink-300 transition-all group shadow-sm hover:shadow-md"
                     >
                       {file.thumbnailLink ? (
                         <div
@@ -207,18 +260,23 @@ export default function FlyerTemplates({
                           <img
                             src={`/api/image-proxy?url=${encodeURIComponent(file.thumbnailLink)}`}
                             alt={`Thumbnail of ${file.name}`}
-                            className="absolute inset-0 w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 bg-black"
+                            className="absolute inset-0 w-full h-full object-contain transition-transform duration-300 group-hover:scale-105 bg-gray-50"
                             loading="lazy"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-2">
-                            <span className="text-xs text-white font-medium bg-black/50 px-2 py-1 rounded">
+                          <div className="absolute inset-0 bg-gradient-to-t from-pink-600/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-4">
+                            <span className="text-xs text-white font-medium bg-pink-600/80 backdrop-blur-sm px-3 py-1.5 rounded-full">
                               Click to select
                             </span>
                           </div>
                         </div>
                       ) : (
-                        <div className="h-40 bg-gray-800 text-gray-400 flex items-center justify-center">
-                          No thumbnail
+                        <div className="h-40 bg-gray-100 text-gray-500 flex items-center justify-center">
+                          <div className="text-center">
+                            <svg className="w-8 h-8 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span className="text-xs">No thumbnail</span>
+                          </div>
                         </div>
                       )}
                       <div className="p-3">
@@ -226,7 +284,7 @@ export default function FlyerTemplates({
                           href={file.webViewLink}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-gray-200 hover:text-blue-400 block text-center font-medium truncate"
+                          className="text-gray-700 hover:text-pink-600 block text-center font-medium truncate transition-colors"
                           title={file.name}
                         >
                           {file.name}
@@ -242,13 +300,18 @@ export default function FlyerTemplates({
 
               {/* Empty state */}
               {!loading && !error && files.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-64 text-gray-400">
-                  <p>No templates found</p>
+                <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+                  <svg className="w-16 h-16 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  <p className="font-medium">No templates found</p>
+                  <p className="text-sm text-gray-400 mt-1">Try refreshing or check back later</p>
                 </div>
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
