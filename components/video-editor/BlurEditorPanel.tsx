@@ -218,22 +218,22 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
   }, [isDragging, isResizing, handleMouseMove, handleMouseUp]);
 
   return (
-    <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-6 animate-in slide-in-from-top-4 duration-300">
+    <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-xl border border-pink-200 p-6 animate-in slide-in-from-top-4 duration-300">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <div className="p-2 bg-purple-500/10 rounded-lg">
+          <div className="p-2 bg-pink-500/10 rounded-lg">
             {region.shape === "circle" ? (
-              <Circle className="w-5 h-5 text-purple-500" />
+              <Circle className="w-5 h-5 text-pink-500" />
             ) : (
-              <Square className="w-5 h-5 text-purple-500" />
+              <Square className="w-5 h-5 text-pink-500" />
             )}
           </div>
           <div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+            <h3 className="text-xl font-semibold text-gray-700">
               Edit {region.shape === "circle" ? "Circle" : "Rectangle"} Blur
             </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-sm text-gray-600">
               Adjust blur region position, size and intensity
             </p>
           </div>
@@ -256,9 +256,9 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
           </button>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 hover:scale-105"
+            className="p-2 hover:bg-pink-50 rounded-lg transition-all duration-200 hover:scale-105"
           >
-            <X className="w-5 h-5 text-gray-500" />
+            <X className="w-5 h-5 text-gray-600" />
           </button>
         </div>
       </div>
@@ -268,14 +268,14 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
         {showPreview && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+              <h4 className="text-sm font-semibold text-gray-700">
                 Interactive Preview
               </h4>
-              <div className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded-full">
+              <div className="px-2 py-1 bg-pink-100 text-pink-700 text-xs rounded-full">
                 Live
               </div>
             </div>
-            <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl overflow-hidden border-2 border-gray-600 shadow-inner">
+            <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl overflow-hidden border-2 border-pink-200 shadow-inner">
               <canvas
                 ref={canvasRef}
                 onMouseDown={handleCanvasMouseDown}
@@ -284,18 +284,18 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
                 } hover:brightness-110`}
               />
               {(isDragging || isResizing) && (
-                <div className="absolute top-2 left-2 px-2 py-1 bg-purple-500 text-white text-xs rounded-md">
+                <div className="absolute top-2 left-2 px-2 py-1 bg-pink-500 text-white text-xs rounded-md">
                   {isDragging ? "Moving..." : "Resizing..."}
                 </div>
               )}
             </div>
-            <div className="flex items-center justify-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center justify-center space-x-4 text-xs text-gray-600">
               <span className="flex items-center">
-                <div className="w-2 h-2 bg-blue-500 rounded-full mr-1"></div>
+                <div className="w-2 h-2 bg-pink-500 rounded-full mr-1"></div>
                 Drag to move
               </span>
               <span className="flex items-center">
-                <div className="w-2 h-2 bg-purple-500 rounded-full mr-1"></div>
+                <div className="w-2 h-2 bg-rose-500 rounded-full mr-1"></div>
                 Drag corner to resize
               </span>
             </div>

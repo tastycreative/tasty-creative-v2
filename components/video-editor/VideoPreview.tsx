@@ -260,12 +260,12 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
   }, [getCurrentVideo, currentTime, isPlaying, loadedVideos, videos]);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+    <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-pink-200 p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+        <h3 className="text-lg font-semibold text-gray-700">
           Preview
         </h3>
-        <div className="text-sm text-gray-500 dark:text-gray-400">
+        <div className="text-sm text-gray-600">
           {width} × {height}
         </div>
       </div>
@@ -311,16 +311,16 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
       {/* Video Info */}
       <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
         <div>
-          <span className="text-gray-500 dark:text-gray-400">
+          <span className="text-gray-600">
             Total Videos:
           </span>
-          <span className="ml-2 font-medium text-gray-900 dark:text-white">
+          <span className="ml-2 font-medium text-gray-700">
             {videos.length}
           </span>
         </div>
         <div>
-          <span className="text-gray-500 dark:text-gray-400">Current:</span>
-          <span className="ml-2 font-medium text-gray-900 dark:text-white">
+          <span className="text-gray-600">Current:</span>
+          <span className="ml-2 font-medium text-gray-700">
             {(() => {
               const currentVideo = videos.find(
                 (video) =>

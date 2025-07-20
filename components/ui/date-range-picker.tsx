@@ -195,18 +195,18 @@ export function DateRangePicker({
                 className={`h-8 w-8 p-0 text-sm font-normal relative transition-all duration-150 ${
                   !isCurrentMonth || isFutureDate
                     ? "text-gray-300 cursor-not-allowed"
-                    : "text-gray-900 hover:bg-blue-50 cursor-pointer"
+                    : "text-gray-900 hover:bg-pink-50 cursor-pointer"
                 } ${
                   isToday && isCurrentMonth
-                    ? "ring-2 ring-blue-400 ring-offset-1"
+                    ? "ring-2 ring-pink-400 ring-offset-1"
                     : ""
                 } ${
                   inRange && !rangeStart && !rangeEnd && isCurrentMonth
-                    ? "bg-blue-100 text-blue-900"
+                    ? "bg-pink-100 text-pink-900"
                     : ""
                 } ${
                   (rangeStart || rangeEnd) && isCurrentMonth
-                    ? "bg-blue-500 text-white hover:bg-blue-600 font-semibold"
+                    ? "bg-pink-500 text-white hover:bg-pink-600 font-semibold"
                     : ""
                 }`}
                 onClick={() =>
@@ -316,7 +316,7 @@ export function DateRangePicker({
                 <span className="font-semibold text-gray-900">
                   {selectedStart.toFormat("MMM d, yyyy")}
                 </span>
-                <span className="text-blue-600 ml-2">
+                <span className="text-pink-600 ml-2">
                   ← Now select end date
                 </span>
               </div>

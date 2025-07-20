@@ -9,7 +9,6 @@ datasource db {
 
 model User {
   id                 String              @id @default(cuid())
-  username           String?             @unique
   email              String              @unique
   emailVerified      DateTime?
   name               String?
@@ -19,6 +18,7 @@ model User {
   updatedAt          DateTime            @updatedAt
   password           String?
   lastAccessedAt     DateTime?           @default(now())
+  username           String?             @unique
   accounts           Account[]
   pageViews          PageView[]
   sessions           Session[]
@@ -103,30 +103,30 @@ model Analytics {
   @@index([date])
 }
 
+model VoiceGenAccount {
+  id          String      @id @default(cuid())
+  clientName  String
+  email       String?
+  password    String?
+  voiceStatus VoiceStatus @default(NA)
+  accountType AccountType @default(ELEVENLABS)
+  dataFolder  String?
+  feedback    String?
+  rating      String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([clientName])
+  @@index([voiceStatus])
+  @@index([accountType])
+}
+
 enum Role {
   USER
   ADMIN
   MODERATOR
   GUEST
   SWD
-}
-
-model VoiceGenAccount {
-  id           String            @id @default(cuid())
-  clientName   String
-  email        String?
-  password     String?
-  voiceStatus  VoiceStatus       @default(NA)
-  accountType  AccountType       @default(ELEVENLABS)
-  dataFolder   String?
-  feedback     String?
-  rating       String?
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-
-  @@index([clientName])
-  @@index([voiceStatus])
-  @@index([accountType])
 }
 
 enum VoiceStatus {

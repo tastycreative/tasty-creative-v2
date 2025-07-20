@@ -467,18 +467,18 @@ export const TrimmerPanel: React.FC<TrimmerPanelProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-pink-200 overflow-hidden max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-4 border-b border-pink-200">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-              <Scissors className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            <div className="p-2 bg-pink-100 rounded-lg">
+              <Scissors className="w-5 h-5 text-pink-500" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              <h3 className="text-lg font-semibold text-gray-700">
                 Trim Video
               </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-gray-600">
                 {video.file.name}
               </p>
             </div>
@@ -486,7 +486,7 @@ export const TrimmerPanel: React.FC<TrimmerPanelProps> = ({
 
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-pink-50 rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -525,10 +525,10 @@ export const TrimmerPanel: React.FC<TrimmerPanelProps> = ({
           {/* Trim Timeline */}
           <div className="space-y-3 pb-8">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-400">
+              <span className="text-gray-600">
                 Trim Range
               </span>
-              <span className="text-gray-900 dark:text-white font-medium">
+              <span className="text-gray-700 font-medium">
                 {formatTime(trimmedDuration)} selected
               </span>
             </div>
@@ -536,7 +536,7 @@ export const TrimmerPanel: React.FC<TrimmerPanelProps> = ({
             {/* Timeline Container */}
             <div
               ref={timelineRef}
-              className="relative h-20 bg-gray-800 dark:bg-gray-900 rounded-lg cursor-pointer select-none overflow-hidden border border-gray-600 dark:border-gray-500"
+              className="relative h-20 bg-gray-800 rounded-lg cursor-pointer select-none overflow-hidden border border-pink-200"
               onClick={handleTimelineClick}
             >
               {/* Frame Thumbnails Background */}
@@ -544,7 +544,7 @@ export const TrimmerPanel: React.FC<TrimmerPanelProps> = ({
                 <div className="w-full h-20 flex items-center justify-center text-gray-500 text-sm">
                   {isProcessing ? (
                     <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-4 h-4 border-2 border-pink-400 border-t-transparent rounded-full animate-spin"></div>
                       Loading timeline...
                     </div>
                   ) : (
@@ -607,7 +607,7 @@ export const TrimmerPanel: React.FC<TrimmerPanelProps> = ({
 
                   {/* Selected range highlight border */}
                   <div
-                    className="absolute top-0 h-full border-l-2 border-r-2 border-blue-400 bg-blue-500 opacity-20 pointer-events-none"
+                    className="absolute top-0 h-full border-l-2 border-r-2 border-pink-400 bg-pink-500 opacity-20 pointer-events-none"
                     style={{
                       left: `${startPositionPercent}%`,
                       width: `${endPositionPercent - startPositionPercent}%`,
@@ -627,7 +627,7 @@ export const TrimmerPanel: React.FC<TrimmerPanelProps> = ({
 
               {/* Start Handle */}
               <div
-                className="absolute top-0 h-full w-6 bg-blue-600 cursor-ew-resize z-20 flex items-center justify-center group hover:bg-blue-700 transition-colors shadow-lg"
+                className="absolute top-0 h-full w-6 bg-pink-600 cursor-ew-resize z-20 flex items-center justify-center group hover:bg-pink-700 transition-colors shadow-lg"
                 style={{
                   left: `${startPositionPercent}%`,
                   transform: "translateX(-50%)",
@@ -635,14 +635,14 @@ export const TrimmerPanel: React.FC<TrimmerPanelProps> = ({
                 onMouseDown={(e) => handleHandleMouseDown("start", e)}
               >
                 <div className="w-1 h-12 bg-white rounded group-hover:h-14 transition-all shadow-sm" />
-                <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap">
+                <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-pink-600 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap">
                   {formatTime(startTime)}
                 </div>
               </div>
 
               {/* End Handle */}
               <div
-                className="absolute top-0 h-full w-6 bg-blue-600 cursor-ew-resize z-20 flex items-center justify-center group hover:bg-blue-700 transition-colors shadow-lg"
+                className="absolute top-0 h-full w-6 bg-pink-600 cursor-ew-resize z-20 flex items-center justify-center group hover:bg-pink-700 transition-colors shadow-lg"
                 style={{
                   left: `${endPositionPercent}%`,
                   transform: "translateX(-50%)",
@@ -650,47 +650,47 @@ export const TrimmerPanel: React.FC<TrimmerPanelProps> = ({
                 onMouseDown={(e) => handleHandleMouseDown("end", e)}
               >
                 <div className="w-1 h-12 bg-white rounded group-hover:h-14 transition-all shadow-sm" />
-                <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap">
+                <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-pink-600 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap">
                   {formatTime(endTime)}
                 </div>
               </div>
 
               {/* Time markers */}
-              <div className="absolute -bottom-6 left-0 text-xs text-gray-500 dark:text-gray-400">
+              <div className="absolute -bottom-6 left-0 text-xs text-gray-500">
                 0:00
               </div>
-              <div className="absolute -bottom-6 right-0 text-xs text-gray-500 dark:text-gray-400">
+              <div className="absolute -bottom-6 right-0 text-xs text-gray-500">
                 {formatTime(video.duration)}
               </div>
             </div>
 
             {/* Trim Info */}
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-                <div className="text-gray-600 dark:text-gray-400 mb-1">
+              <div className="bg-pink-50 rounded-lg p-3">
+                <div className="text-gray-600 mb-1">
                   Start Time
                 </div>
-                <div className="font-mono text-lg text-blue-600 dark:text-blue-400">
+                <div className="font-mono text-lg text-pink-600">
                   {formatTime(startTime)}
                 </div>
                 <button
                   onClick={() => handleQuickSeek(startTime)}
-                  className="mt-1 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  className="mt-1 text-xs text-pink-600 hover:underline"
                 >
                   Seek to start
                 </button>
               </div>
 
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
-                <div className="text-gray-600 dark:text-gray-400 mb-1">
+              <div className="bg-pink-50 rounded-lg p-3">
+                <div className="text-gray-600 mb-1">
                   End Time
                 </div>
-                <div className="font-mono text-lg text-blue-600 dark:text-blue-400">
+                <div className="font-mono text-lg text-pink-600">
                   {formatTime(endTime)}
                 </div>
                 <button
                   onClick={() => handleQuickSeek(endTime)}
-                  className="mt-1 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  className="mt-1 text-xs text-pink-600 hover:underline"
                 >
                   Seek to end
                 </button>
@@ -699,10 +699,10 @@ export const TrimmerPanel: React.FC<TrimmerPanelProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between pt-4 border-t border-pink-200">
             <button
               onClick={handleResetTrim}
-              className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center space-x-2"
+              className="px-4 py-2 text-gray-600 hover:bg-pink-50 rounded-lg transition-colors flex items-center space-x-2"
             >
               <RotateCcw className="w-4 h-4" />
               <span>Reset</span>
@@ -711,13 +711,13 @@ export const TrimmerPanel: React.FC<TrimmerPanelProps> = ({
             <div className="flex items-center space-x-3">
               <button
                 onClick={onClose}
-                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="px-4 py-2 text-gray-600 hover:bg-pink-50 rounded-lg transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleApplyTrim}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center space-x-2"
+                className="px-6 py-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-lg transition-colors flex items-center space-x-2"
               >
                 <Check className="w-4 h-4" />
                 <span>Apply Trim</span>

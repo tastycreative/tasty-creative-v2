@@ -1132,30 +1132,30 @@ export default function EnhancedAIInstagramScraperPage() {
   const getUpdateTypeStyle = (type: string) => {
     switch (type) {
       case "connection":
-        return "text-blue-400 bg-blue-500/10 border-blue-500/20";
+        return "text-pink-400 bg-pink-500/10 border-pink-500/20";
       case "scraping_started":
       case "scraping_complete":
-        return "text-green-400 bg-green-500/10 border-green-500/20";
+        return "text-pink-400 bg-pink-500/10 border-pink-500/20";
       case "apify_success":
       case "image_success":
       case "ai_success":
       case "post_complete":
-        return "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
+        return "text-pink-400 bg-pink-500/10 border-pink-500/20";
       case "apify_request":
       case "apify_actor":
       case "image_download":
       case "ai_analysis":
-        return "text-yellow-400 bg-yellow-500/10 border-yellow-500/20";
+        return "text-pink-400 bg-pink-500/10 border-pink-500/20";
       case "duplicate":
-        return "text-orange-400 bg-orange-500/10 border-orange-500/20";
+        return "text-pink-400 bg-pink-500/10 border-pink-500/20";
       case "warning":
       case "ai_warning":
-        return "text-amber-400 bg-amber-500/10 border-amber-500/20";
+        return "text-pink-400 bg-pink-500/10 border-pink-500/20";
       case "scraping_error":
       case "image_error":
         return "text-red-400 bg-red-500/10 border-red-500/20";
       case "sheets":
-        return "text-purple-400 bg-purple-500/10 border-purple-500/20";
+        return "text-pink-400 bg-pink-500/10 border-pink-500/20";
       case "clearing":
       case "clearing_complete":
         return "text-gray-400 bg-gray-500/10 border-gray-500/20";
@@ -1169,7 +1169,7 @@ export default function EnhancedAIInstagramScraperPage() {
       <div className="max-w-7xl mx-auto p-6 space-y-8">
         {/* Header Section */}
         <div className="text-center space-y-4">
-          <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-gradient-to-r from-pink-500/10 to-orange-500/10 border border-pink-500/20">
+          <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-gradient-to-r from-pink-500/10 to-rose-500/10 border border-pink-500/20">
             <Download className="w-5 h-5 text-pink-500" />
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Enhanced AI-Powered Instagram Scraper with Real-time Updates
@@ -1200,16 +1200,16 @@ export default function EnhancedAIInstagramScraperPage() {
         </div>
 
         {/* Enhanced Status Bar with WebSocket Connection Health */}
-        <div className="bg-white/5 dark:bg-gray-800/20 backdrop-blur-sm border border-white/10 dark:border-gray-700/20 rounded-2xl p-6">
+        <div className="bg-white/80 backdrop-blur-sm border border-pink-200 rounded-2xl p-6">
           <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             {/* Backend Connection */}
             <div className="flex items-center gap-3">
               <div
-                className={`w-3 h-3 rounded-full ${backendStatus.connected ? "bg-green-400 animate-pulse" : "bg-red-400"}`}
+                className={`w-3 h-3 rounded-full ${backendStatus.connected ? "bg-pink-400 animate-pulse" : "bg-red-400"}`}
               ></div>
               <div>
                 <div
-                  className={`font-medium ${backendStatus.connected ? "text-green-400" : "text-red-400"}`}
+                  className={`font-medium ${backendStatus.connected ? "text-pink-600" : "text-red-400"}`}
                 >
                   {backendStatus.connected
                     ? "Backend Connected"
@@ -1224,11 +1224,11 @@ export default function EnhancedAIInstagramScraperPage() {
             {/* NEW: WebSocket Connection */}
             <div className="flex items-center gap-3">
               <div
-                className={`w-3 h-3 rounded-full ${isWebSocketConnected ? "bg-green-400 animate-pulse" : "bg-red-400"}`}
+                className={`w-3 h-3 rounded-full ${isWebSocketConnected ? "bg-pink-400 animate-pulse" : "bg-red-400"}`}
               ></div>
               <div>
                 <div
-                  className={`font-medium ${isWebSocketConnected ? "text-green-400" : "text-red-400"}`}
+                  className={`font-medium ${isWebSocketConnected ? "text-pink-600" : "text-red-400"}`}
                 >
                   Real-time {isWebSocketConnected ? "Active" : "Offline"}
                 </div>
@@ -1242,11 +1242,11 @@ export default function EnhancedAIInstagramScraperPage() {
             {/* Connection Health */}
             <div className="flex items-center gap-3">
               <div
-                className={`w-3 h-3 rounded-full ${connectionHealth ? "bg-green-400 animate-pulse" : "bg-orange-400"}`}
+                className={`w-3 h-3 rounded-full ${connectionHealth ? "bg-pink-400 animate-pulse" : "bg-orange-400"}`}
               ></div>
               <div>
                 <div
-                  className={`font-medium ${connectionHealth ? "text-green-400" : "text-orange-400"}`}
+                  className={`font-medium ${connectionHealth ? "text-pink-600" : "text-orange-400"}`}
                 >
                   Connection {connectionHealth ? "Healthy" : "Issues"}
                 </div>
@@ -1259,11 +1259,11 @@ export default function EnhancedAIInstagramScraperPage() {
             {/* Duplicate Prevention Status */}
             <div className="flex items-center gap-3">
               <Shield
-                className={`w-4 h-4 ${backendStatus.sheets_available ? "text-blue-400" : "text-gray-500"}`}
+                className={`w-4 h-4 ${backendStatus.sheets_available ? "text-pink-400" : "text-gray-500"}`}
               />
               <div>
                 <div
-                  className={`font-medium ${backendStatus.sheets_available ? "text-blue-400" : "text-gray-400"}`}
+                  className={`font-medium ${backendStatus.sheets_available ? "text-pink-600" : "text-gray-400"}`}
                 >
                   Duplicate Prevention{" "}
                   {backendStatus.sheets_available ? "Active" : "Offline"}
@@ -1279,11 +1279,11 @@ export default function EnhancedAIInstagramScraperPage() {
             {/* OpenAI Status */}
             <div className="flex items-center gap-3">
               <Bot
-                className={`w-4 h-4 ${backendStatus.openai_available ? "text-purple-400" : "text-gray-500"}`}
+                className={`w-4 h-4 ${backendStatus.openai_available ? "text-pink-400" : "text-gray-500"}`}
               />
               <div>
                 <div
-                  className={`font-medium ${backendStatus.openai_available ? "text-purple-400" : "text-gray-400"}`}
+                  className={`font-medium ${backendStatus.openai_available ? "text-pink-600" : "text-gray-400"}`}
                 >
                   AI Analysis{" "}
                   {backendStatus.openai_available ? "Ready" : "Unavailable"}
@@ -1298,11 +1298,11 @@ export default function EnhancedAIInstagramScraperPage() {
             {/* Google Sheets Status */}
             <div className="flex items-center gap-3">
               <Database
-                className={`w-4 h-4 ${backendStatus.sheets_available ? "text-green-400" : "text-gray-500"}`}
+                className={`w-4 h-4 ${backendStatus.sheets_available ? "text-pink-400" : "text-gray-500"}`}
               />
               <div>
                 <div
-                  className={`font-medium ${backendStatus.sheets_available ? "text-green-400" : "text-gray-400"}`}
+                  className={`font-medium ${backendStatus.sheets_available ? "text-pink-600" : "text-gray-400"}`}
                 >
                   Google Sheets{" "}
                   {backendStatus.sheets_available ? "Connected" : "Offline"}
@@ -1318,7 +1318,7 @@ export default function EnhancedAIInstagramScraperPage() {
         </div>
 
         {/* Enhanced Input Section with Force Re-scrape Option */}
-        <div className="bg-white/5 dark:bg-gray-800/20 backdrop-blur-sm border border-white/10 dark:border-gray-700/20 rounded-2xl p-6">
+        <div className="bg-white/80 backdrop-blur-sm border border-pink-200 rounded-2xl p-6">
           <div className="space-y-4">
             {/* Username Input */}
             <div className="flex flex-col sm:flex-row gap-4">

@@ -1224,18 +1224,18 @@ const GifMaker = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-black/20 text-white p-6 rounded-lg">
+    <div className="min-h-screen bg-white/60 backdrop-blur-sm text-gray-700 p-6 rounded-lg border border-pink-200">
       <header className="text-center mb-12">
-        <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+        <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-600 to-rose-600">
           OnlyFans GIF Maker
         </h1>
-        <p className="text-gray-300 mt-2">
+        <p className="text-gray-600 mt-2">
           Create stunning GIFs for OnlyFans content!
         </p>
       </header>
 
       {/* Model Selection */}
-      <div className="bg-gray-800/50 rounded-xl p-6 mb-4 shadow-lg border border-gray-700/50 backdrop-blur-sm">
+      <div className="bg-white/80 rounded-xl p-6 mb-4 shadow-lg border border-pink-200 backdrop-blur-sm">
         <div className="col-span-2">
           <Suspense fallback={<div>Loading...</div>}>
             <ModelsDropdown formData={formData} setFormData={setFormData} />
@@ -1256,7 +1256,7 @@ const GifMaker = () => {
             />
           </Suspense>
 
-          <div className="bg-gray-800/50 rounded-xl flex flex-col p-6 mb-4 shadow-lg border border-gray-700/50 backdrop-blur-sm">
+          <div className="bg-white/80 rounded-xl flex flex-col p-6 mb-4 shadow-lg border border-pink-200 backdrop-blur-sm">
             <Suspense fallback={<div>Loading...</div>}>
               <GifMakerVideoCropper
                 templates={templates}
@@ -1285,10 +1285,10 @@ const GifMaker = () => {
             </Suspense>
 
             {/* Timeline Mode Selector */}
-            <div className="bg-gray-800/50 rounded-xl p-4 mb-4 shadow-lg border border-gray-700/50 backdrop-blur-sm">
+            <div className="bg-white/80 rounded-xl p-4 mb-4 shadow-lg border border-pink-200 backdrop-blur-sm">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-gray-300 font-medium">Timeline Mode</h3>
-                <div className="text-sm text-gray-400">
+                <h3 className="text-pink-600 font-medium">Timeline Mode</h3>
+                <div className="text-sm text-gray-600">
                   {timelineMode === "grid"
                     ? "Individual video timelines for grid layouts"
                     : "Merged timeline for sequence of videos"}
@@ -1300,8 +1300,8 @@ const GifMaker = () => {
                   onClick={() => setTimelineMode("grid")}
                   className={`px-4 py-2 rounded-lg transition-colors ${
                     timelineMode === "grid"
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                      ? "bg-pink-600 text-white"
+                      : "bg-gray-200 text-gray-600 hover:bg-gray-300"
                   }`}
                 >
                   Grid Mode
@@ -1310,8 +1310,8 @@ const GifMaker = () => {
                   onClick={() => setTimelineMode("sequence")}
                   className={`px-4 py-2 rounded-lg transition-colors ${
                     timelineMode === "sequence"
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                      ? "bg-pink-600 text-white"
+                      : "bg-gray-200 text-gray-600 hover:bg-gray-300"
                   }`}
                 >
                   Sequence Mode
@@ -1319,8 +1319,8 @@ const GifMaker = () => {
               </div>
 
               {timelineMode === "sequence" && (
-                <div className="mt-3 p-3 bg-blue-900/20 rounded-lg border border-blue-700/30">
-                  <p className="text-sm text-blue-300">
+                <div className="mt-3 p-3 bg-pink-50 rounded-lg border border-pink-200">
+                  <p className="text-sm text-pink-600">
                     <strong>Sequence Mode:</strong> Add videos to create a
                     merged timeline. Videos will be concatenated in order to
                     create a single GIF.
@@ -1331,7 +1331,7 @@ const GifMaker = () => {
                       activeVideoIndex === null ||
                       !videoClips[activeVideoIndex]?.file
                     }
-                    className="mt-2 bg-green-600 hover:bg-green-500 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-3 py-1 rounded text-sm"
+                    className="mt-2 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white px-3 py-1 rounded text-sm"
                   >
                     Add Current Video to Timeline
                   </button>
@@ -1428,8 +1428,8 @@ const GifMaker = () => {
                   />
                 </Suspense>
 
-                <div className="bg-gray-900 p-4 rounded-lg border border-gray-700 mt-2">
-                  <h3 className="text-gray-300 mb-2 font-medium">
+                <div className="bg-pink-50 p-4 rounded-lg border border-pink-200 mt-2">
+                  <h3 className="text-pink-600 mb-2 font-medium">
                     Generated GIF
                   </h3>
                   <div className="flex flex-col items-center">
@@ -1440,7 +1440,7 @@ const GifMaker = () => {
                     />
                     <button
                       onClick={downloadGif}
-                      className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-colors flex items-center"
+                      className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white px-4 py-2 rounded-lg transition-colors flex items-center shadow-md hover:shadow-pink-500/20 transform hover:-translate-y-0.5"
                     >
                       <Download className="w-4 h-4 mr-2" />{" "}
                       {isDownloading ? "Downloading..." : "Download GIF"}
@@ -1459,7 +1459,7 @@ const GifMaker = () => {
             {/* Action Buttons */}
             <div className="flex justify-end space-x-3 mt-5">
               <button
-                className="bg-gray-700 hover:bg-gray-600 text-gray-300 px-4 py-2 rounded-lg transition-colors"
+                className="bg-gray-200 hover:bg-gray-300 text-gray-600 px-4 py-2 rounded-lg transition-colors"
                 onClick={() => {
                   if (gifUrl) {
                     URL.revokeObjectURL(gifUrl);
@@ -1472,8 +1472,8 @@ const GifMaker = () => {
               <button
                 className={`${
                   isProcessing
-                    ? "bg-blue-800 cursor-not-allowed"
-                    : "bg-blue-600 hover:bg-blue-500"
+                    ? "bg-pink-400 cursor-not-allowed"
+                    : "bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 shadow-md hover:shadow-pink-500/20 transform hover:-translate-y-0.5"
                 } text-white px-4 py-2 rounded-lg transition-colors flex items-center`}
                 onClick={createGif}
                 disabled={

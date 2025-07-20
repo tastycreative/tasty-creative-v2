@@ -806,14 +806,14 @@ const AIImg2ImgPage = () => {
 
   // Render
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-teal-900 to-slate-900 p-6">
+    <div className="min-h-screen bg-white/60 backdrop-blur-sm p-6">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold text-white mb-2">
+          <h1 className="text-4xl font-bold text-gray-700 mb-2">
             AI Image-to-Image Generator
           </h1>
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Transform existing images with AI using your reference image as
             guidance
           </p>
@@ -821,8 +821,8 @@ const AIImg2ImgPage = () => {
 
         {/* Status message */}
         {appState.status && (
-          <div className="bg-green-900/20 border border-green-500/30 rounded-lg p-3 text-center">
-            <span className="text-green-400">{appState.status}</span>
+          <div className="bg-pink-100/60 border border-pink-300/50 rounded-lg p-3 text-center">
+            <span className="text-pink-600">{appState.status}</span>
           </div>
         )}
 
@@ -832,10 +832,10 @@ const AIImg2ImgPage = () => {
             <div className="flex items-center gap-3">
               <Instagram className="w-5 h-5 text-pink-500" />
               <div className="flex-1">
-                <h3 className="text-white font-medium">
+                <h3 className="text-gray-700 font-medium">
                   Loaded from Instagram
                 </h3>
-                <p className="text-gray-300 text-sm">
+                <p className="text-gray-600 text-sm">
                   {appState.instagramData.originalPost ? (
                     <>
                       From @{appState.instagramData.originalPost.username} •{" "}
@@ -852,31 +852,31 @@ const AIImg2ImgPage = () => {
         )}
 
         {/* Status Bar */}
-        <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+        <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
           <CardContent className="p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex items-center space-x-4">
                 {appState.isConnected ? (
                   <>
                     <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
-                      <span className="text-green-400 font-medium">
+                      <div className="w-3 h-3 rounded-full bg-pink-500 animate-pulse"></div>
+                      <span className="text-pink-600 font-medium">
                         ComfyUI Connected
                       </span>
                     </div>
-                    <div className="text-gray-400 text-sm">
+                    <div className="text-gray-600 text-sm">
                       {appState.availableLoraModels.length} models available
                     </div>
                   </>
                 ) : (
                   <>
                     <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                      <span className="text-red-400 font-medium">
+                      <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                      <span className="text-red-600 font-medium">
                         ComfyUI Offline
                       </span>
                     </div>
-                    <div className="text-gray-400 text-sm">
+                    <div className="text-gray-600 text-sm">
                       Check connection
                     </div>
                   </>
@@ -885,14 +885,14 @@ const AIImg2ImgPage = () => {
 
               {generationState.isGenerating && (
                 <div className="flex items-center space-x-3">
-                  <div className="flex items-center space-x-2 text-teal-400">
+                  <div className="flex items-center space-x-2 text-pink-600">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span className="text-sm font-medium">
                       {generationState.progress.toFixed(2)}%
                     </span>
                   </div>
                   {generationState.currentNode && (
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-gray-600">
                       {generationState.currentNode}
                     </span>
                   )}
@@ -906,20 +906,20 @@ const AIImg2ImgPage = () => {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
           {/* Image Upload Panel */}
           <div className="xl:col-span-1 space-y-6">
-            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+            <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
               <CardHeader className="pb-4">
-                <CardTitle className="text-white flex items-center">
+                <CardTitle className="text-gray-700 flex items-center">
                   <Upload className="w-5 h-5 mr-3" />
                   Reference Image
                 </CardTitle>
-                <CardDescription className="text-gray-400">
+                <CardDescription className="text-gray-600">
                   Upload an image to use as reference for transformation
                 </CardDescription>
               </CardHeader>
 
               <CardContent className="space-y-6">
                 {!uploadedImage ? (
-                  <div className="border-2 border-dashed border-white/20 rounded-xl p-8 text-center">
+                  <div className="border-2 border-dashed border-pink-200 rounded-xl p-8 text-center">
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -927,28 +927,28 @@ const AIImg2ImgPage = () => {
                       onChange={handleImageUpload}
                       className="hidden"
                     />
-                    <Upload className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                    <h3 className="text-white font-medium mb-2">
+                    <Upload className="w-16 h-16 mx-auto mb-4 text-pink-500" />
+                    <h3 className="text-gray-700 font-medium mb-2">
                       Upload Image
                     </h3>
-                    <p className="text-gray-400 mb-4 text-sm">
+                    <p className="text-gray-600 mb-4 text-sm">
                       Choose an image to use as reference for AI transformation
                     </p>
                     <Button
                       onClick={() => fileInputRef.current?.click()}
-                      className="bg-gradient-to-r from-teal-600 to-green-600 text-white rounded-lg px-6"
+                      className="bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg px-6"
                     >
                       Choose Image
                     </Button>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <div className="border border-white/10 rounded-xl overflow-hidden relative">
-                      <div className="relative bg-black/20">
+                    <div className="border border-pink-200 rounded-xl overflow-hidden relative">
+                      <div className="relative bg-pink-50/40">
                         <img
                           src={uploadedImage.src}
                           alt="Reference"
-                          className="w-full h-auto max-h-96 object-contain bg-black block"
+                          className="w-full h-auto max-h-96 object-contain bg-pink-50/20 block"
                         />
                       </div>
                     </div>
@@ -958,13 +958,13 @@ const AIImg2ImgPage = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => fileInputRef.current?.click()}
-                        className="bg-black/40 border-white/20 text-white hover:bg-white/10"
+                        className="bg-white border-pink-200 text-gray-700 hover:bg-pink-50"
                       >
                         <Upload className="w-4 h-4 mr-2" />
                         Change Image
                       </Button>
                       {uploadedImageName && (
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-gray-600">
                           Uploaded: {uploadedImageName}
                         </p>
                       )}
@@ -978,13 +978,13 @@ const AIImg2ImgPage = () => {
           {/* Settings Panel */}
           <div className="xl:col-span-1 space-y-6">
             {/* Prompt Input */}
-            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+            <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
               <CardHeader className="pb-4">
-                <CardTitle className="text-white flex items-center">
+                <CardTitle className="text-gray-700 flex items-center">
                   <Wand2 className="w-5 h-5 mr-3" />
                   Transformation Prompt
                 </CardTitle>
-                <CardDescription className="text-gray-400">
+                <CardDescription className="text-gray-600">
                   Describe how you want to transform the reference image
                 </CardDescription>
               </CardHeader>
@@ -996,7 +996,7 @@ const AIImg2ImgPage = () => {
                     onChange={(e) =>
                       updateGenerationParams({ prompt: e.target.value })
                     }
-                    className="bg-black/40 border-white/20 text-white rounded-xl min-h-[120px] resize-none"
+                    className="bg-white border-pink-200 text-gray-700 rounded-xl min-h-[120px] resize-none focus:border-pink-500/50"
                     rows={5}
                   />
                 </div>
@@ -1004,9 +1004,9 @@ const AIImg2ImgPage = () => {
             </Card>
 
             {/* Style & Generation Settings */}
-            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+            <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
               <CardHeader className="pb-4">
-                <CardTitle className="text-white flex items-center">
+                <CardTitle className="text-gray-700 flex items-center">
                   <Settings className="w-5 h-5 mr-3" />
                   Generation Settings
                 </CardTitle>
@@ -1014,7 +1014,7 @@ const AIImg2ImgPage = () => {
               <CardContent className="space-y-6 max-h-[400px] overflow-y-auto">
                 {/* LoRA Model Selection */}
                 <div>
-                  <Label className="text-gray-300 text-sm font-medium mb-3 block">
+                  <Label className="text-gray-600 text-sm font-medium mb-3 block">
                     LoRA Model
                   </Label>
                   <Select
@@ -1023,14 +1023,14 @@ const AIImg2ImgPage = () => {
                       updateGenerationParams({ selectedLora: value })
                     }
                   >
-                    <SelectTrigger className="bg-black/40 border-white/20 text-white rounded-xl h-12 focus:border-teal-400/50">
+                    <SelectTrigger className="bg-white border-pink-200 text-gray-700 rounded-xl h-12 focus:border-pink-500/50">
                       <SelectValue placeholder="Select LoRA model" />
                     </SelectTrigger>
-                    <SelectContent className="bg-black/90 border-white/10 text-white">
+                    <SelectContent className="bg-white border-pink-200 text-gray-700">
                       {appState.availableLoraModels.map((model) => (
                         <SelectItem key={model} value={model}>
                           <div className="flex items-center space-x-3">
-                            <div className="w-2 h-2 rounded-full bg-teal-400"></div>
+                            <div className="w-2 h-2 rounded-full bg-pink-500"></div>
                             <span>
                               {model.replace(/\.(safetensors|pt|ckpt)$/, "")}
                             </span>
@@ -1044,10 +1044,10 @@ const AIImg2ImgPage = () => {
                 {/* Batch Size */}
                 <div>
                   <div className="flex justify-between items-center mb-3">
-                    <Label className="text-gray-300 text-sm font-medium">
+                    <Label className="text-gray-600 text-sm font-medium">
                       Batch Size
                     </Label>
-                    <span className="text-teal-400 text-sm font-mono">
+                    <span className="text-pink-600 text-sm font-mono">
                       {generationParams.batchSize}
                     </span>
                   </div>
@@ -1061,7 +1061,7 @@ const AIImg2ImgPage = () => {
                     step={1}
                     className="py-2"
                   />
-                  <p className="text-xs text-gray-400 mt-2">
+                  <p className="text-xs text-gray-600 mt-2">
                     Number of variations to generate
                   </p>
                 </div>
@@ -1069,10 +1069,10 @@ const AIImg2ImgPage = () => {
                 {/* Denoise Strength */}
                 <div>
                   <div className="flex justify-between items-center mb-3">
-                    <Label className="text-gray-300 text-sm font-medium">
+                    <Label className="text-gray-600 text-sm font-medium">
                       Denoise Strength
                     </Label>
-                    <span className="text-teal-400 text-sm font-mono">
+                    <span className="text-pink-600 text-sm font-mono">
                       {generationParams.denoise.toFixed(2)}
                     </span>
                   </div>
@@ -1086,7 +1086,7 @@ const AIImg2ImgPage = () => {
                     step={0.05}
                     className="py-2"
                   />
-                  <p className="text-xs text-gray-400 mt-2">
+                  <p className="text-xs text-gray-600 mt-2">
                     How much to change the reference image (higher = more
                     change)
                   </p>
@@ -1095,10 +1095,10 @@ const AIImg2ImgPage = () => {
                 {/* Steps */}
                 <div>
                   <div className="flex justify-between items-center mb-3">
-                    <Label className="text-gray-300 text-sm font-medium">
+                    <Label className="text-gray-600 text-sm font-medium">
                       Generation Steps
                     </Label>
-                    <span className="text-teal-400 text-sm font-mono">
+                    <span className="text-pink-600 text-sm font-mono">
                       {generationParams.steps}
                     </span>
                   </div>
@@ -1112,7 +1112,7 @@ const AIImg2ImgPage = () => {
                     step={1}
                     className="py-2"
                   />
-                  <p className="text-xs text-gray-400 mt-2">
+                  <p className="text-xs text-gray-600 mt-2">
                     More steps = higher quality, slower generation
                   </p>
                 </div>
@@ -1120,10 +1120,10 @@ const AIImg2ImgPage = () => {
                 {/* Guidance */}
                 <div>
                   <div className="flex justify-between items-center mb-3">
-                    <Label className="text-gray-300 text-sm font-medium">
+                    <Label className="text-gray-600 text-sm font-medium">
                       Guidance Scale
                     </Label>
-                    <span className="text-teal-400 text-sm font-mono">
+                    <span className="text-pink-600 text-sm font-mono">
                       {generationParams.guidance.toFixed(1)}
                     </span>
                   </div>
@@ -1137,7 +1137,7 @@ const AIImg2ImgPage = () => {
                     step={0.5}
                     className="py-2"
                   />
-                  <p className="text-xs text-gray-400 mt-2">
+                  <p className="text-xs text-gray-600 mt-2">
                     How closely to follow the prompt
                   </p>
                 </div>
@@ -1145,7 +1145,7 @@ const AIImg2ImgPage = () => {
 
               <CardFooter className="pt-6">
                 <Button
-                  className="w-full h-14 bg-gradient-to-r from-teal-600 to-green-600 hover:from-teal-700 hover:to-green-700 text-white rounded-xl text-lg font-semibold"
+                  className="w-full h-14 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-xl text-lg font-semibold"
                   onClick={handleGenerate}
                   disabled={!canGenerate}
                 >
@@ -1176,9 +1176,9 @@ const AIImg2ImgPage = () => {
 
           {/* Preview Panel */}
           <div className="xl:col-span-1 space-y-6">
-            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+            <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
               <CardHeader className="pb-4">
-                <CardTitle className="text-white flex items-center">
+                <CardTitle className="text-gray-700 flex items-center">
                   <ImageLucide className="w-5 h-5 mr-3" />
                   Latest Creation
                 </CardTitle>
@@ -1188,14 +1188,14 @@ const AIImg2ImgPage = () => {
                 <div className="h-[500px] flex items-center justify-center">
                   {generationState.isGenerating ? (
                     <div className="text-center space-y-6">
-                      <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-teal-500 to-green-500 flex items-center justify-center">
-                        <Loader2 className="w-10 h-10 text-white animate-spin" />
+                      <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-pink-500 to-rose-500 flex items-center justify-center">
+                        <Loader2 className="w-10 h-10 text-pink-600 animate-spin" />
                       </div>
                       <div>
-                        <h3 className="text-xl font-semibold text-white mb-2">
+                        <h3 className="text-xl font-semibold text-gray-700 mb-2">
                           Transforming Image
                         </h3>
-                        <p className="text-gray-400 mb-2">
+                        <p className="text-gray-600 mb-2">
                           {generationState.progress.toFixed(2)}% complete
                         </p>
                         {generationState.currentNode && (
@@ -1207,27 +1207,27 @@ const AIImg2ImgPage = () => {
                     </div>
                   ) : appState.latestGeneratedImage ? (
                     <div className="w-full space-y-6">
-                      <div className="aspect-square rounded-xl overflow-hidden border border-white/10">
+                      <div className="aspect-square rounded-xl overflow-hidden border border-pink-200">
                         <img
                           src={appState.latestGeneratedImage.imageUrl}
                           alt="Latest transformation"
-                          className="w-full h-full object-contain bg-black/20"
+                          className="w-full h-full object-contain bg-pink-50/40"
                         />
                       </div>
 
                       <div className="space-y-4">
                         <div>
-                          <h3 className="text-lg font-semibold text-white mb-2">
+                          <h3 className="text-lg font-semibold text-gray-700 mb-2">
                             Latest Transformation
                           </h3>
-                          <p className="text-gray-400 text-sm line-clamp-3">
+                          <p className="text-gray-600 text-sm line-clamp-3">
                             {appState.latestGeneratedImage.prompt}
                           </p>
                         </div>
 
                         <div className="flex flex-wrap gap-3">
                           <Button
-                            className="bg-teal-600 hover:bg-teal-700 text-white flex-1"
+                            className="bg-pink-500 hover:bg-pink-600 text-white flex-1"
                             onClick={downloadLatestImage}
                           >
                             <Download className="w-4 h-4 mr-2" />
@@ -1236,7 +1236,7 @@ const AIImg2ImgPage = () => {
 
                           <Button
                             variant="outline"
-                            className="bg-black/40 border-white/20 text-white hover:bg-white/10 flex-1"
+                            className="bg-white border-pink-200 text-gray-700 hover:bg-pink-50 flex-1"
                             onClick={() => {
                               navigator.clipboard.writeText(
                                 appState.latestGeneratedImage!.prompt
@@ -1251,14 +1251,14 @@ const AIImg2ImgPage = () => {
                     </div>
                   ) : (
                     <div className="text-center space-y-6">
-                      <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-gray-600 to-gray-700 flex items-center justify-center">
-                        <Palette className="w-10 h-10 text-gray-400" />
+                      <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-pink-400 to-rose-400 flex items-center justify-center">
+                        <Palette className="w-10 h-10 text-white" />
                       </div>
                       <div>
-                        <h3 className="text-xl font-semibold text-white mb-2">
+                        <h3 className="text-xl font-semibold text-gray-700 mb-2">
                           No Transformations Yet
                         </h3>
-                        <p className="text-gray-400">
+                        <p className="text-gray-600">
                           {appState.isConnected && uploadedImage
                             ? "Add a prompt and transform your image"
                             : !appState.isConnected
