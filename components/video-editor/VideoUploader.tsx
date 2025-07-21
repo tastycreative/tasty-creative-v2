@@ -487,7 +487,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
         <div className="bg-pink-50  border border-pink-200  rounded-lg p-3">
           <div className="flex items-center space-x-2">
             <div
-              className={`w-3 h-3 rounded-full ${(modelType || "FREE") === "FREE" ? "bg-pink-500" : "bg-blue-500"}`}
+              className={`w-3 h-3 rounded-full ${(modelType || "FREE") === "FREE" ? "bg-pink-500" : "bg-rose-500"}`}
             />
             <span className="text-sm font-medium text-pink-700">
               Selected: {getFinalModelValue()}
@@ -503,7 +503,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
           ${
             dragActive
               ? "border-pink-500 bg-pink-50 "
-              : "border-gray-300 hover:border-pink-400 dark:border-gray-600 dark:hover:border-pink-500"
+              : "border-gray-300 hover:border-pink-400"
           }
           ${isUploading ? "opacity-50 pointer-events-none" : ""}
         `}
@@ -610,7 +610,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
       <div className="border-t border-pink-200 pt-4">
         <div className="space-y-3">
           <div className="flex items-center space-x-2">
-            <HardDrive className="w-4 h-4 text-gray-500" />
+            <HardDrive className="w-4 h-4 text-pink-600" />
             <label className="text-sm font-medium text-gray-700">
               Google Drive Folder (Optional)
             </label>
@@ -621,7 +621,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
               value={folderInputValue}
               onChange={(e) => handleFolderInputChange(e.target.value)}
               placeholder="Paste Google Drive folder link or ID..."
-              className="flex-1 px-3 py-2 border border-pink-200 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-700 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+              className="flex-1 px-3 py-2 border border-pink-200 rounded-lg text-sm bg-white text-gray-700 placeholder-gray-500 focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
             />
             {customFolderId && (
               <button
@@ -660,7 +660,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
       {showGoogleDrivePicker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div
-            className={`bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-4xl max-h-[80vh] overflow-hidden relative ${(isDownloading || downloadProgress?.isDownloading) ? "overflow-hidden" : ""}`}
+            className={`bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[80vh] overflow-hidden relative ${(isDownloading || downloadProgress?.isDownloading) ? "overflow-hidden" : ""}`}
           >
             {(isDownloading || downloadProgress?.isDownloading) && (
               <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-black/90 z-50 p-8">
@@ -678,7 +678,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                       
                       <div className="w-full bg-gray-700 rounded-full h-3 overflow-hidden">
                         <div 
-                          className="bg-gradient-to-r from-green-400 to-green-500 h-full rounded-full transition-all duration-500 ease-out"
+                          className="bg-gradient-to-r from-pink-400 to-pink-500 h-full rounded-full transition-all duration-500 ease-out"
                           style={{ width: `${downloadProgress.progress}%` }}
                         />
                       </div>
@@ -687,7 +687,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                         <span className="text-gray-400">
                           {downloadProgress.progress < 100 ? 'Downloading...' : 'Processing...'}
                         </span>
-                        <span className="text-green-400 font-medium">
+                        <span className="text-pink-400 font-medium">
                           {downloadProgress.progress}%
                         </span>
                       </div>
@@ -706,14 +706,14 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-pink-200">
               <div className="flex items-center space-x-3">
-                <HardDrive className="w-5 h-5 text-green-600" />
+                <HardDrive className="w-5 h-5 text-pink-600" />
                 <h3 className="text-lg font-semibold text-gray-700">
                   Select Videos from Google Drive
                 </h3>
               </div>
               <button
                 onClick={() => setShowGoogleDrivePicker(false)}
-                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <X className="w-5 h-5 text-gray-500" />
               </button>
@@ -721,13 +721,13 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
 
             {/* Navigation */}
             {(currentFolder || parentFolder) && (
-              <div className="px-4 py-2 bg-gray-50 dark:bg-gray-700/50 border-b border-pink-200">
+              <div className="px-4 py-2 bg-gray-50 border-b border-pink-200">
                 <div className="flex items-center space-x-2 text-sm">
                   {parentFolder && (
                     <button
                       onClick={handleNavigateUp}
                       disabled={isGooglePickerLoading || downloadProgress?.isDownloading}
-                      className="text-blue-600 hover:text-blue-700 disabled:text-gray-400"
+                      className="text-pink-600 hover:text-pink-700 disabled:text-gray-400"
                     >
                       ← Back
                     </button>
@@ -743,7 +743,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
             <div className="p-4 overflow-y-auto max-h-96">
               {isGooglePickerLoading ? (
                 <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
                   <span className="ml-3 text-gray-600">
                     Loading...
                   </span>
@@ -766,11 +766,11 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                         disabled={isDownloading || downloadProgress?.isDownloading || (!file.isFolder && !isVideo)}
                         className={`group relative rounded-lg p-3 transition-colors text-left ${
                           isVideo || file.isFolder
-                            ? "bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600"
-                            : "bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed"
+                            ? "bg-gray-50 hover:bg-gray-100"
+                            : "bg-gray-100 opacity-50 cursor-not-allowed"
                         } disabled:opacity-50`}
                       >
-                        <div className="aspect-video bg-gray-200 dark:bg-gray-600 rounded-lg mb-2 flex items-center justify-center overflow-hidden">
+                        <div className="aspect-video bg-gray-200 rounded-lg mb-2 flex items-center justify-center overflow-hidden">
                           {file.isFolder ? (
                             <Folder className="w-8 h-8 text-gray-400" />
                           ) : file.thumbnailLink ? (
@@ -811,7 +811,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-t border-pink-200">
+            <div className="px-4 py-3 bg-gray-50 border-t border-pink-200">
               <p className="text-xs text-gray-500">
                 Select video files to upload to your sequence
               </p>
@@ -830,10 +830,10 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
             {uploadingFiles.map((file, index) => (
               <div
                 key={`${file.name}-${index}`}
-                className="relative bg-white dark:bg-gray-800 rounded-lg border border-pink-200 p-3"
+                className="relative bg-white rounded-lg border border-pink-200 p-3"
               >
                 <div className="flex items-center space-x-3">
-                  <div className="w-12 h-8 bg-gray-100 dark:bg-gray-700 rounded flex items-center justify-center">
+                  <div className="w-12 h-8 bg-gray-100 rounded flex items-center justify-center">
                     <Film className="w-4 h-4 text-gray-500" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -846,7 +846,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
                   </div>
                   <button
                     onClick={() => removeUploadingFile(file)}
-                    className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                    className="p-1 hover:bg-gray-100 rounded"
                   >
                     <X className="w-4 h-4 text-gray-400" />
                   </button>
@@ -854,7 +854,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
 
                 {/* Loading Animation */}
                 <div className="mt-2">
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
+                  <div className="w-full bg-gray-200 rounded-full h-1">
                     <div
                       className="bg-pink-500 h-1 rounded-full animate-pulse"
                       style={{ width: "60%" }}

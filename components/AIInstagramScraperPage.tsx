@@ -1366,7 +1366,7 @@ export default function EnhancedAIInstagramScraperPage() {
                     onClick={() => setShowRealtimePanel(!showRealtimePanel)}
                     className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center gap-2 ${
                       showRealtimePanel
-                        ? "bg-blue-500 hover:bg-blue-600 text-white"
+                        ? "bg-pink-500 hover:bg-pink-600 text-white"
                         : "bg-gray-500 hover:bg-gray-600 text-white"
                     }`}
                   >
@@ -1387,7 +1387,7 @@ export default function EnhancedAIInstagramScraperPage() {
                     !backendStatus.connected ||
                     (images.length === 0 && results.length === 0)
                   }
-                  className="px-6 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
+                  className="px-6 py-3 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center gap-2"
                   title="Clear all downloaded images and Google Sheets data"
                 >
                   <Trash2 className="w-5 h-5" />
@@ -1469,7 +1469,7 @@ export default function EnhancedAIInstagramScraperPage() {
                 </div>
                 <div className="w-full bg-gray-700 rounded-full h-2">
                   <div
-                    className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
+                    className="bg-gradient-to-r from-pink-500 to-rose-500 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${realtimeProgress.percentage}%` }}
                   ></div>
                 </div>
@@ -1737,7 +1737,7 @@ export default function EnhancedAIInstagramScraperPage() {
         {(results.length > 0 || stats.total_checked > 0) && (
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
             <div className="bg-white/5 dark:bg-gray-800/20 backdrop-blur-sm border border-white/10 dark:border-gray-700/20 rounded-xl p-4 text-center">
-              <Eye className="w-8 h-8 text-blue-500 mx-auto mb-2" />
+              <Eye className="w-8 h-8 text-pink-500 mx-auto mb-2" />
               <div className="text-2xl font-bold text-gray-800 dark:text-white">
                 {stats.total_checked}
               </div>
@@ -1746,7 +1746,7 @@ export default function EnhancedAIInstagramScraperPage() {
               </div>
             </div>
             <div className="bg-white/5 dark:bg-gray-800/20 backdrop-blur-sm border border-white/10 dark:border-gray-700/20 rounded-xl p-4 text-center">
-              <Plus className="w-8 h-8 text-green-500 mx-auto mb-2" />
+              <Plus className="w-8 h-8 text-pink-500 mx-auto mb-2" />
               <div className="text-2xl font-bold text-gray-800 dark:text-white">
                 {stats.new_posts}
               </div>
@@ -1755,7 +1755,7 @@ export default function EnhancedAIInstagramScraperPage() {
               </div>
             </div>
             <div className="bg-white/5 dark:bg-gray-800/20 backdrop-blur-sm border border-white/10 dark:border-gray-700/20 rounded-xl p-4 text-center">
-              <SkipForward className="w-8 h-8 text-orange-500 mx-auto mb-2" />
+              <SkipForward className="w-8 h-8 text-pink-500 mx-auto mb-2" />
               <div className="text-2xl font-bold text-gray-800 dark:text-white">
                 {stats.skipped_posts}
               </div>
@@ -1764,7 +1764,7 @@ export default function EnhancedAIInstagramScraperPage() {
               </div>
             </div>
             <div className="bg-white/5 dark:bg-gray-800/20 backdrop-blur-sm border border-white/10 dark:border-gray-700/20 rounded-xl p-4 text-center">
-              <Image className="w-8 h-8 text-purple-500 mx-auto mb-2" />
+              <Image className="w-8 h-8 text-pink-500 mx-auto mb-2" />
               <div className="text-2xl font-bold text-gray-800 dark:text-white">
                 {stats.images_downloaded}
               </div>
@@ -1773,7 +1773,7 @@ export default function EnhancedAIInstagramScraperPage() {
               </div>
             </div>
             <div className="bg-white/5 dark:bg-gray-800/20 backdrop-blur-sm border border-white/10 dark:border-gray-700/20 rounded-xl p-4 text-center">
-              <Bot className="w-8 h-8 text-cyan-500 mx-auto mb-2" />
+              <Bot className="w-8 h-8 text-pink-500 mx-auto mb-2" />
               <div className="text-2xl font-bold text-gray-800 dark:text-white">
                 {stats.ai_analyses_completed}
               </div>

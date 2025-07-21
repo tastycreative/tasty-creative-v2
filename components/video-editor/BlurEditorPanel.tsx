@@ -85,8 +85,8 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
       const height = (region.height / 100) * canvasHeight;
 
       ctx.save();
-      ctx.fillStyle = "rgba(147, 51, 234, 0.3)";
-      ctx.strokeStyle = "#9333ea";
+      ctx.fillStyle = "rgba(236, 72, 153, 0.3)";
+      ctx.strokeStyle = "#ec4899";
       ctx.lineWidth = 2;
 
       if (region.shape === "circle") {
@@ -100,7 +100,7 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
         ctx.stroke();
 
         // Draw resize handle for circle
-        ctx.fillStyle = "#9333ea";
+        ctx.fillStyle = "#ec4899";
         ctx.beginPath();
         ctx.arc(centerX + radius - 5, centerY + radius - 5, 4, 0, 2 * Math.PI);
         ctx.fill();
@@ -109,7 +109,7 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
         ctx.strokeRect(x, y, width, height);
 
         // Draw resize handle for rectangle
-        ctx.fillStyle = "#9333ea";
+        ctx.fillStyle = "#ec4899";
         ctx.fillRect(x + width - 8, y + height - 8, 8, 8);
       }
 
@@ -243,7 +243,7 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
             onClick={() => setShowPreview(!showPreview)}
             className={`p-2 rounded-lg transition-all duration-200 hover:scale-105 ${
               showPreview
-                ? "bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400 shadow-md"
+                ? "bg-pink-100 dark:bg-pink-900 text-pink-600 dark:text-pink-400 shadow-md"
                 : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
             }`}
             title="Toggle preview"
@@ -314,7 +314,7 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
                 onClick={() => onUpdate({ shape: "rectangle" })}
                 className={`flex items-center justify-center space-x-2 px-3 py-2 rounded-lg border-2 transition-all duration-200 hover:scale-105 text-sm ${
                   region.shape === "rectangle"
-                    ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 shadow-md"
+                    ? "border-pink-500 bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 shadow-md"
                     : "border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500"
                 }`}
               >
@@ -325,7 +325,7 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
                 onClick={() => onUpdate({ shape: "circle" })}
                 className={`flex items-center justify-center space-x-2 px-3 py-2 rounded-lg border-2 transition-all duration-200 hover:scale-105 text-sm ${
                   region.shape === "circle"
-                    ? "border-purple-500 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 shadow-md"
+                    ? "border-pink-500 bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400 shadow-md"
                     : "border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500"
                 }`}
               >
@@ -341,7 +341,7 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
               <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                 Blur Intensity
               </label>
-              <div className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-xs font-medium rounded-md">
+              <div className="px-2 py-1 bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400 text-xs font-medium rounded-md">
                 {region.intensity}px
               </div>
             </div>
@@ -438,7 +438,7 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
             </button>
             <button
               onClick={onClose}
-              className="px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white rounded-lg transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-purple-500/25 font-medium"
+              className="px-6 py-3 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white rounded-lg transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-pink-500/25 font-medium"
             >
               Done Editing
             </button>

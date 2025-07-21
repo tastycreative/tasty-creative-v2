@@ -149,11 +149,11 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
       <div className="relative" style={containerStyle}>
         {/* Show loading spinner when image not loaded */}
         <div
-          className={`absolute inset-0 bg-gray-200 dark:bg-gray-700 flex items-center justify-center ${
+          className={`absolute inset-0 bg-gray-200 flex items-center justify-center ${
             !imageLoaded ? "opacity-100" : "opacity-0"
           } transition-opacity duration-200`}
         >
-          <div className="animate-spin rounded-full h-2 w-2 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-2 w-2 border-b-2 border-pink-500"></div>
         </div>
 
         {/* Use the proxy URL directly as the image source */}
@@ -250,10 +250,10 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
         {/* Show loading spinner when not in view or image not loaded */}
         {(!isInView || !imageLoaded) && (
           <div
-            className={`absolute inset-0 bg-gray-200 dark:bg-gray-700 flex items-center justify-center z-10`}
+            className={`absolute inset-0 bg-gray-200 flex items-center justify-center z-10`}
           >
             <div className="text-center">
-              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500 mx-auto mb-1"></div>
+              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-pink-500 mx-auto mb-1"></div>
               <div className="text-xs text-gray-500">Loading...</div>
             </div>
           </div>
@@ -305,9 +305,9 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
     return (
       <div
         onClick={onToggle}
-        className={`relative bg-gray-200 dark:bg-gray-600 rounded-lg overflow-hidden cursor-pointer border-2 transition-colors ${
+        className={`relative bg-gray-200 rounded-lg overflow-hidden cursor-pointer border-2 transition-colors ${
           isSelected
-            ? "border-green-500"
+            ? "border-pink-500"
             : "border-transparent hover:border-gray-300"
         }`}
         style={{
@@ -324,11 +324,11 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
           lazy={true}
         />
         <div className="absolute top-2 left-2">
-          <Video className="w-4 h-4 text-white bg-black bg-opacity-50 rounded p-0.5" />
+          <Video className="w-4 h-4 text-white bg-pink-600 bg-opacity-80 rounded p-0.5" />
         </div>
         {isSelected && (
-          <div className="absolute inset-0 bg-green-500 bg-opacity-20 flex items-center justify-center">
-            <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+          <div className="absolute inset-0 bg-pink-500 bg-opacity-20 flex items-center justify-center">
+            <div className="w-6 h-6 bg-pink-500 rounded-full flex items-center justify-center">
               <span className="text-white text-sm">✓</span>
             </div>
           </div>
@@ -353,16 +353,16 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
     return (
       <div
         onClick={onSelect}
-        className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+        className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors"
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <Folder className="w-5 h-5 text-blue-500" />
+            <Folder className="w-5 h-5 text-pink-500" />
             <div>
-              <h3 className="font-medium text-gray-900 dark:text-white">
+              <h3 className="font-medium text-gray-900">
                 {list.name}
               </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-gray-500">
                 {list.videosCount} videos, {list.photosCount} photos
               </p>
             </div>
@@ -372,7 +372,7 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
               list.medias.slice(0, 3).map((media, index) => (
                 <div
                   key={index}
-                  className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded overflow-hidden relative"
+                  className="w-12 h-12 bg-gray-200 rounded overflow-hidden relative"
                 >
                   <DirectImagePreview
                     src={
@@ -402,20 +402,20 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
   // Loading skeleton component for vault lists
   const VaultListSkeleton: React.FC = React.memo(() => {
     return (
-      <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 animate-pulse">
+      <div className="border border-gray-200 rounded-lg p-4 animate-pulse">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-5 h-5 bg-gray-300 dark:bg-gray-600 rounded"></div>
+            <div className="w-5 h-5 bg-gray-300 rounded"></div>
             <div>
-              <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-32 mb-2"></div>
-              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+              <div className="h-4 bg-gray-300 rounded w-32 mb-2"></div>
+              <div className="h-3 bg-gray-200 rounded w-24"></div>
             </div>
           </div>
           <div className="flex items-center space-x-2">
             {[...Array(3)].map((_, index) => (
               <div
                 key={index}
-                className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded"
+                className="w-12 h-12 bg-gray-200 rounded"
               ></div>
             ))}
           </div>
@@ -909,32 +909,32 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
   // Show error if no account is registered for the selected model/type
   if (!hasValidAccount) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            <h2 className="text-xl font-semibold text-gray-900">
               Account Not Found
             </h2>
             <button
               onClick={handleClose}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
+          <div className="bg-pink-50 border border-pink-200 rounded-lg p-4 mb-4">
             <div className="flex items-center space-x-3">
               <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-red-100 dark:bg-red-800 rounded-full flex items-center justify-center">
-                  <X className="w-4 h-4 text-red-600 dark:text-red-300" />
+                <div className="w-8 h-8 bg-pink-100 rounded-full flex items-center justify-center">
+                  <X className="w-4 h-4 text-pink-600" />
                 </div>
               </div>
               <div>
-                <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
+                <h3 className="text-sm font-medium text-pink-800">
                   No Account Registered
                 </h3>
-                <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                <p className="text-sm text-pink-700 mt-1">
                   {validCombinedModel
                     ? `No account ID is registered for model "${validCombinedModel}".`
                     : "No model selected. Please select a model in VideoEditor first."}
@@ -943,13 +943,13 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
             </div>
           </div>
 
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
-            <p className="text-sm text-blue-800 dark:text-blue-200">
+          <div className="bg-pink-50 border border-pink-200 rounded-lg p-3 mb-4">
+            <p className="text-sm text-pink-800">
               {validCombinedModel ? (
                 <>
                   <strong>To add this model:</strong> Update the account
                   configuration in
-                  <code className="mx-1 px-1 bg-blue-100 dark:bg-blue-800 rounded">
+                  <code className="mx-1 px-1 bg-pink-100 rounded">
                     lib/onlyfans-accounts.ts
                   </code>
                   with the OnlyFans account ID for &ldquo;{validCombinedModel}
@@ -979,25 +979,25 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-xl max-w-4xl w-full mx-4 h-[80vh] overflow-hidden flex flex-col relative">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl max-w-4xl w-full mx-4 h-[80vh] overflow-hidden flex flex-col relative">
         {/* Header - Fixed */}
         <div className="p-6 pb-0 flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            <h2 className="text-xl font-semibold text-gray-900">
               {selectedList ? selectedList.name : "Select from Vault"}
             </h2>
             <button
               onClick={handleClose}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Info notice about media scraping */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
-            <p className="text-sm text-blue-800 dark:text-blue-200">
+          <div className="bg-pink-50 border border-pink-200 rounded-lg p-3 mb-4">
+            <p className="text-sm text-pink-800">
               <strong>Instant Display:</strong> Vault lists appear immediately
               with loading placeholders. Thumbnails update individually using
               fresh OnlyFans temporary URLs via our scraping API endpoint.
@@ -1008,26 +1008,26 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
         {/* Content Area - Scrollable */}
         <div className="flex-1 flex flex-col min-h-0 px-6 pb-6">
           {loading && downloadProgress && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm w-full mx-4">
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
                 <div className="text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500 mx-auto mb-4"></div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     Downloading Videos
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  <p className="text-gray-600 mb-4">
                     Processing {downloadProgress.current} of {downloadProgress.total} videos...
                   </p>
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2">
+                  <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
                     <div 
-                      className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                      className="bg-pink-500 h-2 rounded-full transition-all duration-300"
                       style={{ width: `${(downloadProgress.current / downloadProgress.total) * 100}%` }}
                     ></div>
                   </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                  <p className="text-sm text-gray-500 mb-2">
                     Current: {downloadProgress.currentFile}
                   </p>
-                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                  <p className="text-xs text-gray-400">
                     Large videos may take longer to download. Each attempt times out after 30 seconds.
                   </p>
                 </div>
@@ -1046,8 +1046,8 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
           )}
 
           {error && !loading && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4 flex-shrink-0">
-              <p className="text-red-800 dark:text-red-200">{error}</p>
+            <div className="bg-pink-50 border border-pink-200 rounded-lg p-4 mb-4 flex-shrink-0">
+              <p className="text-pink-800">{error}</p>
             </div>
           )}
 
@@ -1055,21 +1055,21 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
             <div className="flex-1 flex flex-col min-h-0">
               {/* Debug info - remove in production */}
               {process.env.NODE_ENV === 'development' && (
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-2 mb-4 flex-shrink-0">
-                  <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                <div className="bg-pink-50 border border-pink-200 rounded-lg p-2 mb-4 flex-shrink-0">
+                  <p className="text-xs text-pink-800">
                     Debug: {vaultLists.length} vault lists loaded, hasMore: {String(hasMore)}, loading: {String(loading)}, loadingMore: {String(loadingMore)}, offset: {offsetRef.current}
                   </p>
                   <div className="mt-2 space-x-2">
                     <button
                       onClick={loadMoreVaultLists}
                       disabled={loadingMore || !hasMore}
-                      className="px-2 py-1 bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-400 text-white text-xs rounded"
+                      className="px-2 py-1 bg-pink-500 hover:bg-pink-600 disabled:bg-gray-400 text-white text-xs rounded"
                     >
                       Test Load More
                     </button>
                     <button
                       onClick={() => console.log("Current state:", { vaultLists: vaultLists.length, hasMore, offsetRef: offsetRef.current })}
-                      className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded"
+                      className="px-2 py-1 bg-pink-500 hover:bg-pink-600 text-white text-xs rounded"
                     >
                       Log State
                     </button>
@@ -1087,10 +1087,10 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                   {vaultLists.length === 0 && !loading ? (
                     <div className="text-center py-8">
                       <Folder className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-500 dark:text-gray-400">
+                      <p className="text-gray-500">
                         No vault lists found
                       </p>
-                      <p className="text-sm text-gray-400 dark:text-gray-500 mt-2">
+                      <p className="text-sm text-gray-400 mt-2">
                         Create vault lists in your OnlyFans account to organize
                         your media
                       </p>
@@ -1115,7 +1115,7 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                         {hasMore ? (
                           loadingMore ? (
                             <div className="flex items-center justify-center">
-                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-green-500"></div>
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-500"></div>
                               <span className="ml-2 text-gray-500">Loading more...</span>
                             </div>
                           ) : (
@@ -1125,7 +1125,7 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                               </div>
                               <button
                                 onClick={loadMoreVaultLists}
-                                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm transition-colors"
+                                className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg text-sm transition-colors"
                                 disabled={loadingMore}
                               >
                                 Load More
@@ -1147,11 +1147,11 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                   <div className="flex items-center justify-between mb-4 flex-shrink-0">
                     <button
                       onClick={handleBack}
-                      className="text-blue-600 dark:text-blue-400 hover:underline"
+                      className="text-pink-600 hover:underline"
                     >
                       ← Back to Lists
                     </button>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <div className="text-sm text-gray-500">
                       {selectedMedia.length} selected
                     </div>
                   </div>
@@ -1159,8 +1159,8 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                   <div className="flex-1 overflow-y-auto">
                     {loading ? (
                       <div className="flex items-center justify-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
-                        <span className="ml-2 text-gray-600 dark:text-gray-400">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
+                        <span className="ml-2 text-gray-600">
                           Loading media...
                         </span>
                       </div>
@@ -1169,15 +1169,15 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                         {filteredVideos.length === 0 ? (
                           <div className="text-center py-8">
                             <Video className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                            <p className="text-gray-500 dark:text-gray-400">
+                            <p className="text-gray-500">
                               No videos found in this vault
                             </p>
                           </div>
                         ) : (
                           <>
                             {/* Enhanced scraping info */}
-                            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-4">
-                              <p className="text-sm text-green-800 dark:text-green-200">
+                            <div className="bg-pink-50 border border-pink-200 rounded-lg p-3 mb-4">
+                              <p className="text-sm text-pink-800">
                                 <strong>Fresh Media Loading:</strong> Using
                                 OnlyFans scraping API endpoint for fresh
                                 temporary URLs with lazy loading for optimal
@@ -1214,18 +1214,18 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
 
           {/* Action Buttons - Fixed at bottom */}
           {selectedList && (
-            <div className="border-t border-gray-200 dark:border-gray-700 p-6 flex-shrink-0">
+            <div className="border-t border-gray-200 p-6 flex-shrink-0">
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={handleBack}
-                  className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                   disabled={loading}
                 >
                   Back
                 </button>
                 <button
                   onClick={handleClose}
-                  className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                   disabled={loading}
                 >
                   Cancel
@@ -1237,7 +1237,7 @@ export const VaultPicker: React.FC<VaultPickerProps> = ({
                     }
                   }}
                   disabled={selectedMedia.length === 0 || loading}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center space-x-2"
+                  className="px-4 py-2 bg-pink-600 hover:bg-pink-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center space-x-2"
                 >
                   {loading ? (
                     <>

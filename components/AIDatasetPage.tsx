@@ -630,7 +630,7 @@ const AIDatasetPage = () => {
       name: newQuickFolderName.trim(),
       parentId: undefined,
       createdAt: new Date(),
-      color: "#f97316", // Orange color to match dataset theme
+      color: "#ec4899", // Pink color to match dataset theme
     };
 
     setFolders((prev) => [...prev, newFolder]);
@@ -771,11 +771,11 @@ const AIDatasetPage = () => {
   const getSourceIcon = (source: string) => {
     switch (source) {
       case "generated":
-        return <Sparkles size={16} className="text-purple-400" />;
+        return <Sparkles size={16} className="text-pink-400" />;
       case "drive":
-        return <HardDrive size={16} className="text-blue-400" />;
+        return <HardDrive size={16} className="text-pink-400" />;
       case "imported":
-        return <Upload size={16} className="text-green-400" />;
+        return <Upload size={16} className="text-pink-400" />;
       default:
         return <Database size={16} className="text-gray-400" />;
     }
@@ -830,11 +830,11 @@ const AIDatasetPage = () => {
       if (file.isFolder) {
         return (
           <div
-            className="w-full h-full bg-gradient-to-br from-blue-500/20 to-blue-700/20 flex items-center justify-center cursor-pointer hover:from-blue-500/30 hover:to-blue-700/30 transition-all duration-200 rounded-lg border border-blue-400/20"
+            className="w-full h-full bg-gradient-to-br from-pink-500/20 to-pink-700/20 flex items-center justify-center cursor-pointer hover:from-pink-500/30 hover:to-pink-700/30 transition-all duration-200 rounded-lg border border-pink-400/20"
             onClick={() => navigateToFolder(file.id, file.name)}
           >
             <Folder
-              className="text-blue-400"
+              className="text-pink-400"
               size={viewMode === "grid" ? 48 : 24}
             />
           </div>
@@ -999,18 +999,18 @@ const AIDatasetPage = () => {
   return (
     <div className="space-y-6">
       {/* Header Card */}
-      <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+      <Card className="bg-white/90 backdrop-blur-md border-pink-200 rounded-xl">
         <CardHeader>
           <div className="flex justify-between items-start">
             <div className="flex items-center space-x-4">
-              <div className="p-3 bg-gradient-to-r from-orange-600/20 to-red-600/20 rounded-lg">
-                <Database className="text-orange-400" size={28} />
+              <div className="p-3 bg-gradient-to-r from-pink-600/20 to-rose-600/20 rounded-lg">
+                <Database className="text-pink-400" size={28} />
               </div>
               <div>
-                <CardTitle className="text-2xl font-bold text-white">
+                <CardTitle className="text-2xl font-bold text-gray-800">
                   AI Dataset Management
                 </CardTitle>
-                <CardDescription className="text-gray-300">
+                <CardDescription className="text-gray-600">
                   Browse and import images from Google Drive to build your AI
                   training datasets
                 </CardDescription>
@@ -1019,19 +1019,19 @@ const AIDatasetPage = () => {
 
             {/* Auth Status */}
             {authState.isAuthenticated && authState.userInfo ? (
-              <div className="flex items-center space-x-3 bg-black/30 rounded-lg p-3">
+              <div className="flex items-center space-x-3 bg-pink-50/80 border border-pink-200 rounded-lg p-3">
                 {authState.userInfo.picture && (
                   <img
                     src={authState.userInfo.picture}
                     alt={authState.userInfo.name}
-                    className="w-10 h-10 rounded-full ring-2 ring-orange-400/30"
+                    className="w-10 h-10 rounded-full ring-2 ring-pink-500"
                   />
                 )}
                 <div className="text-left">
-                  <p className="text-white text-sm font-medium">
+                  <p className="text-gray-800 text-sm font-medium">
                     {authState.userInfo.name}
                   </p>
-                  <p className="text-gray-400 text-xs">
+                  <p className="text-gray-600 text-xs">
                     {authState.userInfo.email}
                   </p>
                 </div>
@@ -1048,7 +1048,7 @@ const AIDatasetPage = () => {
             ) : (
               <Button
                 onClick={handleLogin}
-                className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white px-6 py-3"
+                className="bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white px-6 py-3"
                 disabled={!GOOGLE_CLIENT_ID}
               >
                 <LogIn size={16} className="mr-2" />
@@ -1073,25 +1073,25 @@ const AIDatasetPage = () => {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-r from-orange-600/20 to-red-800/20 backdrop-blur-md border-orange-500/20 rounded-xl">
+        <Card className="bg-gradient-to-r from-pink-600/20 to-rose-800/20 backdrop-blur-md border-pink-500/20 rounded-xl">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2 mb-2">
-              <Archive size={14} className="text-orange-400" />
-              <span className="text-orange-300 text-sm font-medium">
+              <Archive size={14} className="text-pink-400" />
+              <span className="text-pink-700 text-sm font-medium">
                 Total Items
               </span>
             </div>
-            <p className="text-2xl font-bold text-white">{stats.totalItems}</p>
+            <p className="text-2xl font-bold text-gray-800">{stats.totalItems}</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-r from-blue-600/20 to-blue-800/20 backdrop-blur-md border-blue-500/20 rounded-xl">
+        <Card className="bg-gradient-to-r from-pink-600/20 to-pink-800/20 backdrop-blur-md border-pink-500/20 rounded-xl">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2 mb-2">
-              <Folder size={14} className="text-blue-400" />
-              <span className="text-blue-300 text-sm font-medium">Folders</span>
+              <Folder size={14} className="text-pink-400" />
+              <span className="text-pink-700 text-sm font-medium">Folders</span>
             </div>
-            <p className="text-2xl font-bold text-white">
+            <p className="text-2xl font-bold text-gray-800">
               {stats.totalFolders}
             </p>
           </CardContent>
@@ -1105,7 +1105,7 @@ const AIDatasetPage = () => {
                 This Week
               </span>
             </div>
-            <p className="text-2xl font-bold text-white">{stats.recentItems}</p>
+            <p className="text-2xl font-bold text-gray-800">{stats.recentItems}</p>
           </CardContent>
         </Card>
 
@@ -1117,7 +1117,7 @@ const AIDatasetPage = () => {
                 Categories
               </span>
             </div>
-            <p className="text-2xl font-bold text-white">
+            <p className="text-2xl font-bold text-gray-800">
               {Object.keys(stats.categoryStats).length}
             </p>
           </CardContent>
@@ -1126,7 +1126,7 @@ const AIDatasetPage = () => {
 
       {/* Detailed Statistics */}
       {showStats && (
-        <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+        <Card className="bg-white/90 backdrop-blur-md border-pink-200 rounded-xl">
           <CardHeader>
             <CardTitle className="text-white">Detailed Statistics</CardTitle>
           </CardHeader>
@@ -1257,7 +1257,7 @@ const AIDatasetPage = () => {
         <Button
           variant="outline"
           size="sm"
-          className="bg-orange-900/30 border-orange-500/30 text-orange-300 hover:bg-orange-900/50"
+          className="bg-pink-900/30 border-pink-500/30 text-pink-300 hover:bg-pink-900/50"
           onClick={() => setShowFolderDialog(true)}
         >
           <FolderOpen size={16} className="mr-1" />
@@ -1286,7 +1286,7 @@ const AIDatasetPage = () => {
       {authState.isAuthenticated && (
         <>
           {/* Folder Navigation */}
-          <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+          <Card className="bg-white/90 backdrop-blur-md border-pink-200 rounded-xl">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
@@ -1337,7 +1337,7 @@ const AIDatasetPage = () => {
                   size="sm"
                   onClick={() => loadFolderContentsWithAuth(currentFolder)}
                   disabled={isLoading}
-                  className="bg-black/60 border-white/10 text-white"
+                  className="bg-white/90 border-pink-200 text-gray-800"
                 >
                   <RefreshCw
                     size={16}
@@ -1350,7 +1350,7 @@ const AIDatasetPage = () => {
           </Card>
 
           {/* Controls */}
-          <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+          <Card className="bg-white/90 backdrop-blur-md border-pink-200 rounded-xl">
             <CardContent className="pt-6">
               <div className="flex items-center space-x-4">
                 {/* Search */}
@@ -1377,7 +1377,7 @@ const AIDatasetPage = () => {
                   <SelectTrigger className="w-32 bg-black/60 border-white/10 text-white">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-black/90 border-white/10 text-white">
+                  <SelectContent className="bg-white/90 border-pink-200 text-gray-800">
                     <SelectItem value="all">All</SelectItem>
                     <SelectItem value="images">Images</SelectItem>
                     <SelectItem value="folders">Folders</SelectItem>
@@ -1388,7 +1388,7 @@ const AIDatasetPage = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="bg-black/60 border-white/10 text-white"
+                  className="bg-white/90 border-pink-200 text-gray-800"
                   onClick={() =>
                     setViewMode(viewMode === "grid" ? "list" : "grid")
                   }
@@ -1403,12 +1403,12 @@ const AIDatasetPage = () => {
                 {/* Selection Actions */}
                 {selectedFiles.size > 0 && (
                   <div className="flex items-center space-x-2">
-                    <span className="text-orange-300 text-sm font-medium">
+                    <span className="text-pink-700 text-sm font-medium">
                       {selectedFiles.size} selected
                     </span>
                     <Button
                       onClick={() => addFilesToVault(Array.from(selectedFiles))}
-                      className="bg-orange-600 hover:bg-orange-700 text-white"
+                      className="bg-pink-600 hover:bg-pink-700 text-white"
                       size="sm"
                     >
                       <Plus size={16} className="mr-1" />
@@ -1417,7 +1417,7 @@ const AIDatasetPage = () => {
                     <Button
                       variant="outline"
                       onClick={() => setSelectedFiles(new Set())}
-                      className="bg-black/60 border-white/10 text-white"
+                      className="bg-white/90 border-pink-200 text-gray-800"
                       size="sm"
                     >
                       <X size={16} />
@@ -1475,14 +1475,14 @@ const AIDatasetPage = () => {
 
           {/* Files Display */}
           {isLoading && driveFiles.length === 0 ? (
-            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+            <Card className="bg-white/90 backdrop-blur-md border-pink-200 rounded-xl">
               <CardContent className="text-center py-12">
-                <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-orange-400" />
+                <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-pink-400" />
                 <p className="text-gray-300">Loading folder contents...</p>
               </CardContent>
             </Card>
           ) : (
-            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+            <Card className="bg-white/90 backdrop-blur-md border-pink-200 rounded-xl">
               <CardContent className="pt-6">
                 <div
                   className={
@@ -1494,9 +1494,9 @@ const AIDatasetPage = () => {
                   {filteredFiles.map((file) => (
                     <div
                       key={file.id}
-                      className={`group relative bg-black/40 rounded-lg overflow-hidden border border-white/10 hover:border-orange-400/50 transition-all duration-200 ${
+                      className={`group relative bg-black/40 rounded-lg overflow-hidden border border-white/10 hover:border-pink-400/50 transition-all duration-200 ${
                         selectedFiles.has(file.id)
-                          ? "ring-2 ring-orange-400 shadow-lg shadow-orange-400/20"
+                          ? "ring-2 ring-pink-400 shadow-lg shadow-pink-400/20"
                           : ""
                       } ${viewMode === "list" ? "flex items-center space-x-4 p-3" : ""}`}
                     >
@@ -1513,7 +1513,7 @@ const AIDatasetPage = () => {
                               <button
                                 className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
                                   selectedFiles.has(file.id)
-                                    ? "bg-orange-600 border-orange-600 shadow-lg"
+                                    ? "bg-pink-600 border-pink-600 shadow-lg"
                                     : "bg-black/70 border-white/40 hover:border-white/80"
                                 }`}
                                 onClick={(e) => handleFileSelection(file.id, e)}
@@ -1555,7 +1555,7 @@ const AIDatasetPage = () => {
                         <h4 className="text-white text-sm font-medium truncate mb-1">
                           {file.name}
                         </h4>
-                        <div className="flex justify-between items-center text-xs text-gray-500">
+                        <div className="flex justify-between items-center text-xs text-gray-700">
                           <span className="capitalize">
                             {file.isFolder
                               ? "Folder"
@@ -1566,7 +1566,7 @@ const AIDatasetPage = () => {
                           )}
                         </div>
                         {viewMode === "list" && (
-                          <div className="text-xs text-gray-500 mt-1">
+                          <div className="text-xs text-gray-700 mt-1">
                             {formatDate(file.modifiedTime)}
                           </div>
                         )}
@@ -1583,7 +1583,7 @@ const AIDatasetPage = () => {
                         loadFolderContentsWithAuth(currentFolder, nextPageToken)
                       }
                       variant="outline"
-                      className="bg-black/60 border-white/10 text-white"
+                      className="bg-white/90 border-pink-200 text-gray-800"
                     >
                       Load More Files
                     </Button>
@@ -1593,7 +1593,7 @@ const AIDatasetPage = () => {
                 {/* No Results */}
                 {!isLoading && filteredFiles.length === 0 && (
                   <div className="text-center py-12">
-                    <FileImage className="w-16 h-16 mx-auto mb-4 text-gray-500 opacity-50" />
+                    <FileImage className="w-16 h-16 mx-auto mb-4 text-gray-600" />
                     <p className="text-gray-400 text-lg mb-2">No files found</p>
                     <p className="text-gray-500 text-sm">
                       {searchQuery || selectedFileType !== "all"
@@ -1614,8 +1614,8 @@ const AIDatasetPage = () => {
           <Card className="bg-black/90 backdrop-blur-md border-white/10 rounded-xl max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto">
             <CardHeader>
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-orange-600/20 rounded-lg">
-                  <FolderOpen className="text-orange-400" size={20} />
+                <div className="p-2 bg-pink-600/20 rounded-lg">
+                  <FolderOpen className="text-pink-400" size={20} />
                 </div>
                 <div>
                   <CardTitle className="text-white text-lg">
@@ -1634,8 +1634,8 @@ const AIDatasetPage = () => {
               {pendingVaultItems.length > 0 && (
                 <>
                   {/* Items Preview */}
-                  <div className="bg-gradient-to-r from-orange-900/20 to-red-900/20 rounded-lg p-4 border border-orange-500/20">
-                    <h4 className="text-orange-300 font-medium mb-3 flex items-center">
+                  <div className="bg-gradient-to-r from-pink-900/20 to-rose-900/20 rounded-lg p-4 border border-pink-500/20">
+                    <h4 className="text-pink-300 font-medium mb-3 flex items-center">
                       <Archive size={16} className="mr-2" />
                       Items to Add ({pendingVaultItems.length})
                     </h4>
@@ -1678,7 +1678,7 @@ const AIDatasetPage = () => {
                       <SelectTrigger className="bg-black/60 border-white/10 text-white">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-black/90 border-white/10 text-white">
+                      <SelectContent className="bg-white/90 border-pink-200 text-gray-800">
                         <SelectItem value="root">
                           <div className="flex items-center">
                             <Home size={16} className="mr-2" />
@@ -1693,7 +1693,7 @@ const AIDatasetPage = () => {
                                 <Folder
                                   size={16}
                                   className="mr-2"
-                                  style={{ color: folder.color || "#f97316" }}
+                                  style={{ color: folder.color || "#ec4899" }}
                                 />
                                 <span>{folder.name}</span>
                               </div>
@@ -1725,7 +1725,7 @@ const AIDatasetPage = () => {
                   <Button
                     onClick={createQuickFolder}
                     disabled={!newQuickFolderName.trim()}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    className="bg-pink-600 hover:bg-pink-700 text-white"
                   >
                     <Plus size={16} className="mr-1" />
                     Create
@@ -1740,7 +1740,7 @@ const AIDatasetPage = () => {
                   <>
                     <Button
                       onClick={completeVaultAddition}
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                      className="flex-1 bg-pink-600 hover:bg-pink-700 text-white"
                     >
                       <Check size={16} className="mr-2" />
                       Add to{" "}
@@ -1752,7 +1752,7 @@ const AIDatasetPage = () => {
                     <Button
                       variant="outline"
                       onClick={cancelVaultAddition}
-                      className="flex-1 bg-red-600/20 border-red-500/30 text-red-300 hover:bg-red-600/30"
+                      className="flex-1 bg-rose-600/20 border-rose-500/30 text-rose-300 hover:bg-rose-600/30"
                     >
                       <X size={16} className="mr-2" />
                       Cancel

@@ -220,7 +220,7 @@ const EnhancedVideoDisplay: React.FC<{
           <p className="text-xs opacity-60 mb-3 max-w-xs">{errorDetails}</p>
           <button
             onClick={handleManualRetry}
-            className="block text-xs bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 px-3 py-1 rounded transition-colors w-full"
+            className="block text-xs bg-pink-600/20 hover:bg-pink-600/30 text-pink-300 px-3 py-1 rounded transition-colors w-full"
           >
             🔄 Retry Loading
           </button>
@@ -234,7 +234,7 @@ const EnhancedVideoDisplay: React.FC<{
       {loadState === "loading" && (
         <div className="absolute inset-0 bg-gray-800/50 flex items-center justify-center z-10">
           <div className="text-center">
-            <Loader2 className="w-6 h-6 animate-spin text-purple-400 mx-auto mb-2" />
+            <Loader2 className="w-6 h-6 animate-spin text-pink-400 mx-auto mb-2" />
             <p className="text-xs text-gray-400">Loading video...</p>
           </div>
         </div>
@@ -968,7 +968,7 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
             <div className="flex items-center space-x-3 bg-black/90 backdrop-blur-sm rounded-full px-8 py-4 border border-white/20 shadow-2xl">
               <Button
                 size="sm"
-                className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-6 py-3 font-medium transition-all duration-200 shadow-lg hover:shadow-blue-500/25"
+                className="bg-pink-600 hover:bg-pink-700 text-white rounded-full px-6 py-3 font-medium transition-all duration-200 shadow-lg hover:shadow-pink-500/25"
                 onClick={(e) => {
                   e.stopPropagation();
                   downloadItem(currentItem);
@@ -1003,7 +1003,7 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
                 size="sm"
                 className={`rounded-full px-6 py-3 font-medium transition-all duration-200 shadow-lg ${
                   showInfo
-                    ? "bg-purple-600 hover:bg-purple-700 text-white shadow-purple-500/25"
+                    ? "bg-pink-600 hover:bg-pink-700 text-white shadow-pink-500/25"
                     : "bg-gray-700 hover:bg-gray-600 text-white border border-gray-600 hover:border-gray-500"
                 }`}
                 onClick={(e) => {
@@ -1052,7 +1052,7 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
           <div className="p-6 h-full overflow-y-auto">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-white text-lg font-semibold">
+              <h3 className="text-gray-800 text-lg font-semibold">
                 Media Details
               </h3>
               <button
@@ -1069,8 +1069,8 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
               <div
                 className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
                   isVideo
-                    ? "bg-purple-600/20 text-purple-300 border border-purple-500/30"
-                    : "bg-blue-600/20 text-blue-300 border border-blue-500/30"
+                    ? "bg-pink-600/20 text-pink-300 border border-pink-500/30"
+                    : "bg-pink-600/20 text-pink-300 border border-pink-500/30"
                 }`}
               >
                 {isVideo ? "VIDEO" : "IMAGE"}
@@ -1081,7 +1081,7 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
                 <h4 className="text-gray-400 text-xs uppercase tracking-wide mb-1">
                   Filename
                 </h4>
-                <p className="text-white text-sm font-medium break-all">
+                <p className="text-gray-800 text-sm font-medium break-all">
                   {currentItem.filename}
                 </p>
               </div>
@@ -1103,7 +1103,7 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
                     <h4 className="text-gray-400 text-xs uppercase tracking-wide mb-1">
                       Resolution
                     </h4>
-                    <p className="text-white font-medium">
+                    <p className="text-gray-800 font-medium">
                       {currentItem.settings.width} ×{" "}
                       {currentItem.settings.height}
                     </p>
@@ -1124,7 +1124,7 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
                     <h4 className="text-gray-400 text-xs uppercase tracking-wide mb-1">
                       Duration
                     </h4>
-                    <p className="text-white font-medium">
+                    <p className="text-gray-800 font-medium">
                       {formatDuration((currentItem as GeneratedVideo).duration)}
                     </p>
                   </div>
@@ -1155,7 +1155,7 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
                         currentItem.settings.fps && (
                           <div className="flex justify-between">
                             <span className="text-gray-400">Frame Rate:</span>
-                            <span className="text-white">
+                            <span className="text-gray-800">
                               {currentItem.settings.fps} fps
                             </span>
                           </div>
@@ -1164,7 +1164,7 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
                         currentItem.settings.frameCount && (
                           <div className="flex justify-between">
                             <span className="text-gray-400">Frame Count:</span>
-                            <span className="text-white">
+                            <span className="text-gray-800">
                               {currentItem.settings.frameCount}
                             </span>
                           </div>
@@ -1173,7 +1173,7 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
                         <div className="flex justify-between">
                           <span className="text-gray-400">Model:</span>
                           <span
-                            className="text-white text-xs truncate max-w-32"
+                            className="text-gray-800 text-xs truncate max-w-32"
                             title={currentItem.settings.model}
                           >
                             {currentItem.settings.model}
@@ -1207,7 +1207,7 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-purple-400 mx-auto mb-4" />
+          <Loader2 className="w-8 h-8 animate-spin text-pink-400 mx-auto mb-4" />
           <p className="text-gray-400">Loading your gallery...</p>
         </div>
       </div>
@@ -1217,10 +1217,10 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
   return (
     <div className="space-y-6">
       {/* Header Card */}
-      <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+      <Card className="bg-white/90 backdrop-blur-md border-pink-200 rounded-xl">
         <CardHeader>
-          <CardTitle className="text-white flex items-center">
-            <ImageIcon className="w-6 h-6 mr-3 text-cyan-400" />
+          <CardTitle className="text-gray-800 flex items-center">
+            <ImageIcon className="w-6 h-6 mr-3 text-pink-400" />
             AI Media Gallery
           </CardTitle>
           <CardDescription className="text-gray-400">
@@ -1230,32 +1230,32 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            <div className="bg-black/40 rounded-lg p-4 text-center">
-              <h3 className="text-2xl font-bold text-cyan-400">
+            <div className="bg-pink-50/80 rounded-lg p-4 text-center">
+              <h3 className="text-2xl font-bold text-pink-400">
                 {allMediaItems.length}
               </h3>
               <p className="text-gray-400 text-sm">Total Items</p>
             </div>
-            <div className="bg-black/40 rounded-lg p-4 text-center">
-              <h3 className="text-2xl font-bold text-blue-400">
+            <div className="bg-pink-50/80 rounded-lg p-4 text-center">
+              <h3 className="text-2xl font-bold text-pink-500">
                 {generatedImages.length}
               </h3>
               <p className="text-gray-400 text-sm">Images</p>
             </div>
-            <div className="bg-black/40 rounded-lg p-4 text-center">
-              <h3 className="text-2xl font-bold text-purple-400">
+            <div className="bg-pink-50/80 rounded-lg p-4 text-center">
+              <h3 className="text-2xl font-bold text-pink-600">
                 {generatedVideos.length}
               </h3>
               <p className="text-gray-400 text-sm">Videos</p>
             </div>
-            <div className="bg-black/40 rounded-lg p-4 text-center">
+            <div className="bg-pink-50/80 rounded-lg p-4 text-center">
               <h3 className="text-2xl font-bold text-yellow-400">
                 {allMediaItems.filter((item) => item.isBookmarked).length}
               </h3>
               <p className="text-gray-400 text-sm">Favorites</p>
             </div>
-            <div className="bg-black/40 rounded-lg p-4 text-center">
-              <h3 className="text-2xl font-bold text-green-400">
+            <div className="bg-pink-50/80 rounded-lg p-4 text-center">
+              <h3 className="text-2xl font-bold text-pink-400">
                 {selectedItems.size}
               </h3>
               <p className="text-gray-400 text-sm">Selected</p>
@@ -1265,11 +1265,11 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
       </Card>
 
       {/* Main Gallery Card */}
-      <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+      <Card className="bg-white/90 backdrop-blur-md border-pink-200 rounded-xl">
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle className="text-white">Media Gallery</CardTitle>
+              <CardTitle className="text-gray-800">Media Gallery</CardTitle>
               <CardDescription className="text-gray-400">
                 View and manage all your generated images and videos
               </CardDescription>
@@ -1279,7 +1279,7 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
               <Button
                 variant="outline"
                 size="sm"
-                className="bg-black/60 border-white/10 text-white"
+                className="bg-white/90 border-pink-200 text-gray-800"
                 onClick={() =>
                   setViewMode(viewMode === "grid" ? "list" : "grid")
                 }
@@ -1292,7 +1292,7 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="bg-black/60 border-white/10 text-white"
+                  className="bg-white/90 border-pink-200 text-gray-800"
                   onClick={handleSelectAll}
                 >
                   {selectedItems.size === filteredAndSortedItems.length ? (
@@ -1331,7 +1331,7 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
                     <Button
                       variant="outline"
                       size="sm"
-                      className="bg-purple-600/20 border-purple-500/30 text-purple-300 hover:bg-purple-600/30 transition-all duration-200"
+                      className="bg-pink-600/20 border-pink-500/30 text-pink-300 hover:bg-pink-600/30 transition-all duration-200"
                       onClick={sendSelectedToAIAnalysis}
                     >
                       <Wand2 size={16} className="mr-1" />
@@ -1342,7 +1342,7 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="bg-blue-600/20 border-blue-500/30 text-blue-300"
+                    className="bg-pink-600/20 border-pink-500/30 text-pink-300"
                     onClick={async () => {
                       const selectedItemsArray = getSelectedItems();
                       for (const item of selectedItemsArray) {
@@ -1428,7 +1428,7 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
                   placeholder="Search media..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-black/60 border-white/10 text-white pl-10"
+                  className="bg-white/90 border-pink-200 text-gray-800 pl-10"
                 />
               </div>
             </div>
@@ -1437,11 +1437,11 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
               value={selectedContentType}
               onValueChange={setSelectedContentType}
             >
-              <SelectTrigger className="w-48 bg-black/60 border-white/10 text-white">
+              <SelectTrigger className="w-48 bg-white/90 border-pink-200 text-gray-800">
                 <Filter size={16} className="mr-2" />
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-black/90 border-white/10 text-white">
+              <SelectContent className="bg-white/95 border-pink-200 text-gray-800">
                 {contentTypes.map((type) => {
                   const IconComponent = type.icon;
                   return (
@@ -1462,7 +1462,7 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
               className={`px-4 ${
                 showFavoritesOnly
                   ? "bg-yellow-600/30 border-yellow-500/50 text-yellow-300"
-                  : "bg-black/60 border-white/10 text-white"
+                  : "bg-white/90 border-pink-200 text-gray-800"
               }`}
               onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
             >
@@ -1479,10 +1479,10 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
                 setSortBy(value)
               }
             >
-              <SelectTrigger className="w-36 bg-black/60 border-white/10 text-white">
+              <SelectTrigger className="w-36 bg-white/90 border-pink-200 text-gray-800">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-black/90 border-white/10 text-white">
+              <SelectContent className="bg-white/95 border-pink-200 text-gray-800">
                 {sortOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
@@ -1494,7 +1494,7 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
             <Button
               variant="outline"
               size="sm"
-              className="bg-black/60 border-white/10 text-white"
+              className="bg-white/90 border-pink-200 text-gray-800"
               onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
             >
               {sortOrder === "asc" ? "↑" : "↓"}
@@ -1508,12 +1508,12 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
             <span>Videos: {generatedVideos.length}</span>
             <span>Filtered: {filteredAndSortedItems.length}</span>
             {selectedItems.size > 0 && (
-              <span className="text-purple-400">
+              <span className="text-pink-400">
                 Selected: {selectedItems.size}
               </span>
             )}
             {getSelectedImageCount() > 0 && (
-              <span className="text-purple-300">
+              <span className="text-pink-300">
                 Images: {getSelectedImageCount()}
               </span>
             )}
@@ -1538,8 +1538,8 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
               {filteredAndSortedItems.map((item) => (
                 <div
                   key={item.id}
-                  className={`group relative bg-black/40 rounded-lg overflow-hidden border border-white/10 hover:border-purple-400/30 transition-all cursor-pointer ${
-                    selectedItems.has(item.id) ? "ring-2 ring-purple-400" : ""
+                  className={`group relative bg-white/80 rounded-lg overflow-hidden border border-pink-200 hover:border-pink-400/50 transition-all cursor-pointer ${
+                    selectedItems.has(item.id) ? "ring-2 ring-pink-400" : ""
                   } ${viewMode === "list" ? "flex space-x-4 p-4" : ""}`}
                   onClick={() => handleItemClick(item)}
                 >
@@ -1580,7 +1580,7 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
                       <button
                         className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
                           selectedItems.has(item.id)
-                            ? "bg-purple-600 border-purple-600"
+                            ? "bg-pink-600 border-pink-600"
                             : "bg-black/50 border-white/30 hover:border-white/60"
                         }`}
                         onClick={(e) => toggleItemSelection(item.id, e)}
@@ -1633,7 +1633,7 @@ const AIGalleryPage: React.FC<AIGalleryPageProps> = ({
                       viewMode === "grid" ? "p-3" : "flex-1 min-w-0"
                     }`}
                   >
-                    <h4 className="text-white text-sm font-medium truncate mb-1">
+                    <h4 className="text-gray-800 text-sm font-medium truncate mb-1">
                       {item.filename}
                     </h4>
 

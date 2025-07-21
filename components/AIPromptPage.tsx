@@ -523,10 +523,10 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
     <div className="space-y-8">
       {/* Header Section */}
       <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold text-white mb-2">
+        <h1 className="text-4xl font-bold text-gray-800 mb-2">
           AI Prompt Generator
         </h1>
-        <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
           Analyze images and generate detailed prompts using advanced AI vision
           models
         </p>
@@ -550,7 +550,7 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
 
             <div className="text-center">
               <div className="flex items-center justify-center mb-2">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 flex items-center justify-center">
                   <Activity className="w-6 h-6 text-white" />
                 </div>
               </div>
@@ -590,8 +590,8 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
       {/* Configuration Section */}
       <Card className="bg-white/80 backdrop-blur-md border-pink-200 rounded-xl">
         <CardHeader className="pb-4">
-          <CardTitle className="text-white flex items-center">
-            <Settings className="w-6 h-6 mr-3 text-indigo-400" />
+          <CardTitle className="text-gray-800 flex items-center">
+            <Settings className="w-6 h-6 mr-3 text-pink-400" />
             AI Configuration
           </CardTitle>
           <CardDescription className="text-gray-600">
@@ -623,11 +623,11 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
 
       {/* Processing Queue */}
       {pendingRequests.length > 0 && (
-        <Card className="bg-gradient-to-r from-amber-900/20 to-orange-900/20 backdrop-blur-md border-amber-500/30 rounded-xl">
+        <Card className="bg-gradient-to-r from-pink-900/20 to-rose-900/20 backdrop-blur-md border-pink-500/30 rounded-xl">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 flex items-center justify-center">
                   <Activity className="w-6 h-6 text-white animate-pulse" />
                 </div>
                 <div>
@@ -658,7 +658,7 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
                   className="flex items-center justify-between bg-pink-50/60 p-4 rounded-xl border border-pink-200"
                 >
                   <div className="flex items-center space-x-4">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 flex items-center justify-center">
                       <Loader2 className="w-5 h-5 text-white animate-spin" />
                     </div>
                     <div>
@@ -700,7 +700,7 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
                   <Layers className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <CardTitle className="text-white">Gallery Images</CardTitle>
+                  <CardTitle className="text-gray-800">Gallery Images</CardTitle>
                   <CardDescription className="text-gray-600">
                     Images sent from your generation gallery
                   </CardDescription>
@@ -776,7 +776,7 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
                 <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-pink-400 to-rose-400 flex items-center justify-center mb-6">
                   <ImageIcon className="w-10 h-10 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-2">
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">
                   No Gallery Images
                 </h3>
                 <p className="text-gray-600 mb-4">
@@ -799,7 +799,7 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
                 <Upload className="w-6 h-6 text-white" />
               </div>
               <div>
-                <CardTitle className="text-white">Upload Images</CardTitle>
+                <CardTitle className="text-gray-800">Upload Images</CardTitle>
                 <CardDescription className="text-gray-600">
                   Upload local images for AI prompt generation
                 </CardDescription>
@@ -840,7 +840,7 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
             {selectedFiles.length > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-white font-medium">
+                  <h4 className="text-gray-800 font-medium">
                     Selected Files ({selectedFiles.length})
                   </h4>
                   <Button
@@ -915,19 +915,19 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
                     <Loader2 className="w-6 h-6 animate-spin text-white" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold text-white">
+                    <h3 className="text-xl font-semibold text-gray-800">
                       Processing Images
                     </h3>
-                    <p className="text-indigo-200">
+                    <p className="text-gray-600">
                       Submitting images to AI for analysis...
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-indigo-400">
+                  <p className="text-2xl font-bold text-pink-400">
                     {Math.round(processingProgress)}%
                   </p>
-                  <p className="text-xs text-indigo-300">Complete</p>
+                  <p className="text-xs text-gray-600">Complete</p>
                 </div>
               </div>
 
@@ -940,9 +940,9 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
 
               {currentProcessingImage && (
                 <div className="text-center">
-                  <p className="text-indigo-300 text-sm">
+                  <p className="text-gray-600 text-sm">
                     Currently processing:{" "}
-                    <span className="font-medium text-white">
+                    <span className="font-medium text-gray-800">
                       {currentProcessingImage}
                     </span>
                   </p>
@@ -981,7 +981,7 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
                 <Stars className="w-6 h-6 text-white" />
               </div>
               <div>
-                <CardTitle className="text-white">
+                <CardTitle className="text-gray-800">
                   AI Analysis Results
                 </CardTitle>
                 <CardDescription className="text-gray-600">
@@ -1068,7 +1068,7 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
                       AI Generated Prompt
                     </Label>
                     <div className="bg-gradient-to-r from-pink-100/60 to-rose-100/60 border border-pink-300 rounded-xl p-6">
-                      <p className="text-white whitespace-pre-wrap leading-relaxed text-base">
+                      <p className="text-gray-800 whitespace-pre-wrap leading-relaxed text-base">
                         {result.generatedPrompt}
                       </p>
                     </div>
@@ -1111,7 +1111,7 @@ const AIPromptPage: React.FC<PromptGeneratorProps> = ({
               <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-r from-pink-400 to-rose-400 flex items-center justify-center mb-6">
                 <Target className="w-10 h-10 text-white" />
               </div>
-              <h3 className="text-xl font-semibold text-white mb-2">
+              <h3 className="text-xl font-semibold text-gray-800 mb-2">
                 No Analysis Results Yet
               </h3>
               <p className="text-gray-400 mb-4">

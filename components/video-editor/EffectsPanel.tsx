@@ -208,7 +208,7 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
         {onTrimVideo && (
           <button
             onClick={() => onTrimVideo(selectedVideo.id)}
-            className="w-full px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors flex items-center justify-center space-x-2"
+            className="w-full px-4 py-2 text-sm font-medium text-pink-700 dark:text-pink-300 bg-pink-50 dark:bg-pink-900/20 hover:bg-pink-100 dark:hover:bg-pink-900/30 rounded-lg transition-colors flex items-center justify-center space-x-2"
           >
             <Scissors className="w-4 h-4" />
             <span>Trim Video</span>
@@ -229,7 +229,7 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
           height: 16px;
           width: 16px;
           border-radius: 50%;
-          background: #10b981;
+          background: #ec4899;
           cursor: pointer;
           border: 2px solid #ffffff;
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
@@ -239,7 +239,7 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
           height: 16px;
           width: 16px;
           border-radius: 50%;
-          background: #10b981;
+          background: #ec4899;
           cursor: pointer;
           border: 2px solid #ffffff;
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);

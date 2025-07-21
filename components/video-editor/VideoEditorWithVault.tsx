@@ -37,7 +37,7 @@ export const VideoEditorWithVault: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-white/60 backdrop-blur-sm">
       {/* Main VideoEditor */}
       <VideoEditor />
 
@@ -45,7 +45,7 @@ export const VideoEditorWithVault: React.FC = () => {
       <div className="fixed bottom-6 right-6">
         <button
           onClick={handleOpenVault}
-          className="p-4 bg-purple-600 hover:bg-purple-700 text-white rounded-full shadow-lg transition-colors flex items-center space-x-2"
+          className="p-4 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white rounded-full shadow-lg hover:shadow-pink-500/20 transition-all duration-200 transform hover:-translate-y-0.5 flex items-center space-x-2"
           title="Import from OnlyFans Vault"
         >
           <Archive className="w-6 h-6" />
