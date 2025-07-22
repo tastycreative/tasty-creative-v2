@@ -110,76 +110,76 @@ export const QuickDataEntry = ({
   };
 
   return (
-    <div className="bg-gray-900/50 border border-gray-800 rounded-lg backdrop-blur-xl overflow-hidden">
+    <div className="bg-white/80 border border-pink-200 rounded-lg backdrop-blur-xl overflow-hidden">
       <form onSubmit={handleSubmit} className="space-y-6 p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="text-sm text-gray-400">Creator *</label>
+            <label className="text-sm text-gray-600">Creator *</label>
             <input
               type="text"
               name="creator"
               value={formData.creator}
               onChange={handleInputChange}
               placeholder="Creator name"
-              className="w-full bg-gray-800/50 border border-gray-700 text-white px-3 py-2 rounded-lg focus:border-green-500 focus:outline-none transition-colors"
+              className="w-full bg-white border border-pink-300 text-gray-900 px-3 py-2 rounded-lg focus:border-pink-500 focus:outline-none transition-colors"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm text-gray-400">Date Updated *</label>
+            <label className="text-sm text-gray-600">Date Updated *</label>
             <input
               type="text"
               name="dateUpdated"
               value={formData.dateUpdated}
               onChange={handleInputChange}
               placeholder="Nov 1, 2024"
-              className="w-full bg-gray-800/50 border border-gray-700 text-white px-3 py-2 rounded-lg focus:border-green-500 focus:outline-none transition-colors"
+              className="w-full bg-white border border-pink-300 text-gray-900 px-3 py-2 rounded-lg focus:border-pink-500 focus:outline-none transition-colors"
               required
             />
           </div>
 
           <div className="space-y-2 md:col-span-2">
-            <label className="text-sm text-gray-400">Script Title *</label>
+            <label className="text-sm text-gray-600">Script Title *</label>
             <input
               type="text"
               name="scriptTitle"
               value={formData.scriptTitle}
               onChange={handleInputChange}
               placeholder="Sext 9 - Army Green Bikini"
-              className="w-full bg-gray-800/50 border border-gray-700 text-white px-3 py-2 rounded-lg focus:border-green-500 focus:outline-none transition-colors"
+              className="w-full bg-white border border-pink-300 text-gray-900 px-3 py-2 rounded-lg focus:border-pink-500 focus:outline-none transition-colors"
               required
             />
           </div>
 
           <div className="space-y-2 md:col-span-2">
-            <label className="text-sm text-gray-400">Script Link</label>
+            <label className="text-sm text-gray-600">Script Link</label>
             <input
               type="url"
               name="scriptLink"
               value={formData.scriptLink}
               onChange={handleInputChange}
               placeholder="https://docs.google.com/document/d/..."
-              className="w-full bg-gray-800/50 border border-gray-700 text-white px-3 py-2 rounded-lg focus:border-green-500 focus:outline-none transition-colors"
+              className="w-full bg-white border border-pink-300 text-gray-900 px-3 py-2 rounded-lg focus:border-pink-500 focus:outline-none transition-colors"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm text-gray-400">Total Send *</label>
+            <label className="text-sm text-gray-600">Total Send *</label>
             <input
               type="text"
               value={formData.totalSend}
               onChange={handleTotalSendChange}
               placeholder="5,870"
-              className="w-full bg-gray-800/50 border border-gray-700 text-white px-3 py-2 rounded-lg focus:border-green-500 focus:outline-none transition-colors"
+              className="w-full bg-white border border-pink-300 text-gray-900 px-3 py-2 rounded-lg focus:border-pink-500 focus:outline-none transition-colors"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm text-gray-400">Total Buy *</label>
+            <label className="text-sm text-gray-600">Total Buy *</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 pointer-events-none">
                 $
               </span>
               <input
@@ -187,14 +187,14 @@ export const QuickDataEntry = ({
                 value={formData.totalBuy}
                 onChange={handleTotalBuyChange}
                 placeholder="4672.06"
-                className="w-full bg-gray-800/50 border border-gray-700 text-white pl-8 pr-3 py-2 rounded-lg focus:border-green-500 focus:outline-none transition-colors"
+                className="w-full bg-white border border-pink-300 text-gray-900 pl-8 pr-3 py-2 rounded-lg focus:border-pink-500 focus:outline-none transition-colors"
                 required
               />
             </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-4 border-t border-gray-800">
+        <div className="flex items-center justify-between pt-4 border-t border-pink-200">
           <div className="flex items-center gap-2">
             {showSuccess && (
               <div className="flex items-center gap-2 text-green-400 animate-in fade-in duration-300">
@@ -209,7 +209,7 @@ export const QuickDataEntry = ({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-6 py-2 bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg hover:from-green-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2 font-medium"
+            className="px-6 py-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg hover:from-pink-600 hover:to-rose-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2 font-medium"
           >
             {isSubmitting ? (
               <>

@@ -103,7 +103,7 @@ export default function FormViewPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-pink-500" />
       </div>
     );
   }
@@ -111,7 +111,7 @@ export default function FormViewPage() {
   if (!form) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-lg text-gray-600 dark:text-gray-400">
+        <p className="text-lg text-gray-600">
           Form not found
         </p>
       </div>
@@ -121,18 +121,19 @@ export default function FormViewPage() {
   const displayTitle = form.title.replace(` - ${form.creatorEmail}`, "");
 
   return (
-    <div
-      //initial={{ opacity: 0, x: 20 }}
-      //animate={{ opacity: 1, x: 0 }}
-      //exit={{ opacity: 0, x: -20 }}
-      className="max-w-3xl mx-auto p-6"
-    >
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50">
+      <div
+        //initial={{ opacity: 0, x: 20 }}
+        //animate={{ opacity: 1, x: 0 }}
+        //exit={{ opacity: 0, x: -20 }}
+        className="max-w-3xl mx-auto p-6"
+      >
       {/* Back Button */}
       <button
         // //whileHover={{ scale: 1.05 }}
         // //whileTap={{ scale: 0.95 }}
         onClick={() => router.push("/apps/forms")}
-        className="flex items-center gap-2 mb-6 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors"
+        className="flex items-center gap-2 mb-6 text-gray-600 hover:text-gray-900 transition-colors"
       >
         <ChevronLeft className="w-5 h-5" />
         Back to Forms
@@ -143,7 +144,7 @@ export default function FormViewPage() {
         //initial={{ opacity: 0, y: 20 }}
         //animate={{ opacity: 1, y: 0 }}
         //transition={{ delay: 0.1 }}
-        className="rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 p-8 mb-6 text-white"
+        className="rounded-2xl bg-gradient-to-r from-pink-500 to-rose-500 p-8 mb-6 text-white"
       >
         <h1 className="text-3xl font-bold mb-2">{displayTitle}</h1>
         <p className="text-white/90">Please fill out this form</p>
@@ -157,10 +158,10 @@ export default function FormViewPage() {
             //initial={{ opacity: 0, y: 20 }}
             //animate={{ opacity: 1, y: 0 }}
             //transition={{ delay: 0.2 + index * 0.1 }}
-            className="bg-white/10 dark:bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-gray-700/30 p-6"
+            className="bg-white/90 backdrop-blur-sm rounded-2xl border border-pink-200 p-6"
           >
             <div className="mb-4">
-              <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-1">
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">
                 {question.title}
                 {question.required && (
                   <span className="text-red-500 ml-1">*</span>
@@ -176,7 +177,7 @@ export default function FormViewPage() {
                 onChange={(e) =>
                   handleInputChange(question.title, e.target.value)
                 }
-                className="w-full px-4 py-3 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                className="w-full px-4 py-3 bg-white/80 backdrop-blur-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500 transition-all"
                 placeholder="your@email.com"
               />
             ) : question.title.toLowerCase().includes("phone") ? (
@@ -186,7 +187,7 @@ export default function FormViewPage() {
                 onChange={(e) =>
                   handleInputChange(question.title, e.target.value)
                 }
-                className="w-full px-4 py-3 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                className="w-full px-4 py-3 bg-white/80 backdrop-blur-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500 transition-all"
                 placeholder="Your phone number"
               />
             ) : question.title.toLowerCase().includes("date") ? (
@@ -196,7 +197,7 @@ export default function FormViewPage() {
                 onChange={(e) =>
                   handleInputChange(question.title, e.target.value)
                 }
-                className="w-full px-4 py-3 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                className="w-full px-4 py-3 bg-white/80 backdrop-blur-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500 transition-all"
               />
             ) : question.title.toLowerCase().includes("description") ||
               question.title.toLowerCase().includes("comment") ||
@@ -206,7 +207,7 @@ export default function FormViewPage() {
                 onChange={(e) =>
                   handleInputChange(question.title, e.target.value)
                 }
-                className="w-full px-4 py-3 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none"
+                className="w-full px-4 py-3 bg-white/80 backdrop-blur-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500 transition-all resize-none"
                 rows={4}
                 placeholder="Your answer"
               />
@@ -217,7 +218,7 @@ export default function FormViewPage() {
                 onChange={(e) =>
                   handleInputChange(question.title, e.target.value)
                 }
-                className="w-full px-4 py-3 bg-white/50 dark:bg-gray-700/50 backdrop-blur-sm rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                className="w-full px-4 py-3 bg-white/80 backdrop-blur-sm rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-pink-500 transition-all"
                 placeholder="Your answer"
               />
             )}
@@ -236,7 +237,7 @@ export default function FormViewPage() {
             // //whileTap={{ scale: 0.95 }}
             type="submit"
             disabled={submitting}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl font-medium hover:shadow-lg transition-shadow disabled:opacity-50"
+            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-xl font-medium hover:shadow-lg transition-shadow disabled:opacity-50"
           >
             {submitting ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -247,6 +248,7 @@ export default function FormViewPage() {
           </button>
         </div>
       </form>
+      </div>
     </div>
   );
 }

@@ -162,7 +162,7 @@ export default function FormResultsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-pink-500" />
       </div>
     );
   }
@@ -172,14 +172,14 @@ export default function FormResultsPage() {
       <div className="flex items-center justify-center h-screen px-4">
         <div className="text-center">
           <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <p className="text-lg text-gray-600 dark:text-gray-400">
+          <p className="text-lg text-gray-600">
             Form not found
           </p>
           <button
             //whileHover={{ scale: 1.05 }}
             //whileTap={{ scale: 0.95 }}
             onClick={() => router.push("/apps/forms")}
-            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+            className="mt-4 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors"
           >
             Back to Forms
           </button>
@@ -193,7 +193,7 @@ export default function FormResultsPage() {
       //initial={{ opacity: 0, x: 20 }}
       //animate={{ opacity: 1, x: 0 }}
       //exit={{ opacity: 0, x: -20 }}
-      className="p-4 sm:p-6 min-h-screen"
+      className="p-4 sm:p-6 min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50"
     >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 space-y-4 sm:space-y-0">
@@ -202,16 +202,16 @@ export default function FormResultsPage() {
             //whileHover={{ scale: 1.05 }}
             //whileTap={{ scale: 0.95 }}
             onClick={() => router.push("/apps/forms")}
-            className="p-2 rounded-lg hover:bg-white/10 transition-colors"
+            className="p-2 rounded-lg hover:bg-pink-50 transition-colors"
           >
             <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
           <div className="min-w-0 flex-1">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 dark:text-white leading-tight">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 leading-tight">
               <span className="hidden sm:inline">{displayTitle} - Results</span>
               <span className="sm:hidden truncate block">{displayTitle}</span>
             </h1>
-            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
+            <p className="text-sm sm:text-base text-gray-600">
               {responses.length}{" "}
               {responses.length === 1 ? "response" : "responses"}
             </p>
@@ -224,7 +224,7 @@ export default function FormResultsPage() {
           //whileTap={{ scale: 0.95 }}
           onClick={exportToCSV}
           disabled={responses.length === 0}
-          className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white/10 dark:bg-gray-800/30 backdrop-blur-sm rounded-lg hover:bg-white/20 dark:hover:bg-gray-800/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
+          className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white/90 backdrop-blur-sm border border-pink-200 rounded-lg hover:bg-pink-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
         >
           <Download className="w-4 h-4" />
           <span className="text-sm sm:text-base">Export CSV</span>
@@ -233,12 +233,12 @@ export default function FormResultsPage() {
 
       {/* Results Content */}
       {responses.length === 0 ? (
-        <div className="bg-white/10 dark:bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-gray-700/30 p-8 sm:p-12 text-center">
+        <div className="bg-white/90 backdrop-blur-sm rounded-2xl border border-pink-200 p-8 sm:p-12 text-center">
           <FileText className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-white mb-2">
+          <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
             No responses yet
           </h3>
-          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+          <p className="text-sm sm:text-base text-gray-600">
             Share your form to start collecting responses
           </p>
         </div>
@@ -267,20 +267,20 @@ export default function FormResultsPage() {
                     //initial={{ opacity: 0, y: 20 }}
                     //animate={{ opacity: 1, y: 0 }}
                     //transition={{ delay: index * 0.05 }}
-                    className="bg-white/10 dark:bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-gray-700/30 p-4"
+                    className="bg-white/90 backdrop-blur-sm rounded-2xl border border-pink-200 p-4"
                   >
                     {/* Response Header */}
                     <div className="flex justify-between items-start mb-4">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <User className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                          <span className="text-sm font-medium text-gray-800 dark:text-white truncate">
+                          <User className="w-4 h-4 text-pink-500 flex-shrink-0" />
+                          <span className="text-sm font-medium text-gray-900 truncate">
                             {response.data.User || "Anonymous"}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Calendar className="w-3 h-3 text-gray-500 flex-shrink-0" />
-                          <span className="text-xs text-gray-600 dark:text-gray-400">
+                          <span className="text-xs text-gray-600">
                             {new Date(
                               response.data.Timestamp
                             ).toLocaleDateString("en-US", {
@@ -293,7 +293,7 @@ export default function FormResultsPage() {
                           </span>
                         </div>
                       </div>
-                      <div className="text-xs font-medium text-blue-500 bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded-full flex-shrink-0 ml-2">
+                      <div className="text-xs font-medium text-pink-500 bg-pink-100 px-2 py-1 rounded-full flex-shrink-0 ml-2">
                         #{index + 1}
                       </div>
                     </div>
@@ -309,12 +309,12 @@ export default function FormResultsPage() {
                         return (
                           <div
                             key={question.id}
-                            className="border-t border-gray-200 dark:border-gray-700 pt-3 first:border-t-0 first:pt-0"
+                            className="border-t border-gray-200 pt-3 first:border-t-0 first:pt-0"
                           >
-                            <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 uppercase tracking-wide">
+                            <div className="text-xs font-medium text-gray-600 mb-1 uppercase tracking-wide">
                               {question.title}
                             </div>
-                            <div className="text-sm text-gray-800 dark:text-white">
+                            <div className="text-sm text-gray-900">
                               {answer ? (
                                 <div className="space-y-2">
                                   <div
@@ -327,7 +327,7 @@ export default function FormResultsPage() {
                                       onClick={() =>
                                         toggleQuestionExpansion(question.id)
                                       }
-                                      className="flex items-center gap-1 text-blue-500 hover:text-blue-600 text-xs font-medium transition-colors"
+                                      className="flex items-center gap-1 text-pink-500 hover:text-pink-600 text-xs font-medium transition-colors"
                                     >
                                       {isExpanded ? (
                                         <>
@@ -362,21 +362,21 @@ export default function FormResultsPage() {
           </div>
 
           {/* Desktop Table View */}
-          <div className="hidden sm:block bg-white/10 dark:bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-gray-700/30 overflow-hidden">
+          <div className="hidden sm:block bg-white/90 backdrop-blur-sm rounded-2xl border border-pink-200 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="px-4 lg:px-6 py-4 text-left text-sm font-semibold text-gray-800 dark:text-white sticky left-0 bg-white/10 dark:bg-gray-800/30 backdrop-blur-sm min-w-[200px]">
+                  <tr className="border-b border-gray-200">
+                    <th className="px-4 lg:px-6 py-4 text-left text-sm font-semibold text-gray-900 sticky left-0 bg-white/90 backdrop-blur-sm min-w-[200px]">
                       User
                     </th>
-                    <th className="px-4 lg:px-6 py-4 text-left text-sm font-semibold text-gray-800 dark:text-white min-w-[180px]">
+                    <th className="px-4 lg:px-6 py-4 text-left text-sm font-semibold text-gray-900 min-w-[180px]">
                       Timestamp
                     </th>
                     {form.questions.map((q: Question) => (
                       <th
                         key={q.id}
-                        className="px-4 lg:px-6 py-4 text-left text-sm font-semibold text-gray-800 dark:text-white min-w-[150px] max-w-[250px]"
+                        className="px-4 lg:px-6 py-4 text-left text-sm font-semibold text-gray-900 min-w-[150px] max-w-[250px]"
                       >
                         <div className="truncate" title={q.title}>
                           {q.title}
@@ -392,11 +392,11 @@ export default function FormResultsPage() {
                       //initial={{ opacity: 0, y: 10 }}
                       //animate={{ opacity: 1, y: 0 }}
                       //transition={{ delay: index * 0.02 }}
-                      className="border-b border-gray-200 dark:border-gray-700 hover:bg-white/5 dark:hover:bg-gray-700/20 transition-colors"
+                      className="border-b border-gray-200 hover:bg-pink-50 transition-colors"
                     >
-                      <td className="px-4 lg:px-6 py-4 text-sm text-gray-700 dark:text-gray-300 sticky left-0 bg-white/10 dark:bg-gray-800/30 backdrop-blur-sm">
+                      <td className="px-4 lg:px-6 py-4 text-sm text-gray-700 sticky left-0 bg-white/90 backdrop-blur-sm">
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-xs font-medium text-white flex-shrink-0">
+                          <div className="w-6 h-6 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full flex items-center justify-center text-xs font-medium text-white flex-shrink-0">
                             {index + 1}
                           </div>
                           <div className="min-w-0 flex-1">
@@ -409,7 +409,7 @@ export default function FormResultsPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 lg:px-6 py-4 text-sm text-gray-700 dark:text-gray-300">
+                      <td className="px-4 lg:px-6 py-4 text-sm text-gray-700">
                         <div className="whitespace-nowrap">
                           <div className="font-medium">
                             {new Date(
@@ -436,7 +436,7 @@ export default function FormResultsPage() {
                         return (
                           <td
                             key={q.id}
-                            className="px-4 lg:px-6 py-4 text-sm text-gray-700 dark:text-gray-300 relative group"
+                            className="px-4 lg:px-6 py-4 text-sm text-gray-700 relative group"
                           >
                             <div className="max-w-[250px]">
                               {answer ? (
@@ -451,7 +451,7 @@ export default function FormResultsPage() {
                                       onClick={() =>
                                         toggleCellExpansion(response.id, q.id)
                                       }
-                                      className="flex items-center gap-1 text-blue-500 hover:text-blue-600 text-xs font-medium transition-colors mt-1"
+                                      className="flex items-center gap-1 text-pink-500 hover:text-pink-600 text-xs font-medium transition-colors mt-1"
                                     >
                                       {isExpanded ? (
                                         <>
@@ -484,24 +484,24 @@ export default function FormResultsPage() {
           </div>
 
           {/* Response Summary for Mobile */}
-          <div className="block sm:hidden mt-6 bg-white/10 dark:bg-gray-800/30 backdrop-blur-sm rounded-2xl border border-white/20 dark:border-gray-700/30 p-4">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-3">
+          <div className="block sm:hidden mt-6 bg-white/90 backdrop-blur-sm rounded-2xl border border-pink-200 p-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">
               Summary
             </h3>
             <div className="grid grid-cols-2 gap-4 text-center">
-              <div className="bg-white/10 dark:bg-gray-700/20 rounded-lg p-3">
-                <div className="text-2xl font-bold text-blue-500">
+              <div className="bg-pink-50 rounded-lg p-3">
+                <div className="text-2xl font-bold text-pink-500">
                   {responses.length}
                 </div>
-                <div className="text-xs text-gray-600 dark:text-gray-400">
+                <div className="text-xs text-gray-600">
                   Total Responses
                 </div>
               </div>
-              <div className="bg-white/10 dark:bg-gray-700/20 rounded-lg p-3">
-                <div className="text-2xl font-bold text-green-500">
+              <div className="bg-pink-50 rounded-lg p-3">
+                <div className="text-2xl font-bold text-rose-500">
                   {form.questions.length}
                 </div>
-                <div className="text-xs text-gray-600 dark:text-gray-400">
+                <div className="text-xs text-gray-600">
                   Questions
                 </div>
               </div>

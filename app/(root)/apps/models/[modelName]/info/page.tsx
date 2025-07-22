@@ -47,13 +47,13 @@ export default function ModelInfoPage() {
   if (!model && !loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-white text-xl">Model not found</div>
+        <div className="text-gray-900 text-xl">Model not found</div>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
+    <div className="p-6 bg-white/50">
       {model && <ModelInfoTab model={model} />}
     </div>
   );

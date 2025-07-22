@@ -1025,19 +1025,19 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
     <div className="space-y-6">
       {/* Loading indicator during initialization */}
       {isInitializing && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-900 border border-gray-700 rounded-lg p-6 flex items-center gap-3">
+        <div className="fixed inset-0 bg-white/95 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-pink-50 border border-pink-200 rounded-lg p-6 flex items-center gap-3">
             <Loader2 className="w-5 h-5 animate-spin text-blue-400" />
-            <span className="text-white">Loading latest script...</span>
+            <span className="text-gray-900">Loading latest script...</span>
           </div>
         </div>
       )}
 
       {/* Document Header */}
-      <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-xl overflow-hidden relative">
+      <Card className="bg-white/80 border-pink-200 backdrop-blur-xl overflow-hidden relative">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-900/10 to-purple-900/10"></div>
         <CardHeader className="relative">
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-gray-900 flex items-center gap-2">
             <FileText className="w-5 h-5 text-blue-400" />
             Script Writing
           </CardTitle>
@@ -1045,12 +1045,12 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
         <CardContent className="relative space-y-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1 space-y-2">
-              <Label className="text-sm text-gray-400">Document Title</Label>
+              <Label className="text-sm text-gray-600">Document Title</Label>
               <Input
                 value={documentTitle}
                 onChange={(e) => setDocumentTitle(e.target.value)}
                 placeholder="Enter document title..."
-                className="bg-gray-800/50 border-gray-700 text-white"
+                className="bg-white border-pink-300 text-gray-900"
               />
             </div>
             <div className="flex gap-2 items-end flex-wrap">
@@ -1060,7 +1060,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                   fetchDocuments();
                 }}
                 variant="outline"
-                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                className="border-pink-300 text-gray-700 hover:bg-pink-50"
               >
                 <FolderOpen className="w-4 h-4 mr-2" />
                 Open Docs
@@ -1069,7 +1069,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                 id="save-btn"
                 onClick={saveToLocalStorage}
                 variant="outline"
-                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                className="border-pink-300 text-gray-700 hover:bg-pink-50"
               >
                 <Save className="w-4 h-4 mr-2" />
                 Save Draft
@@ -1077,7 +1077,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
               <Button
                 onClick={createNewDocument}
                 variant="outline"
-                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                className="border-pink-300 text-gray-700 hover:bg-pink-50"
               >
                 <FileText className="w-4 h-4 mr-2" />
                 New
@@ -1115,7 +1115,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
       </Card>
 
       {/* Editor Toolbar */}
-      <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-xl overflow-hidden relative">
+      <Card className="bg-white/80 border-pink-200 backdrop-blur-xl overflow-hidden relative">
         <div className="absolute inset-0 bg-gradient-to-r from-gray-900/10 to-gray-800/10"></div>
         <CardContent className="relative p-4">
           <div className="flex flex-wrap gap-2">
@@ -1125,7 +1125,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                 size="sm"
                 variant="outline"
                 onClick={() => executeCommand("bold")}
-                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                className="border-pink-300 text-gray-700 hover:bg-pink-50"
               >
                 <Bold className="w-4 h-4" />
               </Button>
@@ -1133,7 +1133,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                 size="sm"
                 variant="outline"
                 onClick={() => executeCommand("italic")}
-                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                className="border-pink-300 text-gray-700 hover:bg-pink-50"
               >
                 <Italic className="w-4 h-4" />
               </Button>
@@ -1141,7 +1141,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                 size="sm"
                 variant="outline"
                 onClick={() => executeCommand("underline")}
-                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                className="border-pink-300 text-gray-700 hover:bg-pink-50"
               >
                 <Underline className="w-4 h-4" />
               </Button>
@@ -1155,7 +1155,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                 size="sm"
                 variant="outline"
                 onClick={() => executeCommand("justifyLeft")}
-                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                className="border-pink-300 text-gray-700 hover:bg-pink-50"
               >
                 <AlignLeft className="w-4 h-4" />
               </Button>
@@ -1163,7 +1163,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                 size="sm"
                 variant="outline"
                 onClick={() => executeCommand("justifyCenter")}
-                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                className="border-pink-300 text-gray-700 hover:bg-pink-50"
               >
                 <AlignCenter className="w-4 h-4" />
               </Button>
@@ -1171,7 +1171,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                 size="sm"
                 variant="outline"
                 onClick={() => executeCommand("justifyRight")}
-                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                className="border-pink-300 text-gray-700 hover:bg-pink-50"
               >
                 <AlignRight className="w-4 h-4" />
               </Button>
@@ -1185,7 +1185,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                 size="sm"
                 variant="outline"
                 onClick={() => handleListCommand("ul")}
-                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                className="border-pink-300 text-gray-700 hover:bg-pink-50"
               >
                 <List className="w-4 h-4" />
               </Button>
@@ -1193,7 +1193,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                 size="sm"
                 variant="outline"
                 onClick={() => handleListCommand("ol")}
-                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                className="border-pink-300 text-gray-700 hover:bg-pink-50"
               >
                 <ListOrdered className="w-4 h-4" />
               </Button>
@@ -1206,7 +1206,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
               <select
                 value={currentFontSize}
                 onChange={(e) => handleFontSizeChange(e.target.value)}
-                className="px-2 py-1 text-sm bg-gray-800 border border-gray-700 text-gray-300 rounded"
+                className="px-2 py-1 text-sm bg-white border border-pink-300 text-gray-700 rounded"
               >
                 <option value="8pt">8 pt</option>
                 <option value="9pt">9 pt</option>
@@ -1235,7 +1235,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                 size="sm"
                 variant="outline"
                 onClick={() => executeCommand("undo")}
-                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                className="border-pink-300 text-gray-700 hover:bg-pink-50"
               >
                 <Undo className="w-4 h-4" />
               </Button>
@@ -1243,7 +1243,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                 size="sm"
                 variant="outline"
                 onClick={() => executeCommand("redo")}
-                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                className="border-pink-300 text-gray-700 hover:bg-pink-50"
               >
                 <Redo className="w-4 h-4" />
               </Button>
@@ -1253,14 +1253,14 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
       </Card>
 
       {/* Editor */}
-      <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-xl overflow-hidden relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-gray-900/10 to-gray-800/10"></div>
+      <Card className="bg-white/80 border-pink-200 backdrop-blur-xl overflow-hidden relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-pink-50/30 to-rose-50/30"></div>
         <CardContent className="relative p-0 flex justify-center">
-          <div className="w-full max-w-[8.5in] bg-white/5 shadow-lg">
+          <div className="w-full max-w-[8.5in] bg-white shadow-lg border border-gray-200 rounded-lg">
             <div
               ref={editorRef}
               contentEditable
-              className="min-h-[11in] text-white bg-transparent outline-none resize-none leading-relaxed text-[12pt] prose-lists"
+              className="min-h-[11in] text-gray-900 bg-white outline-none resize-none leading-relaxed text-[12pt] prose-lists"
               style={{
                 lineHeight: "1.15",
                 fontFamily: 'Times, "Times New Roman", serif',
@@ -1476,18 +1476,18 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
 
       {/* Documents Modal */}
       <Dialog open={showDocumentsModal} onOpenChange={setShowDocumentsModal}>
-        <DialogContent className="bg-gray-900 border-gray-800 max-w-[95vw] sm:max-w-6xl lg:max-w-7xl max-h-[90vh] overflow-hidden w-full">
-          <DialogHeader className="border-b border-gray-700 pb-4 sm:pb-6 px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6">
+        <DialogContent className="bg-white border-pink-200 max-w-[95vw] sm:max-w-6xl lg:max-w-7xl max-h-[90vh] overflow-hidden w-full">
+          <DialogHeader className="border-b border-pink-200 pb-4 sm:pb-6 px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 sm:gap-3">
                 <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <FolderOpen className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                  <FolderOpen className="w-3 h-3 sm:w-4 sm:h-4 text-gray-900" />
                 </div>
                 <div>
-                  <DialogTitle className="text-white text-base sm:text-lg font-semibold">
+                  <DialogTitle className="text-gray-900 text-base sm:text-lg font-semibold">
                     My Scripts
                   </DialogTitle>
-                  <p className="text-gray-400 text-xs sm:text-sm">
+                  <p className="text-gray-600 text-xs sm:text-sm">
                     {documents.length}{" "}
                     {documents.length === 1 ? "document" : "documents"}
                   </p>
@@ -1498,7 +1498,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                 disabled={isLoadingDocs}
                 variant="ghost"
                 size="sm"
-                className="text-gray-400 hover:text-white hover:bg-gray-800"
+                className="text-gray-600 hover:text-gray-900 hover:bg-pink-50"
               >
                 {isLoadingDocs ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -1514,7 +1514,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
               <div className="flex items-center justify-center py-12 sm:py-16">
                 <div className="text-center">
                   <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-blue-400 mx-auto mb-3 sm:mb-4" />
-                  <p className="text-gray-400 text-sm">
+                  <p className="text-gray-600 text-sm">
                     Loading your scripts...
                   </p>
                 </div>
@@ -1522,13 +1522,13 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
             ) : documents.length === 0 ? (
               <div className="flex items-center justify-center py-12 sm:py-16">
                 <div className="text-center max-w-sm px-4">
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
                     <FileText className="w-6 h-6 sm:w-8 sm:h-8 text-gray-500" />
                   </div>
-                  <h3 className="text-white font-medium mb-2 text-sm sm:text-base">
+                  <h3 className="text-gray-900 font-medium mb-2 text-sm sm:text-base">
                     No scripts found
                   </h3>
-                  <p className="text-gray-400 text-xs sm:text-sm">
+                  <p className="text-gray-600 text-xs sm:text-sm">
                     Create your first script to see it here. Your documents will
                     appear in this folder.
                   </p>
@@ -1541,7 +1541,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                   {documents.map((doc) => (
                     <div
                       key={doc.id}
-                      className="group relative bg-gray-800/30 rounded-lg border border-gray-700/50 hover:border-blue-500/50 hover:bg-gray-800/50 transition-all duration-200 cursor-pointer"
+                      className="group relative bg-pink-50 rounded-lg border border-pink-200 hover:border-pink-300 hover:bg-pink-100 transition-all duration-200 cursor-pointer"
                       onClick={() => loadDocumentContent(doc)}
                     >
                       {/* Document Preview */}
@@ -1549,7 +1549,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                         {/* Document Icon */}
                         <div className="flex-1 flex items-center justify-center mb-2 sm:mb-3 lg:mb-4">
                           <div className="w-14 h-17 sm:w-16 sm:h-20 lg:w-20 lg:h-24 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg flex items-center justify-center relative overflow-hidden">
-                            <FileText className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-white z-10" />
+                            <FileText className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 text-pink-500 z-10" />
                             {/* Google Docs style lines */}
                             <div className="absolute inset-0 bg-white/10">
                               <div className="absolute top-3 sm:top-4 lg:top-5 left-1.5 sm:left-2 lg:left-2.5 right-1.5 sm:right-2 lg:right-2.5 h-0.5 bg-white/40 rounded"></div>
@@ -1567,7 +1567,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                         {/* Document Info */}
                         <div className="text-center">
                           <h3
-                            className="text-white text-xs sm:text-sm font-medium truncate group-hover:text-blue-400 transition-colors mb-1"
+                            className="text-gray-900 text-xs sm:text-sm font-medium truncate group-hover:text-pink-600 transition-colors mb-1"
                             title={doc.name}
                           >
                             {doc.name}
@@ -1600,7 +1600,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                             }}
                             variant="ghost"
                             size="sm"
-                            className="h-6 w-6 sm:h-7 sm:w-7 p-0 bg-gray-900/80 hover:bg-gray-800 text-gray-300 hover:text-white border border-gray-600"
+                            className="h-6 w-6 sm:h-7 sm:w-7 p-0 bg-white hover:bg-pink-50 text-gray-700 hover:text-pink-600 border border-pink-300"
                             title="Open in Google Docs"
                           >
                             <Eye className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
@@ -1612,7 +1612,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                             }}
                             disabled={isLoadingDocContent}
                             size="sm"
-                            className="h-6 sm:h-7 px-1.5 sm:px-2 bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                            className="h-6 sm:h-7 px-1.5 sm:px-2 bg-pink-500 hover:bg-pink-600 text-white text-xs"
                             title="Edit in Script Writer"
                           >
                             {isLoadingDocContent ? (
@@ -1640,15 +1640,15 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
 
       {/* Success Modal */}
       <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
-        <DialogContent className="bg-gray-900 border-gray-800">
+        <DialogContent className="bg-white border-pink-200">
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
+            <DialogTitle className="text-gray-900 flex items-center gap-2">
               <CheckCircle className="w-5 h-5 text-green-400" />
               Script Uploaded Successfully!
             </DialogTitle>
           </DialogHeader>
           <div className="p-4 space-y-4">
-            <p className="text-gray-300">
+            <p className="text-gray-600">
               Your script &quot;{documentTitle}&quot; has been successfully
               uploaded to Google Drive as a Google Doc.
             </p>
@@ -1666,7 +1666,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
                     alert("Link copied to clipboard!");
                   }}
                   variant="outline"
-                  className="w-full border-gray-700 text-gray-300 hover:bg-gray-800"
+                  className="w-full border-pink-300 text-gray-700 hover:bg-pink-50"
                 >
                   Copy Link
                 </Button>
@@ -1675,7 +1675,7 @@ export const ScriptWritingTab: React.FC<ScriptWritingTabProps> = ({
             <Button
               onClick={() => setShowSuccessModal(false)}
               variant="outline"
-              className="w-full border-gray-700 text-gray-300 hover:bg-gray-800"
+              className="w-full border-pink-300 text-gray-700 hover:bg-pink-50"
             >
               Continue Writing
             </Button>

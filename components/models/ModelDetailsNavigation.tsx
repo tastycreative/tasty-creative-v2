@@ -47,7 +47,7 @@ export default function ModelDetailsNavigation() {
   };
 
   return (
-    <div className="flex border-b border-slate-700/30 bg-slate-800/30">
+    <div className="flex border-b border-pink-200 bg-gradient-to-r from-gray-50 to-pink-50">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isActive = getIsActive(tab.id);
@@ -60,7 +60,7 @@ export default function ModelDetailsNavigation() {
             className={`
               flex-1 sm:flex-initial px-6 py-4 flex items-center justify-center gap-2 
               font-medium transition-all relative group
-              ${isActive ? "text-white" : "text-gray-400 hover:text-gray-200"}
+              ${isActive ? "text-gray-900" : "text-gray-600 hover:text-gray-900"}
             `}
           >
             <Icon
@@ -75,14 +75,14 @@ export default function ModelDetailsNavigation() {
             {/* Active indicator */}
             {isActive && (
               <>
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-500 to-pink-500" />
-                <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-purple-500/10 to-transparent" />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-pink-500 to-rose-500" />
+                <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-pink-500/10 to-transparent" />
               </>
             )}
 
             {/* Hover effect */}
             {!isActive && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-purple-500/0 via-purple-500/50 to-purple-500/0 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-pink-500/0 via-pink-500/50 to-pink-500/0 opacity-0 group-hover:opacity-100 transition-opacity" />
             )}
           </Link>
         );

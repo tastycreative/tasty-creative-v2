@@ -862,9 +862,9 @@ const AIText2ImagePage = () => {
     if (hasError) {
       return (
         <div
-          className={`${className} bg-gray-800/50 flex items-center justify-center rounded-lg border border-white/10`}
+          className={`${className} bg-pink-100/50 flex items-center justify-center rounded-lg border border-pink-200`}
         >
-          <div className="text-center text-gray-400 p-4">
+          <div className="text-center text-gray-600 p-4">
             <Image className="w-8 h-8 mx-auto mb-2 opacity-50" />
             <p className="text-xs mb-2">Failed to load</p>
             <button
@@ -873,7 +873,7 @@ const AIText2ImagePage = () => {
                 setIsLoading(true);
                 setImgSrc(image.imageUrl);
               }}
-              className="text-blue-400 text-xs underline hover:text-blue-300 transition-colors"
+              className="text-pink-600 text-xs underline hover:text-pink-500 transition-colors"
             >
               Retry
             </button>
@@ -885,8 +885,8 @@ const AIText2ImagePage = () => {
     return (
       <div className={`relative ${className} rounded-lg overflow-hidden`}>
         {isLoading && (
-          <div className="absolute inset-0 bg-gray-800/50 flex items-center justify-center">
-            <Loader2 className="w-6 h-6 animate-spin text-violet-400" />
+          <div className="absolute inset-0 bg-pink-100/50 flex items-center justify-center">
+            <Loader2 className="w-6 h-6 animate-spin text-pink-600" />
           </div>
         )}
         <img
@@ -905,44 +905,44 @@ const AIText2ImagePage = () => {
   const actualProgress = comfyUIProgress;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+    <div className="min-h-screen bg-white/60 backdrop-blur-sm p-6">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header Section */}
         <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold text-white mb-2">
+          <h1 className="text-4xl font-bold text-gray-700 mb-2">
             AI Text-to-Image Generator
           </h1>
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Create stunning AI images from text descriptions using ComfyUI
           </p>
         </div>
 
         {/* Status Bar */}
-        <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+        <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
           <CardContent className="p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex items-center space-x-4">
                 {isConnected ? (
                   <>
                     <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
-                      <span className="text-green-400 font-medium">
+                      <div className="w-3 h-3 rounded-full bg-pink-500 animate-pulse"></div>
+                      <span className="text-pink-600 font-medium">
                         ComfyUI Connected
                       </span>
                     </div>
-                    <div className="text-gray-400 text-sm">
+                    <div className="text-gray-600 text-sm">
                       {availableLoraModels.length} models available
                     </div>
                   </>
                 ) : (
                   <>
                     <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                      <span className="text-red-400 font-medium">
+                      <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                      <span className="text-red-600 font-medium">
                         ComfyUI Offline
                       </span>
                     </div>
-                    <div className="text-gray-400 text-sm">
+                    <div className="text-gray-600 text-sm">
                       Check connection
                     </div>
                   </>
@@ -951,14 +951,14 @@ const AIText2ImagePage = () => {
 
               {actuallyGenerating && (
                 <div className="flex items-center space-x-3">
-                  <div className="flex items-center space-x-2 text-violet-400">
+                  <div className="flex items-center space-x-2 text-pink-600">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span className="text-sm font-medium">
                       {actualProgress}%
                     </span>
                   </div>
                   {currentNode && (
-                    <span className="text-xs text-gray-400">{currentNode}</span>
+                    <span className="text-xs text-gray-600">{currentNode}</span>
                   )}
                 </div>
               )}
@@ -971,13 +971,13 @@ const AIText2ImagePage = () => {
           {/* Generation Panel */}
           <div className="space-y-6">
             {/* Prompt Input */}
-            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+            <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
               <CardHeader className="pb-4">
-                <CardTitle className="text-white flex items-center">
+                <CardTitle className="text-gray-700 flex items-center">
                   <Wand2 className="w-5 h-5 mr-3" />
                   Describe Your Vision
                 </CardTitle>
-                <CardDescription className="text-gray-400">
+                <CardDescription className="text-gray-600">
                   Enter a detailed description of the image you want to create
                 </CardDescription>
               </CardHeader>
@@ -988,10 +988,10 @@ const AIText2ImagePage = () => {
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     maxLength={characterLimit}
-                    className="bg-black/40 border-white/20 text-white rounded-xl min-h-[140px] resize-none focus:border-violet-400/50 focus:ring-violet-400/20 transition-all text-base leading-relaxed"
+                    className="bg-white border-pink-200 text-gray-700 rounded-xl min-h-[140px] resize-none focus:border-pink-500/50 focus:ring-pink-500/20 transition-all text-base leading-relaxed"
                     rows={6}
                   />
-                  <div className="absolute bottom-3 right-3 text-xs text-gray-400">
+                  <div className="absolute bottom-3 right-3 text-xs text-gray-600">
                     {prompt.length}/{characterLimit}
                   </div>
                 </div>
@@ -999,19 +999,19 @@ const AIText2ImagePage = () => {
             </Card>
 
             {/* Model & Style Selection */}
-            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+            <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
               <CardHeader className="pb-4">
-                <CardTitle className="text-white flex items-center">
+                <CardTitle className="text-gray-700 flex items-center">
                   <Palette className="w-5 h-5 mr-3" />
                   Art Style & Model
                 </CardTitle>
-                <CardDescription className="text-gray-400">
+                <CardDescription className="text-gray-600">
                   Choose the artistic style for your image
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <Label className="text-gray-300 text-sm font-medium mb-3 block">
+                  <Label className="text-gray-600 text-sm font-medium mb-3 block">
                     LoRA Model
                   </Label>
                   <Select
@@ -1019,7 +1019,7 @@ const AIText2ImagePage = () => {
                     onValueChange={setSelectedLoraModel}
                     disabled={!isConnected || availableLoraModels.length === 0}
                   >
-                    <SelectTrigger className="bg-black/40 border-white/20 text-white rounded-xl h-12 focus:border-violet-400/50">
+                    <SelectTrigger className="bg-white border-pink-200 text-gray-700 rounded-xl h-12 focus:border-pink-500/50">
                       <SelectValue
                         placeholder={
                           isConnected
@@ -1030,11 +1030,11 @@ const AIText2ImagePage = () => {
                         }
                       />
                     </SelectTrigger>
-                    <SelectContent className="bg-black/90 border-white/10 text-white">
+                    <SelectContent className="bg-white border-pink-200 text-gray-700">
                       {availableLoraModels.map((model) => (
                         <SelectItem key={model} value={model}>
                           <div className="flex items-center space-x-3">
-                            <div className="w-2 h-2 rounded-full bg-violet-400"></div>
+                            <div className="w-2 h-2 rounded-full bg-pink-500"></div>
                             <span>
                               {model.replace(/\.(safetensors|pt|ckpt)$/, "")}
                             </span>
@@ -1048,10 +1048,10 @@ const AIText2ImagePage = () => {
             </Card>
 
             {/* Image Dimensions */}
-            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+            <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
               <CardHeader className="pb-4">
-                <CardTitle className="text-white">Image Dimensions</CardTitle>
-                <CardDescription className="text-gray-400">
+                <CardTitle className="text-gray-700">Image Dimensions</CardTitle>
+                <CardDescription className="text-gray-600">
                   Select the size and aspect ratio for your image
                 </CardDescription>
               </CardHeader>
@@ -1063,8 +1063,8 @@ const AIText2ImagePage = () => {
                       variant="outline"
                       className={`h-20 p-4 border-2 transition-all duration-200 ${
                         width === preset.width && height === preset.height
-                          ? "bg-violet-600/30 border-violet-400 text-violet-300"
-                          : "bg-black/40 border-white/20 text-gray-300 hover:bg-white/10 hover:border-white/30"
+                          ? "bg-pink-500/30 border-pink-400 text-pink-700"
+                          : "bg-white border-pink-200 text-gray-600 hover:bg-pink-50 hover:border-pink-300"
                       }`}
                       onClick={() => {
                         setWidth(preset.width);
@@ -1086,21 +1086,21 @@ const AIText2ImagePage = () => {
             </Card>
 
             {/* Generation Settings */}
-            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+            <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-white">
+                    <CardTitle className="text-gray-700">
                       Generation Settings
                     </CardTitle>
-                    <CardDescription className="text-gray-400">
+                    <CardDescription className="text-gray-600">
                       Fine-tune your image generation parameters
                     </CardDescription>
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="bg-black/60 border-white/10 text-white hover:bg-black/80"
+                    className="bg-pink-100/60 border-pink-200 text-gray-700 hover:bg-pink-200/60"
                     onClick={() =>
                       setShowAdvancedSettings(!showAdvancedSettings)
                     }
@@ -1113,17 +1113,17 @@ const AIText2ImagePage = () => {
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <Label className="text-gray-300 text-sm font-medium mb-3 block">
+                    <Label className="text-gray-600 text-sm font-medium mb-3 block">
                       Number of Images
                     </Label>
                     <Select
                       value={batchSize.toString()}
                       onValueChange={(value) => setBatchSize(parseInt(value))}
                     >
-                      <SelectTrigger className="bg-black/40 border-white/20 text-white rounded-xl h-12">
+                      <SelectTrigger className="bg-white border-pink-200 text-gray-700 rounded-xl h-12">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-black/90 border-white/10 text-white">
+                      <SelectContent className="bg-white border-pink-200 text-gray-700">
                         {Array.from({ length: 15 }, (_, i) => i + 1).map(
                           (size) => (
                             <SelectItem key={size} value={size.toString()}>
@@ -1137,10 +1137,10 @@ const AIText2ImagePage = () => {
 
                   <div>
                     <div className="flex justify-between items-center mb-3">
-                      <Label className="text-gray-300 text-sm font-medium">
+                      <Label className="text-gray-600 text-sm font-medium">
                         LoRA Strength
                       </Label>
-                      <span className="text-violet-400 text-sm font-mono">
+                      <span className="text-pink-600 text-sm font-mono">
                         {loraStrength.toFixed(2)}
                       </span>
                     </div>
@@ -1152,7 +1152,7 @@ const AIText2ImagePage = () => {
                       onValueChange={(value) => setLoraStrength(value[0])}
                       className="py-2"
                     />
-                    <p className="text-xs text-gray-400 mt-2">
+                    <p className="text-xs text-gray-600 mt-2">
                       Controls the influence of the selected art style
                     </p>
                   </div>
@@ -1161,17 +1161,17 @@ const AIText2ImagePage = () => {
                 {showAdvancedSettings && (
                   <div className="space-y-6 pt-6 border-t border-white/10">
                     <div>
-                      <Label className="text-gray-300 text-sm font-medium mb-3 block">
+                      <Label className="text-gray-600 text-sm font-medium mb-3 block">
                         Negative Prompt
                       </Label>
                       <Textarea
                         placeholder="low quality, blurry, distorted, bad anatomy..."
                         value={negativePrompt}
                         onChange={(e) => setNegativePrompt(e.target.value)}
-                        className="bg-black/40 border-white/20 text-white rounded-xl min-h-[80px]"
+                        className="bg-white border-pink-200 text-gray-700 rounded-xl min-h-[80px]"
                         rows={3}
                       />
-                      <p className="text-xs text-gray-400 mt-2">
+                      <p className="text-xs text-gray-600 mt-2">
                         Describe what you don't want in the image
                       </p>
                     </div>
@@ -1179,10 +1179,10 @@ const AIText2ImagePage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
                         <div className="flex justify-between items-center mb-3">
-                          <Label className="text-gray-300 text-sm font-medium">
+                          <Label className="text-gray-600 text-sm font-medium">
                             Steps
                           </Label>
-                          <span className="text-violet-400 text-sm font-mono">
+                          <span className="text-pink-600 text-sm font-mono">
                             {steps}
                           </span>
                         </div>
@@ -1194,17 +1194,17 @@ const AIText2ImagePage = () => {
                           onValueChange={(value) => setSteps(value[0])}
                           className="py-2"
                         />
-                        <p className="text-xs text-gray-400 mt-2">
+                        <p className="text-xs text-gray-600 mt-2">
                           More steps = higher quality, longer generation time
                         </p>
                       </div>
 
                       <div>
                         <div className="flex justify-between items-center mb-3">
-                          <Label className="text-gray-300 text-sm font-medium">
+                          <Label className="text-gray-600 text-sm font-medium">
                             CFG Scale
                           </Label>
-                          <span className="text-violet-400 text-sm font-mono">
+                          <span className="text-pink-600 text-sm font-mono">
                             {cfgScale.toFixed(1)}
                           </span>
                         </div>
@@ -1216,7 +1216,7 @@ const AIText2ImagePage = () => {
                           onValueChange={(value) => setCfgScale(value[0])}
                           className="py-2"
                         />
-                        <p className="text-xs text-gray-400 mt-2">
+                        <p className="text-xs text-gray-600 mt-2">
                           How closely the image follows your prompt
                         </p>
                       </div>
@@ -1250,7 +1250,7 @@ const AIText2ImagePage = () => {
 
             {/* Generate Button */}
             <Button
-              className="w-full h-16 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-700 hover:to-fuchsia-700 text-white rounded-xl text-lg font-semibold shadow-lg transition-all duration-200 disabled:opacity-50"
+              className="w-full h-16 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-xl text-lg font-semibold shadow-lg transition-all duration-200 disabled:opacity-50"
               onClick={handleGenerate}
               disabled={
                 actuallyGenerating ||
@@ -1277,15 +1277,15 @@ const AIText2ImagePage = () => {
           {/* Preview & Gallery Panel */}
           <div className="space-y-6">
             {/* Preview Card */}
-            <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+            <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-white flex items-center">
+                    <CardTitle className="text-gray-700 flex items-center">
                       <Grid className="w-5 h-5 mr-3" />
                       Gallery
                     </CardTitle>
-                    <CardDescription className="text-gray-400">
+                    <CardDescription className="text-gray-600">
                       {generatedImages.length} images created
                     </CardDescription>
                   </div>
@@ -1293,7 +1293,7 @@ const AIText2ImagePage = () => {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="bg-black/40 border-white/20 text-white hover:bg-white/10"
+                    className="bg-white border-pink-200 text-gray-700 hover:bg-pink-50"
                     onClick={() => setShowHistory(!showHistory)}
                   >
                     {showHistory ? (
@@ -1317,14 +1317,14 @@ const AIText2ImagePage = () => {
                   <div className="h-[600px] flex items-center justify-center">
                     {actuallyGenerating ? (
                       <div className="text-center space-y-6">
-                        <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 flex items-center justify-center">
-                          <Loader2 className="w-12 h-12 text-white animate-spin" />
+                        <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-r from-pink-500 to-rose-500 flex items-center justify-center">
+                          <Loader2 className="w-12 h-12 text-pink-600 animate-spin" />
                         </div>
                         <div>
-                          <h3 className="text-xl font-semibold text-white mb-2">
+                          <h3 className="text-xl font-semibold text-gray-700 mb-2">
                             Creating Your Image
                           </h3>
-                          <p className="text-gray-400 mb-2">
+                          <p className="text-gray-600 mb-2">
                             {actualProgress}% complete
                           </p>
                           {currentNode && (
@@ -1345,14 +1345,14 @@ const AIText2ImagePage = () => {
                         </div>
 
                         <div className="text-center space-y-4">
-                          <h3 className="text-xl font-semibold text-white">
+                          <h3 className="text-xl font-semibold text-gray-700">
                             Latest Creation
                           </h3>
-                          <p className="text-gray-400 text-sm line-clamp-3 leading-relaxed">
+                          <p className="text-gray-600 text-sm line-clamp-3 leading-relaxed">
                             {generatedImages[0].prompt}
                           </p>
 
-                          <div className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-violet-600/20 border border-violet-400/30 text-violet-300">
+                          <div className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-pink-500/20 border border-pink-400/30 text-pink-600">
                             {generatedImages[0].settings.loraModel?.replace(
                               /\.(safetensors|pt|ckpt)$/,
                               ""
@@ -1363,7 +1363,7 @@ const AIText2ImagePage = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="bg-black/40 border-white/20 hover:bg-white/10 px-4"
+                              className="bg-white border-pink-200 hover:bg-white/10 px-4"
                               onClick={() => downloadImage(generatedImages[0])}
                             >
                               <Download className="w-4 h-4 mr-2" />
@@ -1372,7 +1372,7 @@ const AIText2ImagePage = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="bg-black/40 border-white/20 hover:bg-white/10 px-4"
+                              className="bg-white border-pink-200 hover:bg-white/10 px-4"
                               onClick={() =>
                                 toggleBookmark(generatedImages[0].id)
                               }
@@ -1391,14 +1391,14 @@ const AIText2ImagePage = () => {
                       </div>
                     ) : (
                       <div className="text-center space-y-6">
-                        <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-r from-gray-600 to-gray-700 flex items-center justify-center">
-                          <Type className="w-12 h-12 text-gray-400" />
+                        <div className="w-24 h-24 mx-auto rounded-full bg-gradient-to-r from-pink-400 to-rose-400 flex items-center justify-center">
+                          <Type className="w-12 h-12 text-white" />
                         </div>
                         <div>
-                          <h3 className="text-xl font-semibold text-white mb-2">
+                          <h3 className="text-xl font-semibold text-gray-700 mb-2">
                             No Images Yet
                           </h3>
-                          <p className="text-gray-400">
+                          <p className="text-gray-600">
                             {isConnected
                               ? "Create your first image to see it here"
                               : "Connect to ComfyUI to start generating"}
@@ -1415,22 +1415,22 @@ const AIText2ImagePage = () => {
                     {/* Search and Filters */}
                     <div className="flex flex-col sm:flex-row gap-3 mb-6">
                       <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
                         <Input
                           placeholder="Search images..."
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
-                          className="pl-10 bg-black/40 border-white/20 text-white h-12"
+                          className="pl-10 bg-white border-pink-200 text-gray-700 h-12 focus:border-pink-500/50"
                         />
                       </div>
                       <Select
                         value={selectedCategory}
                         onValueChange={setSelectedCategory}
                       >
-                        <SelectTrigger className="w-full sm:w-40 bg-black/40 border-white/20 text-white h-12">
+                        <SelectTrigger className="w-full sm:w-40 bg-white border-pink-200 text-gray-700 h-12 focus:border-pink-500/50">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-black/90 border-white/10 text-white">
+                        <SelectContent className="bg-white border-pink-200 text-gray-700">
                           {categories.map((category) => (
                             <SelectItem key={category} value={category}>
                               {category === "all"
@@ -1463,12 +1463,12 @@ const AIText2ImagePage = () => {
                               />
 
                               {/* Overlay */}
-                              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center rounded-lg">
+                              <div className="absolute inset-0 bg-pink-500/60 opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center rounded-lg">
                                 <div className="flex gap-2">
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    className="bg-black/60 border-white/30 text-white hover:bg-white/20 w-10 h-10 p-0"
+                                    className="bg-white/90 border-pink-200 text-gray-700 hover:bg-white w-10 h-10 p-0"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       downloadImage(image);
@@ -1479,7 +1479,7 @@ const AIText2ImagePage = () => {
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    className="bg-black/60 border-white/30 text-white hover:bg-white/20 w-10 h-10 p-0"
+                                    className="bg-white/90 border-pink-200 text-gray-700 hover:bg-white w-10 h-10 p-0"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       toggleBookmark(image.id);
@@ -1496,7 +1496,7 @@ const AIText2ImagePage = () => {
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    className="bg-black/60 border-white/30 text-white hover:bg-white/20 w-10 h-10 p-0"
+                                    className="bg-white/90 border-pink-200 text-gray-700 hover:bg-white w-10 h-10 p-0"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       setSelectedImageForModal(image);
@@ -1516,8 +1516,8 @@ const AIText2ImagePage = () => {
                                   </div>
                                 )}
                                 {image.isInVault && (
-                                  <div className="w-7 h-7 rounded-full bg-green-500/20 border border-green-400/50 flex items-center justify-center">
-                                    <FolderOpen className="w-3 h-3 text-green-400" />
+                                  <div className="w-7 h-7 rounded-full bg-pink-500/20 border border-pink-400/50 flex items-center justify-center">
+                                    <FolderOpen className="w-3 h-3 text-pink-600" />
                                   </div>
                                 )}
                               </div>
@@ -1527,9 +1527,9 @@ const AIText2ImagePage = () => {
                       ) : (
                         <div className="flex-1 flex items-center justify-center text-center">
                           <div className="space-y-4">
-                            <Grid className="w-16 h-16 mx-auto text-gray-600" />
+                            <Grid className="w-16 h-16 mx-auto text-pink-500" />
                             <div>
-                              <p className="text-gray-400 mb-2">
+                              <p className="text-gray-600 mb-2">
                                 No images found
                               </p>
                               <p className="text-gray-500 text-sm">
@@ -1551,15 +1551,15 @@ const AIText2ImagePage = () => {
 
         {/* Success Status */}
         {generationStatus && !error && (
-          <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+          <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
             <CardContent className="p-6">
               <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-pink-500 rounded-full animate-pulse"></div>
                 <div>
-                  <h3 className="font-medium text-white mb-1">
+                  <h3 className="font-medium text-gray-700 mb-1">
                     Generation Status
                   </h3>
-                  <p className="text-gray-300">{generationStatus}</p>
+                  <p className="text-gray-600">{generationStatus}</p>
                 </div>
               </div>
             </CardContent>
@@ -1577,16 +1577,16 @@ const AIText2ImagePage = () => {
             onClick={() => setShowImageModal(false)}
           >
             <div
-              className="bg-black/90 backdrop-blur-md border border-white/10 rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden"
+              className="bg-white/95 backdrop-blur-md border border-pink-200 rounded-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Modal Header */}
               <div className="flex items-center justify-between p-6 border-b border-white/10">
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-violet-500 to-fuchsia-500 flex items-center justify-center">
-                    <Eye className="w-4 h-4 text-white" />
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-pink-500 to-rose-500 flex items-center justify-center">
+                    <Eye className="w-4 h-4 text-pink-600" />
                   </div>
-                  <h3 className="text-white text-xl font-semibold">
+                  <h3 className="text-gray-700 text-xl font-semibold">
                     Image Details
                   </h3>
                 </div>
@@ -1615,11 +1615,11 @@ const AIText2ImagePage = () => {
                 <div className="space-y-6">
                   {/* Prompt */}
                   <div>
-                    <Label className="text-gray-300 text-sm font-medium mb-2 block">
+                    <Label className="text-gray-600 text-sm font-medium mb-2 block">
                       Prompt
                     </Label>
-                    <div className="bg-black/40 border border-white/10 rounded-lg p-4">
-                      <p className="text-white text-sm leading-relaxed">
+                    <div className="bg-pink-50/60 border border-pink-200 rounded-lg p-4">
+                      <p className="text-gray-700 text-sm leading-relaxed">
                         {selectedImageForModal.prompt}
                       </p>
                     </div>
@@ -1628,11 +1628,11 @@ const AIText2ImagePage = () => {
                   {/* Negative Prompt */}
                   {selectedImageForModal.negativePrompt && (
                     <div>
-                      <Label className="text-gray-300 text-sm font-medium mb-2 block">
+                      <Label className="text-gray-600 text-sm font-medium mb-2 block">
                         Negative Prompt
                       </Label>
-                      <div className="bg-black/40 border border-white/10 rounded-lg p-4">
-                        <p className="text-white text-sm leading-relaxed">
+                      <div className="bg-pink-50/60 border border-pink-200 rounded-lg p-4">
+                        <p className="text-gray-700 text-sm leading-relaxed">
                           {selectedImageForModal.negativePrompt}
                         </p>
                       </div>
@@ -1641,33 +1641,33 @@ const AIText2ImagePage = () => {
 
                   {/* Settings */}
                   <div>
-                    <Label className="text-gray-300 text-sm font-medium mb-2 block">
+                    <Label className="text-gray-600 text-sm font-medium mb-2 block">
                       Generation Settings
                     </Label>
                     <div className="bg-black/40 border border-white/10 rounded-lg p-4 space-y-2">
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                          <span className="text-gray-400">Model:</span>
-                          <span className="text-white ml-2">
+                          <span className="text-gray-600">Model:</span>
+                          <span className="text-gray-700 ml-2">
                             {selectedImageForModal.settings.model}
                           </span>
                         </div>
                         <div>
-                          <span className="text-gray-400">Size:</span>
-                          <span className="text-white ml-2">
+                          <span className="text-gray-600">Size:</span>
+                          <span className="text-gray-700 ml-2">
                             {selectedImageForModal.settings.width}×
                             {selectedImageForModal.settings.height}
                           </span>
                         </div>
                         <div>
-                          <span className="text-gray-400">Steps:</span>
-                          <span className="text-white ml-2">
+                          <span className="text-gray-600">Steps:</span>
+                          <span className="text-gray-700 ml-2">
                             {selectedImageForModal.settings.steps}
                           </span>
                         </div>
                         <div>
-                          <span className="text-gray-400">CFG:</span>
-                          <span className="text-white ml-2">
+                          <span className="text-gray-600">CFG:</span>
+                          <span className="text-gray-700 ml-2">
                             {selectedImageForModal.settings.cfgScale}
                           </span>
                         </div>
@@ -1675,10 +1675,10 @@ const AIText2ImagePage = () => {
 
                       {selectedImageForModal.settings.loraModel && (
                         <div className="pt-2 border-t border-white/10">
-                          <span className="text-gray-400 text-sm">
+                          <span className="text-gray-600 text-sm">
                             LoRA Model:
                           </span>
-                          <span className="text-white ml-2 text-sm">
+                          <span className="text-gray-700 ml-2 text-sm">
                             {selectedImageForModal.settings.loraModel}
                           </span>
                         </div>
@@ -1689,7 +1689,7 @@ const AIText2ImagePage = () => {
                   {/* Actions */}
                   <div className="flex flex-wrap gap-3">
                     <Button
-                      className="bg-blue-600 hover:bg-blue-700 text-white flex-1 sm:flex-none"
+                      className="bg-pink-500 hover:bg-pink-600 text-white flex-1 sm:flex-none"
                       onClick={() => downloadImage(selectedImageForModal)}
                     >
                       <Download className="w-4 h-4 mr-2" />
@@ -1697,7 +1697,7 @@ const AIText2ImagePage = () => {
                     </Button>
                     <Button
                       variant="outline"
-                      className="bg-black/40 border-white/20 text-white hover:bg-white/10 flex-1 sm:flex-none"
+                      className="bg-white border-pink-200 text-gray-700 hover:bg-pink-50 flex-1 sm:flex-none"
                       onClick={() => toggleBookmark(selectedImageForModal.id)}
                     >
                       <Star
@@ -1713,7 +1713,7 @@ const AIText2ImagePage = () => {
                     </Button>
                     <Button
                       variant="outline"
-                      className="bg-black/40 border-white/20 text-white hover:bg-white/10 w-full sm:w-auto"
+                      className="bg-white border-pink-200 text-gray-700 hover:bg-pink-50 w-full sm:w-auto"
                       onClick={() => {
                         setPrompt(selectedImageForModal.prompt);
                         if (selectedImageForModal.negativePrompt) {

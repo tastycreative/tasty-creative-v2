@@ -129,7 +129,7 @@ const LaunchPrep = () => {
       </p>
 
       {/* Client Selection Area */}
-      <div className="w-full bg-black/5 rounded-md p-3 sm:p-4 mb-4">
+      <div className="w-full bg-pink-50/50 rounded-md p-3 sm:p-4 mb-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2">
           <h2 className="text-lg font-medium">Onboarding Clients</h2>
 
@@ -160,8 +160,8 @@ const LaunchPrep = () => {
                 className={cn(
                   "px-2 py-1 text-xs font-medium",
                   viewMode === "grid"
-                    ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100"
-                    : "bg-white dark:bg-gray-800"
+                    ? "bg-pink-100 text-pink-800"
+                    : "bg-white"
                 )}
               >
                 Grid
@@ -171,8 +171,8 @@ const LaunchPrep = () => {
                 className={cn(
                   "px-2 py-1 text-xs font-medium",
                   viewMode === "list"
-                    ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100"
-                    : "bg-white dark:bg-gray-800"
+                    ? "bg-pink-100 text-pink-800"
+                    : "bg-white"
                 )}
               >
                 List
@@ -183,14 +183,14 @@ const LaunchPrep = () => {
 
         {loading ? (
           <div className="flex items-center justify-center h-20">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
           </div>
         ) : filteredModels.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <p className="text-gray-500 mb-2">No clients match your search</p>
             <button
               onClick={() => setSearchQuery("")}
-              className="text-sm text-blue-600 hover:text-blue-800"
+              className="text-sm text-pink-600 hover:text-pink-800"
             >
               Clear search
             </button>
@@ -207,12 +207,12 @@ const LaunchPrep = () => {
                     className={cn(
                       "cursor-pointer p-3 rounded-md transition-all duration-200 border-2",
                       selectedModel === model.Model
-                        ? "border-blue-600 bg-blue-50 dark:bg-blue-900/20"
-                        : "border-transparent hover:bg-gray-100 dark:hover:bg-gray-800/50"
+                        ? "border-pink-500 bg-pink-50"
+                        : "border-transparent hover:bg-pink-50/50"
                     )}
                   >
                     <div className="flex flex-col items-center text-center">
-                      <div className="h-12 w-12 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center mb-2">
+                      <div className="h-12 w-12 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center mb-2">
                         <span className="text-white font-bold text-lg">
                           {model.Model.substring(0, 2).toUpperCase()}
                         </span>
@@ -236,19 +236,19 @@ const LaunchPrep = () => {
                     className={cn(
                       "cursor-pointer p-2 transition-all duration-200",
                       selectedModel === model.Model
-                        ? "bg-blue-50 dark:bg-blue-900/20"
-                        : "hover:bg-gray-100 dark:hover:bg-gray-800/50"
+                        ? "bg-pink-50"
+                        : "hover:bg-pink-50/50"
                     )}
                   >
                     <div className="flex items-center space-x-3">
-                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center">
+                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center">
                         <span className="text-white font-bold text-sm">
                           {model.Model.substring(0, 2).toUpperCase()}
                         </span>
                       </div>
                       <span className="font-medium">{model.Model}</span>
                       {selectedModel === model.Model && (
-                        <span className="ml-auto text-xs py-1 px-2 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 rounded-full">
+                        <span className="ml-auto text-xs py-1 px-2 bg-pink-100 text-pink-800 rounded-full">
                           Selected
                         </span>
                       )}
@@ -273,7 +273,7 @@ const LaunchPrep = () => {
                   <button
                     onClick={goToPrevPage}
                     disabled={currentPage === 1}
-                    className="p-1 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-gray-700"
+                    className="p-1 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-pink-100"
                   >
                     <ChevronLeft className="h-5 w-5" />
                   </button>
@@ -283,7 +283,7 @@ const LaunchPrep = () => {
                   <button
                     onClick={goToNextPage}
                     disabled={currentPage === totalPages}
-                    className="p-1 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-gray-700"
+                    className="p-1 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-pink-100"
                   >
                     <ChevronRight className="h-5 w-5" />
                   </button>

@@ -4,7 +4,7 @@ import React from "react";
 
 const Onboarding = () => {
   return (
-    <div className=" w-full dark rounded-md">
+    <div className="min-h-screen w-full bg-gradient-to-br from-gray-50 via-white to-pink-50 rounded-md">
       <title>Onboarding | Tasty Creative</title>
       <PermissionGoogle apiEndpoint="/api/google/onboarding">
         <LaunchPrep />

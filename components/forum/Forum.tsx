@@ -287,8 +287,8 @@ export function Forum({
     return (
       <div className="min-h-screen p-4 flex items-center justify-center">
         <div className="text-center">
-          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-purple-500" />
-          <p className="text-gray-600 dark:text-gray-300">Loading forum...</p>
+          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-pink-500" />
+          <p className="text-gray-600">Loading forum...</p>
         </div>
       </div>
     );
@@ -301,19 +301,19 @@ export function Forum({
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">
                 {title}
               </h1>
-              <p className="text-gray-600 dark:text-gray-300 text-lg">
+              <p className="text-gray-600 text-lg">
                 {subtitle}
               </p>
               {/* Username Status */}
               {hasUsername && currentUser ? (
-                <p className="text-sm text-green-600 dark:text-green-400 mt-1">
+                <p className="text-sm text-green-600 mt-1">
                   ✓ Logged in as {currentUser.username}
                 </p>
               ) : (
-                <p className="text-sm text-orange-600 dark:text-orange-400 mt-1">
+                <p className="text-sm text-orange-600 mt-1">
                   ⚠ Please create a username to participate in the forum
                 </p>
               )}
@@ -323,7 +323,7 @@ export function Forum({
               <button
                 onClick={refetchPosts}
                 disabled={postsLoading}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-all disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-all disabled:opacity-50"
               >
                 <RefreshCw className={`w-4 h-4 ${postsLoading ? 'animate-spin' : ''}`} />
                 Refresh
@@ -333,8 +333,8 @@ export function Forum({
 
           {/* Error Display */}
           {(postsError || actionError || usernameError) && (
-            <div className="mt-4 p-4 bg-red-500/20 border border-red-500/30 rounded-lg">
-              <p className="text-red-600 dark:text-red-400">
+            <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-lg">
+              <p className="text-red-700">
                 {postsError || actionError || usernameError}
               </p>
             </div>
@@ -376,11 +376,11 @@ export function Forum({
           <div className={showSidebar ? "xl:col-span-3" : "col-span-1"}>
             {/* Forum Context */}
             {getCurrentForum().type === "model" && (
-              <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 rounded-xl p-4 mb-6">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
+              <div className="bg-gradient-to-r from-pink-100 to-rose-100 border border-pink-300 rounded-xl p-4 mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   👤 {getCurrentForum().name} Forum
                 </h3>
-                <p className="text-gray-600 dark:text-gray-300 text-sm">
+                <p className="text-gray-600 text-sm">
                   Discussions specific to {getCurrentForum().name}. Share tips,
                   experiences, and connect with other {getCurrentForum().name} users.
                 </p>

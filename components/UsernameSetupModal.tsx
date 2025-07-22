@@ -73,28 +73,28 @@ export function UsernameSetupModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-white/95 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-gray-100/95 dark:bg-gray-900/95 rounded-xl border border-gray-200 dark:border-white/20 p-6 w-full max-w-md backdrop-blur-sm"
+            className="bg-white rounded-xl border border-pink-200 p-6 w-full max-w-md backdrop-blur-sm shadow-lg"
           >
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <User className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
                 Choose Your Username
               </h3>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">
+              <p className="text-gray-600 text-sm">
                 You need a username to participate in the forum discussions
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-600 mb-2">
                   Username
                 </label>
                 <input
@@ -102,13 +102,13 @@ export function UsernameSetupModal({
                   value={username}
                   onChange={(e) => handleUsernameChange(e.target.value)}
                   placeholder="Enter your username..."
-                  className="w-full px-3 py-2 bg-gray-100/80 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-800 dark:text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                  className="w-full px-3 py-2 bg-white border border-pink-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:border-pink-500"
                   disabled={loading}
                 />
                 
                 {validationMessage && (
                   <div className={`flex items-center gap-2 mt-2 text-sm ${
-                    isValid ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                    isValid ? 'text-green-600' : 'text-red-600'
                   }`}>
                     {isValid ? (
                       <CheckCircle className="w-4 h-4" />
@@ -122,8 +122,8 @@ export function UsernameSetupModal({
 
               {error && (
                 <div className="flex items-center gap-2 p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
-                  <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
-                  <p className="text-red-600 dark:text-red-400 text-sm">
+                  <AlertCircle className="w-4 h-4 text-red-600" />
+                  <p className="text-red-600 text-sm">
                     {error}
                   </p>
                 </div>
@@ -133,13 +133,13 @@ export function UsernameSetupModal({
                 <button
                   type="submit"
                   disabled={!isValid || loading}
-                  className="w-full px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg hover:from-pink-600 hover:to-rose-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? "Creating..." : "Create Username"}
                 </button>
                 
                 <div className="text-center">
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                  <p className="text-xs text-gray-600">
                     Username requirements: 3-20 characters, letters, numbers, and underscores only
                   </p>
                 </div>

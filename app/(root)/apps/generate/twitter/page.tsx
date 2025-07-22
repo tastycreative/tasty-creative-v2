@@ -17,8 +17,8 @@ export default function TwitterPage() {
           //transition={{ duration: 0.3, delay: 0.1 }}
           className="text-center"
         >
-          <div className="mb-6 p-6 rounded-full bg-gradient-to-r from-sky-500/20 to-blue-500/20 backdrop-blur-sm">
-            <Twitter className="w-16 h-16 text-sky-500" />
+          <div className="mb-6 p-6 rounded-full bg-gradient-to-r from-pink-500/20 to-rose-500/20 backdrop-blur-sm">
+            <Twitter className="w-16 h-16 text-pink-500" />
           </div>
           <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-white">
             Twitter Ad Creator
@@ -31,7 +31,7 @@ export default function TwitterPage() {
             onClick={() => {
               setStartCreating(true);
             }}
-            className="px-6 py-3 rounded-xl bg-gradient-to-r from-sky-500 to-blue-500 text-white font-medium hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+            className="px-6 py-3 rounded-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white font-medium hover:shadow-lg transform hover:scale-105 transition-all duration-200"
           >
             Create Twitter Ads
           </button>

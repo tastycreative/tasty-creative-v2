@@ -349,14 +349,14 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
   }, [formData.croppedImage]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6  text-white min-h-screen">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-foreground min-h-screen">
       {response?.error === "Invalid JSON response from webhook" ? (
         <ServerOffline />
       ) : (
         <>
-          <div className="bg-black/20 border col-span-1 border-white/10 p-6 rounded-lg">
-            <h1 className="text-2xl font-bold mb-2">VIP Flyer Generation</h1>
-            <p className="text-gray-300 mb-6">
+          <div className="bg-white/60 backdrop-blur-sm border col-span-1 border-pink-200 p-6 rounded-lg shadow-md">
+            <h1 className="text-2xl font-bold mb-2 bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">VIP Flyer Generation</h1>
+            <p className="text-gray-600 text-sm mb-6">
               Create promotional materials for VIP subscription benefits
             </p>
 
@@ -391,9 +391,9 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
                     checked={formData.customRequest}
                     disabled={isLoading || isFetchingImage || !!webhookData}
                   />
-                  <div className="w-11 h-6 bg-black/60 peer-checked:bg-gradient-to-r peer-checked:from-purple-500 peer-checked:to-blue-500  rounded-full peer  peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-checked:bg-gradient-to-r peer-checked:from-pink-500 peer-checked:to-rose-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                 </label>
-                <h1 className="text-sm text-gray-300 font-medium mb-0">
+                <h1 className="text-sm text-gray-600 font-medium mb-0">
                   Custom Flyer
                 </h1>
               </div>
@@ -455,7 +455,7 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
                             });
                           }
                         }}
-                        className="cursor-pointer accent-purple-600 rounded"
+                        className="cursor-pointer accent-pink-600 rounded"
                       />
                       <span className="text-sm">{option}</span>
                     </label>
@@ -485,7 +485,7 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
                                 templatePosition: e.target.value,
                               })
                             }
-                            className=" text-purple-600 accent-purple-600 cursor-pointer rounded"
+                            className="text-pink-600 accent-pink-600 cursor-pointer rounded"
                             checked={formData.templatePosition === position}
                           />
                           <span className="text-sm">{position}</span>
@@ -508,7 +508,7 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
                     type="number"
                     id="noOfTemplate"
                     name="noOfTemplate"
-                    className="border-0 bg-black/50 text-gray-400  rounded-md p-2 flex-1 w-[50px] "
+                    className="border border-pink-200 bg-white/70 text-gray-700 rounded-md p-2 flex-1 w-[50px] focus:border-pink-400"
                     value={formData.noOfTemplate}
                     onChange={handleInputChange}
                     required
@@ -522,7 +522,7 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
               <div className="mt-2 col-span-2">
                 <button
                   type="submit"
-                  className={`rounded-md px-5 w-full cursor-pointer bg-gradient-to-r from-purple-600 to-blue-600 py-2 text-white font-medium transition-colors  ${
+                  className={`rounded-md px-5 w-full cursor-pointer bg-gradient-to-r from-pink-600 to-rose-600 py-2 text-white font-medium transition-colors hover:from-pink-700 hover:to-rose-700 ${
                     isLoading || isFetchingImage
                       ? "opacity-60 cursor-not-allowed"
                       : "opacity-100"
@@ -547,11 +547,11 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
             </form>
           </div>
 
-          <div className="bg-black/20 border col-span-2 border-white/10 p-6 rounded-lg">
+          <div className="bg-white/60 backdrop-blur-sm border col-span-2 border-pink-200 p-6 rounded-lg shadow-md">
             <div className="flex flex-col gap-4 sticky top-8">
               <div>
-                <h1 className="font-bold text-xl">Preview</h1>
-                <p className="text-sm text-gray-400 mb-2">
+                <h1 className="font-bold text-xl bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">Preview</h1>
+                <p className="text-sm text-gray-600 mb-2">
                   VIP flyer preview will appear here
                 </p>
               </div>
@@ -590,7 +590,7 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
                 <>
                   <div className="flex lg:flex-row flex-col justify-center items-center gap-4 sticky top-8">
                     {/* Preview Image */}
-                    <div className="h-80 w-64 bg-black/60 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="h-80 w-64 bg-white/80 border border-pink-200 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                       {formData.croppedImage || formData.templatePosition ? (
                         <div className="relative w-full h-full">
                           {/* Cropped image */}
@@ -652,10 +652,10 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
 
                     {/* Flyer Image */}
                     {isFetchingImage ? (
-                      <div className=" relative overflow-hidden h-80 w-64 flex items-center justify-center  border border-gradient-to-r border-purple-600 rounded-md bg-black/40">
+                      <div className="relative overflow-hidden h-80 w-64 flex items-center justify-center border border-pink-400 rounded-md bg-pink-50/40">
                         <div className="flex flex-col items-center justify-center">
                           <svg
-                            className="animate-spin h-8 w-8 text-purple-500 mb-2"
+                            className="animate-spin h-8 w-8 text-pink-500 mb-2"
                             xmlns="http://www.w3.org/2000/svg"
                             fill="none"
                             viewBox="0 0 24 24"
@@ -680,14 +680,14 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
                           <button
                             type="button"
                             onClick={handleStopGenerating}
-                            className="absolute bottom-0 py-2 w-full bg-black/60 text-gray-500 rounded-t-md cursor-pointer"
+                            className="absolute bottom-0 py-2 w-full bg-pink-100 text-gray-700 hover:bg-pink-200 rounded-t-md cursor-pointer"
                           >
                             Stop Generating
                           </button>
                         </div>
                       </div>
                     ) : webhookData?.thumbnail && webhookData?.webViewLink ? (
-                      <div className="flex items-center justify-center h-80 w-64 rounded-md bg-black/40 border-1 border-gradient-to-r border-purple-600">
+                      <div className="flex items-center justify-center h-80 w-64 rounded-md bg-pink-50/40 border border-pink-400">
                         <Link
                           href={webhookData?.webViewLink}
                           target="_blank"
@@ -718,7 +718,7 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
                         </Link>
                       </div>
                     ) : (
-                      <div className="h-80 w-64 bg-black/60 flex items-center justify-center  border border-gradient-to-r border-purple-400 rounded-md">
+                      <div className="h-80 w-64 bg-white/80 flex items-center justify-center border border-pink-400 rounded-md">
                         <span className="text-sm text-gray-500 text-center px-2">
                           Flyer not yet generated
                         </span>
@@ -731,8 +731,8 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
               {(webhookData || history) && (
                 <>
                   <div className="h-full flex flex-col gap-2">
-                    <hr className="border-purple-400" />
-                    <span className="text-gray-300">
+                    <hr className="border-pink-400" />
+                    <span className="text-gray-600">
                       {" "}
                       Generated: {history.length}
                     </span>
@@ -740,7 +740,7 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
                       {history.map((item, index) => (
                         <div
                           key={index}
-                          className="border p-2 border-gradient-to-r border-purple-400 rounded-md flex flex-col items-center justify-center hover:bg-black/40"
+                          className="border p-2 border-pink-400 rounded-md flex flex-col items-center justify-center hover:bg-pink-50/40"
                         >
                           <div className="w-24 h-24 rounded-md overflow-hidden ">
                             <Image

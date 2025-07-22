@@ -3,7 +3,7 @@ import React from "react";
 
 const page = () => {
   return (
-    <div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50">
       <title>Chatting | Tasty Creative</title>
       <ChattingPage />
     </div>

@@ -53,11 +53,11 @@ const ChattingPage = () => {
     return ""; // Default case if no hash is set
   };
   return (
-    <div className="flex flex-col gap-2 sm:gap-3 md:gap-4 shadow-sm sm:shadow-md  relative overflow-hidden w-full bg-black/20 rounded-md sm:rounded-lg border border-white/10">
+    <div className="flex flex-col gap-2 sm:gap-3 md:gap-4 shadow-sm sm:shadow-md  relative overflow-hidden w-full bg-white/90 rounded-md sm:rounded-lg border border-pink-200">
       <ThemeProvider defaultTheme="light" attribute="class">
         <SidebarProvider>
           <ChattingSideBar />
-          <SidebarInset className="dark w-full max-w-full overflow-x-hidden ">
+          <SidebarInset className="w-full max-w-full overflow-x-hidden ">
             <header className="flex h-12 sm:h-14 md:h-16 shrink-0 items-center gap-1 sm:gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-10 sm:group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
               <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 md:px-4">
                 <SidebarTrigger className="-ml-0.5 sm:-ml-1" />
@@ -85,7 +85,7 @@ const ChattingPage = () => {
             </header>
             <div className="px-5 pb-5">
               <div
-                className={`rounded-xl px-5 transition-all duration-300 bg-gradient-to-b from-gray-800 to-gray-850 shadow-lg border border-gray-700/30 overflow-hidden`}
+                className={`rounded-xl px-5 transition-all duration-300 bg-gradient-to-b from-white via-gray-50 to-pink-50 shadow-lg border border-pink-200 overflow-hidden`}
               >
                 {content}
               </div>

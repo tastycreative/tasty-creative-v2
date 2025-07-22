@@ -6,7 +6,7 @@ const SignInWithGoogle = () => {
     <form action={signInWithGoogle} className="mt-6">
       <button
         type="submit"
-        className="w-full inline-flex justify-center items-center py-2.5 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors duration-200 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+        className="w-full inline-flex justify-center items-center py-2.5 px-4 border border-input rounded-lg shadow-sm bg-background text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors duration-200"
       >
         <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
           <path

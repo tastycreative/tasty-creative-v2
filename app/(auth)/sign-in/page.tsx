@@ -11,14 +11,14 @@ export const metadata: Metadata = {
 export default function SignIn() {
   return (
     <div className="w-full">
-      <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+      <h2 className="text-2xl font-semibold text-foreground">
         Sign in to your account
       </h2>
-      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+      <p className="mt-2 text-sm text-muted-foreground">
         Or{" "}
         <Link
           href="/sign-up"
-          className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
+          className="font-medium text-primary hover:text-primary/90 transition-colors"
         >
           create a new account
         </Link>
@@ -26,7 +26,7 @@ export default function SignIn() {
       <Suspense
         fallback={
           <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-white"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground"></div>
           </div>
         }
       >
@@ -35,10 +35,10 @@ export default function SignIn() {
 
       <div className="relative mt-6">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-300 dark:border-gray-700"></div>
+          <div className="w-full border-t border-border"></div>
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="px-2 bg-white dark:bg-gray-900 text-gray-500">
+          <span className="px-2 bg-background text-muted-foreground">
             Or continue with
           </span>
         </div>

@@ -2,7 +2,7 @@ import React from 'react';
 
 const Loader = () => {
   return (
-    <div className="loader-container">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50 flex items-center justify-center">
       <div className="rocket-wrapper">
         <svg
           className="rocket"
@@ -181,42 +181,42 @@ const Loader = () => {
           {/* Gradient definitions */}
           <defs>
             <linearGradient id="bodyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#e0e7ff" />
-              <stop offset="50%" stopColor="#c7d2fe" />
-              <stop offset="100%" stopColor="#a5b4fc" />
+              <stop offset="0%" stopColor="#fce7f3" />
+              <stop offset="50%" stopColor="#fbcfe8" />
+              <stop offset="100%" stopColor="#f9a8d4" />
             </linearGradient>
             
             <linearGradient id="boosterGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#94a3b8" />
-              <stop offset="100%" stopColor="#64748b" />
+              <stop offset="0%" stopColor="#f3e8ff" />
+              <stop offset="100%" stopColor="#e879f9" />
             </linearGradient>
             
             <linearGradient id="finGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#ef4444" />
-              <stop offset="100%" stopColor="#dc2626" />
+              <stop offset="0%" stopColor="#ec4899" />
+              <stop offset="100%" stopColor="#be185d" />
             </linearGradient>
             
             <linearGradient id="windowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#60a5fa" />
-              <stop offset="100%" stopColor="#3b82f6" />
+              <stop offset="0%" stopColor="#f472b6" />
+              <stop offset="100%" stopColor="#ec4899" />
             </linearGradient>
             
             <linearGradient id="nozzleGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#475569" />
-              <stop offset="100%" stopColor="#1e293b" />
+              <stop offset="0%" stopColor="#be185d" />
+              <stop offset="100%" stopColor="#831843" />
             </linearGradient>
             
             <linearGradient id="flameGradient" x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor="#fbbf24" />
               <stop offset="30%" stopColor="#f59e0b" />
-              <stop offset="60%" stopColor="#ef4444" />
-              <stop offset="100%" stopColor="#3b82f6" />
+              <stop offset="60%" stopColor="#ec4899" />
+              <stop offset="100%" stopColor="#be185d" />
             </linearGradient>
             
             <linearGradient id="flameGradient2" x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor="#f59e0b" />
-              <stop offset="50%" stopColor="#ef4444" />
-              <stop offset="100%" stopColor="#60a5fa" />
+              <stop offset="50%" stopColor="#ec4899" />
+              <stop offset="100%" stopColor="#be185d" />
             </linearGradient>
           </defs>
         </svg>

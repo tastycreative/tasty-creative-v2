@@ -174,7 +174,7 @@ const ModelAppsTab: React.FC<ModelAppsTabProps> = ({ modelName }) => {
       name: "Prompt Generator",
       description: "Create optimized AI prompts",
       icon: PenTool,
-      color: "from-indigo-500 to-cyan-500",
+      color: "from-pink-500 to-rose-500",
       category: "ai",
       component: AIPromptPage,
     },
@@ -192,7 +192,7 @@ const ModelAppsTab: React.FC<ModelAppsTabProps> = ({ modelName }) => {
       name: "Dataset Manager",
       description: "Manage AI training datasets",
       icon: Database,
-      color: "from-orange-500 to-red-500",
+      color: "from-pink-500 to-rose-500",
       category: "ai",
       component: AIDatasetPage,
     },
@@ -201,7 +201,7 @@ const ModelAppsTab: React.FC<ModelAppsTabProps> = ({ modelName }) => {
       name: "Content Vault",
       description: "Store and organize generated content",
       icon: Archive,
-      color: "from-emerald-500 to-lime-500",
+      color: "from-pink-500 to-rose-500",
       category: "ai",
       component: AIVaultPage,
     },
@@ -210,7 +210,7 @@ const ModelAppsTab: React.FC<ModelAppsTabProps> = ({ modelName }) => {
       name: "AI Gallery",
       description: "Browse and manage AI creations",
       icon: ImageIcon,
-      color: "from-teal-500 to-green-500",
+      color: "from-pink-500 to-rose-500",
       category: "ai",
       component: AIGalleryPage,
     },
@@ -233,20 +233,20 @@ const ModelAppsTab: React.FC<ModelAppsTabProps> = ({ modelName }) => {
     if (app) {
       const Component = app.component;
       return (
-        <div className="h-full flex flex-col bg-slate-900">
-          <div className="flex items-center justify-between p-6 border-b border-slate-700/50 bg-slate-800/50">
+        <div className="h-full flex flex-col bg-white/90">
+          <div className="flex items-center justify-between p-6 border-b border-pink-200 bg-gray-50">
             <div className="flex items-center space-x-4">
               <div className={`w-10 h-10 rounded-lg bg-gradient-to-r ${app.color} flex items-center justify-center`}>
                 <app.icon className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-white">{app.name}</h2>
-                <p className="text-gray-400 text-sm">{app.description}</p>
+                <h2 className="text-xl font-semibold text-gray-900">{app.name}</h2>
+                <p className="text-gray-600 text-sm">{app.description}</p>
               </div>
             </div>
             <button
               onClick={() => setActiveApp(null)}
-              className="flex items-center gap-2 px-4 py-2 text-sm bg-slate-700/50 text-gray-300 rounded-lg hover:bg-slate-600/50 transition-colors border border-slate-600/50"
+              className="flex items-center gap-2 px-4 py-2 text-sm bg-white/90 text-gray-600 rounded-lg hover:bg-pink-50 transition-colors border border-pink-200"
             >
               <ArrowLeft className="w-4 h-4" />
               Back to Apps
@@ -264,11 +264,11 @@ const ModelAppsTab: React.FC<ModelAppsTabProps> = ({ modelName }) => {
     <div className="w-full max-w-7xl mx-auto p-4 lg:p-6 animate-in fade-in duration-500">
       {/* Header Section */}
       <div className="text-center mb-8">
-        <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-3">
+        <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent mb-3">
           Model Applications
         </h1>
-        <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-          Explore all available tools and generators for <span className="text-purple-400 font-medium">{modelName}</span>
+        <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+          Explore all available tools and generators for <span className="text-pink-600 font-medium">{modelName}</span>
         </p>
       </div>
 
@@ -278,8 +278,8 @@ const ModelAppsTab: React.FC<ModelAppsTabProps> = ({ modelName }) => {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
             <PenTool className="w-4 h-4 text-white" />
           </div>
-          <h2 className="text-2xl font-bold text-white">Content Generation Tools</h2>
-          <div className="flex-1 h-px bg-gradient-to-r from-slate-700 to-transparent" />
+          <h2 className="text-2xl font-bold text-gray-900">Content Generation Tools</h2>
+          <div className="flex-1 h-px bg-gradient-to-r from-pink-200 to-transparent" />
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -287,10 +287,10 @@ const ModelAppsTab: React.FC<ModelAppsTabProps> = ({ modelName }) => {
             <button
               key={app.id}
               onClick={() => setActiveApp(app.id)}
-              className="group relative p-6 rounded-xl bg-slate-800/40 backdrop-blur-md border border-slate-700/50 hover:border-purple-500/30 transition-all duration-300 text-left overflow-hidden"
+              className="group relative p-6 rounded-xl bg-white/90 backdrop-blur-md border border-pink-200 hover:border-pink-300 transition-all duration-300 text-left overflow-hidden"
             >
               {/* Background Gradient */}
-              <div className="absolute inset-0 bg-gradient-to-br from-slate-800/60 to-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute inset-0 bg-gradient-to-br from-pink-50/60 to-rose-50/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               
               {/* Content */}
               <div className="relative z-10">
@@ -298,17 +298,17 @@ const ModelAppsTab: React.FC<ModelAppsTabProps> = ({ modelName }) => {
                   <app.icon className="w-6 h-6 text-white" />
                 </div>
                 
-                <h3 className="font-semibold text-white text-lg mb-2 group-hover:text-purple-300 transition-colors">
+                <h3 className="font-semibold text-gray-900 text-lg mb-2 group-hover:text-pink-600 transition-colors">
                   {app.name}
                 </h3>
                 
-                <p className="text-gray-400 text-sm leading-relaxed group-hover:text-gray-300 transition-colors">
+                <p className="text-gray-600 text-sm leading-relaxed group-hover:text-gray-700 transition-colors">
                   {app.description}
                 </p>
               </div>
               
               {/* Hover Effect */}
-              <div className="absolute inset-0 border border-transparent group-hover:border-purple-500/20 rounded-xl transition-all duration-300" />
+              <div className="absolute inset-0 border border-transparent group-hover:border-pink-300/30 rounded-xl transition-all duration-300" />
             </button>
           ))}
         </div>
@@ -320,8 +320,8 @@ const ModelAppsTab: React.FC<ModelAppsTabProps> = ({ modelName }) => {
           <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
             <Sparkles className="w-4 h-4 text-white" />
           </div>
-          <h2 className="text-2xl font-bold text-white">AI Generation Tools</h2>
-          <div className="flex-1 h-px bg-gradient-to-r from-slate-700 to-transparent" />
+          <h2 className="text-2xl font-bold text-gray-900">AI Generation Tools</h2>
+          <div className="flex-1 h-px bg-gradient-to-r from-pink-200 to-transparent" />
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -329,10 +329,10 @@ const ModelAppsTab: React.FC<ModelAppsTabProps> = ({ modelName }) => {
             <button
               key={app.id}
               onClick={() => setActiveApp(app.id)}
-              className="group relative p-6 rounded-xl bg-slate-800/40 backdrop-blur-md border border-slate-700/50 hover:border-purple-500/30 transition-all duration-300 text-left overflow-hidden"
+              className="group relative p-6 rounded-xl bg-white/90 backdrop-blur-md border border-pink-200 hover:border-pink-300 transition-all duration-300 text-left overflow-hidden"
             >
               {/* Background Gradient */}
-              <div className="absolute inset-0 bg-gradient-to-br from-slate-800/60 to-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="absolute inset-0 bg-gradient-to-br from-pink-50/60 to-rose-50/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               
               {/* Content */}
               <div className="relative z-10">
@@ -340,17 +340,17 @@ const ModelAppsTab: React.FC<ModelAppsTabProps> = ({ modelName }) => {
                   <app.icon className="w-6 h-6 text-white" />
                 </div>
                 
-                <h3 className="font-semibold text-white text-lg mb-2 group-hover:text-purple-300 transition-colors">
+                <h3 className="font-semibold text-gray-900 text-lg mb-2 group-hover:text-pink-600 transition-colors">
                   {app.name}
                 </h3>
                 
-                <p className="text-gray-400 text-sm leading-relaxed group-hover:text-gray-300 transition-colors">
+                <p className="text-gray-600 text-sm leading-relaxed group-hover:text-gray-700 transition-colors">
                   {app.description}
                 </p>
               </div>
               
               {/* Hover Effect */}
-              <div className="absolute inset-0 border border-transparent group-hover:border-purple-500/20 rounded-xl transition-all duration-300" />
+              <div className="absolute inset-0 border border-transparent group-hover:border-pink-300/30 rounded-xl transition-all duration-300" />
             </button>
           ))}
         </div>

@@ -299,21 +299,21 @@ export const Timeline: React.FC<TimelineProps> = ({
   }, [onSeek, totalDuration]);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
+    <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-pink-200 p-6">
       {/* Timeline Controls */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-4">
           <button
             onClick={jumpToStart}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 hover:scale-105"
+            className="p-2 hover:bg-pink-50 rounded-lg transition-all duration-200 hover:scale-105"
             title="Jump to start"
           >
-            <SkipBack className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+            <SkipBack className="w-5 h-5 text-gray-700" />
           </button>
 
           <button
             onClick={isPlaying ? onPause : onPlay}
-            className="p-3 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 rounded-lg transition-all duration-200 hover:scale-105 shadow-md"
+            className="p-3 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 rounded-lg transition-all duration-200 hover:scale-105 shadow-md"
             title={isPlaying ? "Pause" : "Play"}
           >
             {isPlaying ? (
@@ -325,21 +325,21 @@ export const Timeline: React.FC<TimelineProps> = ({
 
           <button
             onClick={jumpToEnd}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 hover:scale-105"
+            className="p-2 hover:bg-pink-50 rounded-lg transition-all duration-200 hover:scale-105"
             title="Jump to end"
           >
-            <SkipForward className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+            <SkipForward className="w-5 h-5 text-gray-700" />
           </button>
         </div>
 
-        <div className="flex items-center space-x-6 text-sm text-gray-600 dark:text-gray-400">
-          <div className="flex items-center space-x-2 bg-gray-50 dark:bg-gray-700 px-3 py-1.5 rounded-lg">
-            <Clock className="w-4 h-4 text-green-500" />
+        <div className="flex items-center space-x-6 text-sm text-gray-600">
+          <div className="flex items-center space-x-2 bg-pink-50 px-3 py-1.5 rounded-lg">
+            <Clock className="w-4 h-4 text-pink-500" />
             <span className="font-medium">
               {formatTime(currentTime)} / {formatTime(totalDuration)}
             </span>
           </div>
-          <div className="text-xs bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 px-2 py-1 rounded-full">
+          <div className="text-xs bg-pink-50 text-pink-600 px-2 py-1 rounded-full">
             {videos.length} video{videos.length !== 1 ? "s" : ""}
           </div>
         </div>
@@ -347,7 +347,7 @@ export const Timeline: React.FC<TimelineProps> = ({
 
       {/* Timeline Track */}
       <div
-        className="timeline-track-container relative bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-700 dark:to-gray-600 rounded-xl cursor-pointer select-none shadow-inner border border-gray-200 dark:border-gray-600 overflow-hidden"
+        className="timeline-track-container relative bg-gradient-to-r from-gray-100 to-gray-50 rounded-xl cursor-pointer select-none shadow-inner border border-pink-200 overflow-hidden"
         style={{
           height: 88 + (blurAreaHeight - 28), // Dynamic height based on blur regions
         }}
@@ -358,7 +358,7 @@ export const Timeline: React.FC<TimelineProps> = ({
       >
         {/* Blur overlay area */}
         <div
-          className="absolute top-0 left-0 right-0 bg-gray-50 dark:bg-gray-800/50 rounded-t-xl border-b border-gray-200 dark:border-gray-600"
+          className="absolute top-0 left-0 right-0 bg-pink-50 rounded-t-xl border-b border-pink-200"
           style={{ height: blurAreaHeight }}
         />
 
@@ -434,14 +434,14 @@ export const Timeline: React.FC<TimelineProps> = ({
             const { leftPercent, widthPercent } = getVideoPosition(video);
             const isSelected = video.id === selectedVideoId;
 
-            // Generate distinct colors for each video segment
+            // Generate distinct pink/rose colors for each video segment
             const colors = [
-              "from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700",
-              "from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700",
-              "from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700",
-              "from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700",
+              "from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600",
               "from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700",
-              "from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700",
+              "from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700",
+              "from-rose-400 to-rose-500 hover:from-rose-500 hover:to-rose-600",
+              "from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700",
+              "from-pink-300 to-pink-400 hover:from-pink-400 hover:to-pink-500",
             ];
             const colorClass = colors[index % colors.length];
 
@@ -452,7 +452,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                   video-segment absolute cursor-pointer transition-all duration-300 shadow-md overflow-hidden
                   ${
                     isSelected
-                      ? "bg-gradient-to-r from-green-500 to-emerald-500 ring-2 ring-green-300 shadow-lg z-30"
+                      ? "bg-gradient-to-r from-pink-500 to-rose-500 ring-2 ring-pink-300 shadow-lg z-30"
                       : `bg-gradient-to-r ${colorClass} hover:shadow-lg z-20`
                   }
                 `}
@@ -518,7 +518,7 @@ export const Timeline: React.FC<TimelineProps> = ({
 
                 {/* Video Number Badge */}
                 <div className="absolute -top-1 -left-1 w-5 h-5 bg-white dark:bg-gray-800 rounded-full border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center z-40 shadow-lg">
-                  <span className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                  <span className="text-xs font-bold text-gray-700">
                     {index + 1}
                   </span>
                 </div>
@@ -532,8 +532,8 @@ export const Timeline: React.FC<TimelineProps> = ({
               className="timeline-scrubber absolute top-0 bottom-0 w-1 bg-gradient-to-b from-red-400 to-red-600 z-50 shadow-lg cursor-grab active:cursor-grabbing rounded-full"
               style={{ left: getCurrentPosition }}
             >
-              <div className="absolute -top-2 -left-1 w-4 h-4 bg-red-500 rounded-full shadow-lg hover:scale-110 transition-all duration-200 border-2 border-white" />
-              <div className="absolute -top-8 -left-10 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs px-3 py-1.5 rounded-lg whitespace-nowrap shadow-lg border border-red-400 font-medium">
+              <div className="absolute -top-2 -left-1 w-4 h-4 bg-pink-500 rounded-full shadow-lg hover:scale-110 transition-all duration-200 border-2 border-white" />
+              <div className="absolute -top-8 -left-10 bg-gradient-to-r from-pink-500 to-pink-600 text-white text-xs px-3 py-1.5 rounded-lg whitespace-nowrap shadow-lg border border-pink-400 font-medium">
                 {formatTime(currentTime)}
               </div>
             </div>
@@ -542,11 +542,11 @@ export const Timeline: React.FC<TimelineProps> = ({
           {/* Hover Position Indicator */}
           {hoverPosition !== null && totalDuration > 0 && !isDragging && (
             <div
-              className="absolute top-0 bottom-0 w-0.5 bg-blue-400 z-45 opacity-70 transition-all duration-200 rounded-full"
+              className="absolute top-0 bottom-0 w-0.5 bg-pink-400 z-45 opacity-70 transition-all duration-200 rounded-full"
               style={{ left: `${hoverPosition}%` }}
             >
-              <div className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-blue-400 rounded-full shadow-md border border-white" />
-              <div className="absolute -top-7 -left-10 bg-blue-400 text-white text-xs px-2 py-1 rounded-lg whitespace-nowrap shadow-lg border border-blue-300 font-medium">
+              <div className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-pink-400 rounded-full shadow-md border border-white" />
+              <div className="absolute -top-7 -left-10 bg-pink-400 text-white text-xs px-2 py-1 rounded-lg whitespace-nowrap shadow-lg border border-pink-300 font-medium">
                 {formatTime((hoverPosition / 100) * totalDuration)}
               </div>
             </div>
@@ -576,17 +576,17 @@ export const Timeline: React.FC<TimelineProps> = ({
 
       {/* Selected Video Info */}
       {selectedVideoId && videos.find((v) => v.id === selectedVideoId) && (
-        <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-200 dark:border-green-800 shadow-sm">
+        <div className="mt-6 p-4 bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 rounded-xl border border-pink-200 dark:border-pink-800 shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-pink-500 rounded-lg flex items-center justify-center">
                 <Play className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h4 className="font-semibold text-green-900 dark:text-green-100">
+                <h4 className="font-semibold text-pink-900 dark:text-pink-100">
                   {videos.find((v) => v.id === selectedVideoId)?.file.name}
                 </h4>
-                <p className="text-sm text-green-700 dark:text-green-300">
+                <p className="text-sm text-pink-700 dark:text-pink-300">
                   Duration:{" "}
                   {formatTime(
                     videos.find((v) => v.id === selectedVideoId)?.duration || 0
@@ -598,7 +598,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                 </p>
               </div>
             </div>
-            <div className="text-sm text-green-600 dark:text-green-400 bg-white dark:bg-green-900/30 px-3 py-1 rounded-full font-medium">
+            <div className="text-sm text-pink-600 dark:text-pink-400 bg-white dark:bg-pink-900/30 px-3 py-1 rounded-full font-medium">
               Selected for editing
             </div>
           </div>

@@ -16,7 +16,7 @@ function ModelImage({ model }: { model: ModelDetails }) {
 
   if (imageError || !model.id) {
     return (
-      <div className="w-20 h-20 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+      <div className="w-20 h-20 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 flex items-center justify-center">
         <span className="text-white text-3xl font-bold">
           {model.name.charAt(0).toUpperCase()}
         </span>
@@ -27,7 +27,7 @@ function ModelImage({ model }: { model: ModelDetails }) {
   console.log(model.id, 'model id');
 
   return (
-    <div className="w-20 h-20 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 p-0.5 flex items-center justify-center">
+    <div className="w-20 h-20 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 p-0.5 flex items-center justify-center">
       <img
         src={`/api/image-proxy?id=${model.id}`}
         alt={model.name}
@@ -71,42 +71,42 @@ function ModelLayoutContent({ children, modelName }: { children: ReactNode; mode
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-white text-xl">Loading...</div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50 flex items-center justify-center">
+        <div className="text-gray-900 text-xl">Loading...</div>
       </div>
     );
   }
 
   if (!model && !loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-white text-xl">Model not found</div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50 flex items-center justify-center">
+        <div className="text-gray-900 text-xl">Model not found</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen ">
       <title>{modelName}| Tasty Creative</title>
       <div className="container mx-auto px-4 py-8">
         {/* Back Button */}
         <button
           onClick={() => router.back()}
-          className="mb-6 flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+          className="mb-6 flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
           <span>Back to Models</span>
         </button>
 
         {/* Main Content */}
-        <div className="bg-gray-900/95 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl overflow-hidden">
+        <div className="bg-white/90 backdrop-blur-xl rounded-2xl border border-pink-200 shadow-2xl overflow-hidden">
           {/* Header */}
-          <div className="p-6 border-b border-white/10 bg-white/5">
+          <div className="p-6 border-b border-pink-200 bg-gradient-to-r from-gray-50 to-pink-50">
             <div className="flex items-center gap-4">
               {model && <ModelImage model={model} />}
               <div>
-                <h1 className="text-3xl font-bold text-white">{model?.name}</h1>
-                <p className="text-gray-400 text-lg">
+                <h1 className="text-3xl font-bold text-gray-900">{model?.name}</h1>
+                <p className="text-gray-600 text-lg">
                   {model?.personalityType}
                 </p>
               </div>

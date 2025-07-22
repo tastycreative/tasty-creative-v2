@@ -551,18 +551,18 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
     <div className="w-full max-w-7xl mx-auto p-4 lg:p-6 animate-in fade-in duration-500">
       {/* Header Section */}
       <div className="text-center mb-8">
-        <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-3">
+        <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent mb-3">
           Content Gallery
         </h1>
-        <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+        <p className="text-gray-600 text-lg max-w-2xl mx-auto">
           Manage and organize content for{" "}
-          <span className="text-cyan-400 font-medium">{modelName}</span>
+          <span className="text-pink-600 font-medium">{modelName}</span>
         </p>
       </div>
 
       {/* Content Tabs */}
       <div className="mb-8">
-        <div className="flex flex-wrap gap-2 p-1 bg-slate-800/40 rounded-xl border border-slate-700/50">
+        <div className="flex flex-wrap gap-2 p-1 bg-white/90 rounded-xl border border-pink-200">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -571,8 +571,8 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
                 flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all
                 ${
                   activeTab === tab.id
-                    ? "bg-cyan-600 text-white shadow-lg shadow-cyan-600/25"
-                    : "text-gray-400 hover:text-gray-200 hover:bg-slate-700/50"
+                    ? "bg-pink-600 text-white shadow-lg shadow-pink-600/25"
+                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                 }
               `}
             >
@@ -583,7 +583,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
                 ${
                   activeTab === tab.id
                     ? "bg-white/20 text-white"
-                    : "bg-slate-700 text-gray-300"
+                    : "bg-gray-100 text-gray-700"
                 }
               `}
               >
@@ -602,54 +602,54 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
       {/* Dashboard Stats */}
       {activeTab === "all-content" && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-xl p-4">
+          <div className="bg-white/90 backdrop-blur-md border border-pink-200 rounded-xl p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-blue-600/20 flex items-center justify-center">
-                <Video className="w-5 h-5 text-blue-400" />
+              <div className="w-10 h-10 rounded-lg bg-pink-100 flex items-center justify-center">
+                <Video className="w-5 h-5 text-pink-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{stats.total}</p>
-                <p className="text-gray-400 text-sm">Total Items</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+                <p className="text-gray-600 text-sm">Total Items</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-xl p-4">
+          <div className="bg-white/90 backdrop-blur-md border border-pink-200 rounded-xl p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-green-600/20 flex items-center justify-center">
-                <Zap className="w-5 h-5 text-green-400" />
+              <div className="w-10 h-10 rounded-lg bg-rose-100 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-rose-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{stats.hasGif}</p>
-                <p className="text-gray-400 text-sm">Has GIF</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.hasGif}</p>
+                <p className="text-gray-600 text-sm">Has GIF</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-xl p-4">
+          <div className="bg-white/90 backdrop-blur-md border border-pink-200 rounded-xl p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-orange-600/20 flex items-center justify-center">
-                <Film className="w-5 h-5 text-orange-400" />
+              <div className="w-10 h-10 rounded-lg bg-pink-100 flex items-center justify-center">
+                <Film className="w-5 h-5 text-pink-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">
+                <p className="text-2xl font-bold text-gray-900">
                   {stats.needsGif}
                 </p>
-                <p className="text-gray-400 text-sm">Needs GIF</p>
+                <p className="text-gray-600 text-sm">Needs GIF</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-xl p-4">
+          <div className="bg-white/90 backdrop-blur-md border border-pink-200 rounded-xl p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-purple-600/20 flex items-center justify-center">
-                <Rocket className="w-5 h-5 text-purple-400" />
+              <div className="w-10 h-10 rounded-lg bg-rose-100 flex items-center justify-center">
+                <Rocket className="w-5 h-5 text-rose-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">
+                <p className="text-2xl font-bold text-gray-900">
                   {stats.campaignReady}
                 </p>
-                <p className="text-gray-400 text-sm">Campaign Ready</p>
+                <p className="text-gray-600 text-sm">Campaign Ready</p>
               </div>
             </div>
           </div>
@@ -660,8 +660,8 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
       {loading && (
         <div className="flex justify-center items-center py-16">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400 mx-auto mb-4"></div>
-            <p className="text-gray-400">Loading vault content...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading vault content...</p>
           </div>
         </div>
       )}
@@ -681,26 +681,26 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
         <div className="mb-8">
           <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-600" />
               <input
                 type="text"
                 placeholder="Search content..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full sm:w-80 pl-10 pr-4 py-3 bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                className="w-full sm:w-80 pl-10 pr-4 py-3 bg-white/90 backdrop-blur-md border border-pink-200 rounded-xl text-gray-900 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
               />
             </div>
             
             {/* Items per page selector */}
             <div className="flex items-center gap-2">
-              <span className="text-gray-400 text-sm">Items per page:</span>
+              <span className="text-gray-600 text-sm">Items per page:</span>
               <select
                 value={itemsPerPage}
                 onChange={(e) => {
                   setItemsPerPage(Number(e.target.value));
                   setCurrentPage(1);
                 }}
-                className="bg-slate-800/40 border border-slate-700/50 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="bg-white/90 border border-pink-200 rounded-lg px-3 py-2 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500"
               >
                 <option value={25}>25</option>
                 <option value={50}>50</option>
@@ -712,7 +712,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
           
           {/* Pagination Info */}
           {(filteredItems.length > 0 || ["social-media", "all-content"].includes(activeTab)) && (
-            <div className="mt-4 text-center text-gray-400 text-sm">
+            <div className="mt-4 text-center text-gray-600 text-sm">
               {activeTab === "social-media" ? (
                 <>
                   Showing {Math.min((currentPage - 1) * itemsPerPage + 1, socialMediaTotalCount)} to{" "}
@@ -739,13 +739,13 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
         <div>
           {filteredItems.length === 0 ? (
             <div className="text-center py-12">
-              <div className="w-16 h-16 rounded-full bg-slate-700/50 flex items-center justify-center mx-auto mb-4">
-                <ImageIcon className="w-8 h-8 text-gray-400" />
+              <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-4">
+                <ImageIcon className="w-8 h-8 text-gray-600" />
               </div>
-              <h3 className="text-lg font-medium text-gray-300 mb-2">
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
                 No content found
               </h3>
-              <p className="text-gray-500">
+              <p className="text-gray-600">
                 {searchQuery
                   ? "Try adjusting your search terms"
                   : "No content available in this category"}
@@ -757,7 +757,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
                 {paginatedItems.map((item) => (
                 <div
                   key={item.id}
-                  className={`group bg-slate-800/40 backdrop-blur-md border border-slate-700/50 rounded-xl overflow-hidden hover:border-cyan-500/30 transition-all duration-300 hover:transform hover:scale-105 ${
+                  className={`group bg-white/90 backdrop-blur-md border border-pink-200 rounded-xl overflow-hidden hover:border-pink-500/50 transition-all duration-300 hover:transform hover:scale-105 ${
                     item.isFolder ? "cursor-pointer" : ""
                   }`}
                   onClick={() =>
@@ -765,10 +765,10 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
                   }
                 >
                   {/* Thumbnail */}
-                  <div className="relative aspect-video bg-slate-700/50 overflow-hidden">
+                  <div className="relative aspect-video bg-gray-50 overflow-hidden">
                     {item.isFolder ? (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-600/20 to-purple-600/20">
-                        <Folder className="w-16 h-16 text-blue-400" />
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-pink-100 to-rose-100">
+                        <Folder className="w-16 h-16 text-pink-600" />
                       </div>
                     ) : (
                       <div>
@@ -780,8 +780,8 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
                             loading="lazy"
                           />
                         ) : (
-                          <div className="w-full h-full bg-slate-700/50 flex items-center justify-center absolute inset-0">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+                          <div className="w-full h-full bg-gray-50 flex items-center justify-center absolute inset-0">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600"></div>
                           </div>
                         )}
                       </div>
@@ -838,11 +838,11 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
 
                   {/* Content Info */}
                   <div className="p-4">
-                    <h3 className="text-white font-semibold text-sm mb-2 overflow-hidden text-ellipsis whitespace-nowrap group-hover:text-cyan-300 transition-colors">
+                    <h3 className="text-gray-900 font-semibold text-sm mb-2 overflow-hidden text-ellipsis whitespace-nowrap group-hover:text-pink-600 transition-colors">
                       {item.title}
                     </h3>
 
-                    <div className="flex items-center gap-1 text-gray-400 text-xs mb-3">
+                    <div className="flex items-center gap-1 text-gray-600 text-xs mb-3">
                       <Calendar className="w-3 h-3" />
                       <span>{item.timeAgo}</span>
                     </div>
@@ -864,11 +864,11 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
                     <div className="space-y-2">
                       {item.campaignReady ? (
                         <>
-                          <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors text-xs font-medium">
+                          <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors text-xs font-medium">
                             <Rocket className="w-3 h-3" />
                             <span>Deploy Campaign</span>
                           </button>
-                          <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors text-xs font-medium">
+                          <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg transition-colors text-xs font-medium">
                             <Edit className="w-3 h-3" />
                             <span>Edit</span>
                           </button>
@@ -880,12 +880,12 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
                               e.stopPropagation(); // Prevent triggering folder click
                               handleCreateGif(item);
                             }}
-                            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition-colors text-xs font-medium"
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg transition-colors text-xs font-medium"
                           >
                             <Film className="w-3 h-3" />
                             <span>Create GIF</span>
                           </button>
-                          <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors text-xs font-medium">
+                          <button className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gray-200 hover:bg-gray-300 text-gray-900 rounded-lg transition-colors text-xs font-medium">
                             <Eye className="w-3 h-3" />
                             <span>Preview</span>
                           </button>
@@ -904,7 +904,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
                   <button
                     onClick={() => setCurrentPage(1)}
                     disabled={currentPage === 1}
-                    className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 text-gray-400 hover:text-white hover:border-cyan-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="p-2 rounded-lg bg-white/90 border border-pink-200 text-gray-600 hover:text-gray-900 hover:border-pink-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     <ChevronsLeft className="w-4 h-4" />
                   </button>
@@ -913,7 +913,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
                   <button
                     onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
-                    className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 text-gray-400 hover:text-white hover:border-cyan-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="p-2 rounded-lg bg-white/90 border border-pink-200 text-gray-600 hover:text-gray-900 hover:border-pink-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
@@ -938,8 +938,8 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
                           onClick={() => setCurrentPage(pageNum)}
                           className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                             currentPage === pageNum
-                              ? "bg-cyan-600 text-white border border-cyan-500"
-                              : "bg-slate-800/40 border border-slate-700/50 text-gray-400 hover:text-white hover:border-cyan-500/30"
+                              ? "bg-pink-600 text-white border border-pink-500"
+                              : "bg-white/90 border border-pink-200 text-gray-600 hover:text-gray-900 hover:border-pink-500/50"
                           }`}
                         >
                           {pageNum}
@@ -952,7 +952,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
                   <button
                     onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
-                    className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 text-gray-400 hover:text-white hover:border-cyan-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="p-2 rounded-lg bg-white/90 border border-pink-200 text-gray-600 hover:text-gray-900 hover:border-pink-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
@@ -961,7 +961,7 @@ const ModelContentGalleryTab: React.FC<ModelContentGalleryTabProps> = ({
                   <button
                     onClick={() => setCurrentPage(totalPages)}
                     disabled={currentPage === totalPages}
-                    className="p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 text-gray-400 hover:text-white hover:border-cyan-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    className="p-2 rounded-lg bg-white/90 border border-pink-200 text-gray-600 hover:text-gray-900 hover:border-pink-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                   >
                     <ChevronsRight className="w-4 h-4" />
                   </button>

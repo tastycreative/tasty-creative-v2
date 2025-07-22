@@ -278,23 +278,23 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
     : null;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-white/60 backdrop-blur-sm">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <div className="bg-white/80 border-b border-pink-200">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-gradient-to-r from-pink-600 to-rose-600 rounded-lg flex items-center justify-center">
                   <Play className="w-4 h-4 text-white" />
                 </div>
-                <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
+                <h1 className="text-xl font-semibold text-gray-700">
                   Video Editor
                 </h1>
               </div>
 
               {videos.length > 0 && (
-                <div className="hidden sm:flex items-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
+                <div className="hidden sm:flex items-center space-x-4 text-sm text-gray-600">
                   <span>
                     {videos.length} video{videos.length !== 1 ? "s" : ""}
                   </span>
@@ -308,7 +308,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                   {currentVideo && (
                     <>
                       <span>•</span>
-                      <span className="text-green-600 dark:text-green-400">
+                      <span className="text-pink-600">
                         Playing: {currentVideo.file.name}
                       </span>
                     </>
@@ -322,7 +322,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                 <>
                   <button
                     onClick={resetToStart}
-                    className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                    className="p-2 text-gray-500 hover:text-gray-700 hover:bg-pink-50 rounded-lg transition-colors"
                     title="Reset to start"
                   >
                     <RotateCcw className="w-4 h-4" />
@@ -330,17 +330,17 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
 
                   <button
                     onClick={clearAllVideos}
-                    className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
                     title="Clear all videos"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
 
-                  <div className="w-px h-6 bg-gray-300 dark:bg-gray-600" />
+                  <div className="w-px h-6 bg-pink-200" />
 
                   <button
                     onClick={() => setShowExportModal(true)}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center space-x-2"
+                    className="px-4 py-2 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white rounded-lg transition-colors flex items-center space-x-2 shadow-md hover:shadow-pink-500/20 transform hover:-translate-y-0.5"
                   >
                     <Download className="w-4 h-4" />
                     <span className="hidden sm:inline">Export</span>
@@ -357,21 +357,21 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
           /* Upload State */
           <div className="max-w-2xl mx-auto">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+              <h2 className="text-2xl font-bold text-gray-700 mb-2">
                 Create Your Video Sequence
                 {modelName && (
-                  <span className="block text-lg text-purple-600 dark:text-purple-400 font-normal mt-1">
+                  <span className="block text-lg text-pink-600 font-normal mt-1">
                     for {modelName}
                   </span>
                 )}
               </h2>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-gray-600">
                 {modelName 
                   ? "Upload multiple videos to create a custom sequence with effects and export as GIF"
                   : "Select a model and upload multiple videos to create a custom sequence with effects and export as GIF"
                 }
                 {folderId && (
-                  <span className="block text-sm text-blue-600 dark:text-blue-400 mt-1">
+                  <span className="block text-sm text-pink-600 mt-1">
                     📁 Auto-opening Google Drive folder (ID: {folderId.substring(0, 8)}...) when model is selected
                   </span>
                 )}
@@ -379,24 +379,24 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                   <div className="block mt-1">
                     {autoDownloadProgress ? (
                       <div className="space-y-2">
-                        <span className="text-sm text-green-600 dark:text-green-400">
+                        <span className="text-sm text-pink-600">
                           🔄 Auto-downloading: {autoDownloadProgress.fileName}
                         </span>
                         {autoDownloadProgress.progress >= 0 ? (
                           // Show percentage progress bar when total size is known
                           <>
-                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div className="w-full bg-gray-200 rounded-full h-2">
                               <div 
-                                className="bg-green-600 h-2 rounded-full transition-all duration-300 ease-out"
+                                className="bg-pink-600 h-2 rounded-full transition-all duration-300 ease-out"
                                 style={{ width: `${autoDownloadProgress.progress}%` }}
                               />
                             </div>
                             <div className="flex justify-between items-center">
-                              <span className="text-xs text-gray-600 dark:text-gray-400">
+                              <span className="text-xs text-gray-600">
                                 {autoDownloadProgress.progress}% completed
                               </span>
                               {autoDownloadProgress.downloadedBytes !== undefined && autoDownloadProgress.totalBytes && (
-                                <span className="text-xs text-gray-600 dark:text-gray-400">
+                                <span className="text-xs text-gray-600">
                                   {formatBytes(autoDownloadProgress.downloadedBytes)} / {formatBytes(autoDownloadProgress.totalBytes)}
                                 </span>
                               )}
@@ -405,15 +405,15 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                         ) : (
                           // Show bytes downloaded when total size is unknown
                           <div className="flex items-center space-x-2">
-                            <div className="animate-pulse w-3 h-3 bg-green-600 rounded-full"></div>
-                            <span className="text-xs text-gray-600 dark:text-gray-400">
+                            <div className="animate-pulse w-3 h-3 bg-pink-600 rounded-full"></div>
+                            <span className="text-xs text-gray-600">
                               Downloaded: {autoDownloadProgress.downloadedBytes !== undefined ? formatBytes(autoDownloadProgress.downloadedBytes) : autoDownloadProgress.bytesDownloaded + ' MB'}
                             </span>
                           </div>
                         )}
                       </div>
                     ) : (
-                      <span className="text-sm text-green-600 dark:text-green-400">
+                      <span className="text-sm text-pink-600">
                         {isAutoDownloading ? (
                           <>🔄 Preparing auto-download for Google Drive file (ID: {fileId.substring(0, 8)}...)...</>
                         ) : hasAttemptedAutoDownload ? (
@@ -429,29 +429,29 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
             </div>
 
             {/* Model Selection */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 mb-6">
+            <div className="bg-white/80 rounded-xl border border-pink-200 p-6 mb-6">
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                  <h3 className="text-lg font-semibold text-pink-600 mb-2">
                     Select Model
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  <p className="text-sm text-gray-600 mb-4">
                     Choose a model and type before uploading videos
                   </p>
                 </div>
 
                 {/* Model Type Toggle */}
                 <div className="flex items-center space-x-4">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <span className="text-sm font-medium text-gray-700">
                     Model Type:
                   </span>
-                  <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                  <div className="flex bg-gray-100 rounded-lg p-1">
                     <button
                       onClick={() => setModelType("FREE")}
                       className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${
                         modelType === "FREE"
-                          ? "bg-green-600 text-white"
-                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                          ? "bg-pink-600 text-white"
+                          : "text-gray-600 hover:bg-gray-200"
                       }`}
                     >
                       <User className="w-4 h-4" />
@@ -461,8 +461,8 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                       onClick={() => setModelType("PAID")}
                       className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${
                         modelType === "PAID"
-                          ? "bg-blue-600 text-white"
-                          : "text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                          ? "bg-rose-600 text-white"
+                          : "text-gray-600 hover:bg-gray-200"
                       }`}
                     >
                       <DollarSign className="w-4 h-4" />
@@ -494,29 +494,29 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                 folderId={folderId}
               />
             ) : (
-              <div className="bg-gray-50 dark:bg-gray-800/50 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center">
-                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              <div className="bg-pink-50 border-2 border-dashed border-pink-200 rounded-xl p-8 text-center">
+                <Upload className="w-12 h-12 text-pink-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-700 mb-2">
                   Select a Model First
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400">
+                <p className="text-gray-600">
                   Please select a model and type before you can upload videos
                 </p>
               </div>
             )}
 
             <div className="mt-8 text-center">
-              <div className="inline-flex items-center space-x-8 text-sm text-gray-500 dark:text-gray-400">
+              <div className="inline-flex items-center space-x-8 text-sm text-gray-500">
                 <div className="flex items-center space-x-2">
                   <Upload className="w-4 h-4" />
                   <span>Upload Videos</span>
                 </div>
-                <div className="w-8 h-px bg-gray-300 dark:bg-gray-600" />
+                <div className="w-8 h-px bg-pink-200" />
                 <div className="flex items-center space-x-2">
                   <Play className="w-4 h-4" />
                   <span>Arrange & Edit</span>
                 </div>
-                <div className="w-8 h-px bg-gray-300 dark:bg-gray-600" />
+                <div className="w-8 h-px bg-pink-200" />
                 <div className="flex items-center space-x-2">
                   <Download className="w-4 h-4" />
                   <span>Export</span>
@@ -604,13 +604,13 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
             </div>
 
             {/* Upload More Videos */}
-            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-4">
+            <div className="border-2 border-dashed border-pink-200 rounded-xl p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-base font-medium text-gray-900 dark:text-white mb-1">
+                  <h3 className="text-base font-medium text-gray-700 mb-1">
                     Add More Videos
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm text-gray-600">
                     Upload additional videos to extend your sequence
                   </p>
                 </div>

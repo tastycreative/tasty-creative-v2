@@ -267,7 +267,7 @@ const VoiceNoteCard = ({ voiceText, model, audioNo }: VoiceNoteCardProps) => {
   return (
     <div className="flex flex-col gap-3">
       {/* Header */}
-      <h1 className="text-white text-large font-bold">Voice Note Card</h1>
+      <h1 className="text-gray-700 text-large font-bold">Voice Note Card</h1>
 
       {/* Preview Card - Fixed 300px x 300px */}
       <div
@@ -317,8 +317,8 @@ const VoiceNoteCard = ({ voiceText, model, audioNo }: VoiceNoteCardProps) => {
         }}
         disabled={isDownloading}
         className="
-          bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg py-1
-          disabled:opacity-50 disabled:cursor-not-allowed max-w-[300px]
+          bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg py-1
+          disabled:opacity-50 disabled:cursor-not-allowed max-w-[300px] hover:from-pink-700 hover:to-rose-700 shadow-md hover:shadow-pink-500/20 transform hover:-translate-y-0.5 transition-all duration-200
         "
         type="button"
         aria-label="Download voice note card as image"

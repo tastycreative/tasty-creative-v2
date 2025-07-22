@@ -9,7 +9,7 @@ export default function ModelForumPage() {
   modelName = modelName.charAt(0).toUpperCase() + modelName.slice(1);
 
   return (
-    <div className="p-6">
+    <div className="p-6 bg-white/50">
       <ModelForumTab modelName={modelName} />
     </div>
   );

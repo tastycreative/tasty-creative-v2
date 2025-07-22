@@ -17,7 +17,7 @@ function ModelImage({ model }: { model: ModelDetails }) {
 
   if (imageError || !model.id) {
     return (
-      <div className="w-16 h-16 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+      <div className="w-16 h-16 rounded-full bg-gradient-to-r from-pink-400 to-rose-500 flex items-center justify-center">
         <span className="text-white text-2xl font-bold">
           {model.name.charAt(0).toUpperCase()}
         </span>
@@ -30,7 +30,7 @@ function ModelImage({ model }: { model: ModelDetails }) {
         className="relative group cursor-pointer"
         onClick={() => setShowFullscreen(true)}
       >
-        <div className="w-16 h-16 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 p-0.5 flex items-center justify-center">
+        <div className="w-16 h-16 rounded-full bg-gradient-to-r from-pink-400 to-rose-500 p-0.5 flex items-center justify-center">
           <img
             src={`/api/image-proxy?id=${model.id}`}
             alt={model.name}
@@ -53,7 +53,7 @@ function ModelImage({ model }: { model: ModelDetails }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setShowFullscreen(false)}
-            className="fixed top-0 left-0 w-screen h-screen bg-black z-[9999] flex items-center justify-center"
+            className="fixed top-0 left-0 w-screen h-screen bg-white/95 backdrop-blur-sm z-[9999] flex items-center justify-center"
             style={{
               position: "fixed",
               top: 0,
@@ -69,9 +69,9 @@ function ModelImage({ model }: { model: ModelDetails }) {
             {/* Close button */}
             <button
               onClick={() => setShowFullscreen(false)}
-              className="absolute top-6 right-6 p-3 bg-black/70 hover:bg-black/90 rounded-full transition-colors z-10"
+              className="absolute top-6 right-6 p-3 bg-white/80 hover:bg-white/90 rounded-full transition-colors z-10 border border-pink-200"
             >
-              <X className="w-6 h-6 text-white" />
+              <X className="w-6 h-6 text-gray-700" />
             </button>
 
             {/* Image */}
@@ -115,7 +115,7 @@ export default function ModelDetailsModal({
             //animate={{ opacity: 1 }}
             //exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50"
           />
 
           {/* Modal */}
@@ -123,27 +123,27 @@ export default function ModelDetailsModal({
             //initial={{ opacity: 0, scale: 0.9, y: 20 }}
             //animate={{ opacity: 1, scale: 1, y: 0 }}
             //exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="fixed inset-4 lg:inset-10 bg-gray-900/95 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl z-50 overflow-hidden flex flex-col"
+            className="fixed inset-4 lg:inset-10 bg-white/95 backdrop-blur-xl rounded-2xl border border-pink-200 shadow-2xl z-50 overflow-hidden flex flex-col"
           >
             {/* Header */}
-            <div className="p-6 border-b border-white/10 bg-white/5">
+            <div className="p-6 border-b border-pink-100 bg-gradient-to-r from-pink-50/50 to-rose-50/50">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <ModelImage model={model} />
                   <div>
-                    <h2 className="text-2xl font-bold text-white">
+                    <h2 className="text-2xl font-bold text-gray-900">
                       {model.name}
                     </h2>
-                    <p className="text-gray-400">{model.personalityType}</p>
+                    <p className="text-gray-600">{model.personalityType}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <button
                     onClick={onClose}
-                    className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                    className="p-2 hover:bg-pink-50 rounded-lg transition-colors"
                   >
-                    <X className="w-5 h-5 text-gray-400" />
+                    <X className="w-5 h-5 text-gray-600" />
                   </button>
                 </div>
               </div>

@@ -37,7 +37,7 @@ export function ForumControls({
         <div className="relative">
           <button
             onClick={onToggleModelDropdown}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100/80 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-800 dark:text-white hover:bg-gray-200/80 dark:hover:bg-white/10 transition-all"
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100/80 border border-gray-200 rounded-lg text-gray-800 hover:bg-gray-200/80 transition-all"
           >
             <span className="font-medium">
               {selectedModel === "All Forums"
@@ -50,16 +50,16 @@ export function ForumControls({
           </button>
 
           {showModelDropdown && (
-            <div className="absolute top-full left-0 mt-2 w-64 bg-gray-100/95 dark:bg-gray-800/95 border border-gray-200 dark:border-white/20 rounded-lg shadow-xl z-50 max-h-64 overflow-y-auto backdrop-blur-sm">
+            <div className="absolute top-full left-0 mt-2 w-64 bg-gray-100/95 border border-gray-200 rounded-lg shadow-xl z-50 max-h-64 overflow-y-auto backdrop-blur-sm">
               {/* All Forums Option */}
               <button
                 onClick={() => {
                   onModelChange("All Forums");
                   onToggleModelDropdown();
                 }}
-                className={`w-full text-left px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200/80 dark:hover:bg-white/10 transition-colors first:rounded-t-lg ${
+                className={`w-full text-left px-4 py-2 text-gray-900 hover:bg-pink-50 transition-colors first:rounded-t-lg ${
                   selectedModel === "All Forums"
-                    ? "bg-purple-500/20 text-purple-600 dark:text-purple-400"
+                    ? "bg-pink-100 text-pink-700"
                     : ""
                 }`}
               >
@@ -73,9 +73,9 @@ export function ForumControls({
                     onModelChange(model.name);
                     onToggleModelDropdown();
                   }}
-                  className={`w-full text-left px-4 py-2 text-gray-800 dark:text-white hover:bg-gray-200/80 dark:hover:bg-white/10 transition-colors last:rounded-b-lg ${
+                  className={`w-full text-left px-4 py-2 text-gray-900 hover:bg-pink-50 transition-colors last:rounded-b-lg ${
                     selectedModel === model.name
-                      ? "bg-purple-500/20 text-purple-600 dark:text-purple-400"
+                      ? "bg-pink-100 text-pink-700"
                       : ""
                   }`}
                 >
@@ -97,7 +97,7 @@ export function ForumControls({
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search posts..."
-          className="w-full pl-10 pr-4 py-2 bg-gray-100/80 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-800 dark:text-white placeholder-gray-400 focus:outline-none focus:border-purple-500"
+          className="w-full pl-10 pr-4 py-2 bg-gray-100/80 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:border-purple-500"
         />
       </div>
 

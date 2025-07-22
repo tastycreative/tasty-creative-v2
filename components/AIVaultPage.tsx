@@ -392,11 +392,11 @@ const AIVaultPage = () => {
   const getSourceIcon = (source: DatasetItem["source"]) => {
     switch (source) {
       case "generated":
-        return <Star size={12} className="text-purple-400" />;
+        return <Star size={12} className="text-pink-400" />;
       case "drive":
-        return <FolderOpen size={12} className="text-blue-400" />;
+        return <FolderOpen size={12} className="text-pink-400" />;
       case "imported":
-        return <FileImage size={12} className="text-green-400" />;
+        return <FileImage size={12} className="text-pink-400" />;
       default:
         return <FileImage size={12} className="text-gray-400" />;
     }
@@ -489,7 +489,7 @@ const AIVaultPage = () => {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-purple-400 mx-auto mb-4" />
+          <Loader2 className="w-8 h-8 animate-spin text-pink-400 mx-auto mb-4" />
           <p className="text-gray-400">Loading your vault...</p>
         </div>
       </div>
@@ -499,10 +499,10 @@ const AIVaultPage = () => {
   return (
     <div className="space-y-6">
       {/* Header Card */}
-      <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+      <Card className="bg-white/90 backdrop-blur-md border-pink-200 rounded-xl">
         <CardHeader>
           <CardTitle className="text-white flex items-center">
-            <Archive className="w-6 h-6 mr-3 text-emerald-400" />
+            <Archive className="w-6 h-6 mr-3 text-pink-400" />
             AI Vault Management
           </CardTitle>
           <CardDescription className="text-gray-400">
@@ -512,25 +512,25 @@ const AIVaultPage = () => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-black/40 rounded-lg p-4 text-center">
-              <h3 className="text-2xl font-bold text-purple-400">
+            <div className="bg-pink-50/80 rounded-lg p-4 text-center">
+              <h3 className="text-2xl font-bold text-pink-400">
                 {datasetItems.length}
               </h3>
               <p className="text-gray-400 text-sm">Total Items</p>
             </div>
-            <div className="bg-black/40 rounded-lg p-4 text-center">
-              <h3 className="text-2xl font-bold text-blue-400">
+            <div className="bg-pink-50/80 rounded-lg p-4 text-center">
+              <h3 className="text-2xl font-bold text-pink-400">
                 {folders.length}
               </h3>
               <p className="text-gray-400 text-sm">Folders</p>
             </div>
-            <div className="bg-black/40 rounded-lg p-4 text-center">
-              <h3 className="text-2xl font-bold text-green-400">
+            <div className="bg-pink-50/80 rounded-lg p-4 text-center">
+              <h3 className="text-2xl font-bold text-pink-500">
                 {selectedItems.size}
               </h3>
               <p className="text-gray-400 text-sm">Selected</p>
             </div>
-            <div className="bg-black/40 rounded-lg p-4 text-center">
+            <div className="bg-pink-50/80 rounded-lg p-4 text-center">
               <h3 className="text-2xl font-bold text-amber-400">
                 {getAllCategories().length}
               </h3>
@@ -541,16 +541,16 @@ const AIVaultPage = () => {
       </Card>
 
       {/* Main Vault Interface */}
-      <Card className="bg-black/30 backdrop-blur-md border-white/10 rounded-xl">
+      <Card className="bg-white/90 backdrop-blur-md border-pink-200 rounded-xl">
         <CardContent className="p-0">
           <div className="h-[80vh] flex overflow-hidden">
             {/* Sidebar */}
             {showSidebar && (
-              <div className="w-64 bg-black/50 border-r border-white/10 flex flex-col">
+              <div className="w-64 bg-pink-50/60 border-r border-pink-200 flex flex-col">
                 {/* Sidebar Header */}
-                <div className="p-4 border-b border-white/10">
-                  <h3 className="text-white font-semibold flex items-center">
-                    <Archive size={18} className="mr-2 text-purple-400" />
+                <div className="p-4 border-b border-pink-200">
+                  <h3 className="text-gray-800 font-semibold flex items-center">
+                    <Archive size={18} className="mr-2 text-pink-400" />
                     Vault Explorer
                   </h3>
                   <p className="text-xs text-gray-400 mt-1">
@@ -562,7 +562,7 @@ const AIVaultPage = () => {
                 <div className="p-3 border-b border-white/10">
                   <Button
                     onClick={() => setShowCreateFolder(true)}
-                    className="w-full bg-purple-600 hover:bg-purple-700 text-white text-sm"
+                    className="w-full bg-pink-600 hover:bg-pink-700 text-white text-sm"
                     size="sm"
                   >
                     <FolderPlus size={14} className="mr-2" />
@@ -578,11 +578,11 @@ const AIVaultPage = () => {
                       onClick={navigateToRoot}
                       className={`w-full text-left p-2 rounded flex items-center text-sm transition-colors ${
                         currentFolderId === null
-                          ? "bg-purple-600/30 text-purple-200"
+                          ? "bg-pink-600/30 text-pink-200"
                           : "text-gray-300 hover:bg-white/5"
                       }`}
                     >
-                      <Home size={14} className="mr-2 text-blue-400" />
+                      <Home size={14} className="mr-2 text-pink-400" />
                       Root
                       <span className="ml-auto text-xs text-gray-500">
                         {datasetItems.filter((item) => !item.folderId).length}
@@ -622,7 +622,7 @@ const AIVaultPage = () => {
                           }}
                           className={`w-full text-left p-2 rounded flex items-center text-sm transition-colors ${
                             currentFolderId === folder.id
-                              ? "bg-purple-600/30 text-purple-200"
+                              ? "bg-pink-600/30 text-pink-200"
                               : "text-gray-300 hover:bg-white/5"
                           }`}
                         >
@@ -674,7 +674,7 @@ const AIVaultPage = () => {
             {/* Main Content */}
             <div className="flex-1 flex flex-col min-w-0">
               {/* Toolbar */}
-              <div className="bg-black/40 border-b border-white/10 p-3">
+              <div className="bg-pink-50/60 border-b border-pink-200 p-3">
                 <div className="flex items-center space-x-3">
                   {/* Sidebar Toggle */}
                   <Button
@@ -701,7 +701,7 @@ const AIVaultPage = () => {
 
                     <button
                       onClick={navigateToRoot}
-                      className="flex items-center space-x-1 text-gray-300 hover:text-white transition-colors bg-black/40 rounded px-2 py-1"
+                      className="flex items-center space-x-1 text-gray-600 hover:text-gray-800 transition-colors bg-pink-50/60 rounded px-2 py-1"
                     >
                       <Home size={14} />
                       <span className="text-sm">Vault</span>
@@ -712,7 +712,7 @@ const AIVaultPage = () => {
                         <ChevronRight size={12} className="text-gray-500" />
                         <button
                           onClick={() => navigateToBreadcrumb(index)}
-                          className="text-gray-300 hover:text-white transition-colors bg-black/40 rounded px-2 py-1 text-sm"
+                          className="text-gray-600 hover:text-gray-800 transition-colors bg-pink-50/60 rounded px-2 py-1 text-sm"
                         >
                           {folder.name}
                         </button>
@@ -722,7 +722,7 @@ const AIVaultPage = () => {
                     {currentFolderId && (
                       <>
                         <ChevronRight size={12} className="text-gray-500" />
-                        <div className="text-white bg-purple-600/30 rounded px-2 py-1 text-sm">
+                        <div className="text-white bg-pink-600/30 rounded px-2 py-1 text-sm">
                           {currentFolderName}
                         </div>
                       </>
@@ -743,7 +743,7 @@ const AIVaultPage = () => {
                         placeholder="Search..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="bg-black/60 border-white/10 text-white pl-8 w-48 h-8 text-sm"
+                        className="bg-white/90 border-pink-200 text-gray-800 pl-8 w-48 h-8 text-sm"
                       />
                     </div>
 
@@ -752,11 +752,11 @@ const AIVaultPage = () => {
                       value={selectedCategory}
                       onValueChange={setSelectedCategory}
                     >
-                      <SelectTrigger className="w-28 bg-black/60 border-white/10 text-white h-8 text-sm">
+                      <SelectTrigger className="w-28 bg-white/90 border-pink-200 text-gray-800 h-8 text-sm">
                         <Filter size={14} className="mr-1" />
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-black/90 border-white/10 text-white">
+                      <SelectContent className="bg-white/95 border-pink-200 text-gray-800">
                         <SelectItem value="all">All</SelectItem>
                         {getAllCategories().map((category) => (
                           <SelectItem key={category} value={category}>
@@ -771,11 +771,11 @@ const AIVaultPage = () => {
                       value={sortBy}
                       onValueChange={(value: any) => setSortBy(value)}
                     >
-                      <SelectTrigger className="w-28 bg-black/60 border-white/10 text-white h-8 text-sm">
+                      <SelectTrigger className="w-28 bg-white/90 border-pink-200 text-gray-800 h-8 text-sm">
                         <ArrowUpDown size={14} className="mr-1" />
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-black/90 border-white/10 text-white">
+                      <SelectContent className="bg-white/95 border-pink-200 text-gray-800">
                         <SelectItem value="date">Date</SelectItem>
                         <SelectItem value="name">Name</SelectItem>
                         <SelectItem value="category">Category</SelectItem>
@@ -821,7 +821,7 @@ const AIVaultPage = () => {
                       onClick={() => setShowPreview(!showPreview)}
                       className={`h-8 w-8 p-0 ${
                         showPreview
-                          ? "text-purple-400"
+                          ? "text-pink-400"
                           : "text-gray-400 hover:text-white"
                       }`}
                     >
@@ -832,8 +832,8 @@ const AIVaultPage = () => {
 
                 {/* Selection Bar */}
                 {selectedItems.size > 0 && (
-                  <div className="mt-3 flex items-center justify-between bg-purple-900/20 border border-purple-500/30 rounded-lg p-2">
-                    <span className="text-purple-300 text-sm font-medium">
+                  <div className="mt-3 flex items-center justify-between bg-pink-900/20 border border-pink-500/30 rounded-lg p-2">
+                    <span className="text-pink-300 text-sm font-medium">
                       {selectedItems.size} item
                       {selectedItems.size > 1 ? "s" : ""} selected
                     </span>
@@ -847,11 +847,11 @@ const AIVaultPage = () => {
                           )
                         }
                       >
-                        <SelectTrigger className="w-32 bg-blue-900/30 border-blue-500/30 text-blue-300 h-8 text-sm">
+                        <SelectTrigger className="w-32 bg-pink-900/30 border-pink-500/30 text-pink-300 h-8 text-sm">
                           <Move size={12} className="mr-1" />
                           <span>Move</span>
                         </SelectTrigger>
-                        <SelectContent className="bg-black/90 border-white/10 text-white">
+                        <SelectContent className="bg-white/95 border-pink-200 text-gray-800">
                           <SelectItem value="root">
                             <div className="flex items-center">
                               <Home size={14} className="mr-2" />
@@ -876,7 +876,7 @@ const AIVaultPage = () => {
                       <Button
                         size="sm"
                         onClick={downloadSelected}
-                        className="bg-green-600 hover:bg-green-700 text-white h-8 text-sm"
+                        className="bg-pink-600 hover:bg-pink-700 text-white h-8 text-sm"
                       >
                         <Download size={12} className="mr-1" />
                         Download
@@ -887,7 +887,7 @@ const AIVaultPage = () => {
                         onClick={() =>
                           removeFromVault(Array.from(selectedItems))
                         }
-                        className="bg-red-600 hover:bg-red-700 text-white h-8 text-sm"
+                        className="bg-rose-600 hover:bg-rose-700 text-white h-8 text-sm"
                       >
                         <Trash size={12} className="mr-1" />
                         Delete
@@ -923,7 +923,7 @@ const AIVaultPage = () => {
                       {currentSubfolders.map((folder) => (
                         <div
                           key={folder.id}
-                          className={`group relative bg-black/30 rounded-lg overflow-hidden border border-white/10 hover:border-blue-400/50 transition-all cursor-pointer ${
+                          className={`group relative bg-white/80 rounded-lg overflow-hidden border border-pink-200 hover:border-pink-400/50 transition-all cursor-pointer ${
                             viewMode === "list"
                               ? "flex items-center space-x-3 p-3"
                               : ""
@@ -991,9 +991,9 @@ const AIVaultPage = () => {
                       {filteredAndSortedItems.map((item) => (
                         <div
                           key={item.id}
-                          className={`group relative bg-black/30 rounded-lg overflow-hidden border border-white/10 hover:border-purple-400/50 transition-all ${
+                          className={`group relative bg-white/80 rounded-lg overflow-hidden border border-pink-200 hover:border-pink-400/50 transition-all ${
                             selectedItems.has(item.id)
-                              ? "ring-1 ring-purple-400 shadow-lg shadow-purple-400/20"
+                              ? "ring-1 ring-pink-400 shadow-lg shadow-pink-400/20"
                               : ""
                           } ${
                             viewMode === "list"
@@ -1022,7 +1022,7 @@ const AIVaultPage = () => {
                               <button
                                 className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${
                                   selectedItems.has(item.id)
-                                    ? "bg-purple-600 border-purple-600 shadow-lg"
+                                    ? "bg-pink-600 border-pink-600 shadow-lg"
                                     : "bg-black/70 border-white/40 hover:border-white/80"
                                 }`}
                                 onClick={(e) => handleItemSelection(item.id, e)}
@@ -1124,7 +1124,7 @@ const AIVaultPage = () => {
                                 {item.tags.slice(0, 2).map((tag) => (
                                   <span
                                     key={tag}
-                                    className="inline-flex items-center rounded border border-purple-500/30 bg-purple-900/20 px-1 py-0.5 text-xs font-semibold text-purple-300"
+                                    className="inline-flex items-center rounded border border-pink-500/30 bg-pink-900/20 px-1 py-0.5 text-xs font-semibold text-pink-300"
                                   >
                                     {tag}
                                   </span>
@@ -1159,10 +1159,10 @@ const AIVaultPage = () => {
 
                 {/* Preview Panel */}
                 {showPreview && previewItem && (
-                  <div className="w-80 bg-black/50 border-l border-white/10 p-4 overflow-y-auto">
+                  <div className="w-80 bg-pink-50/60 border-l border-pink-200 p-4 overflow-y-auto">
                     <div className="space-y-4">
                       {/* Preview Image */}
-                      <div className="aspect-square rounded-lg overflow-hidden bg-black/40">
+                      <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
                         <img
                           src={previewItem.imageUrl}
                           alt={previewItem.filename}
@@ -1218,7 +1218,7 @@ const AIVaultPage = () => {
                               {previewItem.tags.map((tag) => (
                                 <span
                                   key={tag}
-                                  className="inline-flex items-center rounded border border-purple-500/30 bg-purple-900/20 px-2 py-1 text-xs font-semibold text-purple-300"
+                                  className="inline-flex items-center rounded border border-pink-500/30 bg-pink-900/20 px-2 py-1 text-xs font-semibold text-pink-300"
                                 >
                                   {tag}
                                 </span>
@@ -1244,7 +1244,7 @@ const AIVaultPage = () => {
                             window.open(previewItem.imageUrl, "_blank")
                           }
                           variant="outline"
-                          className="w-full bg-black/60 border-white/10 text-white"
+                          className="w-full bg-white/90 border-pink-200 text-gray-800"
                           size="sm"
                         >
                           <Eye size={14} className="mr-2" />
@@ -1260,7 +1260,7 @@ const AIVaultPage = () => {
                               )
                             }
                             variant="outline"
-                            className="w-full bg-black/60 border-white/10 text-white"
+                            className="w-full bg-white/90 border-pink-200 text-gray-800"
                             size="sm"
                           >
                             <ExternalLink size={14} className="mr-2" />
@@ -1280,8 +1280,8 @@ const AIVaultPage = () => {
       {/* Create Folder Dialog */}
       {showCreateFolder && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-black/90 backdrop-blur-md border border-white/10 rounded-xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-white text-lg font-semibold mb-4">
+          <div className="bg-white/95 backdrop-blur-md border border-pink-200 rounded-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-gray-800 text-lg font-semibold mb-4">
               Create New Folder
             </h3>
 
@@ -1298,7 +1298,7 @@ const AIVaultPage = () => {
                   placeholder="Enter folder name..."
                   value={newFolderName}
                   onChange={(e) => setNewFolderName(e.target.value)}
-                  className="bg-black/60 border-white/10 text-white"
+                  className="bg-white/90 border-pink-200 text-gray-800"
                   autoFocus
                 />
               </div>
@@ -1315,7 +1315,7 @@ const AIVaultPage = () => {
                   placeholder="Folder description..."
                   value={newFolderDescription}
                   onChange={(e) => setNewFolderDescription(e.target.value)}
-                  className="bg-black/60 border-white/10 text-white"
+                  className="bg-white/90 border-pink-200 text-gray-800"
                   rows={2}
                 />
               </div>

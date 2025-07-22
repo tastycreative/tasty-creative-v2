@@ -152,18 +152,18 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white/90 backdrop-blur-sm border border-pink-200 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-6 border-b border-pink-200">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
-              <Film className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <div className="p-2 bg-pink-100 rounded-lg">
+              <Film className="w-5 h-5 text-pink-600" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              <h2 className="text-xl font-semibold text-gray-700">
                 Export Video
               </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-gray-600">
                 Configure your export settings for{" "}
                 {settings.format.toUpperCase()}
               </p>
@@ -171,7 +171,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            className="p-2 hover:bg-pink-50 rounded-lg transition-colors"
           >
             <X className="w-5 h-5 text-gray-500" />
           </button>
@@ -179,24 +179,24 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
         <div className="p-6 space-y-6">
           {/* Video Info */}
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-            <h3 className="font-medium text-gray-900 dark:text-white mb-2">
+          <div className="bg-pink-50 border border-pink-100 rounded-lg p-4">
+            <h3 className="font-medium text-gray-700 mb-2">
               Source Videos
             </h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-gray-500 dark:text-gray-400">
+                <span className="text-gray-600">
                   Videos:
                 </span>
-                <span className="ml-2 font-medium text-gray-900 dark:text-white">
+                <span className="ml-2 font-medium text-gray-700">
                   {videos.length}
                 </span>
               </div>
               <div>
-                <span className="text-gray-500 dark:text-gray-400">
+                <span className="text-gray-600">
                   Duration:
                 </span>
-                <span className="ml-2 font-medium text-gray-900 dark:text-white">
+                <span className="ml-2 font-medium text-gray-700">
                   {formatTime(totalDuration)}
                 </span>
               </div>
@@ -207,14 +207,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           <div className="space-y-4">
             <div className="flex items-center space-x-2 mb-4">
               <Settings className="w-4 h-4 text-gray-500" />
-              <h3 className="font-medium text-gray-900 dark:text-white">
+              <h3 className="font-medium text-gray-700">
                 Export Settings
               </h3>
             </div>
 
             {/* Format Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Export Format
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -222,8 +222,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   onClick={() => updateSetting("format", "gif")}
                   className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
                     settings.format === "gif"
-                      ? "bg-green-50 dark:bg-green-900/20 border-green-300 dark:border-green-600 text-green-700 dark:text-green-300"
-                      : "border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                      ? "bg-pink-50 border-pink-300 text-pink-700"
+                      : "border-gray-300 hover:bg-gray-50"
                   }`}
                 >
                   GIF
@@ -232,8 +232,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   onClick={() => updateSetting("format", "mp4")}
                   className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
                     settings.format === "mp4"
-                      ? "bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-600 text-blue-700 dark:text-blue-300"
-                      : "border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                      ? "bg-rose-50 border-rose-300 text-rose-700"
+                      : "border-gray-300 hover:bg-gray-50"
                   }`}
                 >
                   MP4
@@ -242,14 +242,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   onClick={() => updateSetting("format", "webm")}
                   className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
                     settings.format === "webm"
-                      ? "bg-purple-50 dark:bg-purple-900/20 border-purple-300 dark:border-purple-600 text-purple-700 dark:text-purple-300"
-                      : "border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                      ? "bg-pink-50 border-pink-300 text-pink-700"
+                      : "border-gray-300 hover:bg-gray-50"
                   }`}
                 >
                   WebM
                 </button>
               </div>
-              <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              <div className="mt-2 text-xs text-gray-600">
                 {settings.format === "gif" &&
                   "GIF - Best for short animations and loops"}
                 {settings.format === "mp4" &&
@@ -258,7 +258,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   "WebM - Efficient compression for web use"}
               </div>
               {settings.format !== "gif" && (
-                <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-xs text-blue-700 dark:text-blue-300">
+                <div className="mt-2 p-2 bg-pink-50 rounded text-xs text-pink-700">
                   <strong>Performance Tips:</strong> MP4/WebM export uses FFmpeg
                   encoding.
                   <br />• Lower resolution = faster export
@@ -274,7 +274,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             {/* Dimensions */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Width (px)
                 </label>
                 <input
@@ -286,11 +286,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   min="100"
                   max="1920"
                   step="10"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-pink-200 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Height (px)
                 </label>
                 <input
@@ -302,14 +302,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   min="100"
                   max="1080"
                   step="10"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-pink-200 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                 />
               </div>
             </div>
 
             {/* FPS */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Frame Rate (FPS): {settings.fps}
               </label>
               <input
@@ -330,7 +330,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
             {/* Quality */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Quality: {settings.quality}%
               </label>
               <input
@@ -354,7 +354,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             {/* Time Range */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Start Time
                 </label>
                 <input
@@ -369,11 +369,11 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   min="0"
                   max={totalDuration}
                   step="0.1"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-pink-200 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   End Time
                 </label>
                 <input
@@ -388,7 +388,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   min={settings.startTime}
                   max={totalDuration}
                   step="0.1"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-pink-200 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -396,7 +396,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
           {/* Preset Buttons */}
           <div className="space-y-2">
-            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <h4 className="text-sm font-medium text-gray-700">
               Quality Presets
             </h4>
             <div className="grid grid-cols-4 gap-2">
@@ -410,7 +410,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     quality: 50,
                   }))
                 }
-                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                className="px-3 py-2 text-sm border border-pink-200 rounded-lg hover:bg-pink-50 transition-colors"
               >
                 Small
               </button>
@@ -424,7 +424,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     quality: 70,
                   }))
                 }
-                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                className="px-3 py-2 text-sm border border-pink-200 rounded-lg hover:bg-pink-50 transition-colors"
               >
                 Medium
               </button>
@@ -438,7 +438,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     quality: 85,
                   }))
                 }
-                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                className="px-3 py-2 text-sm border border-pink-200 rounded-lg hover:bg-pink-50 transition-colors"
               >
                 Large
               </button>
@@ -453,7 +453,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                       quality: 60,
                     }))
                   }
-                  className="px-3 py-2 text-sm border border-orange-300 dark:border-orange-600 bg-orange-50 dark:bg-orange-900/20 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-colors text-orange-700 dark:text-orange-300"
+                  className="px-3 py-2 text-sm border border-rose-300 bg-rose-50 rounded-lg hover:bg-rose-100 transition-colors text-rose-700"
                 >
                   Fast
                 </button>
@@ -462,42 +462,42 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           </div>
 
           {/* Export Info */}
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-            <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+          <div className="bg-pink-50 rounded-lg p-4">
+            <h4 className="font-medium text-gray-700 mb-2">
               Export Information
             </h4>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-blue-700 dark:text-blue-300">
+                <span className="text-pink-700">
                   Duration:
                 </span>
-                <span className="ml-2 font-medium text-blue-900 dark:text-blue-100">
+                <span className="ml-2 font-medium text-gray-700">
                   {formatTime(settings.endTime - settings.startTime)}
                 </span>
               </div>
               <div>
-                <span className="text-blue-700 dark:text-blue-300">
+                <span className="text-pink-700">
                   Est. Size:
                 </span>
-                <span className="ml-2 font-medium text-blue-900 dark:text-blue-100">
+                <span className="ml-2 font-medium text-gray-700">
                   ~{estimatedFileSize()} MB
                 </span>
               </div>
               <div>
-                <span className="text-blue-700 dark:text-blue-300">
+                <span className="text-pink-700">
                   Frames:
                 </span>
-                <span className="ml-2 font-medium text-blue-900 dark:text-blue-100">
+                <span className="ml-2 font-medium text-gray-700">
                   {Math.ceil(
                     (settings.endTime - settings.startTime) * settings.fps
                   )}
                 </span>
               </div>
               <div>
-                <span className="text-blue-700 dark:text-blue-300">
+                <span className="text-pink-700">
                   Resolution:
                 </span>
-                <span className="ml-2 font-medium text-blue-900 dark:text-blue-100">
+                <span className="ml-2 font-medium text-gray-700">
                   {settings.width}×{settings.height}
                 </span>
               </div>
@@ -514,30 +514,30 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 
               if (hasSpeedEffects || hasBlurEffects || hasSelectiveBlur) {
                 return (
-                  <div className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-700">
-                    <h5 className="text-xs font-medium text-blue-800 dark:text-blue-200 mb-1">
+                  <div className="mt-3 pt-3 border-t border-pink-200">
+                    <h5 className="text-xs font-medium text-pink-700 mb-1">
                       Effects Applied:
                     </h5>
                     <div className="flex flex-wrap gap-1">
                       {hasSpeedEffects && (
-                        <span className="inline-flex items-center px-2 py-1 text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 rounded">
+                        <span className="inline-flex items-center px-2 py-1 text-xs bg-pink-100 text-pink-700 rounded">
                           Speed Control
                         </span>
                       )}
                       {hasBlurEffects && (
-                        <span className="inline-flex items-center px-2 py-1 text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 rounded">
+                        <span className="inline-flex items-center px-2 py-1 text-xs bg-pink-100 text-pink-700 rounded">
                           Global Blur
                         </span>
                       )}
                       {hasSelectiveBlur && (
-                        <span className="inline-flex items-center px-2 py-1 text-xs bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 rounded">
+                        <span className="inline-flex items-center px-2 py-1 text-xs bg-pink-100 text-pink-700 rounded">
                           Selective Blur
                         </span>
                       )}
                     </div>
                     {hasSelectiveBlur && settings.format !== "gif" && (
-                      <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded text-xs">
-                        <p className="text-amber-800 dark:text-amber-200">
+                      <div className="mt-2 p-2 bg-pink-50 border border-pink-200 rounded text-xs">
+                        <p className="text-pink-700">
                           <strong>Note:</strong> Selective blur uses
                           canvas-based processing for MP4/WebM exports, which
                           may take longer than regular exports.
@@ -556,29 +556,29 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             <div
               className={`rounded-lg p-4 ${
                 settings.format === "gif"
-                  ? "bg-green-50 dark:bg-green-900/20"
+                  ? "bg-pink-50"
                   : settings.format === "mp4"
-                    ? "bg-blue-50 dark:bg-blue-900/20"
-                    : "bg-purple-50 dark:bg-purple-900/20"
+                    ? "bg-pink-50"
+                    : "bg-pink-50"
               }`}
             >
               <div className="flex items-center space-x-3 mb-2">
                 <Loader2
                   className={`w-5 h-5 animate-spin ${
                     settings.format === "gif"
-                      ? "text-green-600 dark:text-green-400"
+                      ? "text-pink-600"
                       : settings.format === "mp4"
-                        ? "text-blue-600 dark:text-blue-400"
-                        : "text-purple-600 dark:text-purple-400"
+                        ? "text-rose-600"
+                        : "text-pink-600"
                   }`}
                 />
                 <span
                   className={`font-medium ${
                     settings.format === "gif"
-                      ? "text-green-900 dark:text-green-100"
+                      ? "text-pink-700"
                       : settings.format === "mp4"
-                        ? "text-blue-900 dark:text-blue-100"
-                        : "text-purple-900 dark:text-purple-100"
+                        ? "text-gray-700"
+                        : "text-pink-700"
                   }`}
                 >
                   Exporting {settings.format.toUpperCase()}...
@@ -587,19 +587,19 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               <div
                 className={`w-full rounded-full h-2 ${
                   settings.format === "gif"
-                    ? "bg-green-200 dark:bg-green-800"
+                    ? "bg-pink-200"
                     : settings.format === "mp4"
-                      ? "bg-blue-200 dark:bg-blue-800"
-                      : "bg-purple-200 dark:bg-purple-800"
+                      ? "bg-rose-200"
+                      : "bg-pink-200"
                 }`}
               >
                 <div
                   className={`h-2 rounded-full transition-all duration-300 ${
                     settings.format === "gif"
-                      ? "bg-green-600 dark:bg-green-400"
+                      ? "bg-pink-600"
                       : settings.format === "mp4"
-                        ? "bg-blue-600 dark:bg-blue-400"
-                        : "bg-purple-600 dark:bg-purple-400"
+                        ? "bg-rose-600"
+                        : "bg-pink-600"
                   }`}
                   style={{ width: `${exportProgress}%` }}
                 />
@@ -607,10 +607,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               <p
                 className={`text-sm mt-2 ${
                   settings.format === "gif"
-                    ? "text-green-700 dark:text-green-300"
+                    ? "text-pink-700"
                     : settings.format === "mp4"
-                      ? "text-blue-700 dark:text-blue-300"
-                      : "text-purple-700 dark:text-purple-300"
+                      ? "text-pink-700"
+                      : "text-pink-700"
                 }`}
               >
                 {settings.format === "gif" &&
@@ -639,8 +639,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700">
-          <div className="text-sm text-gray-500 dark:text-gray-400">
+        <div className="flex items-center justify-between p-6 border-t border-pink-200">
+          <div className="text-sm text-gray-600">
             {videos.length} video{videos.length !== 1 ? "s" : ""} •{" "}
             {formatTime(totalDuration)} total
           </div>
@@ -648,14 +648,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             <button
               onClick={onClose}
               disabled={isExporting}
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Cancel
             </button>
             <button
               onClick={handleExport}
               disabled={isExporting || videos.length === 0}
-              className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+              className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 shadow-md hover:shadow-pink-500/20 transform hover:-translate-y-0.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
             >
               {isExporting ? (
                 <Loader2 className="w-4 h-4 animate-spin" />

@@ -208,7 +208,7 @@ export default function VideoFrameCropper({
               <input
                 type="checkbox"
                 id={`custom`}
-                className="accent-purple-600 cursor-pointer"
+                className="accent-pink-600 cursor-pointer"
                 checked={itemType === "custom"}
                 onChange={(e) => {
                   if (e.target.checked) {
@@ -226,7 +226,7 @@ export default function VideoFrameCropper({
               <input
                 type="checkbox"
                 id={`vault`}
-                className="accent-purple-600 cursor-pointer"
+                className="accent-pink-600 cursor-pointer"
                 checked={itemType === "vault"}
                 onChange={(e) => {
                   if (e.target.checked) {
@@ -245,7 +245,7 @@ export default function VideoFrameCropper({
         <div className="flex flex-col   w-full">
           {itemType === "custom" ? (
             <div className="w-full f">
-              <label className="px-4 w-full py-2 bg-black/60 text-white rounded-lg flex items-center justify-center gap-2 cursor-pointer">
+              <label className="px-4 w-full py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-colors">on
                 <input
                   type="file"
                   accept="image/*,image/heic,image/heif,video/*"
@@ -274,18 +274,18 @@ export default function VideoFrameCropper({
           ) : itemType === "vault" ? (
             <>
               <div className="mb-6">
-                <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-white/80 border border-pink-200 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <span
                       className={`font-medium ${
-                        !isPaid ? "text-blue-400" : "text-gray-400"
+                        !isPaid ? "text-pink-600" : "text-gray-500"
                       }`}
                     >
                       Free
                     </span>
                     <div
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out cursor-pointer ${
-                        isPaid ? "bg-blue-600" : "bg-gray-600"
+                        isPaid ? "bg-pink-600" : "bg-gray-400"
                       }`}
                       onClick={() => handleToggleChange(!isPaid)}
                     >
@@ -297,7 +297,7 @@ export default function VideoFrameCropper({
                     </div>
                     <span
                       className={`font-medium ${
-                        isPaid ? "text-blue-400" : "text-gray-400"
+                        isPaid ? "text-pink-600" : "text-gray-500"
                       }`}
                     >
                       Paid
@@ -310,7 +310,7 @@ export default function VideoFrameCropper({
                 disabled={!model}
                 onClick={handleVaultSelect}
                 className={cn(
-                  "px-4 w-full py-2 bg-black/60 text-white rounded-lg flex items-center justify-center gap-2"
+                  "px-4 w-full py-2 bg-gray-400 disabled:bg-gray-300 disabled:text-gray-500 text-white rounded-lg flex items-center justify-center gap-2 transition-colors"
                   // { "border border-red-500 text-red-500": error }
                 )}
               >
@@ -360,7 +360,7 @@ export default function VideoFrameCropper({
                 onClick={() => setUseFrame(true)}
                 className={`px-4 py-2 rounded font-medium transition ${
                   useFrame
-                    ? "bg-blue-600 text-white"
+                    ? "bg-pink-600 text-white"
                     : "bg-gray-200 text-gray-800"
                 }`}
               >
@@ -370,7 +370,7 @@ export default function VideoFrameCropper({
                 onClick={() => setUseFrame(false)}
                 className={`px-4 py-2 rounded font-medium transition ${
                   !useFrame
-                    ? "bg-blue-600 text-white"
+                    ? "bg-pink-600 text-white"
                     : "bg-gray-200 text-gray-800"
                 }`}
               >
@@ -381,7 +381,7 @@ export default function VideoFrameCropper({
           <button
             onClick={captureFrame}
             className={cn(
-              "bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 shadow-md hover:shadow-black/60 transition-all duration-300 hover:-translate-y-0.5 mx-auto",
+              "bg-gradient-to-r from-pink-600 to-rose-600 text-white px-6 py-3 rounded-lg font-medium flex items-center gap-2 shadow-md hover:shadow-pink-500/20 transition-all duration-300 hover:-translate-y-0.5 mx-auto",
               { hidden: !useFrame }
             )}
           >
@@ -413,7 +413,7 @@ export default function VideoFrameCropper({
 
       {capturedFrame && (useFrame || itemType) && (
         <div className="flex flex-col w-full items-center gap-4">
-          <p className="text-xs text-gray-300">
+          <p className="text-xs text-gray-600">
             Crop area will maintain a 1:2 (500x1000px)
           </p>
           <div className="flex flex-col md:flex-row gap-6 items-start">
@@ -440,7 +440,7 @@ export default function VideoFrameCropper({
             <button
               type="button"
               onClick={generateCroppedImage}
-              className={`px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-medium shadow-md hover:shadow-purple-200 transition-all duration-300 hover:-translate-y-0.5 flex items-center gap-2 ${
+              className={`px-6 py-3 bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-lg font-medium shadow-md hover:shadow-pink-500/20 transition-all duration-300 hover:-translate-y-0.5 flex items-center gap-2 ${
                 !completedCrop ? "opacity-50 cursor-not-allowed" : ""
               }`}
               disabled={!completedCrop}
@@ -473,11 +473,11 @@ export default function VideoFrameCropper({
               Apply Crop
             </button>
 
-            <div className="text-sm text-gray-500 bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">
+            <div className="text-sm text-gray-600 bg-pink-50 px-4 py-2 rounded-lg border border-pink-100">
               {imageSize.width > 0 && (
                 <div className="flex items-center gap-2">
                   <svg
-                    className="w-4 h-4 text-blue-500"
+                    className="w-4 h-4 text-pink-500"
                     viewBox="0 0 24 24"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"

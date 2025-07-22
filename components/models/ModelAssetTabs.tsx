@@ -87,7 +87,7 @@ export default function ModelAssetsTab({ modelName }: ModelAssetsTabProps) {
       label: "All Assets",
       icon: Image,
       count: allAssets.length,
-      gradient: "from-purple-500 to-pink-500",
+      gradient: "from-pink-500 to-rose-500",
     },
     {
       id: "live",
@@ -132,7 +132,7 @@ export default function ModelAssetsTab({ modelName }: ModelAssetsTabProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-pink-500 animate-spin" />
       </div>
     );
   }
@@ -159,26 +159,26 @@ export default function ModelAssetsTab({ modelName }: ModelAssetsTabProps) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="animate-in slide-in-from-left duration-500">
-          <h3 className="text-2xl font-semibold text-white flex items-center gap-2">
-            <div className="p-2 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl">
-              <Image className="w-5 h-5 text-purple-400" />
+          <h3 className="text-2xl font-semibold text-gray-900 flex items-center gap-2">
+            <div className="p-2 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-xl">
+              <Image className="w-5 h-5 text-pink-500" />
             </div>
             Model Assets
           </h3>
-          <p className="text-gray-400 text-sm mt-1">
+          <p className="text-gray-600 text-sm mt-1">
             Manage promotional materials and content
           </p>
         </div>
         
         <div className="flex items-center gap-3 animate-in slide-in-from-right duration-500">
           {/* View Mode Toggle */}
-          <div className="flex items-center gap-1 p-1 bg-slate-800/50 rounded-xl">
+          <div className="flex items-center gap-1 p-1 bg-white/80 rounded-xl">
             <button
               onClick={() => setViewMode("grid")}
               className={`p-2 rounded-lg transition-all ${
                 viewMode === "grid"
-                  ? "bg-purple-500 text-white shadow-lg shadow-purple-500/25"
-                  : "text-gray-400 hover:text-white"
+                  ? "bg-pink-500 text-white shadow-lg shadow-pink-500/25"
+                  : "text-gray-600 hover:text-gray-900"
               }`}
             >
               <Grid className="w-5 h-5" />
@@ -187,8 +187,8 @@ export default function ModelAssetsTab({ modelName }: ModelAssetsTabProps) {
               onClick={() => setViewMode("list")}
               className={`p-2 rounded-lg transition-all ${
                 viewMode === "list"
-                  ? "bg-purple-500 text-white shadow-lg shadow-purple-500/25"
-                  : "text-gray-400 hover:text-white"
+                  ? "bg-pink-500 text-white shadow-lg shadow-pink-500/25"
+                  : "text-gray-600 hover:text-gray-900"
               }`}
             >
               <List className="w-5 h-5" />
@@ -204,7 +204,7 @@ export default function ModelAssetsTab({ modelName }: ModelAssetsTabProps) {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                   onClick={() => setActiveTab("all")}
-                  className="px-4 py-2.5 bg-slate-800/50 hover:bg-slate-700/50 text-gray-300 rounded-xl font-medium transition-all flex items-center gap-2 border border-slate-700/50"
+                  className="px-4 py-2.5 bg-white/80 hover:bg-white/90 text-gray-600 rounded-xl font-medium transition-all flex items-center gap-2 border border-pink-200/50"
                 >
                   <ChevronLeft className="w-4 h-4" />
                   All Assets
@@ -226,7 +226,7 @@ export default function ModelAssetsTab({ modelName }: ModelAssetsTabProps) {
                     flex items-center gap-2 group overflow-hidden
                     ${activeTab === type 
                       ? `bg-gradient-to-r ${assetType.gradient} text-white shadow-lg` 
-                      : "bg-slate-800/50 hover:bg-slate-700/50 text-gray-300 border border-slate-700/50"
+                      : "bg-white/80 hover:bg-white/90 text-gray-600 border border-pink-200/50"
                     }
                   `}
                 >
@@ -270,18 +270,18 @@ export default function ModelAssetsTab({ modelName }: ModelAssetsTabProps) {
                   <div className={`
                     relative p-6 rounded-2xl border transition-all duration-300
                     ${isSelected
-                      ? "bg-slate-800/60 border-purple-500/50"
-                      : "bg-slate-800/40 border-slate-700/30 hover:border-slate-600/50"
+                      ? "bg-white/90 border-pink-500/50"
+                      : "bg-white/60 border-pink-200/30 hover:border-pink-300/50"
                     }
                   `}>
                     <div className={`
                       p-3 rounded-xl bg-gradient-to-br ${type.gradient} 
                       bg-opacity-20 mb-3 inline-block
                     `}>
-                      <Icon className="w-6 h-6 text-white" />
+                      <Icon className="w-6 h-6 text-gray-900" />
                     </div>
-                    <p className="font-medium text-gray-300">{type.label}</p>
-                    <p className="text-3xl font-bold text-white mt-1">{type.count}</p>
+                    <p className="font-medium text-gray-600">{type.label}</p>
+                    <p className="text-3xl font-bold text-gray-900 mt-1">{type.count}</p>
                   </div>
                 </motion.button>
               );
@@ -295,15 +295,15 @@ export default function ModelAssetsTab({ modelName }: ModelAssetsTabProps) {
               animate={{ opacity: 1, scale: 1 }}
               className="relative"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10 rounded-3xl blur-2xl" />
-              <div className="relative bg-slate-800/30 backdrop-blur-sm rounded-3xl border border-slate-700/30 p-16 text-center">
-                <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center">
-                  <Image className="w-10 h-10 text-purple-400" />
+              <div className="absolute inset-0 bg-gradient-to-r from-pink-500/10 to-rose-500/10 rounded-3xl blur-2xl" />
+              <div className="relative bg-white/60 backdrop-blur-sm rounded-3xl border border-pink-200/30 p-16 text-center">
+                <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-full flex items-center justify-center">
+                  <Image className="w-10 h-10 text-pink-500" />
                 </div>
-                <p className="text-gray-400 text-lg mb-6">
+                <p className="text-gray-600 text-lg mb-6">
                   No assets found for {selectedType === "all" ? "this model" : selectedType}
                 </p>
-                <button className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 text-white rounded-xl font-medium transition-all shadow-lg shadow-purple-500/25 inline-flex items-center gap-2">
+                <button className="px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 text-white rounded-xl font-medium transition-all shadow-lg shadow-pink-500/25 inline-flex items-center gap-2">
                   <Plus className="w-5 h-5" />
                   Upload First Asset
                 </button>
@@ -339,13 +339,13 @@ export default function ModelAssetsTab({ modelName }: ModelAssetsTabProps) {
                       
                       {/* Card */}
                       <div className={`
-                        relative bg-slate-800/40 backdrop-blur-sm rounded-2xl 
+                        relative bg-white/80 backdrop-blur-sm rounded-2xl 
                         border ${typeConfig.border} overflow-hidden 
                         hover:border-opacity-50 transition-all duration-300
                         group-hover:transform group-hover:scale-[1.02]
                       `}>
                         {/* Image */}
-                        <div className="aspect-square bg-slate-900/50 relative overflow-hidden">
+                        <div className="aspect-square bg-gray-100 relative overflow-hidden">
                           {typeof asset["Final Output"] === "object" && asset["Final Output"]?.formula ? (
                             <img
                               src={`/api/image-proxy?id=${extractDriveIdFromFormula(
@@ -396,7 +396,7 @@ export default function ModelAssetsTab({ modelName }: ModelAssetsTabProps) {
                         
                         {/* Info */}
                         <div className="p-4">
-                          <p className="text-gray-400 text-sm flex items-center gap-2">
+                          <p className="text-gray-600 text-sm flex items-center gap-2">
                             <Calendar className="w-4 h-4" />
                             {formatDate(asset.Date)}
                           </p>
@@ -435,12 +435,12 @@ export default function ModelAssetsTab({ modelName }: ModelAssetsTabProps) {
                       transition={{ delay: index * 0.05 }}
                       className="group relative"
                     >
-                      <div className="absolute inset-0 bg-gradient-to-r from-purple-600/5 to-pink-600/5 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-300" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 to-rose-500/5 rounded-xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-300" />
                       
-                      <div className="relative bg-slate-800/40 backdrop-blur-sm rounded-xl border border-slate-700/30 p-5 flex items-center justify-between hover:border-slate-600/50 transition-all duration-300">
+                      <div className="relative bg-white/80 backdrop-blur-sm rounded-xl border border-pink-200/30 p-5 flex items-center justify-between hover:border-pink-300/50 transition-all duration-300">
                         <div className="flex items-center gap-4">
                           {/* Thumbnail */}
-                          <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-slate-900/50 flex-shrink-0">
+                          <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                             {typeof asset["Final Output"] === "object" && asset["Final Output"]?.formula ? (
                               <img
                                 src={`/api/image-proxy?id=${extractDriveIdFromFormula(
@@ -460,10 +460,10 @@ export default function ModelAssetsTab({ modelName }: ModelAssetsTabProps) {
                           
                           {/* Info */}
                           <div className="min-w-0">
-                            <p className="text-white font-medium">
+                            <p className="text-gray-900 font-medium">
                               Request {asset["Request ID"]?.slice(-8)}
                             </p>
-                            <div className="flex items-center gap-3 text-sm text-gray-400 mt-1">
+                            <div className="flex items-center gap-3 text-sm text-gray-600 mt-1">
                               <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${typeConfig.bg} ${typeConfig.text}`}>
                                 {asset.type.toUpperCase()}
                               </span>
@@ -488,16 +488,16 @@ export default function ModelAssetsTab({ modelName }: ModelAssetsTabProps) {
                                 href={finalOutputUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-2.5 hover:bg-slate-700/50 rounded-lg transition-all group/action"
+                                className="p-2.5 hover:bg-pink-100/50 rounded-lg transition-all group/action"
                               >
-                                <Eye className="w-5 h-5 text-gray-400 group-hover/action:text-white" />
+                                <Eye className="w-5 h-5 text-gray-600 group-hover/action:text-gray-900" />
                               </a>
                               <a
                                 href={finalOutputUrl}
                                 download
-                                className="p-2.5 hover:bg-slate-700/50 rounded-lg transition-all group/action"
+                                className="p-2.5 hover:bg-pink-100/50 rounded-lg transition-all group/action"
                               >
-                                <Download className="w-5 h-5 text-gray-400 group-hover/action:text-white" />
+                                <Download className="w-5 h-5 text-gray-600 group-hover/action:text-gray-900" />
                               </a>
                             </>
                           )}
@@ -507,7 +507,7 @@ export default function ModelAssetsTab({ modelName }: ModelAssetsTabProps) {
                               download
                               className="p-2.5 hover:bg-slate-700/50 rounded-lg transition-all group/action"
                             >
-                              <FileText className="w-5 h-5 text-blue-400 group-hover/action:text-blue-300" />
+                              <FileText className="w-5 h-5 text-blue-500 group-hover/action:text-blue-600" />
                             </a>
                           )}
                         </div>

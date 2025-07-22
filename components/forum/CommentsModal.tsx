@@ -57,48 +57,48 @@ export function CommentsModal({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-gray-100/95 dark:bg-gray-900/95 rounded-xl border border-gray-200 dark:border-white/20 p-6 w-full max-w-4xl max-h-[80vh] overflow-y-auto relative backdrop-blur-sm"
+            className="bg-gray-100/95 rounded-xl border border-gray-200 p-6 w-full max-w-4xl max-h-[80vh] overflow-y-auto relative backdrop-blur-sm"
           >
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-800 dark:text-white">
+              <h3 className="text-xl font-bold text-gray-800">
                 Comments
               </h3>
               <button
                 onClick={onClose}
-                className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white hover:bg-gray-200/80 dark:hover:bg-white/10 transition-all"
+                className="p-2 rounded-lg text-gray-600 hover:text-gray-800 hover:bg-gray-200/80 transition-all"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {/* Original Post */}
-            <div className="bg-gray-100/80 dark:bg-white/5 rounded-lg p-4 mb-6">
+            <div className="bg-pink-50 rounded-lg p-4 mb-6 border border-pink-200">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
                   <span className="text-white text-sm font-bold">
                     {post.avatar}
                   </span>
                 </div>
-                <span className="text-sm text-gray-600 dark:text-gray-400">
+                <span className="text-sm text-gray-600">
                   u/{post.author}
                 </span>
-                <span className="text-gray-600 dark:text-gray-400 text-sm">
+                <span className="text-gray-600 text-sm">
                   •
                 </span>
-                <span className="text-gray-600 dark:text-gray-400 text-sm">
+                <span className="text-gray-600 text-sm">
                   {post.timestamp}
                 </span>
               </div>
-              <h4 className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
+              <h4 className="text-lg font-semibold text-gray-800 mb-2">
                 {post.title}
               </h4>
-              <p className="text-gray-600 dark:text-gray-300 text-sm">
+              <p className="text-gray-600 text-sm">
                 {post.content}
               </p>
             </div>
 
             {/* Add Comment */}
-            <div className="bg-gray-100/80 dark:bg-white/5 rounded-lg p-4 mb-6">
+            <div className="bg-white rounded-lg p-4 mb-6 border border-pink-200">
               <div className="flex gap-3">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
                   <span className="text-white text-sm font-bold">
@@ -111,7 +111,7 @@ export function CommentsModal({
                     onChange={(e) => setNewComment(e.target.value)}
                     placeholder="Add a comment..."
                     rows={3}
-                    className="w-full px-3 py-2 bg-gray-100/80 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg text-gray-800 dark:text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none"
+                    className="w-full px-3 py-2 bg-gray-100/80 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none"
                   />
                   <div className="flex justify-end mt-2">
                     <button
@@ -132,7 +132,7 @@ export function CommentsModal({
               {post.comments.map((comment) => (
                 <div
                   key={comment.id}
-                  className="bg-gray-100/80 dark:bg-white/5 rounded-lg p-4"
+                  className="bg-gray-100/80 rounded-lg p-4"
                 >
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-6 h-6 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
@@ -140,17 +140,17 @@ export function CommentsModal({
                         {comment.author.substring(0, 2).toUpperCase()}
                       </span>
                     </div>
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                    <span className="text-sm text-gray-600">
                       u/{comment.author}
                     </span>
-                    <span className="text-gray-600 dark:text-gray-400 text-sm">
+                    <span className="text-gray-600 text-sm">
                       •
                     </span>
-                    <span className="text-gray-600 dark:text-gray-400 text-xs">
+                    <span className="text-gray-600 text-xs">
                       {comment.timestamp}
                     </span>
                   </div>
-                  <p className="text-gray-800 dark:text-white text-sm">
+                  <p className="text-gray-800 text-sm">
                     {comment.content}
                   </p>
                 </div>
@@ -159,7 +159,7 @@ export function CommentsModal({
               {post.comments.length === 0 && (
                 <div className="text-center py-8">
                   <MessageSquare className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-500 dark:text-gray-400 text-sm">
+                  <p className="text-gray-500 text-sm">
                     No comments yet. Be the first to comment!
                   </p>
                 </div>

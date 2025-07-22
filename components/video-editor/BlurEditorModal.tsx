@@ -223,9 +223,9 @@ export const BlurEditorModal: React.FC<BlurEditorModalProps> = ({
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-3">
             {region.shape === "circle" ? (
-              <Circle className="w-5 h-5 text-purple-500" />
+              <Circle className="w-5 h-5 text-pink-500" />
             ) : (
-              <Square className="w-5 h-5 text-purple-500" />
+              <Square className="w-5 h-5 text-pink-500" />
             )}
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
               Edit {region.shape === "circle" ? "Circle" : "Rectangle"} Blur
@@ -236,7 +236,7 @@ export const BlurEditorModal: React.FC<BlurEditorModalProps> = ({
               onClick={() => setShowPreview(!showPreview)}
               className={`p-2 rounded-lg ${
                 showPreview
-                  ? "bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400"
+                  ? "bg-pink-100 dark:bg-pink-900 text-pink-600 dark:text-pink-400"
                   : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
               }`}
               title="Toggle preview"
