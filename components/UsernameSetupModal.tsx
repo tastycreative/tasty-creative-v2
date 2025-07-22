@@ -108,7 +108,7 @@ export function UsernameSetupModal({
                 
                 {validationMessage && (
                   <div className={`flex items-center gap-2 mt-2 text-sm ${
-                    isValid ? 'text-green-600' : 'text-red-600'"
+                    isValid ? 'text-green-600' : 'text-red-600'
                   }`}>
                     {isValid ? (
                       <CheckCircle className="w-4 h-4" />
