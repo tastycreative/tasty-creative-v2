@@ -125,7 +125,7 @@ const ChattersUnderModel = () => {
               <>
                 <TableRow
                   key={`client-${idx}`}
-                  className="hover:bg-pink-50 cursor-pointer">
+                  className="hover:bg-pink-50 cursor-pointer"
                   onClick={() => toggleExpand(client.clientName)}
                 >
                   <TableCell className="w-10">
