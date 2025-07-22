@@ -267,13 +267,13 @@ export const SWDDashboard = ({ onScriptClick }: SWDDashboardProps) => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <div className="relative">
-          <div className="absolute inset-0 blur-xl bg-gradient-to-r from-purple-600 to-pink-600 rounded-full animate-pulse"></div>
-          <Loader2 className="relative w-16 h-16 text-white animate-spin" />
+          <div className="absolute inset-0 blur-xl bg-gradient-to-r from-pink-500 to-rose-500 rounded-full animate-pulse"></div>
+          <Loader2 className="relative w-16 h-16 text-pink-500 animate-spin" />
         </div>
-        <h2 className="text-2xl font-bold text-white">
+        <h2 className="text-2xl font-bold text-gray-900">
           Loading Script Data...
         </h2>
-        <p className="text-gray-400">Fetching your dashboard information</p>
+        <p className="text-gray-600">Fetching your dashboard information</p>
       </div>
     );
   }
@@ -281,14 +281,14 @@ export const SWDDashboard = ({ onScriptClick }: SWDDashboardProps) => {
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-8">
-          <h2 className="text-2xl font-bold text-red-400 mb-2">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-8">
+          <h2 className="text-2xl font-bold text-red-600 mb-2">
             Error Loading Data
           </h2>
-          <p className="text-gray-400 mb-4">{error}</p>
+          <p className="text-gray-600 mb-4">{error}</p>
           <button
             onClick={fetchAllData}
-            className="px-4 py-2 bg-red-500/20 border border-red-500/30 text-red-300 rounded-lg hover:bg-red-500/30 transition-colors"
+            className="px-4 py-2 bg-red-100 border border-red-300 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
           >
             Retry
           </button>
@@ -303,15 +303,15 @@ export const SWDDashboard = ({ onScriptClick }: SWDDashboardProps) => {
       <div className="flex justify-end gap-4">
         <Dialog>
           <DialogTrigger asChild>
-            <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2">
+            <Button className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2">
               <PenTool className="w-4 h-4" />
               Script Request
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-gray-900 border-gray-800 max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader className="bg-gradient-to-r from-purple-900/20 via-pink-900/20 to-purple-900/20 border-b border-gray-800 px-6 py-4">
-              <DialogTitle className="text-white flex items-center gap-2">
-                <Users className="w-5 h-5 text-purple-400" />
+          <DialogContent className="bg-white border-pink-200 max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader className="bg-gradient-to-r from-pink-50 via-rose-50 to-pink-50 border-b border-pink-200 px-6 py-4">
+              <DialogTitle className="text-gray-900 flex items-center gap-2">
+                <Users className="w-5 h-5 text-pink-500" />
                 Submit Script Request
               </DialogTitle>
             </DialogHeader>
@@ -325,15 +325,15 @@ export const SWDDashboard = ({ onScriptClick }: SWDDashboardProps) => {
         {(userRole === "SWD" || userRole === "ADMIN") && (
           <Dialog>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2">
+              <Button className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2">
                 <Plus className="w-4 h-4" />
                 Add Send+Buy Input Entry
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-gray-900 border-gray-800 max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader className="bg-gradient-to-r from-green-900/20 via-blue-900/20 to-purple-900/20 border-b border-gray-800 px-6 py-4">
-                <DialogTitle className="text-white flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-green-400" />
+            <DialogContent className="bg-white border-pink-200 max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader className="bg-gradient-to-r from-pink-50 via-rose-50 to-pink-50 border-b border-pink-200 px-6 py-4">
+                <DialogTitle className="text-gray-900 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-pink-500" />
                   Quick Data Entry - Send+Buy Input
                 </DialogTitle>
               </DialogHeader>
@@ -347,27 +347,27 @@ export const SWDDashboard = ({ onScriptClick }: SWDDashboardProps) => {
       </div>
 
       {/* Model Selection Card */}
-      <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-xl overflow-hidden relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-900/10 to-pink-900/10"></div>
+      <Card className="bg-white/80 border-pink-200 backdrop-blur-xl overflow-hidden relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-pink-50/50 to-rose-50/50"></div>
         <CardHeader className="relative">
-          <CardTitle className="text-white flex items-center gap-2">
-            <Users className="w-5 h-5 text-purple-400" />
+          <CardTitle className="text-gray-900 flex items-center gap-2">
+            <Users className="w-5 h-5 text-pink-500" />
             Model Selection
           </CardTitle>
         </CardHeader>
         <CardContent className="relative">
           <div className="space-y-2">
-            <label className="text-sm text-gray-400">Select Model</label>
+            <label className="text-sm text-gray-600">Select Model</label>
             <Select value={selectedModel} onValueChange={setSelectedModel}>
-              <SelectTrigger className="w-full max-w-md bg-gray-800/50 border-gray-700 text-white hover:bg-gray-800/70 transition-all duration-200">
+              <SelectTrigger className="w-full max-w-md bg-white border-pink-300 text-gray-900 hover:bg-pink-50 transition-all duration-200">
                 <SelectValue placeholder="Select a model" />
               </SelectTrigger>
-              <SelectContent className="bg-gray-900 border-gray-800">
+              <SelectContent className="bg-white border-pink-200">
                 {apiData?.availableCreators.map((creator) => (
                   <SelectItem
                     key={creator}
                     value={creator}
-                    className="text-white hover:bg-gray-800 focus:bg-gray-800"
+                    className="text-gray-900 hover:bg-pink-50 focus:bg-pink-50"
                   >
                     {creator}
                   </SelectItem>
@@ -378,8 +378,8 @@ export const SWDDashboard = ({ onScriptClick }: SWDDashboardProps) => {
 
           {selectedModel && (
             <div className="mt-4 flex items-center gap-2">
-              <span className="text-sm text-gray-400">Selected creator:</span>
-              <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/30">
+              <span className="text-sm text-gray-600">Selected creator:</span>
+              <Badge className="bg-pink-100 text-pink-700 border-pink-200">
                 {selectedModel}
               </Badge>
             </div>
@@ -415,21 +415,21 @@ export const SWDDashboard = ({ onScriptClick }: SWDDashboardProps) => {
         open={showQuickDataSuccess}
         onOpenChange={setShowQuickDataSuccess}
       >
-        <DialogContent className="bg-gray-900 border-gray-800">
+        <DialogContent className="bg-white border-pink-200">
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-400" />
+            <DialogTitle className="text-gray-900 flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-500" />
               Success!
             </DialogTitle>
           </DialogHeader>
           <div className="p-4">
-            <p className="text-gray-300 mb-4">
+            <p className="text-gray-600 mb-4">
               Your script data has been successfully submitted and added to the
               spreadsheet.
             </p>
             <Button
               onClick={() => setShowQuickDataSuccess(false)}
-              className="w-full bg-green-600 hover:bg-green-700"
+              className="w-full bg-pink-500 hover:bg-pink-600"
             >
               Continue
             </Button>
@@ -438,21 +438,21 @@ export const SWDDashboard = ({ onScriptClick }: SWDDashboardProps) => {
       </Dialog>
 
       <Dialog open={showRequestSuccess} onOpenChange={setShowRequestSuccess}>
-        <DialogContent className="bg-gray-900 border-gray-800">
+        <DialogContent className="bg-white border-pink-200">
           <DialogHeader>
-            <DialogTitle className="text-white flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-400" />
+            <DialogTitle className="text-gray-900 flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-500" />
               Request Submitted!
             </DialogTitle>
           </DialogHeader>
           <div className="p-4">
-            <p className="text-gray-300 mb-4">
+            <p className="text-gray-600 mb-4">
               Your script request has been successfully submitted. We&apos;ll
               process it and get back to you soon.
             </p>
             <Button
               onClick={() => setShowRequestSuccess(false)}
-              className="w-full bg-green-600 hover:bg-green-700"
+              className="w-full bg-pink-500 hover:bg-pink-600"
             >
               Continue
             </Button>

@@ -211,7 +211,7 @@ export const ScriptListTab = () => {
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin text-blue-400 mx-auto mb-4" />
-          <p className="text-gray-400">Loading all scripts...</p>
+          <p className="text-gray-600">Loading all scripts...</p>
         </div>
       </div>
     );
@@ -219,14 +219,14 @@ export const ScriptListTab = () => {
 
   if (error) {
     return (
-      <Card className="bg-gray-900/50 border-gray-800">
+      <Card className="bg-white/80 border-pink-200">
         <CardContent className="p-6">
           <div className="text-center">
             <p className="text-red-400 mb-4">Error: {error}</p>
             <Button
               onClick={fetchAllScripts}
               variant="outline"
-              className="border-gray-700"
+              className="border-pink-300"
             >
               Try Again
             </Button>
@@ -239,9 +239,9 @@ export const ScriptListTab = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-xl">
+      <Card className="bg-white/80 border-pink-200 backdrop-blur-xl">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
+          <CardTitle className="text-gray-900 flex items-center gap-2">
             <FileText className="w-5 h-5 text-blue-400" />
             All Scripts
             <Badge variant="secondary" className="bg-blue-500/20 text-blue-300">
@@ -252,18 +252,18 @@ export const ScriptListTab = () => {
       </Card>
 
       {/* Filters and Search */}
-      <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-xl">
+      <Card className="bg-white/80 border-pink-200 backdrop-blur-xl">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Search */}
             <div className="flex-1">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-600 w-4 h-4" />
                 <Input
                   placeholder="Search scripts or creators..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-gray-800/50 border-gray-700 text-white"
+                  className="pl-10 bg-white border-pink-300 text-gray-900"
                 />
               </div>
             </div>
@@ -275,7 +275,7 @@ export const ScriptListTab = () => {
                 size="sm"
                 onClick={() => setFilterType("all")}
                 className={
-                  filterType === "all" ? "bg-blue-600" : "border-gray-700"
+                  filterType === "all" ? "bg-pink-500" : "border-pink-300"
                 }
               >
                 <Filter className="w-4 h-4 mr-1" />
@@ -286,7 +286,7 @@ export const ScriptListTab = () => {
                 size="sm"
                 onClick={() => setFilterType("drive")}
                 className={
-                  filterType === "drive" ? "bg-green-600" : "border-gray-700"
+                  filterType === "drive" ? "bg-pink-500" : "border-pink-300"
                 }
               >
                 Drive
@@ -298,7 +298,7 @@ export const ScriptListTab = () => {
                 className={
                   filterType === "performance"
                     ? "bg-amber-600"
-                    : "border-gray-700"
+                    : "border-pink-300"
                 }
               >
                 Performance
@@ -312,7 +312,7 @@ export const ScriptListTab = () => {
                 onChange={(e) =>
                   setSortBy(e.target.value as "title" | "date" | "performance")
                 }
-                className="px-3 py-2 text-sm bg-gray-800 border border-gray-700 text-gray-300 rounded"
+                className="px-3 py-2 text-sm bg-white border border-pink-300 text-gray-700 rounded"
               >
                 <option value="date">Date</option>
                 <option value="title">Title</option>
@@ -324,7 +324,7 @@ export const ScriptListTab = () => {
                 onClick={() =>
                   setSortOrder(sortOrder === "asc" ? "desc" : "asc")
                 }
-                className="border-gray-700"
+                className="border-pink-300"
               >
                 {sortOrder === "asc" ? (
                   <SortAsc className="w-4 h-4" />
@@ -339,11 +339,11 @@ export const ScriptListTab = () => {
 
       {/* Scripts List */}
       {filteredAndSortedScripts.length === 0 ? (
-        <Card className="bg-gray-900/50 border-gray-800">
+        <Card className="bg-white/80 border-pink-200">
           <CardContent className="p-12 text-center">
             <FileText className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-            <h3 className="text-white font-medium mb-2">No scripts found</h3>
-            <p className="text-gray-400">
+            <h3 className="text-gray-900 font-medium mb-2">No scripts found</h3>
+            <p className="text-gray-600">
               Try adjusting your search or filter criteria.
             </p>
           </CardContent>
@@ -353,14 +353,14 @@ export const ScriptListTab = () => {
           {filteredAndSortedScripts.map((script) => (
             <Card
               key={script.id}
-              className="bg-gray-900/50 border-gray-800 hover:border-gray-600 transition-all duration-200 cursor-pointer"
+              className="bg-white/80 border-pink-200 hover:border-pink-300 transition-all duration-200 cursor-pointer"
               onClick={() => handleScriptClick(script)}
             >
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-white font-medium truncate">
+                      <h3 className="text-gray-900 font-medium truncate">
                         {script.title}
                       </h3>
                       <Badge
@@ -375,10 +375,10 @@ export const ScriptListTab = () => {
                       </Badge>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm text-gray-400">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm text-gray-600">
                       {script.creator && (
                         <div className="flex items-center gap-1">
-                          <span className="font-medium text-gray-300">
+                          <span className="font-medium text-gray-700">
                             Creator:
                           </span>
                           <span>{script.creator}</span>
@@ -396,7 +396,7 @@ export const ScriptListTab = () => {
                       )}
                       {script.totalSend !== undefined && (
                         <div className="flex items-center gap-1">
-                          <span className="font-medium text-gray-300">
+                          <span className="font-medium text-gray-700">
                             Sent:
                           </span>
                           <span>{script.totalSend.toLocaleString()}</span>
@@ -417,7 +417,7 @@ export const ScriptListTab = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-gray-400 hover:text-white"
+                      className="text-gray-600 hover:text-gray-900"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleScriptClick(script);

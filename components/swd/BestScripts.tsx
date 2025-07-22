@@ -28,31 +28,31 @@ export const BestScripts = ({
 }: BestScriptsProps) => {
   return (
     <div className="grid md:grid-cols-2 gap-6">
-      <Card className="bg-gradient-to-br from-amber-900/20 to-orange-900/20 border-amber-800/30 backdrop-blur-xl">
+      <Card className="bg-gradient-to-br from-pink-50 to-rose-50 border-pink-200 backdrop-blur-xl">
         <CardHeader className="pb-4">
-          <CardTitle className="text-white flex items-center justify-center gap-3">
-            <TrendingUp className="w-6 h-6 text-amber-400" />
+          <CardTitle className="text-gray-900 flex items-center justify-center gap-3">
+            <TrendingUp className="w-6 h-6 text-pink-500" />
             Best Seller Scripts
-            <TrendingUp className="w-6 h-6 text-amber-400" />
+            <TrendingUp className="w-6 h-6 text-pink-500" />
           </CardTitle>
           {selectedModel && (
-            <p className="text-center text-amber-200 text-sm">
+            <p className="text-center text-pink-600 text-sm">
               for {selectedModel}
             </p>
           )}
         </CardHeader>
         <CardContent className="space-y-3">
           {bestScripts.bestSeller.length === 0 ? (
-            <div className="text-center text-gray-400 py-8">
+            <div className="text-center text-gray-600 py-8">
               No data available for the selected filters
             </div>
           ) : (
             bestScripts.bestSeller.map((script, index) => (
               <div
                 key={index}
-                className={`flex justify-between items-center p-3 bg-gray-900/50 rounded-lg border border-amber-800/20 hover:border-amber-600/40 transition-all duration-200 ${
+                className={`flex justify-between items-center p-3 bg-white/80 rounded-lg border border-pink-200 hover:border-pink-300 transition-all duration-200 ${
                   script.scriptLink && onScriptClick
-                    ? "cursor-pointer hover:bg-gray-800/50 hover:scale-[1.02]"
+                    ? "cursor-pointer hover:bg-pink-50 hover:scale-[1.02]"
                     : ""
                 }`}
                 onClick={() => {
@@ -61,8 +61,8 @@ export const BestScripts = ({
                   }
                 }}
               >
-                <span className="text-white font-medium">{script.title}</span>
-                <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30">
+                <span className="text-gray-900 font-medium">{script.title}</span>
+                <Badge className="bg-pink-100 text-pink-700 border-pink-200">
                   {script.totalBuy}
                 </Badge>
               </div>
@@ -71,31 +71,31 @@ export const BestScripts = ({
         </CardContent>
       </Card>
 
-      <Card className="bg-gradient-to-br from-blue-900/20 to-cyan-900/20 border-blue-800/30 backdrop-blur-xl">
+      <Card className="bg-gradient-to-br from-pink-50 to-rose-50 border-pink-200 backdrop-blur-xl">
         <CardHeader className="pb-4">
-          <CardTitle className="text-white flex items-center justify-center gap-3">
-            <Zap className="w-6 h-6 text-blue-400" />
+          <CardTitle className="text-gray-900 flex items-center justify-center gap-3">
+            <Zap className="w-6 h-6 text-pink-500" />
             Top Sent Scripts
-            <Zap className="w-6 h-6 text-blue-400" />
+            <Zap className="w-6 h-6 text-pink-500" />
           </CardTitle>
           {selectedModel && (
-            <p className="text-center text-blue-200 text-sm">
+            <p className="text-center text-pink-600 text-sm">
               for {selectedModel}
             </p>
           )}
         </CardHeader>
         <CardContent className="space-y-3">
           {bestScripts.topSent.length === 0 ? (
-            <div className="text-center text-gray-400 py-8">
+            <div className="text-center text-gray-600 py-8">
               No data available for the selected filters
             </div>
           ) : (
             bestScripts.topSent.map((script, index) => (
               <div
                 key={index}
-                className={`flex justify-between items-center p-3 bg-gray-900/50 rounded-lg border border-blue-800/20 hover:border-blue-600/40 transition-all duration-200 ${
+                className={`flex justify-between items-center p-3 bg-white/80 rounded-lg border border-pink-200 hover:border-pink-300 transition-all duration-200 ${
                   script.scriptLink && onScriptClick
-                    ? "cursor-pointer hover:bg-gray-800/50 hover:scale-[1.02]"
+                    ? "cursor-pointer hover:bg-pink-50 hover:scale-[1.02]"
                     : ""
                 }`}
                 onClick={() => {
@@ -104,8 +104,8 @@ export const BestScripts = ({
                   }
                 }}
               >
-                <span className="text-white font-medium">{script.title}</span>
-                <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30">
+                <span className="text-gray-900 font-medium">{script.title}</span>
+                <Badge className="bg-pink-100 text-pink-700 border-pink-200">
                   {script.totalSend?.toLocaleString() || 0}
                 </Badge>
               </div>

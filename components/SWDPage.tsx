@@ -65,17 +65,17 @@ const SWDPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 bg-gradient-to-br from-gray-950 via-purple-950/20 to-gray-950">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50">
       <div className="max-w-7xl mx-auto p-6 space-y-8">
         {/* Animated Header */}
         <div className="text-center space-y-4 py-8">
           <div className="relative inline-block">
-            <div className="absolute inset-0 blur-2xl bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 opacity-50 animate-pulse"></div>
-            <h1 className="relative text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">
+            <div className="absolute inset-0 blur-2xl bg-gradient-to-r from-pink-500 to-rose-500 opacity-50 animate-pulse"></div>
+            <h1 className="relative text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-rose-500">
               Script Writing Dashboard
             </h1>
           </div>
-          <p className="text-gray-400 text-lg">
+          <p className="text-gray-600 text-lg">
             Manage and track script performance in real-time
           </p>
         </div>
@@ -89,10 +89,10 @@ const SWDPage = () => {
           >
             {(userRole === "SWD" || userRole === "ADMIN") && (
               <div className="flex justify-center">
-                <TabsList className="bg-gray-900/50 border border-gray-800 backdrop-blur-xl rounded-2xl p-2 shadow-2xl">
+                <TabsList className="bg-white/80 border border-pink-200 backdrop-blur-xl rounded-2xl p-2 shadow-2xl">
                   <TabsTrigger
                     value="dashboard"
-                    className="relative px-8 py-3 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/25 text-gray-400 hover:text-white hover:bg-gray-800/50 font-medium"
+                    className="relative px-8 py-3 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-rose-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-pink-500/25 text-gray-600 hover:text-gray-900 hover:bg-pink-50 font-medium"
                   >
                     <span className="relative z-10">Dashboard</span>
                   </TabsTrigger>
@@ -100,19 +100,19 @@ const SWDPage = () => {
                   <>
                     <TabsTrigger
                       value="requests"
-                      className="relative px-8 py-3 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-500/25 text-gray-400 hover:text-white hover:bg-gray-800/50 font-medium"
+                      className="relative px-8 py-3 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-rose-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-pink-500/25 text-gray-600 hover:text-gray-900 hover:bg-pink-50 font-medium"
                     >
                       <span className="relative z-10">Requests</span>
                     </TabsTrigger>
                     <TabsTrigger
                       value="scripts"
-                      className="relative px-8 py-3 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-600 data-[state=active]:to-orange-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-yellow-500/25 text-gray-400 hover:text-white hover:bg-gray-800/50 font-medium"
+                      className="relative px-8 py-3 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-rose-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-pink-500/25 text-gray-600 hover:text-gray-900 hover:bg-pink-50 font-medium"
                     >
                       <span className="relative z-10">Script List</span>
                     </TabsTrigger>
                     <TabsTrigger
                       value="writing"
-                      className="relative px-8 py-3 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-green-500/25 text-gray-400 hover:text-white hover:bg-gray-800/50 font-medium"
+                      className="relative px-8 py-3 rounded-xl transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-500 data-[state=active]:to-rose-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-pink-500/25 text-gray-600 hover:text-gray-900 hover:bg-pink-50 font-medium"
                     >
                       <span className="relative z-10">Script Writing</span>
                     </TabsTrigger>
@@ -131,26 +131,26 @@ const SWDPage = () => {
                   {requestsLoading ? (
                     <div className="flex flex-col items-center justify-center min-h-[40vh] space-y-4">
                       <div className="relative">
-                        <div className="absolute inset-0 blur-xl bg-gradient-to-r from-blue-600 to-cyan-600 rounded-full animate-pulse"></div>
-                        <Loader2 className="relative w-12 h-12 text-white animate-spin" />
+                        <div className="absolute inset-0 blur-xl bg-gradient-to-r from-pink-500 to-rose-500 rounded-full animate-pulse"></div>
+                        <Loader2 className="relative w-12 h-12 text-pink-500 animate-spin" />
                       </div>
-                      <h3 className="text-xl font-semibold text-white">
+                      <h3 className="text-xl font-semibold text-gray-900">
                         Loading requests...
                       </h3>
-                      <p className="text-gray-400">
+                      <p className="text-gray-600">
                         Fetching the latest script requests
                       </p>
                     </div>
                   ) : requestsError ? (
                     <div className="flex flex-col items-center justify-center min-h-[40vh] space-y-4">
-                      <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-8 max-w-md">
-                        <h3 className="text-xl font-semibold text-red-400 mb-2">
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-8 max-w-md">
+                        <h3 className="text-xl font-semibold text-red-600 mb-2">
                           Error Loading Requests
                         </h3>
-                        <p className="text-gray-400 mb-4">{requestsError}</p>
+                        <p className="text-gray-600 mb-4">{requestsError}</p>
                         <button
                           onClick={fetchRequests}
-                          className="px-4 py-2 bg-red-500/20 border border-red-500/30 text-red-300 rounded-lg hover:bg-red-500/30 transition-colors"
+                          className="px-4 py-2 bg-red-100 border border-red-300 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
                         >
                           Retry
                         </button>
