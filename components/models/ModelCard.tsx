@@ -9,7 +9,7 @@ function ImageWithFallback({ model }: { model: ModelDetails }) {
   if (imageError) {
     return (
       <div className="w-full h-full flex items-center justify-center">
-        <div className="w-24 h-24 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center shadow-2xl shadow-purple-500/25">
+        <div className="w-24 h-24 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 flex items-center justify-center shadow-2xl shadow-pink-500/25">
           <span className="text-white text-3xl font-bold">
             {model.name.charAt(0).toUpperCase()}
           </span>
@@ -31,7 +31,7 @@ function ImageWithFallback({ model }: { model: ModelDetails }) {
         />
       )}
       {/* Circular image container */}
-      <div className="relative w-24 h-24 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 p-1 flex items-center justify-center z-10 shadow-2xl shadow-purple-500/25">
+      <div className="relative w-24 h-24 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 p-1 flex items-center justify-center z-10 shadow-2xl shadow-pink-500/25">
         <img
           src={`/api/image-proxy?id=${model.id}`}
           alt={model.name}
@@ -68,17 +68,17 @@ export default function ModelCard({ model, index, onClick }: ModelCardProps) {
     >
       {/* Glow effect */}
       <div className={`
-        absolute inset-0 bg-gradient-to-r from-purple-600/20 to-pink-600/20 
+        absolute inset-0 bg-gradient-to-r from-pink-600/20 to-rose-600/20 
         rounded-2xl blur-xl transition-all duration-300
         ${isHovered ? 'opacity-100' : 'opacity-0'}
       `} />
       
       {/* Card */}
-      <div className="relative bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 overflow-hidden hover:border-purple-500/30 transition-all duration-300">
+      <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl border border-pink-200 overflow-hidden hover:border-pink-300 transition-all duration-300">
         {/* Header with Image and Status */}
-        <div className="relative h-48 bg-gradient-to-br from-purple-600/20 via-pink-600/10 to-purple-600/20 overflow-hidden">
+        <div className="relative h-48 bg-gradient-to-br from-pink-600/20 via-rose-600/10 to-pink-600/20 overflow-hidden">
           {/* Animated gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-60" />
+          <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent opacity-60" />
           
           <div className="absolute top-4 right-4 z-10">
             <span
@@ -98,7 +98,7 @@ export default function ModelCard({ model, index, onClick }: ModelCardProps) {
             <ImageWithFallback model={model} />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <div className="w-24 h-24 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center shadow-2xl shadow-purple-500/25">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 flex items-center justify-center shadow-2xl shadow-pink-500/25">
                 <span className="text-white text-3xl font-bold">
                   {model.name.charAt(0).toUpperCase()}
                 </span>
@@ -107,7 +107,7 @@ export default function ModelCard({ model, index, onClick }: ModelCardProps) {
           )}
 
           {/* Model name with better positioning */}
-          <div className="absolute bottom-0 left-0 right-0 p-4 z-30 bg-gradient-to-t from-slate-900 via-slate-900/80 to-transparent">
+          <div className="absolute bottom-0 left-0 right-0 p-4 z-30 bg-gradient-to-t from-gray-900 via-gray-900/80 to-transparent">
             <h3 className="text-xl font-bold text-white">{model.name}</h3>
           </div>
         </div>
@@ -116,12 +116,12 @@ export default function ModelCard({ model, index, onClick }: ModelCardProps) {
         <div className="p-4 space-y-4">
           {/* Launch Date and Referrer */}
           <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2 text-gray-400">
-              <Calendar className="w-4 h-4 text-purple-400" />
+            <div className="flex items-center gap-2 text-gray-600">
+              <Calendar className="w-4 h-4 text-pink-500" />
               <span>{model.launchDate}</span>
             </div>
-            <div className="flex items-center gap-2 text-gray-400">
-              <User className="w-4 h-4 text-pink-400" />
+            <div className="flex items-center gap-2 text-gray-600">
+              <User className="w-4 h-4 text-pink-500" />
               <span className="truncate max-w-[100px]">
                 {model.referrerName || "-"}
               </span>
@@ -131,21 +131,21 @@ export default function ModelCard({ model, index, onClick }: ModelCardProps) {
           {/* Stats with better styling */}
           {model.stats && (
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-sm rounded-xl p-3 border border-purple-500/20">
+              <div className="bg-gradient-to-br from-pink-500/10 to-rose-500/10 backdrop-blur-sm rounded-xl p-3 border border-pink-500/20">
                 <div className="flex items-center gap-2 mb-1">
-                  <TrendingUp className="w-3 h-3 text-purple-400" />
-                  <p className="text-xs text-gray-400">Monthly</p>
+                  <TrendingUp className="w-3 h-3 text-pink-500" />
+                  <p className="text-xs text-gray-600">Monthly</p>
                 </div>
-                <p className="text-sm font-bold text-white">
+                <p className="text-sm font-bold text-gray-900">
                   ${model.stats.monthlyRevenue.toLocaleString()}
                 </p>
               </div>
-              <div className="bg-gradient-to-br from-pink-500/10 to-purple-500/10 backdrop-blur-sm rounded-xl p-3 border border-pink-500/20">
+              <div className="bg-gradient-to-br from-rose-500/10 to-pink-500/10 backdrop-blur-sm rounded-xl p-3 border border-rose-500/20">
                 <div className="flex items-center gap-2 mb-1">
-                  <Users className="w-3 h-3 text-pink-400" />
-                  <p className="text-xs text-gray-400">Subs</p>
+                  <Users className="w-3 h-3 text-pink-500" />
+                  <p className="text-xs text-gray-600">Subs</p>
                 </div>
-                <p className="text-sm font-bold text-white">
+                <p className="text-sm font-bold text-gray-900">
                   {model.stats.subscribers.toLocaleString()}
                 </p>
               </div>
@@ -153,7 +153,7 @@ export default function ModelCard({ model, index, onClick }: ModelCardProps) {
           )}
 
           {/* Social Links */}
-          <div className="flex items-center justify-between pt-3 border-t border-slate-700/30">
+          <div className="flex items-center justify-between pt-3 border-t border-gray-300">
             <div className="flex gap-2">
               {model.instagram && (
                 <a
@@ -161,9 +161,9 @@ export default function ModelCard({ model, index, onClick }: ModelCardProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="p-2.5 bg-slate-700/30 hover:bg-pink-500/20 rounded-xl transition-all duration-300 group/social"
+                  className="p-2.5 bg-gray-100 hover:bg-pink-500/20 rounded-xl transition-all duration-300 group/social"
                 >
-                  <Instagram className="w-4 h-4 text-pink-400 group-hover/social:scale-110 transition-transform" />
+                  <Instagram className="w-4 h-4 text-pink-500 group-hover/social:scale-110 transition-transform" />
                 </a>
               )}
               {model.twitter && (
@@ -172,7 +172,7 @@ export default function ModelCard({ model, index, onClick }: ModelCardProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="p-2.5 bg-slate-700/30 hover:bg-blue-500/20 rounded-xl transition-all duration-300 group/social"
+                  className="p-2.5 bg-gray-100 hover:bg-blue-500/20 rounded-xl transition-all duration-300 group/social"
                 >
                   <Twitter className="w-4 h-4 text-blue-400 group-hover/social:scale-110 transition-transform" />
                 </a>
@@ -184,7 +184,7 @@ export default function ModelCard({ model, index, onClick }: ModelCardProps) {
                 // Handle menu click
               }}
               className={`
-                p-2.5 bg-slate-700/30 hover:bg-purple-500/20 rounded-xl 
+                p-2.5 bg-gray-100 hover:bg-pink-500/20 rounded-xl 
                 transition-all duration-300
                 ${isHovered ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2'}
               `}

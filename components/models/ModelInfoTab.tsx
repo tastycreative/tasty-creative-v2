@@ -101,18 +101,18 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
           transition={{ delay: 0.1 }}
           className="relative group"
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10 rounded-2xl blur-xl group-hover:opacity-100 opacity-50 transition-all duration-300" />
-          <div className="relative bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 hover:border-purple-500/30 transition-all duration-300">
-            <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl">
-                <User className="w-5 h-5 text-purple-400" />
+          <div className="absolute inset-0 bg-gradient-to-r from-pink-600/10 to-rose-600/10 rounded-2xl blur-xl group-hover:opacity-100 opacity-50 transition-all duration-300" />
+          <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl border border-pink-200 p-6 hover:border-pink-300 transition-all duration-300">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-xl">
+                <User className="w-5 h-5 text-pink-500" />
               </div>
               Basic Information
             </h3>
             <div className="space-y-5">
               {/* Status */}
               <div>
-                <label className="block text-sm text-gray-400 mb-3 font-medium">
+                <label className="block text-sm text-gray-600 mb-3 font-medium">
                   Status
                 </label>
                 <span
@@ -131,11 +131,11 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
 
               {/* Launch Date */}
               <div>
-                <label className="block text-sm text-gray-400 mb-3 font-medium flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-purple-400" />
+                <label className="block text-sm text-gray-600 mb-3 font-medium flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-pink-500" />
                   Launch Date
                 </label>
-                <p className="text-white font-semibold bg-slate-900/30 px-4 py-2 rounded-lg inline-block">
+                <p className="text-gray-900 font-semibold bg-pink-50 px-4 py-2 rounded-lg inline-block border border-pink-200">
                   {new Date(model.launchDate).toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "long",
@@ -146,11 +146,11 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
 
               {/* Referrer */}
               <div>
-                <label className="block text-sm text-gray-400 mb-3 font-medium flex items-center gap-2">
-                  <User className="w-4 h-4 text-purple-400" />
+                <label className="block text-sm text-gray-600 mb-3 font-medium flex items-center gap-2">
+                  <User className="w-4 h-4 text-pink-500" />
                   Referrer Name
                 </label>
-                <p className="text-white font-semibold bg-slate-900/30 px-4 py-2 rounded-lg inline-block">
+                <p className="text-gray-900 font-semibold bg-pink-50 px-4 py-2 rounded-lg inline-block border border-pink-200">
                   {model.referrerName || "Not specified"}
                 </p>
               </div>
@@ -165,28 +165,28 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
           transition={{ delay: 0.2 }}
           className="relative group"
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-pink-600/10 to-purple-600/10 rounded-2xl blur-xl group-hover:opacity-100 opacity-50 transition-all duration-300" />
-          <div className="relative bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 hover:border-pink-500/30 transition-all duration-300">
-            <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-pink-500/20 to-purple-500/20 rounded-xl">
-                <Tag className="w-5 h-5 text-pink-400" />
+          <div className="absolute inset-0 bg-gradient-to-r from-rose-600/10 to-pink-600/10 rounded-2xl blur-xl group-hover:opacity-100 opacity-50 transition-all duration-300" />
+          <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl border border-pink-200 p-6 hover:border-pink-300 transition-all duration-300">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-xl">
+                <Tag className="w-5 h-5 text-pink-500" />
               </div>
               Personality & Communication
             </h3>
             <div className="space-y-5">
               {/* Personality Type */}
               <div>
-                <label className="block text-sm text-gray-400 mb-3 font-medium">
+                <label className="block text-sm text-gray-600 mb-3 font-medium">
                   Personality Type
                 </label>
-                <p className="text-white font-semibold bg-gradient-to-r from-purple-500/10 to-pink-500/10 px-4 py-2 rounded-lg inline-block border border-purple-500/20">
+                <p className="text-gray-900 font-semibold bg-gradient-to-r from-pink-500/10 to-rose-500/10 px-4 py-2 rounded-lg inline-block border border-pink-200">
                   {model.personalityType}
                 </p>
               </div>
 
               {/* Common Terms */}
               <div>
-                <label className="block text-sm text-gray-400 mb-3 font-medium">
+                <label className="block text-sm text-gray-600 mb-3 font-medium">
                   Common Terms
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -196,7 +196,7 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.3 + index * 0.05 }}
-                      className="px-3 py-1.5 bg-gradient-to-r from-purple-500/20 to-pink-500/20 text-purple-300 rounded-full text-sm font-medium border border-purple-500/20 hover:border-purple-500/40 transition-all cursor-default"
+                      className="px-3 py-1.5 bg-gradient-to-r from-pink-500/20 to-rose-500/20 text-pink-700 rounded-full text-sm font-medium border border-pink-200 hover:border-pink-300 transition-all cursor-default"
                     >
                       {term}
                     </motion.span>
@@ -206,8 +206,8 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
 
               {/* Common Emojis */}
               <div>
-                <label className="block text-sm text-gray-400 mb-3 font-medium flex items-center gap-2">
-                  <Smile className="w-4 h-4 text-pink-400" />
+                <label className="block text-sm text-gray-600 mb-3 font-medium flex items-center gap-2">
+                  <Smile className="w-4 h-4 text-pink-500" />
                   Common Emojis
                 </label>
                 <div className="flex gap-3 text-2xl">
@@ -217,7 +217,7 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.4 + index * 0.1 }}
-                      className="bg-slate-900/30 p-2 rounded-lg hover:bg-slate-900/50 transition-all cursor-default"
+                      className="bg-pink-50 p-2 rounded-lg hover:bg-pink-100 transition-all cursor-default border border-pink-200"
                     >
                       {emoji}
                     </motion.span>
@@ -236,11 +236,11 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
         transition={{ delay: 0.3 }}
         className="relative group"
       >
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-600/5 to-pink-600/5 rounded-2xl blur-2xl group-hover:opacity-100 opacity-50 transition-all duration-300" />
-        <div className="relative bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 hover:border-slate-600/50 transition-all duration-300">
-          <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl">
-              <Link className="w-5 h-5 text-purple-400" />
+        <div className="absolute inset-0 bg-gradient-to-r from-pink-600/5 to-rose-600/5 rounded-2xl blur-2xl group-hover:opacity-100 opacity-50 transition-all duration-300" />
+        <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl border border-pink-200 p-6 hover:border-pink-300 transition-all duration-300">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-3">
+            <div className="p-2 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-xl">
+              <Link className="w-5 h-5 text-pink-500" />
             </div>
             Social Media Links
           </h3>
@@ -255,7 +255,7 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
                   transition={{ delay: 0.4 + index * 0.1 }}
                   className="group/social"
                 >
-                  <label className="block text-sm text-gray-400 mb-3 font-medium flex items-center gap-2">
+                  <label className="block text-sm text-gray-600 mb-3 font-medium flex items-center gap-2">
                     <Icon className={`w-4 h-4 ${social.textColor}`} />
                     {social.platform}
                   </label>
@@ -269,7 +269,7 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
                       <div
                         className={`absolute inset-0 bg-gradient-to-r ${social.color} rounded-lg blur-lg opacity-0 group-hover/link:opacity-30 transition-all duration-300`}
                       />
-                      <div className="relative bg-slate-900/50 px-4 py-2.5 rounded-lg border border-slate-700/50 group-hover/link:border-slate-600/50 transition-all duration-300 flex items-center gap-2">
+                      <div className="relative bg-pink-50 px-4 py-2.5 rounded-lg border border-pink-200 group-hover/link:border-pink-300 transition-all duration-300 flex items-center gap-2">
                         <Icon className={`w-4 h-4 ${social.textColor}`} />
                         <span
                           className={`${social.textColor} ${social.hoverColor} transition-colors font-medium`}
@@ -279,7 +279,7 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
                       </div>
                     </a>
                   ) : (
-                    <div className="bg-slate-900/30 px-4 py-2.5 rounded-lg border border-slate-700/30 text-gray-500">
+                    <div className="bg-pink-50 px-4 py-2.5 rounded-lg border border-pink-200 text-gray-500">
                       Not provided
                     </div>
                   )}
@@ -299,27 +299,27 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
           transition={{ delay: 0.5 }}
           className="relative group"
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-purple-600/10 rounded-2xl blur-xl group-hover:opacity-100 opacity-50 transition-all duration-300" />
-          <div className="relative bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 hover:border-blue-500/30 transition-all duration-300">
-            <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-xl">
-                <Users className="w-5 h-5 text-blue-400" />
+          <div className="absolute inset-0 bg-gradient-to-r from-pink-600/10 to-rose-600/10 rounded-2xl blur-xl group-hover:opacity-100 opacity-50 transition-all duration-300" />
+          <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl border border-pink-200 p-6 hover:border-pink-300 transition-all duration-300">
+            <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-xl">
+                <Users className="w-5 h-5 text-pink-500" />
               </div>
               Chatting Managers
             </h3>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <div className="w-3 h-3 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full " />
-                  <div className="absolute inset-0 w-3 h-3 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full " />
+                  <div className="w-3 h-3 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full " />
+                  <div className="absolute inset-0 w-3 h-3 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full " />
                 </div>
                 {loading ? (
                   <div className="flex items-center gap-2">
-                    <div className="h-2.5 w-32 bg-slate-700/50 rounded-full " />
-                    <Sparkles className="w-4 h-4 text-purple-400 animate-spin" />
+                    <div className="h-2.5 w-32 bg-pink-200 rounded-full " />
+                    <Sparkles className="w-4 h-4 text-pink-500 animate-spin" />
                   </div>
                 ) : (
-                  <div className="bg-slate-900/50 px-4 py-2 rounded-lg border border-slate-700/50 font-medium text-white">
+                  <div className="bg-pink-50 px-4 py-2 rounded-lg border border-pink-200 font-medium text-gray-900">
                     {client[0]?.chattingManagers || "Not assigned"}
                   </div>
                 )}
@@ -336,11 +336,11 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
             transition={{ delay: 0.6 }}
             className="relative group"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-green-600/10 to-emerald-600/10 rounded-2xl blur-xl group-hover:opacity-100 opacity-50 transition-all duration-300" />
-            <div className="relative bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-slate-700/30 p-6 hover:border-green-500/30 transition-all duration-300">
-              <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl">
-                  <TrendingUp className="w-5 h-5 text-green-400" />
+            <div className="absolute inset-0 bg-gradient-to-r from-pink-600/10 to-rose-600/10 rounded-2xl blur-xl group-hover:opacity-100 opacity-50 transition-all duration-300" />
+            <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl border border-pink-200 p-6 hover:border-pink-300 transition-all duration-300">
+              <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-xl">
+                  <TrendingUp className="w-5 h-5 text-pink-500" />
                 </div>
                 Performance Stats
               </h3>
@@ -350,25 +350,25 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
                     label: "Total Revenue",
                     value: `${model.stats.totalRevenue.toLocaleString()}`,
                     icon: DollarSign,
-                    color: "text-green-400",
+                    color: "text-pink-500",
                   },
                   {
                     label: "Monthly Revenue",
                     value: `${model.stats.monthlyRevenue.toLocaleString()}`,
                     icon: TrendingUp,
-                    color: "text-emerald-400",
+                    color: "text-pink-600",
                   },
                   {
                     label: "Subscribers",
                     value: model.stats.subscribers.toLocaleString(),
                     icon: Users,
-                    color: "text-blue-400",
+                    color: "text-pink-500",
                   },
                   {
                     label: "Avg Response Time",
                     value: model.stats.avgResponseTime,
                     icon: Clock,
-                    color: "text-purple-400",
+                    color: "text-pink-500",
                   },
                 ].map((stat, index) => {
                   const Icon = stat.icon;
@@ -378,13 +378,13 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.7 + index * 0.05 }}
-                      className="flex justify-between items-center p-3 bg-slate-900/30 rounded-lg hover:bg-slate-900/50 transition-all"
+                      className="flex justify-between items-center p-3 bg-pink-50 rounded-lg hover:bg-pink-100 transition-all border border-pink-200"
                     >
-                      <span className="text-gray-400 flex items-center gap-2">
+                      <span className="text-gray-600 flex items-center gap-2">
                         <Icon className={`w-4 h-4 ${stat.color}`} />
                         {stat.label}
                       </span>
-                      <span className="text-white font-bold text-lg">
+                      <span className="text-gray-900 font-bold text-lg">
                         {stat.value}
                       </span>
                     </motion.div>
@@ -403,7 +403,7 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
           animate={{ opacity: 1, scale: 1 }}
           className="relative"
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 to-pink-600/10 rounded-2xl blur-xl" />
+          <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 to-rose-600/10 rounded-2xl blur-xl" />
           <div className="relative bg-red-500/10 border border-red-500/20 rounded-2xl p-6 text-center">
             <p className="text-red-400">{error}</p>
           </div>

@@ -30,8 +30,8 @@ export function ForumPostsList({
   if (loading) {
     return (
       <div className="text-center py-12">
-        <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-purple-500" />
-        <p className="text-gray-600 dark:text-gray-300">Loading posts...</p>
+        <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-pink-500" />
+        <p className="text-gray-600">Loading posts...</p>
       </div>
     );
   }
@@ -40,15 +40,15 @@ export function ForumPostsList({
     return (
       <div className="text-center py-12">
         <MessageSquare className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-xl font-semibold text-gray-800 dark:text-white mb-2">
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">
           No posts yet
         </h3>
-        <p className="text-gray-600 dark:text-gray-400 mb-4">
+        <p className="text-gray-600 mb-4">
           {emptyStateMessage}
         </p>
         <button
           onClick={onCreateFirstPost}
-          className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all"
+          className="px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg hover:from-pink-600 hover:to-rose-600 transition-all shadow-sm"
         >
           Create First Post
         </button>

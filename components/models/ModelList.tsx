@@ -15,15 +15,15 @@ export default function ModelsList({ models, onModelClick, isLoading }: ModelsLi
         {[...Array(8)].map((_, i) => (
           <div
             key={i}
-            className="bg-slate-800/30 backdrop-blur-md rounded-2xl border border-slate-700/30 overflow-hidden animate-pulse"
+            className="bg-white/80 backdrop-blur-md rounded-2xl border border-pink-200 overflow-hidden animate-pulse"
           >
-            <div className="h-48 bg-slate-700/30" />
+            <div className="h-48 bg-pink-100" />
             <div className="p-4 space-y-3">
-              <div className="h-6 bg-slate-700/30 rounded" />
-              <div className="h-4 bg-slate-700/30 rounded w-3/4" />
+              <div className="h-6 bg-pink-100 rounded" />
+              <div className="h-4 bg-pink-100 rounded w-3/4" />
               <div className="grid grid-cols-2 gap-2">
-                <div className="h-12 bg-slate-700/30 rounded" />
-                <div className="h-12 bg-slate-700/30 rounded" />
+                <div className="h-12 bg-pink-100 rounded" />
+                <div className="h-12 bg-pink-100 rounded" />
               </div>
             </div>
           </div>
@@ -36,12 +36,12 @@ export default function ModelsList({ models, onModelClick, isLoading }: ModelsLi
     return (
       <div className="animate-in fade-in duration-500">
         <div className="relative group">
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-pink-600/10 rounded-3xl blur-xl" />
-          <div className="relative bg-slate-800/30 backdrop-blur-xl rounded-3xl border border-slate-700/30 p-16 text-center">
-            <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full flex items-center justify-center">
-              <Users className="w-10 h-10 text-purple-400" />
+          <div className="absolute inset-0 bg-gradient-to-r from-pink-600/10 to-rose-600/10 rounded-3xl blur-xl" />
+          <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl border border-pink-200 p-16 text-center">
+            <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-full flex items-center justify-center">
+              <Users className="w-10 h-10 text-pink-500" />
             </div>
-            <p className="text-gray-400 text-lg">No models found</p>
+            <p className="text-gray-600 text-lg">No models found</p>
             <p className="text-gray-500 text-sm mt-2">Try adjusting your search or filters</p>
           </div>
         </div>

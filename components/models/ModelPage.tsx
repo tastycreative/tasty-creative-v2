@@ -54,7 +54,7 @@ export default function ModelsPage() {
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-4 lg:p-6 animate-in fade-in duration-500">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50 w-full max-w-7xl mx-auto p-4 lg:p-6 animate-in fade-in duration-500">
       <ModelsHeader
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
