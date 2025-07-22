@@ -204,7 +204,7 @@ const TastyCreativeLanding = ({ session }: { session: any }) => {
             </span>
           </div>
           <p className="text-gray-600">
-            © 2024 Tasty Creative. All rights reserved. Made with ❤️ for creators.
+            © 2025 Tasty Creative. All rights reserved. Made with ❤️ for creators.
           </p>
         </div>
       </footer>
