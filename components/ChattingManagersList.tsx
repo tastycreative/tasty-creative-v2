@@ -79,7 +79,7 @@ const ChattingManagersList = () => {
   return (
     <div className="rounded-lg border shadow-sm p-1 ">
       <div className="px-4 py-3 flex items-center border-b">
-        <Users className="h-5 w-5 text-blue-500 mr-2" />
+        <Users className="h-5 w-5 text-pink-500 mr-2" />
         <h3 className="text-lg font-medium">Chatting Managers</h3>
       </div>
 
@@ -87,7 +87,7 @@ const ChattingManagersList = () => {
         <TableCaption className="italic">
           {loading ? (
             <div className="flex items-center justify-center overflow-y-hidden">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500 mr-2"></div>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-pink-500 mr-2"></div>
               Loading manager data...
             </div>
           ) : (
@@ -96,11 +96,11 @@ const ChattingManagersList = () => {
         </TableCaption>
 
         <TableHeader>
-          <TableRow className="hover:bg-black/40">
-            <TableHead className="font-semibold text-slate-700 w-1/2">
+          <TableRow className="hover:bg-pink-50">
+            <TableHead className="font-semibold text-gray-700 w-1/2">
               Manager Name
             </TableHead>
-            <TableHead className="text-right font-semibold text-slate-700">
+            <TableHead className="text-right font-semibold text-gray-700">
               Assigned Models
             </TableHead>
           </TableRow>
@@ -110,10 +110,10 @@ const ChattingManagersList = () => {
           {managers.map((manager, idx) => {
             const assignedModels = getAssignedModels(manager.name);
             return (
-              <TableRow key={idx} className="hover:bg-black/40">
+              <TableRow key={idx} className="hover:bg-pink-50">
                 <TableCell className="py-3">
                   <div className="flex items-center">
-                    <User className="h-4 w-4 text-slate-400 mr-2" />
+                    <User className="h-4 w-4 text-gray-600 mr-2" />
                     <span className="font-medium">{manager.name}</span>
                   </div>
                 </TableCell>
@@ -125,13 +125,13 @@ const ChattingManagersList = () => {
                           key={i}
                           className="inline-flex items-center px-2 py-1 rounded-md border text-xs font-medium"
                         >
-                          <BookUser className="h-3 w-3  mr-1 text-blue-500" />
+                          <BookUser className="h-3 w-3  mr-1 text-pink-500" />
                           {model}
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <span className="text-slate-400">No models assigned</span>
+                    <span className="text-gray-600">No models assigned</span>
                   )}
                 </TableCell>
               </TableRow>

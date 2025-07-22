@@ -106,9 +106,9 @@ export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
       case "busy":
         return { color: "bg-yellow-500", glow: "shadow-yellow-500/50", text: "text-yellow-400", bg: "bg-yellow-500/20" };
       case "offline":
-        return { color: "bg-gray-500", glow: "shadow-gray-500/50", text: "text-gray-400", bg: "bg-gray-500/20" };
+        return { color: "bg-gray-500", glow: "shadow-gray-500/50", text: "text-gray-600", bg: "bg-gray-100" };
       default:
-        return { color: "bg-gray-500", glow: "shadow-gray-500/50", text: "text-gray-400", bg: "bg-gray-500/20" };
+        return { color: "bg-gray-500", glow: "shadow-gray-500/50", text: "text-gray-600", bg: "bg-gray-100" };
     }
   };
 

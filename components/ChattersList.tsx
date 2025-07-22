@@ -152,10 +152,10 @@ const ChattersList = () => {
     <div className="rounded-lg border shadow-sm p-1">
       <div className="px-4 py-3 flex items-center justify-between border-b">
         <div className="flex items-center">
-          <Users className="h-5 w-5 text-blue-500 mr-2" />
+          <Users className="h-5 w-5 text-pink-500 mr-2" />
           <h3 className="text-lg font-medium">All Chatters</h3>
         </div>
-        <div className="text-sm text-slate-500">
+        <div className="text-sm text-gray-600">
           {loading
             ? "Loading..."
             : `${filteredChatters.length} of ${chattersList.length} chatters`}
@@ -172,7 +172,7 @@ const ChattersList = () => {
             value={searchQuery}
             onChange={handleSearchChange}
             placeholder="Search chatter names..."
-            className="w-full p-2 pl-10 pr-4 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full p-2 pl-10 pr-4 border rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
           />
           {searchQuery && (
             <button
@@ -204,7 +204,7 @@ const ChattersList = () => {
         <TableCaption className="italic">
           {loading ? (
             <div className="flex items-center justify-center overflow-y-hidden">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500 mr-2"></div>
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-pink-500 mr-2"></div>
               Loading chatters data...
             </div>
           ) : searchQuery ? (
@@ -216,13 +216,13 @@ const ChattersList = () => {
 
         <TableHeader>
           <TableRow>
-            <TableHead className="font-semibold text-slate-700">
+            <TableHead className="font-semibold text-gray-700">
               Chatter Name
             </TableHead>
-            <TableHead className="font-semibold text-slate-700">
+            <TableHead className="font-semibold text-gray-700">
               Manager
             </TableHead>
-            <TableHead className="font-semibold text-slate-700">
+            <TableHead className="font-semibold text-gray-700">
               Assigned Model
             </TableHead>
           </TableRow>
@@ -236,17 +236,17 @@ const ChattersList = () => {
                 className="text-center py-10 overflow-y-hidden"
               >
                 <div className="flex justify-center items-center space-x-2 ">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-pink-500"></div>
                   <span>Loading chatters...</span>
                 </div>
               </TableCell>
             </TableRow>
           ) : filteredChatters.length > 0 ? (
             filteredChatters.map((chatter, idx) => (
-              <TableRow key={`chatter-${idx}`} className="hover:bg-black/40">
+              <TableRow key={`chatter-${idx}`} className="hover:bg-pink-50">
                 <TableCell className="py-3">
                   <div className="flex items-center">
-                    <User className="h-4 w-4 text-slate-400 mr-2" />
+                    <User className="h-4 w-4 text-gray-600 mr-2" />
                     <span className="font-medium">{chatter.name}</span>
                   </div>
                 </TableCell>
@@ -258,13 +258,13 @@ const ChattersList = () => {
                           key={i}
                           className="inline-flex items-center px-2 py-1 rounded-md border text-xs font-medium "
                         >
-                          <Users className="h-3 w-3 text-purple-500 mr-1" />
+                          <Users className="h-3 w-3 text-pink-600 mr-1" />
                           {manager}
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <span className="text-slate-400">No manager assigned</span>
+                    <span className="text-gray-600">No manager assigned</span>
                   )}
                 </TableCell>
                 <TableCell className="py-3">
@@ -275,13 +275,13 @@ const ChattersList = () => {
                           key={i}
                           className="inline-flex items-center px-2 py-1 rounded-md border text-xs font-medium"
                         >
-                          <BookUser className="h-3 w-3 text-blue-500 mr-1" />
+                          <BookUser className="h-3 w-3 text-pink-500 mr-1" />
                           {client}
                         </span>
                       ))}
                     </div>
                   ) : (
-                    <span className="text-slate-400">No clients assigned</span>
+                    <span className="text-gray-600">No clients assigned</span>
                   )}
                 </TableCell>
               </TableRow>
@@ -290,7 +290,7 @@ const ChattersList = () => {
             <TableRow>
               <TableCell
                 colSpan={3}
-                className="text-center py-10 text-slate-500"
+                className="text-center py-10 text-gray-600"
               >
                 {searchQuery ? (
                   <div className="flex flex-col items-center">

@@ -47,8 +47,8 @@ const navMain = data.navMain.map((navItem) => {
 
 export function ChattingSideBar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
-    <Sidebar collapsible="icon" {...props} className="dark">
-      <SidebarContent className="dark text-white">
+    <Sidebar collapsible="icon" {...props} className="bg-white/90 border-pink-200">
+      <SidebarContent className="bg-white text-gray-900">
         <NavMain items={navMain} />
       </SidebarContent>
       <SidebarRail />

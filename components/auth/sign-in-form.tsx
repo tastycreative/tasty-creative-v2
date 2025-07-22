@@ -53,14 +53,14 @@ export function SignInForm() {
   return (
     <>
       {verified && (
-        <div className="mb-4 bg-green-50 dark:bg-green-950 text-green-600 dark:text-green-400 p-3 rounded-lg text-sm border border-green-200 dark:border-green-800">
+        <div className="mb-4 bg-green-50 text-green-600 p-3 rounded-lg text-sm border border-green-200">
           <div className="font-semibold">Email verified successfully!</div>
           <div>Please sign in to access your account with full privileges.</div>
         </div>
       )}
 
       {message === "already-verified" && (
-        <div className="mb-4 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 p-3 rounded-lg text-sm border border-blue-200 dark:border-blue-800">
+        <div className="mb-4 bg-blue-50 text-blue-600 p-3 rounded-lg text-sm border border-blue-200">
           Your email is already verified. Please sign in to continue.
         </div>
       )}
