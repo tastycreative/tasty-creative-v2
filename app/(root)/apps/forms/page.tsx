@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 const page = () => {
   return (
-    <div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50">
       <title>Forms | Tasty Creative</title>
       <PermissionGoogle
         apiEndpoint={`/api/forms/list`}

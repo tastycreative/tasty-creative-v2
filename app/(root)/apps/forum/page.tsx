@@ -25,14 +25,16 @@ const models = [
 
 export default function ForumPage() {
   return (
-    <Forum
-      forum={{ type: "general" }}
-      models={models}
-      title="Community Forum"
-      subtitle="Connect, discuss, and share with the community"
-      showModelSelector={true}
-      showSidebar={true}
-      allowModelSwitching={true}
-    />
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50">
+      <Forum
+        forum={{ type: "general" }}
+        models={models}
+        title="Community Forum"
+        subtitle="Connect, discuss, and share with the community"
+        showModelSelector={true}
+        showSidebar={true}
+        allowModelSwitching={true}
+      />
+    </div>
   );
 }
