@@ -1,9 +1,15 @@
 "use client";
 
-import React, { useMemo, useCallback, useState } from "react";
+import React, { useMemo, useCallback, useState, useEffect, useRef } from "react";
 import { VideoSequenceItem, SelectiveBlurRegion } from "@/types/video";
-import { Play, Pause, SkipBack, SkipForward, Clock } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import { BlurTimelineOverlay } from "./BlurTimelineOverlay";
+
+interface VideoFrame {
+  time: number;
+  thumbnail: string;
+  videoId: string;
+}
 
 interface TimelineProps {
   videos: VideoSequenceItem[];
@@ -11,6 +17,7 @@ interface TimelineProps {
   totalDuration: number;
   selectedVideoId: string | null;
   isPlaying: boolean;
+  frameRate?: number; // frames per second, default 30
   onSeek: (time: number) => void;
   onVideoSelect: (id: string) => void;
   onVideoReorder: (dragIndex: number, hoverIndex: number) => void;
@@ -20,12 +27,91 @@ interface TimelineProps {
   editingBlur?: { videoId: string; regionId: string } | null;
 }
 
+// Smart progressive frame extraction utility
+const extractVideoFramesProgressively = (
+  videoFile: File,
+  onFrameExtracted: (frame: VideoFrame) => void,
+  onComplete: () => void
+) => {
+  const video = document.createElement('video');
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  video.preload = 'metadata';
+  video.src = URL.createObjectURL(videoFile);
+  
+  video.addEventListener('loadedmetadata', () => {
+    canvas.width = 80; // Smaller thumbnail for better performance
+    canvas.height = 45; // Maintain 16:9 aspect ratio
+    
+    const duration = video.duration;
+    
+    // Smart frame calculation - limit total frames for clean timeline
+    const calculateOptimalFrames = (duration: number) => {
+      if (duration <= 12) return Math.ceil(duration); // 1 frame per second for very short videos
+      if (duration <= 60) return 10; // 10 frames for videos up to 1 minute
+      return 12; // 12 frames for all longer videos
+    };
+    
+    const maxFrames = Math.min(calculateOptimalFrames(duration), 12); // Cap at 12 frames max
+    const interval = duration / maxFrames;
+    
+    let currentFrameIndex = 0;
+    const frameTimes: number[] = [];
+    
+    // Pre-calculate all frame times
+    for (let i = 0; i < maxFrames; i++) {
+      frameTimes.push(i * interval);
+    }
+    
+    const extractFrame = () => {
+      if (currentFrameIndex >= frameTimes.length) {
+        URL.revokeObjectURL(video.src);
+        onComplete();
+        return;
+      }
+      
+      const time = frameTimes[currentFrameIndex];
+      video.currentTime = Math.min(time, duration - 0.1); // Ensure we don't go past the end
+    };
+    
+    video.addEventListener('seeked', () => {
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const thumbnail = canvas.toDataURL('image/jpeg', 0.6); // Lower quality for speed
+        
+        const frame: VideoFrame = {
+          time: video.currentTime,
+          thumbnail,
+          videoId: '', // Will be set by the calling component
+        };
+        
+        // Immediately call the callback with the new frame
+        onFrameExtracted(frame);
+      }
+      
+      currentFrameIndex++;
+      // Reduced delay for faster extraction
+      setTimeout(extractFrame, 30);
+    });
+    
+    video.addEventListener('error', () => {
+      console.error('Error loading video for frame extraction');
+      URL.revokeObjectURL(video.src);
+      onComplete();
+    });
+    
+    extractFrame();
+  });
+};
+
 export const Timeline: React.FC<TimelineProps> = ({
   videos,
   currentTime,
   totalDuration,
   selectedVideoId,
   isPlaying,
+  frameRate = 30,
   onSeek,
   onVideoSelect,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -37,6 +123,9 @@ export const Timeline: React.FC<TimelineProps> = ({
 }) => {
   const [hoverPosition, setHoverPosition] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [videoFrames, setVideoFrames] = useState<Map<string, VideoFrame[]>>(new Map());
+  const [showFrameView, setShowFrameView] = useState(true);
+  const frameExtractionRef = useRef<Map<string, boolean>>(new Map());
 
   // Calculate dynamic blur area height based on total number of blur regions across all videos
   const totalBlurRegions = useMemo(() => {
@@ -84,6 +173,72 @@ export const Timeline: React.FC<TimelineProps> = ({
 
   // Timeline track top position - starts after blur area
   const timelineTrackTop = blurAreaHeight + 4;
+
+  // Extract frames progressively for immediate loading
+  useEffect(() => {
+    const extractFramesForVideos = () => {
+      for (const video of videos) {
+        if (!frameExtractionRef.current.get(video.id) && video.file) {
+          frameExtractionRef.current.set(video.id, true);
+          
+          // Initialize empty array for this video
+          setVideoFrames(prev => new Map(prev.set(video.id, [])));
+          
+          try {
+            extractVideoFramesProgressively(
+              video.file,
+              (frame) => {
+                // Add video ID and immediately update state
+                const frameWithVideoId = { ...frame, videoId: video.id };
+                setVideoFrames(prev => {
+                  const currentFrames = prev.get(video.id) || [];
+                  return new Map(prev.set(video.id, [...currentFrames, frameWithVideoId]));
+                });
+              },
+              () => {
+                console.log(`Frame extraction completed for video ${video.id}`);
+              }
+            );
+          } catch (error) {
+            console.error(`Failed to extract frames for video ${video.id}:`, error);
+            frameExtractionRef.current.set(video.id, false);
+          }
+        }
+      }
+    };
+
+    // Always extract frames automatically
+    extractFramesForVideos();
+  }, [videos]);
+
+  // Frame navigation functions
+  const getCurrentFrameIndex = useCallback(() => {
+    return Math.round(currentTime * frameRate);
+  }, [currentTime, frameRate]);
+
+  const getTotalFrames = useCallback(() => {
+    return Math.floor(totalDuration * frameRate);
+  }, [totalDuration, frameRate]);
+
+  const seekToFrame = useCallback((frameIndex: number) => {
+    const time = frameIndex / frameRate;
+    onSeek(Math.max(0, Math.min(time, totalDuration)));
+  }, [frameRate, onSeek, totalDuration]);
+
+  const goToPreviousFrame = useCallback(() => {
+    const currentFrame = getCurrentFrameIndex();
+    if (currentFrame > 0) {
+      seekToFrame(currentFrame - 1);
+    }
+  }, [getCurrentFrameIndex, seekToFrame]);
+
+  const goToNextFrame = useCallback(() => {
+    const currentFrame = getCurrentFrameIndex();
+    const totalFrames = getTotalFrames();
+    if (currentFrame < totalFrames - 1) {
+      seekToFrame(currentFrame + 1);
+    }
+  }, [getCurrentFrameIndex, getTotalFrames, seekToFrame]);
 
   const formatTime = useCallback((seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -147,61 +302,26 @@ export const Timeline: React.FC<TimelineProps> = ({
     (e: React.MouseEvent<HTMLDivElement>) => {
       const target = e.target as HTMLElement;
 
-      // Don't interfere with blur overlays or video segments - let them handle their own clicks
-      if (target.closest(".blur-overlay") || target.closest(".video-segment")) {
+      // Don't interfere with blur overlays
+      if (target.closest(".blur-overlay")) {
         return;
       }
 
-      // Only allow seeking when clicking on empty timeline areas
+      // Get the timeline container's position
       const rect = e.currentTarget.getBoundingClientRect();
       const clickX = e.clientX - rect.left;
       const percentage = Math.max(0, Math.min(1, clickX / rect.width));
-
-      // Check if the click is within any video segment bounds
       const clickTime = percentage * totalDuration;
 
-      // Find clicked video using cumulative timing
-      let cumulativeTime = 0;
-      let clickedVideo: VideoSequenceItem | undefined;
-      for (const video of videos) {
-        const speedMultiplier = video.effects.speed || 1;
-        // Account for trimming in timeline click detection
-        const trimStart = video.trimStart || 0;
-        const trimEnd = video.trimEnd || video.duration;
-        const trimmedDuration = trimEnd - trimStart;
-        const effectiveDuration = trimmedDuration / speedMultiplier;
-
-        if (
-          clickTime >= cumulativeTime &&
-          clickTime < cumulativeTime + effectiveDuration
-        ) {
-          clickedVideo = video;
-          break;
-        }
-
-        cumulativeTime += effectiveDuration;
-      }
-
-      // If we clicked on a video segment area but not on the actual segment element,
-      // don't seek (this handles edge cases where the click goes through)
-      if (clickedVideo) {
-        return;
-      }
-
-      // Only seek when clicking in empty timeline space
-      const newTime = percentage * totalDuration;
-
       setHoverPosition(null);
-
-      // Start dragging mode for timeline interactions
       setIsDragging(true);
 
-      // Immediately seek to clicked position
-      onSeek(newTime);
+      // Always seek to the clicked time, regardless of where we clicked
+      onSeek(clickTime);
 
       e.preventDefault();
     },
-    [totalDuration, onSeek, videos]
+    [totalDuration, onSeek]
   );
 
   const handleTimelineMouseMove = useCallback(
@@ -217,7 +337,7 @@ export const Timeline: React.FC<TimelineProps> = ({
       const percentage = Math.max(0, Math.min(1, moveX / rect.width));
 
       if (isDragging) {
-        // Update time while dragging
+        // Update time while dragging - always use exact time calculation
         const newTime = percentage * totalDuration;
         onSeek(newTime);
       } else if (!isBlurOverlay) {
@@ -271,23 +391,21 @@ export const Timeline: React.FC<TimelineProps> = ({
       // Select the video first
       onVideoSelect(video.id);
 
-      // Calculate the click position within the video and seek to that time
-      const videoElement = e.currentTarget;
-      const rect = videoElement.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const videoWidth = rect.width;
+      // Get the timeline container's position for accurate calculation
+      const timelineContainer = e.currentTarget.closest('.timeline-track-container');
+      if (!timelineContainer) return;
 
-      // Calculate the percentage within this video segment
-      const percentage = Math.max(0, Math.min(1, clickX / videoWidth));
-
-      // Calculate the actual time within the video
-      const timeWithinVideo = percentage * video.duration;
-      const absoluteTime = video.startTime + timeWithinVideo;
+      const timelineRect = timelineContainer.getBoundingClientRect();
+      const clickX = e.clientX - timelineRect.left;
+      const timelinePercentage = Math.max(0, Math.min(1, clickX / timelineRect.width));
+      
+      // Calculate the absolute time based on timeline position
+      const absoluteTime = timelinePercentage * totalDuration;
 
       // Seek to that position
       onSeek(absoluteTime);
     },
-    [onVideoSelect, onSeek]
+    [onVideoSelect, onSeek, totalDuration]
   );
 
   const jumpToStart = useCallback(() => {
@@ -330,6 +448,44 @@ export const Timeline: React.FC<TimelineProps> = ({
           >
             <SkipForward className="w-5 h-5 text-gray-700" />
           </button>
+
+          {/* Frame-by-frame navigation controls */}
+          <div className="flex items-center space-x-1 border-l border-pink-200 pl-4">
+            <button
+              onClick={goToPreviousFrame}
+              className="p-2 hover:bg-pink-50 rounded-lg transition-all duration-200 hover:scale-105"
+              title="Previous frame"
+              disabled={getCurrentFrameIndex() <= 0}
+            >
+              <ChevronLeft className="w-4 h-4 text-gray-700" />
+            </button>
+            
+            <div className="text-xs text-gray-600 min-w-[80px] text-center bg-pink-50 px-2 py-1 rounded">
+              Frame: {getCurrentFrameIndex() + 1}/{getTotalFrames()}
+            </div>
+            
+            <button
+              onClick={goToNextFrame}
+              className="p-2 hover:bg-pink-50 rounded-lg transition-all duration-200 hover:scale-105"
+              title="Next frame"
+              disabled={getCurrentFrameIndex() >= getTotalFrames() - 1}
+            >
+              <ChevronRight className="w-4 h-4 text-gray-700" />
+            </button>
+          </div>
+
+          {/* Frame view toggle */}
+          <button
+            onClick={() => setShowFrameView(!showFrameView)}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 ${
+              showFrameView
+                ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-md"
+                : "bg-pink-50 text-pink-700 hover:bg-pink-100"
+            }`}
+            title="Toggle frame thumbnails"
+          >
+            {showFrameView ? "Hide Frames" : "Show Frames"}
+          </button>
         </div>
 
         <div className="flex items-center space-x-6 text-sm text-gray-600">
@@ -347,9 +503,10 @@ export const Timeline: React.FC<TimelineProps> = ({
 
       {/* Timeline Track */}
       <div
-        className="timeline-track-container relative bg-gradient-to-r from-gray-100 to-gray-50 rounded-xl cursor-pointer select-none shadow-inner border border-pink-200 overflow-hidden"
+        className="timeline-track-container relative rounded-xl cursor-pointer select-none shadow-inner border border-pink-200 overflow-hidden"
         style={{
-          height: 88 + (blurAreaHeight - 28), // Dynamic height based on blur regions
+          height: 88 + (blurAreaHeight - 28),
+          background: 'linear-gradient(to right, rgb(243 244 246), rgb(249 250 251))',
         }}
         onClick={handleTimelineClick}
         onMouseDown={handleTimelineMouseDown}
@@ -420,21 +577,23 @@ export const Timeline: React.FC<TimelineProps> = ({
           })()}
         </div>
 
+
         <div
           className="timeline-track absolute inset-x-0 bg-transparent"
           style={{
-            top: timelineTrackTop, // Start after blur overlay area
+            top: timelineTrackTop,
             bottom: 4,
             left: 4,
             right: 4,
           }}
         >
-          {/* Video Segments */}
+          {/* Video Segments with Integrated Frame Thumbnails */}
           {videos.map((video, index) => {
             const { leftPercent, widthPercent } = getVideoPosition(video);
             const isSelected = video.id === selectedVideoId;
+            const frames = videoFrames.get(video.id) || [];
 
-            // Generate distinct pink/rose colors for each video segment
+            // Generate distinct colors for fallback when no frames
             const colors = [
               "from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600",
               "from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700",
@@ -449,11 +608,11 @@ export const Timeline: React.FC<TimelineProps> = ({
               <div
                 key={video.id}
                 className={`
-                  video-segment absolute cursor-pointer transition-all duration-300 shadow-md overflow-hidden
+                  video-segment absolute cursor-pointer transition-all duration-300 shadow-md overflow-hidden rounded-lg
                   ${
                     isSelected
-                      ? "bg-gradient-to-r from-pink-500 to-rose-500 ring-2 ring-pink-300 shadow-lg z-30"
-                      : `bg-gradient-to-r ${colorClass} hover:shadow-lg z-20`
+                      ? "ring-2 ring-pink-400 shadow-lg z-30"
+                      : "hover:shadow-lg z-20"
                   }
                 `}
                 style={{
@@ -461,63 +620,84 @@ export const Timeline: React.FC<TimelineProps> = ({
                   width: `${widthPercent}%`,
                   top: 4,
                   bottom: 4,
-                  marginLeft: index > 0 ? "1px" : "0", // Small gap between segments
+                  marginLeft: index > 0 ? "1px" : "0",
                 }}
                 onClick={(e) => handleVideoClick(video, e)}
                 title={`${video.file.name} (${formatTime(video.trimEnd || video.duration)} ${video.trimStart || video.trimEnd ? "trimmed" : "full"})`}
               >
-                {/* Video text content - adaptive based on segment width and selection state */}
-                {widthPercent > 15 ? (
-                  /* Wide segments: show both name and duration separately */
-                  <>
-                    <div
-                      className={`absolute ${isSelected ? "left-1 right-1" : "left-3 right-3"} ${isSelected ? "top-1" : "top-1.5"} text-xs text-white font-semibold truncate drop-shadow-sm`}
-                    >
-                      {video.file.name}
-                    </div>
-                    <div
-                      className={`absolute ${isSelected ? "left-1 right-1" : "left-3 right-3"} ${isSelected ? "bottom-1" : "bottom-1.5"} text-xs text-white/90 font-medium drop-shadow-sm`}
-                    >
-                      {formatTime(
-                        (video.trimEnd || video.duration) -
-                          (video.trimStart || 0)
-                      )}
-                    </div>
-                  </>
-                ) : widthPercent > 8 ? (
-                  /* Medium segments: show name and duration stacked compactly */
-                  <div
-                    className={`absolute ${isSelected ? "left-0.5 right-0.5" : "left-2 right-2"} ${isSelected ? "top-0.5 bottom-0.5" : "top-1 bottom-1"} flex flex-col justify-center items-center text-center`}
-                  >
-                    <div className="text-xs text-white font-semibold truncate max-w-full leading-tight drop-shadow-sm">
-                      {video.file.name.split(".")[0]}{" "}
-                      {/* Remove extension for space */}
-                    </div>
-                    <div className="text-xs text-white/90 font-medium leading-tight drop-shadow-sm">
-                      {formatTime(
-                        (video.trimEnd || video.duration) -
-                          (video.trimStart || 0)
-                      )}
+                {/* Frame Thumbnails or Loading State */}
+                {showFrameView && frames.length > 0 ? (
+                  /* Show frame thumbnails as navigation */
+                  <div className="absolute inset-0 flex overflow-hidden rounded-lg">
+                    {frames.map((frame, frameIndex) => {
+                      const frameWidth = 100 / frames.length;
+                      const isCurrentFrame = Math.abs((frame.time + video.startTime) - currentTime) < 0.25;
+                      
+                      return (
+                        <div
+                          key={frameIndex}
+                          className={`relative cursor-pointer transition-all duration-200 border-r border-white/30 last:border-r-0 ${
+                            isCurrentFrame ? 'ring-2 ring-pink-400 ring-inset' : 'hover:brightness-110'
+                          }`}
+                          style={{
+                            width: `${frameWidth}%`,
+                            height: '100%',
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSeek(frame.time + video.startTime);
+                            onVideoSelect(video.id);
+                          }}
+                          title={`${video.file.name} - Frame at ${formatTime(frame.time + video.startTime)}`}
+                        >
+                          <img
+                            src={frame.thumbnail}
+                            alt={`Frame at ${frame.time}s`}
+                            className="w-full h-full object-cover"
+                            draggable={false}
+                          />
+                          {/* Current time indicator */}
+                          {isCurrentFrame && (
+                            <div className="absolute inset-0 bg-pink-400/20 pointer-events-none"></div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : showFrameView && frames.length === 0 ? (
+                  /* Loading state */
+                  <div className={`absolute inset-0 flex items-center justify-center bg-gradient-to-r ${colorClass} rounded-lg`}>
+                    <div className="text-center text-white">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-1"></div>
+                      <div className="text-xs">Loading...</div>
                     </div>
                   </div>
                 ) : (
-                  /* Narrow segments: show only duration in center with background */
-                  <div
-                    className={`absolute ${isSelected ? "inset-0.5" : "inset-1"} flex items-center justify-center`}
-                  >
-                    <div
-                      className={`text-xs text-white font-medium bg-black/40 ${isSelected ? "px-0.5 py-0.5" : "px-1.5 py-0.5"} rounded shadow-sm border border-white/20`}
-                    >
-                      {formatTime(
-                        (video.trimEnd || video.duration) -
-                          (video.trimStart || 0)
-                      )}
-                    </div>
-                  </div>
+                  /* Fallback: Traditional colored segments */
+                  <>
+                    <div className={`absolute inset-0 bg-gradient-to-r ${colorClass} rounded-lg`}></div>
+                    {/* Video text content - adaptive based on segment width */}
+                    {widthPercent > 15 ? (
+                      <>
+                        <div className={`absolute left-2 right-2 top-1 text-xs text-white font-semibold truncate drop-shadow-sm z-10`}>
+                          {video.file.name}
+                        </div>
+                        <div className={`absolute left-2 right-2 bottom-1 text-xs text-white/90 font-medium drop-shadow-sm z-10`}>
+                          {formatTime((video.trimEnd || video.duration) - (video.trimStart || 0))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="absolute inset-1 flex items-center justify-center z-10">
+                        <div className="text-xs text-white font-medium bg-black/40 px-1.5 py-0.5 rounded shadow-sm">
+                          {formatTime((video.trimEnd || video.duration) - (video.trimStart || 0))}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {/* Video Number Badge */}
-                <div className="absolute -top-1 -left-1 w-5 h-5 bg-white dark:bg-gray-800 rounded-full border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center z-40 shadow-lg">
+                <div className="absolute -top-1 -left-1 w-5 h-5 bg-white rounded-full border-2 border-gray-300 flex items-center justify-center z-50 shadow-lg">
                   <span className="text-xs font-bold text-gray-700">
                     {index + 1}
                   </span>
@@ -535,6 +715,11 @@ export const Timeline: React.FC<TimelineProps> = ({
               <div className="absolute -top-2 -left-1 w-4 h-4 bg-pink-500 rounded-full shadow-lg hover:scale-110 transition-all duration-200 border-2 border-white" />
               <div className="absolute -top-8 -left-10 bg-gradient-to-r from-pink-500 to-pink-600 text-white text-xs px-3 py-1.5 rounded-lg whitespace-nowrap shadow-lg border border-pink-400 font-medium">
                 {formatTime(currentTime)}
+                {showFrameView && (
+                  <div className="text-pink-200 text-xs mt-0.5">
+                    Frame {getCurrentFrameIndex() + 1}
+                  </div>
+                )}
               </div>
             </div>
           )}
