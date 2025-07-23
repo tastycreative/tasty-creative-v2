@@ -63,6 +63,9 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
     onEffectsChange(selectedVideo.id, {
       blur: 0,
       speed: 1,
+      scale: 1.0,
+      positionX: 0,
+      positionY: 0,
     });
   };
 
@@ -171,6 +174,90 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
             <span>0.25x</span>
             <span>1x</span>
             <span>4x</span>
+          </div>
+        </div>
+
+        {/* Scale Control */}
+        <div className="p-4 bg-gradient-to-r from-gray-50 to-pink-50 rounded-lg border border-pink-200">
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-sm font-semibold text-gray-800">
+              Video Scale
+            </label>
+            <span className="text-sm font-bold text-pink-700 bg-pink-100 px-2 py-1 rounded">
+              {((selectedVideo.effects.scale ?? 1.0) * 100).toFixed(0)}%
+            </span>
+          </div>
+          <input
+            type="range"
+            min="0.1"
+            max="3.0"
+            step="0.1"
+            value={selectedVideo.effects.scale ?? 1.0}
+            onChange={(e) =>
+              handleEffectChange("scale", parseFloat(e.target.value))
+            }
+            className="w-full h-3 bg-gradient-to-r from-pink-200 to-rose-200 rounded-lg appearance-none cursor-pointer slider"
+          />
+          <div className="flex justify-between text-xs font-medium text-gray-700 mt-2">
+            <span>10%</span>
+            <span>100%</span>
+            <span>300%</span>
+          </div>
+        </div>
+
+        {/* Position X Control */}
+        <div className="p-4 bg-gradient-to-r from-gray-50 to-pink-50 rounded-lg border border-pink-200">
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-sm font-semibold text-gray-800">
+              Horizontal Position
+            </label>
+            <span className="text-sm font-bold text-pink-700 bg-pink-100 px-2 py-1 rounded">
+              {(selectedVideo.effects.positionX ?? 0).toFixed(0)}%
+            </span>
+          </div>
+          <input
+            type="range"
+            min="-100"
+            max="100"
+            step="5"
+            value={selectedVideo.effects.positionX ?? 0}
+            onChange={(e) =>
+              handleEffectChange("positionX", parseFloat(e.target.value))
+            }
+            className="w-full h-3 bg-gradient-to-r from-pink-200 to-rose-200 rounded-lg appearance-none cursor-pointer slider"
+          />
+          <div className="flex justify-between text-xs font-medium text-gray-700 mt-2">
+            <span>Left</span>
+            <span>Center</span>
+            <span>Right</span>
+          </div>
+        </div>
+
+        {/* Position Y Control */}
+        <div className="p-4 bg-gradient-to-r from-gray-50 to-pink-50 rounded-lg border border-pink-200">
+          <div className="flex items-center justify-between mb-3">
+            <label className="text-sm font-semibold text-gray-800">
+              Vertical Position
+            </label>
+            <span className="text-sm font-bold text-pink-700 bg-pink-100 px-2 py-1 rounded">
+              {(selectedVideo.effects.positionY ?? 0).toFixed(0)}%
+            </span>
+          </div>
+          <input
+            type="range"
+            min="-100"
+            max="100"
+            step="5"
+            value={selectedVideo.effects.positionY ?? 0}
+            onChange={(e) =>
+              handleEffectChange("positionY", parseFloat(e.target.value))
+            }
+            className="w-full h-3 bg-gradient-to-r from-pink-200 to-rose-200 rounded-lg appearance-none cursor-pointer slider"
+          />
+          <div className="flex justify-between text-xs font-medium text-gray-700 mt-2">
+            <span>Top</span>
+            <span>Center</span>
+            <span>Bottom</span>
           </div>
         </div>
 

@@ -57,6 +57,9 @@ export const useVideoSequence = () => {
                   blur: 0,
                   speed: 1,
                   selectiveBlur: [],
+                  scale: 1.0,
+                  positionX: 0,
+                  positionY: 0,
                 },
               });
               resolve();

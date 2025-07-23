@@ -16,8 +16,8 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
   videos,
   currentTime,
   isPlaying,
-  width = 640,
-  height = 360,
+  width = 400,
+  height = 400, // Always square
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement }>({});
@@ -154,14 +154,54 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
       videoElement.videoHeight > 0
     ) {
       try {
-        // Apply effects and draw to canvas
-        applyVideoEffects(
+        // Clear canvas with black background
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, width, height);
+        
+        // Calculate scaling and positioning
+        const scale = currentVideo.effects.scale || 1.0;
+        const posX = (currentVideo.effects.positionX || 0) * (width / 100);
+        const posY = (currentVideo.effects.positionY || 0) * (height / 100);
+        
+        // Calculate video dimensions maintaining aspect ratio
+        const videoAspectRatio = videoElement.videoWidth / videoElement.videoHeight;
+        let drawWidth = width * scale;
+        let drawHeight = height * scale;
+        
+        // Maintain video aspect ratio within scaled dimensions
+        if (videoAspectRatio > 1) {
+          // Video is wider than tall
+          drawHeight = drawWidth / videoAspectRatio;
+        } else {
+          // Video is taller than wide
+          drawWidth = drawHeight * videoAspectRatio;
+        }
+        
+        // Calculate centered position with offset
+        const drawX = (width - drawWidth) / 2 + posX;
+        const drawY = (height - drawHeight) / 2 + posY;
+        
+        // Draw the video
+        ctx.drawImage(
           videoElement,
-          canvas,
-          currentVideo.effects,
-          width,
-          height
+          drawX,
+          drawY,
+          drawWidth,
+          drawHeight
         );
+        
+        // Apply blur effect if needed
+        if (currentVideo.effects.blur > 0) {
+          ctx.filter = `blur(${currentVideo.effects.blur}px)`;
+          ctx.drawImage(
+            videoElement,
+            drawX,
+            drawY,
+            drawWidth,
+            drawHeight
+          );
+          ctx.filter = 'none';
+        }
       } catch (error) {
         console.error("Error applying video effects:", error);
         // Fallback: draw black screen instead of error message to reduce flickering
@@ -263,16 +303,16 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
     <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-pink-200 p-6">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-700">
-          Preview
+          Square Preview
         </h3>
-        <div className="text-sm text-gray-600">
-          {width} × {height}
+        <div className="text-sm text-pink-600 font-medium">
+          {width} × {height} (1:1)
         </div>
       </div>
 
       <div
-        className="relative bg-black rounded-lg overflow-hidden"
-        style={{ aspectRatio: `${width}/${height}` }}
+        className="relative bg-black rounded-lg overflow-hidden shadow-lg border-2 border-pink-200"
+        style={{ aspectRatio: "1/1" }}
       >
         <canvas
           ref={canvasRef}

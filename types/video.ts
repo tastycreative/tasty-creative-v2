@@ -2,6 +2,9 @@ export interface VideoEffects {
   blur: number;
   speed: number; // Video playback speed multiplier (0.5 = half speed, 2.0 = double speed)
   selectiveBlur?: SelectiveBlurRegion[]; // Optional selective blur regions
+  scale: number; // Video scale (0.1 = 10%, 1.0 = 100%, 2.0 = 200%)
+  positionX: number; // X position offset as percentage (-100 to 100)
+  positionY: number; // Y position offset as percentage (-100 to 100)
 }
 
 export interface SelectiveBlurRegion {
@@ -35,6 +38,7 @@ export interface ExportSettings {
   startTime: number;
   endTime: number;
   format: "gif" | "mp4" | "webm"; // Export format options
+  forceSquare: boolean; // Force square aspect ratio output
 }
 
 export interface TimelinePosition {
