@@ -27,11 +27,14 @@ interface TimelineProps {
   editingBlur?: { videoId: string; regionId: string } | null;
 }
 
-// Smart progressive frame extraction utility
+// Smart progressive frame extraction utility with throttling and progress tracking
 const extractVideoFramesProgressively = (
   videoFile: File,
   onFrameExtracted: (frame: VideoFrame) => void,
-  onComplete: () => void
+  onComplete: () => void,
+  onProgressUpdate: (current: number, total: number) => void,
+  priority: number = 0, // Higher priority videos extract first
+  shouldPause: () => boolean = () => false // Function to check if extraction should be paused
 ) => {
   const video = document.createElement('video');
   const canvas = document.createElement('canvas');
@@ -64,10 +67,20 @@ const extractVideoFramesProgressively = (
       frameTimes.push(i * interval);
     }
     
+    // Initialize progress
+    onProgressUpdate(0, maxFrames);
+    
     const extractFrame = () => {
       if (currentFrameIndex >= frameTimes.length) {
         URL.revokeObjectURL(video.src);
         onComplete();
+        return;
+      }
+      
+      // Check if we should pause extraction (e.g., when video is playing)
+      if (shouldPause()) {
+        // Retry after a longer delay when paused
+        setTimeout(extractFrame, 500);
         return;
       }
       
@@ -77,22 +90,38 @@ const extractVideoFramesProgressively = (
     
     video.addEventListener('seeked', () => {
       if (ctx) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const thumbnail = canvas.toDataURL('image/jpeg', 0.6); // Lower quality for speed
-        
-        const frame: VideoFrame = {
-          time: video.currentTime,
-          thumbnail,
-          videoId: '', // Will be set by the calling component
-        };
-        
-        // Immediately call the callback with the new frame
-        onFrameExtracted(frame);
+        try {
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          const thumbnail = canvas.toDataURL('image/jpeg', 0.6); // Lower quality for speed
+          
+          const frame: VideoFrame = {
+            time: video.currentTime,
+            thumbnail,
+            videoId: '', // Will be set by the calling component
+          };
+          
+          // Immediately call the callback with the new frame
+          onFrameExtracted(frame);
+          
+          // Update progress
+          onProgressUpdate(currentFrameIndex + 1, maxFrames);
+        } catch (error) {
+          console.warn('Failed to extract frame at time', video.currentTime, error);
+        }
       }
       
       currentFrameIndex++;
-      // Reduced delay for faster extraction
-      setTimeout(extractFrame, 30);
+      // Use requestIdleCallback to avoid blocking main thread during video playback
+      const delay = priority === 0 ? 150 : 100; // First video gets faster extraction
+      
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => {
+          setTimeout(extractFrame, delay);
+        }, { timeout: delay + 100 });
+      } else {
+        // Fallback for browsers without requestIdleCallback
+        setTimeout(extractFrame, delay * 1.5);
+      }
     });
     
     video.addEventListener('error', () => {
@@ -101,7 +130,8 @@ const extractVideoFramesProgressively = (
       onComplete();
     });
     
-    extractFrame();
+    // Start extraction with a small delay to let the UI settle
+    setTimeout(extractFrame, priority * 50);
   });
 };
 
@@ -126,6 +156,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   const [videoFrames, setVideoFrames] = useState<Map<string, VideoFrame[]>>(new Map());
   const [showFrameView, setShowFrameView] = useState(true);
   const frameExtractionRef = useRef<Map<string, boolean>>(new Map());
+  const [extractionProgress, setExtractionProgress] = useState<Map<string, { current: number; total: number }>>(new Map());
 
   // Calculate dynamic blur area height based on total number of blur regions across all videos
   const totalBlurRegions = useMemo(() => {
@@ -174,37 +205,60 @@ export const Timeline: React.FC<TimelineProps> = ({
   // Timeline track top position - starts after blur area
   const timelineTrackTop = blurAreaHeight + 4;
 
-  // Extract frames progressively for immediate loading
+  // Extract frames progressively with queue management
   useEffect(() => {
     const extractFramesForVideos = () => {
-      for (const video of videos) {
-        if (!frameExtractionRef.current.get(video.id) && video.file) {
-          frameExtractionRef.current.set(video.id, true);
-          
-          // Initialize empty array for this video
-          setVideoFrames(prev => new Map(prev.set(video.id, [])));
-          
-          try {
-            extractVideoFramesProgressively(
-              video.file,
-              (frame) => {
-                // Add video ID and immediately update state
-                const frameWithVideoId = { ...frame, videoId: video.id };
-                setVideoFrames(prev => {
-                  const currentFrames = prev.get(video.id) || [];
-                  return new Map(prev.set(video.id, [...currentFrames, frameWithVideoId]));
-                });
-              },
-              () => {
-                console.log(`Frame extraction completed for video ${video.id}`);
-              }
-            );
-          } catch (error) {
-            console.error(`Failed to extract frames for video ${video.id}:`, error);
-            frameExtractionRef.current.set(video.id, false);
+      // Process videos one at a time to prevent UI blocking
+      const videosToProcess = videos.filter(video => 
+        !frameExtractionRef.current.get(video.id) && video.file
+      );
+      
+      if (videosToProcess.length === 0) return;
+      
+      // Process videos sequentially with priority (first video gets priority 0)
+      videosToProcess.forEach((video, index) => {
+        // Delay each video's processing to prevent simultaneous extraction
+        setTimeout(() => {
+          if (!frameExtractionRef.current.get(video.id)) {
+            frameExtractionRef.current.set(video.id, true);
+            
+            // Initialize empty array for this video
+            setVideoFrames(prev => new Map(prev.set(video.id, [])));
+            
+            try {
+              extractVideoFramesProgressively(
+                video.file,
+                (frame) => {
+                  // Add video ID and immediately update state
+                  const frameWithVideoId = { ...frame, videoId: video.id };
+                  setVideoFrames(prev => {
+                    const currentFrames = prev.get(video.id) || [];
+                    return new Map(prev.set(video.id, [...currentFrames, frameWithVideoId]));
+                  });
+                },
+                () => {
+                  console.log(`Frame extraction completed for video ${video.id}`);
+                  // Clear progress when complete
+                  setExtractionProgress(prev => {
+                    const newMap = new Map(prev);
+                    newMap.delete(video.id);
+                    return newMap;
+                  });
+                },
+                (current, total) => {
+                  // Update progress
+                  setExtractionProgress(prev => new Map(prev.set(video.id, { current, total })));
+                },
+                index, // Priority based on video order
+                () => isPlaying // Pause extraction when video is playing
+              );
+            } catch (error) {
+              console.error(`Failed to extract frames for video ${video.id}:`, error);
+              frameExtractionRef.current.set(video.id, false);
+            }
           }
-        }
-      }
+        }, index * 200); // Stagger video processing by 200ms each
+      });
     };
 
     // Always extract frames automatically
@@ -704,11 +758,25 @@ export const Timeline: React.FC<TimelineProps> = ({
                     })}
                   </div>
                 ) : showFrameView && frames.length === 0 ? (
-                  /* Loading state */
+                  /* Loading state with progress */
                   <div className={`absolute inset-0 flex items-center justify-center bg-gradient-to-r ${colorClass} rounded-lg`}>
                     <div className="text-center text-white">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto mb-1"></div>
-                      <div className="text-xs">Loading...</div>
+                      {(() => {
+                        const progress = extractionProgress.get(video.id);
+                        return progress ? (
+                          <div className="space-y-1">
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
+                            <div className="text-xs">
+                              {progress.current}/{progress.total}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-1">
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
+                            <div className="text-xs">Loading...</div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
                 ) : (

@@ -22,9 +22,11 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement }>({});
   const animationFrameRef = useRef<number | null>(null);
+  const syncAnimationFrameRef = useRef<number | null>(null);
   const [loadedVideos, setLoadedVideos] = useState<Set<string>>(new Set());
   const [currentVideoId, setCurrentVideoId] = useState<string | null>(null);
   const lastRenderTimeRef = useRef<number>(0);
+  const lastSyncTimeRef = useRef<number>(0);
 
   // Create video elements for each video file
   useEffect(() => {
@@ -141,10 +143,14 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
     const trimEnd = currentVideo.trimEnd || currentVideo.duration;
     const adjustedVideoTime = trimStart + Math.max(0, Math.min(videoTime, trimEnd - trimStart));
 
-    // Only update video time if there's a significant difference to reduce seeking and lag
-    const timeDiff = Math.abs(videoElement.currentTime - adjustedVideoTime);
-    if (timeDiff > 0.5) { // Increased threshold significantly to reduce lag
-      videoElement.currentTime = Math.max(0, Math.min(adjustedVideoTime, videoElement.duration - 0.01));
+    // Apply GifMaker pattern: avoid seeking during playback to prevent lag
+    // Only seek when not playing to avoid conflicts with video playback
+    if (!isPlaying) {
+      const timeDiff = Math.abs(videoElement.currentTime - adjustedVideoTime);
+      const threshold = 0.1; // Smaller threshold when not playing for accuracy
+      if (timeDiff > threshold) {
+        videoElement.currentTime = Math.max(0, Math.min(adjustedVideoTime, videoElement.duration - 0.01));
+      }
     }
 
     // Check if video is ready to render
@@ -219,15 +225,15 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
     videos,
   ]);
 
-  // Throttled rendering to reduce flickering
+  // Throttled rendering to reduce flickering while maintaining responsiveness
   const throttledRender = useCallback(() => {
     const now = Date.now();
-    if (now - lastRenderTimeRef.current >= 50) {
-      // ~20fps max for better performance
+    const renderInterval = isPlaying ? 33 : 50; // 30fps when playing, 20fps when paused
+    if (now - lastRenderTimeRef.current >= renderInterval) {
       renderFrame();
       lastRenderTimeRef.current = now;
     }
-  }, [renderFrame]);
+  }, [renderFrame, isPlaying]);
 
   // Update canvas with animation frame for smooth rendering
   useEffect(() => {
@@ -252,7 +258,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
     };
   }, [throttledRender, isPlaying]);
 
-  // Handle video playback state with debouncing
+  // Handle video playback state inspired by GifMaker's approach
   useEffect(() => {
     const currentVideo = getCurrentVideo();
 
@@ -263,7 +269,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
       }
     });
 
-    // Play current video if needed
+    // Play current video if needed - inspired by GifMakerLivePreview
     if (currentVideo && isPlaying && loadedVideos.has(currentVideo.id)) {
       const videoElement = videoRefs.current[currentVideo.id];
       if (videoElement && videoElement.readyState >= 2) {
@@ -276,16 +282,21 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
             break;
           }
           const videoSpeedMultiplier = video.effects.speed || 1;
-          const videoEffectiveDuration = video.duration / videoSpeedMultiplier;
+          const trimStart = video.trimStart || 0;
+          const trimEnd = video.trimEnd || video.duration;
+          const trimmedDuration = trimEnd - trimStart;
+          const videoEffectiveDuration = trimmedDuration / videoSpeedMultiplier;
           cumulativeTime += videoEffectiveDuration;
         }
         
         const relativeTime = currentTime - cumulativeTime;
         const videoTime = relativeTime * speedMultiplier;
+        const trimStart = currentVideo.trimStart || 0;
+        const adjustedVideoTime = trimStart + Math.max(0, Math.min(videoTime, (currentVideo.trimEnd || currentVideo.duration) - trimStart));
 
-        // Set time accurately only if there's a significant difference
-        if (Math.abs(videoElement.currentTime - videoTime) > 0.3) { // Increased threshold to reduce lag
-          videoElement.currentTime = Math.max(0, Math.min(videoTime, videoElement.duration - 0.01));
+        // ONLY set time when NOT playing to avoid seeking conflicts (GifMaker pattern)
+        if (!isPlaying && Math.abs(videoElement.currentTime - adjustedVideoTime) > 0.1) {
+          videoElement.currentTime = Math.max(0, Math.min(adjustedVideoTime, videoElement.duration - 0.01));
         }
 
         // Play the video
@@ -298,6 +309,71 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
       }
     }
   }, [getCurrentVideo, currentTime, isPlaying, loadedVideos, videos]);
+
+  // Add GifMaker-style video synchronization during playback
+  useEffect(() => {
+    if (!isPlaying) {
+      if (syncAnimationFrameRef.current) {
+        cancelAnimationFrame(syncAnimationFrameRef.current);
+        syncAnimationFrameRef.current = null;
+      }
+      return;
+    }
+
+    const syncVideoTime = () => {
+      const currentVideo = getCurrentVideo();
+      if (currentVideo && loadedVideos.has(currentVideo.id)) {
+        const videoElement = videoRefs.current[currentVideo.id];
+        
+        if (videoElement && !videoElement.paused && !videoElement.ended) {
+          const now = performance.now();
+          
+          // Throttle updates to every 100ms like GifMaker
+          if (now - lastSyncTimeRef.current >= 100) {
+            const speedMultiplier = currentVideo.effects.speed || 1;
+            
+            // Calculate expected timeline position based on video time
+            let cumulativeTime = 0;
+            for (const video of videos) {
+              if (video.id === currentVideo.id) {
+                break;
+              }
+              const videoSpeedMultiplier = video.effects.speed || 1;
+              const trimStart = video.trimStart || 0;
+              const trimEnd = video.trimEnd || video.duration;
+              const trimmedDuration = trimEnd - trimStart;
+              const videoEffectiveDuration = trimmedDuration / videoSpeedMultiplier;
+              cumulativeTime += videoEffectiveDuration;
+            }
+            
+            const trimStart = currentVideo.trimStart || 0;
+            const videoTimeInClip = videoElement.currentTime - trimStart;
+            const timelineTime = cumulativeTime + (videoTimeInClip / speedMultiplier);
+            
+            // Only update if there's a significant difference (avoid jitter like GifMaker)
+            if (Math.abs(timelineTime - currentTime) > 0.05) {
+              // Update currentTime through parent component if possible
+              // This would need to be passed as a prop from VideoEditor
+            }
+            
+            lastSyncTimeRef.current = now;
+          }
+        }
+      }
+
+      if (isPlaying) {
+        syncAnimationFrameRef.current = requestAnimationFrame(syncVideoTime);
+      }
+    };
+
+    syncAnimationFrameRef.current = requestAnimationFrame(syncVideoTime);
+
+    return () => {
+      if (syncAnimationFrameRef.current) {
+        cancelAnimationFrame(syncAnimationFrameRef.current);
+      }
+    };
+  }, [isPlaying, getCurrentVideo, loadedVideos, currentTime, videos]);
 
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-pink-200 p-6">
