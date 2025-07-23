@@ -220,7 +220,10 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
   };
 
   const handleVideoSelect = (id: string) => {
+    console.log('handleVideoSelect called with id:', id);
+    console.log('Current selectedVideoId:', selectedVideoId);
     setSelectedVideoId(id);
+    console.log('Set selectedVideoId to:', id);
   };
 
   const clearAllVideos = () => {
@@ -267,6 +270,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
   };
 
   const selectedVideo = videos.find((v) => v.id === selectedVideoId) || null;
+  console.log('selectedVideoId:', selectedVideoId, 'selectedVideo:', selectedVideo?.file?.name || 'null');
   const totalDuration = getTotalDuration();
   const currentVideo = getCurrentVideo();
 

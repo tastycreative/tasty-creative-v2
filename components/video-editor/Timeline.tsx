@@ -468,6 +468,7 @@ export const Timeline: React.FC<TimelineProps> = ({
       e.preventDefault();
 
       // Select the video first
+      console.log('Video segment clicked, selecting video:', video.id, video.file.name);
       onVideoSelect(video.id);
 
       // Get the timeline track element for accurate calculation
@@ -738,6 +739,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                           }}
                           onClick={(e) => {
                             e.stopPropagation();
+                            console.log('Frame clicked, selecting video:', video.id, video.file.name);
                             onSeek(frame.time + video.startTime);
                             onVideoSelect(video.id);
                           }}
