@@ -938,36 +938,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                 return renderVideoSegment(video, index, leftPercent, widthPercent, isSelected, frames, colorClass, topOffset, bottomOffset);
               })}
 
-              {/* Grid 1 Add Sequence Button */}
-              {(() => {
-                const grid1Videos = videos.filter(v => v.gridId === 'grid-1');
-                if (grid1Videos.length > 0) {
-                  const lastVideo = grid1Videos[grid1Videos.length - 1];
-                  const { leftPercent, widthPercent } = getVideoPosition(lastVideo);
-                  const totalTrackArea = (88 + (blurAreaHeight - 28)) * 2;
-                  const singleTrackHeight = (totalTrackArea - 8) / 2;
-                  const topOffset = 4;
-                  const bottomOffset = totalTrackArea - singleTrackHeight - topOffset;
-                  
-                  return (
-                    <button
-                      key="grid-1-add"
-                      onClick={() => onAddSequence?.('grid-1')}
-                      className="absolute cursor-pointer hover:scale-110 transition-all duration-200 bg-blue-500 hover:bg-blue-600 text-white rounded-full p-1 shadow-lg"
-                      style={{
-                        left: `${leftPercent + widthPercent + 0.5}%`,
-                        top: topOffset + singleTrackHeight / 2 - 12,
-                        width: '24px',
-                        height: '24px',
-                      }}
-                      title="Add sequence to Grid 1"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </button>
-                  );
-                }
-                return null;
-              })()}
+              {/* Removed duplicate per-grid add button after last video segment */}
 
               {/* Grid 2 Track */}
               {videos.filter(v => v.gridId === 'grid-2').map((video, index) => {
@@ -985,35 +956,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                 return renderVideoSegment(video, index, leftPercent, widthPercent, isSelected, frames, colorClass, topOffset, bottomOffset);
               })}
 
-              {/* Grid 2 Add Sequence Button */}
-              {(() => {
-                const grid2Videos = videos.filter(v => v.gridId === 'grid-2');
-                if (grid2Videos.length > 0) {
-                  const lastVideo = grid2Videos[grid2Videos.length - 1];
-                  const { leftPercent, widthPercent } = getVideoPosition(lastVideo);
-                  const totalTrackArea = (88 + (blurAreaHeight - 28)) * 2;
-                  const singleTrackHeight = (totalTrackArea - 8) / 2;
-                  const topOffset = singleTrackHeight + 8;
-                  
-                  return (
-                    <button
-                      key="grid-2-add"
-                      onClick={() => onAddSequence?.('grid-2')}
-                      className="absolute cursor-pointer hover:scale-110 transition-all duration-200 bg-green-500 hover:bg-green-600 text-white rounded-full p-1 shadow-lg"
-                      style={{
-                        left: `${leftPercent + widthPercent + 0.5}%`,
-                        top: topOffset + singleTrackHeight / 2 - 12,
-                        width: '24px',
-                        height: '24px',
-                      }}
-                      title="Add sequence to Grid 2"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </button>
-                  );
-                }
-                return null;
-              })()}
+              {/* Removed duplicate per-grid add button after last video segment */}
 
               {/* Track Separator Line */}
               <div 
