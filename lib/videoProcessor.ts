@@ -808,201 +808,177 @@ const applySelectiveBlur = (
 };
 
 // GIF export function (using existing reliable implementation)
+
+// --- Patch: Support side-by-side GIF export ---
 export const exportToGif = async (
   videos: VideoSequenceItem[],
   settings: ExportSettings,
   onProgress?: (progress: number) => void
 ): Promise<Blob> => {
   try {
-    // Import GIF.js dynamically to avoid SSR issues
     const { default: GIF } = await import("gif.js");
-
-    // Create GIF encoder with better settings
     const gif = new GIF({
       workers: 2,
       quality: Math.round((100 - settings.quality) / 10),
       width: settings.width,
       height: settings.height,
       workerScript: "/gif.worker.js",
-      background: "#000000", // Set black background
-      transparent: null, // Disable transparency
+      background: "#000000",
+      transparent: null,
     });
-
-    // Create a canvas for rendering frames
     const canvas = document.createElement("canvas");
     canvas.width = settings.width;
     canvas.height = settings.height;
     const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Could not get canvas context");
 
-    if (!ctx) {
-      throw new Error("Could not get canvas context");
+    // --- Side-by-side detection ---
+    const getGrids = (videos: VideoSequenceItem[]) => {
+      const grids: Record<string, VideoSequenceItem[]> = {};
+      for (const v of videos) {
+        const grid = v.gridId || "grid-1";
+        if (!grids[grid]) grids[grid] = [];
+        grids[grid].push(v);
+      }
+      return grids;
+    };
+    const grids = getGrids(videos);
+    const gridKeys = Object.keys(grids);
+    const isSideBySide = gridKeys.length > 1;
+
+    // Preload all videos for all grids
+    const gridVideoElements: Record<string, HTMLVideoElement[]> = {};
+    for (const gridId of gridKeys) {
+      gridVideoElements[gridId] = grids[gridId].map(v => {
+        const el = document.createElement("video");
+        el.src = v.url;
+        el.muted = true;
+        el.crossOrigin = "anonymous";
+        return el;
+      });
     }
-
-    // Create video elements for all videos and ensure they're fully loaded
-    const videoElements: { [key: string]: HTMLVideoElement } = {};
-
-    if (onProgress) onProgress(10);
-
-    // Preload all videos and wait for them to be fully ready
     await Promise.all(
-      videos.map(
-        (video) =>
-          new Promise<void>((resolve, reject) => {
-            const videoElement = document.createElement("video");
-            videoElement.src = video.url;
-            videoElement.muted = true;
-            videoElement.crossOrigin = "anonymous";
-            videoElement.preload = "metadata";
-
-            videoElement.onloadedmetadata = () => {
-              // Wait for video to be fully ready for seeking
-              videoElement.onseeked = () => {
-                videoElements[video.id] = videoElement;
-                resolve();
-              };
-              // Seek to beginning to ensure video is ready
-              videoElement.currentTime = 0;
-            };
-
-            videoElement.onerror = () => {
-              reject(new Error(`Failed to load video: ${video.file.name}`));
-            };
-          })
+      Object.values(gridVideoElements).flat().map(
+        v => new Promise<void>((resolve, reject) => {
+          v.onloadeddata = () => resolve();
+          v.onerror = () => reject(new Error("Failed to load video"));
+        })
       )
     );
+    if (onProgress) onProgress(10);
 
-    if (onProgress) onProgress(30);
-
-    // Calculate frame timing accounting for speed effects and trimming
-    const totalDuration = videos.reduce((total, video) => {
-      const speedMultiplier = video.effects.speed || 1;
-      const trimStart = video.trimStart || 0;
-      const trimEnd = video.trimEnd || video.duration;
-      const trimmedDuration = Math.max(0.1, trimEnd - trimStart);
-      const effectiveDuration = trimmedDuration / speedMultiplier;
-      return total + effectiveDuration;
-    }, 0);
-
-    const totalFrames = Math.ceil(totalDuration * settings.fps);
-    const frameDelay = Math.round(1000 / settings.fps);
-
-    console.log(
-      `Exporting ${totalFrames} frames over ${totalDuration}s at ${settings.fps} FPS as GIF`
+    // Calculate max duration for both grids
+    const allVideos = Object.values(grids).flat();
+    const maxDuration = Math.max(
+      ...allVideos.map(v => (v.trimEnd || v.duration) - (v.trimStart || 0))
     );
+    const fps = settings.fps;
+    const totalFrames = Math.ceil(maxDuration * fps);
+    const frameDelay = Math.round(1000 / fps);
 
-    // Generate frames sequentially to avoid seeking issues
-    let frameCount = 0;
+    // let frameCount = 0;
     for (let frameIndex = 0; frameIndex < totalFrames; frameIndex++) {
-      const time = frameIndex / settings.fps; // Current time in the sequence
-
-      // Find current video for this time using cumulative timing
-      let cumulativeTime = 0;
-      let currentVideo: VideoSequenceItem | undefined;
-      let videoIndex = -1;
-
-      for (let i = 0; i < videos.length; i++) {
-        const video = videos[i];
-        const speedMultiplier = video.effects.speed || 1;
-        const trimStart = video.trimStart || 0;
-        const trimEnd = video.trimEnd || video.duration;
-        const trimmedDuration = Math.max(0.1, trimEnd - trimStart);
-        const effectiveDuration = trimmedDuration / speedMultiplier;
-
-        if (
-          time >= cumulativeTime &&
-          time < cumulativeTime + effectiveDuration
-        ) {
-          currentVideo = video;
-          videoIndex = i;
-          break;
-        }
-
-        cumulativeTime += effectiveDuration;
-      }
-
-      // Always start with a black background
-      ctx.fillStyle = "#000000";
+      const t = frameIndex / fps;
+      ctx.fillStyle = "#000";
       ctx.fillRect(0, 0, settings.width, settings.height);
 
-      if (currentVideo && videoIndex >= 0) {
-        const videoElement = videoElements[currentVideo.id];
-
-        if (
-          videoElement &&
-          videoElement.videoWidth > 0 &&
-          videoElement.videoHeight > 0
-        ) {
-          // Calculate video time relative to the video start, accounting for speed
-          const speedMultiplier = currentVideo.effects.speed || 1;
-
-          // Find the cumulative start time for this video
-          let videoStartTime = 0;
-          for (let i = 0; i < videoIndex; i++) {
-            const video = videos[i];
-            const videoSpeedMultiplier = video.effects.speed || 1;
-            const videoTrimStart = video.trimStart || 0;
-            const videoTrimEnd = video.trimEnd || video.duration;
-            const videoTrimmedDuration = Math.max(0.1, videoTrimEnd - videoTrimStart);
-            const videoEffectiveDuration = videoTrimmedDuration / videoSpeedMultiplier;
-            videoStartTime += videoEffectiveDuration;
+      if (isSideBySide) {
+        // For each grid (left/right), draw to offscreen then blit to main canvas
+        const width = settings.width;
+        const height = settings.height;
+        const halfWidth = Math.floor(width / 2);
+        for (const [i, gridId] of ["grid-1", "grid-2"].entries()) {
+          const gridVideos = grids[gridId] || [];
+          // Find the video active at time t
+          let video: VideoSequenceItem | undefined;
+          let videoElement: HTMLVideoElement | undefined;
+          let localTime = t;
+          let acc = 0;
+          for (let vIdx = 0; vIdx < gridVideos.length; vIdx++) {
+            const v = gridVideos[vIdx];
+            const trimStart = v.trimStart || 0;
+            const trimEnd = v.trimEnd || v.duration;
+            const duration = trimEnd - trimStart;
+            if (localTime >= acc && localTime < acc + duration) {
+              video = v;
+              videoElement = gridVideoElements[gridId][vIdx];
+              localTime = trimStart + (localTime - acc);
+              break;
+            }
+            acc += duration;
           }
-
-          const relativeTime = time - videoStartTime;
-          // Map the relative time to the trimmed range
-          const trimStart = currentVideo.trimStart || 0;
-          const trimEnd = currentVideo.trimEnd || currentVideo.duration;
-          const videoTime = Math.max(
-            trimStart,
-            Math.min(
-              trimStart + (relativeTime * speedMultiplier),
-              trimEnd - 0.01
-            )
-          );
-
-          // Use reliable seeking method
-          await new Promise<void>((resolve) => {
-            let attempts = 0;
-            const maxAttempts = 3;
-
-            const seekToTime = async () => {
-              attempts++;
-              videoElement.currentTime = videoTime;
-
-              // Wait for the seek to complete
-              const waitForSeek = () => {
-                return new Promise<void>((seekResolve) => {
-                  const checkReady = () => {
-                    const timeDiff = Math.abs(
-                      videoElement.currentTime - videoTime
-                    );
-                    if (timeDiff < 0.1 && videoElement.readyState >= 2) {
-                      seekResolve();
-                    } else if (attempts < maxAttempts) {
-                      setTimeout(checkReady, 50);
-                    } else {
-                      seekResolve(); // Give up after max attempts
-                    }
-                  };
-                  setTimeout(checkReady, 50);
-                });
-              };
-
-              await waitForSeek();
-
-              if (videoElement.readyState >= 2) {
-                resolve();
-              } else if (attempts < maxAttempts) {
-                setTimeout(seekToTime, 100);
-              } else {
-                resolve(); // Give up after max attempts
-              }
-            };
-
-            seekToTime();
-          });
-
-          // Ensure we have a valid frame before drawing
-          if (videoElement.readyState >= 2 && videoElement.videoWidth > 0) {
+          if (video && videoElement) {
+            // Seek video to localTime
+            videoElement.currentTime = Math.min(Math.max(localTime, 0), (video.trimEnd || video.duration) - 0.01);
+            await new Promise<void>(resolve => {
+              videoElement.onseeked = () => resolve();
+              if (videoElement.readyState >= 2) resolve();
+            });
+            // Draw to offscreen canvas, then to main canvas
+            const offscreen = document.createElement("canvas");
+            offscreen.width = halfWidth;
+            offscreen.height = height;
+            applyVideoEffects(
+              videoElement,
+              offscreen,
+              video.effects,
+              halfWidth,
+              height
+            );
+            ctx.drawImage(offscreen, i === 0 ? 0 : halfWidth, 0);
+          }
+        }
+      } else {
+        // Single layout: original logic
+        // Find current video for this time using cumulative timing
+        let cumulativeTime = 0;
+        let currentVideo: VideoSequenceItem | undefined;
+        let videoIndex = -1;
+        for (let i = 0; i < videos.length; i++) {
+          const video = videos[i];
+          const speedMultiplier = video.effects.speed || 1;
+          const trimStart = video.trimStart || 0;
+          const trimEnd = video.trimEnd || video.duration;
+          const trimmedDuration = Math.max(0.1, trimEnd - trimStart);
+          const effectiveDuration = trimmedDuration / speedMultiplier;
+          if (t >= cumulativeTime && t < cumulativeTime + effectiveDuration) {
+            currentVideo = video;
+            videoIndex = i;
+            break;
+          }
+          cumulativeTime += effectiveDuration;
+        }
+        if (currentVideo && videoIndex >= 0) {
+          const videoElement = gridVideoElements["grid-1"][videoIndex];
+          if (
+            videoElement &&
+            videoElement.videoWidth > 0 &&
+            videoElement.videoHeight > 0
+          ) {
+            // Calculate video time relative to the video start, accounting for speed
+            const speedMultiplier = currentVideo.effects.speed || 1;
+            let videoStartTime = 0;
+            for (let i = 0; i < videoIndex; i++) {
+              const video = videos[i];
+              const videoSpeedMultiplier = video.effects.speed || 1;
+              const videoTrimStart = video.trimStart || 0;
+              const videoTrimEnd = video.trimEnd || video.duration;
+              const videoTrimmedDuration = Math.max(0.1, videoTrimEnd - videoTrimStart);
+              const videoEffectiveDuration = videoTrimmedDuration / videoSpeedMultiplier;
+              videoStartTime += videoEffectiveDuration;
+            }
+            const relativeTime = t - videoStartTime;
+            const trimStart = currentVideo.trimStart || 0;
+            const trimEnd = currentVideo.trimEnd || currentVideo.duration;
+            const videoTime = Math.max(
+              trimStart,
+              Math.min(trimStart + (relativeTime * speedMultiplier), trimEnd - 0.01)
+            );
+            videoElement.currentTime = videoTime;
+            await new Promise<void>(resolve => {
+              videoElement.onseeked = () => resolve();
+              if (videoElement.readyState >= 2) resolve();
+            });
             try {
               applyVideoEffects(
                 videoElement,
@@ -1011,77 +987,43 @@ export const exportToGif = async (
                 settings.width,
                 settings.height
               );
-            } catch (error) {
-              console.warn("Error applying effects to frame:", error);
-              // Fallback: draw without effects
-              const videoAspect =
-                videoElement.videoWidth / videoElement.videoHeight;
-              const canvasAspect = settings.width / settings.height;
-
-              let drawWidth = settings.width;
-              let drawHeight = settings.height;
-              let offsetX = 0;
-              let offsetY = 0;
-
-              if (videoAspect > canvasAspect) {
-                drawHeight = settings.width / videoAspect;
-                offsetY = (settings.height - drawHeight) / 2;
-              } else {
-                drawWidth = settings.height * videoAspect;
-                offsetX = (settings.width - drawWidth) / 2;
-              }
-
+            } catch {
+              // fallback: draw without effects
               ctx.drawImage(
                 videoElement,
-                offsetX,
-                offsetY,
-                drawWidth,
-                drawHeight
+                0,
+                0,
+                settings.width,
+                settings.height
               );
             }
           }
         }
       }
 
-      // Add frame to GIF
       gif.addFrame(canvas, {
         delay: frameDelay,
         copy: true,
       });
-
-      frameCount++;
-
-      // Report progress (30-80% for frame generation)
+      // frameCount++;
       if (onProgress && frameIndex % 5 === 0) {
         onProgress(30 + (frameIndex / totalFrames) * 50);
       }
-
-      // Small delay to prevent UI blocking
       if (frameIndex % 3 === 0) {
         await new Promise((resolve) => setTimeout(resolve, 1));
       }
     }
-
     if (onProgress) onProgress(80);
-
-    console.log(`Generated ${frameCount} frames, rendering final GIF...`);
-
-    // Render the GIF
     return new Promise<Blob>((resolve) => {
       gif.on("finished", (blob: Blob) => {
-        console.log(
-          `GIF export complete. Size: ${(blob.size / 1024 / 1024).toFixed(2)}MB`
-        );
         if (onProgress) onProgress(100);
         resolve(blob);
       });
-
       gif.on("progress", (p: number) => {
         if (onProgress) {
           onProgress(80 + p * 20);
         }
       });
-
       gif.render();
     });
   } catch (error) {
