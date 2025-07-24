@@ -669,7 +669,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   }, [showFrameView, extractionProgress, formatTime, currentTime, handleVideoClick, onSeek, onVideoSelect]);
 
   return (
-    <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-pink-200 p-6">
+    <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-pink-200 p-6 relative">
       {/* Timeline Controls */}
       <div className="flex items-center justify-between mb-6 bg-gradient-to-r from-pink-50 to-rose-50 rounded-lg p-4 border border-pink-100">
         <div className="flex items-center space-x-4">
@@ -767,6 +767,64 @@ export const Timeline: React.FC<TimelineProps> = ({
         onMouseMove={handleTimelineMouseMove}
         onMouseLeave={handleTimelineMouseLeave}
       >
+        {/* Add Sequence Buttons for Grid 1 and Grid 2 (side-by-side only) */}
+        {layout === 'side-by-side' && (
+          <>
+            {/* Grid 1 Add Button */}
+            {(() => {
+              // Always show at the far right of the grid track, not after last video
+              const totalTrackArea = (88 + (blurAreaHeight - 28)) * 2;
+              const singleTrackHeight = (totalTrackArea - 8) / 2;
+              const topOffset = 4;
+              return (
+                <button
+                  key="grid-1-add"
+                  onClick={() => onAddSequence?.('grid-1')}
+                  className="absolute cursor-pointer transition-all duration-200 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg z-50 border-2 border-white opacity-60 hover:opacity-100 hover:scale-110 focus:outline-none"
+                  style={{
+                    right: '8px',
+                    top: topOffset + singleTrackHeight / 2 - 20,
+                    width: '40px',
+                    height: '40px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  title="Add sequence to Grid 1"
+                >
+                  <Plus className="w-7 h-7" />
+                </button>
+              );
+            })()}
+
+            {/* Grid 2 Add Button */}
+            {(() => {
+              // Always show at the far right of the grid track, not after last video
+              const totalTrackArea = (88 + (blurAreaHeight - 28)) * 2;
+              const singleTrackHeight = (totalTrackArea - 8) / 2;
+              const topOffset = singleTrackHeight + 8;
+              return (
+                <button
+                  key="grid-2-add"
+                  onClick={() => onAddSequence?.('grid-2')}
+                  className="absolute cursor-pointer transition-all duration-200 bg-green-500 hover:bg-green-600 text-white rounded-full shadow-lg z-50 border-2 border-white opacity-60 hover:opacity-100 hover:scale-110 focus:outline-none"
+                  style={{
+                    right: '8px',
+                    top: topOffset + singleTrackHeight / 2 - 20,
+                    width: '40px',
+                    height: '40px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  title="Add sequence to Grid 2"
+                >
+                  <Plus className="w-7 h-7" />
+                </button>
+              );
+            })()}
+          </>
+        )}
         {/* Blur overlay area */}
         <div
           className="absolute top-0 left-0 right-0 bg-pink-50 rounded-t-xl border-b border-pink-200"
