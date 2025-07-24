@@ -191,6 +191,10 @@ export const Timeline: React.FC<TimelineProps> = ({
 }) => {
   const [hoverPosition, setHoverPosition] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [clickPosition, setClickPosition] = useState<{
+    x: number;
+    time: number;
+  } | null>(null);
   const [videoFrames, setVideoFrames] = useState<Map<string, VideoFrame[]>>(
     new Map()
   );
@@ -328,7 +332,15 @@ export const Timeline: React.FC<TimelineProps> = ({
   const seekToFrame = useCallback(
     (frameIndex: number) => {
       const time = frameIndex / frameRate;
-      onSeek(Math.max(0, Math.min(time, totalDuration)));
+      const clampedTime = Math.max(0, Math.min(time, totalDuration));
+      console.log("seekToFrame:", {
+        frameIndex,
+        calculatedTime: time,
+        clampedTime,
+        frameRate,
+        totalDuration,
+      });
+      onSeek(clampedTime);
     },
     [frameRate, onSeek, totalDuration]
   );
@@ -396,14 +408,14 @@ export const Timeline: React.FC<TimelineProps> = ({
       const trimmedDuration = trimEnd - trimStart;
       const effectiveDuration = trimmedDuration / speedMultiplier;
 
-      const leftPercent = Math.max(0, (cumulativeTime / totalDuration) * 100);
+      const leftPercent = Math.max(0.5, (cumulativeTime / totalDuration) * 100);
       const widthPercent = Math.max(
         0.5,
         (effectiveDuration / totalDuration) * 100
       );
 
-      // Ensure the video segment doesn't overflow the container
-      const maxWidth = 100 - leftPercent;
+      // Ensure the video segment doesn't overflow the container with small margin
+      const maxWidth = 99.5 - leftPercent; // Leave 0.5% margin on right
       const constrainedWidthPercent = Math.min(widthPercent, maxWidth);
 
       return { leftPercent, widthPercent: constrainedWidthPercent };
@@ -424,19 +436,45 @@ export const Timeline: React.FC<TimelineProps> = ({
       if (target.closest(".video-segment")) return;
       if (target.closest(".add-sequence-btn")) return;
 
-      // Get the timeline track element specifically (not the container)
+      // Get the timeline track element for accurate positioning
       const timelineTrack = e.currentTarget.querySelector(".timeline-track");
       if (!timelineTrack) return;
-      const rect = timelineTrack.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const clickY = e.clientY - rect.top;
-      const trackWidth = rect.width;
-      const percentage = Math.max(0, Math.min(1, clickX / trackWidth));
+      const trackRect = timelineTrack.getBoundingClientRect();
+      const clickX = e.clientX - trackRect.left;
+      const clickY = e.clientY - trackRect.top;
+
+      // Calculate based on the actual track width (accounts for left: 4, right: 4)
+      const percentage = Math.max(0, Math.min(1, clickX / trackRect.width));
       const clickTime = percentage * totalDuration;
+
+      const expectedFrame = Math.round(clickTime * frameRate);
+      console.log("Timeline click:", {
+        clickX,
+        trackWidth: trackRect.width,
+        percentage: percentage * 100,
+        clickTime,
+        expectedFrame,
+        frameRate,
+        totalDuration,
+        currentTimeBeforeSeek: currentTime,
+        currentFrameBeforeSeek: Math.round(currentTime * frameRate),
+      });
 
       setHoverPosition(null);
       setIsDragging(false);
+      console.log("About to call onSeek with clickTime:", clickTime);
       onSeek(clickTime);
+
+      // Log what happens after seek
+      setTimeout(() => {
+        console.log("After CLICK seek result:", {
+          newCurrentTime: currentTime,
+          newCurrentFrame: Math.round(currentTime * frameRate),
+          expectedFrame,
+          frameDifference: Math.round(currentTime * frameRate) - expectedFrame,
+          originalClickTime: clickTime,
+        });
+      }, 100);
 
       let videosInGrid = videos;
       if (layout === "side-by-side") {
@@ -478,42 +516,41 @@ export const Timeline: React.FC<TimelineProps> = ({
         return;
       }
 
-      // Get the timeline track element specifically (not the container)
+      // Get the timeline track element for accurate positioning
       const timelineTrack = e.currentTarget.querySelector(".timeline-track");
       if (!timelineTrack) return;
+      const trackRect = timelineTrack.getBoundingClientRect();
+      const clickX = e.clientX - trackRect.left;
 
-      const rect = timelineTrack.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-
-      // Ensure we account for any padding/margins
-      const trackWidth = rect.width;
-      const percentage = Math.max(0, Math.min(1, clickX / trackWidth));
+      // Calculate based on the actual track width (accounts for left: 4, right: 4)
+      const percentage = Math.max(0, Math.min(1, clickX / trackRect.width));
       const clickTime = percentage * totalDuration;
 
-      // Debug logging (remove in production)
-      if (Math.abs(clickTime - currentTime) > 1) {
-        // Only log if time difference is significant
-        console.log("Timeline click:", {
-          clickX,
-          trackWidth,
-          percentage,
-          clickTime,
-          totalDuration,
-          formattedTime: formatTime(clickTime),
-          currentTime,
-          timeDifference: Math.abs(clickTime - currentTime),
-        });
-      }
+      const expectedFrame = Math.round(clickTime * frameRate);
+      console.log("Timeline mousedown:", {
+        clickX,
+        trackWidth: trackRect.width,
+        percentage: percentage * 100,
+        clickTime,
+        expectedFrame,
+        frameRate,
+        totalDuration,
+        currentTimeBeforeSeek: currentTime,
+        currentFrameBeforeSeek: Math.round(currentTime * frameRate),
+      });
 
       setHoverPosition(null);
-      setIsDragging(true);
+      setClickPosition({ x: clickX, time: clickTime });
+      // Temporarily disable dragging to test click accuracy
+      // setIsDragging(true);
 
       // Always seek to the clicked time, regardless of where we clicked
+      console.log("About to call onSeek from mousedown with time:", clickTime);
       onSeek(clickTime);
 
       e.preventDefault();
     },
-    [totalDuration, onSeek, formatTime, currentTime]
+    [totalDuration, onSeek, formatTime, currentTime, frameRate]
   );
 
   const handleTimelineMouseMove = useCallback(
@@ -532,10 +569,27 @@ export const Timeline: React.FC<TimelineProps> = ({
       const moveX = e.clientX - rect.left;
       const percentage = Math.max(0, Math.min(1, moveX / rect.width));
 
-      if (isDragging) {
-        // Update time while dragging - always use exact time calculation
-        const newTime = percentage * totalDuration;
-        onSeek(newTime);
+      if (isDragging && clickPosition) {
+        // Only start dragging if mouse has moved significantly from click position
+        const dragThreshold = 3; // pixels
+        const hasDraggedEnough =
+          Math.abs(moveX - clickPosition.x) > dragThreshold;
+
+        if (hasDraggedEnough) {
+          // Update time while dragging - always use exact time calculation
+          const newTime = percentage * totalDuration;
+          const newFrame = Math.round(newTime * frameRate);
+          console.log("Dragging seek:", {
+            moveX,
+            percentage: percentage * 100,
+            newTime,
+            newFrame,
+            frameRate,
+            dragDistance: Math.abs(moveX - clickPosition.x),
+          });
+          console.log("About to call onSeek with dragTime:", newTime);
+          onSeek(newTime);
+        }
       } else if (!isBlurOverlay) {
         // Only show hover indicator when not hovering over blur overlays or controls
         const hoverPercentage = percentage * 100;
@@ -545,7 +599,7 @@ export const Timeline: React.FC<TimelineProps> = ({
         setHoverPosition(null);
       }
     },
-    [isDragging, totalDuration, onSeek]
+    [isDragging, totalDuration, onSeek, frameRate, clickPosition]
   );
 
   const handleTimelineMouseLeave = useCallback(() => {
@@ -555,19 +609,37 @@ export const Timeline: React.FC<TimelineProps> = ({
   // Add global mouse up listener when dragging
   React.useEffect(() => {
     if (isDragging) {
-      const handleGlobalMouseUp = () => setIsDragging(false);
+      const handleGlobalMouseUp = () => {
+        setIsDragging(false);
+        setClickPosition(null);
+      };
       const handleGlobalMouseMove = (e: MouseEvent) => {
         const timelineContainer = document.querySelector(
           ".timeline-track-container"
         );
         const timelineTrack =
           timelineContainer?.querySelector(".timeline-track");
-        if (timelineTrack) {
+        if (timelineTrack && clickPosition) {
           const rect = timelineTrack.getBoundingClientRect();
           const moveX = e.clientX - rect.left;
-          const percentage = Math.max(0, Math.min(1, moveX / rect.width));
-          const newTime = percentage * totalDuration;
-          onSeek(newTime);
+          const dragThreshold = 3; // pixels
+          const hasDraggedEnough =
+            Math.abs(moveX - clickPosition.x) > dragThreshold;
+
+          if (hasDraggedEnough) {
+            const percentage = Math.max(0, Math.min(1, moveX / rect.width));
+            const newTime = percentage * totalDuration;
+            const newFrame = Math.round(newTime * frameRate);
+            console.log("Global drag seek:", {
+              moveX,
+              percentage: percentage * 100,
+              newTime,
+              newFrame,
+              frameRate,
+              dragDistance: Math.abs(moveX - clickPosition.x),
+            });
+            onSeek(newTime);
+          }
         }
       };
 
@@ -579,7 +651,7 @@ export const Timeline: React.FC<TimelineProps> = ({
         document.removeEventListener("mousemove", handleGlobalMouseMove);
       };
     }
-  }, [isDragging, totalDuration, onSeek]);
+  }, [isDragging, totalDuration, onSeek, frameRate, clickPosition]);
 
   const handleVideoClick = useCallback(
     (video: VideoSequenceItem, e: React.MouseEvent) => {
@@ -591,27 +663,41 @@ export const Timeline: React.FC<TimelineProps> = ({
         onVideoSelect(video.id);
       }
 
-      // Get the timeline track element for accurate calculation
-      const timelineContainer = e.currentTarget.closest(
-        ".timeline-track-container"
-      );
-      const timelineTrack = timelineContainer?.querySelector(".timeline-track");
-      if (!timelineTrack) return;
+      // Calculate position within the video segment itself
+      const videoElement = e.currentTarget;
+      const videoRect = videoElement.getBoundingClientRect();
+      const clickX = e.clientX - videoRect.left;
+      const videoWidth = videoRect.width;
 
-      const timelineRect = timelineTrack.getBoundingClientRect();
-      const clickX = e.clientX - timelineRect.left;
-      const timelinePercentage = Math.max(
-        0,
-        Math.min(1, clickX / timelineRect.width)
-      );
+      // Calculate percentage within this video segment
+      const percentage = Math.max(0, Math.min(1, clickX / videoWidth));
 
-      // Calculate the absolute time based on timeline position
-      const absoluteTime = timelinePercentage * totalDuration;
+      // Calculate the time within this video's duration (accounting for trim)
+      const speedMultiplier = video.effects.speed || 1;
+      const trimStart = video.trimStart || 0;
+      const trimEnd = video.trimEnd || video.duration;
+      const trimmedDuration = trimEnd - trimStart;
+      const effectiveDuration = trimmedDuration / speedMultiplier;
+      const timeWithinVideo = percentage * effectiveDuration;
+
+      // Calculate absolute time in the timeline
+      const absoluteTime = video.startTime + timeWithinVideo;
+
+      console.log("Video segment click:", {
+        clickX,
+        videoWidth,
+        percentage,
+        timeWithinVideo,
+        absoluteTime,
+        videoStart: video.startTime,
+        effectiveDuration,
+        currentTimeBeforeSeek: currentTime,
+      });
 
       // Seek to that position
       onSeek(absoluteTime);
     },
-    [onVideoSelect, onSeek, totalDuration]
+    [onVideoSelect, onSeek, currentTime]
   );
 
   const jumpToStart = useCallback(() => {
@@ -638,18 +724,18 @@ export const Timeline: React.FC<TimelineProps> = ({
         <div
           key={video.id}
           className={`
-          video-segment absolute cursor-pointer transition-all duration-200 overflow-hidden rounded-md
+          video-segment  cursor-pointer transition-all duration-200 overflow-hidden h-full
           ${
             isSelected
-              ? "ring-2 ring-purple-500 shadow-xl z-30"
+              ? "ring-2 ring-pink-500 shadow-xl z-30"
               : "hover:shadow-lg z-20"
           }
         `}
           style={{
             left: `${leftPercent}%`,
-            width: `${widthPercent}%`,
-            top: topOffset,
-            bottom: bottomOffset,
+            width: `${Math.min(widthPercent, 100 - leftPercent)}%`,
+            top: 0,
+            bottom: 0,
             marginLeft: index > 0 ? "1px" : "0",
           }}
           onClick={(e) => handleVideoClick(video, e)}
@@ -669,7 +755,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                     key={frameIndex}
                     className={`relative cursor-pointer transition-all duration-200 border-r border-gray-800/20 last:border-r-0 ${
                       isCurrentFrame
-                        ? "ring-2 ring-purple-500 ring-inset"
+                        ? "ring-2 ring-pink-500 ring-inset"
                         : "hover:brightness-110"
                     }`}
                     style={{
@@ -696,7 +782,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                     />
                     {/* Current time indicator */}
                     {isCurrentFrame && (
-                      <div className="absolute inset-0 bg-purple-500/20 pointer-events-none"></div>
+                      <div className="absolute inset-0 bg-pink-500/20 pointer-events-none"></div>
                     )}
                   </div>
                 );
@@ -729,9 +815,7 @@ export const Timeline: React.FC<TimelineProps> = ({
           ) : (
             /* Fallback: Traditional colored segments */
             <>
-              <div
-                className={`absolute inset-0 ${colorClass}`}
-              >
+              <div className={`absolute inset-0 ${colorClass}`}>
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
               </div>
               {/* Video text content - adaptive based on segment width */}
@@ -764,7 +848,9 @@ export const Timeline: React.FC<TimelineProps> = ({
 
           {/* Video Number Badge - Modern Style */}
           <div className="absolute -top-0.5 -left-0.5 w-4 h-4 bg-gray-900 rounded flex items-center justify-center z-50 shadow-md">
-            <span className="text-[10px] font-medium text-gray-300">{index + 1}</span>
+            <span className="text-[10px] font-medium text-gray-300">
+              {index + 1}
+            </span>
           </div>
         </div>
       );
@@ -788,7 +874,7 @@ export const Timeline: React.FC<TimelineProps> = ({
           {/* Play/Pause Button */}
           <button
             onClick={isPlaying ? onPause : onPlay}
-            className="p-3 bg-purple-600 hover:bg-purple-700 rounded-lg transition-all duration-200 group"
+            className="p-3 bg-pink-600 hover:bg-pink-700 rounded-lg transition-all duration-200 group"
             title={isPlaying ? "Pause" : "Play"}
           >
             {isPlaying ? (
@@ -850,7 +936,7 @@ export const Timeline: React.FC<TimelineProps> = ({
             onClick={() => setShowFrameView(!showFrameView)}
             className={`p-2 rounded-lg transition-all duration-200 ${
               showFrameView
-                ? "bg-purple-600 text-white"
+                ? "bg-pink-600 text-white"
                 : "hover:bg-gray-800 text-gray-300"
             }`}
             title="Toggle thumbnails"
@@ -872,7 +958,7 @@ export const Timeline: React.FC<TimelineProps> = ({
         {/* Time Display */}
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2 text-sm">
-            <Clock className="w-4 h-4 text-purple-500" />
+            <Clock className="w-4 h-4 text-pink-500" />
             <span className="font-mono text-gray-300">
               {formatTime(currentTime)} / {formatTime(totalDuration)}
             </span>
@@ -893,10 +979,9 @@ export const Timeline: React.FC<TimelineProps> = ({
         style={{
           height:
             layout === "side-by-side"
-              ? (88 + (blurAreaHeight - 28)) * 2 + 8 // Double height with gap for side-by-side
+              ? (88 + (blurAreaHeight - 28)) * 2 + 4 // Double height with smaller gap for side-by-side
               : 88 + (blurAreaHeight - 28),
         }}
-        onClick={handleTimelineClick}
         onMouseDown={handleTimelineMouseDown}
         onMouseMove={handleTimelineMouseMove}
         onMouseLeave={handleTimelineMouseLeave}
@@ -969,7 +1054,7 @@ export const Timeline: React.FC<TimelineProps> = ({
             })()}
           </>
         )}
-        
+
         {/* Blur overlay area */}
         <div
           className="absolute top-0 left-0 right-0 bg-gray-850 border-b border-gray-700"
@@ -1035,7 +1120,7 @@ export const Timeline: React.FC<TimelineProps> = ({
         </div>
 
         <div
-          className="timeline-track absolute inset-x-0 bg-transparent"
+          className="timeline-track absolute bg-gray-850/30 border border-gray-700/30 overflow-hidden"
           style={{
             top: timelineTrackTop,
             bottom: 4,
@@ -1059,135 +1144,122 @@ export const Timeline: React.FC<TimelineProps> = ({
 
           {/* Video Segments with Integrated Frame Thumbnails */}
           {layout === "single" ? (
-            // Single layout - render all videos in one track
-            videos.map((video, index) => {
-              const { leftPercent, widthPercent } = getVideoPosition(video);
-              const isSelected = video.id === selectedVideoId;
-              const frames = videoFrames.get(video.id) || [];
+            // Single layout - single track container
+            <div className="relative w-full h-full flex">
+              {videos.map((video, index) => {
+                const { leftPercent, widthPercent } = getVideoPosition(video);
+                const isSelected = video.id === selectedVideoId;
+                const frames = videoFrames.get(video.id) || [];
 
-              const colors = [
-                "bg-purple-600",
-                "bg-purple-700",
-                "bg-indigo-600",
-                "bg-indigo-700",
-                "bg-violet-600",
-                "bg-violet-700",
-              ];
-              const colorClass = colors[index % colors.length];
+                const colors = [
+                  "bg-pink-600",
+                  "bg-rose-600",
+                  "bg-pink-700",
+                  "bg-rose-700",
+                  "bg-pink-500",
+                  "bg-rose-500",
+                ];
+                const colorClass = colors[index % colors.length];
 
-              return renderVideoSegment(
-                video,
-                index,
-                leftPercent,
-                widthPercent,
-                isSelected,
-                frames,
-                colorClass,
-                4,
-                4
-              );
-            })
+                return renderVideoSegment(
+                  video,
+                  index,
+                  leftPercent,
+                  widthPercent,
+                  isSelected,
+                  frames,
+                  colorClass,
+                  0,
+                  0
+                );
+              })}
+            </div>
           ) : (
-            // Side-by-side layout - render videos in separate tracks with equal heights
-            <>
-              {/* Grid 1 Track */}
-              {videos
-                .filter((v) => v.gridId === "grid-1")
-                .map((video, index) => {
-                  const { leftPercent, widthPercent } = getVideoPosition(video);
-                  const isSelected = video.id === selectedVideoId;
-                  const frames = videoFrames.get(video.id) || [];
-                  const colorClass = "bg-blue-600";
-
-                  // Calculate equal track heights
-                  const totalTrackArea = (88 + (blurAreaHeight - 28)) * 2; // Total available height for both tracks
-                  const singleTrackHeight = (totalTrackArea - 8) / 2; // Subtract gap, divide by 2
-                  const topOffset = 4;
-                  const bottomOffset =
-                    totalTrackArea - singleTrackHeight - topOffset;
-
-                  return renderVideoSegment(
-                    video,
-                    index,
-                    leftPercent,
-                    widthPercent,
-                    isSelected,
-                    frames,
-                    colorClass,
-                    topOffset,
-                    bottomOffset
-                  );
-                })}
-
-              {/* Grid 2 Track */}
-              {videos
-                .filter((v) => v.gridId === "grid-2")
-                .map((video, index) => {
-                  const { leftPercent, widthPercent } = getVideoPosition(video);
-                  const isSelected = video.id === selectedVideoId;
-                  const frames = videoFrames.get(video.id) || [];
-                  const colorClass = "bg-green-600";
-
-                  // Calculate equal track heights
-                  const totalTrackArea = (88 + (blurAreaHeight - 28)) * 2; // Total available height for both tracks
-                  const singleTrackHeight = (totalTrackArea - 8) / 2; // Subtract gap, divide by 2
-                  const topOffset = singleTrackHeight + 8; // Start after first track + gap
-                  const bottomOffset = 4;
-
-                  return renderVideoSegment(
-                    video,
-                    index,
-                    leftPercent,
-                    widthPercent,
-                    isSelected,
-                    frames,
-                    colorClass,
-                    topOffset,
-                    bottomOffset
-                  );
-                })}
-
-              {/* Track Separator Line */}
+            // Side-by-side layout - separate track containers using flexbox
+            <div className="flex flex-col h-full">
+              {/* Grid 1 Track Container */}
               <div
-                className="absolute left-0 right-0 border-t border-gray-700"
-                style={{
-                  top: `${((88 + (blurAreaHeight - 28)) * 2 - 8) / 2 + 4}px`,
-                }}
-              />
-
-              {/* Track Labels */}
-              <div
-                className="absolute left-2 text-xs font-medium text-gray-500 bg-gray-800/80 px-2 py-1 rounded"
-                style={{ top: "12px" }}
+                className="relative flex-1 flex"
+                style={{ marginBottom: "2px" }}
               >
-                Track 1
+                {videos
+                  .filter((v) => v.gridId === "grid-1")
+                  .map((video, index) => {
+                    const { leftPercent, widthPercent } =
+                      getVideoPosition(video);
+                    const isSelected = video.id === selectedVideoId;
+                    const frames = videoFrames.get(video.id) || [];
+                    const colorClass = "bg-blue-600";
+
+                    return renderVideoSegment(
+                      video,
+                      index,
+                      leftPercent,
+                      widthPercent,
+                      isSelected,
+                      frames,
+                      colorClass,
+                      0,
+                      0
+                    );
+                  })}
+                {/* Track 1 Label */}
+                <div className="absolute left-2 top-1 text-xs font-medium text-gray-500 bg-gray-800/80 px-2 py-1 rounded z-40">
+                  Track 1
+                </div>
               </div>
+
+              {/* Track Separator */}
+              <div className="h-1 border-t border-gray-600 mx-2" />
+
+              {/* Grid 2 Track Container */}
               <div
-                className="absolute left-2 text-xs font-medium text-gray-500 bg-gray-800/80 px-2 py-1 rounded"
-                style={{
-                  top: `${((88 + (blurAreaHeight - 28)) * 2 - 8) / 2 + 12}px`,
-                }}
+                className="relative flex-1 flex"
+                style={{ marginTop: "2px" }}
               >
-                Track 2
+                {videos
+                  .filter((v) => v.gridId === "grid-2")
+                  .map((video, index) => {
+                    const { leftPercent, widthPercent } =
+                      getVideoPosition(video);
+                    const isSelected = video.id === selectedVideoId;
+                    const frames = videoFrames.get(video.id) || [];
+                    const colorClass = "bg-green-600";
+
+                    return renderVideoSegment(
+                      video,
+                      index,
+                      leftPercent,
+                      widthPercent,
+                      isSelected,
+                      frames,
+                      colorClass,
+                      0,
+                      0
+                    );
+                  })}
+                {/* Track 2 Label */}
+                <div className="absolute left-2 top-1 text-xs font-medium text-gray-500 bg-gray-800/80 px-2 py-1 rounded z-40">
+                  Track 2
+                </div>
               </div>
-            </>
+            </div>
           )}
 
-          {/* Current Time Indicator */}
           {totalDuration > 0 && (
             <div
-              className="timeline-scrubber absolute w-0.5 bg-purple-500 z-50 pointer-events-none"
+              className="timeline-scrubber absolute w-0.5 bg-pink-500 z-50 pointer-events-none"
               style={{
                 left: getCurrentPosition,
                 top: 0,
                 bottom: 0,
               }}
             >
-              <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-purple-500" />
-              <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-xs px-2 py-1 rounded whitespace-nowrap font-mono">
+              <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-pink-500" />
+              <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-pink-600 text-white text-xs px-2 py-1 rounded whitespace-nowrap font-mono">
                 {formatTime(currentTime)}
                 {showFrameView && (
-                  <div className="text-purple-200 text-[10px] mt-0.5">
+                  <div className="text-pink-200 text-[10px] mt-0.5">
                     F{getCurrentFrameIndex() + 1}
                   </div>
                 )}
@@ -1239,7 +1311,7 @@ export const Timeline: React.FC<TimelineProps> = ({
         <div className="mt-4 p-3 bg-gray-800 rounded-lg border border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-purple-600 rounded flex items-center justify-center">
+              <div className="w-8 h-8 bg-pink-600 rounded flex items-center justify-center">
                 <Film className="w-4 h-4 text-white" />
               </div>
               <div>
@@ -1258,7 +1330,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                 </p>
               </div>
             </div>
-            <div className="text-xs text-purple-400 bg-purple-600/20 px-2 py-1 rounded">
+            <div className="text-xs text-pink-400 bg-pink-600/20 px-2 py-1 rounded">
               Selected
             </div>
           </div>
