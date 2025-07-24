@@ -66,6 +66,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
     play,
     pause,
     seek,
+    setVideos, // <-- add this from useVideoSequence
   } = useVideoSequence();
 
   const [isUploading, setIsUploading] = useState(false);
@@ -92,7 +93,22 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
 
   // Layout state
   const [currentLayout, setCurrentLayout] = useState<VideoLayout>("single");
-  const [layoutGrids, setLayoutGrids] = useState<LayoutGrid[]>([
+
+  // When switching to side-by-side, assign gridId: 'grid-1' to videos without gridId
+  useEffect(() => {
+    if (currentLayout === "side-by-side") {
+      // Only update if there are videos without gridId
+      const needsUpdate = videos.some((v) => !v.gridId);
+      if (needsUpdate) {
+        setVideos((prev) =>
+          prev.map((v) =>
+            !v.gridId ? { ...v, gridId: "grid-1" } : v
+          )
+        );
+      }
+    }
+  }, [currentLayout, videos, setVideos]);
+  const [layoutGrids] = useState<LayoutGrid[]>([
     { id: "grid-1", name: "Grid 1", active: true },
     { id: "grid-2", name: "Grid 2", active: false },
   ]);
@@ -115,7 +131,13 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
   };
 
-  const handleVideosAdded = async (files: File[]) => {
+  // Get the final formatted model value
+  const getFinalModelValue = React.useCallback(() => {
+    if (!formData.model || formData.model.trim() === "") return "";
+    return `${formData.model.toUpperCase()}_${modelType}`;
+  }, [formData.model, modelType]);
+
+  const handleVideosAdded = React.useCallback(async (files: File[]) => {
     setIsUploading(true);
     try {
       console.log("Final model value:", getFinalModelValue());
@@ -128,7 +150,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
     } finally {
       setIsUploading(false);
     }
-  };
+  }, [addVideos, currentLayout, activeGridId, getFinalModelValue]);
 
   // Auto-download Google Drive file when fileId param exists and permissions are loaded
   useEffect(() => {
@@ -347,11 +369,6 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
     }
   };
 
-  // Get the final formatted model value
-  const getFinalModelValue = () => {
-    if (!formData.model || formData.model.trim() === "") return "";
-    return `${formData.model.toUpperCase()}_${modelType}`;
-  };
 
   const selectedVideo = videos.find((v) => v.id === selectedVideoId) || null;
   console.log(

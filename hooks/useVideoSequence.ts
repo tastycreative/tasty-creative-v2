@@ -442,5 +442,6 @@ export const useVideoSequence = () => {
     updateSelectiveBlurRegion,
     removeSelectiveBlurRegion,
     updateVideoTrim,
+    setVideos, // Expose setVideos for direct video state updates
   };
 };
