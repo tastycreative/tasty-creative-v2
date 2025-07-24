@@ -79,31 +79,45 @@ const extractVideoFramesProgressively = (
       
       // Check if we should pause extraction (e.g., when video is playing)
       if (shouldPause()) {
-        // Retry after a longer delay when paused
         setTimeout(extractFrame, 500);
         return;
       }
       
       const time = frameTimes[currentFrameIndex];
-      video.currentTime = Math.min(time, duration - 0.1); // Ensure we don't go past the end
+      
+      // Clear any existing timeout
+      if (seekTimeout) {
+        clearTimeout(seekTimeout);
+      }
+      
+      // Set fallback timeout in case seeked event doesn't fire
+      seekTimeout = setTimeout(() => {
+        console.warn(`Seeked event didn't fire for time ${time}, continuing anyway`);
+        currentFrameIndex++;
+        setTimeout(extractFrame, 50);
+      }, 1000);
+      
+      video.currentTime = Math.min(time, duration - 0.1);
     };
     
-    video.addEventListener('seeked', () => {
-      if (ctx) {
+    const handleSeeked = () => {
+      // Clear the fallback timeout since seeked fired
+      if (seekTimeout) {
+        clearTimeout(seekTimeout);
+      }
+      
+      if (ctx && video.readyState >= 2) {
         try {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const thumbnail = canvas.toDataURL('image/jpeg', 0.6); // Lower quality for speed
+          const thumbnail = canvas.toDataURL('image/jpeg', 0.8);
           
           const frame: VideoFrame = {
             time: video.currentTime,
             thumbnail,
-            videoId: '', // Will be set by the calling component
+            videoId: '',
           };
           
-          // Immediately call the callback with the new frame
           onFrameExtracted(frame);
-          
-          // Update progress
           onProgressUpdate(currentFrameIndex + 1, maxFrames);
         } catch (error) {
           console.warn('Failed to extract frame at time', video.currentTime, error);
@@ -111,18 +125,14 @@ const extractVideoFramesProgressively = (
       }
       
       currentFrameIndex++;
-      // Use requestIdleCallback to avoid blocking main thread during video playback
-      const delay = priority === 0 ? 150 : 100; // First video gets faster extraction
-      
-      if ('requestIdleCallback' in window) {
-        requestIdleCallback(() => {
-          setTimeout(extractFrame, delay);
-        }, { timeout: delay + 100 });
-      } else {
-        // Fallback for browsers without requestIdleCallback
-        setTimeout(extractFrame, delay * 1.5);
-      }
-    });
+      // Continue with next frame after a short delay
+      setTimeout(extractFrame, 50);
+    };
+
+    video.addEventListener('seeked', handleSeeked);
+    
+    // Fallback: if seeked doesn't fire within 1 second, continue anyway
+    let seekTimeout: NodeJS.Timeout;
     
     video.addEventListener('error', () => {
       console.error('Error loading video for frame extraction');

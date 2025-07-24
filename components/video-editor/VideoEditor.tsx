@@ -544,6 +544,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                   videos={videos}
                   currentTime={currentTime}
                   isPlaying={isPlaying}
+                  onTimeUpdate={seek}
                 />
               </div>
 

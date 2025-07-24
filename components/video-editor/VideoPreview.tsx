@@ -10,6 +10,7 @@ interface VideoPreviewProps {
   isPlaying: boolean;
   width?: number;
   height?: number;
+  onTimeUpdate?: (time: number) => void;
 }
 
 export const VideoPreview: React.FC<VideoPreviewProps> = ({
@@ -18,6 +19,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
   isPlaying,
   width = 400,
   height = 400, // Always square
+  onTimeUpdate,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement }>({});
@@ -351,9 +353,8 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
             const timelineTime = cumulativeTime + (videoTimeInClip / speedMultiplier);
             
             // Only update if there's a significant difference (avoid jitter like GifMaker)
-            if (Math.abs(timelineTime - currentTime) > 0.05) {
-              // Update currentTime through parent component if possible
-              // This would need to be passed as a prop from VideoEditor
+            if (Math.abs(timelineTime - currentTime) > 0.05 && onTimeUpdate) {
+              onTimeUpdate(timelineTime);
             }
             
             lastSyncTimeRef.current = now;
@@ -373,7 +374,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
         cancelAnimationFrame(syncAnimationFrameRef.current);
       }
     };
-  }, [isPlaying, getCurrentVideo, loadedVideos, currentTime, videos]);
+  }, [isPlaying, getCurrentVideo, loadedVideos, currentTime, videos, onTimeUpdate]);
 
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-pink-200 p-6">
