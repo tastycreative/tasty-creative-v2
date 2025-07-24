@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { useVideoSequence } from "@/hooks/useVideoSequence";
 import { VideoUploader } from "./VideoUploader";
@@ -19,7 +19,17 @@ import {
   RotateCcw,
   User,
   DollarSign,
+  Grid3x3,
+  Square,
 } from "lucide-react";
+
+export type VideoLayout = 'single' | 'side-by-side';
+
+export interface LayoutGrid {
+  id: string;
+  name: string;
+  active: boolean;
+}
 
 interface VideoEditorProps {
   modelName?: string;
@@ -79,6 +89,15 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
     downloadedBytes?: number;
   } | null>(null);
 
+  // Layout state
+  const [currentLayout, setCurrentLayout] = useState<VideoLayout>('single');
+  const [layoutGrids, setLayoutGrids] = useState<LayoutGrid[]>([
+    { id: 'grid-1', name: 'Grid 1', active: true },
+    { id: 'grid-2', name: 'Grid 2', active: false }
+  ]);
+  const [activeGridId, setActiveGridId] = useState<string>('grid-1');
+  const gridFileInputRef = useRef<HTMLInputElement>(null);
+
   // Update formData when modelName prop changes
   useEffect(() => {
     if (modelName && modelName !== formData.model) {
@@ -99,7 +118,8 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
     setIsUploading(true);
     try {
       console.log("Final model value:", getFinalModelValue());
-      await addVideos(files);
+      const gridId = currentLayout === 'side-by-side' ? activeGridId : undefined;
+      await addVideos(files, gridId);
     } catch (error) {
       console.error("Error adding videos:", error);
       alert("Failed to add some videos. Please try again.");
@@ -256,6 +276,45 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
     setTrimmingVideo(null);
   };
 
+  const handleGridClick = (gridId: string) => {
+    setActiveGridId(gridId);
+    // Trigger file input for the selected grid
+    if (gridFileInputRef.current) {
+      gridFileInputRef.current.dataset.gridId = gridId;
+      gridFileInputRef.current.click();
+    }
+  };
+
+  const handleAddSequence = (gridId?: string) => {
+    const targetGridId = gridId || (currentLayout === 'side-by-side' ? activeGridId : undefined);
+    setActiveGridId(targetGridId || 'grid-1');
+    // Trigger file input for the selected grid
+    if (gridFileInputRef.current) {
+      gridFileInputRef.current.dataset.gridId = targetGridId;
+      gridFileInputRef.current.click();
+    }
+  };
+
+  const handleGridFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    const gridId = event.target.dataset.gridId;
+    
+    if (files && files.length > 0 && gridId) {
+      const fileArray = Array.from(files);
+      setIsUploading(true);
+      try {
+        await addVideos(fileArray, gridId);
+      } catch (error) {
+        console.error("Error adding videos to grid:", error);
+        alert("Failed to add some videos. Please try again.");
+      } finally {
+        setIsUploading(false);
+        // Clear the input so the same file can be selected again
+        event.target.value = '';
+      }
+    }
+  };
+
   const handleTrimSave = (trimStart: number, trimEnd: number) => {
     if (trimmingVideo) {
       updateVideoTrim(trimmingVideo.videoId, trimStart, trimEnd);
@@ -357,6 +416,68 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
       </div>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4">
+        {/* Layout Selector - Only show when videos are loaded */}
+        {videos.length > 0 && (
+          <div className="mb-6 bg-white/80 backdrop-blur-sm rounded-xl border border-pink-200 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">Video Layout</h3>
+                <p className="text-sm text-gray-600">Choose how videos are arranged in the preview</p>
+              </div>
+              
+              <div className="flex items-center space-x-4">
+                {/* Layout Toggle */}
+                <div className="flex bg-gray-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setCurrentLayout('single')}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${
+                      currentLayout === 'single'
+                        ? "bg-pink-600 text-white"
+                        : "text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    <Square className="w-4 h-4" />
+                    <span>Single</span>
+                  </button>
+                  <button
+                    onClick={() => setCurrentLayout('side-by-side')}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${
+                      currentLayout === 'side-by-side'
+                        ? "bg-pink-600 text-white"
+                        : "text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    <Grid3x3 className="w-4 h-4" />
+                    <span>Side-by-Side</span>
+                  </button>
+                </div>
+
+                {/* Grid Selector - Only show for side-by-side */}
+                {currentLayout === 'side-by-side' && (
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-600">Active Grid:</span>
+                    <div className="flex bg-gray-50 rounded-lg p-1">
+                      {layoutGrids.map((grid) => (
+                        <button
+                          key={grid.id}
+                          onClick={() => setActiveGridId(grid.id)}
+                          className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                            activeGridId === grid.id
+                              ? "bg-rose-500 text-white"
+                              : "text-gray-600 hover:bg-gray-200"
+                          }`}
+                        >
+                          {grid.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {videos.length === 0 ? (
           /* Upload State */
           <div className="max-w-2xl mx-auto">
@@ -545,6 +666,9 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                   currentTime={currentTime}
                   isPlaying={isPlaying}
                   onTimeUpdate={seek}
+                  layout={currentLayout}
+                  activeGridId={activeGridId}
+                  onGridClick={handleGridClick}
                 />
               </div>
 
@@ -605,6 +729,8 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                 onPause={pause}
                 onBlurRegionClick={handleBlurRegionClick}
                 editingBlur={editingBlur}
+                layout={currentLayout}
+                onAddSequence={handleAddSequence}
               />
             </div>
 
@@ -649,6 +775,16 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
           onClose={handleCloseTrimmer}
         />
       )}
+
+      {/* Hidden file input for grid uploads */}
+      <input
+        ref={gridFileInputRef}
+        type="file"
+        accept="video/*"
+        multiple
+        onChange={handleGridFileSelect}
+        className="hidden"
+      />
     </div>
   );
 };

@@ -3,6 +3,7 @@
 import React, { useRef, useEffect, useCallback, useState } from "react";
 import { VideoSequenceItem } from "@/types/video";
 import { applyVideoEffects } from "@/lib/videoProcessor";
+import { VideoLayout } from "./VideoEditor";
 
 interface VideoPreviewProps {
   videos: VideoSequenceItem[];
@@ -11,6 +12,9 @@ interface VideoPreviewProps {
   width?: number;
   height?: number;
   onTimeUpdate?: (time: number) => void;
+  layout?: VideoLayout;
+  activeGridId?: string;
+  onGridClick?: (gridId: string) => void;
 }
 
 export const VideoPreview: React.FC<VideoPreviewProps> = ({
@@ -20,6 +24,9 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
   width = 400,
   height = 400, // Always square
   onTimeUpdate,
+  layout = 'single',
+  activeGridId = 'grid-1',
+  onGridClick,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement }>({});
@@ -72,11 +79,28 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
     });
   }, [videos]);
 
-  // Find current video (memoized to prevent unnecessary re-calculations)
+  // Find current video(s) based on layout
   const getCurrentVideo = useCallback(() => {
-    return videos.find(
+    if (layout === 'single') {
+      return videos.find(
+        (video) => currentTime >= video.startTime && currentTime < video.endTime
+      );
+    }
+    return null; // For side-by-side, we handle differently
+  }, [videos, currentTime, layout]);
+
+  const getCurrentVideosByGrid = useCallback(() => {
+    const grid1Videos = videos.filter(v => v.gridId === 'grid-1');
+    const grid2Videos = videos.filter(v => v.gridId === 'grid-2');
+    
+    const grid1Current = grid1Videos.find(
       (video) => currentTime >= video.startTime && currentTime < video.endTime
     );
+    const grid2Current = grid2Videos.find(
+      (video) => currentTime >= video.startTime && currentTime < video.endTime
+    );
+    
+    return { grid1: grid1Current, grid2: grid2Current };
   }, [videos, currentTime]);
 
   const renderFrame = useCallback(() => {
@@ -86,146 +110,172 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const currentVideo = getCurrentVideo();
+    // Clear canvas with black background
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, width, height);
 
-    // Update current video ID
-    if (currentVideo?.id !== currentVideoId) {
-      setCurrentVideoId(currentVideo?.id || null);
-    }
-
-    if (!currentVideo) {
-      // Clear canvas and draw placeholder
-      ctx.fillStyle = "#1f2937";
-      ctx.fillRect(0, 0, width, height);
-
-      ctx.fillStyle = "#9ca3af";
-      ctx.font = "16px sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText("No video at current time", width / 2, height / 2);
-      return;
-    }
-
-    const videoElement = videoRefs.current[currentVideo.id];
-    const isVideoLoaded = loadedVideos.has(currentVideo.id);
-
-    if (!videoElement || !isVideoLoaded) {
-      // Show loading state only if video is not loaded yet
-      ctx.fillStyle = "#1f2937";
-      ctx.fillRect(0, 0, width, height);
-      ctx.fillStyle = "#9ca3af";
-      ctx.font = "14px sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillText("Loading video...", width / 2, height / 2);
-      return;
-    }
-
-    // Calculate video time within the clip (accounting for speed, cumulative timing, and trimming)
-    const speedMultiplier = currentVideo.effects.speed || 1;
-    
-    // Find the cumulative start time for this video
-    let cumulativeTime = 0;
-    for (const video of videos) {
-      if (video.id === currentVideo.id) {
-        break;
+    if (layout === 'single') {
+      const currentVideo = getCurrentVideo();
+      
+      // Update current video ID
+      if (currentVideo?.id !== currentVideoId) {
+        setCurrentVideoId(currentVideo?.id || null);
       }
-      const videoSpeedMultiplier = video.effects.speed || 1;
-      // Account for trimming in cumulative time calculation
-      const trimStart = video.trimStart || 0;
-      const trimEnd = video.trimEnd || video.duration;
-      const trimmedDuration = trimEnd - trimStart;
-      const videoEffectiveDuration = trimmedDuration / videoSpeedMultiplier;
-      cumulativeTime += videoEffectiveDuration;
-    }
-    
-    const relativeTime = currentTime - cumulativeTime;
-    const videoTime = relativeTime * speedMultiplier;
-    
-    // Apply trimming - offset by trimStart and constrain within trim bounds
-    const trimStart = currentVideo.trimStart || 0;
-    const trimEnd = currentVideo.trimEnd || currentVideo.duration;
-    const adjustedVideoTime = trimStart + Math.max(0, Math.min(videoTime, trimEnd - trimStart));
 
-    // Apply GifMaker pattern: avoid seeking during playback to prevent lag
-    // Only seek when not playing to avoid conflicts with video playback
-    if (!isPlaying) {
-      const timeDiff = Math.abs(videoElement.currentTime - adjustedVideoTime);
-      const threshold = 0.1; // Smaller threshold when not playing for accuracy
-      if (timeDiff > threshold) {
-        videoElement.currentTime = Math.max(0, Math.min(adjustedVideoTime, videoElement.duration - 0.01));
+      if (!currentVideo) {
+        ctx.fillStyle = "#9ca3af";
+        ctx.font = "16px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("No video at current time", width / 2, height / 2);
+        return;
       }
-    }
 
-    // Check if video is ready to render
-    if (
-      videoElement.readyState >= 2 &&
-      videoElement.videoWidth > 0 &&
-      videoElement.videoHeight > 0
-    ) {
-      try {
-        // Clear canvas with black background
-        ctx.fillStyle = "#000000";
-        ctx.fillRect(0, 0, width, height);
-        
-        // Calculate scaling and positioning
-        const scale = currentVideo.effects.scale || 1.0;
-        const posX = (currentVideo.effects.positionX || 0) * (width / 100);
-        const posY = (currentVideo.effects.positionY || 0) * (height / 100);
-        
-        // Calculate video dimensions maintaining aspect ratio
-        const videoAspectRatio = videoElement.videoWidth / videoElement.videoHeight;
-        let drawWidth = width * scale;
-        let drawHeight = height * scale;
-        
-        // Maintain video aspect ratio within scaled dimensions
-        if (videoAspectRatio > 1) {
-          // Video is wider than tall
-          drawHeight = drawWidth / videoAspectRatio;
-        } else {
-          // Video is taller than wide
-          drawWidth = drawHeight * videoAspectRatio;
-        }
-        
-        // Calculate centered position with offset
-        const drawX = (width - drawWidth) / 2 + posX;
-        const drawY = (height - drawHeight) / 2 + posY;
-        
-        // Draw the video
-        ctx.drawImage(
-          videoElement,
-          drawX,
-          drawY,
-          drawWidth,
-          drawHeight
-        );
-        
-        // Apply blur effect if needed
-        if (currentVideo.effects.blur > 0) {
-          ctx.filter = `blur(${currentVideo.effects.blur}px)`;
-          ctx.drawImage(
-            videoElement,
-            drawX,
-            drawY,
-            drawWidth,
-            drawHeight
-          );
-          ctx.filter = 'none';
-        }
-      } catch (error) {
-        console.error("Error applying video effects:", error);
-        // Fallback: draw black screen instead of error message to reduce flickering
-        ctx.fillStyle = "#1f2937";
-        ctx.fillRect(0, 0, width, height);
+      renderVideoToCanvas(ctx, currentVideo, 0, 0, width, height);
+    } else {
+      // Side-by-side layout
+      const currentVideos = getCurrentVideosByGrid();
+      const leftWidth = Math.ceil(width / 2); // Grid 1 gets extra pixel if width is odd
+      const rightStartX = leftWidth; // Start right side after Grid 1
+      const rightWidth = width - leftWidth; // Grid 2 gets remaining pixels
+
+      // Render grid 1 (left side) - gets extra pixel if width is odd
+      if (currentVideos.grid1) {
+        renderVideoToCanvas(ctx, currentVideos.grid1, 0, 0, leftWidth, height);
+      } else {
+        ctx.fillStyle = "#374151";
+        ctx.fillRect(0, 0, leftWidth, height);
+        ctx.fillStyle = "#9ca3af";
+        ctx.font = "14px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Grid 1", leftWidth / 2, height / 2);
+      }
+
+      // Draw center divider line at the division point
+      ctx.fillStyle = "#ffffff80"; // Semi-transparent white
+      ctx.fillRect(leftWidth - 1, 0, 2, height); // 2px wide line centered on division
+
+      // Render grid 2 (right side) - remaining width
+      if (currentVideos.grid2) {
+        renderVideoToCanvas(ctx, currentVideos.grid2, rightStartX, 0, rightWidth, height);
+      } else {
+        ctx.fillStyle = "#374151";
+        ctx.fillRect(rightStartX, 0, rightWidth, height);
+        ctx.fillStyle = "#9ca3af";
+        ctx.font = "14px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Grid 2", rightStartX + rightWidth / 2, height / 2);
       }
     }
   }, [
     getCurrentVideo,
+    getCurrentVideosByGrid,
     currentVideoId,
     loadedVideos,
     currentTime,
     width,
     height,
     videos,
+    layout,
   ]);
+
+  const renderVideoToCanvas = useCallback((
+    ctx: CanvasRenderingContext2D,
+    video: VideoSequenceItem,
+    x: number,
+    y: number,
+    drawWidth: number,
+    drawHeight: number
+  ) => {
+    const videoElement = videoRefs.current[video.id];
+    const isVideoLoaded = loadedVideos.has(video.id);
+
+    if (!videoElement || !isVideoLoaded) {
+      ctx.fillStyle = "#374151";
+      ctx.fillRect(x, y, drawWidth, drawHeight);
+      ctx.fillStyle = "#9ca3af";
+      ctx.font = "14px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("Loading...", x + drawWidth / 2, y + drawHeight / 2);
+      return;
+    }
+
+    // Calculate video time within the clip
+    const speedMultiplier = video.effects.speed || 1;
+    
+    // Find the cumulative start time for this video based on layout
+    let cumulativeTime = 0;
+    if (layout === 'side-by-side' && video.gridId) {
+      // For side-by-side, only consider videos in the same grid
+      const sameGridVideos = videos.filter(v => v.gridId === video.gridId);
+      for (const v of sameGridVideos) {
+        if (v.id === video.id) break;
+        const videoSpeedMultiplier = v.effects.speed || 1;
+        const trimStart = v.trimStart || 0;
+        const trimEnd = v.trimEnd || v.duration;
+        const trimmedDuration = trimEnd - trimStart;
+        const videoEffectiveDuration = trimmedDuration / videoSpeedMultiplier;
+        cumulativeTime += videoEffectiveDuration;
+      }
+    } else {
+      // For single layout, consider all videos sequentially
+      for (const v of videos) {
+        if (v.id === video.id) break;
+        const videoSpeedMultiplier = v.effects.speed || 1;
+        const trimStart = v.trimStart || 0;
+        const trimEnd = v.trimEnd || v.duration;
+        const trimmedDuration = trimEnd - trimStart;
+        const videoEffectiveDuration = trimmedDuration / videoSpeedMultiplier;
+        cumulativeTime += videoEffectiveDuration;
+      }
+    }
+    
+    const relativeTime = currentTime - cumulativeTime;
+    const videoTime = relativeTime * speedMultiplier;
+    
+    const trimStart = video.trimStart || 0;
+    const trimEnd = video.trimEnd || video.duration;
+    const adjustedVideoTime = trimStart + Math.max(0, Math.min(videoTime, trimEnd - trimStart));
+
+    if (!isPlaying) {
+      const timeDiff = Math.abs(videoElement.currentTime - adjustedVideoTime);
+      if (timeDiff > 0.1) {
+        videoElement.currentTime = Math.max(0, Math.min(adjustedVideoTime, videoElement.duration - 0.01));
+      }
+    }
+
+    if (videoElement.readyState >= 2 && videoElement.videoWidth > 0 && videoElement.videoHeight > 0) {
+      try {
+        const scale = video.effects.scale || 1.0;
+        const posX = (video.effects.positionX || 0) * (drawWidth / 100);
+        const posY = (video.effects.positionY || 0) * (drawHeight / 100);
+        
+        const videoAspectRatio = videoElement.videoWidth / videoElement.videoHeight;
+        let videoWidth = drawWidth * scale;
+        let videoHeight = drawHeight * scale;
+        
+        if (videoAspectRatio > 1) {
+          videoHeight = videoWidth / videoAspectRatio;
+        } else {
+          videoWidth = videoHeight * videoAspectRatio;
+        }
+        
+        const videoX = x + (drawWidth - videoWidth) / 2 + posX;
+        const videoY = y + (drawHeight - videoHeight) / 2 + posY;
+        
+        ctx.drawImage(videoElement, videoX, videoY, videoWidth, videoHeight);
+        
+        if (video.effects.blur > 0) {
+          ctx.filter = `blur(${video.effects.blur}px)`;
+          ctx.drawImage(videoElement, videoX, videoY, videoWidth, videoHeight);
+          ctx.filter = 'none';
+        }
+      } catch (error) {
+        console.error("Error rendering video:", error);
+        ctx.fillStyle = "#1f2937";
+        ctx.fillRect(x, y, drawWidth, drawHeight);
+      }
+    }
+  }, [videos, currentTime, isPlaying, loadedVideos, layout]);
 
   // Throttled rendering to reduce flickering while maintaining responsiveness
   const throttledRender = useCallback(() => {
@@ -260,10 +310,8 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
     };
   }, [throttledRender, isPlaying]);
 
-  // Handle video playback state inspired by GifMaker's approach
+  // Handle video playback state for both single and side-by-side layouts
   useEffect(() => {
-    const currentVideo = getCurrentVideo();
-
     // Pause all videos first
     Object.values(videoRefs.current).forEach((videoElement) => {
       if (!videoElement.paused) {
@@ -271,48 +319,50 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
       }
     });
 
-    // Play current video if needed - inspired by GifMakerLivePreview
-    if (currentVideo && isPlaying && loadedVideos.has(currentVideo.id)) {
-      const videoElement = videoRefs.current[currentVideo.id];
-      if (videoElement && videoElement.readyState >= 2) {
-        const speedMultiplier = currentVideo.effects.speed || 1;
-        
-        // Find the cumulative start time for this video
-        let cumulativeTime = 0;
-        for (const video of videos) {
-          if (video.id === currentVideo.id) {
-            break;
-          }
-          const videoSpeedMultiplier = video.effects.speed || 1;
-          const trimStart = video.trimStart || 0;
-          const trimEnd = video.trimEnd || video.duration;
-          const trimmedDuration = trimEnd - trimStart;
-          const videoEffectiveDuration = trimmedDuration / videoSpeedMultiplier;
-          cumulativeTime += videoEffectiveDuration;
+    if (layout === 'single') {
+      // Single layout - play one video at a time
+      const currentVideo = getCurrentVideo();
+      if (currentVideo && isPlaying && loadedVideos.has(currentVideo.id)) {
+        const videoElement = videoRefs.current[currentVideo.id];
+        if (videoElement && videoElement.readyState >= 2) {
+          videoElement.play().catch((error) => {
+            if (error.name !== "AbortError") {
+              console.error("Error playing video:", error);
+            }
+          });
         }
-        
-        const relativeTime = currentTime - cumulativeTime;
-        const videoTime = relativeTime * speedMultiplier;
-        const trimStart = currentVideo.trimStart || 0;
-        const adjustedVideoTime = trimStart + Math.max(0, Math.min(videoTime, (currentVideo.trimEnd || currentVideo.duration) - trimStart));
-
-        // ONLY set time when NOT playing to avoid seeking conflicts (GifMaker pattern)
-        if (!isPlaying && Math.abs(videoElement.currentTime - adjustedVideoTime) > 0.1) {
-          videoElement.currentTime = Math.max(0, Math.min(adjustedVideoTime, videoElement.duration - 0.01));
+      }
+    } else {
+      // Side-by-side layout - play videos from both grids simultaneously
+      const currentVideos = getCurrentVideosByGrid();
+      
+      // Play Grid 1 video
+      if (currentVideos.grid1 && isPlaying && loadedVideos.has(currentVideos.grid1.id)) {
+        const videoElement = videoRefs.current[currentVideos.grid1.id];
+        if (videoElement && videoElement.readyState >= 2) {
+          videoElement.play().catch((error) => {
+            if (error.name !== "AbortError") {
+              console.error("Error playing Grid 1 video:", error);
+            }
+          });
         }
-
-        // Play the video
-        videoElement.play().catch((error) => {
-          // Silently handle play errors to avoid console spam
-          if (error.name !== "AbortError") {
-            console.error("Error playing video:", error);
-          }
-        });
+      }
+      
+      // Play Grid 2 video
+      if (currentVideos.grid2 && isPlaying && loadedVideos.has(currentVideos.grid2.id)) {
+        const videoElement = videoRefs.current[currentVideos.grid2.id];
+        if (videoElement && videoElement.readyState >= 2) {
+          videoElement.play().catch((error) => {
+            if (error.name !== "AbortError") {
+              console.error("Error playing Grid 2 video:", error);
+            }
+          });
+        }
       }
     }
-  }, [getCurrentVideo, currentTime, isPlaying, loadedVideos, videos]);
+  }, [getCurrentVideo, getCurrentVideosByGrid, currentTime, isPlaying, loadedVideos, videos, layout]);
 
-  // Add GifMaker-style video synchronization during playback
+  // Video synchronization during playback for both layouts
   useEffect(() => {
     if (!isPlaying) {
       if (syncAnimationFrameRef.current) {
@@ -323,41 +373,79 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
     }
 
     const syncVideoTime = () => {
-      const currentVideo = getCurrentVideo();
-      if (currentVideo && loadedVideos.has(currentVideo.id)) {
-        const videoElement = videoRefs.current[currentVideo.id];
-        
-        if (videoElement && !videoElement.paused && !videoElement.ended) {
-          const now = performance.now();
+      if (layout === 'single') {
+        // Single layout sync
+        const currentVideo = getCurrentVideo();
+        if (currentVideo && loadedVideos.has(currentVideo.id)) {
+          const videoElement = videoRefs.current[currentVideo.id];
           
-          // Throttle updates to every 100ms like GifMaker
-          if (now - lastSyncTimeRef.current >= 100) {
-            const speedMultiplier = currentVideo.effects.speed || 1;
+          if (videoElement && !videoElement.paused && !videoElement.ended) {
+            const now = performance.now();
             
-            // Calculate expected timeline position based on video time
-            let cumulativeTime = 0;
-            for (const video of videos) {
-              if (video.id === currentVideo.id) {
-                break;
+            if (now - lastSyncTimeRef.current >= 100) {
+              const speedMultiplier = currentVideo.effects.speed || 1;
+              
+              // Calculate expected timeline position
+              let cumulativeTime = 0;
+              for (const video of videos) {
+                if (video.id === currentVideo.id) break;
+                const videoSpeedMultiplier = video.effects.speed || 1;
+                const trimStart = video.trimStart || 0;
+                const trimEnd = video.trimEnd || video.duration;
+                const trimmedDuration = trimEnd - trimStart;
+                const videoEffectiveDuration = trimmedDuration / videoSpeedMultiplier;
+                cumulativeTime += videoEffectiveDuration;
               }
-              const videoSpeedMultiplier = video.effects.speed || 1;
-              const trimStart = video.trimStart || 0;
-              const trimEnd = video.trimEnd || video.duration;
-              const trimmedDuration = trimEnd - trimStart;
-              const videoEffectiveDuration = trimmedDuration / videoSpeedMultiplier;
-              cumulativeTime += videoEffectiveDuration;
+              
+              const trimStart = currentVideo.trimStart || 0;
+              const videoTimeInClip = videoElement.currentTime - trimStart;
+              const timelineTime = cumulativeTime + (videoTimeInClip / speedMultiplier);
+              
+              if (Math.abs(timelineTime - currentTime) > 0.05 && onTimeUpdate) {
+                onTimeUpdate(timelineTime);
+              }
+              
+              lastSyncTimeRef.current = now;
             }
+          }
+        }
+      } else {
+        // Side-by-side layout sync - prioritize Grid 1 for timeline sync
+        const currentVideos = getCurrentVideosByGrid();
+        let syncVideo = currentVideos.grid1 || currentVideos.grid2; // Use Grid 1 if available, otherwise Grid 2
+        
+        if (syncVideo && loadedVideos.has(syncVideo.id)) {
+          const videoElement = videoRefs.current[syncVideo.id];
+          
+          if (videoElement && !videoElement.paused && !videoElement.ended) {
+            const now = performance.now();
             
-            const trimStart = currentVideo.trimStart || 0;
-            const videoTimeInClip = videoElement.currentTime - trimStart;
-            const timelineTime = cumulativeTime + (videoTimeInClip / speedMultiplier);
-            
-            // Only update if there's a significant difference (avoid jitter like GifMaker)
-            if (Math.abs(timelineTime - currentTime) > 0.05 && onTimeUpdate) {
-              onTimeUpdate(timelineTime);
+            if (now - lastSyncTimeRef.current >= 100) {
+              const speedMultiplier = syncVideo.effects.speed || 1;
+              
+              // Calculate expected timeline position for this grid
+              let cumulativeTime = 0;
+              const sameGridVideos = videos.filter(v => v.gridId === syncVideo.gridId);
+              for (const video of sameGridVideos) {
+                if (video.id === syncVideo.id) break;
+                const videoSpeedMultiplier = video.effects.speed || 1;
+                const trimStart = video.trimStart || 0;
+                const trimEnd = video.trimEnd || video.duration;
+                const trimmedDuration = trimEnd - trimStart;
+                const videoEffectiveDuration = trimmedDuration / videoSpeedMultiplier;
+                cumulativeTime += videoEffectiveDuration;
+              }
+              
+              const trimStart = syncVideo.trimStart || 0;
+              const videoTimeInClip = videoElement.currentTime - trimStart;
+              const timelineTime = cumulativeTime + (videoTimeInClip / speedMultiplier);
+              
+              if (Math.abs(timelineTime - currentTime) > 0.05 && onTimeUpdate) {
+                onTimeUpdate(timelineTime);
+              }
+              
+              lastSyncTimeRef.current = now;
             }
-            
-            lastSyncTimeRef.current = now;
           }
         }
       }
@@ -374,7 +462,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
         cancelAnimationFrame(syncAnimationFrameRef.current);
       }
     };
-  }, [isPlaying, getCurrentVideo, loadedVideos, currentTime, videos, onTimeUpdate]);
+  }, [isPlaying, getCurrentVideo, getCurrentVideosByGrid, loadedVideos, currentTime, videos, onTimeUpdate, layout]);
 
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-pink-200 p-6">
@@ -399,30 +487,97 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
         />
 
         {/* Overlay for current video info */}
-        {(() => {
-          const currentVideo = videos.find(
-            (video) =>
-              currentTime >= video.startTime && currentTime < video.endTime
-          );
-
-          if (currentVideo) {
+        {layout === 'single' ? (
+          (() => {
+            const currentVideo = getCurrentVideo();
+            if (currentVideo) {
+              return (
+                <div className="absolute top-4 left-4 bg-black/75 text-white px-3 py-1 rounded-lg text-sm">
+                  {currentVideo.file.name}
+                </div>
+              );
+            }
+            return null;
+          })()
+        ) : (
+          (() => {
+            const currentVideos = getCurrentVideosByGrid();
             return (
-              <div className="absolute top-4 left-4 bg-black/75 text-white px-3 py-1 rounded-lg text-sm">
-                {currentVideo.file.name}
-              </div>
+              <>
+                {/* Grid 1 video info */}
+                {currentVideos.grid1 && (
+                  <div className="absolute top-4 left-4 bg-blue-600/90 text-white px-3 py-1 rounded-lg text-sm">
+                    Grid 1: {currentVideos.grid1.file.name}
+                  </div>
+                )}
+                {/* Grid 2 video info */}
+                {currentVideos.grid2 && (
+                  <div className="absolute top-4 right-4 bg-green-600/90 text-white px-3 py-1 rounded-lg text-sm">
+                    Grid 2: {currentVideos.grid2.file.name}
+                  </div>
+                )}
+              </>
             );
-          }
-          return null;
-        })()}
-
-        {/* Play/Pause overlay */}
-        {!isPlaying && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/25">
-            <div className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center">
-              <div className="w-0 h-0 border-l-[20px] border-l-gray-700 border-y-[12px] border-y-transparent ml-1" />
-            </div>
-          </div>
+          })()
         )}
+
+        {/* Grid Click Overlays for Side-by-Side Layout */}
+        {layout === 'side-by-side' && onGridClick && (
+          <>
+            {/* Grid 1 Clickable Area - exactly matches canvas division */}
+            <div 
+              className="absolute top-0 left-0 h-full"
+              style={{ width: `${Math.ceil(width / 2)}px` }}
+            >
+              {!videos.some(v => v.gridId === 'grid-1') ? (
+                <div
+                  className="absolute inset-0 cursor-pointer group transition-all duration-200"
+                  onClick={() => onGridClick('grid-1')}
+                >
+                  <div className="absolute inset-0 bg-blue-500/20 group-hover:bg-blue-500/40 flex items-center justify-center">
+                    <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                      Click to upload to Grid 1
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+              {activeGridId === 'grid-1' && (
+                <div className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded text-xs font-medium">
+                  Active Grid
+                </div>
+              )}
+            </div>
+
+            {/* Grid 2 Clickable Area - exactly matches canvas division */}
+            <div 
+              className="absolute top-0 h-full"
+              style={{ 
+                left: `${Math.ceil(width / 2)}px`,
+                width: `${width - Math.ceil(width / 2)}px`
+              }}
+            >
+              {!videos.some(v => v.gridId === 'grid-2') ? (
+                <div
+                  className="absolute inset-0 cursor-pointer group transition-all duration-200"
+                  onClick={() => onGridClick('grid-2')}
+                >
+                  <div className="absolute inset-0 bg-green-500/20 group-hover:bg-green-500/40 flex items-center justify-center">
+                    <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                      Click to upload to Grid 2
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+              {activeGridId === 'grid-2' && (
+                <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded text-xs font-medium">
+                  Active Grid
+                </div>
+              )}
+            </div>
+
+          </>
+        )}
+
       </div>
 
       {/* Video Info */}
@@ -438,13 +593,28 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
         <div>
           <span className="text-gray-600">Current:</span>
           <span className="ml-2 font-medium text-gray-700">
-            {(() => {
-              const currentVideo = videos.find(
-                (video) =>
-                  currentTime >= video.startTime && currentTime < video.endTime
-              );
-              return currentVideo ? videos.indexOf(currentVideo) + 1 : "None";
-            })()}
+            {layout === 'single' ? (
+              (() => {
+                const currentVideo = getCurrentVideo();
+                return currentVideo ? videos.indexOf(currentVideo) + 1 : "None";
+              })()
+            ) : (
+              (() => {
+                const currentVideos = getCurrentVideosByGrid();
+                const parts = [];
+                if (currentVideos.grid1) {
+                  const grid1Videos = videos.filter(v => v.gridId === 'grid-1');
+                  const index = grid1Videos.indexOf(currentVideos.grid1) + 1;
+                  parts.push(`G1:${index}`);
+                }
+                if (currentVideos.grid2) {
+                  const grid2Videos = videos.filter(v => v.gridId === 'grid-2');
+                  const index = grid2Videos.indexOf(currentVideos.grid2) + 1;
+                  parts.push(`G2:${index}`);
+                }
+                return parts.length > 0 ? parts.join(', ') : "None";
+              })()
+            )}
           </span>
         </div>
       </div>

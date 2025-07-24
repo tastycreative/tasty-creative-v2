@@ -2,7 +2,7 @@
 
 import React, { useMemo, useCallback, useState, useEffect, useRef } from "react";
 import { VideoSequenceItem, SelectiveBlurRegion } from "@/types/video";
-import { Play, Pause, SkipBack, SkipForward, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Clock, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { BlurTimelineOverlay } from "./BlurTimelineOverlay";
 
 interface VideoFrame {
@@ -25,6 +25,8 @@ interface TimelineProps {
   onPause: () => void;
   onBlurRegionClick?: (videoId: string, regionId: string) => void;
   editingBlur?: { videoId: string; regionId: string } | null;
+  layout?: 'single' | 'side-by-side';
+  onAddSequence?: (gridId?: string) => void;
 }
 
 // Smart progressive frame extraction utility with throttling and progress tracking
@@ -160,6 +162,8 @@ export const Timeline: React.FC<TimelineProps> = ({
   onPause,
   onBlurRegionClick,
   editingBlur,
+  layout = 'single',
+  onAddSequence,
 }) => {
   const [hoverPosition, setHoverPosition] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -316,21 +320,37 @@ export const Timeline: React.FC<TimelineProps> = ({
 
       // Calculate cumulative start time and effective duration
       let cumulativeTime = 0;
-      for (const v of videos) {
-        if (v.id === video.id) {
-          break;
+      
+      if (layout === 'side-by-side' && video.gridId) {
+        // For side-by-side layout, only consider videos in the same grid for cumulative time
+        const sameGridVideos = videos.filter(v => v.gridId === video.gridId);
+        for (const v of sameGridVideos) {
+          if (v.id === video.id) {
+            break;
+          }
+          const speedMultiplier = v.effects.speed || 1;
+          const trimStart = v.trimStart || 0;
+          const trimEnd = v.trimEnd || v.duration;
+          const trimmedDuration = trimEnd - trimStart;
+          const effectiveDuration = trimmedDuration / speedMultiplier;
+          cumulativeTime += effectiveDuration;
         }
-        const speedMultiplier = v.effects.speed || 1;
-        // Account for trimming in cumulative time calculation
-        const trimStart = v.trimStart || 0;
-        const trimEnd = v.trimEnd || v.duration;
-        const trimmedDuration = trimEnd - trimStart;
-        const effectiveDuration = trimmedDuration / speedMultiplier;
-        cumulativeTime += effectiveDuration;
+      } else {
+        // For single layout, consider all videos sequentially
+        for (const v of videos) {
+          if (v.id === video.id) {
+            break;
+          }
+          const speedMultiplier = v.effects.speed || 1;
+          const trimStart = v.trimStart || 0;
+          const trimEnd = v.trimEnd || v.duration;
+          const trimmedDuration = trimEnd - trimStart;
+          const effectiveDuration = trimmedDuration / speedMultiplier;
+          cumulativeTime += effectiveDuration;
+        }
       }
 
       const speedMultiplier = video.effects.speed || 1;
-      // Account for trimming in this video's duration
       const trimStart = video.trimStart || 0;
       const trimEnd = video.trimEnd || video.duration;
       const trimmedDuration = trimEnd - trimStart;
@@ -348,7 +368,7 @@ export const Timeline: React.FC<TimelineProps> = ({
 
       return { leftPercent, widthPercent: constrainedWidthPercent };
     },
-    [totalDuration, videos]
+    [totalDuration, videos, layout]
   );
 
   const getCurrentPosition = useMemo(() => {
@@ -520,14 +540,142 @@ export const Timeline: React.FC<TimelineProps> = ({
     onSeek(totalDuration);
   }, [onSeek, totalDuration]);
 
+  const renderVideoSegment = useCallback((
+    video: VideoSequenceItem,
+    index: number,
+    leftPercent: number,
+    widthPercent: number,
+    isSelected: boolean,
+    frames: VideoFrame[],
+    colorClass: string,
+    topOffset: number,
+    bottomOffset: number
+  ) => {
+    return (
+      <div
+        key={video.id}
+        className={`
+          video-segment absolute cursor-pointer transition-all duration-300 shadow-md overflow-hidden rounded-lg
+          ${
+            isSelected
+              ? "ring-2 ring-pink-400 shadow-lg z-30"
+              : "hover:shadow-lg z-20"
+          }
+        `}
+        style={{
+          left: `${leftPercent}%`,
+          width: `${widthPercent}%`,
+          top: topOffset,
+          bottom: bottomOffset,
+          marginLeft: index > 0 ? "1px" : "0",
+        }}
+        onClick={(e) => handleVideoClick(video, e)}
+        title={`${video.file.name} (${formatTime(video.trimEnd || video.duration)} ${video.trimStart || video.trimEnd ? "trimmed" : "full"})`}
+      >
+        {/* Frame Thumbnails or Loading State */}
+        {showFrameView && frames.length > 0 ? (
+          /* Show frame thumbnails as navigation */
+          <div className="absolute inset-0 flex overflow-hidden rounded-lg">
+            {frames.map((frame, frameIndex) => {
+              const frameWidth = 100 / frames.length;
+              const isCurrentFrame = Math.abs((frame.time + video.startTime) - currentTime) < 0.25;
+              
+              return (
+                <div
+                  key={frameIndex}
+                  className={`relative cursor-pointer transition-all duration-200 border-r border-white/30 last:border-r-0 ${
+                    isCurrentFrame ? 'ring-2 ring-pink-400 ring-inset' : 'hover:brightness-110'
+                  }`}
+                  style={{
+                    width: `${frameWidth}%`,
+                    height: '100%',
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('Frame clicked, selecting video:', video.id, video.file.name);
+                    onSeek(frame.time + video.startTime);
+                    onVideoSelect(video.id);
+                  }}
+                  title={`${video.file.name} - Frame at ${formatTime(frame.time + video.startTime)}`}
+                >
+                  <img
+                    src={frame.thumbnail}
+                    alt={`Frame at ${frame.time}s`}
+                    className="w-full h-full object-cover"
+                    draggable={false}
+                  />
+                  {/* Current time indicator */}
+                  {isCurrentFrame && (
+                    <div className="absolute inset-0 bg-pink-400/20 pointer-events-none"></div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : showFrameView && frames.length === 0 ? (
+          /* Loading state with progress */
+          <div className={`absolute inset-0 flex items-center justify-center bg-gradient-to-r ${colorClass} rounded-lg`}>
+            <div className="text-center text-white">
+              {(() => {
+                const progress = extractionProgress.get(video.id);
+                return progress ? (
+                  <div className="space-y-1">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <div className="text-xs">
+                      {progress.current}/{progress.total}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <div className="text-xs">Loading...</div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        ) : (
+          /* Fallback: Traditional colored segments */
+          <>
+            <div className={`absolute inset-0 bg-gradient-to-r ${colorClass} rounded-lg`}></div>
+            {/* Video text content - adaptive based on segment width */}
+            {widthPercent > 15 ? (
+              <>
+                <div className={`absolute left-2 right-2 top-1 text-xs text-white font-semibold truncate drop-shadow-sm z-10`}>
+                  {video.file.name}
+                </div>
+                <div className={`absolute left-2 right-2 bottom-1 text-xs text-white/90 font-medium drop-shadow-sm z-10`}>
+                  {formatTime((video.trimEnd || video.duration) - (video.trimStart || 0))}
+                </div>
+              </>
+            ) : (
+              <div className="absolute inset-1 flex items-center justify-center z-10">
+                <div className="text-xs text-white font-medium bg-black/40 px-1.5 py-0.5 rounded shadow-sm">
+                  {formatTime((video.trimEnd || video.duration) - (video.trimStart || 0))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Video Number Badge */}
+        <div className="absolute -top-1 -left-1 w-5 h-5 bg-white rounded-full border-2 border-gray-300 flex items-center justify-center z-50 shadow-lg">
+          <span className="text-xs font-bold text-gray-700">
+            {index + 1}
+          </span>
+        </div>
+      </div>
+    );
+  }, [showFrameView, extractionProgress, formatTime, currentTime, handleVideoClick, onSeek, onVideoSelect]);
+
   return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-pink-200 p-6">
+    <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-pink-200 p-6">
       {/* Timeline Controls */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 bg-gradient-to-r from-pink-50 to-rose-50 rounded-lg p-4 border border-pink-100">
         <div className="flex items-center space-x-4">
           <button
             onClick={jumpToStart}
-            className="p-2 hover:bg-pink-50 rounded-lg transition-all duration-200 hover:scale-105"
+            className="p-3 hover:bg-white rounded-lg transition-all duration-200 hover:scale-105 shadow-sm border border-pink-200"
             title="Jump to start"
           >
             <SkipBack className="w-5 h-5 text-gray-700" />
@@ -535,7 +683,7 @@ export const Timeline: React.FC<TimelineProps> = ({
 
           <button
             onClick={isPlaying ? onPause : onPlay}
-            className="p-3 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 rounded-lg transition-all duration-200 hover:scale-105 shadow-md"
+            className="p-4 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 rounded-xl transition-all duration-200 hover:scale-105 shadow-lg"
             title={isPlaying ? "Pause" : "Play"}
           >
             {isPlaying ? (
@@ -547,30 +695,30 @@ export const Timeline: React.FC<TimelineProps> = ({
 
           <button
             onClick={jumpToEnd}
-            className="p-2 hover:bg-pink-50 rounded-lg transition-all duration-200 hover:scale-105"
+            className="p-3 hover:bg-white rounded-lg transition-all duration-200 hover:scale-105 shadow-sm border border-pink-200"
             title="Jump to end"
           >
             <SkipForward className="w-5 h-5 text-gray-700" />
           </button>
 
           {/* Frame-by-frame navigation controls */}
-          <div className="flex items-center space-x-1 border-l border-pink-200 pl-4">
+          <div className="flex items-center space-x-2 border-l border-pink-300 pl-4">
             <button
               onClick={goToPreviousFrame}
-              className="p-2 hover:bg-pink-50 rounded-lg transition-all duration-200 hover:scale-105"
+              className="p-2 hover:bg-white rounded-lg transition-all duration-200 hover:scale-105 shadow-sm border border-pink-200"
               title="Previous frame"
               disabled={getCurrentFrameIndex() <= 0}
             >
               <ChevronLeft className="w-4 h-4 text-gray-700" />
             </button>
             
-            <div className="text-xs text-gray-600 min-w-[80px] text-center bg-pink-50 px-2 py-1 rounded">
+            <div className="text-xs text-gray-700 min-w-[90px] text-center bg-white px-3 py-2 rounded-lg shadow-sm border border-pink-200 font-medium">
               Frame: {getCurrentFrameIndex() + 1}/{getTotalFrames()}
             </div>
             
             <button
               onClick={goToNextFrame}
-              className="p-2 hover:bg-pink-50 rounded-lg transition-all duration-200 hover:scale-105"
+              className="p-2 hover:bg-white rounded-lg transition-all duration-200 hover:scale-105 shadow-sm border border-pink-200"
               title="Next frame"
               disabled={getCurrentFrameIndex() >= getTotalFrames() - 1}
             >
@@ -581,10 +729,10 @@ export const Timeline: React.FC<TimelineProps> = ({
           {/* Frame view toggle */}
           <button
             onClick={() => setShowFrameView(!showFrameView)}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 ${
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 shadow-sm border ${
               showFrameView
-                ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-md"
-                : "bg-pink-50 text-pink-700 hover:bg-pink-100"
+                ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white border-pink-400 shadow-md"
+                : "bg-white text-pink-700 hover:bg-pink-50 border-pink-200"
             }`}
             title="Toggle frame thumbnails"
           >
@@ -592,15 +740,15 @@ export const Timeline: React.FC<TimelineProps> = ({
           </button>
         </div>
 
-        <div className="flex items-center space-x-6 text-sm text-gray-600">
-          <div className="flex items-center space-x-2 bg-pink-50 px-3 py-1.5 rounded-lg">
+        <div className="flex items-center space-x-4 text-sm text-gray-700">
+          <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-lg shadow-sm border border-pink-200">
             <Clock className="w-4 h-4 text-pink-500" />
             <span className="font-medium">
               {formatTime(currentTime)} / {formatTime(totalDuration)}
             </span>
           </div>
-          <div className="text-xs bg-pink-50 text-pink-600 px-2 py-1 rounded-full">
-            {videos.length} video{videos.length !== 1 ? "s" : ""}
+          <div className="text-xs bg-white text-pink-600 px-3 py-2 rounded-lg font-medium shadow-sm border border-pink-200">
+            {videos.length} video{videos.length !== 1 ? "s" : ""} loaded
           </div>
         </div>
       </div>
@@ -609,7 +757,9 @@ export const Timeline: React.FC<TimelineProps> = ({
       <div
         className="timeline-track-container relative rounded-xl cursor-pointer select-none shadow-inner border border-pink-200 overflow-hidden"
         style={{
-          height: 88 + (blurAreaHeight - 28),
+          height: layout === 'side-by-side' ? 
+            (88 + (blurAreaHeight - 28)) * 2 + 8 : // Double height with gap for side-by-side
+            88 + (blurAreaHeight - 28),
           background: 'linear-gradient(to right, rgb(243 244 246), rgb(249 250 251))',
         }}
         onClick={handleTimelineClick}
@@ -692,144 +842,148 @@ export const Timeline: React.FC<TimelineProps> = ({
           }}
         >
           {/* Video Segments with Integrated Frame Thumbnails */}
-          {videos.map((video, index) => {
-            const { leftPercent, widthPercent } = getVideoPosition(video);
-            const isSelected = video.id === selectedVideoId;
-            const frames = videoFrames.get(video.id) || [];
+          {layout === 'single' ? (
+            // Single layout - render all videos in one track
+            videos.map((video, index) => {
+              const { leftPercent, widthPercent } = getVideoPosition(video);
+              const isSelected = video.id === selectedVideoId;
+              const frames = videoFrames.get(video.id) || [];
 
-            // Generate distinct colors for fallback when no frames
-            const colors = [
-              "from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600",
-              "from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700",
-              "from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700",
-              "from-rose-400 to-rose-500 hover:from-rose-500 hover:to-rose-600",
-              "from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700",
-              "from-pink-300 to-pink-400 hover:from-pink-400 hover:to-pink-500",
-            ];
-            const colorClass = colors[index % colors.length];
+              const colors = [
+                "from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600",
+                "from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700",
+                "from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700",
+                "from-rose-400 to-rose-500 hover:from-rose-500 hover:to-rose-600",
+                "from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700",
+                "from-pink-300 to-pink-400 hover:from-pink-400 hover:to-pink-500",
+              ];
+              const colorClass = colors[index % colors.length];
 
-            return (
-              <div
-                key={video.id}
-                className={`
-                  video-segment absolute cursor-pointer transition-all duration-300 shadow-md overflow-hidden rounded-lg
-                  ${
-                    isSelected
-                      ? "ring-2 ring-pink-400 shadow-lg z-30"
-                      : "hover:shadow-lg z-20"
-                  }
-                `}
-                style={{
-                  left: `${leftPercent}%`,
-                  width: `${widthPercent}%`,
-                  top: 4,
-                  bottom: 4,
-                  marginLeft: index > 0 ? "1px" : "0",
-                }}
-                onClick={(e) => handleVideoClick(video, e)}
-                title={`${video.file.name} (${formatTime(video.trimEnd || video.duration)} ${video.trimStart || video.trimEnd ? "trimmed" : "full"})`}
-              >
-                {/* Frame Thumbnails or Loading State */}
-                {showFrameView && frames.length > 0 ? (
-                  /* Show frame thumbnails as navigation */
-                  <div className="absolute inset-0 flex overflow-hidden rounded-lg">
-                    {frames.map((frame, frameIndex) => {
-                      const frameWidth = 100 / frames.length;
-                      const isCurrentFrame = Math.abs((frame.time + video.startTime) - currentTime) < 0.25;
-                      
-                      return (
-                        <div
-                          key={frameIndex}
-                          className={`relative cursor-pointer transition-all duration-200 border-r border-white/30 last:border-r-0 ${
-                            isCurrentFrame ? 'ring-2 ring-pink-400 ring-inset' : 'hover:brightness-110'
-                          }`}
-                          style={{
-                            width: `${frameWidth}%`,
-                            height: '100%',
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            console.log('Frame clicked, selecting video:', video.id, video.file.name);
-                            onSeek(frame.time + video.startTime);
-                            onVideoSelect(video.id);
-                          }}
-                          title={`${video.file.name} - Frame at ${formatTime(frame.time + video.startTime)}`}
-                        >
-                          <img
-                            src={frame.thumbnail}
-                            alt={`Frame at ${frame.time}s`}
-                            className="w-full h-full object-cover"
-                            draggable={false}
-                          />
-                          {/* Current time indicator */}
-                          {isCurrentFrame && (
-                            <div className="absolute inset-0 bg-pink-400/20 pointer-events-none"></div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : showFrameView && frames.length === 0 ? (
-                  /* Loading state with progress */
-                  <div className={`absolute inset-0 flex items-center justify-center bg-gradient-to-r ${colorClass} rounded-lg`}>
-                    <div className="text-center text-white">
-                      {(() => {
-                        const progress = extractionProgress.get(video.id);
-                        return progress ? (
-                          <div className="space-y-1">
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
-                            <div className="text-xs">
-                              {progress.current}/{progress.total}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="space-y-1">
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
-                            <div className="text-xs">Loading...</div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                ) : (
-                  /* Fallback: Traditional colored segments */
-                  <>
-                    <div className={`absolute inset-0 bg-gradient-to-r ${colorClass} rounded-lg`}></div>
-                    {/* Video text content - adaptive based on segment width */}
-                    {widthPercent > 15 ? (
-                      <>
-                        <div className={`absolute left-2 right-2 top-1 text-xs text-white font-semibold truncate drop-shadow-sm z-10`}>
-                          {video.file.name}
-                        </div>
-                        <div className={`absolute left-2 right-2 bottom-1 text-xs text-white/90 font-medium drop-shadow-sm z-10`}>
-                          {formatTime((video.trimEnd || video.duration) - (video.trimStart || 0))}
-                        </div>
-                      </>
-                    ) : (
-                      <div className="absolute inset-1 flex items-center justify-center z-10">
-                        <div className="text-xs text-white font-medium bg-black/40 px-1.5 py-0.5 rounded shadow-sm">
-                          {formatTime((video.trimEnd || video.duration) - (video.trimStart || 0))}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
+              return renderVideoSegment(video, index, leftPercent, widthPercent, isSelected, frames, colorClass, 4, 4);
+            })
+          ) : (
+            // Side-by-side layout - render videos in separate tracks with equal heights
+            <>
+              {/* Grid 1 Track */}
+              {videos.filter(v => v.gridId === 'grid-1').map((video, index) => {
+                const { leftPercent, widthPercent } = getVideoPosition(video);
+                const isSelected = video.id === selectedVideoId;
+                const frames = videoFrames.get(video.id) || [];
+                const colorClass = "from-blue-400 to-blue-500 hover:from-blue-500 hover:to-blue-600";
+                
+                // Calculate equal track heights
+                const totalTrackArea = (88 + (blurAreaHeight - 28)) * 2; // Total available height for both tracks
+                const singleTrackHeight = (totalTrackArea - 8) / 2; // Subtract gap, divide by 2
+                const topOffset = 4;
+                const bottomOffset = totalTrackArea - singleTrackHeight - topOffset;
 
-                {/* Video Number Badge */}
-                <div className="absolute -top-1 -left-1 w-5 h-5 bg-white rounded-full border-2 border-gray-300 flex items-center justify-center z-50 shadow-lg">
-                  <span className="text-xs font-bold text-gray-700">
-                    {index + 1}
-                  </span>
-                </div>
+                return renderVideoSegment(video, index, leftPercent, widthPercent, isSelected, frames, colorClass, topOffset, bottomOffset);
+              })}
+
+              {/* Grid 1 Add Sequence Button */}
+              {(() => {
+                const grid1Videos = videos.filter(v => v.gridId === 'grid-1');
+                if (grid1Videos.length > 0) {
+                  const lastVideo = grid1Videos[grid1Videos.length - 1];
+                  const { leftPercent, widthPercent } = getVideoPosition(lastVideo);
+                  const totalTrackArea = (88 + (blurAreaHeight - 28)) * 2;
+                  const singleTrackHeight = (totalTrackArea - 8) / 2;
+                  const topOffset = 4;
+                  const bottomOffset = totalTrackArea - singleTrackHeight - topOffset;
+                  
+                  return (
+                    <button
+                      key="grid-1-add"
+                      onClick={() => onAddSequence?.('grid-1')}
+                      className="absolute cursor-pointer hover:scale-110 transition-all duration-200 bg-blue-500 hover:bg-blue-600 text-white rounded-full p-1 shadow-lg"
+                      style={{
+                        left: `${leftPercent + widthPercent + 0.5}%`,
+                        top: topOffset + singleTrackHeight / 2 - 12,
+                        width: '24px',
+                        height: '24px',
+                      }}
+                      title="Add sequence to Grid 1"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  );
+                }
+                return null;
+              })()}
+
+              {/* Grid 2 Track */}
+              {videos.filter(v => v.gridId === 'grid-2').map((video, index) => {
+                const { leftPercent, widthPercent } = getVideoPosition(video);
+                const isSelected = video.id === selectedVideoId;
+                const frames = videoFrames.get(video.id) || [];
+                const colorClass = "from-green-400 to-green-500 hover:from-green-500 hover:to-green-600";
+                
+                // Calculate equal track heights
+                const totalTrackArea = (88 + (blurAreaHeight - 28)) * 2; // Total available height for both tracks
+                const singleTrackHeight = (totalTrackArea - 8) / 2; // Subtract gap, divide by 2
+                const topOffset = singleTrackHeight + 8; // Start after first track + gap
+                const bottomOffset = 4;
+
+                return renderVideoSegment(video, index, leftPercent, widthPercent, isSelected, frames, colorClass, topOffset, bottomOffset);
+              })}
+
+              {/* Grid 2 Add Sequence Button */}
+              {(() => {
+                const grid2Videos = videos.filter(v => v.gridId === 'grid-2');
+                if (grid2Videos.length > 0) {
+                  const lastVideo = grid2Videos[grid2Videos.length - 1];
+                  const { leftPercent, widthPercent } = getVideoPosition(lastVideo);
+                  const totalTrackArea = (88 + (blurAreaHeight - 28)) * 2;
+                  const singleTrackHeight = (totalTrackArea - 8) / 2;
+                  const topOffset = singleTrackHeight + 8;
+                  
+                  return (
+                    <button
+                      key="grid-2-add"
+                      onClick={() => onAddSequence?.('grid-2')}
+                      className="absolute cursor-pointer hover:scale-110 transition-all duration-200 bg-green-500 hover:bg-green-600 text-white rounded-full p-1 shadow-lg"
+                      style={{
+                        left: `${leftPercent + widthPercent + 0.5}%`,
+                        top: topOffset + singleTrackHeight / 2 - 12,
+                        width: '24px',
+                        height: '24px',
+                      }}
+                      title="Add sequence to Grid 2"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  );
+                }
+                return null;
+              })()}
+
+              {/* Track Separator Line */}
+              <div 
+                className="absolute left-0 right-0 border-t border-pink-300/50"
+                style={{ top: `${((88 + (blurAreaHeight - 28)) * 2 - 8) / 2 + 4}px` }}
+              />
+
+              {/* Track Labels */}
+              <div className="absolute left-2 text-xs font-medium text-gray-600 bg-white/80 px-2 py-1 rounded"
+                   style={{ top: '12px' }}>
+                Grid 1
               </div>
-            );
-          })}
+              <div className="absolute left-2 text-xs font-medium text-gray-600 bg-white/80 px-2 py-1 rounded"
+                   style={{ top: `${((88 + (blurAreaHeight - 28)) * 2 - 8) / 2 + 12}px` }}>
+                Grid 2
+              </div>
+            </>
+          )}
 
           {/* Current Time Indicator */}
           {totalDuration > 0 && (
             <div
-              className="timeline-scrubber absolute top-0 bottom-0 w-1 bg-gradient-to-b from-red-400 to-red-600 z-50 shadow-lg cursor-grab active:cursor-grabbing rounded-full"
-              style={{ left: getCurrentPosition }}
+              className="timeline-scrubber absolute w-1 bg-gradient-to-b from-red-400 to-red-600 z-50 shadow-lg cursor-grab active:cursor-grabbing rounded-full"
+              style={{ 
+                left: getCurrentPosition, 
+                top: '4px',
+                bottom: '4px'
+              }}
             >
               <div className="absolute -top-2 -left-1 w-4 h-4 bg-pink-500 rounded-full shadow-lg hover:scale-110 transition-all duration-200 border-2 border-white" />
               <div className="absolute -top-8 -left-10 bg-gradient-to-r from-pink-500 to-pink-600 text-white text-xs px-3 py-1.5 rounded-lg whitespace-nowrap shadow-lg border border-pink-400 font-medium">
@@ -846,8 +1000,12 @@ export const Timeline: React.FC<TimelineProps> = ({
           {/* Hover Position Indicator */}
           {hoverPosition !== null && totalDuration > 0 && !isDragging && (
             <div
-              className="absolute top-0 bottom-0 w-0.5 bg-pink-400 z-45 opacity-70 transition-all duration-200 rounded-full"
-              style={{ left: `${hoverPosition}%` }}
+              className="absolute w-0.5 bg-pink-400 z-45 opacity-70 transition-all duration-200 rounded-full"
+              style={{ 
+                left: `${hoverPosition}%`,
+                top: '4px',
+                bottom: '4px'
+              }}
             >
               <div className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-pink-400 rounded-full shadow-md border border-white" />
               <div className="absolute -top-7 -left-10 bg-pink-400 text-white text-xs px-2 py-1 rounded-lg whitespace-nowrap shadow-lg border border-pink-300 font-medium">

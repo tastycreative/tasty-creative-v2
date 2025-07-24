@@ -28,6 +28,7 @@ export interface VideoSequenceItem {
   thumbnail?: string;
   trimStart?: number; // Time (in seconds) to start the video from (default: 0)
   trimEnd?: number; // Time (in seconds) to end the video at (default: duration)
+  gridId?: string; // Which grid this video belongs to (for side-by-side layout)
 }
 
 export interface ExportSettings {
