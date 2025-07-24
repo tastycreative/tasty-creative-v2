@@ -378,9 +378,10 @@ export const Timeline: React.FC<TimelineProps> = ({
   }, [currentTime, totalDuration]);
 
   const handleTimelineClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    // Only trigger if clicking the timeline background (not a video segment)
+    // Only trigger if clicking the timeline background (not a video segment or add button)
     const target = e.target as HTMLElement;
     if (target.closest('.video-segment')) return;
+    if (target.closest('.add-sequence-btn')) return;
 
     // Get the timeline track element specifically (not the container)
     const timelineTrack = e.currentTarget.querySelector('.timeline-track');
@@ -796,8 +797,11 @@ export const Timeline: React.FC<TimelineProps> = ({
               return (
                 <button
                   key="grid-1-add"
-                  onClick={() => onAddSequence?.('grid-1')}
-                  className="absolute cursor-pointer transition-all duration-200 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg z-50 border-2 border-white opacity-60 hover:opacity-100 hover:scale-110 focus:outline-none"
+                  onClick={e => {
+                    e.stopPropagation();
+                    onAddSequence?.('grid-1');
+                  }}
+                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg border-2 border-white opacity-60 hover:opacity-100 hover:scale-110 focus:outline-none"
                   style={{
                     right: '8px',
                     top: topOffset + singleTrackHeight / 2 - 20,
@@ -806,6 +810,8 @@ export const Timeline: React.FC<TimelineProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    pointerEvents: 'auto',
+                    zIndex: 1000,
                   }}
                   title="Add sequence to Grid 1"
                 >
@@ -823,8 +829,11 @@ export const Timeline: React.FC<TimelineProps> = ({
               return (
                 <button
                   key="grid-2-add"
-                  onClick={() => onAddSequence?.('grid-2')}
-                  className="absolute cursor-pointer transition-all duration-200 bg-green-500 hover:bg-green-600 text-white rounded-full shadow-lg z-50 border-2 border-white opacity-60 hover:opacity-100 hover:scale-110 focus:outline-none"
+                  onClick={e => {
+                    e.stopPropagation();
+                    onAddSequence?.('grid-2');
+                  }}
+                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-green-500 hover:bg-green-600 text-white rounded-full shadow-lg border-2 border-white opacity-60 hover:opacity-100 hover:scale-110 focus:outline-none"
                   style={{
                     right: '8px',
                     top: topOffset + singleTrackHeight / 2 - 20,
@@ -833,6 +842,8 @@ export const Timeline: React.FC<TimelineProps> = ({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    pointerEvents: 'auto',
+                    zIndex: 1000,
                   }}
                   title="Add sequence to Grid 2"
                 >
