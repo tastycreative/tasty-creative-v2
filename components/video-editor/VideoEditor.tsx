@@ -23,7 +23,7 @@ import {
   Square,
 } from "lucide-react";
 
-export type VideoLayout = 'single' | 'side-by-side';
+export type VideoLayout = "single" | "side-by-side";
 
 export interface LayoutGrid {
   id: string;
@@ -37,12 +37,12 @@ interface VideoEditorProps {
 
 export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
   const searchParams = useSearchParams();
-  const folderId = searchParams?.get('folderid') || undefined;
-  const fileId = searchParams?.get('fileid') || undefined;
+  const folderId = searchParams?.get("folderid") || undefined;
+  const fileId = searchParams?.get("fileid") || undefined;
 
   // Model selection state compatible with ModelsDropdown
   const [formData, setFormData] = useState<{ model?: string }>({
-    model: modelName || ""
+    model: modelName || "",
   });
   const [modelType, setModelType] = useState<"FREE" | "PAID">("FREE");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -78,7 +78,8 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
     videoId: string;
   } | null>(null);
   const [googlePermissionsLoaded, setGooglePermissionsLoaded] = useState(false);
-  const [hasAttemptedAutoDownload, setHasAttemptedAutoDownload] = useState(false);
+  const [hasAttemptedAutoDownload, setHasAttemptedAutoDownload] =
+    useState(false);
   const [isAutoDownloading, setIsAutoDownloading] = useState(false);
   const [autoDownloadProgress, setAutoDownloadProgress] = useState<{
     fileName: string;
@@ -90,12 +91,12 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
   } | null>(null);
 
   // Layout state
-  const [currentLayout, setCurrentLayout] = useState<VideoLayout>('single');
+  const [currentLayout, setCurrentLayout] = useState<VideoLayout>("single");
   const [layoutGrids, setLayoutGrids] = useState<LayoutGrid[]>([
-    { id: 'grid-1', name: 'Grid 1', active: true },
-    { id: 'grid-2', name: 'Grid 2', active: false }
+    { id: "grid-1", name: "Grid 1", active: true },
+    { id: "grid-2", name: "Grid 2", active: false },
   ]);
-  const [activeGridId, setActiveGridId] = useState<string>('grid-1');
+  const [activeGridId, setActiveGridId] = useState<string>("grid-1");
   const gridFileInputRef = useRef<HTMLInputElement>(null);
 
   // Update formData when modelName prop changes
@@ -107,18 +108,19 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
 
   // Helper function to format bytes into human-readable sizes
   const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
+    if (bytes === 0) return "0 B";
     const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const sizes = ["B", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
   };
-  
+
   const handleVideosAdded = async (files: File[]) => {
     setIsUploading(true);
     try {
       console.log("Final model value:", getFinalModelValue());
-      const gridId = currentLayout === 'side-by-side' ? activeGridId : undefined;
+      const gridId =
+        currentLayout === "side-by-side" ? activeGridId : undefined;
       await addVideos(files, gridId);
     } catch (error) {
       console.error("Error adding videos:", error);
@@ -131,7 +133,11 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
   // Auto-download Google Drive file when fileId param exists and permissions are loaded
   useEffect(() => {
     const attemptAutoDownload = async () => {
-      console.log('Auto-download check:', { fileId, googlePermissionsLoaded, hasAttemptedAutoDownload });
+      console.log("Auto-download check:", {
+        fileId,
+        googlePermissionsLoaded,
+        hasAttemptedAutoDownload,
+      });
       if (!fileId || !googlePermissionsLoaded || hasAttemptedAutoDownload) {
         return;
       }
@@ -141,27 +147,31 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
 
       try {
         // First, get file metadata to know the total size and filename
-        const metadataResponse = await fetch(`/api/google-drive/metadata?id=${fileId}`);
+        const metadataResponse = await fetch(
+          `/api/google-drive/metadata?id=${fileId}`
+        );
         if (!metadataResponse.ok) {
-          throw new Error(`Failed to fetch file metadata: ${metadataResponse.statusText}`);
+          throw new Error(
+            `Failed to fetch file metadata: ${metadataResponse.statusText}`
+          );
         }
-        
+
         const metadata = await metadataResponse.json();
-        const filename = metadata.name || 'auto-download.mp4';
+        const filename = metadata.name || "auto-download.mp4";
         const total = metadata.size || 0;
 
         console.log(`Auto-downloading file: ${filename}, Size: ${total} bytes`);
 
         // Now download the file
         const response = await fetch(`/api/google-drive/download?id=${fileId}`);
-        
+
         if (!response.ok) {
           throw new Error(`Failed to download file: ${response.statusText}`);
         }
 
         const reader = response.body?.getReader();
         if (!reader) {
-          throw new Error('Response body is not readable');
+          throw new Error("Response body is not readable");
         }
 
         const chunks: Uint8Array[] = [];
@@ -173,33 +183,41 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
           progress: 0,
           isDownloading: true,
           totalBytes: total,
-          downloadedBytes: 0
+          downloadedBytes: 0,
         });
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          
+
           chunks.push(value);
           receivedLength += value.length;
 
           // Update progress with real percentage based on known total size
           if (total > 0) {
             const progress = Math.round((receivedLength / total) * 100);
-            setAutoDownloadProgress(prev => prev ? { 
-              ...prev, 
-              progress,
-              downloadedBytes: receivedLength
-            } : null);
+            setAutoDownloadProgress((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    progress,
+                    downloadedBytes: receivedLength,
+                  }
+                : null
+            );
           } else {
             // Fallback to bytes downloaded if metadata didn't provide size
             const mbDownloaded = (receivedLength / (1024 * 1024)).toFixed(1);
-            setAutoDownloadProgress(prev => prev ? { 
-              ...prev, 
-              progress: -1,
-              bytesDownloaded: mbDownloaded,
-              downloadedBytes: receivedLength
-            } : null);
+            setAutoDownloadProgress((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    progress: -1,
+                    bytesDownloaded: mbDownloaded,
+                    downloadedBytes: receivedLength,
+                  }
+                : null
+            );
           }
         }
 
@@ -220,7 +238,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
 
         // Add the video to the sequence
         await handleVideosAdded([videoFile]);
-        
+
         console.log(`Auto-downloaded Google Drive file: ${filename}`);
       } catch (error) {
         console.error("Error auto-downloading Google Drive file:", error);
@@ -232,18 +250,22 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
     };
 
     attemptAutoDownload();
-  }, [fileId, googlePermissionsLoaded, hasAttemptedAutoDownload, handleVideosAdded]);
-
+  }, [
+    fileId,
+    googlePermissionsLoaded,
+    hasAttemptedAutoDownload,
+    handleVideosAdded,
+  ]);
 
   const handleRemoveVideo = (id: string) => {
     removeVideo(id);
   };
 
   const handleVideoSelect = (id: string) => {
-    console.log('handleVideoSelect called with id:', id);
-    console.log('Current selectedVideoId:', selectedVideoId);
+    console.log("handleVideoSelect called with id:", id);
+    console.log("Current selectedVideoId:", selectedVideoId);
     setSelectedVideoId(id);
-    console.log('Set selectedVideoId to:', id);
+    console.log("Set selectedVideoId to:", id);
   };
 
   const clearAllVideos = () => {
@@ -286,8 +308,9 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
   };
 
   const handleAddSequence = (gridId?: string) => {
-    const targetGridId = gridId || (currentLayout === 'side-by-side' ? activeGridId : undefined);
-    setActiveGridId(targetGridId || 'grid-1');
+    const targetGridId =
+      gridId || (currentLayout === "side-by-side" ? activeGridId : undefined);
+    setActiveGridId(targetGridId || "grid-1");
     // Trigger file input for the selected grid
     if (gridFileInputRef.current) {
       gridFileInputRef.current.dataset.gridId = targetGridId;
@@ -295,10 +318,12 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
     }
   };
 
-  const handleGridFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleGridFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const files = event.target.files;
     const gridId = event.target.dataset.gridId;
-    
+
     if (files && files.length > 0 && gridId) {
       const fileArray = Array.from(files);
       setIsUploading(true);
@@ -310,7 +335,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
       } finally {
         setIsUploading(false);
         // Clear the input so the same file can be selected again
-        event.target.value = '';
+        event.target.value = "";
       }
     }
   };
@@ -329,7 +354,12 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
   };
 
   const selectedVideo = videos.find((v) => v.id === selectedVideoId) || null;
-  console.log('selectedVideoId:', selectedVideoId, 'selectedVideo:', selectedVideo?.file?.name || 'null');
+  console.log(
+    "selectedVideoId:",
+    selectedVideoId,
+    "selectedVideo:",
+    selectedVideo?.file?.name || "null"
+  );
   const totalDuration = getTotalDuration();
   const currentVideo = getCurrentVideo();
 
@@ -421,17 +451,21 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
           <div className="mb-6 bg-white/80 backdrop-blur-sm rounded-xl border border-pink-200 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-gray-700 mb-2">Video Layout</h3>
-                <p className="text-sm text-gray-600">Choose how videos are arranged in the preview</p>
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                  Video Layout
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Choose how videos are arranged in the preview
+                </p>
               </div>
-              
+
               <div className="flex items-center space-x-4">
                 {/* Layout Toggle */}
                 <div className="flex bg-gray-100 rounded-lg p-1">
                   <button
-                    onClick={() => setCurrentLayout('single')}
+                    onClick={() => setCurrentLayout("single")}
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${
-                      currentLayout === 'single'
+                      currentLayout === "single"
                         ? "bg-pink-600 text-white"
                         : "text-gray-600 hover:bg-gray-200"
                     }`}
@@ -440,9 +474,9 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                     <span>Single</span>
                   </button>
                   <button
-                    onClick={() => setCurrentLayout('side-by-side')}
+                    onClick={() => setCurrentLayout("side-by-side")}
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${
-                      currentLayout === 'side-by-side'
+                      currentLayout === "side-by-side"
                         ? "bg-pink-600 text-white"
                         : "text-gray-600 hover:bg-gray-200"
                     }`}
@@ -453,7 +487,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                 </div>
 
                 {/* Grid Selector - Only show for side-by-side */}
-                {currentLayout === 'side-by-side' && (
+                {currentLayout === "side-by-side" && (
                   <div className="flex items-center space-x-2">
                     <span className="text-sm text-gray-600">Active Grid:</span>
                     <div className="flex bg-gray-50 rounded-lg p-1">
@@ -491,13 +525,13 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                 )}
               </h2>
               <p className="text-gray-600">
-                {modelName 
+                {modelName
                   ? "Upload multiple videos to create a custom sequence with effects and export as GIF"
-                  : "Select a model and upload multiple videos to create a custom sequence with effects and export as GIF"
-                }
+                  : "Select a model and upload multiple videos to create a custom sequence with effects and export as GIF"}
                 {folderId && (
                   <span className="block text-sm text-pink-600 mt-1">
-                    📁 Auto-opening Google Drive folder (ID: {folderId.substring(0, 8)}...) when model is selected
+                    📁 Auto-opening Google Drive folder (ID:{" "}
+                    {folderId.substring(0, 8)}...) when model is selected
                   </span>
                 )}
                 {fileId && (
@@ -511,20 +545,30 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                           // Show percentage progress bar when total size is known
                           <>
                             <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div 
+                              <div
                                 className="bg-pink-600 h-2 rounded-full transition-all duration-300 ease-out"
-                                style={{ width: `${autoDownloadProgress.progress}%` }}
+                                style={{
+                                  width: `${autoDownloadProgress.progress}%`,
+                                }}
                               />
                             </div>
                             <div className="flex justify-between items-center">
                               <span className="text-xs text-gray-600">
                                 {autoDownloadProgress.progress}% completed
                               </span>
-                              {autoDownloadProgress.downloadedBytes !== undefined && autoDownloadProgress.totalBytes && (
-                                <span className="text-xs text-gray-600">
-                                  {formatBytes(autoDownloadProgress.downloadedBytes)} / {formatBytes(autoDownloadProgress.totalBytes)}
-                                </span>
-                              )}
+                              {autoDownloadProgress.downloadedBytes !==
+                                undefined &&
+                                autoDownloadProgress.totalBytes && (
+                                  <span className="text-xs text-gray-600">
+                                    {formatBytes(
+                                      autoDownloadProgress.downloadedBytes
+                                    )}{" "}
+                                    /{" "}
+                                    {formatBytes(
+                                      autoDownloadProgress.totalBytes
+                                    )}
+                                  </span>
+                                )}
                             </div>
                           </>
                         ) : (
@@ -532,7 +576,13 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                           <div className="flex items-center space-x-2">
                             <div className="animate-pulse w-3 h-3 bg-pink-600 rounded-full"></div>
                             <span className="text-xs text-gray-600">
-                              Downloaded: {autoDownloadProgress.downloadedBytes !== undefined ? formatBytes(autoDownloadProgress.downloadedBytes) : autoDownloadProgress.bytesDownloaded + ' MB'}
+                              Downloaded:{" "}
+                              {autoDownloadProgress.downloadedBytes !==
+                              undefined
+                                ? formatBytes(
+                                    autoDownloadProgress.downloadedBytes
+                                  )
+                                : autoDownloadProgress.bytesDownloaded + " MB"}
                             </span>
                           </div>
                         )}
@@ -540,11 +590,18 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                     ) : (
                       <span className="text-sm text-pink-600">
                         {isAutoDownloading ? (
-                          <>🔄 Preparing auto-download for Google Drive file (ID: {fileId.substring(0, 8)}...)...</>
+                          <>
+                            🔄 Preparing auto-download for Google Drive file
+                            (ID: {fileId.substring(0, 8)}...)...
+                          </>
                         ) : hasAttemptedAutoDownload ? (
                           <>✅ Google Drive file auto-download completed</>
                         ) : (
-                          <>🎬 Auto-download: Google Drive file (ID: {fileId.substring(0, 8)}...) will download automatically when permissions are ready</>
+                          <>
+                            🎬 Auto-download: Google Drive file (ID:{" "}
+                            {fileId.substring(0, 8)}...) will download
+                            automatically when permissions are ready
+                          </>
                         )}
                       </span>
                     )}
