@@ -388,6 +388,7 @@ export const Timeline: React.FC<TimelineProps> = ({
     if (!timelineTrack) return;
     const rect = timelineTrack.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
     const trackWidth = rect.width;
     const percentage = Math.max(0, Math.min(1, clickX / trackWidth));
     const clickTime = percentage * totalDuration;
@@ -396,10 +397,23 @@ export const Timeline: React.FC<TimelineProps> = ({
     setIsDragging(false);
     onSeek(clickTime);
 
-    // Find the video whose startTime is closest but not after clickTime
+    let videosInGrid = videos;
+    if (layout === 'side-by-side') {
+      // Determine which grid was clicked based on Y position
+      const totalTrackArea = (88 + (blurAreaHeight - 28)) * 2;
+      const singleTrackHeight = (totalTrackArea - 8) / 2;
+      // Grid 1 is top, Grid 2 is bottom
+      if (clickY < singleTrackHeight + 8 / 2) {
+        videosInGrid = videos.filter(v => v.gridId === 'grid-1');
+      } else {
+        videosInGrid = videos.filter(v => v.gridId === 'grid-2');
+      }
+    }
+
+    // Find the video whose startTime is closest but not after clickTime, in the correct grid
     let selected = null;
     let minDiff = Infinity;
-    for (const video of videos) {
+    for (const video of videosInGrid) {
       const start = video.startTime || 0;
       if (start <= clickTime && clickTime - start < minDiff) {
         minDiff = clickTime - start;
@@ -410,7 +424,7 @@ export const Timeline: React.FC<TimelineProps> = ({
       onVideoSelect(selected.id);
     }
     e.preventDefault();
-  }, [videos, totalDuration, onSeek, onVideoSelect]);
+  }, [videos, totalDuration, onSeek, onVideoSelect, layout, blurAreaHeight]);
 
   const handleTimelineMouseDown = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
