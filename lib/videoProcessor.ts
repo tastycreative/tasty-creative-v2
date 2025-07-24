@@ -75,24 +75,37 @@ export const applyVideoEffects = (
   canvas.width = targetWidth;
   canvas.height = targetHeight;
 
-  // Calculate scaling to fit video in canvas while maintaining aspect ratio
+
+  // --- Apply scale, positionX, positionY ---
   const videoAspect = video.videoWidth / video.videoHeight;
   const canvasAspect = targetWidth / targetHeight;
 
-  let drawWidth = targetWidth;
-  let drawHeight = targetHeight;
-  let offsetX = 0;
-  let offsetY = 0;
+  // Default: fit video to canvas
+  let baseWidth = targetWidth;
+  let baseHeight = targetHeight;
+  let baseOffsetX = 0;
+  let baseOffsetY = 0;
 
   if (videoAspect > canvasAspect) {
-    // Video is wider - fit to width
-    drawHeight = targetWidth / videoAspect;
-    offsetY = (targetHeight - drawHeight) / 2;
+    baseHeight = targetWidth / videoAspect;
+    baseOffsetY = (targetHeight - baseHeight) / 2;
   } else {
-    // Video is taller - fit to height
-    drawWidth = targetHeight * videoAspect;
-    offsetX = (targetWidth - drawWidth) / 2;
+    baseWidth = targetHeight * videoAspect;
+    baseOffsetX = (targetWidth - baseWidth) / 2;
   }
+
+  // Apply scale (centered)
+  const scale = Math.max(0.1, effects.scale || 1.0);
+  const drawWidth = baseWidth * scale;
+  const drawHeight = baseHeight * scale;
+
+  // Apply positionX/positionY (in percent, -100 to 100)
+  // 0 = centered, -100 = far left/top, 100 = far right/bottom
+  const posX = effects.positionX || 0;
+  const posY = effects.positionY || 0;
+  const offsetX = baseOffsetX + (baseWidth - drawWidth) / 2 + (posX / 100) * (targetWidth / 2 - drawWidth / 2);
+  const offsetY = baseOffsetY + (baseHeight - drawHeight) / 2 + (posY / 100) * (targetHeight / 2 - drawHeight / 2);
+
 
   // Clear canvas with black background
   ctx.fillStyle = "#000000";
@@ -107,11 +120,12 @@ export const applyVideoEffects = (
       effects.selectiveBlur && effects.selectiveBlur.length > 0;
     const globalBlur = hasSelectiveBlur ? 0 : effects.blur;
 
+
     if (globalBlur > 0) {
       ctx.filter = `blur(${Math.max(0, globalBlur)}px)`;
     }
 
-    // Draw the video frame
+    // Draw the video frame with scale/position
     ctx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
 
     // Apply selective blur if defined
@@ -133,11 +147,329 @@ export const applyVideoEffects = (
     // Fallback: draw without effects
     ctx.filter = "none";
     ctx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
-  } finally {
-    // Restore context state
-    ctx.restore();
   }
+  // Restore context state
+  ctx.restore();
+}
+
+// --- Patch: Support side-by-side export in canvasBasedVideoExport ---
+// If videos have gridId, render each grid's video in its half of the canvas
+// (left: grid-1, right: grid-2)
+const getGrids = (videos: VideoSequenceItem[]) => {
+  const grids: Record<string, VideoSequenceItem[]> = {};
+  for (const v of videos) {
+    const grid = v.gridId || "grid-1";
+    if (!grids[grid]) grids[grid] = [];
+    grids[grid].push(v);
+  }
+  return grids;
 };
+
+export const canvasBasedVideoExport = async (
+  videos: VideoSequenceItem[],
+  settings: ExportSettings,
+  onProgress?: (progress: number) => void
+): Promise<Blob> => {
+  // Detect if side-by-side (multiple grids)
+  const grids = getGrids(videos);
+  const gridKeys = Object.keys(grids);
+  const isSideBySide = gridKeys.length > 1;
+
+  if (!isSideBySide) {
+    // --- Original single-grid logic ---
+    // (copied from previous implementation)
+    // Sort videos by start time
+    const sortedVideos = [...videos].sort((a, b) => a.startTime - b.startTime);
+    const canvas = document.createElement("canvas");
+    canvas.width = settings.width;
+    canvas.height = settings.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Failed to get canvas context");
+    const ffmpeg = await initFFmpeg();
+    if (!ffmpeg || !ffmpeg.isLoaded()) throw new Error("FFmpeg not loaded");
+    // Calculate total frames
+    let totalDuration = 0;
+    for (const video of sortedVideos) {
+      const speedMultiplier = video.effects.speed || 1;
+      const trimStart = video.trimStart || 0;
+      const trimEnd = video.trimEnd || video.duration;
+      const trimmedDuration = Math.max(0.1, trimEnd - trimStart);
+      const effectiveDuration = trimmedDuration / speedMultiplier;
+      totalDuration += effectiveDuration;
+    }
+    const totalFrames = Math.ceil(totalDuration * settings.fps);
+    let currentFrame = 0;
+    const frameFiles: string[] = [];
+    let videoStartTime = 0;
+    for (const video of sortedVideos) {
+      const speedMultiplier = video.effects.speed || 1;
+      const trimStart = video.trimStart || 0;
+      const trimEnd = video.trimEnd || video.duration;
+      const trimmedDuration = Math.max(0.1, trimEnd - trimStart);
+      const effectiveDuration = trimmedDuration / speedMultiplier;
+      const frameCount = Math.ceil(effectiveDuration * settings.fps);
+      // Prepare video element
+      const videoElement = document.createElement("video");
+      videoElement.src = video.url;
+      videoElement.muted = true;
+      videoElement.crossOrigin = "anonymous";
+      await new Promise<void>((resolve, reject) => {
+        videoElement.onloadeddata = () => resolve();
+        videoElement.onerror = () => reject(new Error("Failed to load video"));
+      });
+      for (let frame = 0; frame < frameCount; frame++) {
+        const normalizedTime = frame / (frameCount - 1);
+        const frameTime = trimStart + normalizedTime * trimmedDuration;
+        videoElement.currentTime = Math.min(Math.max(frameTime, trimStart), trimEnd - 0.01);
+        await new Promise<void>(resolve => {
+          videoElement.onseeked = () => resolve();
+          if (videoElement.readyState >= 2) resolve();
+        });
+        applyVideoEffects(
+          videoElement,
+          canvas,
+          video.effects,
+          settings.width,
+          settings.height
+        );
+        const frameImageData = canvas.toDataURL("image/png");
+        const frameData = frameImageData.split(",")[1];
+        const frameBytes = Uint8Array.from(atob(frameData), c => c.charCodeAt(0));
+        const frameFilename = `frame_${currentFrame.toString().padStart(6, "0")}.png`;
+        ffmpeg.FS("writeFile", frameFilename, frameBytes);
+        frameFiles.push(frameFilename);
+        currentFrame++;
+        if (onProgress) onProgress(15 + (currentFrame / totalFrames) * 60);
+      }
+      videoStartTime += effectiveDuration;
+    }
+    if (onProgress) onProgress(75);
+    const outputFilename = `output.${settings.format}`;
+    const pixelCount = settings.width * settings.height;
+    const baseBitrate = Math.min(8000, Math.max(2000, Math.floor((pixelCount * 2) / 1000)));
+    const qualityMultiplier = settings.quality / 100;
+    const targetBitrate = Math.floor(baseBitrate * qualityMultiplier);
+    let outputArgs: string[];
+    if (settings.format === "mp4") {
+      outputArgs = [
+        "-framerate",
+        String(settings.fps),
+        "-i",
+        "frame_%06d.png",
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-b:v",
+        `${targetBitrate}k`,
+        "-preset",
+        "fast",
+        "-movflags",
+        "+faststart",
+        "-y",
+        outputFilename,
+      ];
+    } else {
+      outputArgs = [
+        "-framerate",
+        String(settings.fps),
+        "-i",
+        "frame_%06d.png",
+        "-c:v",
+        "libvpx-vp9",
+        "-b:v",
+        `${targetBitrate}k`,
+        "-crf",
+        "30",
+        "-speed",
+        "4",
+        "-y",
+        outputFilename,
+      ];
+    }
+    await ffmpeg.run(...outputArgs);
+    if (onProgress) onProgress(90);
+    const outputData = ffmpeg.FS("readFile", outputFilename);
+    if (onProgress) onProgress(95);
+    for (const frameFile of frameFiles) {
+      try { ffmpeg.FS("unlink", frameFile); } catch {}
+    }
+    try { ffmpeg.FS("unlink", outputFilename); } catch {}
+    if (onProgress) onProgress(100);
+    const mimeType = settings.format === "mp4" ? "video/mp4" : "video/webm";
+    const blob = new Blob([outputData], { type: mimeType });
+    return blob;
+  }
+
+  // --- Side-by-side logic ---
+  // Side-by-side: render each grid's video in its half of the canvas
+  // Assume only two grids: grid-1 (left), grid-2 (right)
+  const width = settings.width;
+  const height = settings.height;
+  const halfWidth = Math.floor(width / 2);
+
+  // Find max duration across both grids
+  const allVideos = [...(grids["grid-1"] || []), ...(grids["grid-2"] || [])];
+  const maxDuration = Math.max(
+    ...allVideos.map(v => (v.trimEnd || v.duration) - (v.trimStart || 0))
+  );
+  const fps = settings.fps;
+  const totalFrames = Math.ceil(maxDuration * fps);
+
+  // Prepare video elements for each grid
+  const gridVideoElements: Record<string, HTMLVideoElement[]> = {};
+  for (const gridId of gridKeys) {
+    gridVideoElements[gridId] = grids[gridId].map(v => {
+      const el = document.createElement("video");
+      el.src = v.url;
+      el.muted = true;
+      el.crossOrigin = "anonymous";
+      return el;
+    });
+  }
+
+  // Wait for all videos to load
+  await Promise.all(
+    Object.values(gridVideoElements).flat().map(
+      v => new Promise<void>((resolve, reject) => {
+        v.onloadeddata = () => resolve();
+        v.onerror = () => reject(new Error("Failed to load video"));
+      })
+    )
+  );
+
+  // Prepare canvas
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Failed to get canvas context");
+
+  // Prepare FFmpeg
+  const ffmpeg = await initFFmpeg();
+  if (!ffmpeg || !ffmpeg.isLoaded()) throw new Error("FFmpeg not loaded");
+
+  // For each frame, draw both grids' videos (if present at this time)
+  const frameFiles: string[] = [];
+  for (let frame = 0; frame < totalFrames; frame++) {
+    const t = frame / fps;
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, width, height);
+
+    // For each grid (left/right)
+    for (const [i, gridId] of ["grid-1", "grid-2"].entries()) {
+      const gridVideos = grids[gridId] || [];
+      // Find the video active at time t
+      let video: VideoSequenceItem | undefined;
+      let videoElement: HTMLVideoElement | undefined;
+      let localTime = t;
+      let acc = 0;
+      for (let vIdx = 0; vIdx < gridVideos.length; vIdx++) {
+        const v = gridVideos[vIdx];
+        const trimStart = v.trimStart || 0;
+        const trimEnd = v.trimEnd || v.duration;
+        const duration = trimEnd - trimStart;
+        if (localTime >= acc && localTime < acc + duration) {
+          video = v;
+          videoElement = gridVideoElements[gridId][vIdx];
+          localTime = trimStart + (localTime - acc);
+          break;
+        }
+        acc += duration;
+      }
+      if (video && videoElement) {
+        // Seek video to localTime
+        videoElement.currentTime = Math.min(Math.max(localTime, 0), (video.trimEnd || video.duration) - 0.01);
+        await new Promise<void>(resolve => {
+          videoElement.onseeked = () => resolve();
+          if (videoElement.readyState >= 2) resolve();
+        });
+        // Draw to left or right half
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(i === 0 ? 0 : halfWidth, 0, halfWidth, height);
+        ctx.clip();
+        // Draw video with effects, scaled to halfWidth x height
+        applyVideoEffects(
+          videoElement,
+          canvas,
+          video.effects,
+          halfWidth,
+          height
+        );
+        ctx.restore();
+      }
+    }
+
+    // Save frame
+    const frameImageData = canvas.toDataURL("image/png");
+    const frameData = frameImageData.split(",")[1];
+    const frameBytes = Uint8Array.from(atob(frameData), c => c.charCodeAt(0));
+    const frameFilename = `frame_${frame.toString().padStart(6, "0")}.png`;
+    ffmpeg.FS("writeFile", frameFilename, frameBytes);
+    frameFiles.push(frameFilename);
+    if (onProgress) onProgress(15 + (frame / totalFrames) * 60);
+  }
+
+  // Encode video from frames (reuse logic from original)
+  if (onProgress) onProgress(75);
+  const outputFilename = `output.${settings.format}`;
+  const pixelCount = width * height;
+  const baseBitrate = Math.min(8000, Math.max(2000, Math.floor((pixelCount * 2) / 1000)));
+  const qualityMultiplier = settings.quality / 100;
+  const targetBitrate = Math.floor(baseBitrate * qualityMultiplier);
+  let outputArgs: string[];
+  if (settings.format === "mp4") {
+    outputArgs = [
+      "-framerate",
+      String(fps),
+      "-i",
+      "frame_%06d.png",
+      "-c:v",
+      "libx264",
+      "-pix_fmt",
+      "yuv420p",
+      "-b:v",
+      `${targetBitrate}k`,
+      "-preset",
+      "fast",
+      "-movflags",
+      "+faststart",
+      "-y",
+      outputFilename,
+    ];
+  } else {
+    outputArgs = [
+      "-framerate",
+      String(fps),
+      "-i",
+      "frame_%06d.png",
+      "-c:v",
+      "libvpx-vp9",
+      "-b:v",
+      `${targetBitrate}k`,
+      "-crf",
+      "30",
+      "-speed",
+      "4",
+      "-y",
+      outputFilename,
+    ];
+  }
+  await ffmpeg.run(...outputArgs);
+  if (onProgress) onProgress(90);
+  const outputData = ffmpeg.FS("readFile", outputFilename);
+  if (onProgress) onProgress(95);
+  for (const frameFile of frameFiles) {
+    try { ffmpeg.FS("unlink", frameFile); } catch {}
+  }
+  try { ffmpeg.FS("unlink", outputFilename); } catch {}
+  if (onProgress) onProgress(100);
+  const mimeType = settings.format === "mp4" ? "video/mp4" : "video/webm";
+  const blob = new Blob([outputData], { type: mimeType });
+  return blob;
+};
+
 
 export const exportMedia = async (
   videos: VideoSequenceItem[],
@@ -758,214 +1090,3 @@ export const exportToGif = async (
   }
 };
 
-// Canvas-based video export for selective blur support
-const canvasBasedVideoExport = async (
-  videos: VideoSequenceItem[],
-  settings: ExportSettings,
-  onProgress?: (progress: number) => void
-): Promise<Blob> => {
-  console.log(
-    `Starting canvas-based video export as ${settings.format.toUpperCase()} with selective blur support`
-  );
-
-  if (onProgress) onProgress(5);
-
-  // Initialize FFmpeg
-  const ffmpeg = await initFFmpeg();
-
-  if (!ffmpeg || !ffmpeg.isLoaded()) {
-    throw new Error("FFmpeg not loaded");
-  }
-
-  if (onProgress) onProgress(10);
-
-  // Create canvas for frame processing
-  const canvas = document.createElement("canvas");
-  canvas.width = settings.width;
-  canvas.height = settings.height;
-  const ctx = canvas.getContext("2d");
-
-  if (!ctx) {
-    throw new Error("Could not get canvas context");
-  }
-
-  // Sort videos by start time
-  const sortedVideos = [...videos].sort((a, b) => a.startTime - b.startTime);
-
-  // Calculate total duration with speed effects and trimming
-  let totalFrames = 0;
-  const videoFrameCounts: number[] = [];
-
-  for (const video of sortedVideos) {
-    const speedMultiplier = video.effects.speed || 1;
-    // Apply trimming
-    const trimStart = video.trimStart || 0;
-    const trimEnd = video.trimEnd || video.duration;
-    const trimmedDuration = Math.max(0.1, trimEnd - trimStart);
-    const effectiveDuration = trimmedDuration / speedMultiplier;
-    const frameCount = Math.ceil(effectiveDuration * settings.fps);
-    videoFrameCounts.push(frameCount);
-    totalFrames += frameCount;
-  }
-
-  if (onProgress) onProgress(15);
-
-  // Process each video to create frames
-  let currentFrame = 0;
-  const frameFiles: string[] = [];
-
-  for (let videoIndex = 0; videoIndex < sortedVideos.length; videoIndex++) {
-    const video = sortedVideos[videoIndex];
-    const frameCount = videoFrameCounts[videoIndex];
-
-    // Create video element for processing
-    const videoElement = document.createElement("video");
-    videoElement.src = video.url;
-    videoElement.muted = true;
-    videoElement.crossOrigin = "anonymous";
-
-    // Wait for video to load
-    await new Promise<void>((resolve, reject) => {
-      videoElement.onloadeddata = () => resolve();
-      videoElement.onerror = () => reject(new Error("Failed to load video"));
-    });
-
-    // Generate frames for this video with trimming applied
-    const trimStart = video.trimStart || 0;
-    const trimEnd = video.trimEnd || video.duration;
-    const trimmedDuration = Math.max(0.1, trimEnd - trimStart);
-    
-    for (let frame = 0; frame < frameCount; frame++) {
-      // Calculate the time within the trimmed segment
-      const normalizedTime = frame / (frameCount - 1); // 0 to 1
-      const frameTime = trimStart + normalizedTime * trimmedDuration;
-      videoElement.currentTime = Math.min(Math.max(frameTime, trimStart), trimEnd - 0.01);
-
-      // Wait for seek to complete
-      await new Promise<void>((resolve) => {
-        videoElement.onseeked = () => resolve();
-        if (videoElement.readyState >= 2) resolve(); // Already at the right position
-      });
-
-      // Apply effects and draw frame
-      applyVideoEffects(
-        videoElement,
-        canvas,
-        video.effects,
-        settings.width,
-        settings.height
-      );
-
-      // Convert canvas to image data
-      const frameImageData = canvas.toDataURL("image/png");
-      const frameData = frameImageData.split(",")[1];
-      const frameBytes = Uint8Array.from(atob(frameData), (c) =>
-        c.charCodeAt(0)
-      );
-
-      // Write frame to FFmpeg file system
-      const frameFilename = `frame_${currentFrame.toString().padStart(6, "0")}.png`;
-      ffmpeg.FS("writeFile", frameFilename, frameBytes);
-      frameFiles.push(frameFilename);
-
-      currentFrame++;
-
-      // Update progress
-      const progress = 15 + (currentFrame / totalFrames) * 60;
-      if (onProgress) onProgress(Math.min(75, progress));
-    }
-  }
-
-  if (onProgress) onProgress(75);
-
-  // Create video from frames using FFmpeg
-  const outputFilename = `output.${settings.format}`;
-
-  // Calculate bitrate based on resolution and quality
-  const pixelCount = settings.width * settings.height;
-  const baseBitrate = Math.min(
-    8000,
-    Math.max(2000, Math.floor((pixelCount * 2) / 1000))
-  );
-  const qualityMultiplier = settings.quality / 100;
-  const targetBitrate = Math.floor(baseBitrate * qualityMultiplier);
-
-  let outputArgs: string[];
-
-  if (settings.format === "mp4") {
-    outputArgs = [
-      "-framerate",
-      String(settings.fps),
-      "-i",
-      "frame_%06d.png",
-      "-c:v",
-      "libx264",
-      "-pix_fmt",
-      "yuv420p",
-      "-b:v",
-      `${targetBitrate}k`,
-      "-preset",
-      "fast",
-      "-movflags",
-      "+faststart",
-      "-y",
-      outputFilename,
-    ];
-  } else {
-    // WebM
-    outputArgs = [
-      "-framerate",
-      String(settings.fps),
-      "-i",
-      "frame_%06d.png",
-      "-c:v",
-      "libvpx-vp9",
-      "-b:v",
-      `${targetBitrate}k`,
-      "-crf",
-      "30",
-      "-speed",
-      "4",
-      "-y",
-      outputFilename,
-    ];
-  }
-
-  if (onProgress) onProgress(80);
-
-  // Encode final video
-  await ffmpeg.run(...outputArgs);
-
-  if (onProgress) onProgress(90);
-
-  // Read the output file
-  const outputData = ffmpeg.FS("readFile", outputFilename);
-
-  if (onProgress) onProgress(95);
-
-  // Clean up frame files
-  for (const frameFile of frameFiles) {
-    try {
-      ffmpeg.FS("unlink", frameFile);
-    } catch {
-      // Ignore cleanup errors
-    }
-  }
-
-  try {
-    ffmpeg.FS("unlink", outputFilename);
-  } catch {
-    // Ignore cleanup errors
-  }
-
-  if (onProgress) onProgress(100);
-
-  // Create blob from output data
-  const mimeType = settings.format === "mp4" ? "video/mp4" : "video/webm";
-  const blob = new Blob([outputData], { type: mimeType });
-
-  console.log(
-    `Canvas-based video export complete. Size: ${(blob.size / 1024 / 1024).toFixed(2)}MB`
-  );
-  return blob;
-};
