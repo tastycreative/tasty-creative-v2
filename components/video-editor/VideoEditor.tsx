@@ -661,15 +661,17 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
               }`}
             >
               <div className={editingBlur ? "" : "lg:col-span-2"}>
-                <VideoPreview
-                  videos={videos}
-                  currentTime={currentTime}
-                  isPlaying={isPlaying}
-                  onTimeUpdate={seek}
-                  layout={currentLayout}
-                  activeGridId={activeGridId}
-                  onGridClick={handleGridClick}
-                />
+                <div className="w-full max-w-[min(100vw,600px)] aspect-square mx-auto flex items-center justify-center">
+                  <VideoPreview
+                    videos={videos}
+                    currentTime={currentTime}
+                    isPlaying={isPlaying}
+                    onTimeUpdate={seek}
+                    layout={currentLayout}
+                    activeGridId={activeGridId}
+                    onGridClick={handleGridClick}
+                  />
+                </div>
               </div>
 
               {/* Blur Editor Panel - appears beside video preview */}

@@ -134,36 +134,33 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
     } else {
       // Side-by-side layout
       const currentVideos = getCurrentVideosByGrid();
-      const leftWidth = Math.ceil(width / 2); // Grid 1 gets extra pixel if width is odd
-      const rightStartX = leftWidth; // Start right side after Grid 1
-      const rightWidth = width - leftWidth; // Grid 2 gets remaining pixels
-
-      // Render grid 1 (left side) - gets extra pixel if width is odd
+      const halfWidth = width / 2;
+      // Render grid 1 (left side)
       if (currentVideos.grid1) {
-        renderVideoToCanvas(ctx, currentVideos.grid1, 0, 0, leftWidth, height);
+        renderVideoToCanvas(ctx, currentVideos.grid1, 0, 0, halfWidth, height);
       } else {
         ctx.fillStyle = "#374151";
-        ctx.fillRect(0, 0, leftWidth, height);
+        ctx.fillRect(0, 0, halfWidth, height);
         ctx.fillStyle = "#9ca3af";
         ctx.font = "14px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText("Grid 1", leftWidth / 2, height / 2);
+        ctx.fillText("Grid 1", halfWidth / 2, height / 2);
       }
 
       // Draw center divider line at the division point
       ctx.fillStyle = "#ffffff80"; // Semi-transparent white
-      ctx.fillRect(leftWidth - 1, 0, 2, height); // 2px wide line centered on division
+      ctx.fillRect(halfWidth - 1, 0, 2, height); // 2px wide line centered on division
 
-      // Render grid 2 (right side) - remaining width
+      // Render grid 2 (right side)
       if (currentVideos.grid2) {
-        renderVideoToCanvas(ctx, currentVideos.grid2, rightStartX, 0, rightWidth, height);
+        renderVideoToCanvas(ctx, currentVideos.grid2, halfWidth, 0, halfWidth, height);
       } else {
         ctx.fillStyle = "#374151";
-        ctx.fillRect(rightStartX, 0, rightWidth, height);
+        ctx.fillRect(halfWidth, 0, halfWidth, height);
         ctx.fillStyle = "#9ca3af";
         ctx.font = "14px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText("Grid 2", rightStartX + rightWidth / 2, height / 2);
+        ctx.fillText("Grid 2", halfWidth + halfWidth / 2, height / 2);
       }
     }
   }, [
@@ -486,40 +483,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
           className="w-full h-full object-contain"
         />
 
-        {/* Overlay for current video info */}
-        {layout === 'single' ? (
-          (() => {
-            const currentVideo = getCurrentVideo();
-            if (currentVideo) {
-              return (
-                <div className="absolute top-4 left-4 bg-black/75 text-white px-3 py-1 rounded-lg text-sm">
-                  {currentVideo.file.name}
-                </div>
-              );
-            }
-            return null;
-          })()
-        ) : (
-          (() => {
-            const currentVideos = getCurrentVideosByGrid();
-            return (
-              <>
-                {/* Grid 1 video info */}
-                {currentVideos.grid1 && (
-                  <div className="absolute top-4 left-4 bg-blue-600/90 text-white px-3 py-1 rounded-lg text-sm">
-                    Grid 1: {currentVideos.grid1.file.name}
-                  </div>
-                )}
-                {/* Grid 2 video info */}
-                {currentVideos.grid2 && (
-                  <div className="absolute top-4 right-4 bg-green-600/90 text-white px-3 py-1 rounded-lg text-sm">
-                    Grid 2: {currentVideos.grid2.file.name}
-                  </div>
-                )}
-              </>
-            );
-          })()
-        )}
+        {/* Overlay for current video info removed as requested */}
 
         {/* Grid Click Overlays for Side-by-Side Layout */}
         {layout === 'side-by-side' && onGridClick && (
