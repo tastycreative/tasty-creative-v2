@@ -201,6 +201,17 @@ export const API_KEY_PROFILES = {
       },
     ],
   },
+  account_19: {
+    name: "OF Essie's voice",
+    description: "Backup account for high-volume usage",
+    voices: [
+      {
+        name: "OF Essie",
+        voiceId: "MFawT4r4MPZUXGga6duu",
+        category: "professional",
+      },
+    ],
+  },
 };
 
 // Available ElevenLabs models
