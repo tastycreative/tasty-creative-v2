@@ -78,34 +78,28 @@ export const applyVideoEffects = (
 
   // --- Apply scale, positionX, positionY ---
   const videoAspect = video.videoWidth / video.videoHeight;
+  // --- COVER LOGIC: always fill and center, may crop ---
   const canvasAspect = targetWidth / targetHeight;
-
-  // Default: fit video to canvas
-  let baseWidth = targetWidth;
-  let baseHeight = targetHeight;
-  let baseOffsetX = 0;
-  let baseOffsetY = 0;
-
-  if (videoAspect > canvasAspect) {
-    baseHeight = targetWidth / videoAspect;
-    baseOffsetY = (targetHeight - baseHeight) / 2;
-  } else {
-    baseWidth = targetHeight * videoAspect;
-    baseOffsetX = (targetWidth - baseWidth) / 2;
-  }
-
-  // Apply scale (centered)
   const scale = Math.max(0.1, effects.scale || 1.0);
-  const drawWidth = baseWidth * scale;
-  const drawHeight = baseHeight * scale;
-
-  // Apply positionX/positionY (in percent, -100 to 100)
-  // 0 = centered, -100 = far left/top, 100 = far right/bottom
-  const posX = effects.positionX || 0;
-  const posY = effects.positionY || 0;
-  const offsetX = baseOffsetX + (baseWidth - drawWidth) / 2 + (posX / 100) * (targetWidth / 2 - drawWidth / 2);
-  const offsetY = baseOffsetY + (baseHeight - drawHeight) / 2 + (posY / 100) * (targetHeight / 2 - drawHeight / 2);
-
+  let drawWidth = targetWidth * scale;
+  let drawHeight = targetHeight * scale;
+  // Use only one videoAspect variable
+  if (video.videoWidth > 0 && video.videoHeight > 0) {
+    const videoAspect = video.videoWidth / video.videoHeight;
+    if (videoAspect > canvasAspect) {
+      drawHeight = targetHeight * scale;
+      drawWidth = drawHeight * videoAspect;
+    } else {
+      drawWidth = targetWidth * scale;
+      drawHeight = drawWidth / videoAspect;
+    }
+    // videoAspect is only used for calculation above
+  }
+  // Center and apply positionX/positionY as pixel offsets
+  const posX = (effects.positionX || 0) * (targetWidth / 100);
+  const posY = (effects.positionY || 0) * (targetHeight / 100);
+  const offsetX = (targetWidth - drawWidth) / 2 + posX;
+  const offsetY = (targetHeight - drawHeight) / 2 + posY;
 
   // Clear canvas with black background
   ctx.fillStyle = "#000000";
@@ -113,21 +107,15 @@ export const applyVideoEffects = (
 
   // Save context state
   ctx.save();
-
   try {
     // Apply global blur filter (excluding blur if we have selective blur)
-    const hasSelectiveBlur =
-      effects.selectiveBlur && effects.selectiveBlur.length > 0;
+    const hasSelectiveBlur = effects.selectiveBlur && effects.selectiveBlur.length > 0;
     const globalBlur = hasSelectiveBlur ? 0 : effects.blur;
-
-
     if (globalBlur > 0) {
       ctx.filter = `blur(${Math.max(0, globalBlur)}px)`;
     }
-
-    // Draw the video frame with scale/position
+    // Draw the video frame with scale/position (cover logic)
     ctx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
-
     // Apply selective blur if defined
     if (hasSelectiveBlur) {
       applySelectiveBlur(
@@ -148,7 +136,6 @@ export const applyVideoEffects = (
     ctx.filter = "none";
     ctx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
   }
-  // Restore context state
   ctx.restore();
 }
 
@@ -200,7 +187,7 @@ export const canvasBasedVideoExport = async (
     const totalFrames = Math.ceil(totalDuration * settings.fps);
     let currentFrame = 0;
     const frameFiles: string[] = [];
-    let videoStartTime = 0;
+    // let videoStartTime = 0;
     for (const video of sortedVideos) {
       const speedMultiplier = video.effects.speed || 1;
       const trimStart = video.trimStart || 0;
@@ -241,7 +228,7 @@ export const canvasBasedVideoExport = async (
         currentFrame++;
         if (onProgress) onProgress(15 + (currentFrame / totalFrames) * 60);
       }
-      videoStartTime += effectiveDuration;
+      // videoStartTime += effectiveDuration;
     }
     if (onProgress) onProgress(75);
     const outputFilename = `output.${settings.format}`;
@@ -359,27 +346,31 @@ export const canvasBasedVideoExport = async (
     // For each grid (left/right)
     for (const [i, gridId] of ["grid-1", "grid-2"].entries()) {
       const gridVideos = grids[gridId] || [];
-      // Find the video active at time t
+      // Find the video active at time t, accounting for speed
       let video: VideoSequenceItem | undefined;
       let videoElement: HTMLVideoElement | undefined;
-      let localTime = t;
+      let localTimeline = t;
       let acc = 0;
       for (let vIdx = 0; vIdx < gridVideos.length; vIdx++) {
         const v = gridVideos[vIdx];
+        const speedMultiplier = v.effects.speed || 1;
         const trimStart = v.trimStart || 0;
         const trimEnd = v.trimEnd || v.duration;
-        const duration = trimEnd - trimStart;
-        if (localTime >= acc && localTime < acc + duration) {
+        const trimmedDuration = trimEnd - trimStart;
+        const effectiveDuration = trimmedDuration / speedMultiplier;
+        if (localTimeline >= acc && localTimeline < acc + effectiveDuration) {
           video = v;
           videoElement = gridVideoElements[gridId][vIdx];
-          localTime = trimStart + (localTime - acc);
+          // Map timeline time to video time, accounting for speed
+          const relativeTime = localTimeline - acc;
+          localTimeline = trimStart + (relativeTime * speedMultiplier);
           break;
         }
-        acc += duration;
+        acc += effectiveDuration;
       }
       if (video && videoElement) {
-        // Seek video to localTime
-        videoElement.currentTime = Math.min(Math.max(localTime, 0), (video.trimEnd || video.duration) - 0.01);
+        // Seek video to localTimeline
+        videoElement.currentTime = Math.min(Math.max(localTimeline, 0), (video.trimEnd || video.duration) - 0.01);
         await new Promise<void>(resolve => {
           videoElement.onseeked = () => resolve();
           if (videoElement.readyState >= 2) resolve();
@@ -889,27 +880,31 @@ export const exportToGif = async (
         const halfWidth = Math.floor(width / 2);
         for (const [i, gridId] of ["grid-1", "grid-2"].entries()) {
           const gridVideos = grids[gridId] || [];
-          // Find the video active at time t
+          // Find the video active at time t, accounting for speed
           let video: VideoSequenceItem | undefined;
           let videoElement: HTMLVideoElement | undefined;
-          let localTime = t;
+          let localTimeline = t;
           let acc = 0;
           for (let vIdx = 0; vIdx < gridVideos.length; vIdx++) {
             const v = gridVideos[vIdx];
+            const speedMultiplier = v.effects.speed || 1;
             const trimStart = v.trimStart || 0;
             const trimEnd = v.trimEnd || v.duration;
-            const duration = trimEnd - trimStart;
-            if (localTime >= acc && localTime < acc + duration) {
+            const trimmedDuration = trimEnd - trimStart;
+            const effectiveDuration = trimmedDuration / speedMultiplier;
+            if (localTimeline >= acc && localTimeline < acc + effectiveDuration) {
               video = v;
               videoElement = gridVideoElements[gridId][vIdx];
-              localTime = trimStart + (localTime - acc);
+              // Map timeline time to video time, accounting for speed
+              const relativeTime = localTimeline - acc;
+              localTimeline = trimStart + (relativeTime * speedMultiplier);
               break;
             }
-            acc += duration;
+            acc += effectiveDuration;
           }
           if (video && videoElement) {
-            // Seek video to localTime
-            videoElement.currentTime = Math.min(Math.max(localTime, 0), (video.trimEnd || video.duration) - 0.01);
+            // Seek video to localTimeline
+            videoElement.currentTime = Math.min(Math.max(localTimeline, 0), (video.trimEnd || video.duration) - 0.01);
             await new Promise<void>(resolve => {
               videoElement.onseeked = () => resolve();
               if (videoElement.readyState >= 2) resolve();
@@ -929,8 +924,7 @@ export const exportToGif = async (
           }
         }
       } else {
-        // Single layout: original logic
-        // Find current video for this time using cumulative timing
+        // Single layout: account for speed effect
         let cumulativeTime = 0;
         let currentVideo: VideoSequenceItem | undefined;
         let videoIndex = -1;

@@ -17,6 +17,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
+  Layers,
+  Film,
+  Grid3x3,
 } from "lucide-react";
 import { BlurTimelineOverlay } from "./BlurTimelineOverlay";
 
@@ -311,7 +314,7 @@ export const Timeline: React.FC<TimelineProps> = ({
 
     // Always extract frames automatically
     extractFramesForVideos();
-  }, [videos]);
+  }, [videos, isPlaying]);
 
   // Frame navigation functions
   const getCurrentFrameIndex = useCallback(() => {
@@ -510,7 +513,7 @@ export const Timeline: React.FC<TimelineProps> = ({
 
       e.preventDefault();
     },
-    [totalDuration, onSeek, formatTime]
+    [totalDuration, onSeek, formatTime, currentTime]
   );
 
   const handleTimelineMouseMove = useCallback(
@@ -635,10 +638,10 @@ export const Timeline: React.FC<TimelineProps> = ({
         <div
           key={video.id}
           className={`
-          video-segment absolute cursor-pointer transition-all duration-300 shadow-md overflow-hidden rounded-lg
+          video-segment absolute cursor-pointer transition-all duration-200 overflow-hidden rounded-md
           ${
             isSelected
-              ? "ring-2 ring-pink-400 shadow-lg z-30"
+              ? "ring-2 ring-purple-500 shadow-xl z-30"
               : "hover:shadow-lg z-20"
           }
         `}
@@ -655,7 +658,7 @@ export const Timeline: React.FC<TimelineProps> = ({
           {/* Frame Thumbnails or Loading State */}
           {showFrameView && frames.length > 0 ? (
             /* Show frame thumbnails as navigation */
-            <div className="absolute inset-0 flex overflow-hidden rounded-lg">
+            <div className="absolute inset-0 flex overflow-hidden">
               {frames.map((frame, frameIndex) => {
                 const frameWidth = 100 / frames.length;
                 const isCurrentFrame =
@@ -664,9 +667,9 @@ export const Timeline: React.FC<TimelineProps> = ({
                 return (
                   <div
                     key={frameIndex}
-                    className={`relative cursor-pointer transition-all duration-200 border-r border-white/30 last:border-r-0 ${
+                    className={`relative cursor-pointer transition-all duration-200 border-r border-gray-800/20 last:border-r-0 ${
                       isCurrentFrame
-                        ? "ring-2 ring-pink-400 ring-inset"
+                        ? "ring-2 ring-purple-500 ring-inset"
                         : "hover:brightness-110"
                     }`}
                     style={{
@@ -693,7 +696,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                     />
                     {/* Current time indicator */}
                     {isCurrentFrame && (
-                      <div className="absolute inset-0 bg-pink-400/20 pointer-events-none"></div>
+                      <div className="absolute inset-0 bg-purple-500/20 pointer-events-none"></div>
                     )}
                   </div>
                 );
@@ -702,21 +705,21 @@ export const Timeline: React.FC<TimelineProps> = ({
           ) : showFrameView && frames.length === 0 ? (
             /* Loading state with progress */
             <div
-              className={`absolute inset-0 flex items-center justify-center bg-gradient-to-r ${colorClass} rounded-lg`}
+              className={`absolute inset-0 flex items-center justify-center ${colorClass}`}
             >
               <div className="text-center text-white">
                 {(() => {
                   const progress = extractionProgress.get(video.id);
                   return progress ? (
-                    <div className="space-y-1">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-white/60 border-t-white rounded-full animate-spin"></div>
                       <div className="text-xs">
                         {progress.current}/{progress.total}
                       </div>
                     </div>
                   ) : (
-                    <div className="space-y-1">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 border-2 border-white/60 border-t-white rounded-full animate-spin"></div>
                       <div className="text-xs">Loading...</div>
                     </div>
                   );
@@ -727,18 +730,20 @@ export const Timeline: React.FC<TimelineProps> = ({
             /* Fallback: Traditional colored segments */
             <>
               <div
-                className={`absolute inset-0 bg-gradient-to-r ${colorClass} rounded-lg`}
-              ></div>
+                className={`absolute inset-0 ${colorClass}`}
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+              </div>
               {/* Video text content - adaptive based on segment width */}
               {widthPercent > 15 ? (
                 <>
                   <div
-                    className={`absolute left-2 right-2 top-1 text-xs text-white font-semibold truncate drop-shadow-sm z-10`}
+                    className={`absolute left-2 right-2 top-1 text-xs text-white font-medium truncate z-10`}
                   >
                     {video.file.name}
                   </div>
                   <div
-                    className={`absolute left-2 right-2 bottom-1 text-xs text-white/90 font-medium drop-shadow-sm z-10`}
+                    className={`absolute left-2 right-2 bottom-1 text-xs text-white/80 font-normal z-10`}
                   >
                     {formatTime(
                       (video.trimEnd || video.duration) - (video.trimStart || 0)
@@ -747,7 +752,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                 </>
               ) : (
                 <div className="absolute inset-1 flex items-center justify-center z-10">
-                  <div className="text-xs text-white font-medium bg-black/40 px-1.5 py-0.5 rounded shadow-sm">
+                  <div className="text-xs text-white font-medium bg-black/40 px-1.5 py-0.5 rounded">
                     {formatTime(
                       (video.trimEnd || video.duration) - (video.trimStart || 0)
                     )}
@@ -757,9 +762,9 @@ export const Timeline: React.FC<TimelineProps> = ({
             </>
           )}
 
-          {/* Video Number Badge */}
-          <div className="absolute -top-1 -left-1 w-5 h-5 bg-white rounded-full border-2 border-gray-300 flex items-center justify-center z-50 shadow-lg">
-            <span className="text-xs font-bold text-gray-700">{index + 1}</span>
+          {/* Video Number Badge - Modern Style */}
+          <div className="absolute -top-0.5 -left-0.5 w-4 h-4 bg-gray-900 rounded flex items-center justify-center z-50 shadow-md">
+            <span className="text-[10px] font-medium text-gray-300">{index + 1}</span>
           </div>
         </div>
       );
@@ -776,100 +781,120 @@ export const Timeline: React.FC<TimelineProps> = ({
   );
 
   return (
-    <div className="bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-pink-200 p-6 relative">
+    <div className="bg-gray-900 rounded-lg p-4">
       {/* Timeline Controls */}
-      <div className="flex items-center justify-between mb-6 bg-gradient-to-r from-pink-50 to-rose-50 rounded-lg p-4 border border-pink-100">
-        <div className="flex items-center space-x-4">
-          <button
-            onClick={jumpToStart}
-            className="p-3 hover:bg-white rounded-lg transition-all duration-200 hover:scale-105 shadow-sm border border-pink-200"
-            title="Jump to start"
-          >
-            <SkipBack className="w-5 h-5 text-gray-700" />
-          </button>
-
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-2">
+          {/* Play/Pause Button */}
           <button
             onClick={isPlaying ? onPause : onPlay}
-            className="p-4 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 rounded-xl transition-all duration-200 hover:scale-105 shadow-lg"
+            className="p-3 bg-purple-600 hover:bg-purple-700 rounded-lg transition-all duration-200 group"
             title={isPlaying ? "Pause" : "Play"}
           >
             {isPlaying ? (
-              <Pause className="w-6 h-6 text-white" />
+              <Pause className="w-5 h-5 text-white" />
             ) : (
-              <Play className="w-6 h-6 text-white ml-0.5" />
+              <Play className="w-5 h-5 text-white ml-0.5" />
             )}
+          </button>
+
+          {/* Skip Controls */}
+          <button
+            onClick={jumpToStart}
+            className="p-2 hover:bg-gray-800 rounded-lg transition-all duration-200"
+            title="Jump to start"
+          >
+            <SkipBack className="w-4 h-4 text-gray-300" />
           </button>
 
           <button
             onClick={jumpToEnd}
-            className="p-3 hover:bg-white rounded-lg transition-all duration-200 hover:scale-105 shadow-sm border border-pink-200"
+            className="p-2 hover:bg-gray-800 rounded-lg transition-all duration-200"
             title="Jump to end"
           >
-            <SkipForward className="w-5 h-5 text-gray-700" />
+            <SkipForward className="w-4 h-4 text-gray-300" />
           </button>
 
-          {/* Frame-by-frame navigation controls */}
-          <div className="flex items-center space-x-2 border-l border-pink-300 pl-4">
-            <button
-              onClick={goToPreviousFrame}
-              className="p-2 hover:bg-white rounded-lg transition-all duration-200 hover:scale-105 shadow-sm border border-pink-200"
-              title="Previous frame"
-              disabled={getCurrentFrameIndex() <= 0}
-            >
-              <ChevronLeft className="w-4 h-4 text-gray-700" />
-            </button>
+          {/* Divider */}
+          <div className="w-px h-8 bg-gray-700 mx-2" />
 
-            <div className="text-xs text-gray-700 min-w-[90px] text-center bg-white px-3 py-2 rounded-lg shadow-sm border border-pink-200 font-medium">
-              Frame: {getCurrentFrameIndex() + 1}/{getTotalFrames()}
-            </div>
+          {/* Frame Controls */}
+          <button
+            onClick={goToPreviousFrame}
+            className="p-2 hover:bg-gray-800 rounded-lg transition-all duration-200"
+            title="Previous frame"
+            disabled={getCurrentFrameIndex() <= 0}
+          >
+            <ChevronLeft className="w-4 h-4 text-gray-300" />
+          </button>
 
-            <button
-              onClick={goToNextFrame}
-              className="p-2 hover:bg-white rounded-lg transition-all duration-200 hover:scale-105 shadow-sm border border-pink-200"
-              title="Next frame"
-              disabled={getCurrentFrameIndex() >= getTotalFrames() - 1}
-            >
-              <ChevronRight className="w-4 h-4 text-gray-700" />
-            </button>
+          <button
+            onClick={goToNextFrame}
+            className="p-2 hover:bg-gray-800 rounded-lg transition-all duration-200"
+            title="Next frame"
+            disabled={getCurrentFrameIndex() >= getTotalFrames() - 1}
+          >
+            <ChevronRight className="w-4 h-4 text-gray-300" />
+          </button>
+
+          {/* Frame Counter */}
+          <div className="text-xs text-gray-400 font-mono bg-gray-800 px-3 py-1.5 rounded">
+            F: {getCurrentFrameIndex() + 1}/{getTotalFrames()}
           </div>
 
-          {/* Frame view toggle */}
+          {/* Divider */}
+          <div className="w-px h-8 bg-gray-700 mx-2" />
+
+          {/* Frame View Toggle */}
           <button
             onClick={() => setShowFrameView(!showFrameView)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:scale-105 shadow-sm border ${
+            className={`p-2 rounded-lg transition-all duration-200 ${
               showFrameView
-                ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white border-pink-400 shadow-md"
-                : "bg-white text-pink-700 hover:bg-pink-50 border-pink-200"
+                ? "bg-purple-600 text-white"
+                : "hover:bg-gray-800 text-gray-300"
             }`}
-            title="Toggle frame thumbnails"
+            title="Toggle thumbnails"
           >
-            {showFrameView ? "Hide Frames" : "Show Frames"}
+            <Film className="w-4 h-4" />
           </button>
+
+          {/* Layout Toggle */}
+          {layout === "side-by-side" && (
+            <button
+              className="p-2 hover:bg-gray-800 rounded-lg transition-all duration-200 text-gray-300"
+              title="Layout"
+            >
+              <Grid3x3 className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
-        <div className="flex items-center space-x-4 text-sm text-gray-700">
-          <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-lg shadow-sm border border-pink-200">
-            <Clock className="w-4 h-4 text-pink-500" />
-            <span className="font-medium">
+        {/* Time Display */}
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 text-sm">
+            <Clock className="w-4 h-4 text-purple-500" />
+            <span className="font-mono text-gray-300">
               {formatTime(currentTime)} / {formatTime(totalDuration)}
             </span>
           </div>
-          <div className="text-xs bg-white text-pink-600 px-3 py-2 rounded-lg font-medium shadow-sm border border-pink-200">
-            {videos.length} video{videos.length !== 1 ? "s" : ""} loaded
-          </div>
+
+          {videos.length > 0 && (
+            <div className="flex items-center space-x-2 text-xs text-gray-400">
+              <Layers className="w-3.5 h-3.5" />
+              <span>{videos.length} clips</span>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Timeline Track */}
       <div
-        className="timeline-track-container relative rounded-xl cursor-pointer select-none shadow-inner border border-pink-200 overflow-hidden"
+        className="timeline-track-container relative cursor-pointer select-none bg-gray-800 rounded-lg overflow-hidden"
         style={{
           height:
             layout === "side-by-side"
               ? (88 + (blurAreaHeight - 28)) * 2 + 8 // Double height with gap for side-by-side
               : 88 + (blurAreaHeight - 28),
-          background:
-            "linear-gradient(to right, rgb(243 244 246), rgb(249 250 251))",
         }}
         onClick={handleTimelineClick}
         onMouseDown={handleTimelineMouseDown}
@@ -892,12 +917,12 @@ export const Timeline: React.FC<TimelineProps> = ({
                     e.stopPropagation();
                     onAddSequence?.("grid-1");
                   }}
-                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-blue-500 hover:bg-blue-600 text-white rounded-full shadow-lg border-2 border-white opacity-60 hover:opacity-100 hover:scale-110 focus:outline-none"
+                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-blue-600 hover:bg-blue-700 text-white rounded-lg opacity-60 hover:opacity-100 focus:outline-none"
                   style={{
                     right: "8px",
-                    top: topOffset + singleTrackHeight / 2 - 20,
-                    width: "40px",
-                    height: "40px",
+                    top: topOffset + singleTrackHeight / 2 - 16,
+                    width: "32px",
+                    height: "32px",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -906,7 +931,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                   }}
                   title="Add sequence to Grid 1"
                 >
-                  <Plus className="w-7 h-7" />
+                  <Plus className="w-5 h-5" />
                 </button>
               );
             })()}
@@ -924,12 +949,12 @@ export const Timeline: React.FC<TimelineProps> = ({
                     e.stopPropagation();
                     onAddSequence?.("grid-2");
                   }}
-                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-green-500 hover:bg-green-600 text-white rounded-full shadow-lg border-2 border-white opacity-60 hover:opacity-100 hover:scale-110 focus:outline-none"
+                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-green-600 hover:bg-green-700 text-white rounded-lg opacity-60 hover:opacity-100 focus:outline-none"
                   style={{
                     right: "8px",
-                    top: topOffset + singleTrackHeight / 2 - 20,
-                    width: "40px",
-                    height: "40px",
+                    top: topOffset + singleTrackHeight / 2 - 16,
+                    width: "32px",
+                    height: "32px",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -938,15 +963,16 @@ export const Timeline: React.FC<TimelineProps> = ({
                   }}
                   title="Add sequence to Grid 2"
                 >
-                  <Plus className="w-7 h-7" />
+                  <Plus className="w-5 h-5" />
                 </button>
               );
             })()}
           </>
         )}
+        
         {/* Blur overlay area */}
         <div
-          className="absolute top-0 left-0 right-0 bg-pink-50 rounded-t-xl border-b border-pink-200"
+          className="absolute top-0 left-0 right-0 bg-gray-850 border-b border-gray-700"
           style={{ height: blurAreaHeight }}
         />
 
@@ -1017,6 +1043,20 @@ export const Timeline: React.FC<TimelineProps> = ({
             right: 4,
           }}
         >
+          {/* Grid Lines */}
+          <div className="absolute inset-0 pointer-events-none">
+            {Array.from({ length: Math.ceil(totalDuration) + 1 }, (_, i) => {
+              const position = (i / totalDuration) * 100;
+              return (
+                <div
+                  key={i}
+                  className="absolute top-0 bottom-0 w-px bg-gray-700/30"
+                  style={{ left: `${position}%` }}
+                />
+              );
+            })}
+          </div>
+
           {/* Video Segments with Integrated Frame Thumbnails */}
           {layout === "single" ? (
             // Single layout - render all videos in one track
@@ -1026,12 +1066,12 @@ export const Timeline: React.FC<TimelineProps> = ({
               const frames = videoFrames.get(video.id) || [];
 
               const colors = [
-                "from-pink-400 to-pink-500 hover:from-pink-500 hover:to-pink-600",
-                "from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700",
-                "from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700",
-                "from-rose-400 to-rose-500 hover:from-rose-500 hover:to-rose-600",
-                "from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700",
-                "from-pink-300 to-pink-400 hover:from-pink-400 hover:to-pink-500",
+                "bg-purple-600",
+                "bg-purple-700",
+                "bg-indigo-600",
+                "bg-indigo-700",
+                "bg-violet-600",
+                "bg-violet-700",
               ];
               const colorClass = colors[index % colors.length];
 
@@ -1057,8 +1097,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                   const { leftPercent, widthPercent } = getVideoPosition(video);
                   const isSelected = video.id === selectedVideoId;
                   const frames = videoFrames.get(video.id) || [];
-                  const colorClass =
-                    "from-blue-400 to-blue-500 hover:from-blue-500 hover:to-blue-600";
+                  const colorClass = "bg-blue-600";
 
                   // Calculate equal track heights
                   const totalTrackArea = (88 + (blurAreaHeight - 28)) * 2; // Total available height for both tracks
@@ -1080,8 +1119,6 @@ export const Timeline: React.FC<TimelineProps> = ({
                   );
                 })}
 
-              {/* Removed duplicate per-grid add button after last video segment */}
-
               {/* Grid 2 Track */}
               {videos
                 .filter((v) => v.gridId === "grid-2")
@@ -1089,8 +1126,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                   const { leftPercent, widthPercent } = getVideoPosition(video);
                   const isSelected = video.id === selectedVideoId;
                   const frames = videoFrames.get(video.id) || [];
-                  const colorClass =
-                    "from-green-400 to-green-500 hover:from-green-500 hover:to-green-600";
+                  const colorClass = "bg-green-600";
 
                   // Calculate equal track heights
                   const totalTrackArea = (88 + (blurAreaHeight - 28)) * 2; // Total available height for both tracks
@@ -1111,11 +1147,9 @@ export const Timeline: React.FC<TimelineProps> = ({
                   );
                 })}
 
-              {/* Removed duplicate per-grid add button after last video segment */}
-
               {/* Track Separator Line */}
               <div
-                className="absolute left-0 right-0 border-t border-pink-300/50"
+                className="absolute left-0 right-0 border-t border-gray-700"
                 style={{
                   top: `${((88 + (blurAreaHeight - 28)) * 2 - 8) / 2 + 4}px`,
                 }}
@@ -1123,18 +1157,18 @@ export const Timeline: React.FC<TimelineProps> = ({
 
               {/* Track Labels */}
               <div
-                className="absolute left-2 text-xs font-medium text-gray-600 bg-white/80 px-2 py-1 rounded"
+                className="absolute left-2 text-xs font-medium text-gray-500 bg-gray-800/80 px-2 py-1 rounded"
                 style={{ top: "12px" }}
               >
-                Grid 1
+                Track 1
               </div>
               <div
-                className="absolute left-2 text-xs font-medium text-gray-600 bg-white/80 px-2 py-1 rounded"
+                className="absolute left-2 text-xs font-medium text-gray-500 bg-gray-800/80 px-2 py-1 rounded"
                 style={{
                   top: `${((88 + (blurAreaHeight - 28)) * 2 - 8) / 2 + 12}px`,
                 }}
               >
-                Grid 2
+                Track 2
               </div>
             </>
           )}
@@ -1142,19 +1176,19 @@ export const Timeline: React.FC<TimelineProps> = ({
           {/* Current Time Indicator */}
           {totalDuration > 0 && (
             <div
-              className="timeline-scrubber absolute w-1 bg-gradient-to-b from-red-400 to-red-600 z-50 shadow-lg cursor-grab active:cursor-grabbing rounded-full"
+              className="timeline-scrubber absolute w-0.5 bg-purple-500 z-50 pointer-events-none"
               style={{
                 left: getCurrentPosition,
-                top: "4px",
-                bottom: "4px",
+                top: 0,
+                bottom: 0,
               }}
             >
-              <div className="absolute -top-2 -left-1 w-4 h-4 bg-pink-500 rounded-full shadow-lg hover:scale-110 transition-all duration-200 border-2 border-white" />
-              <div className="absolute -top-8 -left-10 bg-gradient-to-r from-pink-500 to-pink-600 text-white text-xs px-3 py-1.5 rounded-lg whitespace-nowrap shadow-lg border border-pink-400 font-medium">
+              <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-purple-500" />
+              <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-xs px-2 py-1 rounded whitespace-nowrap font-mono">
                 {formatTime(currentTime)}
                 {showFrameView && (
-                  <div className="text-pink-200 text-xs mt-0.5">
-                    Frame {getCurrentFrameIndex() + 1}
+                  <div className="text-purple-200 text-[10px] mt-0.5">
+                    F{getCurrentFrameIndex() + 1}
                   </div>
                 )}
               </div>
@@ -1164,15 +1198,14 @@ export const Timeline: React.FC<TimelineProps> = ({
           {/* Hover Position Indicator */}
           {hoverPosition !== null && totalDuration > 0 && !isDragging && (
             <div
-              className="absolute w-0.5 bg-pink-400 z-45 opacity-70 transition-all duration-200 rounded-full"
+              className="absolute w-px bg-gray-500 z-40 pointer-events-none opacity-50"
               style={{
                 left: `${hoverPosition}%`,
-                top: "4px",
-                bottom: "4px",
+                top: 0,
+                bottom: 0,
               }}
             >
-              <div className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-pink-400 rounded-full shadow-md border border-white" />
-              <div className="absolute -top-7 -left-10 bg-pink-400 text-white text-xs px-2 py-1 rounded-lg whitespace-nowrap shadow-lg border border-pink-300 font-medium">
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-gray-700 text-gray-300 text-xs px-2 py-0.5 rounded whitespace-nowrap font-mono">
                 {formatTime((hoverPosition / 100) * totalDuration)}
               </div>
             </div>
@@ -1180,7 +1213,7 @@ export const Timeline: React.FC<TimelineProps> = ({
         </div>
 
         {/* Timeline Ruler */}
-        <div className="absolute bottom-0 left-0 right-0 h-5 bg-gradient-to-t from-gray-200 to-gray-100 dark:from-gray-600 dark:to-gray-700 rounded-b-xl border-t border-gray-300 dark:border-gray-500">
+        <div className="absolute bottom-0 left-0 right-0 h-5 bg-gray-850 border-t border-gray-700">
           {Array.from({ length: Math.ceil(totalDuration / 5) + 1 }, (_, i) => {
             const time = i * 5;
             const position = (time / totalDuration) * 100;
@@ -1188,10 +1221,11 @@ export const Timeline: React.FC<TimelineProps> = ({
             return (
               <div
                 key={i}
-                className="absolute bottom-0 w-px bg-gray-400 dark:bg-gray-500 opacity-60"
+                className="absolute top-0 bottom-0"
                 style={{ left: `${position}%` }}
               >
-                <div className="absolute -bottom-6 -left-6 text-xs text-gray-500 dark:text-gray-400 font-medium bg-white dark:bg-gray-800 px-1 rounded">
+                <div className="absolute top-0 w-px h-2 bg-gray-600" />
+                <div className="absolute top-2 -translate-x-1/2 text-[10px] text-gray-500 font-mono">
                   {formatTime(time)}
                 </div>
               </div>
@@ -1202,17 +1236,17 @@ export const Timeline: React.FC<TimelineProps> = ({
 
       {/* Selected Video Info */}
       {selectedVideoId && videos.find((v) => v.id === selectedVideoId) && (
-        <div className="mt-6 p-4 bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 rounded-xl border border-pink-200 dark:border-pink-800 shadow-sm">
+        <div className="mt-4 p-3 bg-gray-800 rounded-lg border border-gray-700">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-pink-500 rounded-lg flex items-center justify-center">
-                <Play className="w-5 h-5 text-white" />
+              <div className="w-8 h-8 bg-purple-600 rounded flex items-center justify-center">
+                <Film className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h4 className="font-semibold text-pink-900 dark:text-pink-100">
+                <h4 className="font-medium text-gray-200 text-sm">
                   {videos.find((v) => v.id === selectedVideoId)?.file.name}
                 </h4>
-                <p className="text-sm text-pink-700 dark:text-pink-300">
+                <p className="text-xs text-gray-400">
                   Duration:{" "}
                   {formatTime(
                     videos.find((v) => v.id === selectedVideoId)?.duration || 0
@@ -1224,8 +1258,8 @@ export const Timeline: React.FC<TimelineProps> = ({
                 </p>
               </div>
             </div>
-            <div className="text-sm text-pink-600 dark:text-pink-400 bg-white dark:bg-pink-900/30 px-3 py-1 rounded-full font-medium">
-              Selected for editing
+            <div className="text-xs text-purple-400 bg-purple-600/20 px-2 py-1 rounded">
+              Selected
             </div>
           </div>
         </div>
