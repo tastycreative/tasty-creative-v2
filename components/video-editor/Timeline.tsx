@@ -377,10 +377,39 @@ export const Timeline: React.FC<TimelineProps> = ({
     return `${percentage}%`;
   }, [currentTime, totalDuration]);
 
-  const handleTimelineClick = useCallback(() => {
-    // This will be handled by mouseDown/mouseUp combination
-    // to properly distinguish clicks from drags
-  }, []);
+  const handleTimelineClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    // Only trigger if clicking the timeline background (not a video segment)
+    const target = e.target as HTMLElement;
+    if (target.closest('.video-segment')) return;
+
+    // Get the timeline track element specifically (not the container)
+    const timelineTrack = e.currentTarget.querySelector('.timeline-track');
+    if (!timelineTrack) return;
+    const rect = timelineTrack.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const trackWidth = rect.width;
+    const percentage = Math.max(0, Math.min(1, clickX / trackWidth));
+    const clickTime = percentage * totalDuration;
+
+    setHoverPosition(null);
+    setIsDragging(false);
+    onSeek(clickTime);
+
+    // Find the video whose startTime is closest but not after clickTime
+    let selected = null;
+    let minDiff = Infinity;
+    for (const video of videos) {
+      const start = video.startTime || 0;
+      if (start <= clickTime && clickTime - start < minDiff) {
+        minDiff = clickTime - start;
+        selected = video;
+      }
+    }
+    if (selected && typeof onVideoSelect === 'function') {
+      onVideoSelect(selected.id);
+    }
+    e.preventDefault();
+  }, [videos, totalDuration, onSeek, onVideoSelect]);
 
   const handleTimelineMouseDown = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -497,9 +526,10 @@ export const Timeline: React.FC<TimelineProps> = ({
       e.stopPropagation();
       e.preventDefault();
 
-      // Select the video first
-      console.log('Video segment clicked, selecting video:', video.id, video.file.name);
-      onVideoSelect(video.id);
+      // Always select the video in the editor, even if already selected
+      if (typeof onVideoSelect === 'function') {
+        onVideoSelect(video.id);
+      }
 
       // Get the timeline track element for accurate calculation
       const timelineContainer = e.currentTarget.closest('.timeline-track-container');
@@ -513,23 +543,10 @@ export const Timeline: React.FC<TimelineProps> = ({
       // Calculate the absolute time based on timeline position
       const absoluteTime = timelinePercentage * totalDuration;
 
-      // Debug logging (remove in production)
-      if (Math.abs(absoluteTime - currentTime) > 1) {
-        console.log('Video segment click:', {
-          videoName: video.file.name,
-          clickX,
-          timelineWidth: timelineRect.width,
-          timelinePercentage,
-          absoluteTime,
-          formattedTime: formatTime(absoluteTime),
-          currentTime
-        });
-      }
-
       // Seek to that position
       onSeek(absoluteTime);
     },
-    [onVideoSelect, onSeek, totalDuration, formatTime]
+    [onVideoSelect, onSeek, totalDuration]
   );
 
   const jumpToStart = useCallback(() => {
