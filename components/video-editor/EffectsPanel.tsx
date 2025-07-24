@@ -190,7 +190,7 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
           <input
             type="range"
             min="0.1"
-            max="3.0"
+            max="4.0"
             step="0.1"
             value={selectedVideo.effects.scale ?? 1.0}
             onChange={(e) =>
@@ -201,7 +201,7 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
           <div className="flex justify-between text-xs font-medium text-gray-700 mt-2">
             <span>10%</span>
             <span>100%</span>
-            <span>300%</span>
+            <span>400%</span>
           </div>
         </div>
 
