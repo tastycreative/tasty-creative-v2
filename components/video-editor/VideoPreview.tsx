@@ -258,6 +258,16 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
         videoElement.videoHeight > 0
       ) {
         try {
+          // --- CLIP TO GRID AREA FOR SIDE-BY-SIDE ---
+          let didClip = false;
+          if (layout === "side-by-side") {
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(x, y, drawWidth, drawHeight);
+            ctx.clip();
+            didClip = true;
+          }
+
           const scale = video.effects.scale || 1.0;
           const posX = (video.effects.positionX || 0) * (drawWidth / 100);
           const posY = (video.effects.positionY || 0) * (drawHeight / 100);
@@ -288,6 +298,10 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
               videoHeight
             );
             ctx.filter = "none";
+          }
+
+          if (didClip) {
+            ctx.restore();
           }
         } catch (error) {
           console.error("Error rendering video:", error);
@@ -452,7 +466,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
       } else {
         // Side-by-side layout sync - prioritize Grid 1 for timeline sync
         const currentVideos = getCurrentVideosByGrid();
-        let syncVideo = currentVideos.grid1 || currentVideos.grid2; // Use Grid 1 if available, otherwise Grid 2
+        const syncVideo = currentVideos.grid1 || currentVideos.grid2; // Use Grid 1 if available, otherwise Grid 2
 
         if (syncVideo && loadedVideos.has(syncVideo.id)) {
           const videoElement = videoRefs.current[syncVideo.id];
