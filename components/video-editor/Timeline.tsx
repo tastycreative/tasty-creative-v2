@@ -1309,6 +1309,8 @@ export const Timeline: React.FC<TimelineProps> = ({
           {Array.from({ length: Math.ceil(totalDuration / 5) + 1 }, (_, i) => {
             const time = i * 5;
             const position = (time / totalDuration) * 100;
+            const isFirst = i === 0;
+            const isLast = i === Math.ceil(totalDuration / 5);
 
             return (
               <div
@@ -1317,7 +1319,9 @@ export const Timeline: React.FC<TimelineProps> = ({
                 style={{ left: `${position}%`, top: 0, height: '100%' }}
               >
                 <div className="absolute top-0 w-px h-3 bg-gray-600 z-50" />
-                <div className="absolute top-3 -translate-x-1/2 text-[11px] text-gray-300 font-mono bg-gray-850 px-1 border border-gray-700 rounded z-50">
+                <div className={`absolute top-3 text-[11px] text-gray-300 font-mono bg-gray-850 px-1 border border-gray-700 rounded z-50 ${
+                  isFirst ? 'left-0' : isLast ? 'right-0 -translate-x-full' : '-translate-x-1/2'
+                }`}>
                   {formatTime(time)}
                 </div>
               </div>
