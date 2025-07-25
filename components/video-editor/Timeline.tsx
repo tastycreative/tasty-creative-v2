@@ -50,127 +50,181 @@ interface TimelineProps {
 }
 
 // Smart progressive frame extraction utility with throttling and progress tracking
+
+// Progressive: extract low-res/low-quality frames first, then high-res/high-quality
 const extractVideoFramesProgressively = (
   videoFile: File,
   onFrameExtracted: (frame: VideoFrame) => void,
   onComplete: () => void,
   onProgressUpdate: (current: number, total: number) => void,
-  priority: number = 0, // Higher priority videos extract first
-  shouldPause: () => boolean = () => false // Function to check if extraction should be paused
+  priority: number = 0,
+  shouldPause: () => boolean = () => false
 ) => {
-  const video = document.createElement("video");
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
+  const videoUrl = URL.createObjectURL(videoFile);
+  const PIXELS_PER_SECOND = 60;
+  const MAX_FRAME_CONTAINER_WIDTH = 320;
+  const MIN_FRAME_CONTAINER_WIDTH = 48;
+  const videoPoolSize = 3;
+  const canvasPoolSize = 3;
 
-  video.preload = "metadata";
-  video.src = URL.createObjectURL(videoFile);
+  // Two passes: first low-res, then high-res
+  const passes = [
+    { width: 64, height: 36, quality: 0.3, pass: "low" }, // fast blurry
+    { width: 320, height: 180, quality: 0.8, pass: "high" }, // final
+  ];
 
-  video.addEventListener("loadedmetadata", () => {
-    canvas.width = 320; // Higher quality thumbnail
-    canvas.height = 180; // Maintain 16:9 aspect ratio
+  // Create video pool
+  const videoPool = Array(videoPoolSize)
+    .fill(null)
+    .map(() => {
+      const vid = document.createElement("video");
+      vid.src = videoUrl;
+      vid.crossOrigin = "anonymous";
+      vid.muted = true;
+      vid.playsInline = true;
+      vid.preload = "metadata";
+      return vid;
+    });
 
-    const duration = video.duration;
-
-    // Improved frame calculation: extract enough frames to fill the timeline at 1 frame per 10px, up to a max
-    const PIXELS_PER_SECOND = 60; // Keep in sync with timeline
-    const MAX_FRAME_CONTAINER_WIDTH = 320;
-    const MIN_FRAME_CONTAINER_WIDTH = 48;
-    // Estimate the segment width for this video
+  Promise.all(
+    videoPool.map(
+      (vid) =>
+        new Promise<void>((resolve, reject) => {
+          const timeoutId = setTimeout(() => {
+            reject(new Error("Video metadata loading timeout"));
+          }, 5000);
+          vid.addEventListener(
+            "loadedmetadata",
+            () => {
+              clearTimeout(timeoutId);
+              resolve();
+            },
+            { once: true }
+          );
+          vid.addEventListener(
+            "error",
+            () => {
+              clearTimeout(timeoutId);
+              reject(new Error("Video loading error"));
+            },
+            { once: true }
+          );
+          vid.load();
+        })
+    )
+  ).then(() => {
+    const duration = videoPool[0].duration;
     const segmentWidthPx = Math.max(MIN_FRAME_CONTAINER_WIDTH, duration * PIXELS_PER_SECOND);
-    // Aim for 1 frame per 10px, but clamp between 8 and 120 frames
     const optimalFrames = Math.max(8, Math.min(120, Math.round(segmentWidthPx / 10)));
     const interval = duration / optimalFrames;
     const maxFrames = optimalFrames;
-
-    let currentFrameIndex = 0;
     const frameTimes: number[] = [];
-
-    // Pre-calculate all frame times
     for (let i = 0; i < maxFrames; i++) {
       frameTimes.push(i * interval);
     }
-
-    // Initialize progress
     onProgressUpdate(0, maxFrames);
 
-    const extractFrame = () => {
-      if (currentFrameIndex >= frameTimes.length) {
-        URL.revokeObjectURL(video.src);
-        onComplete();
-        return;
-      }
-
-      // Check if we should pause extraction (e.g., when video is playing)
-      if (shouldPause()) {
-        setTimeout(extractFrame, 500);
-        return;
-      }
-
-      const time = frameTimes[currentFrameIndex];
-
-      // Clear any existing timeout
-      if (seekTimeout) {
-        clearTimeout(seekTimeout);
-      }
-
-      // Set fallback timeout in case seeked event doesn't fire
-      seekTimeout = setTimeout(() => {
-        console.warn(
-          `Seeked event didn't fire for time ${time}, continuing anyway`
-        );
-        currentFrameIndex++;
-        setTimeout(extractFrame, 50);
-      }, 1000);
-
-      video.currentTime = Math.min(time, duration - 0.1);
+    // Helper to extract a single frame at a given quality
+    const extractFrame = async (
+      vid: HTMLVideoElement,
+      canvas: HTMLCanvasElement,
+      ctx: CanvasRenderingContext2D | null,
+      time: number,
+      width: number,
+      height: number,
+      quality: number
+    ): Promise<VideoFrame | null> => {
+      if (!ctx) return null;
+      return new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          resolve(null);
+        }, 2000);
+        const seekHandler = () => {
+          clearTimeout(timeout);
+          try {
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(vid, 0, 0, width, height);
+            const thumbnail = canvas.toDataURL("image/jpeg", quality);
+            resolve({ time, thumbnail, videoId: "" });
+          } catch {
+            resolve(null);
+          }
+        };
+        vid.addEventListener("seeked", seekHandler, { once: true });
+        vid.currentTime = Math.min(time, duration - 0.1);
+      });
     };
 
-    const handleSeeked = () => {
-      // Clear the fallback timeout since seeked fired
-      if (seekTimeout) {
-        clearTimeout(seekTimeout);
-      }
-
-      if (ctx && video.readyState >= 2) {
-        try {
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const thumbnail = canvas.toDataURL("image/jpeg", 0.8);
-
-          const frame: VideoFrame = {
-            time: video.currentTime,
-            thumbnail,
-            videoId: "",
+    // Two passes: low-res then high-res
+    let extractedCount = 0;
+    const frameResults: (VideoFrame | null)[] = Array(maxFrames).fill(null);
+    const processPass = async (passIdx: number) => {
+      const { width, height, quality, pass } = passes[passIdx];
+      // Create canvas pool for this pass
+      const canvasPool = Array(canvasPoolSize)
+        .fill(null)
+        .map(() => {
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          return {
+            canvas,
+            ctx: canvas.getContext("2d", {
+              willReadFrequently: false,
+              alpha: false,
+              desynchronized: true,
+            }),
           };
-
-          onFrameExtracted(frame);
-          onProgressUpdate(currentFrameIndex + 1, maxFrames);
-        } catch (error) {
-          console.warn(
-            "Failed to extract frame at time",
-            video.currentTime,
-            error
-          );
+        });
+      const batchSize = videoPoolSize;
+      for (let i = 0; i < frameTimes.length; i += batchSize) {
+        if (shouldPause()) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          i -= batchSize;
+          continue;
         }
+        const batch = frameTimes.slice(i, i + batchSize);
+        const batchPromises = batch.map((time, index) => {
+          const videoIndex = index % videoPool.length;
+          const canvasData = canvasPool[videoIndex];
+          return extractFrame(
+            videoPool[videoIndex],
+            canvasData.canvas,
+            canvasData.ctx,
+            time,
+            width,
+            height,
+            quality
+          );
+        });
+        const batchResults = await Promise.all(batchPromises);
+        batchResults.forEach((frame, j) => {
+          const frameIdx = i + j;
+          if (frame) {
+            if (pass === "low") {
+              // Show low-res frame immediately
+              onFrameExtracted({ ...frame });
+              frameResults[frameIdx] = frame;
+              extractedCount++;
+              onProgressUpdate(extractedCount, maxFrames);
+            } else if (pass === "high") {
+              // Replace with high-res frame
+              onFrameExtracted({ ...frame });
+              frameResults[frameIdx] = frame;
+            }
+          }
+        });
       }
-
-      currentFrameIndex++;
-      // Continue with next frame after a short delay
-      setTimeout(extractFrame, 50);
     };
-
-    video.addEventListener("seeked", handleSeeked);
-
-    // Fallback: if seeked doesn't fire within 1 second, continue anyway
-    let seekTimeout: NodeJS.Timeout;
-
-    video.addEventListener("error", () => {
-      console.error("Error loading video for frame extraction");
-      URL.revokeObjectURL(video.src);
-      onComplete();
+    // Pass 0: low-res
+    processPass(0).then(() => {
+      // Pass 1: high-res
+      processPass(1).then(() => {
+        URL.revokeObjectURL(videoUrl);
+        onComplete();
+      });
     });
-
-    // Start extraction with a small delay to let the UI settle
-    setTimeout(extractFrame, priority * 50);
   });
 };
 
