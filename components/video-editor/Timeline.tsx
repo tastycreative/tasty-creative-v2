@@ -204,13 +204,13 @@ const extractVideoFramesProgressively = (
           if (frame) {
             if (pass === "low") {
               // Show low-res frame immediately
-              onFrameExtracted({ ...frame });
+              onFrameExtracted({ ...frame }, frameIdx, pass);
               frameResults[frameIdx] = frame;
               extractedCount++;
               onProgressUpdate(extractedCount, maxFrames);
             } else if (pass === "high") {
-              // Replace with high-res frame
-              onFrameExtracted({ ...frame });
+              // Replace with high-res frame in-place
+              onFrameExtracted({ ...frame }, frameIdx, pass);
               frameResults[frameIdx] = frame;
             }
           }
@@ -420,14 +420,25 @@ export const Timeline: React.FC<TimelineProps> = ({
             try {
               extractVideoFramesProgressively(
                 video.file,
-                (frame) => {
-                  // Add video ID and immediately update state
+                (frame, idx, pass) => {
+                  // Add video ID and update state in-place by index
                   const frameWithVideoId = { ...frame, videoId: video.id };
                   setVideoFrames((prev) => {
                     const currentFrames = prev.get(video.id) || [];
-                    return new Map(
-                      prev.set(video.id, [...currentFrames, frameWithVideoId])
-                    );
+                    let newFrames;
+                    if (typeof idx === "number" && pass === "high") {
+                      // Replace low-quality frame at idx
+                      newFrames = [...currentFrames];
+                      newFrames[idx] = frameWithVideoId;
+                    } else if (typeof idx === "number") {
+                      // Set low-quality frame at idx if not already set
+                      newFrames = [...currentFrames];
+                      if (!newFrames[idx]) newFrames[idx] = frameWithVideoId;
+                    } else {
+                      // Fallback: append
+                      newFrames = [...currentFrames, frameWithVideoId];
+                    }
+                    return new Map(prev.set(video.id, newFrames));
                   });
                 },
                 () => {
@@ -996,11 +1007,13 @@ export const Timeline: React.FC<TimelineProps> = ({
             ${isSelected ? "ring-2 ring-pink-500 shadow-xl z-30" : "hover:shadow-lg z-20"}
           `}
           style={{
-            left: `${leftPercent}%`,
-            width: `${Math.min(widthPercent, 100 - leftPercent)}%`,
-            top: 0,
+            // 100px height in single layout, explicit height in side-by-side
+            height:
+              layout === "side-by-side"
+                ? (88 + (blurAreaHeight - 28)) * 2 + 4
+                : 150,
             bottom: 0,
-            marginLeft: index > 0 ? "1px" : "0",
+            marginLeft: index > 0 ? "1px" : "0"
           }}
           onClick={(e) => handleVideoClick(video, e)}
           title={`${video.file.name} (${formatTime(video.trimEnd || video.duration)} ${video.trimStart || video.trimEnd ? "trimmed" : "full"})`}
@@ -1024,6 +1037,7 @@ export const Timeline: React.FC<TimelineProps> = ({
           >
             {/* Show loaded frames at their natural width, do not stretch */}
             {frames.map((frame, frameIndex) => {
+              if (!frame || !frame.thumbnail) return null;
               const frameWidth = `${frameNaturalWidth}px`;
               const frameTimespan = effectiveDuration / loadedFrameCount;
               const frameStartTime = frameIndex * frameTimespan;
@@ -1242,10 +1256,15 @@ export const Timeline: React.FC<TimelineProps> = ({
       <div
         className="timeline-track-container relative cursor-pointer select-none bg-gray-800 rounded-lg"
         style={{
+          // 100px height in single layout to match video segment, explicit for side-by-side
           height:
             layout === "side-by-side"
-              ? (88 + (blurAreaHeight - 28)) * 2 + 4 // Double height with smaller gap for side-by-side
-              : 88 + (blurAreaHeight - 28),
+              ? (88 + (blurAreaHeight - 28)) * 2 + 4
+              : 150,
+          background:
+            layout === "side-by-side"
+              ? undefined
+              : "#1f2937", // Tailwind bg-gray-800
         }}
         onMouseDown={handleTimelineMouseDown}
         onMouseMove={handleTimelineMouseMove}
