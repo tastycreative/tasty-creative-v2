@@ -66,21 +66,21 @@ const extractVideoFramesProgressively = (
   video.src = URL.createObjectURL(videoFile);
 
   video.addEventListener("loadedmetadata", () => {
-    canvas.width = 80; // Smaller thumbnail for better performance
-    canvas.height = 45; // Maintain 16:9 aspect ratio
+    canvas.width = 320; // Higher quality thumbnail
+    canvas.height = 180; // Maintain 16:9 aspect ratio
 
     const duration = video.duration;
 
-    // Smart frame calculation - extract more frames for longer videos to support scrolling
-    const calculateOptimalFrames = (duration: number) => {
-      if (duration <= 12) return Math.ceil(duration); // 1 frame per second for very short videos
-      if (duration <= 60) return Math.ceil(duration / 2); // 1 frame per 2 seconds for short videos
-      if (duration <= 300) return Math.ceil(duration / 5); // 1 frame per 5 seconds for medium videos (up to 5 min)
-      return Math.min(120, Math.ceil(duration / 10)); // 1 frame per 10 seconds for long videos, max 120 frames
-    };
-
-    const maxFrames = calculateOptimalFrames(duration);
-    const interval = duration / maxFrames;
+    // Improved frame calculation: extract enough frames to fill the timeline at 1 frame per 10px, up to a max
+    const PIXELS_PER_SECOND = 60; // Keep in sync with timeline
+    const MAX_FRAME_CONTAINER_WIDTH = 320;
+    const MIN_FRAME_CONTAINER_WIDTH = 48;
+    // Estimate the segment width for this video
+    const segmentWidthPx = Math.max(MIN_FRAME_CONTAINER_WIDTH, duration * PIXELS_PER_SECOND);
+    // Aim for 1 frame per 10px, but clamp between 8 and 120 frames
+    const optimalFrames = Math.max(8, Math.min(120, Math.round(segmentWidthPx / 10)));
+    const interval = duration / optimalFrames;
+    const maxFrames = optimalFrames;
 
     let currentFrameIndex = 0;
     const frameTimes: number[] = [];
@@ -913,17 +913,34 @@ export const Timeline: React.FC<TimelineProps> = ({
       topOffset: number,
       bottomOffset: number
     ) => {
+      // Always fill the segment width with a background, even after frames load
+      const MIN_FRAME_CONTAINER_WIDTH = 48;
+      const MAX_FRAME_CONTAINER_WIDTH = 320;
+      const speedMultiplier = video.effects.speed || 1;
+      const trimStart = video.trimStart || 0;
+      const trimEnd = video.trimEnd || video.duration;
+      const trimmedDuration = trimEnd - trimStart;
+      const effectiveDuration = trimmedDuration / speedMultiplier;
+      // The segment width in pixels (proportional to duration, never less than min)
+      const segmentWidthPx = Math.max(MIN_FRAME_CONTAINER_WIDTH, effectiveDuration * PIXELS_PER_SECOND);
+
+      // Frame width for loaded frames (do not stretch to fill, just show as many as loaded)
+      const loadedFrameCount = frames.length;
+      // Each frame gets a min/max width, but never stretches to fill
+      const frameNaturalWidth = loadedFrameCount > 0
+        ? Math.max(
+            MIN_FRAME_CONTAINER_WIDTH,
+            Math.min(MAX_FRAME_CONTAINER_WIDTH, segmentWidthPx / loadedFrameCount)
+          )
+        : MIN_FRAME_CONTAINER_WIDTH;
+
       return (
         <div
           key={video.id}
           className={`
-          video-segment cursor-pointer transition-all duration-200 overflow-hidden h-full
-          ${
-            isSelected
-              ? "ring-2 ring-pink-500 shadow-xl z-30"
-              : "hover:shadow-lg z-20"
-          }
-        `}
+            video-segment cursor-pointer transition-all duration-200 overflow-hidden h-full
+            ${isSelected ? "ring-2 ring-pink-500 shadow-xl z-30" : "hover:shadow-lg z-20"}
+          `}
           style={{
             left: `${leftPercent}%`,
             width: `${Math.min(widthPercent, 100 - leftPercent)}%`,
@@ -934,146 +951,74 @@ export const Timeline: React.FC<TimelineProps> = ({
           onClick={(e) => handleVideoClick(video, e)}
           title={`${video.file.name} (${formatTime(video.trimEnd || video.duration)} ${video.trimStart || video.trimEnd ? "trimmed" : "full"})`}
         >
+          {/* Always show a background color filling the segment width */}
+          <div
+            className={
+              `absolute inset-0 bg-gray-200 ${loadedFrameCount === 0 ? 'animate-pulse' : ''}`
+            }
+            style={{ width: '100%', height: '100%', zIndex: 0 }}
+            aria-hidden="true"
+          />
           {/* Frame Thumbnails or Loading State */}
-          {showFrameView && frames.length > 0 ? (
-            /* Show frame thumbnails as navigation */
-            <div className="flex h-full w-full overflow-hidden">
-              {frames.map((frame, frameIndex) => {
-                const frameWidth = 100 / frames.length;
-                // Calculate if this frame contains the current time position
-                const speedMultiplier = video.effects.speed || 1;
-                const trimStart = video.trimStart || 0;
-                const trimEnd = video.trimEnd || video.duration;
-                const trimmedDuration = trimEnd - trimStart;
-                const effectiveDuration = trimmedDuration / speedMultiplier;
-                
-                // Calculate the time range this frame covers
-                const frameTimespan = effectiveDuration / frames.length;
-                const frameStartTime = frameIndex * frameTimespan;
-                const frameEndTime = frameStartTime + frameTimespan;
-                const frameStartAbsolute = video.startTime + frameStartTime;
-                const frameEndAbsolute = video.startTime + frameEndTime;
-                
-                return (
-                  <div
-                    key={frameIndex}
-                    className="relative cursor-pointer transition-all duration-200 border-r border-gray-800/20 last:border-r-0 hover:brightness-110"
-                    style={{
-                      width: `${frameWidth}%`,
-                      height: "100%",
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      console.log(
-                        "Frame clicked, selecting video:",
-                        video.id,
-                        video.file.name
-                      );
-                      
-                      // Use the same accurate calculation as the main timeline
-                      const timelineContainer = document.querySelector('.timeline-track-container');
-                      if (!timelineContainer) return;
-                      
-                      const containerRect = timelineContainer.getBoundingClientRect();
-                      const clickX = e.clientX - containerRect.left;
-                      
-                      // Use the same pixel-based calculation as handleTimelineMouseDown
-                      const percentage = Math.max(0, Math.min(1, clickX / containerRect.width));
-                      const visibleDuration = viewportEnd - viewportStart;
-                      const visiblePixels = visibleDuration * PIXELS_PER_SECOND;
-                      const clickPixelOffset = percentage * visiblePixels;
-                      const absoluteTime = (clickPixelOffset / PIXELS_PER_SECOND) + viewportStart;
-                      
-                      console.log("Frame click calculation:", {
-                        clickX,
-                        containerWidth: containerRect.width,
-                        percentage,
-                        frameIndex,
-                        absoluteTime,
-                        viewportStart,
-                        viewportEnd,
-                        visibleDuration,
-                        PIXELS_PER_SECOND,
-                      });
-                      
-                      onSeek(absoluteTime);
-                      onVideoSelect(video.id);
-                    }}
-                    title={`${video.file.name} - Frame ${frameIndex + 1} (${formatTime(frameStartAbsolute)} - ${formatTime(frameEndAbsolute)})`}
-                  >
-                    <img
-                      src={frame.thumbnail}
-                      alt={`Frame at ${frame.time}s`}
-                      className="w-full h-full object-cover"
-                      draggable={false}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          ) : showFrameView && frames.length === 0 ? (
-            /* Loading state with progress */
-            <div
-              className={`absolute inset-0 flex items-center justify-center ${colorClass}`}
-            >
-              <div className="text-center text-white">
-                {(() => {
-                  const progress = extractionProgress.get(video.id);
-                  return progress ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-white/60 border-t-white rounded-full animate-spin"></div>
-                      <div className="text-xs">
-                        {progress.current}/{progress.total}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-white/60 border-t-white rounded-full animate-spin"></div>
-                      <div className="text-xs">Loading...</div>
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
-          ) : (
-            /* Fallback: Traditional colored segments */
-            <>
-              <div className={`absolute inset-0 ${colorClass}`}>
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
-              </div>
-              {/* Video text content - adaptive based on segment width */}
-              {widthPercent > 15 ? (
-                <>
-                  <div
-                    className={`absolute left-2 right-2 top-1 text-xs text-white font-medium truncate z-10`}
-                  >
-                    {video.file.name}
-                  </div>
-                  <div
-                    className={`absolute left-2 right-2 bottom-1 text-xs text-white/80 font-normal z-10`}
-                  >
-                    {formatTime(
-                      (video.trimEnd || video.duration) - (video.trimStart || 0)
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="absolute inset-1 flex items-center justify-center z-10">
-                  <div className="text-xs text-white font-medium bg-black/40 px-1.5 py-0.5 rounded">
-                    {formatTime(
-                      (video.trimEnd || video.duration) - (video.trimStart || 0)
-                    )}
-                  </div>
+          <div
+            className="flex h-full overflow-x-auto overflow-y-hidden w-full relative"
+            style={{
+              minWidth: `${MIN_FRAME_CONTAINER_WIDTH}px`,
+              width: `${segmentWidthPx}px`,
+              zIndex: 1,
+            }}
+          >
+            {/* Show loaded frames at their natural width, do not stretch */}
+            {frames.map((frame, frameIndex) => {
+              const frameWidth = `${frameNaturalWidth}px`;
+              const frameTimespan = effectiveDuration / loadedFrameCount;
+              const frameStartTime = frameIndex * frameTimespan;
+              const frameEndTime = frameStartTime + frameTimespan;
+              const frameStartAbsolute = video.startTime + frameStartTime;
+              const frameEndAbsolute = video.startTime + frameEndTime;
+              return (
+                <div
+                  key={frameIndex}
+                  className="relative cursor-pointer transition-all duration-200 border-r border-gray-800/20 last:border-r-0 hover:brightness-110"
+                  style={{
+                    width: frameWidth,
+                    height: "100%",
+                    minWidth: 48,
+                    maxWidth: 120,
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Use the same accurate calculation as the main timeline
+                    const timelineContainer = document.querySelector('.timeline-track-container');
+                    if (!timelineContainer) return;
+                    const containerRect = timelineContainer.getBoundingClientRect();
+                    const clickX = e.clientX - containerRect.left;
+                    // Use the same pixel-based calculation as handleTimelineMouseDown
+                    const percentage = Math.max(0, Math.min(1, clickX / containerRect.width));
+                    const visibleDuration = viewportEnd - viewportStart;
+                    const visiblePixels = visibleDuration * PIXELS_PER_SECOND;
+                    const clickPixelOffset = percentage * visiblePixels;
+                    const absoluteTime = (clickPixelOffset / PIXELS_PER_SECOND) + viewportStart;
+                    onSeek(absoluteTime);
+                    onVideoSelect(video.id);
+                  }}
+                  title={`${video.file.name} - Frame ${frameIndex + 1} (${formatTime(frameStartAbsolute)} - ${formatTime(frameEndAbsolute)})`}
+                >
+                  <img
+                    src={frame.thumbnail}
+                    alt={`Frame at ${frame.time}s`}
+                    className="w-full h-full object-cover"
+                    draggable={false}
+                  />
                 </div>
-              )}
-            </>
-          )}
-
-          {/* Video Number Badge - Modern Style */}
-          <div className="absolute -top-1 -left-1 w-5 h-5 bg-gray-900 rounded-full flex items-center justify-center z-50 shadow-lg border border-gray-700">
-            <span className="text-[10px] font-bold text-white">
-              {index + 1}
-            </span>
+              );
+            })}
+            {/* If still loading, fill the rest of the container with a spinner */}
+            {loadedFrameCount === 0 && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-6 h-6 border-2 border-gray-300 border-t-pink-400 rounded-full animate-spin"></div>
+              </div>
+            )}
           </div>
         </div>
       );
@@ -1686,15 +1631,15 @@ export const Timeline: React.FC<TimelineProps> = ({
                     <div className="w-px h-2 bg-white/40"></div>
                   </div>
                 </div>
-              </div>
               
-              {/* Current time indicator on scrollbar */}
-              <div
-                className="absolute top-0 h-full w-0.5 bg-yellow-400 pointer-events-none z-10"
-                style={{
-                  left: `${(currentTime / totalDuration) * 100}%`,
-                }}
-              />
+                {/* Current time indicator on scrollbar */}
+                <div
+                  className="absolute top-0 h-full w-0.5 bg-yellow-400 pointer-events-none z-10"
+                  style={{
+                    left: `${(currentTime / totalDuration) * 100}%`,
+                  }}
+                />
+              </div>
             </div>
           </div>
         )}
