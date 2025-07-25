@@ -43,21 +43,26 @@ export const useVideoSequence = () => {
               let startTime = 0;
               if (gridId) {
                 // Side-by-side layout: videos in same grid are sequential, different grids start at 0
-                const gridVideos = videos.filter(v => v.gridId === gridId);
-                if (gridVideos.length > 0) {
-                  // Sequential within the same grid
-                  startTime = Math.max(...gridVideos.map(v => v.endTime));
+                const existingGridVideos = videos.filter(v => v.gridId === gridId);
+                const newGridVideos = newVideos.filter(v => v.gridId === gridId);
+                const allGridVideos = [...existingGridVideos, ...newGridVideos];
+                
+                if (allGridVideos.length > 0) {
+                  // Sequential within the same grid - find the latest end time
+                  startTime = Math.max(...allGridVideos.map(v => v.endTime));
                 } else {
                   // First video in this grid always starts at 0
                   startTime = 0;
                 }
               } else {
                 // Single layout - sequential timing for all videos
-                startTime = newVideos.length > 0
+                const existingEndTime = videos.length > 0
+                  ? Math.max(...videos.map((v) => v.endTime))
+                  : 0;
+                const newVideosEndTime = newVideos.length > 0
                   ? newVideos[newVideos.length - 1].endTime
-                  : videos.length > 0
-                    ? Math.max(...videos.map((v) => v.endTime))
-                    : 0;
+                  : 0;
+                startTime = Math.max(existingEndTime, newVideosEndTime);
               }
 
               newVideos.push({
@@ -93,7 +98,37 @@ export const useVideoSequence = () => {
       }
 
       if (newVideos.length > 0) {
-        setVideos((prev) => [...prev, ...newVideos]);
+        setVideos((prev) => {
+          // Add new videos to the list
+          const combined = [...prev, ...newVideos];
+          // If gridId is set, recalculate start/end for all videos in that grid
+          if (gridId) {
+            // Get all videos in this grid, sorted by insertion order
+            const gridVideos = combined.filter(v => v.gridId === gridId);
+            let runningTime = 0;
+            for (const v of gridVideos) {
+              v.startTime = runningTime;
+              v.endTime = runningTime + v.duration;
+              runningTime = v.endTime;
+            }
+            // Now update the combined list with new start/end for grid videos
+            return combined.map(v => {
+              if (v.gridId === gridId) {
+                const updated = gridVideos.find(gv => gv.id === v.id);
+                return updated ? { ...v, startTime: updated.startTime, endTime: updated.endTime } : v;
+              }
+              return v;
+            });
+          } else {
+            // Single layout: recalculate all start/end times sequentially
+            let runningTime = 0;
+            return combined.map(v => {
+              const updated = { ...v, startTime: runningTime, endTime: runningTime + v.duration };
+              runningTime = updated.endTime;
+              return updated;
+            });
+          }
+        });
       }
     },
     [videos]

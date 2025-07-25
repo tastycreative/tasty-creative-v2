@@ -408,6 +408,8 @@ export const Timeline: React.FC<TimelineProps> = ({
       const trimmedDuration = trimEnd - trimStart;
       const effectiveDuration = trimmedDuration / speedMultiplier;
 
+      // For positioning, always use totalDuration so videos align properly across grids
+      // and represent actual time progression
       const leftPercent = Math.max(0.5, (cumulativeTime / totalDuration) * 100);
       const widthPercent = Math.max(
         0.5,
@@ -694,7 +696,7 @@ export const Timeline: React.FC<TimelineProps> = ({
         <div
           key={video.id}
           className={`
-          video-segment  cursor-pointer transition-all duration-200 overflow-hidden h-full
+          video-segment cursor-pointer transition-all duration-200 overflow-hidden h-full
           ${
             isSelected
               ? "ring-2 ring-pink-500 shadow-xl z-30"
@@ -714,7 +716,7 @@ export const Timeline: React.FC<TimelineProps> = ({
           {/* Frame Thumbnails or Loading State */}
           {showFrameView && frames.length > 0 ? (
             /* Show frame thumbnails as navigation */
-            <div className="absolute inset-0 flex overflow-hidden">
+            <div className="flex h-full w-full overflow-hidden">
               {frames.map((frame, frameIndex) => {
                 const frameWidth = 100 / frames.length;
                 // Calculate if this frame contains the current time position
@@ -731,17 +733,10 @@ export const Timeline: React.FC<TimelineProps> = ({
                 const frameStartAbsolute = video.startTime + frameStartTime;
                 const frameEndAbsolute = video.startTime + frameEndTime;
                 
-                // Check if current time falls within this frame's range
-                const isCurrentFrame = currentTime >= frameStartAbsolute && currentTime < frameEndAbsolute;
-
                 return (
                   <div
                     key={frameIndex}
-                    className={`relative cursor-pointer transition-all duration-200 border-r border-gray-800/20 last:border-r-0 ${
-                      isCurrentFrame
-                        ? "ring-2 ring-pink-500 ring-inset"
-                        : "hover:brightness-110"
-                    }`}
+                    className="relative cursor-pointer transition-all duration-200 border-r border-gray-800/20 last:border-r-0 hover:brightness-110"
                     style={{
                       width: `${frameWidth}%`,
                       height: "100%",
@@ -803,10 +798,6 @@ export const Timeline: React.FC<TimelineProps> = ({
                       className="w-full h-full object-cover"
                       draggable={false}
                     />
-                    {/* Current time indicator */}
-                    {isCurrentFrame && (
-                      <div className="absolute inset-0 bg-pink-500/20 pointer-events-none"></div>
-                    )}
                   </div>
                 );
               })}
@@ -870,8 +861,8 @@ export const Timeline: React.FC<TimelineProps> = ({
           )}
 
           {/* Video Number Badge - Modern Style */}
-          <div className="absolute -top-0.5 -left-0.5 w-4 h-4 bg-gray-900 rounded flex items-center justify-center z-50 shadow-md">
-            <span className="text-[10px] font-medium text-gray-300">
+          <div className="absolute -top-1 -left-1 w-5 h-5 bg-gray-900 rounded-full flex items-center justify-center z-50 shadow-lg border border-gray-700">
+            <span className="text-[10px] font-bold text-white">
               {index + 1}
             </span>
           </div>
@@ -1202,8 +1193,11 @@ export const Timeline: React.FC<TimelineProps> = ({
             <div className="flex flex-col h-full">
               {/* Grid 1 Track Container */}
               <div
-                className="relative flex-1 flex"
-                style={{ marginBottom: "2px" }}
+                className="relative flex"
+                style={{ 
+                  height: "calc(50% - 2px)",
+                  marginBottom: "2px" 
+                }}
               >
                 {videos
                   .filter((v) => v.gridId === "grid-1")
@@ -1237,8 +1231,11 @@ export const Timeline: React.FC<TimelineProps> = ({
 
               {/* Grid 2 Track Container */}
               <div
-                className="relative flex-1 flex"
-                style={{ marginTop: "2px" }}
+                className="relative flex"
+                style={{ 
+                  height: "calc(50% - 2px)",
+                  marginTop: "2px" 
+                }}
               >
                 {videos
                   .filter((v) => v.gridId === "grid-2")
