@@ -20,6 +20,8 @@ import {
   Layers,
   Film,
   Grid3x3,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { BlurTimelineOverlay } from "./BlurTimelineOverlay";
 
@@ -69,14 +71,15 @@ const extractVideoFramesProgressively = (
 
     const duration = video.duration;
 
-    // Smart frame calculation - limit total frames for clean timeline
+    // Smart frame calculation - extract more frames for longer videos to support scrolling
     const calculateOptimalFrames = (duration: number) => {
       if (duration <= 12) return Math.ceil(duration); // 1 frame per second for very short videos
-      if (duration <= 60) return 10; // 10 frames for videos up to 1 minute
-      return 12; // 12 frames for all longer videos
+      if (duration <= 60) return Math.ceil(duration / 2); // 1 frame per 2 seconds for short videos
+      if (duration <= 300) return Math.ceil(duration / 5); // 1 frame per 5 seconds for medium videos (up to 5 min)
+      return Math.min(120, Math.ceil(duration / 10)); // 1 frame per 10 seconds for long videos, max 120 frames
     };
 
-    const maxFrames = Math.min(calculateOptimalFrames(duration), 12); // Cap at 12 frames max
+    const maxFrames = calculateOptimalFrames(duration);
     const interval = duration / maxFrames;
 
     let currentFrameIndex = 0;
@@ -203,6 +206,15 @@ export const Timeline: React.FC<TimelineProps> = ({
   const [extractionProgress, setExtractionProgress] = useState<
     Map<string, { current: number; total: number }>
   >(new Map());
+  
+  // Zoom state management - 100% zoom = 25 seconds visible
+  const BASELINE_DURATION = 25; // 25 seconds at 100% zoom
+  const [zoomLevel, setZoomLevel] = useState(1); // 1 = 100% (25s visible), 2 = 200% (12.5s visible), etc.
+  const [viewportStart, setViewportStart] = useState(0); // Start time of visible viewport
+  const [viewportEnd, setViewportEnd] = useState(0); // End time of visible viewport
+  
+  // Scrollbar state
+  const [isDraggingScrollbar, setIsDraggingScrollbar] = useState(false);
 
   // Calculate dynamic blur area height based on total number of blur regions across all videos
   const totalBlurRegions = useMemo(() => {
@@ -250,6 +262,83 @@ export const Timeline: React.FC<TimelineProps> = ({
 
   // Timeline track top position - starts after blur area
   const timelineTrackTop = blurAreaHeight + 4;
+  
+  // Zoom control functions
+  const zoomIn = useCallback(() => {
+    const newZoomLevel = Math.min(zoomLevel * 1.5, 10); // Max 10x zoom
+    setZoomLevel(newZoomLevel);
+  }, [zoomLevel]);
+  
+  const zoomOut = useCallback(() => {
+    // Calculate minimum zoom level needed to show entire video
+    const minZoomForFullVideo = totalDuration > 0 ? BASELINE_DURATION / totalDuration : 0.25;
+    const absoluteMinZoom = Math.min(0.25, Math.max(0.05, minZoomForFullVideo)); // At least 5% zoom, but adapt to video length
+    
+    const newZoomLevel = Math.max(zoomLevel / 1.5, absoluteMinZoom);
+    setZoomLevel(newZoomLevel);
+  }, [zoomLevel, totalDuration]);
+  
+  const resetZoom = useCallback(() => {
+    setZoomLevel(1);
+    setViewportStart(0);
+    setViewportEnd(Math.min(BASELINE_DURATION, totalDuration));
+  }, [totalDuration]);
+
+  const fitToTimeline = useCallback(() => {
+    if (totalDuration > 0) {
+      const zoomToFit = BASELINE_DURATION / totalDuration;
+      setZoomLevel(Math.max(0.05, zoomToFit)); // Minimum 5% zoom
+      setViewportStart(0);
+      setViewportEnd(totalDuration);
+    }
+  }, [totalDuration]);
+
+  // Scrollbar handlers
+  const handleScrollbarMouseDown = useCallback((e: React.MouseEvent) => {
+    if (totalDuration <= BASELINE_DURATION / zoomLevel) return; // No need to scroll
+    
+    setIsDraggingScrollbar(true);
+    const scrollbarRect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - scrollbarRect.left;
+    const clickPercentage = clickX / scrollbarRect.width;
+    
+    const visibleDuration = BASELINE_DURATION / zoomLevel;
+    const newStart = Math.max(0, Math.min(totalDuration - visibleDuration, clickPercentage * totalDuration - visibleDuration / 2));
+    const newEnd = newStart + visibleDuration;
+    
+    setViewportStart(newStart);
+    setViewportEnd(newEnd);
+    e.preventDefault();
+  }, [totalDuration, zoomLevel, viewportStart, viewportEnd]);
+
+  const handleScrollbarThumbMouseDown = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsDraggingScrollbar(true);
+    e.preventDefault();
+  }, []);
+  
+  // Update viewport when zoom level or total duration changes
+  useEffect(() => {
+    if (totalDuration > 0) {
+      // Calculate visible duration based on 25-second baseline
+      const visibleDuration = BASELINE_DURATION / zoomLevel;
+      
+      // Keep current time in center of viewport when zooming, or start at 0 if first time
+      const currentCenter = viewportEnd === 0 ? 0 : (viewportStart + viewportEnd) / 2;
+      const newStart = Math.max(0, currentCenter - visibleDuration / 2);
+      const newEnd = Math.min(totalDuration, newStart + visibleDuration);
+      
+      setViewportStart(newStart);
+      setViewportEnd(newEnd);
+    }
+  }, [zoomLevel, totalDuration]);
+
+  // Initialize viewport when totalDuration first becomes available
+  useEffect(() => {
+    if (totalDuration > 0 && viewportEnd === 0) {
+      setViewportEnd(Math.min(BASELINE_DURATION, totalDuration));
+    }
+  }, [totalDuration, viewportEnd]);
 
   // Extract frames progressively with queue management
   useEffect(() => {
@@ -366,9 +455,10 @@ export const Timeline: React.FC<TimelineProps> = ({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   }, []);
 
+
   const getVideoPosition = useCallback(
     (video: VideoSequenceItem) => {
-      if (totalDuration === 0) return { leftPercent: 0, widthPercent: 0 };
+      if (totalDuration === 0) return { leftPixels: 0, widthPixels: 0 };
 
       // Calculate cumulative start time and effective duration
       let cumulativeTime = 0;
@@ -408,28 +498,25 @@ export const Timeline: React.FC<TimelineProps> = ({
       const trimmedDuration = trimEnd - trimStart;
       const effectiveDuration = trimmedDuration / speedMultiplier;
 
-      // For positioning, always use totalDuration so videos align properly across grids
-      // and represent actual time progression
-      const leftPercent = Math.max(0.5, (cumulativeTime / totalDuration) * 100);
-      const widthPercent = Math.max(
-        0.5,
-        (effectiveDuration / totalDuration) * 100
-      );
+      // Calculate position in pixels based on total timeline width
+      // Use a fixed pixel-per-second ratio for consistent positioning
+      const pixelsPerSecond = 60; // 60 pixels per second for good resolution
+      const leftPixels = cumulativeTime * pixelsPerSecond;
+      const widthPixels = Math.max(30, effectiveDuration * pixelsPerSecond); // Minimum 30px width
 
-      // Ensure the video segment doesn't overflow the container with small margin
-      const maxWidth = 99.5 - leftPercent; // Leave 0.5% margin on right
-      const constrainedWidthPercent = Math.min(widthPercent, maxWidth);
-
-      return { leftPercent, widthPercent: constrainedWidthPercent };
+      return { leftPixels, widthPixels };
     },
     [totalDuration, videos, layout]
   );
 
   const getCurrentPosition = useMemo(() => {
-    if (totalDuration === 0) return "0%";
-    const percentage = (currentTime / totalDuration) * 100;
-    return `${percentage}%`;
-  }, [currentTime, totalDuration]);
+    if (totalDuration === 0) return "0px";
+    // Calculate position in pixels within the scrollable container
+    const pixelsPerSecond = 60;
+    const currentPixels = currentTime * pixelsPerSecond;
+    const viewportPixels = viewportStart * pixelsPerSecond;
+    return `${currentPixels - viewportPixels}px`;
+  }, [currentTime, totalDuration, viewportStart]);
 
   const handleTimelineClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -449,7 +536,8 @@ export const Timeline: React.FC<TimelineProps> = ({
 
       // Calculate percentage based on full container width
       const percentage = Math.max(0, Math.min(1, clickX / containerRect.width));
-      const clickTime = percentage * totalDuration; // Direct time calculation, no frame conversion
+      const visibleDuration = viewportEnd - viewportStart;
+      const clickTime = viewportStart + (percentage * visibleDuration); // Calculate time within viewport
 
       console.log("Timeline click:", {
         clickX,
@@ -494,7 +582,7 @@ export const Timeline: React.FC<TimelineProps> = ({
       }
       e.preventDefault();
     },
-    [videos, totalDuration, onSeek, onVideoSelect, layout, blurAreaHeight, currentTime]
+    [videos, totalDuration, onSeek, onVideoSelect, layout, blurAreaHeight, currentTime, viewportStart, viewportEnd]
   );
 
   const handleTimelineMouseDown = useCallback(
@@ -512,7 +600,8 @@ export const Timeline: React.FC<TimelineProps> = ({
 
       // Calculate percentage based on full container width
       const percentage = Math.max(0, Math.min(1, clickX / containerRect.width));
-      const clickTime = percentage * totalDuration; // Direct time calculation
+      const visibleDuration = viewportEnd - viewportStart;
+      const clickTime = viewportStart + (percentage * visibleDuration); // Calculate time within viewport
 
       console.log("Timeline mousedown:", {
         clickX,
@@ -532,7 +621,7 @@ export const Timeline: React.FC<TimelineProps> = ({
 
       e.preventDefault();
     },
-    [totalDuration, onSeek, currentTime]
+    [totalDuration, onSeek, currentTime, viewportStart, viewportEnd]
   );
 
   const handleTimelineMouseMove = useCallback(
@@ -556,7 +645,8 @@ export const Timeline: React.FC<TimelineProps> = ({
 
         if (hasDraggedEnough) {
           // Direct time calculation without frame conversion
-          const newTime = percentage * totalDuration;
+          const visibleDuration = viewportEnd - viewportStart;
+          const newTime = viewportStart + (percentage * visibleDuration);
           console.log("Dragging seek:", {
             moveX,
             percentage: percentage * 100,
@@ -575,12 +665,116 @@ export const Timeline: React.FC<TimelineProps> = ({
         setHoverPosition(null);
       }
     },
-    [isDragging, totalDuration, onSeek, clickPosition]
+    [isDragging, totalDuration, onSeek, clickPosition, viewportStart, viewportEnd]
   );
 
   const handleTimelineMouseLeave = useCallback(() => {
     setHoverPosition(null);
   }, []);
+
+  // Handle horizontal scrolling when zoomed
+  const handleScroll = useCallback((e: React.WheelEvent) => {
+    if (zoomLevel > 1 || totalDuration > BASELINE_DURATION) {
+      e.preventDefault();
+      const visibleDuration = BASELINE_DURATION / zoomLevel;
+      const scrollAmount = (e.deltaX || e.deltaY) * 0.001 * visibleDuration;
+      
+      const newStart = Math.max(0, Math.min(totalDuration - visibleDuration, viewportStart + scrollAmount));
+      const newEnd = newStart + visibleDuration;
+      
+      setViewportStart(newStart);
+      setViewportEnd(newEnd);
+    }
+  }, [zoomLevel, viewportStart, viewportEnd, totalDuration]);
+
+  // Keyboard shortcuts for zoom and navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return; // Don't interfere with form inputs
+      }
+
+      switch (e.key) {
+        case '=':
+        case '+':
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            zoomIn();
+          }
+          break;
+        case '-':
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            zoomOut();
+          }
+          break;
+        case '0':
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            resetZoom();
+          }
+          break;
+        case 'ArrowLeft':
+          if (zoomLevel > 1 || totalDuration > BASELINE_DURATION) {
+            e.preventDefault();
+            const visibleDuration = BASELINE_DURATION / zoomLevel;
+            const scrollAmount = visibleDuration * 0.1;
+            const newStart = Math.max(0, viewportStart - scrollAmount);
+            const newEnd = newStart + visibleDuration;
+            setViewportStart(newStart);
+            setViewportEnd(newEnd);
+          }
+          break;
+        case 'ArrowRight':
+          if (zoomLevel > 1 || totalDuration > BASELINE_DURATION) {
+            e.preventDefault();
+            const visibleDuration = BASELINE_DURATION / zoomLevel;
+            const scrollAmount = visibleDuration * 0.1;
+            const newStart = Math.min(totalDuration - visibleDuration, viewportStart + scrollAmount);
+            const newEnd = newStart + visibleDuration;
+            setViewportStart(newStart);
+            setViewportEnd(newEnd);
+          }
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [zoomLevel, zoomIn, zoomOut, resetZoom, viewportStart, viewportEnd, totalDuration]);
+
+  // Global mouse handlers for scrollbar dragging
+  useEffect(() => {
+    if (isDraggingScrollbar) {
+      const handleGlobalMouseMove = (e: MouseEvent) => {
+        const scrollbarElement = document.querySelector('.timeline-scrollbar');
+        if (scrollbarElement) {
+          const scrollbarRect = scrollbarElement.getBoundingClientRect();
+          const moveX = e.clientX - scrollbarRect.left;
+          const movePercentage = Math.max(0, Math.min(1, moveX / scrollbarRect.width));
+          
+          const visibleDuration = BASELINE_DURATION / zoomLevel;
+          const newStart = Math.max(0, Math.min(totalDuration - visibleDuration, movePercentage * (totalDuration - visibleDuration)));
+          const newEnd = newStart + visibleDuration;
+          
+          setViewportStart(newStart);
+          setViewportEnd(newEnd);
+        }
+      };
+
+      const handleGlobalMouseUp = () => {
+        setIsDraggingScrollbar(false);
+      };
+
+      document.addEventListener('mousemove', handleGlobalMouseMove);
+      document.addEventListener('mouseup', handleGlobalMouseUp);
+
+      return () => {
+        document.removeEventListener('mousemove', handleGlobalMouseMove);
+        document.removeEventListener('mouseup', handleGlobalMouseUp);
+      };
+    }
+  }, [isDraggingScrollbar, totalDuration, zoomLevel]);
 
   // Add global mouse up listener when dragging
   React.useEffect(() => {
@@ -602,7 +796,8 @@ export const Timeline: React.FC<TimelineProps> = ({
 
           if (hasDraggedEnough) {
             const percentage = Math.max(0, Math.min(1, moveX / rect.width));
-            const newTime = percentage * totalDuration;
+            const visibleDuration = viewportEnd - viewportStart;
+            const newTime = viewportStart + (percentage * visibleDuration);
             console.log("Global drag seek:", {
               moveX,
               percentage: percentage * 100,
@@ -623,7 +818,7 @@ export const Timeline: React.FC<TimelineProps> = ({
         document.removeEventListener("mousemove", handleGlobalMouseMove);
       };
     }
-  }, [isDragging, totalDuration, onSeek, clickPosition]);
+  }, [isDragging, totalDuration, onSeek, clickPosition, viewportStart, viewportEnd]);
 
   const handleVideoClick = useCallback(
     (video: VideoSequenceItem, e: React.MouseEvent) => {
@@ -967,6 +1162,49 @@ export const Timeline: React.FC<TimelineProps> = ({
               <Grid3x3 className="w-4 h-4" />
             </button>
           )}
+
+          {/* Divider */}
+          <div className="w-px h-8 bg-gray-700 mx-2" />
+
+          {/* Zoom Controls */}
+          <button
+            onClick={zoomOut}
+            className="p-2 hover:bg-gray-800 rounded-lg transition-all duration-200 text-gray-300"
+            title="Zoom out"
+            disabled={(() => {
+              const minZoomForFullVideo = totalDuration > 0 ? BASELINE_DURATION / totalDuration : 0.25;
+              const absoluteMinZoom = Math.min(0.25, Math.max(0.05, minZoomForFullVideo));
+              return zoomLevel <= absoluteMinZoom;
+            })()}
+          >
+            <ZoomOut className="w-4 h-4" />
+          </button>
+
+          <div className="flex items-center space-x-1">
+            <div 
+              className="text-xs text-gray-400 font-mono bg-gray-800 px-2 py-1 rounded cursor-pointer hover:bg-gray-700 transition-all duration-200"
+              onClick={resetZoom}
+              title="Reset to 100% zoom (25s visible)"
+            >
+              {Math.round(zoomLevel * 100)}%
+            </div>
+            <button
+              onClick={fitToTimeline}
+              className="text-xs text-gray-400 bg-gray-800 px-2 py-1 rounded cursor-pointer hover:bg-gray-700 transition-all duration-200"
+              title="Fit entire video to timeline"
+            >
+              Fit
+            </button>
+          </div>
+
+          <button
+            onClick={zoomIn}
+            className="p-2 hover:bg-gray-800 rounded-lg transition-all duration-200 text-gray-300"
+            title="Zoom in"
+            disabled={zoomLevel >= 10}
+          >
+            <ZoomIn className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Time Display */}
@@ -999,6 +1237,7 @@ export const Timeline: React.FC<TimelineProps> = ({
         onMouseDown={handleTimelineMouseDown}
         onMouseMove={handleTimelineMouseMove}
         onMouseLeave={handleTimelineMouseLeave}
+        onWheel={handleScroll}
       >
         {/* Add Sequence Buttons for Grid 1 and Grid 2 (side-by-side only) */}
         {layout === "side-by-side" && (
@@ -1137,7 +1376,7 @@ export const Timeline: React.FC<TimelineProps> = ({
           className="timeline-track absolute bg-gray-850/30 border border-gray-700/30 overflow-hidden"
           style={{
             top: timelineTrackTop,
-            bottom: 30, // Leave space for the 6-height ruler plus padding
+            bottom: totalDuration > BASELINE_DURATION / zoomLevel ? 33 : 30, // Extra space for scrollbar when needed
             left: 4,
             right: 4,
           }}
@@ -1158,10 +1397,17 @@ export const Timeline: React.FC<TimelineProps> = ({
 
           {/* Video Segments with Integrated Frame Thumbnails */}
           {layout === "single" ? (
-            // Single layout - single track container
-            <div className="relative w-full h-full flex">
+            // Single layout - scrollable track container
+            <div 
+              className="relative h-full overflow-hidden"
+              style={{
+                transform: `translateX(-${((viewportStart / totalDuration) * (totalDuration * 60))}px)`,
+                width: `${totalDuration * 60}px`, // 60 pixels per second
+                minWidth: '100%'
+              }}
+            >
               {videos.map((video, index) => {
-                const { leftPercent, widthPercent } = getVideoPosition(video);
+                const { leftPixels, widthPixels } = getVideoPosition(video);
                 const isSelected = video.id === selectedVideoId;
                 const frames = videoFrames.get(video.id) || [];
 
@@ -1175,16 +1421,27 @@ export const Timeline: React.FC<TimelineProps> = ({
                 ];
                 const colorClass = colors[index % colors.length];
 
-                return renderVideoSegment(
-                  video,
-                  index,
-                  leftPercent,
-                  widthPercent,
-                  isSelected,
-                  frames,
-                  colorClass,
-                  0,
-                  0
+                return (
+                  <div
+                    key={video.id}
+                    className="absolute inset-y-0"
+                    style={{
+                      left: `${leftPixels}px`,
+                      width: `${widthPixels}px`
+                    }}
+                  >
+                    {renderVideoSegment(
+                      video,
+                      index,
+                      0, // leftPercent now handled by absolute positioning
+                      100, // widthPercent is 100% of the container
+                      isSelected,
+                      frames,
+                      colorClass,
+                      0,
+                      0
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -1199,27 +1456,46 @@ export const Timeline: React.FC<TimelineProps> = ({
                   marginBottom: "2px" 
                 }}
               >
-                {videos
-                  .filter((v) => v.gridId === "grid-1")
-                  .map((video, index) => {
-                    const { leftPercent, widthPercent } =
-                      getVideoPosition(video);
-                    const isSelected = video.id === selectedVideoId;
-                    const frames = videoFrames.get(video.id) || [];
-                    const colorClass = "bg-blue-600";
+                <div 
+                  className="absolute inset-0 overflow-hidden"
+                  style={{
+                    transform: `translateX(-${((viewportStart / totalDuration) * (totalDuration * 60))}px)`,
+                    width: `${totalDuration * 60}px`,
+                    minWidth: '100%'
+                  }}
+                >
+                  {videos
+                    .filter((v) => v.gridId === "grid-1")
+                    .map((video, index) => {
+                      const { leftPixels, widthPixels } = getVideoPosition(video);
+                      const isSelected = video.id === selectedVideoId;
+                      const frames = videoFrames.get(video.id) || [];
+                      const colorClass = "bg-blue-600";
 
-                    return renderVideoSegment(
-                      video,
-                      index,
-                      leftPercent,
-                      widthPercent,
-                      isSelected,
-                      frames,
-                      colorClass,
-                      0,
-                      0
-                    );
-                  })}
+                      return (
+                        <div
+                          key={video.id}
+                          className="absolute inset-y-0"
+                          style={{
+                            left: `${leftPixels}px`,
+                            width: `${widthPixels}px`
+                          }}
+                        >
+                          {renderVideoSegment(
+                            video,
+                            index,
+                            0,
+                            100,
+                            isSelected,
+                            frames,
+                            colorClass,
+                            0,
+                            0
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
                 {/* Track 1 Label */}
                 <div className="absolute left-2 top-1 text-xs font-medium text-gray-500 bg-gray-800/80 px-2 py-1 rounded z-40">
                   Track 1
@@ -1237,27 +1513,46 @@ export const Timeline: React.FC<TimelineProps> = ({
                   marginTop: "2px" 
                 }}
               >
-                {videos
-                  .filter((v) => v.gridId === "grid-2")
-                  .map((video, index) => {
-                    const { leftPercent, widthPercent } =
-                      getVideoPosition(video);
-                    const isSelected = video.id === selectedVideoId;
-                    const frames = videoFrames.get(video.id) || [];
-                    const colorClass = "bg-green-600";
+                <div 
+                  className="absolute inset-0 overflow-hidden"
+                  style={{
+                    transform: `translateX(-${((viewportStart / totalDuration) * (totalDuration * 60))}px)`,
+                    width: `${totalDuration * 60}px`,
+                    minWidth: '100%'
+                  }}
+                >
+                  {videos
+                    .filter((v) => v.gridId === "grid-2")
+                    .map((video, index) => {
+                      const { leftPixels, widthPixels } = getVideoPosition(video);
+                      const isSelected = video.id === selectedVideoId;
+                      const frames = videoFrames.get(video.id) || [];
+                      const colorClass = "bg-green-600";
 
-                    return renderVideoSegment(
-                      video,
-                      index,
-                      leftPercent,
-                      widthPercent,
-                      isSelected,
-                      frames,
-                      colorClass,
-                      0,
-                      0
-                    );
-                  })}
+                      return (
+                        <div
+                          key={video.id}
+                          className="absolute inset-y-0"
+                          style={{
+                            left: `${leftPixels}px`,
+                            width: `${widthPixels}px`
+                          }}
+                        >
+                          {renderVideoSegment(
+                            video,
+                            index,
+                            0,
+                            100,
+                            isSelected,
+                            frames,
+                            colorClass,
+                            0,
+                            0
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
                 {/* Track 2 Label */}
                 <div className="absolute left-2 top-1 text-xs font-medium text-gray-500 bg-gray-800/80 px-2 py-1 rounded z-40">
                   Track 2
@@ -1305,29 +1600,84 @@ export const Timeline: React.FC<TimelineProps> = ({
         </div>
 
         {/* Timeline Ruler */}
-        <div className="absolute bottom-0 left-0 right-0 h-6 bg-gray-850 border-t border-gray-700 z-50">
-          {Array.from({ length: Math.ceil(totalDuration / 5) + 1 }, (_, i) => {
-            const time = i * 5;
-            const position = (time / totalDuration) * 100;
-            const isFirst = i === 0;
-            const isLast = i === Math.ceil(totalDuration / 5);
+        <div className={`absolute left-0 right-0 h-6 bg-gray-850 border-t border-gray-700 z-50 ${
+          totalDuration > BASELINE_DURATION / zoomLevel ? 'bottom-3' : 'bottom-0'
+        }`}>
+          {(() => {
+            const visibleDuration = viewportEnd - viewportStart;
+            // Better interval calculation: more granular when zoomed in
+            const interval = visibleDuration <= 5 ? 1 : visibleDuration <= 25 ? 5 : Math.max(5, Math.floor(visibleDuration / 5));
+            const startIndex = Math.floor(viewportStart / interval);
+            const endIndex = Math.ceil(viewportEnd / interval);
+            
+            return Array.from({ length: endIndex - startIndex + 1 }, (_, i) => {
+              const index = startIndex + i;
+              const time = index * interval;
+              
+              // Skip times outside viewport
+              if (time < viewportStart || time > viewportEnd) return null;
+              
+              const position = ((time - viewportStart) / visibleDuration) * 100;
+              const isFirst = i === 0;
+              const isLast = i === endIndex - startIndex;
 
-            return (
+              return (
+                <div
+                  key={index}
+                  className="absolute z-50"
+                  style={{ left: `${position}%`, top: 0, height: '100%' }}
+                >
+                  <div className="absolute top-0 w-px h-3 bg-gray-600 z-50" />
+                  <div className={`absolute top-3 text-[11px] text-gray-300 font-mono bg-gray-850 px-1 border border-gray-700 rounded z-50 ${
+                    isFirst ? 'left-0' : isLast ? 'right-0 -translate-x-full' : '-translate-x-1/2'
+                  }`}>
+                    {formatTime(time)}
+                  </div>
+                </div>
+              );
+            }).filter(Boolean);
+          })()}
+        </div>
+
+        {/* Horizontal Scrollbar */}
+        {totalDuration > BASELINE_DURATION / zoomLevel && (
+          <div className="absolute bottom-0 left-0 right-0 h-3 bg-gray-900 border-t border-gray-600 z-60">
+            <div 
+              className="timeline-scrollbar relative w-full h-full cursor-pointer"
+              onMouseDown={handleScrollbarMouseDown}
+            >
+              {/* Scrollbar Track */}
+              <div className="absolute inset-0 bg-gray-800 hover:bg-gray-750 transition-colors duration-200" />
+              
+              {/* Scrollbar Thumb */}
               <div
-                key={i}
-                className="absolute z-50"
-                style={{ left: `${position}%`, top: 0, height: '100%' }}
+                className="absolute top-0 h-full bg-pink-600 hover:bg-pink-500 transition-colors duration-200 cursor-grab active:cursor-grabbing rounded-sm"
+                style={{
+                  left: `${(viewportStart / totalDuration) * 100}%`,
+                  width: `${((viewportEnd - viewportStart) / totalDuration) * 100}%`,
+                }}
+                onMouseDown={handleScrollbarThumbMouseDown}
               >
-                <div className="absolute top-0 w-px h-3 bg-gray-600 z-50" />
-                <div className={`absolute top-3 text-[11px] text-gray-300 font-mono bg-gray-850 px-1 border border-gray-700 rounded z-50 ${
-                  isFirst ? 'left-0' : isLast ? 'right-0 -translate-x-full' : '-translate-x-1/2'
-                }`}>
-                  {formatTime(time)}
+                {/* Thumb grip lines */}
+                <div className="absolute inset-y-0 left-1/2 transform -translate-x-1/2 flex items-center">
+                  <div className="flex space-x-0.5">
+                    <div className="w-px h-2 bg-white/40"></div>
+                    <div className="w-px h-2 bg-white/40"></div>
+                    <div className="w-px h-2 bg-white/40"></div>
+                  </div>
                 </div>
               </div>
-            );
-          })}
-        </div>
+              
+              {/* Current time indicator on scrollbar */}
+              <div
+                className="absolute top-0 h-full w-0.5 bg-yellow-400 pointer-events-none z-10"
+                style={{
+                  left: `${(currentTime / totalDuration) * 100}%`,
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Selected Video Info */}
