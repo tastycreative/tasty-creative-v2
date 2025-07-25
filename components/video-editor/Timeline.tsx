@@ -207,8 +207,11 @@ export const Timeline: React.FC<TimelineProps> = ({
     Map<string, { current: number; total: number }>
   >(new Map());
   
-  // Zoom state management - 100% zoom = 25 seconds visible
+  // Timeline constants
   const BASELINE_DURATION = 25; // 25 seconds at 100% zoom
+  const PIXELS_PER_SECOND = 60; // Consistent pixel scale for all calculations
+  
+  // Zoom state management - 100% zoom = 25 seconds visible
   const [zoomLevel, setZoomLevel] = useState(1); // 1 = 100% (25s visible), 2 = 200% (12.5s visible), etc.
   const [viewportStart, setViewportStart] = useState(0); // Start time of visible viewport
   const [viewportEnd, setViewportEnd] = useState(0); // End time of visible viewport
@@ -500,9 +503,8 @@ export const Timeline: React.FC<TimelineProps> = ({
 
       // Calculate position in pixels based on total timeline width
       // Use a fixed pixel-per-second ratio for consistent positioning
-      const pixelsPerSecond = 60; // 60 pixels per second for good resolution
-      const leftPixels = cumulativeTime * pixelsPerSecond;
-      const widthPixels = Math.max(30, effectiveDuration * pixelsPerSecond); // Minimum 30px width
+      const leftPixels = cumulativeTime * PIXELS_PER_SECOND;
+      const widthPixels = Math.max(30, effectiveDuration * PIXELS_PER_SECOND); // Minimum 30px width
 
       return { leftPixels, widthPixels };
     },
@@ -510,13 +512,29 @@ export const Timeline: React.FC<TimelineProps> = ({
   );
 
   const getCurrentPosition = useMemo(() => {
-    if (totalDuration === 0) return "0px";
-    // Calculate position in pixels within the scrollable container
-    const pixelsPerSecond = 60;
-    const currentPixels = currentTime * pixelsPerSecond;
-    const viewportPixels = viewportStart * pixelsPerSecond;
-    return `${currentPixels - viewportPixels}px`;
-  }, [currentTime, totalDuration, viewportStart]);
+    if (totalDuration === 0 || viewportEnd === viewportStart) return "0%";
+    
+    // Use the same calculation method as the timeline ruler for consistency
+    const visibleDuration = viewportEnd - viewportStart;
+    
+    // Calculate percentage position within the visible viewport
+    if (currentTime < viewportStart || currentTime > viewportEnd) {
+      // Current time is outside viewport, position it accordingly
+      const timePixels = currentTime * PIXELS_PER_SECOND;
+      const viewportStartPixels = viewportStart * PIXELS_PER_SECOND;
+      const visiblePixels = visibleDuration * PIXELS_PER_SECOND;
+      const position = ((timePixels - viewportStartPixels) / visiblePixels) * 100;
+      return `${position}%`;
+    }
+    
+    // Current time is within viewport
+    const timePixels = currentTime * PIXELS_PER_SECOND;
+    const viewportStartPixels = viewportStart * PIXELS_PER_SECOND;
+    const visiblePixels = visibleDuration * PIXELS_PER_SECOND;
+    const position = ((timePixels - viewportStartPixels) / visiblePixels) * 100;
+    
+    return `${Math.max(0, Math.min(100, position))}%`;
+  }, [currentTime, totalDuration, viewportStart, viewportEnd, PIXELS_PER_SECOND]);
 
   const handleTimelineClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -594,14 +612,20 @@ export const Timeline: React.FC<TimelineProps> = ({
         return;
       }
 
-      // Use container rect directly like OldTimeline
+      // Use container rect and pixel-based calculation for accuracy
       const containerRect = e.currentTarget.getBoundingClientRect();
       const clickX = e.clientX - containerRect.left;
 
-      // Calculate percentage based on full container width
+      // Calculate time using the same pixel-based method as the ruler
       const percentage = Math.max(0, Math.min(1, clickX / containerRect.width));
       const visibleDuration = viewportEnd - viewportStart;
-      const clickTime = viewportStart + (percentage * visibleDuration); // Calculate time within viewport
+      
+      // Use pixel-based calculation to match ruler positioning exactly
+      const visiblePixels = visibleDuration * PIXELS_PER_SECOND;
+      const clickPixelOffset = percentage * visiblePixels;
+      const clickTimeFromPixels = (clickPixelOffset / PIXELS_PER_SECOND) + viewportStart;
+      
+      const clickTime = clickTimeFromPixels;
 
       console.log("Timeline mousedown:", {
         clickX,
@@ -610,6 +634,10 @@ export const Timeline: React.FC<TimelineProps> = ({
         clickTime,
         totalDuration,
         currentTimeBeforeSeek: currentTime,
+        viewportStart,
+        viewportEnd,
+        visibleDuration,
+        PIXELS_PER_SECOND,
       });
 
       setHoverPosition(null);
@@ -644,9 +672,11 @@ export const Timeline: React.FC<TimelineProps> = ({
           Math.abs(moveX - clickPosition.x) > dragThreshold;
 
         if (hasDraggedEnough) {
-          // Direct time calculation without frame conversion
+          // Use pixel-based calculation to match ruler positioning exactly
           const visibleDuration = viewportEnd - viewportStart;
-          const newTime = viewportStart + (percentage * visibleDuration);
+          const visiblePixels = visibleDuration * PIXELS_PER_SECOND;
+          const movePixelOffset = percentage * visiblePixels;
+          const newTime = (movePixelOffset / PIXELS_PER_SECOND) + viewportStart;
           console.log("Dragging seek:", {
             moveX,
             percentage: percentage * 100,
@@ -830,41 +860,37 @@ export const Timeline: React.FC<TimelineProps> = ({
         onVideoSelect(video.id);
       }
 
-      // Calculate position within the video segment itself
-      const videoElement = e.currentTarget;
-      const videoRect = videoElement.getBoundingClientRect();
-      const clickX = e.clientX - videoRect.left;
-      const videoWidth = videoRect.width;
-
-      // Calculate percentage within this video segment
-      const percentage = Math.max(0, Math.min(1, clickX / videoWidth));
-
-      // Calculate the time within this video's duration (accounting for trim)
-      const speedMultiplier = video.effects.speed || 1;
-      const trimStart = video.trimStart || 0;
-      const trimEnd = video.trimEnd || video.duration;
-      const trimmedDuration = trimEnd - trimStart;
-      const effectiveDuration = trimmedDuration / speedMultiplier;
-      const timeWithinVideo = percentage * effectiveDuration;
-
-      // Calculate absolute time in the timeline
-      const absoluteTime = video.startTime + timeWithinVideo;
+      // Use the same accurate calculation as the main timeline
+      // Get the timeline container (not just the video segment)
+      const timelineContainer = document.querySelector('.timeline-track-container');
+      if (!timelineContainer) return;
+      
+      const containerRect = timelineContainer.getBoundingClientRect();
+      const clickX = e.clientX - containerRect.left;
+      
+      // Use the same pixel-based calculation as handleTimelineMouseDown
+      const percentage = Math.max(0, Math.min(1, clickX / containerRect.width));
+      const visibleDuration = viewportEnd - viewportStart;
+      const visiblePixels = visibleDuration * PIXELS_PER_SECOND;
+      const clickPixelOffset = percentage * visiblePixels;
+      const absoluteTime = (clickPixelOffset / PIXELS_PER_SECOND) + viewportStart;
 
       console.log("Video segment click:", {
         clickX,
-        videoWidth,
+        containerWidth: containerRect.width,
         percentage,
-        timeWithinVideo,
         absoluteTime,
-        videoStart: video.startTime,
-        effectiveDuration,
+        viewportStart,
+        viewportEnd,
+        visibleDuration,
+        PIXELS_PER_SECOND,
         currentTimeBeforeSeek: currentTime,
       });
 
       // Seek to that position
       onSeek(absoluteTime);
     },
-    [onVideoSelect, onSeek, currentTime]
+    [onVideoSelect, onSeek, currentTime, viewportStart, viewportEnd, PIXELS_PER_SECOND]
   );
 
   const jumpToStart = useCallback(() => {
@@ -944,42 +970,30 @@ export const Timeline: React.FC<TimelineProps> = ({
                         video.file.name
                       );
                       
-                      // Use the same logic as handleVideoClick but for this specific frame
-                      const frameElement = e.currentTarget;
-                      const frameRect = frameElement.getBoundingClientRect();
-                      const clickX = e.clientX - frameRect.left;
-                      const frameWidth = frameRect.width;
+                      // Use the same accurate calculation as the main timeline
+                      const timelineContainer = document.querySelector('.timeline-track-container');
+                      if (!timelineContainer) return;
                       
-                      // Calculate percentage within this specific frame
-                      const clickPercentageInFrame = Math.max(0, Math.min(1, clickX / frameWidth));
+                      const containerRect = timelineContainer.getBoundingClientRect();
+                      const clickX = e.clientX - containerRect.left;
                       
-                      // Calculate the time range this frame represents
-                      const speedMultiplier = video.effects.speed || 1;
-                      const trimStart = video.trimStart || 0;
-                      const trimEnd = video.trimEnd || video.duration;
-                      const trimmedDuration = trimEnd - trimStart;
-                      const effectiveDuration = trimmedDuration / speedMultiplier;
-                      
-                      // Each frame represents a portion of the effective duration
-                      const frameTimespan = effectiveDuration / frames.length;
-                      const frameStartTime = frameIndex * frameTimespan;
-                      const timeWithinFrame = clickPercentageInFrame * frameTimespan;
-                      const timeWithinVideo = frameStartTime + timeWithinFrame;
-                      
-                      // Calculate absolute timeline position
-                      const absoluteTime = video.startTime + timeWithinVideo;
+                      // Use the same pixel-based calculation as handleTimelineMouseDown
+                      const percentage = Math.max(0, Math.min(1, clickX / containerRect.width));
+                      const visibleDuration = viewportEnd - viewportStart;
+                      const visiblePixels = visibleDuration * PIXELS_PER_SECOND;
+                      const clickPixelOffset = percentage * visiblePixels;
+                      const absoluteTime = (clickPixelOffset / PIXELS_PER_SECOND) + viewportStart;
                       
                       console.log("Frame click calculation:", {
                         clickX,
-                        frameWidth,
-                        clickPercentageInFrame,
+                        containerWidth: containerRect.width,
+                        percentage,
                         frameIndex,
-                        frameTimespan,
-                        frameStartTime,
-                        timeWithinFrame,
-                        timeWithinVideo,
-                        videoStartTime: video.startTime,
-                        finalTimelinePosition: absoluteTime
+                        absoluteTime,
+                        viewportStart,
+                        viewportEnd,
+                        visibleDuration,
+                        PIXELS_PER_SECOND,
                       });
                       
                       onSeek(absoluteTime);
@@ -1401,8 +1415,8 @@ export const Timeline: React.FC<TimelineProps> = ({
             <div 
               className="relative h-full overflow-hidden"
               style={{
-                transform: `translateX(-${((viewportStart / totalDuration) * (totalDuration * 60))}px)`,
-                width: `${totalDuration * 60}px`, // 60 pixels per second
+                transform: `translateX(-${viewportStart * PIXELS_PER_SECOND}px)`,
+                width: `${totalDuration * PIXELS_PER_SECOND}px`,
                 minWidth: '100%'
               }}
             >
@@ -1459,8 +1473,8 @@ export const Timeline: React.FC<TimelineProps> = ({
                 <div 
                   className="absolute inset-0 overflow-hidden"
                   style={{
-                    transform: `translateX(-${((viewportStart / totalDuration) * (totalDuration * 60))}px)`,
-                    width: `${totalDuration * 60}px`,
+                    transform: `translateX(-${viewportStart * PIXELS_PER_SECOND}px)`,
+                    width: `${totalDuration * PIXELS_PER_SECOND}px`,
                     minWidth: '100%'
                   }}
                 >
@@ -1516,8 +1530,8 @@ export const Timeline: React.FC<TimelineProps> = ({
                 <div 
                   className="absolute inset-0 overflow-hidden"
                   style={{
-                    transform: `translateX(-${((viewportStart / totalDuration) * (totalDuration * 60))}px)`,
-                    width: `${totalDuration * 60}px`,
+                    transform: `translateX(-${viewportStart * PIXELS_PER_SECOND}px)`,
+                    width: `${totalDuration * PIXELS_PER_SECOND}px`,
                     minWidth: '100%'
                   }}
                 >
@@ -1593,7 +1607,7 @@ export const Timeline: React.FC<TimelineProps> = ({
               }}
             >
               <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-gray-700 text-gray-300 text-xs px-2 py-0.5 rounded whitespace-nowrap font-mono">
-                {formatTime((hoverPosition / 100) * totalDuration)}
+                {formatTime(viewportStart + ((hoverPosition / 100) * (viewportEnd - viewportStart)))}
               </div>
             </div>
           )}
@@ -1605,8 +1619,9 @@ export const Timeline: React.FC<TimelineProps> = ({
         }`}>
           {(() => {
             const visibleDuration = viewportEnd - viewportStart;
-            // Better interval calculation: more granular when zoomed in
-            const interval = visibleDuration <= 5 ? 1 : visibleDuration <= 25 ? 5 : Math.max(5, Math.floor(visibleDuration / 5));
+            
+            // Fixed 10-second intervals for timeline ruler
+            const interval = 10; // Always 10 seconds
             const startIndex = Math.floor(viewportStart / interval);
             const endIndex = Math.ceil(viewportEnd / interval);
             
@@ -1617,7 +1632,12 @@ export const Timeline: React.FC<TimelineProps> = ({
               // Skip times outside viewport
               if (time < viewportStart || time > viewportEnd) return null;
               
-              const position = ((time - viewportStart) / visibleDuration) * 100;
+              // Calculate position in pixels, then convert to percentage of visible area
+              const timePixels = time * PIXELS_PER_SECOND;
+              const viewportStartPixels = viewportStart * PIXELS_PER_SECOND;
+              const visiblePixels = visibleDuration * PIXELS_PER_SECOND;
+              const position = ((timePixels - viewportStartPixels) / visiblePixels) * 100;
+              
               const isFirst = i === 0;
               const isLast = i === endIndex - startIndex;
 
