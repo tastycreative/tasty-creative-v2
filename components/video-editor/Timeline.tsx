@@ -989,7 +989,7 @@ export const Timeline: React.FC<TimelineProps> = ({
 
       {/* Timeline Track */}
       <div
-        className="timeline-track-container relative cursor-pointer select-none bg-gray-800 rounded-lg overflow-hidden"
+        className="timeline-track-container relative cursor-pointer select-none bg-gray-800 rounded-lg"
         style={{
           height:
             layout === "side-by-side"
@@ -1137,7 +1137,7 @@ export const Timeline: React.FC<TimelineProps> = ({
           className="timeline-track absolute bg-gray-850/30 border border-gray-700/30 overflow-hidden"
           style={{
             top: timelineTrackTop,
-            bottom: 4,
+            bottom: 30, // Leave space for the 6-height ruler plus padding
             left: 4,
             right: 4,
           }}
@@ -1305,7 +1305,7 @@ export const Timeline: React.FC<TimelineProps> = ({
         </div>
 
         {/* Timeline Ruler */}
-        <div className="absolute bottom-0 left-0 right-0 h-5 bg-gray-850 border-t border-gray-700">
+        <div className="absolute bottom-0 left-0 right-0 h-6 bg-gray-850 border-t border-gray-700 z-50">
           {Array.from({ length: Math.ceil(totalDuration / 5) + 1 }, (_, i) => {
             const time = i * 5;
             const position = (time / totalDuration) * 100;
@@ -1313,11 +1313,11 @@ export const Timeline: React.FC<TimelineProps> = ({
             return (
               <div
                 key={i}
-                className="absolute top-0 bottom-0"
-                style={{ left: `${position}%` }}
+                className="absolute z-50"
+                style={{ left: `${position}%`, top: 0, height: '100%' }}
               >
-                <div className="absolute top-0 w-px h-2 bg-gray-600" />
-                <div className="absolute top-2 -translate-x-1/2 text-[10px] text-gray-500 font-mono">
+                <div className="absolute top-0 w-px h-3 bg-gray-600 z-50" />
+                <div className="absolute top-3 -translate-x-1/2 text-[11px] text-gray-300 font-mono bg-gray-850 px-1 border border-gray-700 rounded z-50">
                   {formatTime(time)}
                 </div>
               </div>
