@@ -435,46 +435,34 @@ export const Timeline: React.FC<TimelineProps> = ({
       const target = e.target as HTMLElement;
       if (target.closest(".video-segment")) return;
       if (target.closest(".add-sequence-btn")) return;
+      if (target.closest(".blur-overlay")) return;
+      
+      // When thumbnails are enabled, only allow seeking in empty timeline areas
+      // (between video segments or outside all segments)
 
-      // Get the timeline track element for accurate positioning
-      const timelineTrack = e.currentTarget.querySelector(".timeline-track");
-      if (!timelineTrack) return;
-      const trackRect = timelineTrack.getBoundingClientRect();
-      const clickX = e.clientX - trackRect.left;
-      const clickY = e.clientY - trackRect.top;
+      // Use the container rect directly like OldTimeline for accurate positioning
+      const containerRect = e.currentTarget.getBoundingClientRect();
+      const clickX = e.clientX - containerRect.left;
+      const clickY = e.clientY - containerRect.top;
 
-      // Calculate based on the actual track width (accounts for left: 4, right: 4)
-      const percentage = Math.max(0, Math.min(1, clickX / trackRect.width));
-      const clickTime = percentage * totalDuration;
+      // Calculate percentage based on full container width
+      const percentage = Math.max(0, Math.min(1, clickX / containerRect.width));
+      const clickTime = percentage * totalDuration; // Direct time calculation, no frame conversion
 
-      const expectedFrame = Math.round(clickTime * frameRate);
       console.log("Timeline click:", {
         clickX,
-        trackWidth: trackRect.width,
+        containerWidth: containerRect.width,
         percentage: percentage * 100,
         clickTime,
-        expectedFrame,
-        frameRate,
         totalDuration,
         currentTimeBeforeSeek: currentTime,
-        currentFrameBeforeSeek: Math.round(currentTime * frameRate),
       });
 
       setHoverPosition(null);
       setIsDragging(false);
-      console.log("About to call onSeek with clickTime:", clickTime);
+      
+      // Direct seek without frame calculations
       onSeek(clickTime);
-
-      // Log what happens after seek
-      setTimeout(() => {
-        console.log("After CLICK seek result:", {
-          newCurrentTime: currentTime,
-          newCurrentFrame: Math.round(currentTime * frameRate),
-          expectedFrame,
-          frameDifference: Math.round(currentTime * frameRate) - expectedFrame,
-          originalClickTime: clickTime,
-        });
-      }, 100);
 
       let videosInGrid = videos;
       if (layout === "side-by-side") {
@@ -504,53 +492,45 @@ export const Timeline: React.FC<TimelineProps> = ({
       }
       e.preventDefault();
     },
-    [videos, totalDuration, onSeek, onVideoSelect, layout, blurAreaHeight]
+    [videos, totalDuration, onSeek, onVideoSelect, layout, blurAreaHeight, currentTime]
   );
 
   const handleTimelineMouseDown = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       const target = e.target as HTMLElement;
 
-      // Don't interfere with blur overlays
-      if (target.closest(".blur-overlay")) {
+      // Don't interfere with blur overlays, video segments or add buttons
+      if (target.closest(".blur-overlay") || target.closest(".video-segment") || target.closest(".add-sequence-btn")) {
         return;
       }
 
-      // Get the timeline track element for accurate positioning
-      const timelineTrack = e.currentTarget.querySelector(".timeline-track");
-      if (!timelineTrack) return;
-      const trackRect = timelineTrack.getBoundingClientRect();
-      const clickX = e.clientX - trackRect.left;
+      // Use container rect directly like OldTimeline
+      const containerRect = e.currentTarget.getBoundingClientRect();
+      const clickX = e.clientX - containerRect.left;
 
-      // Calculate based on the actual track width (accounts for left: 4, right: 4)
-      const percentage = Math.max(0, Math.min(1, clickX / trackRect.width));
-      const clickTime = percentage * totalDuration;
+      // Calculate percentage based on full container width
+      const percentage = Math.max(0, Math.min(1, clickX / containerRect.width));
+      const clickTime = percentage * totalDuration; // Direct time calculation
 
-      const expectedFrame = Math.round(clickTime * frameRate);
       console.log("Timeline mousedown:", {
         clickX,
-        trackWidth: trackRect.width,
+        containerWidth: containerRect.width,
         percentage: percentage * 100,
         clickTime,
-        expectedFrame,
-        frameRate,
         totalDuration,
         currentTimeBeforeSeek: currentTime,
-        currentFrameBeforeSeek: Math.round(currentTime * frameRate),
       });
 
       setHoverPosition(null);
       setClickPosition({ x: clickX, time: clickTime });
-      // Temporarily disable dragging to test click accuracy
-      // setIsDragging(true);
+      setIsDragging(true);
 
-      // Always seek to the clicked time, regardless of where we clicked
-      console.log("About to call onSeek from mousedown with time:", clickTime);
+      // Direct seek without frame calculations
       onSeek(clickTime);
 
       e.preventDefault();
     },
-    [totalDuration, onSeek, formatTime, currentTime, frameRate]
+    [totalDuration, onSeek, currentTime]
   );
 
   const handleTimelineMouseMove = useCallback(
@@ -561,13 +541,10 @@ export const Timeline: React.FC<TimelineProps> = ({
         target.closest(".blur-overlay") ||
         target.closest("[data-blur-controls]");
 
-      // Get the timeline track element specifically
-      const timelineTrack = e.currentTarget.querySelector(".timeline-track");
-      if (!timelineTrack) return;
-
-      const rect = timelineTrack.getBoundingClientRect();
-      const moveX = e.clientX - rect.left;
-      const percentage = Math.max(0, Math.min(1, moveX / rect.width));
+      // Use container rect like OldTimeline
+      const containerRect = e.currentTarget.getBoundingClientRect();
+      const moveX = e.clientX - containerRect.left;
+      const percentage = Math.max(0, Math.min(1, moveX / containerRect.width));
 
       if (isDragging && clickPosition) {
         // Only start dragging if mouse has moved significantly from click position
@@ -576,18 +553,15 @@ export const Timeline: React.FC<TimelineProps> = ({
           Math.abs(moveX - clickPosition.x) > dragThreshold;
 
         if (hasDraggedEnough) {
-          // Update time while dragging - always use exact time calculation
+          // Direct time calculation without frame conversion
           const newTime = percentage * totalDuration;
-          const newFrame = Math.round(newTime * frameRate);
           console.log("Dragging seek:", {
             moveX,
             percentage: percentage * 100,
             newTime,
-            newFrame,
-            frameRate,
+            totalDuration,
             dragDistance: Math.abs(moveX - clickPosition.x),
           });
-          console.log("About to call onSeek with dragTime:", newTime);
           onSeek(newTime);
         }
       } else if (!isBlurOverlay) {
@@ -599,7 +573,7 @@ export const Timeline: React.FC<TimelineProps> = ({
         setHoverPosition(null);
       }
     },
-    [isDragging, totalDuration, onSeek, frameRate, clickPosition]
+    [isDragging, totalDuration, onSeek, clickPosition]
   );
 
   const handleTimelineMouseLeave = useCallback(() => {
@@ -617,10 +591,8 @@ export const Timeline: React.FC<TimelineProps> = ({
         const timelineContainer = document.querySelector(
           ".timeline-track-container"
         );
-        const timelineTrack =
-          timelineContainer?.querySelector(".timeline-track");
-        if (timelineTrack && clickPosition) {
-          const rect = timelineTrack.getBoundingClientRect();
+        if (timelineContainer && clickPosition) {
+          const rect = timelineContainer.getBoundingClientRect();
           const moveX = e.clientX - rect.left;
           const dragThreshold = 3; // pixels
           const hasDraggedEnough =
@@ -629,13 +601,11 @@ export const Timeline: React.FC<TimelineProps> = ({
           if (hasDraggedEnough) {
             const percentage = Math.max(0, Math.min(1, moveX / rect.width));
             const newTime = percentage * totalDuration;
-            const newFrame = Math.round(newTime * frameRate);
             console.log("Global drag seek:", {
               moveX,
               percentage: percentage * 100,
               newTime,
-              newFrame,
-              frameRate,
+              totalDuration,
               dragDistance: Math.abs(moveX - clickPosition.x),
             });
             onSeek(newTime);
@@ -651,7 +621,7 @@ export const Timeline: React.FC<TimelineProps> = ({
         document.removeEventListener("mousemove", handleGlobalMouseMove);
       };
     }
-  }, [isDragging, totalDuration, onSeek, frameRate, clickPosition]);
+  }, [isDragging, totalDuration, onSeek, clickPosition]);
 
   const handleVideoClick = useCallback(
     (video: VideoSequenceItem, e: React.MouseEvent) => {
@@ -747,8 +717,22 @@ export const Timeline: React.FC<TimelineProps> = ({
             <div className="absolute inset-0 flex overflow-hidden">
               {frames.map((frame, frameIndex) => {
                 const frameWidth = 100 / frames.length;
-                const isCurrentFrame =
-                  Math.abs(frame.time + video.startTime - currentTime) < 0.25;
+                // Calculate if this frame contains the current time position
+                const speedMultiplier = video.effects.speed || 1;
+                const trimStart = video.trimStart || 0;
+                const trimEnd = video.trimEnd || video.duration;
+                const trimmedDuration = trimEnd - trimStart;
+                const effectiveDuration = trimmedDuration / speedMultiplier;
+                
+                // Calculate the time range this frame covers
+                const frameTimespan = effectiveDuration / frames.length;
+                const frameStartTime = frameIndex * frameTimespan;
+                const frameEndTime = frameStartTime + frameTimespan;
+                const frameStartAbsolute = video.startTime + frameStartTime;
+                const frameEndAbsolute = video.startTime + frameEndTime;
+                
+                // Check if current time falls within this frame's range
+                const isCurrentFrame = currentTime >= frameStartAbsolute && currentTime < frameEndAbsolute;
 
                 return (
                   <div
@@ -769,10 +753,49 @@ export const Timeline: React.FC<TimelineProps> = ({
                         video.id,
                         video.file.name
                       );
-                      onSeek(frame.time + video.startTime);
+                      
+                      // Use the same logic as handleVideoClick but for this specific frame
+                      const frameElement = e.currentTarget;
+                      const frameRect = frameElement.getBoundingClientRect();
+                      const clickX = e.clientX - frameRect.left;
+                      const frameWidth = frameRect.width;
+                      
+                      // Calculate percentage within this specific frame
+                      const clickPercentageInFrame = Math.max(0, Math.min(1, clickX / frameWidth));
+                      
+                      // Calculate the time range this frame represents
+                      const speedMultiplier = video.effects.speed || 1;
+                      const trimStart = video.trimStart || 0;
+                      const trimEnd = video.trimEnd || video.duration;
+                      const trimmedDuration = trimEnd - trimStart;
+                      const effectiveDuration = trimmedDuration / speedMultiplier;
+                      
+                      // Each frame represents a portion of the effective duration
+                      const frameTimespan = effectiveDuration / frames.length;
+                      const frameStartTime = frameIndex * frameTimespan;
+                      const timeWithinFrame = clickPercentageInFrame * frameTimespan;
+                      const timeWithinVideo = frameStartTime + timeWithinFrame;
+                      
+                      // Calculate absolute timeline position
+                      const absoluteTime = video.startTime + timeWithinVideo;
+                      
+                      console.log("Frame click calculation:", {
+                        clickX,
+                        frameWidth,
+                        clickPercentageInFrame,
+                        frameIndex,
+                        frameTimespan,
+                        frameStartTime,
+                        timeWithinFrame,
+                        timeWithinVideo,
+                        videoStartTime: video.startTime,
+                        finalTimelinePosition: absoluteTime
+                      });
+                      
+                      onSeek(absoluteTime);
                       onVideoSelect(video.id);
                     }}
-                    title={`${video.file.name} - Frame at ${formatTime(frame.time + video.startTime)}`}
+                    title={`${video.file.name} - Frame ${frameIndex + 1} (${formatTime(frameStartAbsolute)} - ${formatTime(frameEndAbsolute)})`}
                   >
                     <img
                       src={frame.thumbnail}
