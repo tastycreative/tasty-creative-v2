@@ -728,17 +728,17 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
           </div>
         ) : (
           /* Editor State */
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* Top Row: Preview and Effects/Blur Editor */}
             <div
-              className={`grid gap-4 ${
+              className={`grid gap-3 ${
                 editingBlur
                   ? "grid-cols-1 xl:grid-cols-2"
-                  : "grid-cols-1 lg:grid-cols-3"
+                  : "grid-cols-1 lg:grid-cols-5"
               }`}
             >
-              <div className={editingBlur ? "" : "lg:col-span-2"}>
-                <div className="w-full max-w-[min(100vw,600px)] aspect-square mx-auto flex items-center justify-center">
+              <div className={editingBlur ? "" : "lg:col-span-3"}>
+                <div className="w-full max-w-[min(100vw,500px)] aspect-square mx-auto flex items-center justify-center">
                   <VideoPreview
                     videos={videos}
                     currentTime={currentTime}
@@ -777,7 +777,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
               )}
 
               {!editingBlur && (
-                <div>
+                <div className="lg:col-span-2">
                   <EffectsPanel
                     selectedVideo={selectedVideo}
                     onEffectsChange={updateVideoEffects}
