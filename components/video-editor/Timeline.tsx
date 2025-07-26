@@ -204,13 +204,13 @@ const extractVideoFramesProgressively = (
           if (frame) {
             if (pass === "low") {
               // Show low-res frame immediately
-              onFrameExtracted({ ...frame }, frameIdx, pass);
+              onFrameExtracted({ ...frame });
               frameResults[frameIdx] = frame;
               extractedCount++;
               onProgressUpdate(extractedCount, maxFrames);
             } else if (pass === "high") {
               // Replace with high-res frame in-place
-              onFrameExtracted({ ...frame }, frameIdx, pass);
+              onFrameExtracted({ ...frame });
               frameResults[frameIdx] = frame;
             }
           }
@@ -420,22 +420,18 @@ export const Timeline: React.FC<TimelineProps> = ({
             try {
               extractVideoFramesProgressively(
                 video.file,
-                (frame, idx, pass) => {
-                  // Add video ID and update state in-place by index
+                (frame) => {
+                  if (!frame) return;
                   const frameWithVideoId = { ...frame, videoId: video.id };
                   setVideoFrames((prev) => {
                     const currentFrames = prev.get(video.id) || [];
+                    // Find the closest frame by time, or append
+                    let insertIdx = currentFrames.findIndex(f => f && Math.abs(f.time - frame.time) < 1e-3);
                     let newFrames;
-                    if (typeof idx === "number" && pass === "high") {
-                      // Replace low-quality frame at idx
+                    if (insertIdx !== -1) {
                       newFrames = [...currentFrames];
-                      newFrames[idx] = frameWithVideoId;
-                    } else if (typeof idx === "number") {
-                      // Set low-quality frame at idx if not already set
-                      newFrames = [...currentFrames];
-                      if (!newFrames[idx]) newFrames[idx] = frameWithVideoId;
+                      newFrames[insertIdx] = frameWithVideoId;
                     } else {
-                      // Fallback: append
                       newFrames = [...currentFrames, frameWithVideoId];
                     }
                     return new Map(prev.set(video.id, newFrames));
