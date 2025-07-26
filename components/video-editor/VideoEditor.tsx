@@ -23,7 +23,7 @@ import {
   Square,
 } from "lucide-react";
 
-export type VideoLayout = "single" | "side-by-side";
+export type VideoLayout = "single" | "side-by-side" | "vertical-triptych" | "horizontal-triptych";
 
 export interface LayoutGrid {
   id: string;
@@ -94,9 +94,9 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
   // Layout state
   const [currentLayout, setCurrentLayout] = useState<VideoLayout>("single");
 
-  // When switching to side-by-side, assign gridId: 'grid-1' to videos without gridId
+  // When switching to multi-grid layouts, assign gridId: 'grid-1' to videos without gridId
   useEffect(() => {
-    if (currentLayout === "side-by-side") {
+    if (currentLayout === "side-by-side" || currentLayout === "vertical-triptych" || currentLayout === "horizontal-triptych") {
       // Only update if there are videos without gridId
       const needsUpdate = videos.some((v) => !v.gridId);
       if (needsUpdate) {
@@ -111,6 +111,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
   const [layoutGrids] = useState<LayoutGrid[]>([
     { id: "grid-1", name: "Grid 1", active: true },
     { id: "grid-2", name: "Grid 2", active: false },
+    { id: "grid-3", name: "Grid 3", active: false },
   ]);
   const [activeGridId, setActiveGridId] = useState<string>("grid-1");
   const gridFileInputRef = useRef<HTMLInputElement>(null);
@@ -142,7 +143,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
     try {
       console.log("Final model value:", getFinalModelValue());
       const gridId =
-        currentLayout === "side-by-side" ? activeGridId : undefined;
+        currentLayout === "side-by-side" || currentLayout === "vertical-triptych" || currentLayout === "horizontal-triptych" ? activeGridId : undefined;
       await addVideos(files, gridId);
     } catch (error) {
       console.error("Error adding videos:", error);
@@ -331,7 +332,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
 
   const handleAddSequence = (gridId?: string) => {
     const targetGridId =
-      gridId || (currentLayout === "side-by-side" ? activeGridId : undefined);
+      gridId || (currentLayout === "side-by-side" || currentLayout === "vertical-triptych" || currentLayout === "horizontal-triptych" ? activeGridId : undefined);
     setActiveGridId(targetGridId || "grid-1");
     // Trigger file input for the selected grid
     if (gridFileInputRef.current) {
@@ -504,14 +505,52 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                     </svg>
                     <span>Side-by-Side</span>
                   </button>
+                  <button
+                    onClick={() => setCurrentLayout("vertical-triptych")}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${
+                      currentLayout === "vertical-triptych"
+                        ? "bg-pink-600 text-white"
+                        : "text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="2" y="1" width="12" height="4" rx="0.5"/>
+                      <rect x="2" y="6" width="12" height="4" rx="0.5"/>
+                      <rect x="2" y="11" width="12" height="4" rx="0.5"/>
+                    </svg>
+                    <span>V-Triptych</span>
+                  </button>
+                  <button
+                    onClick={() => setCurrentLayout("horizontal-triptych")}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${
+                      currentLayout === "horizontal-triptych"
+                        ? "bg-pink-600 text-white"
+                        : "text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="1" y="2" width="4" height="12" rx="0.5"/>
+                      <rect x="6" y="2" width="4" height="12" rx="0.5"/>
+                      <rect x="11" y="2" width="4" height="12" rx="0.5"/>
+                    </svg>
+                    <span>H-Triptych</span>
+                  </button>
                 </div>
 
-                {/* Grid Selector - Only show for side-by-side */}
-                {currentLayout === "side-by-side" && (
+                {/* Grid Selector - Show for multi-grid layouts */}
+                {(currentLayout === "side-by-side" || currentLayout === "vertical-triptych" || currentLayout === "horizontal-triptych") && (
                   <div className="flex items-center space-x-2">
                     <span className="text-sm text-gray-600">Active Grid:</span>
                     <div className="flex bg-gray-50 rounded-lg p-1">
-                      {layoutGrids.map((grid) => (
+                      {layoutGrids
+                        .filter((grid) => 
+                          currentLayout === "side-by-side" 
+                            ? ["grid-1", "grid-2"].includes(grid.id)
+                            : currentLayout === "vertical-triptych" || currentLayout === "horizontal-triptych"
+                            ? ["grid-1", "grid-2", "grid-3"].includes(grid.id)
+                            : true
+                        )
+                        .map((grid) => (
                         <button
                           key={grid.id}
                           onClick={() => setActiveGridId(grid.id)}

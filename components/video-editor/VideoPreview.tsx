@@ -92,6 +92,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
   const getCurrentVideosByGrid = useCallback(() => {
     const grid1Videos = videos.filter((v) => v.gridId === "grid-1");
     const grid2Videos = videos.filter((v) => v.gridId === "grid-2");
+    const grid3Videos = videos.filter((v) => v.gridId === "grid-3");
 
     const grid1Current = grid1Videos.find(
       (video) => currentTime >= video.startTime && currentTime < video.endTime
@@ -99,8 +100,11 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
     const grid2Current = grid2Videos.find(
       (video) => currentTime >= video.startTime && currentTime < video.endTime
     );
+    const grid3Current = grid3Videos.find(
+      (video) => currentTime >= video.startTime && currentTime < video.endTime
+    );
 
-    return { grid1: grid1Current, grid2: grid2Current };
+    return { grid1: grid1Current, grid2: grid2Current, grid3: grid3Current };
   }, [videos, currentTime]);
 
   const renderFrame = useCallback(() => {
@@ -131,7 +135,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
       }
 
       renderVideoToCanvas(ctx, currentVideo, 0, 0, width, height);
-    } else {
+    } else if (layout === "side-by-side") {
       // Side-by-side layout
       const currentVideos = getCurrentVideosByGrid();
       const halfWidth = width / 2;
@@ -168,6 +172,102 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
         ctx.font = "14px sans-serif";
         ctx.textAlign = "center";
         ctx.fillText("Grid 2", halfWidth + halfWidth / 2, height / 2);
+      }
+    } else if (layout === "vertical-triptych") {
+      // Vertical triptych layout - 3 horizontal sections
+      const currentVideos = getCurrentVideosByGrid();
+      const sectionHeight = height / 3;
+      
+      // Render grid 1 (top)
+      if (currentVideos.grid1) {
+        renderVideoToCanvas(ctx, currentVideos.grid1, 0, 0, width, sectionHeight);
+      } else {
+        ctx.fillStyle = "#374151";
+        ctx.fillRect(0, 0, width, sectionHeight);
+        ctx.fillStyle = "#9ca3af";
+        ctx.font = "14px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Grid 1", width / 2, sectionHeight / 2);
+      }
+
+      // Draw horizontal divider line
+      ctx.fillStyle = "#ffffff80";
+      ctx.fillRect(0, sectionHeight - 1, width, 2);
+
+      // Render grid 2 (middle)
+      if (currentVideos.grid2) {
+        renderVideoToCanvas(ctx, currentVideos.grid2, 0, sectionHeight, width, sectionHeight);
+      } else {
+        ctx.fillStyle = "#374151";
+        ctx.fillRect(0, sectionHeight, width, sectionHeight);
+        ctx.fillStyle = "#9ca3af";
+        ctx.font = "14px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Grid 2", width / 2, sectionHeight + sectionHeight / 2);
+      }
+
+      // Draw second horizontal divider line
+      ctx.fillStyle = "#ffffff80";
+      ctx.fillRect(0, sectionHeight * 2 - 1, width, 2);
+
+      // Render grid 3 (bottom)
+      if (currentVideos.grid3) {
+        renderVideoToCanvas(ctx, currentVideos.grid3, 0, sectionHeight * 2, width, sectionHeight);
+      } else {
+        ctx.fillStyle = "#374151";
+        ctx.fillRect(0, sectionHeight * 2, width, sectionHeight);
+        ctx.fillStyle = "#9ca3af";
+        ctx.font = "14px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Grid 3", width / 2, sectionHeight * 2 + sectionHeight / 2);
+      }
+    } else if (layout === "horizontal-triptych") {
+      // Horizontal triptych layout - 3 vertical sections
+      const currentVideos = getCurrentVideosByGrid();
+      const sectionWidth = width / 3;
+      
+      // Render grid 1 (left)
+      if (currentVideos.grid1) {
+        renderVideoToCanvas(ctx, currentVideos.grid1, 0, 0, sectionWidth, height);
+      } else {
+        ctx.fillStyle = "#374151";
+        ctx.fillRect(0, 0, sectionWidth, height);
+        ctx.fillStyle = "#9ca3af";
+        ctx.font = "14px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Grid 1", sectionWidth / 2, height / 2);
+      }
+
+      // Draw vertical divider line
+      ctx.fillStyle = "#ffffff80";
+      ctx.fillRect(sectionWidth - 1, 0, 2, height);
+
+      // Render grid 2 (middle)
+      if (currentVideos.grid2) {
+        renderVideoToCanvas(ctx, currentVideos.grid2, sectionWidth, 0, sectionWidth, height);
+      } else {
+        ctx.fillStyle = "#374151";
+        ctx.fillRect(sectionWidth, 0, sectionWidth, height);
+        ctx.fillStyle = "#9ca3af";
+        ctx.font = "14px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Grid 2", sectionWidth + sectionWidth / 2, height / 2);
+      }
+
+      // Draw second vertical divider line
+      ctx.fillStyle = "#ffffff80";
+      ctx.fillRect(sectionWidth * 2 - 1, 0, 2, height);
+
+      // Render grid 3 (right)
+      if (currentVideos.grid3) {
+        renderVideoToCanvas(ctx, currentVideos.grid3, sectionWidth * 2, 0, sectionWidth, height);
+      } else {
+        ctx.fillStyle = "#374151";
+        ctx.fillRect(sectionWidth * 2, 0, sectionWidth, height);
+        ctx.fillStyle = "#9ca3af";
+        ctx.font = "14px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Grid 3", sectionWidth * 2 + sectionWidth / 2, height / 2);
       }
     }
   }, [
@@ -209,8 +309,8 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
 
       // Find the cumulative start time for this video based on layout
       let cumulativeTime = 0;
-      if (layout === "side-by-side" && video.gridId) {
-        // For side-by-side, only consider videos in the same grid
+      if ((layout === "side-by-side" || layout === "vertical-triptych" || layout === "horizontal-triptych") && video.gridId) {
+        // For multi-grid layouts, only consider videos in the same grid
         const sameGridVideos = videos.filter((v) => v.gridId === video.gridId);
         for (const v of sameGridVideos) {
           if (v.id === video.id) break;
@@ -258,9 +358,9 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
         videoElement.videoHeight > 0
       ) {
         try {
-          // --- CLIP TO GRID AREA FOR SIDE-BY-SIDE ---
+          // --- CLIP TO GRID AREA FOR MULTI-GRID LAYOUTS ---
           let didClip = false;
-          if (layout === "side-by-side") {
+          if (layout === "side-by-side" || layout === "vertical-triptych" || layout === "horizontal-triptych") {
             ctx.save();
             ctx.beginPath();
             ctx.rect(x, y, drawWidth, drawHeight);
@@ -399,6 +499,22 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
           videoElement.play().catch((error) => {
             if (error.name !== "AbortError") {
               console.error("Error playing Grid 2 video:", error);
+            }
+          });
+        }
+      }
+
+      // Play Grid 3 video (for triptych layouts)
+      if (
+        currentVideos.grid3 &&
+        isPlaying &&
+        loadedVideos.has(currentVideos.grid3.id)
+      ) {
+        const videoElement = videoRefs.current[currentVideos.grid3.id];
+        if (videoElement && videoElement.readyState >= 2) {
+          videoElement.play().catch((error) => {
+            if (error.name !== "AbortError") {
+              console.error("Error playing Grid 3 video:", error);
             }
           });
         }
@@ -608,6 +724,192 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
             </div>
           </>
         )}
+
+        {/* Grid Click Overlays for Vertical Triptych Layout */}
+        {layout === "vertical-triptych" && onGridClick && (() => {
+          // Calculate total canvas dimensions and divide by layout
+          const gridHeight = height / 3;
+          
+          return (
+            <>
+              {/* Grid 1 Clickable Area (top) */}
+              <div
+                className="absolute left-0 top-0"
+                style={{
+                  width: `${width}px`,
+                  height: `${gridHeight}px`,
+                }}
+              >
+                {!videos.some((v) => v.gridId === "grid-1") ? (
+                  <div
+                    className="absolute inset-0 cursor-pointer group transition-all duration-200"
+                    onClick={() => onGridClick("grid-1")}
+                  >
+                    <div className="absolute inset-0 bg-blue-500/20 group-hover:bg-blue-500/40 flex items-center justify-center">
+                      <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                        Click to upload to Grid 1
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+                {activeGridId === "grid-1" && (
+                  <div className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded text-xs font-medium">
+                    Active Grid
+                  </div>
+                )}
+              </div>
+
+              {/* Grid 2 Clickable Area (middle) */}
+              <div
+                className="absolute left-0"
+                style={{
+                  top: `${gridHeight}px`,
+                  width: `${width}px`,
+                  height: `${gridHeight}px`,
+                }}
+              >
+                {!videos.some((v) => v.gridId === "grid-2") ? (
+                  <div
+                    className="absolute inset-0 cursor-pointer group transition-all duration-200"
+                    onClick={() => onGridClick("grid-2")}
+                  >
+                    <div className="absolute inset-0 bg-green-500/20 group-hover:bg-green-500/40 flex items-center justify-center">
+                      <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                        Click to upload to Grid 2
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+                {activeGridId === "grid-2" && (
+                  <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded text-xs font-medium">
+                    Active Grid
+                  </div>
+                )}
+              </div>
+
+              {/* Grid 3 Clickable Area (bottom) */}
+              <div
+                className="absolute left-0"
+                style={{
+                  top: `${gridHeight * 2}px`,
+                  width: `${width}px`,
+                  height: `${gridHeight}px`,
+                }}
+              >
+                {!videos.some((v) => v.gridId === "grid-3") ? (
+                  <div
+                    className="absolute inset-0 cursor-pointer group transition-all duration-200"
+                    onClick={() => onGridClick("grid-3")}
+                  >
+                    <div className="absolute inset-0 bg-purple-500/20 group-hover:bg-purple-500/40 flex items-center justify-center">
+                      <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                        Click to upload to Grid 3
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+                {activeGridId === "grid-3" && (
+                  <div className="absolute top-2 left-2 bg-purple-500 text-white px-2 py-1 rounded text-xs font-medium">
+                    Active Grid
+                  </div>
+                )}
+              </div>
+            </>
+          );
+        })()}
+
+        {/* Grid Click Overlays for Horizontal Triptych Layout */}
+        {layout === "horizontal-triptych" && onGridClick && (() => {
+          // Calculate total canvas dimensions and divide by layout
+          const gridWidth = width / 3;
+          
+          return (
+            <>
+              {/* Grid 1 Clickable Area (left) */}
+              <div
+                className="absolute left-0 top-0"
+                style={{
+                  width: `${gridWidth}px`,
+                  height: `${height}px`,
+                }}
+              >
+                {!videos.some((v) => v.gridId === "grid-1") ? (
+                  <div
+                    className="absolute inset-0 cursor-pointer group transition-all duration-200"
+                    onClick={() => onGridClick("grid-1")}
+                  >
+                    <div className="absolute inset-0 bg-blue-500/20 group-hover:bg-blue-500/40 flex items-center justify-center">
+                      <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                        Click to upload to Grid 1
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+                {activeGridId === "grid-1" && (
+                  <div className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded text-xs font-medium">
+                    Active Grid
+                  </div>
+                )}
+              </div>
+
+              {/* Grid 2 Clickable Area (middle) */}
+              <div
+                className="absolute top-0"
+                style={{
+                  left: `${gridWidth}px`,
+                  width: `${gridWidth}px`,
+                  height: `${height}px`,
+                }}
+              >
+                {!videos.some((v) => v.gridId === "grid-2") ? (
+                  <div
+                    className="absolute inset-0 cursor-pointer group transition-all duration-200"
+                    onClick={() => onGridClick("grid-2")}
+                  >
+                    <div className="absolute inset-0 bg-green-500/20 group-hover:bg-green-500/40 flex items-center justify-center">
+                      <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                        Click to upload to Grid 2
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+                {activeGridId === "grid-2" && (
+                  <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded text-xs font-medium">
+                    Active Grid
+                  </div>
+                )}
+              </div>
+
+              {/* Grid 3 Clickable Area (right) */}
+              <div
+                className="absolute top-0"
+                style={{
+                  left: `${gridWidth * 2}px`,
+                  width: `${gridWidth}px`,
+                  height: `${height}px`,
+                }}
+              >
+                {!videos.some((v) => v.gridId === "grid-3") ? (
+                  <div
+                    className="absolute inset-0 cursor-pointer group transition-all duration-200"
+                    onClick={() => onGridClick("grid-3")}
+                  >
+                    <div className="absolute inset-0 bg-purple-500/20 group-hover:bg-purple-500/40 flex items-center justify-center">
+                      <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                        Click to upload to Grid 3
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+                {activeGridId === "grid-3" && (
+                  <div className="absolute top-2 left-2 bg-purple-500 text-white px-2 py-1 rounded text-xs font-medium">
+                    Active Grid
+                  </div>
+                )}
+              </div>
+            </>
+          );
+        })()}
       </div>
 
       {/* Video Info */}
@@ -644,6 +946,13 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                     );
                     const index = grid2Videos.indexOf(currentVideos.grid2) + 1;
                     parts.push(`G2:${index}`);
+                  }
+                  if (currentVideos.grid3) {
+                    const grid3Videos = videos.filter(
+                      (v) => v.gridId === "grid-3"
+                    );
+                    const index = grid3Videos.indexOf(currentVideos.grid3) + 1;
+                    parts.push(`G3:${index}`);
                   }
                   return parts.length > 0 ? parts.join(", ") : "None";
                 })()}

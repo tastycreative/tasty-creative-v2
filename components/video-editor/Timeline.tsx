@@ -45,7 +45,7 @@ interface TimelineProps {
   onPause: () => void;
   onBlurRegionClick?: (videoId: string, regionId: string) => void;
   editingBlur?: { videoId: string; regionId: string } | null;
-  layout?: "single" | "side-by-side";
+  layout?: "single" | "side-by-side" | "vertical-triptych" | "horizontal-triptych";
   onAddSequence?: (gridId?: string) => void;
 }
 
@@ -531,8 +531,8 @@ export const Timeline: React.FC<TimelineProps> = ({
       // Calculate cumulative start time and effective duration
       let cumulativeTime = 0;
 
-      if (layout === "side-by-side" && video.gridId) {
-        // For side-by-side layout, only consider videos in the same grid for cumulative time
+      if ((layout === "side-by-side" || layout === "vertical-triptych" || layout === "horizontal-triptych") && video.gridId) {
+        // For multi-grid layouts, only consider videos in the same grid for cumulative time
         const sameGridVideos = videos.filter((v) => v.gridId === video.gridId);
         for (const v of sameGridVideos) {
           if (v.id === video.id) {
@@ -647,6 +647,18 @@ export const Timeline: React.FC<TimelineProps> = ({
           videosInGrid = videos.filter((v) => v.gridId === "grid-1");
         } else {
           videosInGrid = videos.filter((v) => v.gridId === "grid-2");
+        }
+      } else if (layout === "vertical-triptych" || layout === "horizontal-triptych") {
+        // Determine which grid was clicked based on Y position
+        const totalTrackArea = (88 + (blurAreaHeight - 28)) * 3;
+        const singleTrackHeight = (totalTrackArea - 16) / 3; // 8px gap between each track
+        // Grid 1 is top, Grid 2 is middle, Grid 3 is bottom
+        if (clickY < singleTrackHeight + 8 / 3) {
+          videosInGrid = videos.filter((v) => v.gridId === "grid-1");
+        } else if (clickY < (singleTrackHeight + 8) * 2 + 8 / 3) {
+          videosInGrid = videos.filter((v) => v.gridId === "grid-2");
+        } else {
+          videosInGrid = videos.filter((v) => v.gridId === "grid-3");
         }
       }
 
@@ -1011,6 +1023,8 @@ export const Timeline: React.FC<TimelineProps> = ({
             height:
               layout === "side-by-side"
                 ? (88 + (blurAreaHeight - 28)) * 2 + 4
+                : layout === "vertical-triptych" || layout === "horizontal-triptych"
+                ? (88 + (blurAreaHeight - 28)) * 3 + 8
                 : 150,
             bottom: 0,
             marginLeft: index > 0 ? "1px" : "0"
@@ -1260,9 +1274,11 @@ export const Timeline: React.FC<TimelineProps> = ({
           height:
             layout === "side-by-side"
               ? (88 + (blurAreaHeight - 28)) * 2 + 4
+              : layout === "vertical-triptych" || layout === "horizontal-triptych"
+              ? (88 + (blurAreaHeight - 28)) * 3 + 8
               : 150,
           background:
-            layout === "side-by-side"
+            layout === "side-by-side" || layout === "vertical-triptych" || layout === "horizontal-triptych"
               ? undefined
               : "#1f2937", // Tailwind bg-gray-800
         }}
@@ -1332,6 +1348,101 @@ export const Timeline: React.FC<TimelineProps> = ({
                     zIndex: 1000,
                   }}
                   title="Add sequence to Grid 2"
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
+              );
+            })()}
+          </>
+        ) : layout === "vertical-triptych" || layout === "horizontal-triptych" ? (
+          <>
+            {/* Grid 1 Add Button */}
+            {(() => {
+              const totalTrackArea = (88 + (blurAreaHeight - 28)) * 3;
+              const singleTrackHeight = (totalTrackArea - 16) / 3;
+              const topOffset = 4;
+              return (
+                <button
+                  key="grid-1-add"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAddSequence?.("grid-1");
+                  }}
+                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-blue-600 hover:bg-blue-700 text-white rounded-lg opacity-60 hover:opacity-100 focus:outline-none"
+                  style={{
+                    right: "8px",
+                    top: topOffset + singleTrackHeight / 2 - 16,
+                    width: "32px",
+                    height: "32px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    pointerEvents: "auto",
+                    zIndex: 1000,
+                  }}
+                  title="Add sequence to Grid 1"
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
+              );
+            })()}
+
+            {/* Grid 2 Add Button */}
+            {(() => {
+              const totalTrackArea = (88 + (blurAreaHeight - 28)) * 3;
+              const singleTrackHeight = (totalTrackArea - 16) / 3;
+              const topOffset = singleTrackHeight + 8;
+              return (
+                <button
+                  key="grid-2-add"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAddSequence?.("grid-2");
+                  }}
+                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-green-600 hover:bg-green-700 text-white rounded-lg opacity-60 hover:opacity-100 focus:outline-none"
+                  style={{
+                    right: "8px",
+                    top: topOffset + singleTrackHeight / 2 - 16,
+                    width: "32px",
+                    height: "32px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    pointerEvents: "auto",
+                    zIndex: 1000,
+                  }}
+                  title="Add sequence to Grid 2"
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
+              );
+            })()}
+
+            {/* Grid 3 Add Button */}
+            {(() => {
+              const totalTrackArea = (88 + (blurAreaHeight - 28)) * 3;
+              const singleTrackHeight = (totalTrackArea - 16) / 3;
+              const topOffset = (singleTrackHeight + 8) * 2;
+              return (
+                <button
+                  key="grid-3-add"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAddSequence?.("grid-3");
+                  }}
+                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-purple-600 hover:bg-purple-700 text-white rounded-lg opacity-60 hover:opacity-100 focus:outline-none"
+                  style={{
+                    right: "8px",
+                    top: topOffset + singleTrackHeight / 2 - 16,
+                    width: "32px",
+                    height: "32px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    pointerEvents: "auto",
+                    zIndex: 1000,
+                  }}
+                  title="Add sequence to Grid 3"
                 >
                   <Plus className="w-5 h-5" />
                 </button>
@@ -1502,7 +1613,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                 );
               })}
             </div>
-          ) : (
+          ) : layout === "side-by-side" ? (
             // Side-by-side layout - separate track containers using flexbox
             <div className="flex flex-col h-full">
               {/* Grid 1 Track Container */}
@@ -1613,6 +1724,177 @@ export const Timeline: React.FC<TimelineProps> = ({
                 {/* Track 2 Label */}
                 <div className="absolute left-2 top-1 text-xs font-medium text-gray-500 bg-gray-800/80 px-2 py-1 rounded z-40">
                   Track 2
+                </div>
+              </div>
+            </div>
+          ) : (
+            // Triptych layouts - three track containers using flexbox
+            <div className="flex flex-col h-full">
+              {/* Grid 1 Track Container */}
+              <div
+                className="relative flex"
+                style={{ 
+                  height: "calc(33.33% - 4px)",
+                  marginBottom: "2px" 
+                }}
+              >
+                <div 
+                  className="absolute inset-0 overflow-hidden"
+                  style={{
+                    transform: `translateX(-${viewportStart * PIXELS_PER_SECOND}px)`,
+                    width: `${totalDuration * PIXELS_PER_SECOND}px`,
+                    minWidth: '100%'
+                  }}
+                >
+                  {videos
+                    .filter((v) => v.gridId === "grid-1")
+                    .map((video, index) => {
+                      const { leftPixels, widthPixels } = getVideoPosition(video);
+                      const isSelected = video.id === selectedVideoId;
+                      const frames = videoFrames.get(video.id) || [];
+                      const colorClass = "bg-blue-600";
+
+                      return (
+                        <div
+                          key={video.id}
+                          className="absolute inset-y-0"
+                          style={{
+                            left: `${leftPixels}px`,
+                            width: `${widthPixels}px`
+                          }}
+                        >
+                          {renderVideoSegment(
+                            video,
+                            index,
+                            0,
+                            100,
+                            isSelected,
+                            frames,
+                            colorClass,
+                            0,
+                            0
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+                {/* Track 1 Label */}
+                <div className="absolute left-2 top-1 text-xs font-medium text-gray-500 bg-gray-800/80 px-2 py-1 rounded z-40">
+                  Track 1
+                </div>
+              </div>
+
+              {/* Track Separator */}
+              <div className="h-1 border-t border-gray-600 mx-2" />
+
+              {/* Grid 2 Track Container */}
+              <div
+                className="relative flex"
+                style={{ 
+                  height: "calc(33.33% - 4px)",
+                  margin: "2px 0" 
+                }}
+              >
+                <div 
+                  className="absolute inset-0 overflow-hidden"
+                  style={{
+                    transform: `translateX(-${viewportStart * PIXELS_PER_SECOND}px)`,
+                    width: `${totalDuration * PIXELS_PER_SECOND}px`,
+                    minWidth: '100%'
+                  }}
+                >
+                  {videos
+                    .filter((v) => v.gridId === "grid-2")
+                    .map((video, index) => {
+                      const { leftPixels, widthPixels } = getVideoPosition(video);
+                      const isSelected = video.id === selectedVideoId;
+                      const frames = videoFrames.get(video.id) || [];
+                      const colorClass = "bg-green-600";
+
+                      return (
+                        <div
+                          key={video.id}
+                          className="absolute inset-y-0"
+                          style={{
+                            left: `${leftPixels}px`,
+                            width: `${widthPixels}px`
+                          }}
+                        >
+                          {renderVideoSegment(
+                            video,
+                            index,
+                            0,
+                            100,
+                            isSelected,
+                            frames,
+                            colorClass,
+                            0,
+                            0
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+                {/* Track 2 Label */}
+                <div className="absolute left-2 top-1 text-xs font-medium text-gray-500 bg-gray-800/80 px-2 py-1 rounded z-40">
+                  Track 2
+                </div>
+              </div>
+
+              {/* Track Separator */}
+              <div className="h-1 border-t border-gray-600 mx-2" />
+
+              {/* Grid 3 Track Container */}
+              <div
+                className="relative flex"
+                style={{ 
+                  height: "calc(33.33% - 4px)",
+                  marginTop: "2px" 
+                }}
+              >
+                <div 
+                  className="absolute inset-0 overflow-hidden"
+                  style={{
+                    transform: `translateX(-${viewportStart * PIXELS_PER_SECOND}px)`,
+                    width: `${totalDuration * PIXELS_PER_SECOND}px`,
+                    minWidth: '100%'
+                  }}
+                >
+                  {videos
+                    .filter((v) => v.gridId === "grid-3")
+                    .map((video, index) => {
+                      const { leftPixels, widthPixels } = getVideoPosition(video);
+                      const isSelected = video.id === selectedVideoId;
+                      const frames = videoFrames.get(video.id) || [];
+                      const colorClass = "bg-purple-600";
+
+                      return (
+                        <div
+                          key={video.id}
+                          className="absolute inset-y-0"
+                          style={{
+                            left: `${leftPixels}px`,
+                            width: `${widthPixels}px`
+                          }}
+                        >
+                          {renderVideoSegment(
+                            video,
+                            index,
+                            0,
+                            100,
+                            isSelected,
+                            frames,
+                            colorClass,
+                            0,
+                            0
+                          )}
+                        </div>
+                      );
+                    })}
+                </div>
+                {/* Track 3 Label */}
+                <div className="absolute left-2 top-1 text-xs font-medium text-gray-500 bg-gray-800/80 px-2 py-1 rounded z-40">
+                  Track 3
                 </div>
               </div>
             </div>
