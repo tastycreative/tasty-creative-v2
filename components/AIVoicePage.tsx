@@ -295,15 +295,15 @@ const AIVoicePage = () => {
   // Function to get status indicator props - simplified to 3 states
   const getStatusIndicator = (status: ProfileStatus) => {
     switch (status) {
-      case "healthy":
+       case "healthy":
         return {
-          color: "bg-pink-400",
+          color: "bg-green-400",
           pulse: false,
           tooltip: "Account is healthy with plenty of credits",
         };
       case "low-credits":
         return {
-          color: "bg-rose-400",
+          color: "bg-yellow-400",
           pulse: true,
           tooltip: "Low credits (below 100,000 remaining)",
         };
@@ -861,7 +861,7 @@ const AIVoicePage = () => {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-pink-400 rounded-full"></div>
+                <div className="w-3 h-3 bg-green-400 rounded-full"></div>
                 <div>
                   <p className="text-gray-700 font-medium">Green - Healthy</p>
                   <p className="text-sm text-gray-600">
@@ -870,7 +870,7 @@ const AIVoicePage = () => {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-rose-400 rounded-full animate-pulse"></div>
+                <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
                 <div>
                   <p className="text-gray-700 font-medium">Yellow - Low Credits</p>
                   <p className="text-sm text-gray-600">

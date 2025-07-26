@@ -2,6 +2,9 @@ export interface VideoEffects {
   blur: number;
   speed: number; // Video playback speed multiplier (0.5 = half speed, 2.0 = double speed)
   selectiveBlur?: SelectiveBlurRegion[]; // Optional selective blur regions
+  scale: number; // Video scale (0.1 = 10%, 1.0 = 100%, 2.0 = 200%)
+  positionX: number; // X position offset as percentage (-100 to 100)
+  positionY: number; // Y position offset as percentage (-100 to 100)
 }
 
 export interface SelectiveBlurRegion {
@@ -25,6 +28,7 @@ export interface VideoSequenceItem {
   thumbnail?: string;
   trimStart?: number; // Time (in seconds) to start the video from (default: 0)
   trimEnd?: number; // Time (in seconds) to end the video at (default: duration)
+  gridId?: string; // Which grid this video belongs to (for side-by-side layout)
 }
 
 export interface ExportSettings {
@@ -35,6 +39,7 @@ export interface ExportSettings {
   startTime: number;
   endTime: number;
   format: "gif" | "mp4" | "webm"; // Export format options
+  forceSquare: boolean; // Force square aspect ratio output
 }
 
 export interface TimelinePosition {

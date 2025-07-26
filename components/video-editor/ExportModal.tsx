@@ -20,12 +20,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({
 }) => {
   const [settings, setSettings] = useState<ExportSettings>({
     fps: 30, // Default to 30 FPS for video formats
-    width: 1280,
-    height: 720,
+    width: 400, // Square format
+    height: 400, // Square format
     quality: 75,
     startTime: 0,
     endTime: totalDuration,
     format: "mp4", // Default to MP4 for better quality
+    forceSquare: true, // Always force square output
   });
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
@@ -38,23 +39,31 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     }));
   }, [totalDuration]);
 
-  // Update FPS and quality defaults when format changes
+  // Update FPS and enforce square aspect ratio when format changes
   React.useEffect(() => {
     if (settings.format === "gif") {
-      setSettings((prev) => ({
-        ...prev,
-        fps: prev.fps > 30 ? 15 : prev.fps,
-        width: prev.width > 640 ? 480 : prev.width,
-        height: prev.height > 480 ? 320 : prev.height,
-      }));
+      setSettings((prev) => {
+        const size = Math.min(prev.width, prev.height, 400); // Max 400px for GIF
+        return {
+          ...prev,
+          fps: prev.fps > 30 ? 15 : prev.fps,
+          width: size,
+          height: size, // Always square
+          forceSquare: true,
+        };
+      });
     } else {
       // For video formats, ensure minimum quality settings
-      setSettings((prev) => ({
-        ...prev,
-        fps: prev.fps < 15 ? 30 : prev.fps,
-        width: prev.width < 480 ? 1280 : prev.width,
-        height: prev.height < 320 ? 720 : prev.height,
-      }));
+      setSettings((prev) => {
+        const size = Math.max(Math.min(prev.width, prev.height), 400); // Min 400px for video
+        return {
+          ...prev,
+          fps: prev.fps < 15 ? 30 : prev.fps,
+          width: size,
+          height: size, // Always square
+          forceSquare: true,
+        };
+      });
     }
   }, [settings.format]);
 
