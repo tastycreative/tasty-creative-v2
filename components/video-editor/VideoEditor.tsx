@@ -738,7 +738,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
               }`}
             >
               <div className={editingBlur ? "" : "lg:col-span-3"}>
-                <div className="w-full max-w-[min(100vw,500px)] aspect-square mx-auto flex items-center justify-center">
+                <div className="w-full h-full bg-gradient-to-br from-gray-50 via-white to-pink-50 backdrop-blur-sm rounded-xl border border-pink-300 shadow-lg ">
                   <VideoPreview
                     videos={videos}
                     currentTime={currentTime}
