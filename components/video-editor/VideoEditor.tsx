@@ -498,7 +498,10 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                         : "text-gray-600 hover:bg-gray-200"
                     }`}
                   >
-                    <Grid3x3 className="w-4 h-4" />
+                    <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="2" y="2" width="12" height="12" rx="1"/>
+                      <line x1="8" y1="2" x2="8" y2="14"/>
+                    </svg>
                     <span>Side-by-Side</span>
                   </button>
                 </div>

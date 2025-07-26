@@ -1271,8 +1271,8 @@ export const Timeline: React.FC<TimelineProps> = ({
         onMouseLeave={handleTimelineMouseLeave}
         onWheel={handleScroll}
       >
-        {/* Add Sequence Buttons for Grid 1 and Grid 2 (side-by-side only) */}
-        {layout === "side-by-side" && (
+        {/* Add Sequence Buttons */}
+        {layout === "side-by-side" ? (
           <>
             {/* Grid 1 Add Button */}
             {(() => {
@@ -1338,6 +1338,31 @@ export const Timeline: React.FC<TimelineProps> = ({
               );
             })()}
           </>
+        ) : (
+          /* Single Layout Add Button */
+          <button
+            key="single-add"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddSequence?.();
+            }}
+            className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-pink-600 hover:bg-pink-700 text-white rounded-lg opacity-60 hover:opacity-100 focus:outline-none"
+            style={{
+              right: "8px",
+              top: "50%",
+              transform: "translateY(-50%)",
+              width: "32px",
+              height: "32px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              pointerEvents: "auto",
+              zIndex: 1000,
+            }}
+            title="Add sequence to timeline"
+          >
+            <Plus className="w-5 h-5" />
+          </button>
         )}
 
         {/* Blur overlay area */}
