@@ -21,8 +21,8 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
   videos,
   currentTime,
   isPlaying,
-  width = 400,
-  height = 400, // Always square
+  width = 550,
+  height = 550, // Always square
   onTimeUpdate,
   layout = "single",
   activeGridId = "grid-1",
