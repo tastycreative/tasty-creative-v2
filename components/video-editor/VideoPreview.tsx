@@ -775,9 +775,9 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                     className="absolute inset-0 cursor-pointer group transition-all duration-200"
                     onClick={() => onGridClick("grid-1")}
                   >
-                    <div className="absolute inset-0 bg-blue-500/20 group-hover:bg-blue-500/40 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-pink-500/20 group-hover:bg-pink-500/40 flex items-center justify-center">
                       <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                        Click to upload to Grid 1
+                        Click to upload to Track 1
                       </div>
                     </div>
                   </div>
@@ -798,9 +798,9 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                     className="absolute inset-0 cursor-pointer group transition-all duration-200"
                     onClick={() => onGridClick("grid-2")}
                   >
-                    <div className="absolute inset-0 bg-green-500/20 group-hover:bg-green-500/40 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-rose-500/20 group-hover:bg-rose-500/40 flex items-center justify-center">
                       <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                        Click to upload to Grid 2
+                        Click to upload to Track 2
                       </div>
                     </div>
                   </div>
@@ -830,9 +830,9 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                     className="absolute inset-0 cursor-pointer group transition-all duration-200"
                     onClick={() => onGridClick("grid-1")}
                   >
-                    <div className="absolute inset-0 bg-blue-500/20 group-hover:bg-blue-500/40 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-pink-500/20 group-hover:bg-pink-500/40 flex items-center justify-center">
                       <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                        Click to upload to Grid 1
+                        Click to upload to Track 1
                       </div>
                     </div>
                   </div>
@@ -853,9 +853,9 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                     className="absolute inset-0 cursor-pointer group transition-all duration-200"
                     onClick={() => onGridClick("grid-2")}
                   >
-                    <div className="absolute inset-0 bg-green-500/20 group-hover:bg-green-500/40 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-rose-500/20 group-hover:bg-rose-500/40 flex items-center justify-center">
                       <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                        Click to upload to Grid 2
+                        Click to upload to Track 2
                       </div>
                     </div>
                   </div>
@@ -876,9 +876,9 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                     className="absolute inset-0 cursor-pointer group transition-all duration-200"
                     onClick={() => onGridClick("grid-3")}
                   >
-                    <div className="absolute inset-0 bg-purple-500/20 group-hover:bg-purple-500/40 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-pink-600/20 group-hover:bg-pink-600/40 flex items-center justify-center">
                       <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                        Click to upload to Grid 3
+                        Click to upload to Track 3
                       </div>
                     </div>
                   </div>
@@ -908,9 +908,9 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                     className="absolute inset-0 cursor-pointer group transition-all duration-200"
                     onClick={() => onGridClick("grid-1")}
                   >
-                    <div className="absolute inset-0 bg-blue-500/20 group-hover:bg-blue-500/40 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-pink-500/20 group-hover:bg-pink-500/40 flex items-center justify-center">
                       <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                        Click to upload to Grid 1
+                        Click to upload to Track 1
                       </div>
                     </div>
                   </div>
@@ -931,9 +931,9 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                     className="absolute inset-0 cursor-pointer group transition-all duration-200"
                     onClick={() => onGridClick("grid-2")}
                   >
-                    <div className="absolute inset-0 bg-green-500/20 group-hover:bg-green-500/40 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-rose-500/20 group-hover:bg-rose-500/40 flex items-center justify-center">
                       <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                        Click to upload to Grid 2
+                        Click to upload to Track 2
                       </div>
                     </div>
                   </div>
@@ -954,9 +954,9 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                     className="absolute inset-0 cursor-pointer group transition-all duration-200"
                     onClick={() => onGridClick("grid-3")}
                   >
-                    <div className="absolute inset-0 bg-purple-500/20 group-hover:bg-purple-500/40 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-pink-600/20 group-hover:bg-pink-600/40 flex items-center justify-center">
                       <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                        Click to upload to Grid 3
+                        Click to upload to Track 3
                       </div>
                     </div>
                   </div>
@@ -987,9 +987,9 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                     className="absolute inset-0 cursor-pointer group transition-all duration-200"
                     onClick={() => onGridClick("grid-1")}
                   >
-                    <div className="absolute inset-0 bg-blue-500/20 group-hover:bg-blue-500/40 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-pink-500/20 group-hover:bg-pink-500/40 flex items-center justify-center">
                       <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                        Click to upload to Grid 1
+                        Click to upload to Track 1
                       </div>
                     </div>
                   </div>
@@ -1010,9 +1010,9 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                     className="absolute inset-0 cursor-pointer group transition-all duration-200"
                     onClick={() => onGridClick("grid-2")}
                   >
-                    <div className="absolute inset-0 bg-green-500/20 group-hover:bg-green-500/40 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-rose-500/20 group-hover:bg-rose-500/40 flex items-center justify-center">
                       <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                        Click to upload to Grid 2
+                        Click to upload to Track 2
                       </div>
                     </div>
                   </div>
@@ -1033,9 +1033,9 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                     className="absolute inset-0 cursor-pointer group transition-all duration-200"
                     onClick={() => onGridClick("grid-3")}
                   >
-                    <div className="absolute inset-0 bg-purple-500/20 group-hover:bg-purple-500/40 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-pink-600/20 group-hover:bg-pink-600/40 flex items-center justify-center">
                       <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                        Click to upload to Grid 3
+                        Click to upload to Track 3
                       </div>
                     </div>
                   </div>
@@ -1057,9 +1057,9 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                     className="absolute inset-0 cursor-pointer group transition-all duration-200"
                     onClick={() => onGridClick("grid-4")}
                   >
-                    <div className="absolute inset-0 bg-yellow-500/20 group-hover:bg-yellow-500/40 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-rose-600/20 group-hover:bg-rose-600/40 flex items-center justify-center">
                       <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                        Click to upload to Grid 4
+                        Click to upload to Track 4
                       </div>
                     </div>
                   </div>

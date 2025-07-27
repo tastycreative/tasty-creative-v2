@@ -1315,7 +1315,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                     e.stopPropagation();
                     onAddSequence?.("grid-1");
                   }}
-                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-blue-600 hover:bg-blue-700 text-white rounded-lg opacity-60 hover:opacity-100 focus:outline-none"
+                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-pink-600 hover:bg-pink-700 text-white rounded-lg opacity-60 hover:opacity-100 focus:outline-none"
                   style={{
                     right: "8px",
                     top: topOffset + singleTrackHeight / 2 - 16,
@@ -1347,7 +1347,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                     e.stopPropagation();
                     onAddSequence?.("grid-2");
                   }}
-                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-green-600 hover:bg-green-700 text-white rounded-lg opacity-60 hover:opacity-100 focus:outline-none"
+                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-rose-600 hover:bg-rose-700 text-white rounded-lg opacity-60 hover:opacity-100 focus:outline-none"
                   style={{
                     right: "8px",
                     top: topOffset + singleTrackHeight / 2 - 16,
@@ -1380,7 +1380,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                     e.stopPropagation();
                     onAddSequence?.("grid-1");
                   }}
-                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-blue-600 hover:bg-blue-700 text-white rounded-lg opacity-60 hover:opacity-100 focus:outline-none"
+                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-pink-600 hover:bg-pink-700 text-white rounded-lg opacity-60 hover:opacity-100 focus:outline-none"
                   style={{
                     right: "8px",
                     top: topOffset + singleTrackHeight / 2 - 16,
@@ -1411,7 +1411,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                     e.stopPropagation();
                     onAddSequence?.("grid-2");
                   }}
-                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-green-600 hover:bg-green-700 text-white rounded-lg opacity-60 hover:opacity-100 focus:outline-none"
+                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-rose-600 hover:bg-rose-700 text-white rounded-lg opacity-60 hover:opacity-100 focus:outline-none"
                   style={{
                     right: "8px",
                     top: topOffset + singleTrackHeight / 2 - 16,
@@ -1442,7 +1442,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                     e.stopPropagation();
                     onAddSequence?.("grid-3");
                   }}
-                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-purple-600 hover:bg-purple-700 text-white rounded-lg opacity-60 hover:opacity-100 focus:outline-none"
+                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-pink-700 hover:bg-pink-800 text-white rounded-lg opacity-60 hover:opacity-100 focus:outline-none"
                   style={{
                     right: "8px",
                     top: topOffset + singleTrackHeight / 2 - 16,
@@ -1475,7 +1475,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                     e.stopPropagation();
                     onAddSequence?.("grid-1");
                   }}
-                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-blue-600 hover:bg-blue-700 text-white rounded-lg opacity-60 hover:opacity-100 focus:outline-none"
+                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-pink-600 hover:bg-pink-700 text-white rounded-lg opacity-60 hover:opacity-100 focus:outline-none"
                   style={{
                     right: "8px",
                     top: topOffset + singleTrackHeight / 2 - 16,
@@ -1505,7 +1505,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                     e.stopPropagation();
                     onAddSequence?.("grid-2");
                   }}
-                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-green-600 hover:bg-green-700 text-white rounded-lg opacity-60 hover:opacity-100 focus:outline-none"
+                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-rose-600 hover:bg-rose-700 text-white rounded-lg opacity-60 hover:opacity-100 focus:outline-none"
                   style={{
                     right: "8px",
                     top: topOffset + singleTrackHeight / 2 - 16,
@@ -1535,7 +1535,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                     e.stopPropagation();
                     onAddSequence?.("grid-3");
                   }}
-                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-purple-600 hover:bg-purple-700 text-white rounded-lg opacity-60 hover:opacity-100 focus:outline-none"
+                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-pink-700 hover:bg-pink-800 text-white rounded-lg opacity-60 hover:opacity-100 focus:outline-none"
                   style={{
                     right: "8px",
                     top: topOffset + singleTrackHeight / 2 - 16,
@@ -1565,7 +1565,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                     e.stopPropagation();
                     onAddSequence?.("grid-4");
                   }}
-                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg opacity-60 hover:opacity-100 focus:outline-none"
+                  className="add-sequence-btn absolute cursor-pointer transition-all duration-200 bg-rose-700 hover:bg-rose-800 text-white rounded-lg opacity-60 hover:opacity-100 focus:outline-none"
                   style={{
                     right: "8px",
                     top: topOffset + singleTrackHeight / 2 - 16,
@@ -1773,7 +1773,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                       const { leftPixels, widthPixels } = getVideoPosition(video);
                       const isSelected = video.id === selectedVideoId;
                       const frames = videoFrames.get(video.id) || [];
-                      const colorClass = "bg-blue-600";
+                      const colorClass = "bg-pink-600";
 
                       return (
                         <div
@@ -1830,7 +1830,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                       const { leftPixels, widthPixels } = getVideoPosition(video);
                       const isSelected = video.id === selectedVideoId;
                       const frames = videoFrames.get(video.id) || [];
-                      const colorClass = "bg-green-600";
+                      const colorClass = "bg-rose-600";
 
                       return (
                         <div
@@ -1887,7 +1887,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                       const { leftPixels, widthPixels } = getVideoPosition(video);
                       const isSelected = video.id === selectedVideoId;
                       const frames = videoFrames.get(video.id) || [];
-                      const colorClass = "bg-blue-600";
+                      const colorClass = "bg-pink-600";
 
                       return (
                         <div
@@ -1944,7 +1944,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                       const { leftPixels, widthPixels } = getVideoPosition(video);
                       const isSelected = video.id === selectedVideoId;
                       const frames = videoFrames.get(video.id) || [];
-                      const colorClass = "bg-green-600";
+                      const colorClass = "bg-rose-600";
 
                       return (
                         <div
@@ -2001,7 +2001,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                       const { leftPixels, widthPixels } = getVideoPosition(video);
                       const isSelected = video.id === selectedVideoId;
                       const frames = videoFrames.get(video.id) || [];
-                      const colorClass = "bg-purple-600";
+                      const colorClass = "bg-pink-700";
 
                       return (
                         <div
@@ -2058,7 +2058,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                       const { leftPixels, widthPixels } = getVideoPosition(video);
                       const isSelected = video.id === selectedVideoId;
                       const frames = videoFrames.get(video.id) || [];
-                      const colorClass = "bg-blue-600";
+                      const colorClass = "bg-pink-600";
 
                       return (
                         <div
@@ -2112,7 +2112,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                       const { leftPixels, widthPixels } = getVideoPosition(video);
                       const isSelected = video.id === selectedVideoId;
                       const frames = videoFrames.get(video.id) || [];
-                      const colorClass = "bg-green-600";
+                      const colorClass = "bg-rose-600";
 
                       return (
                         <div
@@ -2166,7 +2166,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                       const { leftPixels, widthPixels } = getVideoPosition(video);
                       const isSelected = video.id === selectedVideoId;
                       const frames = videoFrames.get(video.id) || [];
-                      const colorClass = "bg-purple-600";
+                      const colorClass = "bg-pink-700";
 
                       return (
                         <div
@@ -2219,7 +2219,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                       const { leftPixels, widthPixels } = getVideoPosition(video);
                       const isSelected = video.id === selectedVideoId;
                       const frames = videoFrames.get(video.id) || [];
-                      const colorClass = "bg-yellow-600";
+                      const colorClass = "bg-rose-700";
 
                       return (
                         <div
