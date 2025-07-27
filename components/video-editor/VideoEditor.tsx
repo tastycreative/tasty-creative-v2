@@ -25,11 +25,6 @@ import {
 
 export type VideoLayout = "single" | "side-by-side" | "vertical-triptych" | "horizontal-triptych";
 
-export interface LayoutGrid {
-  id: string;
-  name: string;
-  active: boolean;
-}
 
 interface VideoEditorProps {
   modelName?: string;
@@ -93,6 +88,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
 
   // Layout state
   const [currentLayout, setCurrentLayout] = useState<VideoLayout>("single");
+  const [activeGridId, setActiveGridId] = useState<string>("grid-1");
 
   // When switching to multi-grid layouts, assign gridId: 'grid-1' to videos without gridId
   useEffect(() => {
@@ -108,12 +104,6 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
       }
     }
   }, [currentLayout, videos, setVideos]);
-  const [layoutGrids] = useState<LayoutGrid[]>([
-    { id: "grid-1", name: "Grid 1", active: true },
-    { id: "grid-2", name: "Grid 2", active: false },
-    { id: "grid-3", name: "Grid 3", active: false },
-  ]);
-  const [activeGridId, setActiveGridId] = useState<string>("grid-1");
   const gridFileInputRef = useRef<HTMLInputElement>(null);
 
   // Update formData when modelName prop changes
@@ -151,7 +141,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
     } finally {
       setIsUploading(false);
     }
-  }, [addVideos, currentLayout, activeGridId, getFinalModelValue]);
+  }, [addVideos, currentLayout, getFinalModelValue]);
 
   // Auto-download Google Drive file when fileId param exists and permissions are loaded
   useEffect(() => {
@@ -537,35 +527,6 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                   </button>
                 </div>
 
-                {/* Grid Selector - Show for multi-grid layouts */}
-                {(currentLayout === "side-by-side" || currentLayout === "vertical-triptych" || currentLayout === "horizontal-triptych") && (
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-600">Active Grid:</span>
-                    <div className="flex bg-gray-50 rounded-lg p-1">
-                      {layoutGrids
-                        .filter((grid) => 
-                          currentLayout === "side-by-side" 
-                            ? ["grid-1", "grid-2"].includes(grid.id)
-                            : currentLayout === "vertical-triptych" || currentLayout === "horizontal-triptych"
-                            ? ["grid-1", "grid-2", "grid-3"].includes(grid.id)
-                            : true
-                        )
-                        .map((grid) => (
-                        <button
-                          key={grid.id}
-                          onClick={() => setActiveGridId(grid.id)}
-                          className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                            activeGridId === grid.id
-                              ? "bg-rose-500 text-white"
-                              : "text-gray-600 hover:bg-gray-200"
-                          }`}
-                        >
-                          {grid.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>

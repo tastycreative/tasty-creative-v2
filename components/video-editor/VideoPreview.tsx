@@ -670,65 +670,63 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
         {/* Overlay for current video info removed as requested */}
 
         {/* Grid Click Overlays for Side-by-Side Layout */}
-        {layout === "side-by-side" && onGridClick && (
-          <>
-            {/* Grid 1 Clickable Area - exactly matches canvas division */}
-            <div
-              className="absolute top-0 left-0 h-full"
-              style={{ width: `${Math.ceil(width / 2)}px` }}
-            >
-              {!videos.some((v) => v.gridId === "grid-1") ? (
-                <div
-                  className="absolute inset-0 cursor-pointer group transition-all duration-200"
-                  onClick={() => onGridClick("grid-1")}
-                >
-                  <div className="absolute inset-0 bg-blue-500/20 group-hover:bg-blue-500/40 flex items-center justify-center">
-                    <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                      Click to upload to Grid 1
+        {layout === "side-by-side" && onGridClick && (() => {
+          const halfWidth = width / 2;
+          
+          return (
+            <>
+              {/* Grid 1 Clickable Area - exactly matches canvas division */}
+              <div
+                className="absolute top-0 left-0"
+                style={{ 
+                  width: `${halfWidth}px`,
+                  height: `${height}px`
+                }}
+              >
+                {!videos.some((v) => v.gridId === "grid-1") ? (
+                  <div
+                    className="absolute inset-0 cursor-pointer group transition-all duration-200"
+                    onClick={() => onGridClick("grid-1")}
+                  >
+                    <div className="absolute inset-0 bg-blue-500/20 group-hover:bg-blue-500/40 flex items-center justify-center">
+                      <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                        Click to upload to Grid 1
+                      </div>
                     </div>
                   </div>
-                </div>
-              ) : null}
-              {activeGridId === "grid-1" && (
-                <div className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded text-xs font-medium">
-                  Active Grid
-                </div>
-              )}
-            </div>
+                ) : null}
+              </div>
 
-            {/* Grid 2 Clickable Area - exactly matches canvas division */}
-            <div
-              className="absolute top-0 h-full"
-              style={{
-                left: `${Math.ceil(width / 2)}px`,
-                width: `${width - Math.ceil(width / 2)}px`,
-              }}
-            >
-              {!videos.some((v) => v.gridId === "grid-2") ? (
-                <div
-                  className="absolute inset-0 cursor-pointer group transition-all duration-200"
-                  onClick={() => onGridClick("grid-2")}
-                >
-                  <div className="absolute inset-0 bg-green-500/20 group-hover:bg-green-500/40 flex items-center justify-center">
-                    <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
-                      Click to upload to Grid 2
+              {/* Grid 2 Clickable Area - exactly matches canvas division */}
+              <div
+                className="absolute top-0"
+                style={{
+                  left: `${halfWidth}px`,
+                  width: `${halfWidth}px`,
+                  height: `${height}px`
+                }}
+              >
+                {!videos.some((v) => v.gridId === "grid-2") ? (
+                  <div
+                    className="absolute inset-0 cursor-pointer group transition-all duration-200"
+                    onClick={() => onGridClick("grid-2")}
+                  >
+                    <div className="absolute inset-0 bg-green-500/20 group-hover:bg-green-500/40 flex items-center justify-center">
+                      <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                        Click to upload to Grid 2
+                      </div>
                     </div>
                   </div>
-                </div>
-              ) : null}
-              {activeGridId === "grid-2" && (
-                <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded text-xs font-medium">
-                  Active Grid
-                </div>
-              )}
-            </div>
-          </>
-        )}
+                ) : null}
+              </div>
+            </>
+          );
+        })()}
 
         {/* Grid Click Overlays for Vertical Triptych Layout */}
         {layout === "vertical-triptych" && onGridClick && (() => {
-          // Calculate total canvas dimensions and divide by layout
-          const gridHeight = height / 3;
+          // Use same calculation as canvas rendering for exact match
+          const sectionHeight = height / 3;
           
           return (
             <>
@@ -737,7 +735,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                 className="absolute left-0 top-0"
                 style={{
                   width: `${width}px`,
-                  height: `${gridHeight}px`,
+                  height: `${sectionHeight}px`,
                 }}
               >
                 {!videos.some((v) => v.gridId === "grid-1") ? (
@@ -763,9 +761,9 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
               <div
                 className="absolute left-0"
                 style={{
-                  top: `${gridHeight}px`,
+                  top: `${sectionHeight}px`,
                   width: `${width}px`,
-                  height: `${gridHeight}px`,
+                  height: `${sectionHeight}px`,
                 }}
               >
                 {!videos.some((v) => v.gridId === "grid-2") ? (
@@ -780,20 +778,15 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                     </div>
                   </div>
                 ) : null}
-                {activeGridId === "grid-2" && (
-                  <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded text-xs font-medium">
-                    Active Grid
-                  </div>
-                )}
               </div>
 
               {/* Grid 3 Clickable Area (bottom) */}
               <div
                 className="absolute left-0"
                 style={{
-                  top: `${gridHeight * 2}px`,
+                  top: `${sectionHeight * 2}px`,
                   width: `${width}px`,
-                  height: `${gridHeight}px`,
+                  height: `${sectionHeight}px`,
                 }}
               >
                 {!videos.some((v) => v.gridId === "grid-3") ? (
@@ -808,11 +801,6 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                     </div>
                   </div>
                 ) : null}
-                {activeGridId === "grid-3" && (
-                  <div className="absolute top-2 left-2 bg-purple-500 text-white px-2 py-1 rounded text-xs font-medium">
-                    Active Grid
-                  </div>
-                )}
               </div>
             </>
           );
@@ -820,8 +808,8 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
 
         {/* Grid Click Overlays for Horizontal Triptych Layout */}
         {layout === "horizontal-triptych" && onGridClick && (() => {
-          // Calculate total canvas dimensions and divide by layout
-          const gridWidth = width / 3;
+          // Use same calculation as canvas rendering for exact match
+          const sectionWidth = width / 3;
           
           return (
             <>
@@ -829,7 +817,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
               <div
                 className="absolute left-0 top-0"
                 style={{
-                  width: `${gridWidth}px`,
+                  width: `${sectionWidth}px`,
                   height: `${height}px`,
                 }}
               >
@@ -856,8 +844,8 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
               <div
                 className="absolute top-0"
                 style={{
-                  left: `${gridWidth}px`,
-                  width: `${gridWidth}px`,
+                  left: `${sectionWidth}px`,
+                  width: `${sectionWidth}px`,
                   height: `${height}px`,
                 }}
               >
@@ -873,19 +861,14 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                     </div>
                   </div>
                 ) : null}
-                {activeGridId === "grid-2" && (
-                  <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded text-xs font-medium">
-                    Active Grid
-                  </div>
-                )}
               </div>
 
               {/* Grid 3 Clickable Area (right) */}
               <div
                 className="absolute top-0"
                 style={{
-                  left: `${gridWidth * 2}px`,
-                  width: `${gridWidth}px`,
+                  left: `${sectionWidth * 2}px`,
+                  width: `${sectionWidth}px`,
                   height: `${height}px`,
                 }}
               >
@@ -901,11 +884,6 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                     </div>
                   </div>
                 ) : null}
-                {activeGridId === "grid-3" && (
-                  <div className="absolute top-2 left-2 bg-purple-500 text-white px-2 py-1 rounded text-xs font-medium">
-                    Active Grid
-                  </div>
-                )}
               </div>
             </>
           );
