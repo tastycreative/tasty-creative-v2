@@ -658,19 +658,25 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
 
       <div
         className="relative bg-black rounded-lg overflow-hidden shadow-lg border-2 border-pink-200"
-        style={{ aspectRatio: "1/1" }}
+        style={{ 
+          aspectRatio: "1/1",
+          width: `${width}px`,
+          height: `${height}px`
+        }}
       >
         <canvas
           ref={canvasRef}
           width={width}
           height={height}
-          className="w-full h-full object-contain"
+          className="w-full h-full"
+          style={{ display: 'block' }}
         />
 
         {/* Overlay for current video info removed as requested */}
 
         {/* Grid Click Overlays for Side-by-Side Layout */}
         {layout === "side-by-side" && onGridClick && (() => {
+          // Use identical calculation as canvas rendering for perfect match
           const halfWidth = width / 2;
           
           return (
@@ -679,7 +685,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
               <div
                 className="absolute top-0 left-0"
                 style={{ 
-                  width: `${halfWidth}px`,
+                  width: `${Math.floor(halfWidth)}px`,
                   height: `${height}px`
                 }}
               >
@@ -701,8 +707,8 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
               <div
                 className="absolute top-0"
                 style={{
-                  left: `${halfWidth}px`,
-                  width: `${halfWidth}px`,
+                  left: `${Math.floor(halfWidth)}px`,
+                  width: `${width - Math.floor(halfWidth)}px`,
                   height: `${height}px`
                 }}
               >
@@ -725,7 +731,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
 
         {/* Grid Click Overlays for Vertical Triptych Layout */}
         {layout === "vertical-triptych" && onGridClick && (() => {
-          // Use same calculation as canvas rendering for exact match
+          // Use identical calculation as canvas rendering for perfect match
           const sectionHeight = height / 3;
           
           return (
@@ -735,7 +741,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                 className="absolute left-0 top-0"
                 style={{
                   width: `${width}px`,
-                  height: `${sectionHeight}px`,
+                  height: `${Math.floor(sectionHeight)}px`,
                 }}
               >
                 {!videos.some((v) => v.gridId === "grid-1") ? (
@@ -750,20 +756,15 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                     </div>
                   </div>
                 ) : null}
-                {activeGridId === "grid-1" && (
-                  <div className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded text-xs font-medium">
-                    Active Grid
-                  </div>
-                )}
               </div>
 
               {/* Grid 2 Clickable Area (middle) */}
               <div
                 className="absolute left-0"
                 style={{
-                  top: `${sectionHeight}px`,
+                  top: `${Math.floor(sectionHeight)}px`,
                   width: `${width}px`,
-                  height: `${sectionHeight}px`,
+                  height: `${Math.floor(sectionHeight)}px`,
                 }}
               >
                 {!videos.some((v) => v.gridId === "grid-2") ? (
@@ -784,9 +785,9 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
               <div
                 className="absolute left-0"
                 style={{
-                  top: `${sectionHeight * 2}px`,
+                  top: `${Math.floor(sectionHeight * 2)}px`,
                   width: `${width}px`,
-                  height: `${sectionHeight}px`,
+                  height: `${height - Math.floor(sectionHeight * 2)}px`,
                 }}
               >
                 {!videos.some((v) => v.gridId === "grid-3") ? (
@@ -808,7 +809,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
 
         {/* Grid Click Overlays for Horizontal Triptych Layout */}
         {layout === "horizontal-triptych" && onGridClick && (() => {
-          // Use same calculation as canvas rendering for exact match
+          // Use identical calculation as canvas rendering for perfect match
           const sectionWidth = width / 3;
           
           return (
@@ -817,7 +818,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
               <div
                 className="absolute left-0 top-0"
                 style={{
-                  width: `${sectionWidth}px`,
+                  width: `${Math.floor(sectionWidth)}px`,
                   height: `${height}px`,
                 }}
               >
@@ -833,19 +834,14 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                     </div>
                   </div>
                 ) : null}
-                {activeGridId === "grid-1" && (
-                  <div className="absolute top-2 left-2 bg-blue-500 text-white px-2 py-1 rounded text-xs font-medium">
-                    Active Grid
-                  </div>
-                )}
               </div>
 
               {/* Grid 2 Clickable Area (middle) */}
               <div
                 className="absolute top-0"
                 style={{
-                  left: `${sectionWidth}px`,
-                  width: `${sectionWidth}px`,
+                  left: `${Math.floor(sectionWidth)}px`,
+                  width: `${Math.floor(sectionWidth)}px`,
                   height: `${height}px`,
                 }}
               >
@@ -867,8 +863,8 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
               <div
                 className="absolute top-0"
                 style={{
-                  left: `${sectionWidth * 2}px`,
-                  width: `${sectionWidth}px`,
+                  left: `${Math.floor(sectionWidth * 2)}px`,
+                  width: `${width - Math.floor(sectionWidth * 2)}px`,
                   height: `${height}px`,
                 }}
               >
