@@ -144,15 +144,35 @@ export const useVideoSequence = () => {
         }
 
         const updated = prev.filter((v) => v.id !== id);
-        // Recalculate start and end times
-        return updated.map((video, index) => {
-          const startTime = index > 0 ? updated[index - 1].endTime : 0;
-          return {
-            ...video,
-            startTime,
-            endTime: startTime + video.duration,
-          };
-        });
+        
+        // If the removed video had a gridId, recalculate times for that grid only
+        if (videoToRemove?.gridId) {
+          const gridVideos = updated.filter(v => v.gridId === videoToRemove.gridId);
+          let runningTime = 0;
+          for (const v of gridVideos) {
+            v.startTime = runningTime;
+            v.endTime = runningTime + v.duration;
+            runningTime = v.endTime;
+          }
+          // Update the full list with recalculated grid videos
+          return updated.map(v => {
+            if (v.gridId === videoToRemove.gridId) {
+              const updated_grid = gridVideos.find(gv => gv.id === v.id);
+              return updated_grid ? { ...v, startTime: updated_grid.startTime, endTime: updated_grid.endTime } : v;
+            }
+            return v;
+          });
+        } else {
+          // Single layout: recalculate all start/end times sequentially
+          return updated.map((video, index) => {
+            const startTime = index > 0 ? updated[index - 1].endTime : 0;
+            return {
+              ...video,
+              startTime,
+              endTime: startTime + video.duration,
+            };
+          });
+        }
       });
 
       if (selectedVideoId === id) {
@@ -169,15 +189,42 @@ export const useVideoSequence = () => {
       newVideos.splice(dragIndex, 1);
       newVideos.splice(hoverIndex, 0, draggedVideo);
 
-      // Recalculate start and end times
-      return newVideos.map((video, index) => {
-        const startTime = index > 0 ? newVideos[index - 1].endTime : 0;
-        return {
-          ...video,
-          startTime,
-          endTime: startTime + video.duration,
-        };
-      });
+      // Recalculate start and end times per grid
+      const gridIds = new Set(newVideos.map(v => v.gridId).filter(Boolean));
+      
+      if (gridIds.size > 0) {
+        // Multi-grid layout: recalculate times per grid
+        for (const gridId of gridIds) {
+          const gridVideos = newVideos.filter(v => v.gridId === gridId);
+          let runningTime = 0;
+          for (const v of gridVideos) {
+            v.startTime = runningTime;
+            v.endTime = runningTime + v.duration;
+            runningTime = v.endTime;
+          }
+        }
+        
+        // Handle videos without gridId (single layout videos) separately
+        const singleVideos = newVideos.filter(v => !v.gridId);
+        let runningTime = 0;
+        for (const v of singleVideos) {
+          v.startTime = runningTime;
+          v.endTime = runningTime + v.duration;
+          runningTime = v.endTime;
+        }
+        
+        return newVideos;
+      } else {
+        // Single layout: recalculate all start/end times sequentially
+        return newVideos.map((video, index) => {
+          const startTime = index > 0 ? newVideos[index - 1].endTime : 0;
+          return {
+            ...video,
+            startTime,
+            endTime: startTime + video.duration,
+          };
+        });
+      }
     });
   }, []);
 
@@ -201,9 +248,11 @@ export const useVideoSequence = () => {
     const hasGridVideos = videos.some(v => v.gridId);
     
     if (hasGridVideos) {
-      // Side-by-side layout: calculate duration for each grid and return the maximum
+      // Multi-grid layout: calculate duration for each grid and return the maximum
       const grid1Videos = videos.filter(v => v.gridId === 'grid-1');
       const grid2Videos = videos.filter(v => v.gridId === 'grid-2');
+      const grid3Videos = videos.filter(v => v.gridId === 'grid-3');
+      const grid4Videos = videos.filter(v => v.gridId === 'grid-4');
       const singleVideos = videos.filter(v => !v.gridId);
 
       const calculateGridDuration = (gridVideos: typeof videos) => {
@@ -218,10 +267,12 @@ export const useVideoSequence = () => {
 
       const grid1Duration = calculateGridDuration(grid1Videos);
       const grid2Duration = calculateGridDuration(grid2Videos);
+      const grid3Duration = calculateGridDuration(grid3Videos);
+      const grid4Duration = calculateGridDuration(grid4Videos);
       const singleDuration = calculateGridDuration(singleVideos);
 
       // Return the maximum duration among all grids
-      return Math.max(grid1Duration, grid2Duration, singleDuration);
+      return Math.max(grid1Duration, grid2Duration, grid3Duration, grid4Duration, singleDuration);
     } else {
       // Single layout: sequential timing
       let totalDuration = 0;
@@ -242,8 +293,8 @@ export const useVideoSequence = () => {
     const hasGridVideos = videos.some(v => v.gridId);
     
     if (hasGridVideos) {
-      // For side-by-side, return the first video found in any grid at current time
-      const grids = ['grid-1', 'grid-2'];
+      // For multi-grid layouts, return the first video found in any grid at current time
+      const grids = ['grid-1', 'grid-2', 'grid-3', 'grid-4'];
       
       for (const gridId of grids) {
         const gridVideos = videos.filter(v => v.gridId === gridId);

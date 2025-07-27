@@ -527,7 +527,7 @@ export const Timeline: React.FC<TimelineProps> = ({
       // Calculate cumulative start time and effective duration
       let cumulativeTime = 0;
 
-      if ((layout === "side-by-side" || layout === "vertical-triptych" || layout === "horizontal-triptych") && video.gridId) {
+      if ((layout === "side-by-side" || layout === "vertical-triptych" || layout === "horizontal-triptych" || layout === "grid-2x2") && video.gridId) {
         // For multi-grid layouts, only consider videos in the same grid for cumulative time
         const sameGridVideos = videos.filter((v) => v.gridId === video.gridId);
         for (const v of sameGridVideos) {
@@ -658,14 +658,20 @@ export const Timeline: React.FC<TimelineProps> = ({
         }
       } else if (layout === "grid-2x2") {
         // Determine which grid was clicked based on Y position
-        const totalTrackArea = (88 + (blurAreaHeight - 28)) * 4;
-        const singleTrackHeight = (totalTrackArea - 24) / 4; // 8px gap between each track
-        // Grid 1 is top, Grid 2 is second, Grid 3 is third, Grid 4 is bottom
-        if (clickY < singleTrackHeight + 8 / 4) {
+        // Each track: height = 25% - 3px, marginBottom = 2px
+        const totalTrackArea = (88 + (blurAreaHeight - 28)) * 4 + 12; // +12 for margins
+        const singleTrackHeight = (totalTrackArea - 6) / 4; // 6px total margin (3*2px between 4 tracks)
+        
+        // Calculate track boundaries to match rendering: calc(25% - 3px) + 2px margin
+        const track1End = singleTrackHeight;
+        const track2End = singleTrackHeight * 2 + 2; // + 2px margin
+        const track3End = singleTrackHeight * 3 + 4; // + 4px margins
+        
+        if (clickY < track1End) {
           videosInGrid = videos.filter((v) => v.gridId === "grid-1");
-        } else if (clickY < (singleTrackHeight + 8) * 2 + 8 / 4) {
+        } else if (clickY < track2End) {
           videosInGrid = videos.filter((v) => v.gridId === "grid-2");
-        } else if (clickY < (singleTrackHeight + 8) * 3 + 8 / 4) {
+        } else if (clickY < track3End) {
           videosInGrid = videos.filter((v) => v.gridId === "grid-3");
         } else {
           videosInGrid = videos.filter((v) => v.gridId === "grid-4");
@@ -1465,8 +1471,8 @@ export const Timeline: React.FC<TimelineProps> = ({
           <>
             {/* Grid 1 Add Button */}
             {(() => {
-              const totalTrackArea = (88 + (blurAreaHeight - 28)) * 4;
-              const singleTrackHeight = (totalTrackArea - 24) / 4;
+              const totalTrackArea = (88 + (blurAreaHeight - 28)) * 4 + 12; // +12 for margins
+              const singleTrackHeight = (totalTrackArea - 6) / 4; // 6px total margin
               const topOffset = 4;
               return (
                 <button
@@ -1495,9 +1501,9 @@ export const Timeline: React.FC<TimelineProps> = ({
             })()}
             {/* Grid 2 Add Button */}
             {(() => {
-              const totalTrackArea = (88 + (blurAreaHeight - 28)) * 4;
-              const singleTrackHeight = (totalTrackArea - 24) / 4;
-              const topOffset = singleTrackHeight + 8;
+              const totalTrackArea = (88 + (blurAreaHeight - 28)) * 4 + 12; // +12 for margins
+              const singleTrackHeight = (totalTrackArea - 6) / 4; // 6px total margin
+              const topOffset = singleTrackHeight + 2; // +2px margin
               return (
                 <button
                   key="grid-2-add"
@@ -1525,9 +1531,9 @@ export const Timeline: React.FC<TimelineProps> = ({
             })()}
             {/* Grid 3 Add Button */}
             {(() => {
-              const totalTrackArea = (88 + (blurAreaHeight - 28)) * 4;
-              const singleTrackHeight = (totalTrackArea - 24) / 4;
-              const topOffset = (singleTrackHeight + 8) * 2;
+              const totalTrackArea = (88 + (blurAreaHeight - 28)) * 4 + 12; // +12 for margins
+              const singleTrackHeight = (totalTrackArea - 6) / 4; // 6px total margin
+              const topOffset = singleTrackHeight * 2 + 4; // +4px margins
               return (
                 <button
                   key="grid-3-add"
@@ -1555,9 +1561,9 @@ export const Timeline: React.FC<TimelineProps> = ({
             })()}
             {/* Grid 4 Add Button */}
             {(() => {
-              const totalTrackArea = (88 + (blurAreaHeight - 28)) * 4;
-              const singleTrackHeight = (totalTrackArea - 24) / 4;
-              const topOffset = (singleTrackHeight + 8) * 3;
+              const totalTrackArea = (88 + (blurAreaHeight - 28)) * 4 + 12; // +12 for margins
+              const singleTrackHeight = (totalTrackArea - 6) / 4; // 6px total margin
+              const topOffset = singleTrackHeight * 3 + 6; // +6px margins
               return (
                 <button
                   key="grid-4-add"

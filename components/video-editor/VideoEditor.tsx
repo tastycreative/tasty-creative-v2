@@ -141,7 +141,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
     } finally {
       setIsUploading(false);
     }
-  }, [addVideos, currentLayout, getFinalModelValue]);
+  }, [addVideos, currentLayout, activeGridId, getFinalModelValue]);
 
   // Auto-download Google Drive file when fileId param exists and permissions are loaded
   useEffect(() => {
