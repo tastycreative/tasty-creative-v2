@@ -23,7 +23,7 @@ import {
   Square,
 } from "lucide-react";
 
-export type VideoLayout = "single" | "side-by-side" | "vertical-triptych" | "horizontal-triptych";
+export type VideoLayout = "single" | "side-by-side" | "vertical-triptych" | "horizontal-triptych" | "grid-2x2";
 
 
 interface VideoEditorProps {
@@ -92,7 +92,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
 
   // When switching to multi-grid layouts, assign gridId: 'grid-1' to videos without gridId
   useEffect(() => {
-    if (currentLayout === "side-by-side" || currentLayout === "vertical-triptych" || currentLayout === "horizontal-triptych") {
+    if (currentLayout === "side-by-side" || currentLayout === "vertical-triptych" || currentLayout === "horizontal-triptych" || currentLayout === "grid-2x2") {
       // Only update if there are videos without gridId
       const needsUpdate = videos.some((v) => !v.gridId);
       if (needsUpdate) {
@@ -133,7 +133,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
     try {
       console.log("Final model value:", getFinalModelValue());
       const gridId =
-        currentLayout === "side-by-side" || currentLayout === "vertical-triptych" || currentLayout === "horizontal-triptych" ? activeGridId : undefined;
+        currentLayout === "side-by-side" || currentLayout === "vertical-triptych" || currentLayout === "horizontal-triptych" || currentLayout === "grid-2x2" ? activeGridId : undefined;
       await addVideos(files, gridId);
     } catch (error) {
       console.error("Error adding videos:", error);
@@ -322,7 +322,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
 
   const handleAddSequence = (gridId?: string) => {
     const targetGridId =
-      gridId || (currentLayout === "side-by-side" || currentLayout === "vertical-triptych" || currentLayout === "horizontal-triptych" ? activeGridId : undefined);
+      gridId || (currentLayout === "side-by-side" || currentLayout === "vertical-triptych" || currentLayout === "horizontal-triptych" || currentLayout === "grid-2x2" ? activeGridId : undefined);
     setActiveGridId(targetGridId || "grid-1");
     // Trigger file input for the selected grid
     if (gridFileInputRef.current) {
@@ -524,6 +524,17 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                       <rect x="11" y="2" width="4" height="12" rx="0.5"/>
                     </svg>
                     <span>H-Triptych</span>
+                  </button>
+                  <button
+                    onClick={() => setCurrentLayout("grid-2x2")}
+                    className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${
+                      currentLayout === "grid-2x2"
+                        ? "bg-pink-600 text-white"
+                        : "text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    <Grid3x3 className="w-4 h-4" />
+                    <span>2×2 Grid</span>
                   </button>
                 </div>
 

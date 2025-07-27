@@ -93,6 +93,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
     const grid1Videos = videos.filter((v) => v.gridId === "grid-1");
     const grid2Videos = videos.filter((v) => v.gridId === "grid-2");
     const grid3Videos = videos.filter((v) => v.gridId === "grid-3");
+    const grid4Videos = videos.filter((v) => v.gridId === "grid-4");
 
     const grid1Current = grid1Videos.find(
       (video) => currentTime >= video.startTime && currentTime < video.endTime
@@ -103,8 +104,11 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
     const grid3Current = grid3Videos.find(
       (video) => currentTime >= video.startTime && currentTime < video.endTime
     );
+    const grid4Current = grid4Videos.find(
+      (video) => currentTime >= video.startTime && currentTime < video.endTime
+    );
 
-    return { grid1: grid1Current, grid2: grid2Current, grid3: grid3Current };
+    return { grid1: grid1Current, grid2: grid2Current, grid3: grid3Current, grid4: grid4Current };
   }, [videos, currentTime]);
 
   const renderFrame = useCallback(() => {
@@ -269,6 +273,67 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
         ctx.textAlign = "center";
         ctx.fillText("Grid 3", sectionWidth * 2 + sectionWidth / 2, height / 2);
       }
+    } else if (layout === "grid-2x2") {
+      // 2x2 grid layout - 4 equal sections
+      const currentVideos = getCurrentVideosByGrid();
+      const halfWidth = width / 2;
+      const halfHeight = height / 2;
+      
+      // Render grid 1 (top-left)
+      if (currentVideos.grid1) {
+        renderVideoToCanvas(ctx, currentVideos.grid1, 0, 0, halfWidth, halfHeight);
+      } else {
+        ctx.fillStyle = "#374151";
+        ctx.fillRect(0, 0, halfWidth, halfHeight);
+        ctx.fillStyle = "#9ca3af";
+        ctx.font = "14px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Grid 1", halfWidth / 2, halfHeight / 2);
+      }
+
+      // Draw vertical divider line
+      ctx.fillStyle = "#ffffff80";
+      ctx.fillRect(halfWidth - 1, 0, 2, height);
+
+      // Render grid 2 (top-right)
+      if (currentVideos.grid2) {
+        renderVideoToCanvas(ctx, currentVideos.grid2, halfWidth, 0, halfWidth, halfHeight);
+      } else {
+        ctx.fillStyle = "#374151";
+        ctx.fillRect(halfWidth, 0, halfWidth, halfHeight);
+        ctx.fillStyle = "#9ca3af";
+        ctx.font = "14px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Grid 2", halfWidth + halfWidth / 2, halfHeight / 2);
+      }
+
+      // Draw horizontal divider line
+      ctx.fillStyle = "#ffffff80";
+      ctx.fillRect(0, halfHeight - 1, width, 2);
+
+      // Render grid 3 (bottom-left)
+      if (currentVideos.grid3) {
+        renderVideoToCanvas(ctx, currentVideos.grid3, 0, halfHeight, halfWidth, halfHeight);
+      } else {
+        ctx.fillStyle = "#374151";
+        ctx.fillRect(0, halfHeight, halfWidth, halfHeight);
+        ctx.fillStyle = "#9ca3af";
+        ctx.font = "14px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Grid 3", halfWidth / 2, halfHeight + halfHeight / 2);
+      }
+
+      // Render grid 4 (bottom-right)
+      if (currentVideos.grid4) {
+        renderVideoToCanvas(ctx, currentVideos.grid4, halfWidth, halfHeight, halfWidth, halfHeight);
+      } else {
+        ctx.fillStyle = "#374151";
+        ctx.fillRect(halfWidth, halfHeight, halfWidth, halfHeight);
+        ctx.fillStyle = "#9ca3af";
+        ctx.font = "14px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Grid 4", halfWidth + halfWidth / 2, halfHeight + halfHeight / 2);
+      }
     }
   }, [
     getCurrentVideo,
@@ -309,7 +374,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
 
       // Find the cumulative start time for this video based on layout
       let cumulativeTime = 0;
-      if ((layout === "side-by-side" || layout === "vertical-triptych" || layout === "horizontal-triptych") && video.gridId) {
+      if ((layout === "side-by-side" || layout === "vertical-triptych" || layout === "horizontal-triptych" || layout === "grid-2x2") && video.gridId) {
         // For multi-grid layouts, only consider videos in the same grid
         const sameGridVideos = videos.filter((v) => v.gridId === video.gridId);
         for (const v of sameGridVideos) {
@@ -360,7 +425,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
         try {
           // --- CLIP TO GRID AREA FOR MULTI-GRID LAYOUTS ---
           let didClip = false;
-          if (layout === "side-by-side" || layout === "vertical-triptych" || layout === "horizontal-triptych") {
+          if (layout === "side-by-side" || layout === "vertical-triptych" || layout === "horizontal-triptych" || layout === "grid-2x2") {
             ctx.save();
             ctx.beginPath();
             ctx.rect(x, y, drawWidth, drawHeight);
@@ -504,7 +569,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
         }
       }
 
-      // Play Grid 3 video (for triptych layouts)
+      // Play Grid 3 video (for triptych and 2x2 layouts)
       if (
         currentVideos.grid3 &&
         isPlaying &&
@@ -515,6 +580,22 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
           videoElement.play().catch((error) => {
             if (error.name !== "AbortError") {
               console.error("Error playing Grid 3 video:", error);
+            }
+          });
+        }
+      }
+
+      // Play Grid 4 video (for 2x2 layout)
+      if (
+        currentVideos.grid4 &&
+        isPlaying &&
+        loadedVideos.has(currentVideos.grid4.id)
+      ) {
+        const videoElement = videoRefs.current[currentVideos.grid4.id];
+        if (videoElement && videoElement.readyState >= 2) {
+          videoElement.play().catch((error) => {
+            if (error.name !== "AbortError") {
+              console.error("Error playing Grid 4 video:", error);
             }
           });
         }
@@ -884,6 +965,109 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
             </>
           );
         })()}
+
+        {/* Grid Click Overlays for 2x2 Layout */}
+        {layout === "grid-2x2" && onGridClick && (() => {
+          // Use identical calculation as canvas rendering for perfect match
+          const halfWidth = width / 2;
+          const halfHeight = height / 2;
+          
+          return (
+            <>
+              {/* Grid 1 Clickable Area (top-left) */}
+              <div
+                className="absolute top-0 left-0"
+                style={{
+                  width: `${Math.floor(halfWidth)}px`,
+                  height: `${Math.floor(halfHeight)}px`,
+                }}
+              >
+                {!videos.some((v) => v.gridId === "grid-1") ? (
+                  <div
+                    className="absolute inset-0 cursor-pointer group transition-all duration-200"
+                    onClick={() => onGridClick("grid-1")}
+                  >
+                    <div className="absolute inset-0 bg-blue-500/20 group-hover:bg-blue-500/40 flex items-center justify-center">
+                      <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                        Click to upload to Grid 1
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Grid 2 Clickable Area (top-right) */}
+              <div
+                className="absolute top-0"
+                style={{
+                  left: `${Math.floor(halfWidth)}px`,
+                  width: `${width - Math.floor(halfWidth)}px`,
+                  height: `${Math.floor(halfHeight)}px`,
+                }}
+              >
+                {!videos.some((v) => v.gridId === "grid-2") ? (
+                  <div
+                    className="absolute inset-0 cursor-pointer group transition-all duration-200"
+                    onClick={() => onGridClick("grid-2")}
+                  >
+                    <div className="absolute inset-0 bg-green-500/20 group-hover:bg-green-500/40 flex items-center justify-center">
+                      <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                        Click to upload to Grid 2
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Grid 3 Clickable Area (bottom-left) */}
+              <div
+                className="absolute left-0"
+                style={{
+                  top: `${Math.floor(halfHeight)}px`,
+                  width: `${Math.floor(halfWidth)}px`,
+                  height: `${height - Math.floor(halfHeight)}px`,
+                }}
+              >
+                {!videos.some((v) => v.gridId === "grid-3") ? (
+                  <div
+                    className="absolute inset-0 cursor-pointer group transition-all duration-200"
+                    onClick={() => onGridClick("grid-3")}
+                  >
+                    <div className="absolute inset-0 bg-purple-500/20 group-hover:bg-purple-500/40 flex items-center justify-center">
+                      <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                        Click to upload to Grid 3
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Grid 4 Clickable Area (bottom-right) */}
+              <div
+                className="absolute"
+                style={{
+                  top: `${Math.floor(halfHeight)}px`,
+                  left: `${Math.floor(halfWidth)}px`,
+                  width: `${width - Math.floor(halfWidth)}px`,
+                  height: `${height - Math.floor(halfHeight)}px`,
+                }}
+              >
+                {!videos.some((v) => v.gridId === "grid-4") ? (
+                  <div
+                    className="absolute inset-0 cursor-pointer group transition-all duration-200"
+                    onClick={() => onGridClick("grid-4")}
+                  >
+                    <div className="absolute inset-0 bg-yellow-500/20 group-hover:bg-yellow-500/40 flex items-center justify-center">
+                      <div className="bg-black/70 text-white px-4 py-2 rounded-lg text-sm font-medium">
+                        Click to upload to Grid 4
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </>
+          );
+        })()}
       </div>
 
       {/* Video Info */}
@@ -927,6 +1111,13 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                     );
                     const index = grid3Videos.indexOf(currentVideos.grid3) + 1;
                     parts.push(`G3:${index}`);
+                  }
+                  if (currentVideos.grid4) {
+                    const grid4Videos = videos.filter(
+                      (v) => v.gridId === "grid-4"
+                    );
+                    const index = grid4Videos.indexOf(currentVideos.grid4) + 1;
+                    parts.push(`G4:${index}`);
                   }
                   return parts.length > 0 ? parts.join(", ") : "None";
                 })()}
