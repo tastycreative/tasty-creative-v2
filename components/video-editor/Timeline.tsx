@@ -7,6 +7,7 @@ import React, {
   useEffect,
   useRef,
 } from "react";
+import { useDebouncedCallback } from 'use-debounce';
 import { VideoSequenceItem, SelectiveBlurRegion } from "@/types/video";
 import {
   Play,
@@ -263,12 +264,23 @@ export const Timeline: React.FC<TimelineProps> = ({
   
   // Timeline constants
   const BASELINE_DURATION = 25; // 25 seconds at 100% zoom
-  const PIXELS_PER_SECOND = 60; // Consistent pixel scale for all calculations
+  const BASE_PIXELS_PER_SECOND = 60; // Base pixel scale for calculations
   
   // Zoom state management - 100% zoom = 25 seconds visible
   const [zoomLevel, setZoomLevel] = useState(1); // 1 = 100% (25s visible), 2 = 200% (12.5s visible), etc.
   const [viewportStart, setViewportStart] = useState(0); // Start time of visible viewport
   const [viewportEnd, setViewportEnd] = useState(0); // End time of visible viewport
+  const [debouncedZoomLevel, setDebouncedZoomLevel] = useState(1);
+  const [isZooming, setIsZooming] = useState(false);
+  
+  // Zoom-aware pixel scaling
+  const PIXELS_PER_SECOND = useMemo(() => {
+    return BASE_PIXELS_PER_SECOND * zoomLevel;
+  }, [zoomLevel]);
+  
+  // Transform optimization refs
+  const animationFrameRef = useRef<number | null>(null);
+  const transformRef = useRef<HTMLDivElement>(null);
   
   // Scrollbar state
   const [isDraggingScrollbar, setIsDraggingScrollbar] = useState(false);
@@ -320,11 +332,19 @@ export const Timeline: React.FC<TimelineProps> = ({
   // Timeline track top position - starts after blur area
   const timelineTrackTop = blurAreaHeight + 4;
   
+  // Debounced zoom update
+  const debouncedZoomUpdate = useDebouncedCallback((newZoom: number) => {
+    setDebouncedZoomLevel(newZoom);
+    setIsZooming(false);
+  }, 150);
+  
   // Zoom control functions
   const zoomIn = useCallback(() => {
     const newZoomLevel = Math.min(zoomLevel * 1.5, 10); // Max 10x zoom
+    setIsZooming(true);
     setZoomLevel(newZoomLevel);
-  }, [zoomLevel]);
+    debouncedZoomUpdate(newZoomLevel);
+  }, [zoomLevel, debouncedZoomUpdate]);
   
   const zoomOut = useCallback(() => {
     // Calculate minimum zoom level needed to show entire video
@@ -332,23 +352,30 @@ export const Timeline: React.FC<TimelineProps> = ({
     const absoluteMinZoom = Math.min(0.25, Math.max(0.05, minZoomForFullVideo)); // At least 5% zoom, but adapt to video length
     
     const newZoomLevel = Math.max(zoomLevel / 1.5, absoluteMinZoom);
+    setIsZooming(true);
     setZoomLevel(newZoomLevel);
-  }, [zoomLevel, totalDuration]);
+    debouncedZoomUpdate(newZoomLevel);
+  }, [zoomLevel, totalDuration, debouncedZoomUpdate]);
   
   const resetZoom = useCallback(() => {
+    setIsZooming(true);
     setZoomLevel(1);
     setViewportStart(0);
     setViewportEnd(Math.min(BASELINE_DURATION, totalDuration));
-  }, [totalDuration]);
+    debouncedZoomUpdate(1);
+  }, [totalDuration, debouncedZoomUpdate]);
 
   const fitToTimeline = useCallback(() => {
     if (totalDuration > 0) {
       const zoomToFit = BASELINE_DURATION / totalDuration;
-      setZoomLevel(Math.max(0.05, zoomToFit)); // Minimum 5% zoom
+      const newZoom = Math.max(0.05, zoomToFit); // Minimum 5% zoom
+      setIsZooming(true);
+      setZoomLevel(newZoom);
       setViewportStart(0);
       setViewportEnd(totalDuration);
+      debouncedZoomUpdate(newZoom);
     }
-  }, [totalDuration]);
+  }, [totalDuration, debouncedZoomUpdate]);
 
   // Scrollbar handlers
   const handleScrollbarMouseDown = useCallback((e: React.MouseEvent) => {
@@ -374,7 +401,7 @@ export const Timeline: React.FC<TimelineProps> = ({
     e.preventDefault();
   }, []);
   
-  // Update viewport when zoom level or total duration changes
+  // Update viewport when zoom level or total duration changes with boundary constraints
   useEffect(() => {
     if (totalDuration > 0) {
       // Calculate visible duration based on 25-second baseline
@@ -382,18 +409,34 @@ export const Timeline: React.FC<TimelineProps> = ({
       
       // Keep current time in center of viewport when zooming, or start at 0 if first time
       const currentCenter = viewportEnd === 0 ? 0 : (viewportStart + viewportEnd) / 2;
-      const newStart = Math.max(0, currentCenter - visibleDuration / 2);
-      const newEnd = Math.min(totalDuration, newStart + visibleDuration);
+      
+      // Ensure viewport stays within bounds
+      let newStart = Math.max(0, currentCenter - visibleDuration / 2);
+      let newEnd = Math.min(totalDuration, newStart + visibleDuration);
+      
+      // If we hit the end boundary, adjust start accordingly
+      if (newEnd >= totalDuration) {
+        newEnd = totalDuration;
+        newStart = Math.max(0, totalDuration - visibleDuration);
+      }
+      
+      // Prevent viewport from extending beyond content
+      if (newStart < 0) {
+        newStart = 0;
+        newEnd = Math.min(totalDuration, visibleDuration);
+      }
       
       setViewportStart(newStart);
       setViewportEnd(newEnd);
     }
-  }, [zoomLevel, totalDuration]);
+  }, [zoomLevel, totalDuration, viewportStart, viewportEnd]);
 
   // Initialize viewport when totalDuration first becomes available
   useEffect(() => {
     if (totalDuration > 0 && viewportEnd === 0) {
-      setViewportEnd(Math.min(BASELINE_DURATION, totalDuration));
+      const initialEnd = Math.min(BASELINE_DURATION, totalDuration);
+      setViewportEnd(initialEnd);
+      setViewportStart(0);
     }
   }, [totalDuration, viewportEnd]);
 
@@ -519,6 +562,23 @@ export const Timeline: React.FC<TimelineProps> = ({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   }, []);
 
+  // Unified positioning calculation for consistent segment and ruler alignment
+  const calculateTimeToPixels = useCallback((time: number) => {
+    return time * PIXELS_PER_SECOND;
+  }, [PIXELS_PER_SECOND]);
+  
+  const calculatePixelsToTime = useCallback((pixels: number) => {
+    return pixels / PIXELS_PER_SECOND;
+  }, [PIXELS_PER_SECOND]);
+
+  // Optimized transform calculation
+  const getOptimizedTransform = useCallback(() => {
+    const translateX = -calculateTimeToPixels(viewportStart);
+    const width = calculateTimeToPixels(totalDuration);
+    return { translateX, width };
+  }, [viewportStart, totalDuration, calculateTimeToPixels]);
+  
+  const { translateX, width } = getOptimizedTransform();
 
   const getVideoPosition = useCallback(
     (video: VideoSequenceItem) => {
@@ -562,40 +622,29 @@ export const Timeline: React.FC<TimelineProps> = ({
       const trimmedDuration = trimEnd - trimStart;
       const effectiveDuration = trimmedDuration / speedMultiplier;
 
-      // Calculate position in pixels based on total timeline width
-      // Use a fixed pixel-per-second ratio for consistent positioning
-      const leftPixels = cumulativeTime * PIXELS_PER_SECOND;
-      const widthPixels = Math.max(30, effectiveDuration * PIXELS_PER_SECOND); // Minimum 30px width
+      // Use unified positioning calculation
+      const leftPixels = calculateTimeToPixels(cumulativeTime);
+      const widthPixels = Math.max(30 * zoomLevel, calculateTimeToPixels(effectiveDuration)); // Minimum width scales with zoom
 
       return { leftPixels, widthPixels };
     },
-    [totalDuration, videos, layout]
+    [totalDuration, videos, layout, calculateTimeToPixels, zoomLevel]
   );
 
   const getCurrentPosition = useMemo(() => {
     if (totalDuration === 0 || viewportEnd === viewportStart) return "0%";
     
-    // Use the same calculation method as the timeline ruler for consistency
+    // Use unified calculation method for consistency with segments
     const visibleDuration = viewportEnd - viewportStart;
     
-    // Calculate percentage position within the visible viewport
-    if (currentTime < viewportStart || currentTime > viewportEnd) {
-      // Current time is outside viewport, position it accordingly
-      const timePixels = currentTime * PIXELS_PER_SECOND;
-      const viewportStartPixels = viewportStart * PIXELS_PER_SECOND;
-      const visiblePixels = visibleDuration * PIXELS_PER_SECOND;
-      const position = ((timePixels - viewportStartPixels) / visiblePixels) * 100;
-      return `${position}%`;
-    }
-    
-    // Current time is within viewport
-    const timePixels = currentTime * PIXELS_PER_SECOND;
-    const viewportStartPixels = viewportStart * PIXELS_PER_SECOND;
-    const visiblePixels = visibleDuration * PIXELS_PER_SECOND;
+    // Calculate percentage position within the visible viewport using unified functions
+    const timePixels = calculateTimeToPixels(currentTime);
+    const viewportStartPixels = calculateTimeToPixels(viewportStart);
+    const visiblePixels = calculateTimeToPixels(visibleDuration);
     const position = ((timePixels - viewportStartPixels) / visiblePixels) * 100;
     
     return `${Math.max(0, Math.min(100, position))}%`;
-  }, [currentTime, totalDuration, viewportStart, viewportEnd, PIXELS_PER_SECOND]);
+  }, [currentTime, totalDuration, viewportStart, viewportEnd, calculateTimeToPixels]);
 
   const handleTimelineClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -1710,8 +1759,9 @@ export const Timeline: React.FC<TimelineProps> = ({
             <div 
               className="relative h-full overflow-hidden"
               style={{
-                transform: `translateX(-${viewportStart * PIXELS_PER_SECOND}px)`,
-                width: `${totalDuration * PIXELS_PER_SECOND}px`,
+                transform: `translateX(${translateX}px)`,
+                width: `${width}px`,
+                willChange: isZooming ? 'transform' : 'auto',
                 minWidth: '100%'
               }}
             >
@@ -1768,8 +1818,9 @@ export const Timeline: React.FC<TimelineProps> = ({
                 <div 
                   className="absolute inset-0 overflow-hidden"
                   style={{
-                    transform: `translateX(-${viewportStart * PIXELS_PER_SECOND}px)`,
-                    width: `${totalDuration * PIXELS_PER_SECOND}px`,
+                    transform: `translateX(${translateX}px)`,
+                    width: `${width}px`,
+                    willChange: isZooming ? 'transform' : 'auto',
                     minWidth: '100%'
                   }}
                 >
@@ -1825,8 +1876,9 @@ export const Timeline: React.FC<TimelineProps> = ({
                 <div 
                   className="absolute inset-0 overflow-hidden"
                   style={{
-                    transform: `translateX(-${viewportStart * PIXELS_PER_SECOND}px)`,
-                    width: `${totalDuration * PIXELS_PER_SECOND}px`,
+                    transform: `translateX(${translateX}px)`,
+                    width: `${width}px`,
+                    willChange: isZooming ? 'transform' : 'auto',
                     minWidth: '100%'
                   }}
                 >
@@ -1882,8 +1934,9 @@ export const Timeline: React.FC<TimelineProps> = ({
                 <div 
                   className="absolute inset-0 overflow-hidden"
                   style={{
-                    transform: `translateX(-${viewportStart * PIXELS_PER_SECOND}px)`,
-                    width: `${totalDuration * PIXELS_PER_SECOND}px`,
+                    transform: `translateX(${translateX}px)`,
+                    width: `${width}px`,
+                    willChange: isZooming ? 'transform' : 'auto',
                     minWidth: '100%'
                   }}
                 >
@@ -1939,8 +1992,9 @@ export const Timeline: React.FC<TimelineProps> = ({
                 <div 
                   className="absolute inset-0 overflow-hidden"
                   style={{
-                    transform: `translateX(-${viewportStart * PIXELS_PER_SECOND}px)`,
-                    width: `${totalDuration * PIXELS_PER_SECOND}px`,
+                    transform: `translateX(${translateX}px)`,
+                    width: `${width}px`,
+                    willChange: isZooming ? 'transform' : 'auto',
                     minWidth: '100%'
                   }}
                 >
@@ -1996,8 +2050,9 @@ export const Timeline: React.FC<TimelineProps> = ({
                 <div 
                   className="absolute inset-0 overflow-hidden"
                   style={{
-                    transform: `translateX(-${viewportStart * PIXELS_PER_SECOND}px)`,
-                    width: `${totalDuration * PIXELS_PER_SECOND}px`,
+                    transform: `translateX(${translateX}px)`,
+                    width: `${width}px`,
+                    willChange: isZooming ? 'transform' : 'auto',
                     minWidth: '100%'
                   }}
                 >
@@ -2053,8 +2108,9 @@ export const Timeline: React.FC<TimelineProps> = ({
                 <div 
                   className="absolute inset-0 overflow-hidden"
                   style={{
-                    transform: `translateX(-${viewportStart * PIXELS_PER_SECOND}px)`,
-                    width: `${totalDuration * PIXELS_PER_SECOND}px`,
+                    transform: `translateX(${translateX}px)`,
+                    width: `${width}px`,
+                    willChange: isZooming ? 'transform' : 'auto',
                     minWidth: '100%'
                   }}
                 >
@@ -2107,8 +2163,9 @@ export const Timeline: React.FC<TimelineProps> = ({
                 <div 
                   className="absolute inset-0 overflow-hidden"
                   style={{
-                    transform: `translateX(-${viewportStart * PIXELS_PER_SECOND}px)`,
-                    width: `${totalDuration * PIXELS_PER_SECOND}px`,
+                    transform: `translateX(${translateX}px)`,
+                    width: `${width}px`,
+                    willChange: isZooming ? 'transform' : 'auto',
                     minWidth: '100%'
                   }}
                 >
@@ -2161,8 +2218,9 @@ export const Timeline: React.FC<TimelineProps> = ({
                 <div 
                   className="absolute inset-0 overflow-hidden"
                   style={{
-                    transform: `translateX(-${viewportStart * PIXELS_PER_SECOND}px)`,
-                    width: `${totalDuration * PIXELS_PER_SECOND}px`,
+                    transform: `translateX(${translateX}px)`,
+                    width: `${width}px`,
+                    willChange: isZooming ? 'transform' : 'auto',
                     minWidth: '100%'
                   }}
                 >
@@ -2214,8 +2272,9 @@ export const Timeline: React.FC<TimelineProps> = ({
                 <div 
                   className="absolute inset-0 overflow-hidden"
                   style={{
-                    transform: `translateX(-${viewportStart * PIXELS_PER_SECOND}px)`,
-                    width: `${totalDuration * PIXELS_PER_SECOND}px`,
+                    transform: `translateX(${translateX}px)`,
+                    width: `${width}px`,
+                    willChange: isZooming ? 'transform' : 'auto',
                     minWidth: '100%'
                   }}
                 >
