@@ -264,13 +264,10 @@ export const Timeline: React.FC<TimelineProps> = ({
   
   // Timeline constants - adaptive baseline for short videos
   const BASELINE_DURATION = useMemo(() => {
-    // For videos shorter than 25 seconds, use the video duration as baseline
-    // This prevents viewport issues with very short videos
-    if (totalDuration > 0 && totalDuration < 25) {
-      return Math.max(5, totalDuration); // Minimum 5 seconds baseline
-    }
-    return 25; // Default 25 seconds for longer videos
-  }, [totalDuration]);
+    // Always use 25 seconds as baseline for consistent timeline behavior
+    // This ensures click positioning is always based on a 25-second timeline
+    return 25;
+  }, []);
   
   const BASE_PIXELS_PER_SECOND = 60; // Base pixel scale for calculations
   
@@ -473,9 +470,9 @@ export const Timeline: React.FC<TimelineProps> = ({
   // Initialize viewport when totalDuration first becomes available
   useEffect(() => {
     if (totalDuration > 0 && viewportEnd === 0) {
-      // For short videos, always show the full duration
-      // For longer videos, use the adaptive baseline
-      const initialEnd = totalDuration <= BASELINE_DURATION ? totalDuration : BASELINE_DURATION;
+      // Always use the full BASELINE_DURATION (25 seconds) for timeline width,
+      // even for shorter videos - this ensures consistent click positioning
+      const initialEnd = BASELINE_DURATION;
       setViewportEnd(initialEnd);
       setViewportStart(0);
       
@@ -671,11 +668,20 @@ export const Timeline: React.FC<TimelineProps> = ({
 
       // Use unified positioning calculation
       const leftPixels = calculateTimeToPixels(cumulativeTime);
-      const widthPixels = Math.max(30 * zoomLevel, calculateTimeToPixels(effectiveDuration)); // Minimum width scales with zoom
+      
+      let widthPixels;
+      // For short videos (< 25 seconds), make video segments fill the full 25-second track width
+      if (totalDuration > 0 && totalDuration < 25) {
+        // Any video under 25 seconds - fill the full 25-second timeline width
+        widthPixels = calculateTimeToPixels(BASELINE_DURATION);
+      } else {
+        // Standard calculation for longer videos
+        widthPixels = Math.max(30 * zoomLevel, calculateTimeToPixels(effectiveDuration)); // Minimum width scales with zoom
+      }
 
       return { leftPixels, widthPixels };
     },
-    [totalDuration, videos, layout, calculateTimeToPixels, zoomLevel]
+    [totalDuration, videos, layout, calculateTimeToPixels, zoomLevel, BASELINE_DURATION, viewportStart, viewportEnd]
   );
 
   const getCurrentPosition = useMemo(() => {
@@ -1061,37 +1067,42 @@ export const Timeline: React.FC<TimelineProps> = ({
         onVideoSelect(video.id);
       }
 
-      // Use the same accurate calculation as the main timeline
-      // Get the timeline container (not just the video segment)
-      const timelineContainer = document.querySelector('.timeline-track-container');
-      if (!timelineContainer) return;
+      // Get the video segment element to calculate click position relative to it
+      const segmentElement = e.currentTarget as HTMLElement;
+      const segmentRect = segmentElement.getBoundingClientRect();
+      const clickX = e.clientX - segmentRect.left;
       
-      const containerRect = timelineContainer.getBoundingClientRect();
-      const clickX = e.clientX - containerRect.left;
+      // Calculate the position within the segment (0 to 1)
+      const segmentClickPercentage = Math.max(0, Math.min(1, clickX / segmentRect.width));
       
-      // Use unified positioning calculation for consistency
-      const percentage = Math.max(0, Math.min(1, clickX / containerRect.width));
-      const visibleDuration = viewportEnd - viewportStart;
-      const visiblePixels = calculateTimeToPixels(visibleDuration);
-      const clickPixelOffset = percentage * visiblePixels;
-      const absoluteTime = Math.max(0, Math.min(totalDuration, calculatePixelsToTime(clickPixelOffset) + viewportStart));
-
+      // Get video's start time and duration in the timeline
+      const { leftPixels } = getVideoPosition(video);
+      const videoStartTime = calculatePixelsToTime(leftPixels);
+      
+      // Calculate the effective duration considering speed and trim
+      const speedMultiplier = video.effects.speed || 1;
+      const trimStart = video.trimStart || 0;
+      const trimEnd = video.trimEnd || video.duration;
+      const trimmedDuration = trimEnd - trimStart;
+      const effectiveDuration = trimmedDuration / speedMultiplier;
+      
+      // Calculate the absolute time based on click position within the segment
+      const absoluteTime = videoStartTime + (segmentClickPercentage * effectiveDuration);
+      
       console.log("Video segment click:", {
         clickX,
-        containerWidth: containerRect.width,
-        percentage,
+        segmentWidth: segmentRect.width,
+        segmentClickPercentage,
+        videoStartTime,
+        effectiveDuration,
         absoluteTime,
-        viewportStart,
-        viewportEnd,
-        visibleDuration,
-        PIXELS_PER_SECOND,
-        currentTimeBeforeSeek: currentTime,
+        video: video.file.name,
       });
 
       // Seek to that position
       onSeek(absoluteTime);
     },
-    [onVideoSelect, onSeek, currentTime, viewportStart, viewportEnd, PIXELS_PER_SECOND]
+    [onVideoSelect, onSeek, getVideoPosition, calculatePixelsToTime, viewportStart]
   );
 
   const jumpToStart = useCallback(() => {
@@ -1125,15 +1136,24 @@ export const Timeline: React.FC<TimelineProps> = ({
       // The segment width in pixels (proportional to duration, never less than min)
       const segmentWidthPx = Math.max(MIN_FRAME_CONTAINER_WIDTH, effectiveDuration * PIXELS_PER_SECOND);
 
-      // Frame width for loaded frames (do not stretch to fill, just show as many as loaded)
+      // Frame width for loaded frames 
       const loadedFrameCount = frames.length;
-      // Each frame gets a min/max width, but never stretches to fill
-      const frameNaturalWidth = loadedFrameCount > 0
-        ? Math.max(
-            MIN_FRAME_CONTAINER_WIDTH,
-            Math.min(MAX_FRAME_CONTAINER_WIDTH, segmentWidthPx / loadedFrameCount)
-          )
-        : MIN_FRAME_CONTAINER_WIDTH;
+      
+      let frameNaturalWidth;
+      // For short videos (< 25 seconds), make frames fill the full track width
+      if (totalDuration > 0 && totalDuration < 25 && loadedFrameCount > 0) {
+        // Get the actual video segment width from getVideoPosition
+        const { widthPixels } = getVideoPosition(video);
+        frameNaturalWidth = widthPixels / loadedFrameCount;
+      } else {
+        // Standard calculation - each frame gets a min/max width, but never stretches to fill
+        frameNaturalWidth = loadedFrameCount > 0
+          ? Math.max(
+              MIN_FRAME_CONTAINER_WIDTH,
+              Math.min(MAX_FRAME_CONTAINER_WIDTH, segmentWidthPx / loadedFrameCount)
+            )
+          : MIN_FRAME_CONTAINER_WIDTH;
+      }
 
       return (
         <div
@@ -1169,7 +1189,9 @@ export const Timeline: React.FC<TimelineProps> = ({
             className="flex h-full overflow-x-auto overflow-y-hidden w-full relative"
             style={{
               minWidth: `${MIN_FRAME_CONTAINER_WIDTH}px`,
-              width: `${segmentWidthPx}px`,
+              width: totalDuration > 0 && totalDuration < 25
+                ? `${getVideoPosition(video).widthPixels}px`
+                : `${segmentWidthPx}px`,
               zIndex: 1,
             }}
           >
