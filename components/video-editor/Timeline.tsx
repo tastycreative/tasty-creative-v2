@@ -1087,7 +1087,16 @@ export const Timeline: React.FC<TimelineProps> = ({
       const effectiveDuration = trimmedDuration / speedMultiplier;
       
       // Calculate the absolute time based on click position within the segment
-      const absoluteTime = videoStartTime + (segmentClickPercentage * effectiveDuration);
+      let absoluteTime;
+      if (totalDuration > 0 && totalDuration < 25) {
+        // For short videos stretched to full width, map click to the 25-second timeline
+        const timelinePosition = segmentClickPercentage * BASELINE_DURATION;
+        // Then clamp to the actual video duration
+        absoluteTime = Math.min(timelinePosition, totalDuration);
+      } else {
+        // Standard calculation for normal-sized segments
+        absoluteTime = videoStartTime + (segmentClickPercentage * effectiveDuration);
+      }
       
       console.log("Video segment click:", {
         clickX,
@@ -1102,7 +1111,7 @@ export const Timeline: React.FC<TimelineProps> = ({
       // Seek to that position
       onSeek(absoluteTime);
     },
-    [onVideoSelect, onSeek, getVideoPosition, calculatePixelsToTime, viewportStart]
+    [onVideoSelect, onSeek, getVideoPosition, calculatePixelsToTime, viewportStart, totalDuration, BASELINE_DURATION]
   );
 
   const jumpToStart = useCallback(() => {
