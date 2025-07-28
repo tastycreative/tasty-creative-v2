@@ -262,8 +262,16 @@ export const Timeline: React.FC<TimelineProps> = ({
     Map<string, { current: number; total: number }>
   >(new Map());
   
-  // Timeline constants
-  const BASELINE_DURATION = 25; // 25 seconds at 100% zoom
+  // Timeline constants - adaptive baseline for short videos
+  const BASELINE_DURATION = useMemo(() => {
+    // For videos shorter than 25 seconds, use the video duration as baseline
+    // This prevents viewport issues with very short videos
+    if (totalDuration > 0 && totalDuration < 25) {
+      return Math.max(5, totalDuration); // Minimum 5 seconds baseline
+    }
+    return 25; // Default 25 seconds for longer videos
+  }, [totalDuration]);
+  
   const BASE_PIXELS_PER_SECOND = 60; // Base pixel scale for calculations
   
   // Zoom state management - 100% zoom = 25 seconds visible
@@ -273,10 +281,19 @@ export const Timeline: React.FC<TimelineProps> = ({
   const [debouncedZoomLevel, setDebouncedZoomLevel] = useState(1);
   const [isZooming, setIsZooming] = useState(false);
   
-  // Zoom-aware pixel scaling
+  // Zoom-aware pixel scaling with limits for short videos
   const PIXELS_PER_SECOND = useMemo(() => {
-    return BASE_PIXELS_PER_SECOND * zoomLevel;
-  }, [zoomLevel]);
+    const baseScale = BASE_PIXELS_PER_SECOND * zoomLevel;
+    
+    // For very short videos, cap the pixel scale to prevent timeline overflow
+    if (totalDuration > 0 && totalDuration < 5) {
+      // Limit scaling for videos under 5 seconds to prevent massive timeline widths
+      const maxScale = Math.min(baseScale, 800); // Max 800 pixels per second
+      return maxScale;
+    }
+    
+    return baseScale;
+  }, [zoomLevel, totalDuration]);
   
   // Transform optimization refs
   const animationFrameRef = useRef<number | null>(null);
@@ -348,14 +365,23 @@ export const Timeline: React.FC<TimelineProps> = ({
   
   const zoomOut = useCallback(() => {
     // Calculate minimum zoom level needed to show entire video
+    // For short videos, ensure we can always zoom out to see the full duration
     const minZoomForFullVideo = totalDuration > 0 ? BASELINE_DURATION / totalDuration : 0.25;
-    const absoluteMinZoom = Math.min(0.25, Math.max(0.05, minZoomForFullVideo)); // At least 5% zoom, but adapt to video length
+    
+    // For videos shorter than baseline, allow zooming out further to provide better navigation
+    let absoluteMinZoom;
+    if (totalDuration > 0 && totalDuration < BASELINE_DURATION) {
+      // Allow zooming out to at least 0.5x for short videos
+      absoluteMinZoom = Math.max(0.1, minZoomForFullVideo * 0.5);
+    } else {
+      absoluteMinZoom = Math.min(0.25, Math.max(0.05, minZoomForFullVideo));
+    }
     
     const newZoomLevel = Math.max(zoomLevel / 1.5, absoluteMinZoom);
     setIsZooming(true);
     setZoomLevel(newZoomLevel);
     debouncedZoomUpdate(newZoomLevel);
-  }, [zoomLevel, totalDuration, debouncedZoomUpdate]);
+  }, [zoomLevel, totalDuration, BASELINE_DURATION, debouncedZoomUpdate]);
   
   const resetZoom = useCallback(() => {
     setIsZooming(true);
@@ -367,15 +393,28 @@ export const Timeline: React.FC<TimelineProps> = ({
 
   const fitToTimeline = useCallback(() => {
     if (totalDuration > 0) {
-      const zoomToFit = BASELINE_DURATION / totalDuration;
-      const newZoom = Math.max(0.05, zoomToFit); // Minimum 5% zoom
+      let newZoom;
+      
+      if (totalDuration < 5) {
+        // For very short videos (under 5 seconds), always use zoom level 1 to prevent scaling issues
+        newZoom = 1;
+      } else if (totalDuration <= BASELINE_DURATION) {
+        // For videos shorter than baseline but over 5 seconds, limit max zoom
+        const calculatedZoom = BASELINE_DURATION / totalDuration;
+        newZoom = Math.min(2, calculatedZoom); // Cap at 2x zoom for short videos
+      } else {
+        // For longer videos, calculate zoom to fit
+        const zoomToFit = BASELINE_DURATION / totalDuration;
+        newZoom = Math.max(0.05, zoomToFit);
+      }
+      
       setIsZooming(true);
       setZoomLevel(newZoom);
       setViewportStart(0);
       setViewportEnd(totalDuration);
       debouncedZoomUpdate(newZoom);
     }
-  }, [totalDuration, debouncedZoomUpdate]);
+  }, [totalDuration, BASELINE_DURATION, debouncedZoomUpdate]);
 
   // Scrollbar handlers
   const handleScrollbarMouseDown = useCallback((e: React.MouseEvent) => {
@@ -434,11 +473,19 @@ export const Timeline: React.FC<TimelineProps> = ({
   // Initialize viewport when totalDuration first becomes available
   useEffect(() => {
     if (totalDuration > 0 && viewportEnd === 0) {
-      const initialEnd = Math.min(BASELINE_DURATION, totalDuration);
+      // For short videos, always show the full duration
+      // For longer videos, use the adaptive baseline
+      const initialEnd = totalDuration <= BASELINE_DURATION ? totalDuration : BASELINE_DURATION;
       setViewportEnd(initialEnd);
       setViewportStart(0);
+      
+      // Reset zoom to 1 for new videos to ensure proper scaling
+      if (zoomLevel !== 1) {
+        setZoomLevel(1);
+        setDebouncedZoomLevel(1);
+      }
     }
-  }, [totalDuration, viewportEnd]);
+  }, [totalDuration, viewportEnd, BASELINE_DURATION, zoomLevel, setDebouncedZoomLevel]);
 
   // Extract frames progressively with queue management
   useEffect(() => {
@@ -657,21 +704,33 @@ export const Timeline: React.FC<TimelineProps> = ({
       // When thumbnails are enabled, only allow seeking in empty timeline areas
       // (between video segments or outside all segments)
 
-      // Use the container rect directly like OldTimeline for accurate positioning
+      // Use accurate timeline positioning accounting for zoom and viewport
       const containerRect = e.currentTarget.getBoundingClientRect();
       const clickX = e.clientX - containerRect.left;
       const clickY = e.clientY - containerRect.top;
 
-      // Calculate percentage based on full container width
+      // Calculate time using unified positioning system
       const percentage = Math.max(0, Math.min(1, clickX / containerRect.width));
       const visibleDuration = viewportEnd - viewportStart;
-      const clickTime = viewportStart + (percentage * visibleDuration); // Calculate time within viewport
+      
+      // Use the same calculation as video segments for consistency
+      const visiblePixels = calculateTimeToPixels(visibleDuration);
+      const clickPixelOffset = percentage * visiblePixels;
+      const clickTimeFromPixels = calculatePixelsToTime(clickPixelOffset) + viewportStart;
+      
+      // Clamp to valid time range
+      const clickTime = Math.max(0, Math.min(totalDuration, clickTimeFromPixels));
 
-      console.log("Timeline click:", {
+      console.log("Timeline click (accurate):", {
         clickX,
         containerWidth: containerRect.width,
         percentage: percentage * 100,
         clickTime,
+        viewportStart,
+        viewportEnd,
+        visibleDuration,
+        zoomLevel,
+        pixelsPerSecond: PIXELS_PER_SECOND,
         totalDuration,
         currentTimeBeforeSeek: currentTime,
       });
@@ -679,7 +738,7 @@ export const Timeline: React.FC<TimelineProps> = ({
       setHoverPosition(null);
       setIsDragging(false);
       
-      // Direct seek without frame calculations
+      // Direct seek using accurate calculation
       onSeek(clickTime);
 
       let videosInGrid = videos;
@@ -754,20 +813,20 @@ export const Timeline: React.FC<TimelineProps> = ({
         return;
       }
 
-      // Use container rect and pixel-based calculation for accuracy
+      // Use unified positioning calculation for accuracy
       const containerRect = e.currentTarget.getBoundingClientRect();
       const clickX = e.clientX - containerRect.left;
 
-      // Calculate time using the same pixel-based method as the ruler
+      // Calculate time using unified positioning system
       const percentage = Math.max(0, Math.min(1, clickX / containerRect.width));
       const visibleDuration = viewportEnd - viewportStart;
       
-      // Use pixel-based calculation to match ruler positioning exactly
-      const visiblePixels = visibleDuration * PIXELS_PER_SECOND;
+      // Use unified calculation to match segment positioning exactly
+      const visiblePixels = calculateTimeToPixels(visibleDuration);
       const clickPixelOffset = percentage * visiblePixels;
-      const clickTimeFromPixels = (clickPixelOffset / PIXELS_PER_SECOND) + viewportStart;
+      const clickTimeFromPixels = calculatePixelsToTime(clickPixelOffset) + viewportStart;
       
-      const clickTime = clickTimeFromPixels;
+      const clickTime = Math.max(0, Math.min(totalDuration, clickTimeFromPixels));
 
       console.log("Timeline mousedown:", {
         clickX,
@@ -814,11 +873,11 @@ export const Timeline: React.FC<TimelineProps> = ({
           Math.abs(moveX - clickPosition.x) > dragThreshold;
 
         if (hasDraggedEnough) {
-          // Use pixel-based calculation to match ruler positioning exactly
+          // Use unified calculation to match segment positioning exactly
           const visibleDuration = viewportEnd - viewportStart;
-          const visiblePixels = visibleDuration * PIXELS_PER_SECOND;
+          const visiblePixels = calculateTimeToPixels(visibleDuration);
           const movePixelOffset = percentage * visiblePixels;
-          const newTime = (movePixelOffset / PIXELS_PER_SECOND) + viewportStart;
+          const newTime = Math.max(0, Math.min(totalDuration, calculatePixelsToTime(movePixelOffset) + viewportStart));
           console.log("Dragging seek:", {
             moveX,
             percentage: percentage * 100,
@@ -1010,12 +1069,12 @@ export const Timeline: React.FC<TimelineProps> = ({
       const containerRect = timelineContainer.getBoundingClientRect();
       const clickX = e.clientX - containerRect.left;
       
-      // Use the same pixel-based calculation as handleTimelineMouseDown
+      // Use unified positioning calculation for consistency
       const percentage = Math.max(0, Math.min(1, clickX / containerRect.width));
       const visibleDuration = viewportEnd - viewportStart;
-      const visiblePixels = visibleDuration * PIXELS_PER_SECOND;
+      const visiblePixels = calculateTimeToPixels(visibleDuration);
       const clickPixelOffset = percentage * visiblePixels;
-      const absoluteTime = (clickPixelOffset / PIXELS_PER_SECOND) + viewportStart;
+      const absoluteTime = Math.max(0, Math.min(totalDuration, calculatePixelsToTime(clickPixelOffset) + viewportStart));
 
       console.log("Video segment click:", {
         clickX,
@@ -1140,12 +1199,12 @@ export const Timeline: React.FC<TimelineProps> = ({
                     if (!timelineContainer) return;
                     const containerRect = timelineContainer.getBoundingClientRect();
                     const clickX = e.clientX - containerRect.left;
-                    // Use the same pixel-based calculation as handleTimelineMouseDown
+                    // Use unified positioning calculation for consistency
                     const percentage = Math.max(0, Math.min(1, clickX / containerRect.width));
                     const visibleDuration = viewportEnd - viewportStart;
-                    const visiblePixels = visibleDuration * PIXELS_PER_SECOND;
+                    const visiblePixels = calculateTimeToPixels(visibleDuration);
                     const clickPixelOffset = percentage * visiblePixels;
-                    const absoluteTime = (clickPixelOffset / PIXELS_PER_SECOND) + viewportStart;
+                    const absoluteTime = Math.max(0, Math.min(totalDuration, calculatePixelsToTime(clickPixelOffset) + viewportStart));
                     onSeek(absoluteTime);
                     onVideoSelect(video.id);
                   }}
@@ -1279,7 +1338,12 @@ export const Timeline: React.FC<TimelineProps> = ({
             title="Zoom out"
             disabled={(() => {
               const minZoomForFullVideo = totalDuration > 0 ? BASELINE_DURATION / totalDuration : 0.25;
-              const absoluteMinZoom = Math.min(0.25, Math.max(0.05, minZoomForFullVideo));
+              let absoluteMinZoom;
+              if (totalDuration > 0 && totalDuration < BASELINE_DURATION) {
+                absoluteMinZoom = Math.max(0.1, minZoomForFullVideo * 0.5);
+              } else {
+                absoluteMinZoom = Math.min(0.25, Math.max(0.05, minZoomForFullVideo));
+              }
               return zoomLevel <= absoluteMinZoom;
             })()}
           >
@@ -2375,10 +2439,10 @@ export const Timeline: React.FC<TimelineProps> = ({
               // Skip times outside viewport
               if (time < viewportStart || time > viewportEnd) return null;
               
-              // Calculate position in pixels, then convert to percentage of visible area
-              const timePixels = time * PIXELS_PER_SECOND;
-              const viewportStartPixels = viewportStart * PIXELS_PER_SECOND;
-              const visiblePixels = visibleDuration * PIXELS_PER_SECOND;
+              // Use unified positioning calculation for consistency
+              const timePixels = calculateTimeToPixels(time);
+              const viewportStartPixels = calculateTimeToPixels(viewportStart);
+              const visiblePixels = calculateTimeToPixels(visibleDuration);
               const position = ((timePixels - viewportStartPixels) / visiblePixels) * 100;
               
               const isFirst = i === 0;
