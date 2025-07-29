@@ -14,6 +14,7 @@ export const useVideoSequence = () => {
 
   const addVideos = useCallback(
     async (files: File[], gridId?: string) => {
+      console.log("addVideos called:", { filesCount: files.length, gridId, currentVideosCount: videos.length });
       const newVideos: VideoSequenceItem[] = [];
 
       for (const file of files) {
@@ -55,17 +56,21 @@ export const useVideoSequence = () => {
                   startTime = 0;
                 }
               } else {
-                // Single layout - sequential timing for all videos
-                const existingEndTime = videos.length > 0
-                  ? Math.max(...videos.map((v) => v.endTime))
-                  : 0;
-                const newVideosEndTime = newVideos.length > 0
-                  ? newVideos[newVideos.length - 1].endTime
-                  : 0;
-                startTime = Math.max(existingEndTime, newVideosEndTime);
+                // Single layout - sequential timing for all videos (using grid logic approach)
+                const existingSingleVideos = videos.filter(v => !v.gridId);
+                const newSingleVideos = newVideos.filter(v => !v.gridId);
+                const allSingleVideos = [...existingSingleVideos, ...newSingleVideos];
+                
+                if (allSingleVideos.length > 0) {
+                  // Sequential - find the latest end time from all single layout videos
+                  startTime = Math.max(...allSingleVideos.map(v => v.endTime));
+                } else {
+                  // First video in single layout always starts at 0
+                  startTime = 0;
+                }
               }
 
-              newVideos.push({
+              const newVideo = {
                 id: crypto.randomUUID(),
                 file,
                 url,
@@ -81,7 +86,9 @@ export const useVideoSequence = () => {
                   positionX: 0,
                   positionY: 0,
                 },
-              });
+              };
+              console.log("Adding video:", { name: file.name, duration, startTime, endTime: startTime + duration, gridId });
+              newVideos.push(newVideo);
               resolve();
             };
 
@@ -98,7 +105,9 @@ export const useVideoSequence = () => {
       }
 
       if (newVideos.length > 0) {
+        console.log("Processing", newVideos.length, "new videos, gridId:", gridId);
         setVideos((prev) => {
+          console.log("Previous videos:", prev.length, "New videos:", newVideos.length);
           // Add new videos to the list
           const combined = [...prev, ...newVideos];
           // If gridId is set, recalculate start/end for all videos in that grid
@@ -120,13 +129,27 @@ export const useVideoSequence = () => {
               return v;
             });
           } else {
-            // Single layout: recalculate all start/end times sequentially
+            // Single layout: recalculate start/end times only for videos without gridId
+            console.log("Single layout processing");
+            const singleVideos = combined.filter(v => !v.gridId);
+            console.log("Single videos found:", singleVideos.length);
             let runningTime = 0;
-            return combined.map(v => {
-              const updated = { ...v, startTime: runningTime, endTime: runningTime + v.duration };
-              runningTime = updated.endTime;
-              return updated;
+            for (const v of singleVideos) {
+              v.startTime = runningTime;
+              v.endTime = runningTime + v.duration;
+              console.log("Updated video timing:", { name: v.file.name, startTime: v.startTime, endTime: v.endTime });
+              runningTime = v.endTime;
+            }
+            // Now update the combined list with new start/end for single videos
+            const result = combined.map(v => {
+              if (!v.gridId) {
+                const updated = singleVideos.find(sv => sv.id === v.id);
+                return updated ? { ...v, startTime: updated.startTime, endTime: updated.endTime } : v;
+              }
+              return v;
             });
+            console.log("Final result:", result.length, "videos");
+            return result;
           }
         });
       }

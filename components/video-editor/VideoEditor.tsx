@@ -326,7 +326,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
     setActiveGridId(targetGridId || "grid-1");
     // Trigger file input for the selected grid
     if (gridFileInputRef.current) {
-      gridFileInputRef.current.dataset.gridId = targetGridId;
+      gridFileInputRef.current.dataset.gridId = targetGridId || "";
       gridFileInputRef.current.click();
     }
   };
@@ -335,12 +335,15 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const files = event.target.files;
-    const gridId = event.target.dataset.gridId;
+    const rawGridId = event.target.dataset.gridId;
+    // Convert empty string back to undefined for single layout
+    const gridId = rawGridId === "" ? undefined : rawGridId;
 
-    if (files && files.length > 0 && gridId) {
+    if (files && files.length > 0) {
       const fileArray = Array.from(files);
       setIsUploading(true);
       try {
+        console.log("Adding videos via Add Sequence button:", { files: fileArray.length, gridId, layout: currentLayout });
         await addVideos(fileArray, gridId);
       } catch (error) {
         console.error("Error adding videos to grid:", error);
