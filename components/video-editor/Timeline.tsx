@@ -2176,7 +2176,9 @@ export const Timeline: React.FC<TimelineProps> = ({
                 video.effects.selectiveBlur &&
                 video.effects.selectiveBlur.length > 0
               ) {
-                const { leftPercent, widthPercent } = getVideoPosition(video);
+                const { leftPixels, widthPixels } = getVideoPosition(video);
+                const leftPercent = (leftPixels / width) * 100;
+                const widthPercent = (widthPixels / width) * 100;
                 video.effects.selectiveBlur.forEach((region) => {
                   allBlurRegions.push({
                     region,
