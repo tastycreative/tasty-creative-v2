@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { SelectiveBlurRegion } from "@/types/video";
+import { SelectiveBlurRegion, VideoSequenceItem } from "@/types/video";
 import { X, Trash2, Circle, Square, Eye, EyeOff } from "lucide-react";
 
 interface BlurEditorPanelProps {
@@ -9,7 +9,7 @@ interface BlurEditorPanelProps {
   onUpdate: (updates: Partial<SelectiveBlurRegion>) => void;
   onDelete: () => void;
   onClose: () => void;
-  videoElement?: HTMLVideoElement | null;
+  videoElement?: VideoSequenceItem | null;
 }
 
 export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
@@ -20,12 +20,29 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
   videoElement,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [showPreview, setShowPreview] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [initialRegion, setInitialRegion] =
     useState<SelectiveBlurRegion | null>(null);
+  const [videoAspectRatio, setVideoAspectRatio] = useState<number>(16/9);
+
+  // Create video element from video file and get aspect ratio
+  useEffect(() => {
+    if (videoElement?.file) {
+      const video = videoRef.current;
+      if (video) {
+        video.src = videoElement.url;
+        video.addEventListener('loadedmetadata', () => {
+          if (video.videoWidth && video.videoHeight) {
+            setVideoAspectRatio(video.videoWidth / video.videoHeight);
+          }
+        });
+      }
+    }
+  }, [videoElement]);
 
   // Update canvas with current video frame and blur region
   const updateCanvas = useCallback(() => {
@@ -36,10 +53,11 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
     if (!ctx) return;
 
     try {
-      // Set canvas size
-      const aspectRatio = 16 / 9;
-      const maxWidth = 320;
-      const maxHeight = 180;
+      // Use the calculated video aspect ratio
+      const aspectRatio = videoAspectRatio;
+      
+      const maxWidth = 200;
+      const maxHeight = 80;
 
       let canvasWidth = maxWidth;
       let canvasHeight = maxWidth / aspectRatio;
@@ -56,8 +74,9 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
       ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
       // Draw video frame if available
-      if (videoElement && videoElement.readyState >= 2) {
-        ctx.drawImage(videoElement, 0, 0, canvasWidth, canvasHeight);
+      const video = videoRef.current;
+      if (video && video.readyState >= 2) {
+        ctx.drawImage(video, 0, 0, canvasWidth, canvasHeight);
       } else {
         // Draw placeholder
         const gradient = ctx.createLinearGradient(
@@ -117,7 +136,7 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
     } catch (error) {
       console.warn("Error updating canvas:", error);
     }
-  }, [region, videoElement]);
+  }, [region, videoElement, videoAspectRatio]);
 
   useEffect(() => {
     if (showPreview) {
@@ -279,9 +298,10 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
               <canvas
                 ref={canvasRef}
                 onMouseDown={handleCanvasMouseDown}
-                className={`w-full h-auto transition-all duration-200 cursor-${
+                className={`max-w-full max-h-20 transition-all duration-200 cursor-${
                   isDragging || isResizing ? "grabbing" : "pointer"
                 } hover:brightness-110`}
+                style={{ display: 'block', margin: '0 auto' }}
               />
               {(isDragging || isResizing) && (
                 <div className="absolute top-2 left-2 px-2 py-1 bg-pink-500 text-white text-xs rounded-md">
@@ -445,6 +465,14 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
           </div>
         </div>
       </div>
+      
+      {/* Hidden video element for aspect ratio calculation */}
+      <video
+        ref={videoRef}
+        style={{ display: 'none' }}
+        muted
+        preload="metadata"
+      />
     </div>
   );
 };

@@ -758,6 +758,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                     layout={currentLayout}
                     activeGridId={activeGridId}
                     onGridClick={handleGridClick}
+                    editingBlur={editingBlur}
                   />
                 </div>
               </div>
@@ -782,7 +783,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                       handleCloseBlurEditor();
                     }}
                     onClose={handleCloseBlurEditor}
-                    videoElement={null}
+                    videoElement={selectedVideo}
                   />
                 </div>
               )}
