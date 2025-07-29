@@ -37,7 +37,7 @@ const QuicklinksNavigation = () => {
       >
         {/* Quicklinks Menu */}
         <div
-          className={`absolute bottom-20 right-0 grid grid-cols-2 gap-3 p-6 bg-white/90 dark:bg-gray-900/90 backdrop-blur-2xl rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 transition-all duration-500 transform origin-bottom-right ${
+          className={`absolute bottom-20 right-0 grid grid-cols-2 gap-3 p-6 bg-gradient-to-br from-gray-50 via-white to-pink-50 dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-800 dark:to-pink-900/20 backdrop-blur-2xl rounded-2xl shadow-2xl border border-pink-200/50 dark:border-pink-700/30 transition-all duration-500 transform origin-bottom-right ${
             isOpen
               ? "opacity-100 scale-100 translate-y-0"
               : "opacity-0 scale-90 translate-y-4 pointer-events-none"
@@ -45,11 +45,11 @@ const QuicklinksNavigation = () => {
           style={{ minWidth: "320px" }}
         >
           {/* Menu Header */}
-          <div className="col-span-2 mb-2 pb-3 border-b border-gray-200 dark:border-gray-700">
+          <div className="col-span-2 mb-2 pb-3 border-b border-pink-200/70 dark:border-pink-700/50">
             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
               Quick Links
             </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
               Access your apps quickly
             </p>
           </div>
@@ -121,7 +121,7 @@ const QuicklinksNavigation = () => {
 
         {/* Trigger Button */}
         <button
-          className={`relative z-20 w-16 h-16 rounded-full bg-gradient-to-br from-gray-800 to-gray-900 dark:from-gray-700 dark:to-gray-800 shadow-2xl transition-all duration-500 transform group ${
+          className={`relative z-20 w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 shadow-2xl transition-all duration-500 transform group ${
             isOpen ? "rotate-45 scale-110" : "hover:scale-110"
           }`}
           onClick={() => setIsOpen(!isOpen)}
@@ -148,14 +148,14 @@ const QuicklinksNavigation = () => {
 
           {/* Tooltip */}
           <div
-            className={`absolute -top-14 left-1/2 -translate-x-1/2 px-4 py-2 bg-gray-900 dark:bg-gray-800 text-white text-sm font-medium rounded-lg whitespace-nowrap transition-all duration-300 ${
+            className={`absolute -top-14 left-1/2 -translate-x-1/2 px-4 py-2 bg-gradient-to-r from-gray-50 to-pink-50 text-gray-800 text-sm font-medium rounded-lg whitespace-nowrap transition-all duration-300 border border-pink-200/50 shadow-lg ${
               isOpen
                 ? "opacity-0 scale-95 -translate-y-2"
                 : "opacity-0 group-hover:opacity-100 scale-100 translate-y-0"
             }`}
           >
             Quick Links
-            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-gray-800 rotate-45" />
+            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gradient-to-r from-gray-50 to-pink-50 rotate-45 border-b border-r border-pink-200/50" />
           </div>
         </button>
       </div>
