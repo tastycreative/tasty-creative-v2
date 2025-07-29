@@ -124,12 +124,23 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
         ctx.arc(centerX + radius - 5, centerY + radius - 5, 4, 0, 2 * Math.PI);
         ctx.fill();
       } else {
-        ctx.fillRect(x, y, width, height);
-        ctx.strokeRect(x, y, width, height);
+        const centerX = x + width / 2;
+        const centerY = y + height / 2;
+        const rotation = (region.rotation || 0) * Math.PI / 180;
+
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(rotation);
+        ctx.translate(-width / 2, -height / 2);
+        
+        ctx.fillRect(0, 0, width, height);
+        ctx.strokeRect(0, 0, width, height);
 
         // Draw resize handle for rectangle
         ctx.fillStyle = "#ec4899";
-        ctx.fillRect(x + width - 8, y + height - 8, 8, 8);
+        ctx.fillRect(width - 8, height - 8, 8, 8);
+        
+        ctx.restore();
       }
 
       ctx.restore();
@@ -377,6 +388,31 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
               className="w-full h-2 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer"
             />
           </div>
+
+          {/* Rotation - Only for rectangles */}
+          {region.shape === "rectangle" && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  Rotation
+                </label>
+                <div className="px-2 py-1 bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400 text-xs font-medium rounded-md">
+                  {region.rotation || 0}°
+                </div>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="360"
+                step="1"
+                value={region.rotation || 0}
+                onChange={(e) =>
+                  onUpdate({ rotation: parseFloat(e.target.value) })
+                }
+                className="w-full h-2 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer"
+              />
+            </div>
+          )}
 
           {/* Position and Size Controls */}
           <div className="space-y-3">

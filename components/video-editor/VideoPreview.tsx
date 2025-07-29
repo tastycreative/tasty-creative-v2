@@ -489,8 +489,16 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                   const radius = Math.min(regionWidth, regionHeight) / 2;
                   ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
                 } else {
-                  // Rectangle
-                  ctx.rect(regionX, regionY, regionWidth, regionHeight);
+                  // Rectangle (with rotation support)
+                  const centerX = regionX + regionWidth / 2;
+                  const centerY = regionY + regionHeight / 2;
+                  const rotation = (region.rotation || 0) * Math.PI / 180;
+                  
+                  ctx.translate(centerX, centerY);
+                  ctx.rotate(rotation);
+                  ctx.rect(-regionWidth / 2, -regionHeight / 2, regionWidth, regionHeight);
+                  ctx.rotate(-rotation);
+                  ctx.translate(-centerX, -centerY);
                 }
                 ctx.clip();
 
@@ -522,7 +530,16 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
                     ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
                     ctx.stroke();
                   } else {
-                    ctx.strokeRect(regionX, regionY, regionWidth, regionHeight);
+                    // Rectangle outline with rotation support
+                    const centerX = regionX + regionWidth / 2;
+                    const centerY = regionY + regionHeight / 2;
+                    const rotation = (region.rotation || 0) * Math.PI / 180;
+                    
+                    ctx.translate(centerX, centerY);
+                    ctx.rotate(rotation);
+                    ctx.strokeRect(-regionWidth / 2, -regionHeight / 2, regionWidth, regionHeight);
+                    ctx.rotate(-rotation);
+                    ctx.translate(-centerX, -centerY);
                   }
                   
                   ctx.restore();
