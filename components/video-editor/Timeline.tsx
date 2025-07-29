@@ -50,7 +50,25 @@ interface TimelineProps {
   onAddSequence?: (gridId?: string) => void;
 }
 
-// Smart progressive frame extraction utility with throttling and progress tracking
+// Global extraction manager to limit concurrent extractions
+const globalExtractionManager = {
+  activeExtractions: new Set<string>(),
+  maxConcurrent: 4, // Allow up to 4 concurrent extractions
+  
+  canStart(videoId: string): boolean {
+    return this.activeExtractions.size < this.maxConcurrent;
+  },
+  
+  start(videoId: string) {
+    this.activeExtractions.add(videoId);
+  },
+  
+  finish(videoId: string) {
+    this.activeExtractions.delete(videoId);
+  }
+};
+
+// Smart progressive frame extraction utility with concurrent processing support
 
 // Progressive: extract low-res/low-quality frames first, then high-res/high-quality
 const extractVideoFramesProgressively = (
@@ -58,15 +76,16 @@ const extractVideoFramesProgressively = (
   onFrameExtracted: (frame: VideoFrame) => void,
   onComplete: () => void,
   onProgressUpdate: (current: number, total: number) => void,
-  priority: number = 0,
+  videoId: string,
   shouldPause: () => boolean = () => false
 ) => {
   const videoUrl = URL.createObjectURL(videoFile);
   const PIXELS_PER_SECOND = 60;
   const MAX_FRAME_CONTAINER_WIDTH = 320;
   const MIN_FRAME_CONTAINER_WIDTH = 48;
-  const videoPoolSize = 3;
-  const canvasPoolSize = 3;
+  // Reduce pool sizes for concurrent processing to prevent resource exhaustion
+  const videoPoolSize = 2;
+  const canvasPoolSize = 2;
 
   // Two passes: first low-res, then high-res
   const passes = [
@@ -74,16 +93,20 @@ const extractVideoFramesProgressively = (
     { width: 320, height: 180, quality: 0.8, pass: "high" }, // final
   ];
 
-  // Create video pool
+  // Create isolated video pool for this specific video
   const videoPool = Array(videoPoolSize)
     .fill(null)
-    .map(() => {
+    .map((_, index) => {
       const vid = document.createElement("video");
       vid.src = videoUrl;
       vid.crossOrigin = "anonymous";
       vid.muted = true;
       vid.playsInline = true;
       vid.preload = "metadata";
+      // Add unique identifier to prevent conflicts
+      vid.setAttribute('data-video-id', `${videoId}-${index}`);
+      // Set reasonable buffer sizes for concurrent processing
+      vid.setAttribute('preload', 'metadata');
       return vid;
     });
 
@@ -125,7 +148,7 @@ const extractVideoFramesProgressively = (
     }
     onProgressUpdate(0, maxFrames);
 
-    // Helper to extract a single frame at a given quality
+    // Helper to extract a single frame at a given quality with retry logic
     const extractFrame = async (
       vid: HTMLVideoElement,
       canvas: HTMLCanvasElement,
@@ -133,27 +156,76 @@ const extractVideoFramesProgressively = (
       time: number,
       width: number,
       height: number,
-      quality: number
+      quality: number,
+      retryCount: number = 0
     ): Promise<VideoFrame | null> => {
       if (!ctx) return null;
       return new Promise((resolve) => {
         const timeout = setTimeout(() => {
-          resolve(null);
-        }, 2000);
+          // Retry up to 2 times with longer timeout each time
+          if (retryCount < 2) {
+            extractFrame(vid, canvas, ctx, time, width, height, quality, retryCount + 1)
+              .then(resolve)
+              .catch(() => resolve(null));
+          } else {
+            resolve(null);
+          }
+        }, 3000 + (retryCount * 1000)); // Increased timeout: 3s, 4s, 5s
+        
         const seekHandler = () => {
           clearTimeout(timeout);
           try {
-            canvas.width = width;
-            canvas.height = height;
+            // Ensure canvas dimensions are set correctly
+            if (canvas.width !== width) canvas.width = width;
+            if (canvas.height !== height) canvas.height = height;
+            
+            // Clear canvas before drawing
+            ctx.clearRect(0, 0, width, height);
             ctx.drawImage(vid, 0, 0, width, height);
             const thumbnail = canvas.toDataURL("image/jpeg", quality);
             resolve({ time, thumbnail, videoId: "" });
-          } catch {
+          } catch (error) {
+            console.warn(`Frame extraction error at time ${time}:`, error);
+            // Retry on canvas errors too
+            if (retryCount < 2) {
+              setTimeout(() => {
+                extractFrame(vid, canvas, ctx, time, width, height, quality, retryCount + 1)
+                  .then(resolve)
+                  .catch(() => resolve(null));
+              }, 500);
+            } else {
+              resolve(null);
+            }
+          }
+        };
+        
+        // Add error handler for video seeking
+        const errorHandler = () => {
+          clearTimeout(timeout);
+          if (retryCount < 2) {
+            setTimeout(() => {
+              extractFrame(vid, canvas, ctx, time, width, height, quality, retryCount + 1)
+                .then(resolve)
+                .catch(() => resolve(null));
+            }, 500);
+          } else {
             resolve(null);
           }
         };
+        
         vid.addEventListener("seeked", seekHandler, { once: true });
-        vid.currentTime = Math.min(time, duration - 0.1);
+        vid.addEventListener("error", errorHandler, { once: true });
+        
+        // Ensure video is ready before seeking
+        if (vid.readyState >= 1) {
+          vid.currentTime = Math.min(time, duration - 0.1);
+        } else {
+          // Wait for video to be ready
+          const loadHandler = () => {
+            vid.currentTime = Math.min(time, duration - 0.1);
+          };
+          vid.addEventListener("loadedmetadata", loadHandler, { once: true });
+        }
       });
     };
 
@@ -186,9 +258,16 @@ const extractVideoFramesProgressively = (
           continue;
         }
         const batch = frameTimes.slice(i, i + batchSize);
-        const batchPromises = batch.map((time, index) => {
+        const batchPromises = batch.map(async (time, index) => {
           const videoIndex = index % videoPool.length;
-          const canvasData = canvasPool[videoIndex];
+          const canvasIndex = index % canvasPool.length;
+          const canvasData = canvasPool[canvasIndex];
+          
+          // Small stagger only within same video's batches to prevent internal conflicts
+          if (index > 0) {
+            await new Promise(resolve => setTimeout(resolve, Math.min(index * 10, 100)));
+          }
+          
           return extractFrame(
             videoPool[videoIndex],
             canvasData.canvas,
@@ -486,7 +565,15 @@ export const Timeline: React.FC<TimelineProps> = ({
 
   // Extract frames progressively with queue management
   useEffect(() => {
-    const extractFramesForVideos = () => {
+    // Clean up extraction refs for videos that no longer exist
+    const currentVideoIds = new Set(videos.map(v => v.id));
+    for (const [videoId] of frameExtractionRef.current) {
+      if (!currentVideoIds.has(videoId)) {
+        frameExtractionRef.current.delete(videoId);
+      }
+    }
+
+    const extractFramesForVideos = async () => {
       // Process videos one at a time to prevent UI blocking
       const videosToProcess = videos.filter(
         (video) => !frameExtractionRef.current.get(video.id) && video.file
@@ -494,21 +581,34 @@ export const Timeline: React.FC<TimelineProps> = ({
 
       if (videosToProcess.length === 0) return;
 
-      // Process videos sequentially with priority (first video gets priority 0)
-      videosToProcess.forEach((video, index) => {
-        // Delay each video's processing to prevent simultaneous extraction
-        setTimeout(() => {
-          if (!frameExtractionRef.current.get(video.id)) {
-            frameExtractionRef.current.set(video.id, true);
+      // Process videos with managed concurrency
+      const processVideoWithQueue = async (video: any) => {
+        // Wait for slot in global extraction manager
+        while (!globalExtractionManager.canStart(video.id)) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          // Check if video was removed while waiting
+          if (!videos.find(v => v.id === video.id)) return;
+        }
+        
+        // Double-check that extraction hasn't started and video still exists
+        if (!frameExtractionRef.current.get(video.id) && 
+            videos.find(v => v.id === video.id)) {
+          
+          frameExtractionRef.current.set(video.id, true);
+          globalExtractionManager.start(video.id);
 
-            // Initialize empty array for this video
-            setVideoFrames((prev) => new Map(prev.set(video.id, [])));
+          // Initialize empty array for this video
+          setVideoFrames((prev) => new Map(prev.set(video.id, [])));
 
-            try {
+          try {
+            await new Promise<void>((resolve, reject) => {
               extractVideoFramesProgressively(
                 video.file,
                 (frame) => {
                   if (!frame) return;
+                  // Check if video still exists before updating frames
+                  if (!videos.find(v => v.id === video.id)) return;
+                  
                   const frameWithVideoId = { ...frame, videoId: video.id };
                   setVideoFrames((prev) => {
                     const currentFrames = prev.get(video.id) || [];
@@ -528,12 +628,16 @@ export const Timeline: React.FC<TimelineProps> = ({
                   console.log(
                     `Frame extraction completed for video ${video.id}`
                   );
-                  // Clear progress when complete
+                  // Clear progress when complete and remove extraction flag
                   setExtractionProgress((prev) => {
                     const newMap = new Map(prev);
                     newMap.delete(video.id);
                     return newMap;
                   });
+                  // Remove extraction flag to allow re-extraction if needed
+                  frameExtractionRef.current.delete(video.id);
+                  globalExtractionManager.finish(video.id);
+                  resolve();
                 },
                 (current, total) => {
                   // Update progress
@@ -541,23 +645,46 @@ export const Timeline: React.FC<TimelineProps> = ({
                     (prev) => new Map(prev.set(video.id, { current, total }))
                   );
                 },
-                index, // Priority based on video order
+                video.id, // Pass video ID for isolation
                 () => isPlaying // Pause extraction when video is playing
               );
-            } catch (error) {
-              console.error(
-                `Failed to extract frames for video ${video.id}:`,
-                error
-              );
-              frameExtractionRef.current.set(video.id, false);
-            }
+            });
+          } catch (error) {
+            console.error(
+              `Failed to extract frames for video ${video.id}:`,
+              error
+            );
+            // Delete the extraction flag instead of setting to false to allow retry
+            frameExtractionRef.current.delete(video.id);
+            globalExtractionManager.finish(video.id);
+            // Also clear any progress indicator
+            setExtractionProgress((prev) => {
+              const newMap = new Map(prev);
+              newMap.delete(video.id);
+              return newMap;
+            });
           }
-        }, index * 200); // Stagger video processing by 200ms each
-      });
+        }
+      };
+      
+      const extractionPromises = videosToProcess.map(processVideoWithQueue);
+      
+      // Wait for all extractions to complete or fail
+      try {
+        const results = await Promise.allSettled(extractionPromises);
+        const failedExtractions = results.filter(r => r.status === 'rejected');
+        if (failedExtractions.length > 0) {
+          console.warn(`${failedExtractions.length} frame extractions failed`);
+        }
+      } catch (error) {
+        console.error('Error in frame extraction batch:', error);
+      }
     };
 
     // Always extract frames automatically
-    extractFramesForVideos();
+    extractFramesForVideos().catch(error => {
+      console.error('Error in extractFramesForVideos:', error);
+    });
   }, [videos, isPlaying]);
 
   // Frame navigation functions
