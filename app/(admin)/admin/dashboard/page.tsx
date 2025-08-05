@@ -23,11 +23,11 @@ function DatabaseErrorFallback() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="max-w-md mx-auto text-center p-6 bg-card rounded-lg border shadow-lg">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+      <div className="max-w-md mx-auto text-center p-6 bg-white dark:bg-gray-800 rounded-lg border border-pink-200 dark:border-pink-500/30 shadow-lg">
         <div className="mb-4">
           <svg
-            className="mx-auto h-12 w-12 text-destructive"
+            className="mx-auto h-12 w-12 text-red-500"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -40,16 +40,16 @@ function DatabaseErrorFallback() {
             />
           </svg>
         </div>
-        <h1 className="text-xl font-semibold text-foreground mb-2">
+        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
           Dashboard Temporarily Unavailable
         </h1>
-        <p className="text-muted-foreground mb-6">
+        <p className="text-gray-600 dark:text-gray-300 mb-6">
           We&apos;re experiencing connectivity issues with our database. Please try refreshing the page in a few moments.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <button
             onClick={() => window.location.reload()}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-pink-500 to-rose-500 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition-all duration-300"
           >
             <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -58,7 +58,7 @@ function DatabaseErrorFallback() {
           </button>
           <button
             onClick={handleHealthCheck}
-            className="inline-flex items-center px-4 py-2 border border-input text-sm font-medium rounded-md text-foreground bg-background hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors"
+            className="inline-flex items-center px-4 py-2 border border-pink-200 dark:border-pink-500/30 text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-pink-500 transition-colors"
           >
             <svg className="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -66,7 +66,7 @@ function DatabaseErrorFallback() {
             Check Status
           </button>
         </div>
-        <div className="mt-4 text-xs text-muted-foreground">
+        <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
           If the issue persists, please contact support.
         </div>
       </div>

@@ -40,7 +40,7 @@ export function UserRoleForm({
       <button
         onClick={() => setIsEditing(true)}
         disabled={isCurrentUser}
-        className="inline-flex items-center text-sm text-gray-600 hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="inline-flex items-center text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         title={
           isCurrentUser ? "You cannot change your own role" : "Change role"
         }
@@ -57,7 +57,7 @@ export function UserRoleForm({
         value={selectedRole}
         onChange={(e) => setSelectedRole(e.target.value as Role)}
         disabled={isPending}
-        className="block px-3 py-1 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all"
+        className="block px-3 py-1 text-sm rounded-lg border border-pink-200 dark:border-pink-500/30 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all"
       >
         <option value="GUEST">Guest</option>
         <option value="USER">User</option>
@@ -68,9 +68,9 @@ export function UserRoleForm({
       <button
         onClick={handleSubmit}
         disabled={isPending || selectedRole === currentRole}
-        className="inline-flex items-center px-3 py-1 text-sm bg-black text-white rounded-lg hover:bg-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="inline-flex items-center px-3 py-1 text-sm bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg hover:from-pink-600 hover:to-rose-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
       >
-        <Save className="h-3 w-3 mr-1 text-pink-400" />
+        <Save className="h-3 w-3 mr-1" />
         {isPending ? "Saving..." : "Save"}
       </button>
       <button
@@ -79,7 +79,7 @@ export function UserRoleForm({
           setSelectedRole(currentRole);
         }}
         disabled={isPending}
-        className="inline-flex items-center px-3 py-1 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+        className="inline-flex items-center px-3 py-1 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
       >
         <X className="h-3 w-3 mr-1" />
         Cancel

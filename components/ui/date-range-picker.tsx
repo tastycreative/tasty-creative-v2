@@ -170,7 +170,7 @@ export function DateRangePicker({
           {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
             <div
               key={day}
-              className="h-8 flex items-center justify-center text-xs font-medium text-gray-500"
+              className="h-8 flex items-center justify-center text-xs font-medium text-gray-500 dark:text-gray-400"
             >
               {day}
             </div>
@@ -194,19 +194,19 @@ export function DateRangePicker({
                 disabled={!isCurrentMonth || isFutureDate}
                 className={`h-8 w-8 p-0 text-sm font-normal relative transition-all duration-150 ${
                   !isCurrentMonth || isFutureDate
-                    ? "text-gray-300 cursor-not-allowed"
-                    : "text-gray-900 hover:bg-pink-50 cursor-pointer"
+                    ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                    : "text-gray-900 dark:text-gray-100 hover:bg-pink-50 dark:hover:bg-pink-900/20 cursor-pointer"
                 } ${
                   isToday && isCurrentMonth
-                    ? "ring-2 ring-pink-400 ring-offset-1"
+                    ? "ring-2 ring-pink-400 dark:ring-pink-500 ring-offset-1 dark:ring-offset-gray-800"
                     : ""
                 } ${
                   inRange && !rangeStart && !rangeEnd && isCurrentMonth
-                    ? "bg-pink-100 text-pink-900"
+                    ? "bg-pink-100 dark:bg-pink-900/40 text-pink-900 dark:text-pink-200"
                     : ""
                 } ${
                   (rangeStart || rangeEnd) && isCurrentMonth
-                    ? "bg-pink-500 text-white hover:bg-pink-600 font-semibold"
+                    ? "bg-pink-500 dark:bg-pink-600 text-white hover:bg-pink-600 dark:hover:bg-pink-700 font-semibold"
                     : ""
                 }`}
                 onClick={() =>
@@ -238,12 +238,12 @@ export function DateRangePicker({
       ref={containerRef}
       className="absolute top-full right-0 mt-2 z-50 min-w-[320px] sm:min-w-[600px] max-w-[90vw] w-auto"
     >
-      <div className="bg-white border border-gray-200 rounded-lg shadow-xl w-full">
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl w-full">
         {/* Header with close button and instructions */}
-        <div className="flex items-center justify-between p-4 border-b bg-gray-50">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
           <div>
-            <h3 className="font-semibold text-gray-900">Select Date Range</h3>
-            <p className="text-sm text-gray-600 mt-1">
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Select Date Range</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
               {selectionStep === "start"
                 ? "Click a date to select start of range"
                 : "Click a date to select end of range"}
@@ -260,8 +260,8 @@ export function DateRangePicker({
         </div>
 
         {/* Quick presets */}
-        <div className="p-4 border-b bg-gray-50">
-          <div className="text-xs font-medium text-gray-600 mb-3">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+          <div className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-3">
             Quick Select:
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
@@ -278,7 +278,7 @@ export function DateRangePicker({
                 key={preset.value}
                 variant="outline"
                 size="sm"
-                className="text-xs whitespace-nowrap h-8"
+                className="text-xs whitespace-nowrap h-8 bg-white dark:bg-gray-600 hover:bg-gray-100 dark:hover:bg-gray-500 border-gray-300 dark:border-gray-500 text-gray-700 dark:text-gray-200"
                 onClick={() => handleQuickSelect(preset.value)}
               >
                 {preset.label}
@@ -296,32 +296,32 @@ export function DateRangePicker({
         </div>
 
         {/* Footer with selected range and action buttons */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border-t bg-gray-50 gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 gap-3">
           <div className="text-sm">
             {selectedStart && selectedEnd ? (
               <div>
-                <span className="text-gray-600">Selected range: </span>
-                <span className="font-semibold text-gray-900">
+                <span className="text-gray-600 dark:text-gray-300">Selected range: </span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100">
                   {selectedStart.toFormat("MMM d, yyyy")} -{" "}
                   {selectedEnd.toFormat("MMM d, yyyy")}
                 </span>
-                <span className="text-gray-500 ml-2">
+                <span className="text-gray-500 dark:text-gray-400 ml-2">
                   ({Math.abs(selectedEnd.diff(selectedStart, "days").days) + 1}{" "}
                   days)
                 </span>
               </div>
             ) : selectedStart ? (
               <div>
-                <span className="text-gray-600">Start date: </span>
-                <span className="font-semibold text-gray-900">
+                <span className="text-gray-600 dark:text-gray-300">Start date: </span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100">
                   {selectedStart.toFormat("MMM d, yyyy")}
                 </span>
-                <span className="text-pink-600 ml-2">
+                <span className="text-pink-600 dark:text-pink-400 ml-2">
                   ← Now select end date
                 </span>
               </div>
             ) : (
-              <span className="text-gray-500">No dates selected</span>
+              <span className="text-gray-500 dark:text-gray-400">No dates selected</span>
             )}
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
@@ -329,7 +329,7 @@ export function DateRangePicker({
               variant="outline"
               size="sm"
               onClick={handleCancel}
-              className="flex-1 sm:flex-none"
+              className="flex-1 sm:flex-none bg-white dark:bg-gray-600 hover:bg-gray-100 dark:hover:bg-gray-500 border-gray-300 dark:border-gray-500 text-gray-700 dark:text-gray-200"
             >
               Cancel
             </Button>
@@ -337,7 +337,7 @@ export function DateRangePicker({
               size="sm"
               onClick={handleApply}
               disabled={!selectedStart}
-              className="bg-pink-600 hover:bg-pink-700 text-white flex-1 sm:flex-none"
+              className="bg-pink-600 hover:bg-pink-700 dark:bg-pink-500 dark:hover:bg-pink-600 text-white flex-1 sm:flex-none disabled:opacity-50"
             >
               Select Range
             </Button>

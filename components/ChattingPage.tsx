@@ -1,5 +1,4 @@
 "use client";
-import { ThemeProvider } from "next-themes";
 
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
@@ -54,8 +53,7 @@ const ChattingPage = () => {
   };
   return (
     <div className="flex flex-col gap-2 sm:gap-3 md:gap-4 shadow-sm sm:shadow-md  relative overflow-hidden w-full bg-white/90 rounded-md sm:rounded-lg border border-pink-200">
-      <ThemeProvider defaultTheme="light" attribute="class">
-        <SidebarProvider>
+      <SidebarProvider>
           <ChattingSideBar />
           <SidebarInset className="w-full max-w-full overflow-x-hidden ">
             <header className="flex h-12 sm:h-14 md:h-16 shrink-0 items-center gap-1 sm:gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-10 sm:group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
@@ -91,8 +89,7 @@ const ChattingPage = () => {
               </div>
             </div>
           </SidebarInset>
-        </SidebarProvider>
-      </ThemeProvider>
+      </SidebarProvider>
     </div>
   );
 };

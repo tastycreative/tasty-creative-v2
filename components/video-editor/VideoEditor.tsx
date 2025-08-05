@@ -757,7 +757,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                     videos={videos}
                     currentTime={currentTime}
                     isPlaying={isPlaying}
-                    onTimeUpdate={seek}
+                    onTimeUpdate={isPlaying ? seek : undefined}
                     layout={currentLayout}
                     activeGridId={activeGridId}
                     onGridClick={handleGridClick}
