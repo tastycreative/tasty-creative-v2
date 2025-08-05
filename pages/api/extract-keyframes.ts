@@ -1,12 +1,9 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-const nextConnect = require('next-connect');
-import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { spawn } from 'child_process';
-
-// Multer setup for file uploads
-const upload = multer({ dest: '/tmp' });
+import busboy from 'busboy';
+import { v4 as uuidv4 } from 'uuid';
 
 // Helper to run ffmpeg and extract keyframes
 function extractKeyframesFFmpeg(videoPath: string, outputDir: string): Promise<string[]> {
@@ -31,35 +28,52 @@ function extractKeyframesFFmpeg(videoPath: string, outputDir: string): Promise<s
   });
 }
 
-const apiRoute = nextConnect<NextApiRequest, NextApiResponse>({
-  onError(error, req, res) {
-    res.status(501).json({ error: `Sorry, something went wrong! ${error.message}` });
-  },
-  onNoMatch(req, res) {
-    res.status(405).json({ error: `Method '${req.method}' Not Allowed` });
-  },
-});
-
-apiRoute.use(upload.single('video'));
-
-apiRoute.post(async (req: any, res) => {
-  const file = req.file;
-  if (!file) return res.status(400).json({ error: 'No file uploaded' });
-  const outputDir = path.join(process.cwd(), 'public', 'keyframes', file.filename);
-  try {
-    const frames = await extractKeyframesFFmpeg(file.path, outputDir);
-    // Clean up uploaded file
-    fs.unlinkSync(file.path);
-    res.status(200).json({ frames });
-  } catch (e: any) {
-    res.status(500).json({ error: e.message });
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: `Method '${req.method}' Not Allowed` });
   }
-});
+
+  try {
+    const bb = busboy({ headers: req.headers });
+    let uploadedFilePath: string | null = null;
+    const filename = uuidv4();
+
+    bb.on('file', (name, file, info) => {
+      const uploadPath = path.join('/tmp', filename);
+      uploadedFilePath = uploadPath;
+      file.pipe(fs.createWriteStream(uploadPath));
+    });
+
+    bb.on('close', async () => {
+      if (!uploadedFilePath) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+
+      try {
+        const outputDir = path.join(process.cwd(), 'public', 'keyframes', filename);
+        const frames = await extractKeyframesFFmpeg(uploadedFilePath, outputDir);
+        
+        // Clean up uploaded file
+        fs.unlinkSync(uploadedFilePath);
+        
+        res.status(200).json({ frames });
+      } catch (error: any) {
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    bb.on('error', (error: any) => {
+      res.status(500).json({ error: error.message });
+    });
+
+    req.pipe(bb);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+}
 
 export const config = {
   api: {
     bodyParser: false,
   },
 };
-
-export default apiRoute;

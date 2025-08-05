@@ -1,31 +1,55 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import nextConnect from 'next-connect';
-import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import busboy from 'busboy';
+import { v4 as uuidv4 } from 'uuid';
 
-const upload = multer({ dest: './uploads/' });
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: `Method '${req.method}' Not Allowed` });
+  }
 
-const handler = nextConnect<NextApiRequest, NextApiResponse>({
-  onError(error, req, res) {
-    res.status(501).json({ error: `Sorry something Happened! ${error.message}` });
-  },
-  onNoMatch(req, res) {
-    res.status(405).json({ error: `Method '${req.method}' Not Allowed` });
-  },
-});
+  try {
+    const bb = busboy({ headers: req.headers });
+    const files: any[] = [];
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    
+    // Ensure uploads directory exists
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
 
-handler.use(upload.array('videos'));
+    bb.on('file', (name, file, info) => {
+      const filename = uuidv4() + path.extname(info.filename || '');
+      const uploadPath = path.join(uploadsDir, filename);
+      
+      file.pipe(fs.createWriteStream(uploadPath));
+      
+      files.push({
+        fieldname: name,
+        originalname: info.filename,
+        filename: filename,
+        path: uploadPath,
+        size: 0 // Would need to track this if needed
+      });
+    });
 
-handler.post((req: any, res) => {
-  // Return uploaded file info
-  res.status(200).json({ files: req.files });
-});
+    bb.on('close', () => {
+      res.status(200).json({ files });
+    });
+
+    bb.on('error', (error: any) => {
+      res.status(500).json({ error: error.message });
+    });
+
+    req.pipe(bb);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+}
 
 export const config = {
   api: {
     bodyParser: false,
   },
 };
-
-export default handler;
