@@ -587,14 +587,14 @@ export default function VNSalesPage() {
     if (!showClearConfirmation) return null;
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6 border dark:border-gray-600">
           <div className="flex items-center mb-4">
             <AlertCircle className="h-6 w-6 text-red-500 mr-3" />
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
               Clear All Sales Data
             </h3>
           </div>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
             Are you sure you want to delete all voice note sales data? This
             action cannot be undone.
           </p>
@@ -603,14 +603,14 @@ export default function VNSalesPage() {
               variant="outline"
               onClick={() => setShowClearConfirmation(false)}
               disabled={isClearingData}
-              className="flex-1"
+              className="flex-1 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
             >
               Cancel
             </Button>
             <Button
               onClick={handleClearAllData}
               disabled={isClearingData}
-              className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              className="flex-1 bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 text-white"
             >
               {isClearingData ? (
                 <>
@@ -647,7 +647,7 @@ export default function VNSalesPage() {
   };
 
   return (
-    <div className="min-h-screen p-6 space-y-6 bg-gradient-to-br from-gray-50 via-white to-pink-50">
+    <div className="min-h-screen p-6 space-y-6 bg-gradient-to-br from-gray-50 via-white to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Custom styles */}
       <style jsx global>{`
         .line-clamp-2 {
@@ -671,18 +671,18 @@ export default function VNSalesPage() {
         <Alert
           className={`${
             clearStatus.type === "success"
-              ? "border-green-500 bg-green-50 text-green-800"
-              : "border-red-500 bg-red-50 text-red-800"
+              ? "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 dark:border-green-700"
+              : "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 dark:border-red-700"
           } mb-6`}
         >
           {clearStatus.type === "success" ? (
-            <CheckCircle className="h-4 w-4 text-green-600" />
+            <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
           ) : (
-            <AlertCircle className="h-4 w-4 text-red-600" />
+            <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
           )}
           <AlertDescription
             className={
-              clearStatus.type === "success" ? "text-green-700" : "text-red-700"
+              clearStatus.type === "success" ? "text-green-700 dark:text-green-300" : "text-red-700 dark:text-red-300"
             }
           >
             {clearStatus.message}
@@ -691,32 +691,32 @@ export default function VNSalesPage() {
       )}
 
       {/* Enhanced Header */}
-      <div className="mb-8 p-6 bg-gradient-to-r from-gray-50 to-pink-50 rounded-lg border">
+      <div className="mb-8 p-6 bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-800 dark:to-gray-700 rounded-lg border dark:border-gray-600">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center space-x-3 mb-2">
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
                 VN Sales Tracker
               </h1>
               <Mic className="h-6 w-6 text-pink-500" />
               <div className="flex items-center space-x-1">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-xs text-gray-600">Live Updates</span>
+                <span className="text-xs text-gray-600 dark:text-gray-400">Live Updates</span>
               </div>
               {isCached && (
                 <div className="flex items-center space-x-1">
                   <Timer className="h-3 w-3 text-blue-500" />
-                  <span className="text-xs text-blue-600">
+                  <span className="text-xs text-blue-600 dark:text-blue-400">
                     Cached ({cacheAge}s ago)
                   </span>
                 </div>
               )}
             </div>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-300">
               Advanced analytics, real-time tracking, and intelligent insights
             </p>
             {lastRefresh && (
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Last updated: {lastRefresh.toLocaleTimeString()}
               </p>
             )}
@@ -727,7 +727,7 @@ export default function VNSalesPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setAutoRefresh(!autoRefresh)}
-                className={`${autoRefresh ? "bg-green-50 border-green-300" : ""}`}
+                className={`${autoRefresh ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700" : "dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"}`}
               >
                 {autoRefresh ? (
                   <Pause className="h-4 w-4 mr-1" />
@@ -740,7 +740,7 @@ export default function VNSalesPage() {
                 <select
                   value={refreshInterval}
                   onChange={(e) => setRefreshInterval(parseInt(e.target.value))}
-                  className="text-xs border rounded px-2 py-1"
+                  className="text-xs border rounded px-2 py-1 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
                 >
                   <option value={10}>10s</option>
                   <option value={30}>30s</option>
@@ -754,13 +754,14 @@ export default function VNSalesPage() {
               disabled={isLoadingStats}
               variant="outline"
               size="sm"
+              className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
             >
               <RefreshCw
                 className={`h-4 w-4 mr-2 ${isLoadingStats ? "animate-spin" : ""}`}
               />
               {isLoadingStats ? "Refreshing..." : "Refresh"}
             </Button>
-            <Button onClick={exportData} variant="outline" size="sm">
+            <Button onClick={exportData} variant="outline" size="sm" className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
               <Download className="h-4 w-4 mr-2" />
               Export CSV
             </Button>
@@ -770,7 +771,7 @@ export default function VNSalesPage() {
                 disabled={isClearingData}
                 variant="outline"
                 size="sm"
-                className="text-red-600 border-red-200 hover:bg-red-50"
+                className="text-red-600 dark:text-red-400 border-red-200 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
               >
                 <AlertCircle className="h-4 w-4 mr-2" />
                 Clear Data
@@ -783,16 +784,16 @@ export default function VNSalesPage() {
       {/* Alerts Section */}
       {alerts.length > 0 && (
         <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center">
             <Bell className="h-5 w-5 mr-2 text-blue-500" />
             Smart Alerts
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {alerts.map((alert, index) => (
-              <Alert key={index} className="border-l-4 border-l-blue-500">
+              <Alert key={index} className="border-l-4 border-l-blue-500 dark:bg-gray-800 dark:border-gray-600">
                 {getAlertIcon(alert.type)}
                 <div>
-                  <AlertDescription>
+                  <AlertDescription className="dark:text-gray-300">
                     <span className="font-medium">{alert.title}</span>
                     <br />
                     {alert.message}
@@ -807,14 +808,14 @@ export default function VNSalesPage() {
       {/* Enhanced Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
         {/* VN Sales Today */}
-        <Card className="border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+        <Card className="border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-500 group bg-white dark:bg-gray-800 relative overflow-hidden">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   VN Sales Today
                 </p>
-                <p className="text-3xl font-bold text-gray-900 mb-1">
+                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                   {isLoadingStats ? (
                     <Loader2 className="w-6 h-6 animate-spin text-green-600" />
                   ) : (
@@ -823,25 +824,25 @@ export default function VNSalesPage() {
                 </p>
                 <div className="flex items-center text-sm">
                   <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
-                  <span className="text-green-600 font-medium">Real-time</span>
+                  <span className="text-green-600 dark:text-green-400 font-medium">Real-time</span>
                 </div>
               </div>
-              <div className="bg-green-50 p-3 rounded-full group-hover:bg-green-100 transition-colors">
-                <DollarSign className="h-6 w-6 text-green-600" />
+              <div className="bg-green-50 dark:bg-green-900/30 p-3 rounded-full group-hover:bg-green-100 dark:group-hover:bg-green-900/50 transition-colors">
+                <DollarSign className="h-6 w-6 text-green-600 dark:text-green-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Total Voice Generated */}
-        <Card className="border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+        <Card className="border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-500 group bg-white dark:bg-gray-800 relative overflow-hidden">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Total Voice Generated
                 </p>
-                <p className="text-3xl font-bold text-gray-900 mb-1">
+                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                   {isLoadingStats ? (
                     <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
                   ) : (
@@ -850,27 +851,27 @@ export default function VNSalesPage() {
                 </p>
                 <div className="flex items-center text-sm">
                   <Activity className="h-3 w-3 text-blue-500 mr-1" />
-                  <span className="text-blue-600 font-medium">
+                  <span className="text-blue-600 dark:text-blue-400 font-medium">
                     {voiceStats?.newVoicesToday || 0} new today
                   </span>
                 </div>
               </div>
-              <div className="bg-blue-50 p-3 rounded-full group-hover:bg-blue-100 transition-colors">
-                <FileAudio className="h-6 w-6 text-blue-600" />
+              <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 transition-colors">
+                <FileAudio className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Total Revenue */}
-        <Card className="border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+        <Card className="border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-500 group bg-white dark:bg-gray-800 relative overflow-hidden">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Total Revenue
                 </p>
-                <p className="text-3xl font-bold text-gray-900 mb-1">
+                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                   {isLoadingStats ? (
                     <Loader2 className="w-6 h-6 animate-spin text-purple-600" />
                   ) : (
@@ -879,27 +880,27 @@ export default function VNSalesPage() {
                 </p>
                 <div className="flex items-center text-sm">
                   <BarChart3 className="h-3 w-3 text-purple-500 mr-1" />
-                  <span className="text-purple-600 font-medium">
+                  <span className="text-purple-600 dark:text-purple-400 font-medium">
                     From {vnStats?.salesByModel?.length || 0} models
                   </span>
                 </div>
               </div>
-              <div className="bg-purple-50 p-3 rounded-full group-hover:bg-purple-100 transition-colors">
-                <BarChart3 className="h-6 w-6 text-purple-600" />
+              <div className="bg-purple-50 dark:bg-purple-900/30 p-3 rounded-full group-hover:bg-purple-100 dark:group-hover:bg-purple-900/50 transition-colors">
+                <BarChart3 className="h-6 w-6 text-purple-600 dark:text-purple-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Average VN Price */}
-        <Card className="border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+        <Card className="border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-500 group bg-white dark:bg-gray-800 relative overflow-hidden">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Average VN Price
                 </p>
-                <p className="text-3xl font-bold text-gray-900 mb-1">
+                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                   {isLoadingStats ? (
                     <Loader2 className="w-6 h-6 animate-spin text-orange-600" />
                   ) : (
@@ -908,27 +909,27 @@ export default function VNSalesPage() {
                 </p>
                 <div className="flex items-center text-sm">
                   <Star className="h-3 w-3 text-orange-500 mr-1" />
-                  <span className="text-orange-600 font-medium">
+                  <span className="text-orange-600 dark:text-orange-400 font-medium">
                     Per voice note
                   </span>
                 </div>
               </div>
-              <div className="bg-orange-50 p-3 rounded-full group-hover:bg-orange-100 transition-colors">
-                <Star className="h-6 w-6 text-orange-600" />
+              <div className="bg-orange-50 dark:bg-orange-900/30 p-3 rounded-full group-hover:bg-orange-100 dark:group-hover:bg-orange-900/50 transition-colors">
+                <Star className="h-6 w-6 text-orange-600 dark:text-orange-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Top Generating Account */}
-        <Card className="border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+        <Card className="border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-500 group bg-white dark:bg-gray-800 relative overflow-hidden">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Top Account
                 </p>
-                <p className="text-3xl font-bold text-gray-900 mb-1">
+                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                   {isLoadingStats ? (
                     <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
                   ) : (
@@ -938,27 +939,27 @@ export default function VNSalesPage() {
                 </p>
                 <div className="flex items-center text-sm">
                   <User className="h-3 w-3 text-indigo-500 mr-1" />
-                  <span className="text-indigo-600 font-medium truncate">
+                  <span className="text-indigo-600 dark:text-indigo-400 font-medium truncate">
                     {accountStats?.topAccount?.accountName || "No data"}
                   </span>
                 </div>
               </div>
-              <div className="bg-indigo-50 p-3 rounded-full group-hover:bg-indigo-100 transition-colors">
-                <Award className="h-6 w-6 text-indigo-600" />
+              <div className="bg-indigo-50 dark:bg-indigo-900/30 p-3 rounded-full group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50 transition-colors">
+                <Award className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Most Active Today */}
-        <Card className="border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+        <Card className="border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-500 group bg-white dark:bg-gray-800 relative overflow-hidden">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Most Active Today
                 </p>
-                <p className="text-3xl font-bold text-gray-900 mb-1">
+                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                   {isLoadingStats ? (
                     <Loader2 className="w-6 h-6 animate-spin text-red-600" />
                   ) : (
@@ -967,14 +968,14 @@ export default function VNSalesPage() {
                 </p>
                 <div className="flex items-center text-sm">
                   <Flame className="h-3 w-3 text-red-500 mr-1" />
-                  <span className="text-red-600 font-medium truncate">
+                  <span className="text-red-600 dark:text-red-400 font-medium truncate">
                     {accountStats?.mostActiveToday?.accountName ||
                       "No activity"}
                   </span>
                 </div>
               </div>
-              <div className="bg-red-50 p-3 rounded-full group-hover:bg-red-100 transition-colors">
-                <Zap className="h-6 w-6 text-red-600" />
+              <div className="bg-red-50 dark:bg-red-900/30 p-3 rounded-full group-hover:bg-red-100 dark:group-hover:bg-red-900/50 transition-colors">
+                <Zap className="h-6 w-6 text-red-600 dark:text-red-400" />
               </div>
             </div>
           </CardContent>
@@ -983,10 +984,10 @@ export default function VNSalesPage() {
 
       {/* Performance Insights */}
       {insights && showInsights && (
-        <Card className="border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 bg-white mb-8">
-          <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b border-gray-200">
+        <Card className="border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-gray-800 mb-8">
+          <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-800 dark:to-gray-700 border-b border-gray-200 dark:border-gray-600">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-gray-900 font-bold flex items-center">
+              <CardTitle className="text-gray-900 dark:text-gray-100 font-bold flex items-center">
                 <Target className="h-5 w-5 mr-2 text-green-500" />
                 Performance Insights
               </CardTitle>
@@ -994,6 +995,7 @@ export default function VNSalesPage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowInsights(!showInsights)}
+                className="dark:text-gray-300 dark:hover:bg-gray-700"
               >
                 <ChevronUp className="h-4 w-4" />
               </Button>
@@ -1002,35 +1004,35 @@ export default function VNSalesPage() {
           <CardContent className="p-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {insights.activeToday}
                 </div>
-                <div className="text-sm text-gray-600">Active Today</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Active Today</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                   {insights.highPerformers}
                 </div>
-                <div className="text-sm text-gray-600">High Performers</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">High Performers</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-red-600">
+                <div className="text-2xl font-bold text-red-600 dark:text-red-400">
                   {insights.inactiveAccounts}
                 </div>
-                <div className="text-sm text-gray-600">Inactive Accounts</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Inactive Accounts</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                   {insights.averagePerAccount}
                 </div>
-                <div className="text-sm text-gray-600">Avg per Account</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">Avg per Account</div>
               </div>
             </div>
-            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-              <h4 className="font-semibold text-blue-900 mb-2">
+            <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+              <h4 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">
                 🎯 Smart Recommendations
               </h4>
-              <div className="space-y-1 text-sm text-blue-800">
+              <div className="space-y-1 text-sm text-blue-800 dark:text-blue-300">
                 <p>
                   • Focus on <strong>{insights.topPerformerToday}</strong> -
                   highest activity today
@@ -1051,9 +1053,9 @@ export default function VNSalesPage() {
 
       {/* Enhanced Account Performance Breakdown */}
       {accountStats?.accountStats && accountStats.accountStats.length > 0 && (
-        <Card className="border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 bg-white mb-8">
-          <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b border-gray-200">
-            <CardTitle className="text-gray-900 font-bold flex items-center">
+        <Card className="border border-gray-200 dark:border-gray-600 shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 bg-white dark:bg-gray-800 mb-8">
+          <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-800 dark:to-gray-700 border-b border-gray-200 dark:border-gray-600">
+            <CardTitle className="text-gray-900 dark:text-gray-100 font-bold flex items-center">
               <Activity className="h-5 w-5 mr-2 text-indigo-500" />
               Enhanced Account Analytics
             </CardTitle>
@@ -1066,8 +1068,8 @@ export default function VNSalesPage() {
                     key={account.accountId}
                     className={`p-4 rounded-lg border transition-all duration-300 hover:shadow-md ${
                       index === 0
-                        ? "bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200"
-                        : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+                        ? "bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 border-indigo-200 dark:border-indigo-700"
+                        : "bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600"
                     }`}
                   >
                     {/* Header */}
@@ -1077,14 +1079,14 @@ export default function VNSalesPage() {
                         {index === 0 && (
                           <Star className="h-4 w-4 text-indigo-500" />
                         )}
-                        <span className="font-medium text-gray-900 text-sm">
+                        <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">
                           {account.accountName}
                         </span>
                       </div>
                       <div className="flex items-center space-x-1">
                         {getTrendIcon(account.trend)}
                         {index === 0 && (
-                          <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 text-xs">
+                          <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-700 text-xs">
                             #1
                           </Badge>
                         )}
@@ -1094,42 +1096,42 @@ export default function VNSalesPage() {
                     {/* Stats */}
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-600">
+                        <span className="text-xs text-gray-600 dark:text-gray-400">
                           Total Generated:
                         </span>
-                        <span className="font-semibold text-gray-900">
+                        <span className="font-semibold text-gray-900 dark:text-gray-100">
                           {account.totalGenerated.toLocaleString()}
                         </span>
                       </div>
 
                       <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-600">
+                        <span className="text-xs text-gray-600 dark:text-gray-400">
                           Today vs Yesterday:
                         </span>
                         <div className="flex items-center space-x-1">
-                          <span className="font-medium text-green-600">
+                          <span className="font-medium text-green-600 dark:text-green-400">
                             {account.generatedToday}
                           </span>
-                          <span className="text-xs text-gray-400">vs</span>
-                          <span className="font-medium text-gray-500">
+                          <span className="text-xs text-gray-400 dark:text-gray-500">vs</span>
+                          <span className="font-medium text-gray-500 dark:text-gray-400">
                             {account.generatedYesterday}
                           </span>
                         </div>
                       </div>
 
                       <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-600">
+                        <span className="text-xs text-gray-600 dark:text-gray-400">
                           Avg Daily:
                         </span>
-                        <span className="font-medium text-blue-600">
+                        <span className="font-medium text-blue-600 dark:text-blue-400">
                           {account.avgDailyGeneration}
                         </span>
                       </div>
 
                       <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-600">Velocity:</span>
+                        <span className="text-xs text-gray-600 dark:text-gray-400">Velocity:</span>
                         <Badge
-                          className={`text-xs ${getVelocityBadge(account.velocity)}`}
+                          className={`text-xs ${getVelocityBadge(account.velocity)} dark:bg-opacity-20 dark:border-opacity-50`}
                         >
                           {account.velocity.toUpperCase()}
                         </Badge>
@@ -1137,10 +1139,10 @@ export default function VNSalesPage() {
 
                       {account.lastGenerationDate && (
                         <div className="flex justify-between items-center">
-                          <span className="text-xs text-gray-600">
+                          <span className="text-xs text-gray-600 dark:text-gray-400">
                             Last Activity:
                           </span>
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
                             {account.lastActivityHours < 24
                               ? `${account.lastActivityHours}h ago`
                               : account.lastGenerationDate}
@@ -1151,10 +1153,10 @@ export default function VNSalesPage() {
 
                     {/* Progress bar */}
                     <div className="mt-3">
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
                         <div
                           className={`h-2 rounded-full transition-all duration-500 ${
-                            index === 0 ? "bg-indigo-500" : "bg-gray-400"
+                            index === 0 ? "bg-indigo-500 dark:bg-indigo-400" : "bg-gray-400 dark:bg-gray-500"
                           }`}
                           style={{
                             width:
@@ -1170,14 +1172,14 @@ export default function VNSalesPage() {
                     {account.recentActivity &&
                       account.recentActivity.length > 0 && (
                         <div className="mt-3">
-                          <div className="text-xs text-gray-600 mb-1">
+                          <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">
                             7-day activity:
                           </div>
                           <div className="flex items-end space-x-1 h-6">
                             {account.recentActivity.map((day, i) => (
                               <div
                                 key={i}
-                                className="flex-1 bg-blue-200 rounded-sm"
+                                className="flex-1 bg-blue-200 dark:bg-blue-700 rounded-sm"
                                 style={{
                                   height: `${Math.max(10, (day.count / Math.max(...account.recentActivity.map((d) => d.count))) * 100)}%`,
                                 }}
@@ -1193,46 +1195,46 @@ export default function VNSalesPage() {
             </div>
 
             {/* Enhanced Summary */}
-            <div className="mt-6 pt-4 border-t border-gray-200">
+            <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div className="text-center">
-                  <div className="font-semibold text-gray-900">
+                  <div className="font-semibold text-gray-900 dark:text-gray-100">
                     {accountStats.accountStats.length}
                   </div>
-                  <div className="text-gray-500">Total Accounts</div>
+                  <div className="text-gray-500 dark:text-gray-400">Total Accounts</div>
                 </div>
                 <div className="text-center">
-                  <div className="font-semibold text-green-600">
+                  <div className="font-semibold text-green-600 dark:text-green-400">
                     {
                       accountStats.accountStats.filter(
                         (acc: any) => acc.generatedToday > 0
                       ).length
                     }
                   </div>
-                  <div className="text-gray-500">Active Today</div>
+                  <div className="text-gray-500 dark:text-gray-400">Active Today</div>
                 </div>
                 <div className="text-center">
-                  <div className="font-semibold text-blue-600">
+                  <div className="font-semibold text-blue-600 dark:text-blue-400">
                     {
                       accountStats.accountStats.filter(
                         (acc: any) => acc.velocity === "high"
                       ).length
                     }
                   </div>
-                  <div className="text-gray-500">High Velocity</div>
+                  <div className="text-gray-500 dark:text-gray-400">High Velocity</div>
                 </div>
                 <div className="text-center">
-                  <div className="font-semibold text-red-600">
+                  <div className="font-semibold text-red-600 dark:text-red-400">
                     {
                       accountStats.accountStats.filter(
                         (acc: any) => acc.status === "inactive"
                       ).length
                     }
                   </div>
-                  <div className="text-gray-500">Need Attention</div>
+                  <div className="text-gray-500 dark:text-gray-400">Need Attention</div>
                 </div>
               </div>
-              <div className="text-xs text-gray-400 text-center mt-2">
+              <div className="text-xs text-gray-400 dark:text-gray-500 text-center mt-2">
                 Last updated:{" "}
                 {accountStats.lastUpdated
                   ? new Date(accountStats.lastUpdated).toLocaleTimeString()
@@ -1244,9 +1246,9 @@ export default function VNSalesPage() {
       )}
 
       {/* Voice Note Sale Submission Form */}
-      <Card className="border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 bg-white">
-        <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b border-gray-200">
-          <CardTitle className="text-gray-900 font-bold flex items-center">
+      <Card className="border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-gray-800">
+        <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-800 dark:to-gray-700 border-b border-gray-200 dark:border-gray-600">
+          <CardTitle className="text-gray-900 dark:text-gray-100 font-bold flex items-center">
             <Mic className="h-5 w-5 mr-2 text-pink-500" />
             Submit Voice Note Sale
           </CardTitle>
@@ -1257,7 +1259,7 @@ export default function VNSalesPage() {
             <div className="space-y-2">
               <Label
                 htmlFor="apiProfile"
-                className="text-sm font-medium text-gray-700"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300"
               >
                 Select API Profile
               </Label>
@@ -1265,15 +1267,15 @@ export default function VNSalesPage() {
                 value={selectedApiProfile}
                 onValueChange={setSelectedApiProfile}
               >
-                <SelectTrigger className="w-full bg-white border-gray-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all">
+                <SelectTrigger className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all dark:text-gray-100">
                   <SelectValue placeholder="Choose an API profile" />
                 </SelectTrigger>
-                <SelectContent className="bg-white border-gray-300">
+                <SelectContent className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600">
                   {Object.entries(API_KEY_PROFILES).map(([key, profile]) => (
                     <SelectItem
                       key={key}
                       value={key}
-                      className="hover:bg-gray-50"
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-100"
                     >
                       {profile.name}
                     </SelectItem>
@@ -1286,7 +1288,7 @@ export default function VNSalesPage() {
             <div className="space-y-2">
               <Label
                 htmlFor="voice-selection"
-                className="text-sm font-medium text-gray-700"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300"
               >
                 Select Voice ({availableVoices.length} available)
               </Label>
@@ -1295,15 +1297,15 @@ export default function VNSalesPage() {
                 onValueChange={setSelectedVoice}
                 disabled={availableVoices.length === 0}
               >
-                <SelectTrigger className="w-full bg-white border-gray-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all disabled:bg-gray-50">
+                <SelectTrigger className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all disabled:bg-gray-50 dark:disabled:bg-gray-700 dark:text-gray-100">
                   <SelectValue placeholder="Select a voice" />
                 </SelectTrigger>
-                <SelectContent className="bg-white border-gray-300 max-h-72">
+                <SelectContent className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 max-h-72">
                   {availableVoices.map((voice) => (
                     <SelectItem
                       key={voice.voiceId}
                       value={voice.voiceId}
-                      className="hover:bg-gray-50"
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-100"
                     >
                       {voice.name}
                     </SelectItem>
@@ -1317,7 +1319,7 @@ export default function VNSalesPage() {
               <div className="flex items-center justify-between">
                 <Label
                   htmlFor="voiceNote"
-                  className="text-sm font-medium text-gray-700"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300"
                 >
                   Select Voice Note
                 </Label>
@@ -1327,7 +1329,7 @@ export default function VNSalesPage() {
                   size="sm"
                   onClick={loadVoiceHistory}
                   disabled={isLoadingHistory}
-                  className="text-gray-600 hover:text-gray-800 border-gray-300 hover:border-pink-300 hover:bg-pink-50 transition-all"
+                  className="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 border-gray-300 dark:border-gray-600 hover:border-pink-300 hover:bg-pink-50 dark:hover:bg-gray-700 transition-all"
                 >
                   {isLoadingHistory ? (
                     <>
@@ -1347,7 +1349,7 @@ export default function VNSalesPage() {
                 onValueChange={setSelectedVoiceNote}
                 disabled={!selectedVoice || !selectedApiProfile}
               >
-                <SelectTrigger className="w-full bg-white border-gray-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all disabled:bg-gray-50">
+                <SelectTrigger className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all disabled:bg-gray-50 dark:disabled:bg-gray-700 dark:text-gray-100">
                   <SelectValue
                     placeholder={
                       !selectedApiProfile
@@ -1358,18 +1360,18 @@ export default function VNSalesPage() {
                     }
                   />
                 </SelectTrigger>
-                <SelectContent className="max-h-60 bg-white border-gray-300">
+                <SelectContent className="max-h-60 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600">
                   {voiceHistory.map((item) => (
                     <SelectItem
                       key={item.history_item_id}
                       value={item.history_item_id}
-                      className="hover:bg-gray-50"
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-100"
                     >
                       <div className="flex flex-col space-y-1">
-                        <span className="font-medium text-gray-900">
+                        <span className="font-medium text-gray-900 dark:text-gray-100">
                           {truncateText(item.text, 40)}
                         </span>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
                           Generated: {formatDateUnix(item.date_unix)} | Voice:{" "}
                           {item.voice_name}
                         </span>
@@ -1382,7 +1384,7 @@ export default function VNSalesPage() {
                 selectedApiProfile &&
                 voiceHistory.length === 0 &&
                 !isLoadingHistory && (
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                     No voice notes found for{" "}
                     {
                       availableVoices.find((v) => v.voiceId === selectedVoice)
@@ -1403,7 +1405,7 @@ export default function VNSalesPage() {
             <div className="space-y-2">
               <Label
                 htmlFor="salePrice"
-                className="text-sm font-medium text-gray-700"
+                className="text-sm font-medium text-gray-700 dark:text-gray-300"
               >
                 Sale Price ($)
               </Label>
@@ -1415,7 +1417,7 @@ export default function VNSalesPage() {
                 value={salePrice}
                 onChange={(e) => setSalePrice(e.target.value)}
                 placeholder="Enter sale amount"
-                className="w-full bg-white border-gray-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all"
+                className="w-full bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 focus:border-pink-500 focus:ring-2 focus:ring-pink-500/20 transition-all dark:text-gray-100 dark:placeholder-gray-400"
               />
             </div>
 
@@ -1424,20 +1426,20 @@ export default function VNSalesPage() {
               <Alert
                 className={
                   submitStatus.type === "success"
-                    ? "border-green-500 bg-green-50 text-green-800"
-                    : "border-red-500 bg-red-50 text-red-800"
+                    ? "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 dark:border-green-700"
+                    : "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 dark:border-red-700"
                 }
               >
                 {submitStatus.type === "success" ? (
-                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
                 ) : (
-                  <AlertCircle className="h-4 w-4 text-red-600" />
+                  <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
                 )}
                 <AlertDescription
                   className={
                     submitStatus.type === "success"
-                      ? "text-green-700"
-                      : "text-red-700"
+                      ? "text-green-700 dark:text-green-300"
+                      : "text-red-700 dark:text-red-300"
                   }
                 >
                   {submitStatus.message}
@@ -1448,7 +1450,7 @@ export default function VNSalesPage() {
             {/* Submit Button */}
             <Button
               type="submit"
-              className="w-full bg-pink-500 hover:bg-pink-600 text-white border-0 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
+              className="w-full bg-pink-500 hover:bg-pink-600 dark:bg-pink-600 dark:hover:bg-pink-700 text-white border-0 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
               disabled={
                 isSubmitting ||
                 !selectedApiProfile ||
@@ -1475,14 +1477,14 @@ export default function VNSalesPage() {
 
       {/* Recent Sales Table */}
       {recentSales.length > 0 && (
-        <Card className="border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 bg-white">
-          <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b border-gray-200">
+        <Card className="border border-gray-200 dark:border-gray-600 shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 bg-white dark:bg-gray-800">
+          <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-800 dark:to-gray-700 border-b border-gray-200 dark:border-gray-600">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-gray-900 font-bold flex items-center">
+              <CardTitle className="text-gray-900 dark:text-gray-100 font-bold flex items-center">
                 <FileText className="h-5 w-5 mr-2 text-blue-500" />
                 Recent Sales ({recentSales.length})
               </CardTitle>
-              <div className="flex items-center space-x-2 text-sm text-gray-500">
+              <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
                 <Calendar className="h-4 w-4" />
                 <span className="hidden sm:inline">
                   Last updated: {new Date().toLocaleTimeString()}
@@ -1495,30 +1497,30 @@ export default function VNSalesPage() {
             <div className="flex flex-col sm:flex-row gap-4 mb-6">
               <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 h-4 w-4" />
                   <Input
                     placeholder="Search by model, voice note, or ID..."
                     value={salesFilter}
                     onChange={(e) => setSalesFilter(e.target.value)}
-                    className="pl-10"
+                    className="pl-10 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400"
                   />
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                <Filter className="h-4 w-4 text-gray-500" />
+                <Filter className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                 <Select
                   value={sortBy}
                   onValueChange={(value: "date" | "price" | "model") =>
                     setSortBy(value)
                   }
                 >
-                  <SelectTrigger className="w-24 sm:w-32">
+                  <SelectTrigger className="w-24 sm:w-32 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="date">Date</SelectItem>
-                    <SelectItem value="price">Price</SelectItem>
-                    <SelectItem value="model">Model</SelectItem>
+                  <SelectContent className="dark:bg-gray-800 dark:border-gray-600">
+                    <SelectItem value="date" className="dark:text-gray-100 dark:hover:bg-gray-700">Date</SelectItem>
+                    <SelectItem value="price" className="dark:text-gray-100 dark:hover:bg-gray-700">Price</SelectItem>
+                    <SelectItem value="model" className="dark:text-gray-100 dark:hover:bg-gray-700">Model</SelectItem>
                   </SelectContent>
                 </Select>
                 <Button
@@ -1527,7 +1529,7 @@ export default function VNSalesPage() {
                   onClick={() =>
                     setSortOrder(sortOrder === "asc" ? "desc" : "asc")
                   }
-                  className="px-3"
+                  className="px-3 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                 >
                   {sortOrder === "asc" ? "↑" : "↓"}
                 </Button>
@@ -1543,19 +1545,19 @@ export default function VNSalesPage() {
                 return (
                   <div
                     key={sale.id}
-                    className="bg-white border border-gray-200 rounded-lg p-4 hover:border-pink-300 hover:shadow-md transition-all duration-300"
+                    className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:border-pink-300 dark:hover:border-pink-500 hover:shadow-md transition-all duration-300"
                   >
                     {/* Header Row */}
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-center space-x-3 flex-1 min-w-0">
-                        <div className="bg-pink-100 p-2 rounded-full flex-shrink-0">
-                          <Mic className="h-4 w-4 text-pink-600" />
+                        <div className="bg-pink-100 dark:bg-pink-900/30 p-2 rounded-full flex-shrink-0">
+                          <Mic className="h-4 w-4 text-pink-600 dark:text-pink-400" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="font-medium text-gray-900 truncate">
+                          <div className="font-medium text-gray-900 dark:text-gray-100 truncate">
                             {sale.model}
                           </div>
-                          <div className="text-sm text-gray-500 flex items-center">
+                          <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
                             <User className="h-3 w-3 mr-1 flex-shrink-0" />
                             <span className="truncate">
                               {sale.source || "Unknown"}
@@ -1564,10 +1566,10 @@ export default function VNSalesPage() {
                         </div>
                       </div>
                       <div className="text-right flex-shrink-0 ml-4">
-                        <div className="text-lg font-semibold text-green-600">
+                        <div className="text-lg font-semibold text-green-600 dark:text-green-400">
                           ${sale.sale.toFixed(2)}
                         </div>
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
                           {Math.floor(sale.sale * 0.8)} pts
                         </div>
                       </div>
@@ -1575,7 +1577,7 @@ export default function VNSalesPage() {
 
                     {/* Voice Note Content */}
                     <div className="mb-3">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm text-gray-900 dark:text-gray-100">
                         <div
                           className={`${
                             isExpanded ? "" : "line-clamp-3"
@@ -1586,7 +1588,7 @@ export default function VNSalesPage() {
                         {sale.voiceNote.length > 150 && (
                           <button
                             onClick={() => toggleSaleExpansion(sale.id)}
-                            className="text-pink-600 hover:text-pink-700 text-xs font-medium mt-2 flex items-center"
+                            className="text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 text-xs font-medium mt-2 flex items-center"
                           >
                             {isExpanded ? (
                               <>
@@ -1605,8 +1607,8 @@ export default function VNSalesPage() {
                     </div>
 
                     {/* Footer Row */}
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                      <div className="flex items-center space-x-4 text-xs text-gray-500">
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
+                      <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
                         <div className="flex items-center">
                           <Calendar className="h-3 w-3 mr-1" />
                           <span>{date}</span>
@@ -1625,13 +1627,13 @@ export default function VNSalesPage() {
                           }
                           className={`text-xs ${
                             sale.status === "Completed"
-                              ? "bg-green-100 text-green-800 border-green-200"
-                              : ""
+                              ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700"
+                              : "dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
                           }`}
                         >
                           {sale.status}
                         </Badge>
-                        <div className="text-xs text-gray-400">
+                        <div className="text-xs text-gray-400 dark:text-gray-500">
                           ID: {sale.id.substring(0, 6)}...
                         </div>
                       </div>
@@ -1642,8 +1644,8 @@ export default function VNSalesPage() {
             </div>
 
             {/* Summary */}
-            <div className="mt-6 pt-4 border-t border-gray-200">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-gray-500">
+            <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-gray-500 dark:text-gray-400">
                 <div>
                   Showing {filteredAndSortedSales().length} of{" "}
                   {recentSales.length} sales
@@ -1651,7 +1653,7 @@ export default function VNSalesPage() {
                 <div className="flex items-center space-x-4">
                   <span>
                     Total Revenue:
-                    <span className="font-semibold text-green-600 ml-1">
+                    <span className="font-semibold text-green-600 dark:text-green-400 ml-1">
                       $
                       {filteredAndSortedSales()
                         .reduce((sum, sale) => sum + sale.sale, 0)
@@ -1667,18 +1669,18 @@ export default function VNSalesPage() {
 
       {/* Empty State */}
       {recentSales.length === 0 && !isLoadingStats && (
-        <Card className="border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 bg-white">
+        <Card className="border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-gray-800">
           <CardContent className="p-12">
-            <div className="text-center text-gray-600">
+            <div className="text-center text-gray-600 dark:text-gray-400">
               <div className="flex flex-col items-center space-y-4">
-                <div className="bg-gray-100 p-6 rounded-full">
-                  <FileText className="h-12 w-12 text-gray-400" />
+                <div className="bg-gray-100 dark:bg-gray-700 p-6 rounded-full">
+                  <FileText className="h-12 w-12 text-gray-400 dark:text-gray-500" />
                 </div>
                 <div>
-                  <p className="text-xl font-medium text-gray-900 mb-2">
+                  <p className="text-xl font-medium text-gray-900 dark:text-gray-100 mb-2">
                     No sales data found
                   </p>
-                  <p className="text-gray-500 max-w-md mx-auto">
+                  <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
                     Submit your first voice note sale using the form above to
                     see your sales data here!
                   </p>

@@ -330,7 +330,7 @@ export default function VoiceGenAccountsPage() {
     if (isEditing) {
       if (field === "voiceStatus") {
         return (
-          <td className="px-3 py-2 text-sm border-b border-r border-gray-200">
+          <td className="px-3 py-2 text-sm border-b border-r border-gray-200 dark:border-gray-600">
             <div className="flex items-center gap-1">
               <select
                 ref={inputRef as React.RefObject<HTMLSelectElement>}
@@ -340,7 +340,7 @@ export default function VoiceGenAccountsPage() {
                 }
                 onBlur={handleSaveCell}
                 onKeyDown={handleKeyPress}
-                className="w-full px-2 py-1 border border-blue-500 rounded text-xs"
+                className="w-full px-2 py-1 border border-blue-500 rounded text-xs dark:bg-gray-700 dark:text-gray-100 dark:border-blue-400"
               >
                 {voiceStatusOptions.map((option) => (
                   <option key={option} value={option}>
@@ -353,7 +353,7 @@ export default function VoiceGenAccountsPage() {
         );
       } else if (field === "accountType") {
         return (
-          <td className="px-3 py-2 text-sm border-b border-r border-gray-200">
+          <td className="px-3 py-2 text-sm border-b border-r border-gray-200 dark:border-gray-600">
             <div className="flex items-center gap-1">
               <select
                 ref={inputRef as React.RefObject<HTMLSelectElement>}
@@ -363,7 +363,7 @@ export default function VoiceGenAccountsPage() {
                 }
                 onBlur={handleSaveCell}
                 onKeyDown={handleKeyPress}
-                className="w-full px-2 py-1 border border-blue-500 rounded text-xs"
+                className="w-full px-2 py-1 border border-blue-500 rounded text-xs dark:bg-gray-700 dark:text-gray-100 dark:border-blue-400"
               >
                 {accountTypeOptions.map((option) => (
                   <option key={option} value={option}>
@@ -376,7 +376,7 @@ export default function VoiceGenAccountsPage() {
         );
       } else if (field === "feedback") {
         return (
-          <td className="px-3 py-2 text-sm border-b border-r border-gray-200">
+          <td className="px-3 py-2 text-sm border-b border-r border-gray-200 dark:border-gray-600">
             <div className="flex items-start gap-1">
               <textarea
                 ref={inputRef as React.RefObject<HTMLTextAreaElement>}
@@ -390,20 +390,20 @@ export default function VoiceGenAccountsPage() {
                   // Don't close on Enter for textarea, only on Ctrl+Enter
                   if (e.key === "Enter" && e.ctrlKey) handleSaveCell();
                 }}
-                className="w-full px-2 py-1 border border-blue-500 rounded text-xs resize-none"
+                className="w-full px-2 py-1 border border-blue-500 rounded text-xs resize-none dark:bg-gray-700 dark:text-gray-100 dark:border-blue-400"
                 rows={2}
                 placeholder="Enter feedback..."
               />
               <div className="flex flex-col gap-1 mt-1">
                 <button
                   onClick={handleSaveCell}
-                  className="text-green-600 hover:text-green-800"
+                  className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
                 >
                   <Check size={12} />
                 </button>
                 <button
                   onClick={handleCancelEdit}
-                  className="text-red-600 hover:text-red-800"
+                  className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
                 >
                   <X size={12} />
                 </button>
@@ -413,7 +413,7 @@ export default function VoiceGenAccountsPage() {
         );
       } else {
         return (
-          <td className="px-3 py-2 text-sm border-b border-r border-gray-200">
+          <td className="px-3 py-2 text-sm border-b border-r border-gray-200 dark:border-gray-600">
             <div className="flex items-center gap-1">
               <input
                 ref={inputRef as React.RefObject<HTMLInputElement>}
@@ -424,18 +424,18 @@ export default function VoiceGenAccountsPage() {
                 }
                 onBlur={handleSaveCell}
                 onKeyDown={handleKeyPress}
-                className="w-full px-2 py-1 border border-blue-500 rounded text-xs"
+                className="w-full px-2 py-1 border border-blue-500 rounded text-xs dark:bg-gray-700 dark:text-gray-100 dark:border-blue-400"
                 placeholder={field === "email" ? "email@example.com" : ""}
               />
               <button
                 onClick={handleSaveCell}
-                className="text-green-600 hover:text-green-800 flex-shrink-0"
+                className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 flex-shrink-0"
               >
                 <Check size={12} />
               </button>
               <button
                 onClick={handleCancelEdit}
-                className="text-red-600 hover:text-red-800 flex-shrink-0"
+                className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 flex-shrink-0"
               >
                 <X size={12} />
               </button>
@@ -447,12 +447,12 @@ export default function VoiceGenAccountsPage() {
 
     let cellContent: React.ReactNode = value || "";
     let cellClass =
-      "px-3 py-2 text-xs cursor-pointer hover:bg-blue-50 border-b border-r border-gray-200";
+      "px-3 py-2 text-xs cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 border-b border-r border-gray-200 dark:border-gray-600 dark:text-gray-100";
 
     // Special styling for different fields
     if (field === "clientName") {
       cellClass =
-        "px-3 py-2 text-sm font-medium cursor-pointer hover:bg-blue-50 border-b border-r border-gray-200";
+        "px-3 py-2 text-sm font-medium cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 border-b border-r border-gray-200 dark:border-gray-600 dark:text-gray-100";
       cellContent = (
         <div className="truncate max-w-[120px]" title={value as string}>
           {value}
@@ -473,27 +473,27 @@ export default function VoiceGenAccountsPage() {
           {value}
         </div>
       ) : (
-        <span className="text-gray-400 text-xs">No password</span>
+        <span className="text-gray-400 dark:text-gray-500 text-xs">No password</span>
       );
     } else if (field === "voiceStatus") {
       const statusColors = {
-        ACTIVE: "bg-green-100 text-green-800 border-green-200",
-        UPLOADING: "bg-yellow-100 text-yellow-800 border-yellow-200",
-        PITCHED: "bg-blue-100 text-blue-800 border-blue-200",
-        DECLINED: "bg-red-100 text-red-800 border-red-200",
-        NA: "bg-gray-100 text-gray-600 border-gray-200",
+        ACTIVE: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700",
+        UPLOADING: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700",
+        PITCHED: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700",
+        DECLINED: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700",
+        NA: "bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600",
       };
       cellContent = (
         <span
-          className={`px-2 py-1 rounded-full text-xs font-medium border ${statusColors[value as keyof typeof statusColors] || "bg-gray-100 text-gray-600 border-gray-200"}`}
+          className={`px-2 py-1 rounded-full text-xs font-medium border ${statusColors[value as keyof typeof statusColors] || "bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600"}`}
         >
           {value === "NA" ? "N/A" : value}
         </span>
       );
     } else if (field === "accountType") {
       const typeColors = {
-        GMAIL: "bg-blue-100 text-blue-800",
-        ELEVENLABS: "bg-purple-100 text-purple-800",
+        GMAIL: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+        ELEVENLABS: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
       };
       const displayName = value === "ELEVENLABS" ? "ElevenLabs" : value;
       cellContent = (
@@ -577,14 +577,14 @@ export default function VoiceGenAccountsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             Voice Gen Accounts
           </h1>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
             Click on any cell to edit • Ctrl+Enter to save feedback • Use
             checkboxes for bulk operations
           </p>
@@ -616,18 +616,18 @@ export default function VoiceGenAccountsPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-4">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 h-4 w-4" />
               <Input
                 placeholder="Search by name or email..."
                 value={searchTerm}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setSearchTerm(e.target.value)
                 }
-                className="pl-10"
+                className="pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400"
               />
               {searchTerm !== debouncedSearchTerm && (
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
@@ -639,7 +639,7 @@ export default function VoiceGenAccountsPage() {
 
           <div className="flex gap-2">
             <select
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
@@ -655,10 +655,10 @@ export default function VoiceGenAccountsPage() {
       </div>
 
       {/* Excel-like Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden">
         {loading && accountsData.length > 0 && (
-          <div className="bg-blue-50 border-b border-blue-200 px-4 py-2">
-            <div className="flex items-center gap-2 text-sm text-blue-700">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-700 px-4 py-2">
+            <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
               Searching...
             </div>
@@ -667,8 +667,8 @@ export default function VoiceGenAccountsPage() {
         <div className="w-full">
           <table className="w-full border-collapse table-fixed">
             <thead>
-              <tr className="bg-gray-50">
-                <th className="px-2 py-3 text-left border-b border-r border-gray-200 w-8">
+              <tr className="bg-gray-50 dark:bg-gray-700">
+                <th className="px-2 py-3 text-left border-b border-r border-gray-200 dark:border-gray-600 w-8">
                   <input
                     type="checkbox"
                     checked={
@@ -676,34 +676,34 @@ export default function VoiceGenAccountsPage() {
                       accountsData.length > 0
                     }
                     onChange={toggleSelectAll}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:bg-gray-700"
                   />
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200 w-32">
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-600 w-32">
                   Client Name
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200 w-48">
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-600 w-48">
                   Email
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200 w-24">
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-600 w-24">
                   Password
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200 w-24">
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-600 w-24">
                   Status
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200 w-28">
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-600 w-28">
                   Type
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200 w-20">
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-600 w-20">
                   Drive
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200 w-40">
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-600 w-40">
                   Feedback
                 </th>
-                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-r border-gray-200 w-16">
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-r border-gray-200 dark:border-gray-600 w-16">
                   Rating
                 </th>
-                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-gray-200 w-12">
+                <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600 w-12">
                   Action
                 </th>
               </tr>
@@ -712,16 +712,16 @@ export default function VoiceGenAccountsPage() {
               {accountsData.map((account, index) => (
                 <tr
                   key={account.id}
-                  className={`hover:bg-gray-50 ${
-                    index % 2 === 0 ? "bg-white" : "bg-gray-25"
-                  } ${selectedRows.has(account.id) ? "bg-blue-50" : ""}`}
+                  className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                    index % 2 === 0 ? "bg-white dark:bg-gray-800" : "bg-gray-25 dark:bg-gray-750"
+                  } ${selectedRows.has(account.id) ? "bg-blue-50 dark:bg-blue-900/20" : ""}`}
                 >
-                  <td className="px-2 py-2 border-b border-r border-gray-200">
+                  <td className="px-2 py-2 border-b border-r border-gray-200 dark:border-gray-600">
                     <input
                       type="checkbox"
                       checked={selectedRows.has(account.id)}
                       onChange={() => toggleRowSelection(account.id)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 dark:bg-gray-700"
                     />
                   </td>
                   {renderCell(account, "clientName")}
@@ -732,10 +732,10 @@ export default function VoiceGenAccountsPage() {
                   {renderCell(account, "dataFolder")}
                   {renderCell(account, "feedback")}
                   {renderCell(account, "rating")}
-                  <td className="px-2 py-2 text-sm border-b border-gray-200">
+                  <td className="px-2 py-2 text-sm border-b border-gray-200 dark:border-gray-600">
                     <button
                       onClick={() => setShowDeleteConfirm(account.id)}
-                      className="text-red-600 hover:text-red-800 p-1 rounded hover:bg-red-50 transition-colors"
+                      className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                       title="Delete account"
                     >
                       <Trash2 size={14} />
@@ -749,7 +749,7 @@ export default function VoiceGenAccountsPage() {
 
         {accountsData.length === 0 && !loading && (
           <div className="text-center py-8">
-            <p className="text-gray-500">
+            <p className="text-gray-500 dark:text-gray-400">
               No accounts found matching your criteria.
             </p>
           </div>
@@ -757,7 +757,7 @@ export default function VoiceGenAccountsPage() {
       </div>
 
       {/* Footer Stats */}
-      <div className="flex items-center justify-between text-sm text-gray-600">
+      <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-300">
         <p>
           Showing {accountsData.length} account
           {accountsData.length !== 1 ? "s" : ""}
@@ -772,11 +772,11 @@ export default function VoiceGenAccountsPage() {
       {/* Delete Confirmation Dialog */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 border dark:border-gray-600">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
               Confirm Delete
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
               {showDeleteConfirm === "bulk"
                 ? `Are you sure you want to delete ${selectedRows.size} selected accounts? This action cannot be undone.`
                 : "Are you sure you want to delete this account? This action cannot be undone."}

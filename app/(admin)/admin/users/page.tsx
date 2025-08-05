@@ -70,9 +70,9 @@ export default async function AdminUsersPage() {
     totalUsers > 0 ? Math.round((thisMonthUsers / totalUsers) * 100) : 0;
 
   return (
-    <div className="min-h-screen p-6 space-y-6 bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen p-6 space-y-6 bg-gradient-to-br from-gray-50 via-white to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Header */}
-      <div className="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg border border-pink-200 dark:border-pink-500/30 shadow-sm">
+      <div className="mb-8 p-6 bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-800 dark:to-gray-700 rounded-lg border dark:border-gray-600">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center space-x-3 mb-2">
@@ -87,7 +87,7 @@ export default async function AdminUsersPage() {
           </div>
           <div className="flex gap-3">
             <BulkRoleEditor users={users} />
-            <button className="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-pink-200 dark:border-pink-500/30 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5">
+            <button className="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5">
               <Download className="h-4 w-4 mr-2" />
               Export
             </button>
@@ -97,9 +97,9 @@ export default async function AdminUsersPage() {
 
       {/* Enhanced Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
-        <Card className="border border-pink-200 dark:border-pink-500/30 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-400 group bg-white dark:bg-gray-800 relative overflow-hidden">
+        <Card className="border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-500 group bg-white dark:bg-gray-700 relative overflow-hidden">
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 dark:via-pink-900/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
           </div>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -117,16 +117,16 @@ export default async function AdminUsersPage() {
                   </span>
                 </div>
               </div>
-              <div className="bg-pink-50 dark:bg-pink-500/20 p-2 rounded-full group-hover:bg-pink-100 dark:group-hover:bg-pink-500/30 transition-colors">
+              <div className="bg-pink-50 dark:bg-pink-900/30 p-2 rounded-full group-hover:bg-pink-100 dark:group-hover:bg-pink-900/50 transition-colors">
                 <Users className="h-4 w-4 text-pink-600 dark:text-pink-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border border-pink-200 dark:border-pink-500/30 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-400 group bg-white dark:bg-gray-800 relative overflow-hidden">
+        <Card className="border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-500 group bg-white dark:bg-gray-700 relative overflow-hidden">
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 dark:via-pink-900/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
           </div>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -142,16 +142,16 @@ export default async function AdminUsersPage() {
                   <span className="text-gray-500 dark:text-gray-400">Highest</span>
                 </div>
               </div>
-              <div className="bg-pink-50 dark:bg-pink-500/20 p-2 rounded-full group-hover:bg-pink-100 dark:group-hover:bg-pink-500/30 transition-colors">
+              <div className="bg-pink-50 dark:bg-pink-900/30 p-2 rounded-full group-hover:bg-pink-100 dark:group-hover:bg-pink-900/50 transition-colors">
                 <Shield className="h-4 w-4 text-pink-500 dark:text-pink-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border border-pink-200 dark:border-pink-500/30 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-400 group bg-white dark:bg-gray-800 relative overflow-hidden">
+        <Card className="border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-500 group bg-white dark:bg-gray-700 relative overflow-hidden">
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 dark:via-pink-900/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
           </div>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -174,76 +174,76 @@ export default async function AdminUsersPage() {
           </CardContent>
         </Card>
 
-        <Card className="border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+        <Card className="border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-500 group bg-white dark:bg-gray-700 relative overflow-hidden">
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 dark:via-pink-900/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
           </div>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-gray-500 mb-1">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                   SWD
                 </p>
-                <p className="text-2xl font-bold text-gray-900 mb-1">
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                   {swdCount}
                 </p>
                 <div className="flex items-center text-xs">
                   <Pencil className="h-2 w-2 text-purple-500 mr-1" />
-                  <span className="text-gray-500">Writers</span>
+                  <span className="text-gray-500 dark:text-gray-400">Writers</span>
                 </div>
               </div>
-              <div className="bg-purple-50 p-2 rounded-full group-hover:bg-purple-100 transition-colors">
-                <Pencil className="h-4 w-4 text-purple-600" />
+              <div className="bg-purple-50 dark:bg-purple-900/30 p-2 rounded-full group-hover:bg-purple-100 dark:group-hover:bg-purple-900/50 transition-colors">
+                <Pencil className="h-4 w-4 text-purple-600 dark:text-purple-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+        <Card className="border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-500 group bg-white dark:bg-gray-700 relative overflow-hidden">
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 dark:via-pink-900/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
           </div>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-gray-500 mb-1">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Regular Users
                 </p>
-                <p className="text-2xl font-bold text-gray-900 mb-1">
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                   {userCount.toLocaleString()}
                 </p>
                 <div className="flex items-center text-xs">
                   <User className="h-2 w-2 text-green-500 mr-1" />
-                  <span className="text-gray-500">Active</span>
+                  <span className="text-gray-500 dark:text-gray-400">Active</span>
                 </div>
               </div>
-              <div className="bg-green-50 p-2 rounded-full group-hover:bg-green-100 transition-colors">
-                <User className="h-4 w-4 text-green-600" />
+              <div className="bg-green-50 dark:bg-green-900/30 p-2 rounded-full group-hover:bg-green-100 dark:group-hover:bg-green-900/50 transition-colors">
+                <User className="h-4 w-4 text-green-600 dark:text-green-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+        <Card className="border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-500 group bg-white dark:bg-gray-700 relative overflow-hidden">
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 dark:via-pink-900/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
           </div>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-medium text-gray-500 mb-1">
+                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Guests
                 </p>
-                <p className="text-2xl font-bold text-gray-900 mb-1">
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                   {guestCount}
                 </p>
                 <div className="flex items-center text-xs">
-                  <User className="h-2 w-2 text-gray-400 mr-1" />
-                  <span className="text-gray-500">Limited</span>
+                  <User className="h-2 w-2 text-gray-400 dark:text-gray-500 mr-1" />
+                  <span className="text-gray-500 dark:text-gray-400">Limited</span>
                 </div>
               </div>
-              <div className="bg-gray-50 p-2 rounded-full group-hover:bg-gray-100 transition-colors">
-                <User className="h-4 w-4 text-gray-500" />
+              <div className="bg-gray-50 dark:bg-gray-600/30 p-2 rounded-full group-hover:bg-gray-100 dark:group-hover:bg-gray-600/50 transition-colors">
+                <User className="h-4 w-4 text-gray-500 dark:text-gray-400" />
               </div>
             </div>
           </CardContent>
