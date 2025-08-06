@@ -223,6 +223,17 @@ export const API_KEY_PROFILES = {
       },
     ],
   },
+  account_21: {
+    name: "OF Sirena's spanish voice",
+    description: "Backup account for high-volume usage",
+    voices: [
+      {
+        name: "OF Sirena Spanish",
+        voiceId: "08IHfoaHT82cnaJ31P56",
+        category: "professional",
+      },
+    ],
+  },
 };
 
 // Available ElevenLabs models
