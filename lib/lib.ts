@@ -277,4 +277,12 @@ export const appPages = [
     description: "Script Writing Department",
     // roles: ["SWD", "ADMIN"]
   },
+  {
+    id: 11,
+    name: "Scheduler POD",
+    path: "/apps/pod",
+    icon: FileSpreadsheet,
+    color: "from-emerald-500 to-teal-500",
+    description: "Print on Demand Data Transfer",
+  },
 ];
