@@ -37,19 +37,19 @@ const QuicklinksNavigation = () => {
       >
         {/* Quicklinks Menu */}
         <div
-          className={`absolute bottom-20 right-0 grid grid-cols-2 gap-3 p-6 bg-gradient-to-br from-gray-50 via-white to-pink-50 dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-800 dark:to-pink-900/20 backdrop-blur-2xl rounded-2xl shadow-2xl border border-pink-200/50 dark:border-pink-700/30 transition-all duration-500 transform origin-bottom-right ${
+          className={`absolute bottom-20 right-0 grid grid-cols-3 gap-2 p-4 bg-gradient-to-br from-gray-50 via-white to-pink-50 dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-800 dark:to-pink-900/20 backdrop-blur-2xl rounded-2xl shadow-2xl border border-pink-200/50 dark:border-pink-700/30 transition-all duration-500 transform origin-bottom-right ${
             isOpen
               ? "opacity-100 scale-100 translate-y-0"
               : "opacity-0 scale-90 translate-y-4 pointer-events-none"
           }`}
-          style={{ minWidth: "320px" }}
+          style={{ minWidth: "360px", maxHeight: "70vh", overflowY: "auto" }}
         >
           {/* Menu Header */}
-          <div className="col-span-2 mb-2 pb-3 border-b border-pink-200/70 dark:border-pink-700/50">
-            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+          <div className="col-span-3 mb-2 pb-2 border-b border-pink-200/70 dark:border-pink-700/50">
+            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">
               Quick Links
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
               Access your apps quickly
             </p>
           </div>
@@ -90,15 +90,15 @@ const QuicklinksNavigation = () => {
                 <div className="absolute inset-0 bg-white/10 backdrop-blur-sm" />
 
                 {/* Content */}
-                <div className="relative z-10 p-4 text-white">
+                <div className="relative z-10 p-3 text-white">
                   <Icon
-                    className={`w-8 h-8 mb-2 transition-transform duration-300 ${
+                    className={`w-6 h-6 mb-1 transition-transform duration-300 ${
                       isHovered ? "scale-110" : ""
                     }`}
                   />
-                  <div className="font-semibold text-sm">{app.name}</div>
+                  <div className="font-semibold text-xs leading-tight">{app.name}</div>
                   <div
-                    className={`text-xs mt-1 text-white/80 transition-all duration-300 ${
+                    className={`text-xs mt-1 text-white/80 transition-all duration-300 leading-tight ${
                       isHovered
                         ? "opacity-100 max-h-20"
                         : "opacity-0 max-h-0 overflow-hidden"
