@@ -212,6 +212,17 @@ export const API_KEY_PROFILES = {
       },
     ],
   },
+  account_20: {
+    name: "OF Sirena's voice",
+    description: "Backup account for high-volume usage",
+    voices: [
+      {
+        name: "OF Sirena",
+        voiceId: "DTYus8xTdQlf76619B3t",
+        category: "professional",
+      },
+    ],
+  },
 };
 
 // Available ElevenLabs models
