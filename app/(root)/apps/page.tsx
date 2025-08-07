@@ -26,6 +26,20 @@ export default function AppsPage() {
   const getGridSize = (index: number, totalVisible: number) => {
     // Bento-style layouts with varied sizes that completely fill the grid
     const layouts = {
+      // 11 apps - 5x4 complete fill with extra app
+      11: [
+        "col-span-2 row-span-2", // Generate Flyers (hero)
+        "col-span-2 row-span-1", // Generative AI
+        "col-span-1 row-span-1", // Onboarding
+        "col-span-1 row-span-1", // Chatting
+        "col-span-1 row-span-1", // Models
+        "col-span-1 row-span-1", // Vault
+        "col-span-2 row-span-1", // Forms
+        "col-span-1 row-span-1", // Timesheet
+        "col-span-1 row-span-1", // Forum
+        "col-span-2 row-span-1", // SWD
+        "col-span-1 row-span-1", // POD
+      ],
       // 10 apps - 5x4 complete fill
       10: [
         "col-span-2 row-span-2", // Generate Flyers (hero)
@@ -122,7 +136,9 @@ export default function AppsPage() {
       "grid gap-2 sm:gap-3 lg:gap-4 h-[calc(100%-4rem)] sm:h-[calc(100%-6rem)] lg:h-[calc(100%-8rem)] max-w-6xl mx-auto";
 
     // Compact grids that completely fill all spaces
-    if (totalVisible >= 10) {
+    if (totalVisible >= 11) {
+      return `${baseClasses} grid-cols-5 grid-rows-4 auto-rows-fr`;
+    } else if (totalVisible >= 10) {
       return `${baseClasses} grid-cols-5 grid-rows-4 auto-rows-fr`;
     } else if (totalVisible >= 9) {
       return `${baseClasses} grid-cols-5 grid-rows-3 auto-rows-fr`;
