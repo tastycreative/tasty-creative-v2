@@ -164,7 +164,7 @@ export default function AppsPage() {
         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent mb-1 sm:mb-2">
           Applications
         </h1>
-        <p className="text-sm sm:text-base text-gray-600">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
           Choose an app to get started
         </p>
       </div>
@@ -197,10 +197,10 @@ export default function AppsPage() {
               )}
 
               {/* Glass Effect Overlay */}
-              <div className="absolute inset-0 bg-white/10 backdrop-blur-sm rounded-2xl sm:rounded-3xl" />
+              <div className="absolute inset-0 bg-white/10 dark:bg-white/5 backdrop-blur-sm rounded-2xl sm:rounded-3xl" />
 
               {/* Animated Border */}
-              <div className="absolute inset-0 rounded-2xl sm:rounded-3xl border border-pink-200/30 group-hover:border-pink-300/50 transition-colors duration-300" />
+              <div className="absolute inset-0 rounded-2xl sm:rounded-3xl border border-pink-200/30 dark:border-pink-400/20 group-hover:border-pink-300/50 dark:group-hover:border-pink-400/40 transition-colors duration-300" />
 
               {/* Content - Responsive sizing */}
               <div className="relative z-10 h-full flex flex-col items-center justify-center p-2 sm:p-3 lg:p-4 text-white">
@@ -224,8 +224,8 @@ export default function AppsPage() {
 
               {isHovered && (
                 <>
-                  <div className="absolute top-0 left-0 w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32 bg-white/20 rounded-full blur-xl sm:blur-2xl hidden sm:block" />
-                  <div className="absolute bottom-0 right-0 w-20 h-20 sm:w-30 sm:h-30 lg:w-40 lg:h-40 bg-white/10 rounded-full blur-2xl sm:blur-3xl hidden sm:block" />
+                  <div className="absolute top-0 left-0 w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32 bg-white/20 dark:bg-white/10 rounded-full blur-xl sm:blur-2xl hidden sm:block" />
+                  <div className="absolute bottom-0 right-0 w-20 h-20 sm:w-30 sm:h-30 lg:w-40 lg:h-40 bg-white/10 dark:bg-white/5 rounded-full blur-2xl sm:blur-3xl hidden sm:block" />
                 </>
               )}
             </button>

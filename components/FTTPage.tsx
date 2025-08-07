@@ -489,12 +489,12 @@ export default function FTTFlyer({ modelName }: { modelName?: string }) {
         <ServerOffline />
       )}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="flex col-span-1 flex-col gap-4 shadow-md lg:max-w-lg w-full p-6 r bg-white/60 backdrop-blur-sm rounded-lg border border-pink-200">
+        <div className="flex col-span-1 flex-col gap-4 shadow-md lg:max-w-lg w-full p-6 r bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-lg border border-pink-200 dark:border-pink-500/20">
           <div>
-            <h1 className="text-2xl font-bold text-start bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold text-start bg-gradient-to-r from-pink-600 to-rose-600 dark:from-pink-400 dark:to-rose-400 bg-clip-text text-transparent">
               FTT Flyer Generation
             </h1>
-            <p className="text-gray-600 text-sm">
+            <p className="text-gray-600 dark:text-gray-300 text-sm">
               Create promotion flyers for First to Tip
             </p>
           </div>
@@ -562,7 +562,7 @@ export default function FTTFlyer({ modelName }: { modelName?: string }) {
 
             <div className="col-span-2 flex w-full gap-5 items-center h-full">
               <div className="flex flex-col">
-                <label htmlFor="tip" className="text-sm font-medium mb-1 text-gray-700">
+                <label htmlFor="tip" className="text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">
                   Tip:
                 </label>
                 <div className="flex gap-2 w-[100px] relative items-center">
@@ -573,7 +573,7 @@ export default function FTTFlyer({ modelName }: { modelName?: string }) {
                     type="number"
                     id="tip"
                     name="tip"
-                    className="border border-pink-200 pl-5 bg-white/70 text-gray-700 rounded-md p-2 flex-1 w-[50px] focus:border-pink-400"
+                    className="border border-pink-200 dark:border-pink-500/30 pl-5 bg-white/70 dark:bg-gray-700 text-gray-700 dark:text-gray-100 rounded-md p-2 flex-1 w-[50px] focus:border-pink-400 dark:focus:border-pink-400"
                     value={formData.tip}
                     onChange={handleInputChange}
                     required
@@ -584,7 +584,7 @@ export default function FTTFlyer({ modelName }: { modelName?: string }) {
                 </div>
               </div>
               <div className="flex flex-col">
-                <label htmlFor="gets" className="text-sm font-medium mb-1 text-gray-700">
+                <label htmlFor="gets" className="text-sm font-medium mb-1 text-gray-700 dark:text-gray-200">
                   Gets:
                 </label>
                 <div className="flex gap-2 w-[100px] relative items-center">
@@ -595,7 +595,7 @@ export default function FTTFlyer({ modelName }: { modelName?: string }) {
                     type="number"
                     id="gets"
                     name="gets"
-                    className="border border-pink-200 pl-5 bg-white/70 text-gray-700 rounded-md p-2 flex-1 w-[50px] focus:border-pink-400"
+                    className="border border-pink-200 dark:border-pink-500/30 pl-5 bg-white/70 dark:bg-gray-700 text-gray-700 dark:text-gray-100 rounded-md p-2 flex-1 w-[50px] focus:border-pink-400 dark:focus:border-pink-400"
                     value={formData.gets}
                     onChange={handleInputChange}
                     required
@@ -688,7 +688,7 @@ export default function FTTFlyer({ modelName }: { modelName?: string }) {
             <div className="mt-2 col-span-2">
               <button
                 type="submit"
-                className={`rounded-md px-5 w-full cursor-pointer bg-gradient-to-r from-pink-600 to-rose-600 py-2 text-white font-medium transition-colors hover:from-pink-700 hover:to-rose-700 ${
+                className={`rounded-md px-5 w-full cursor-pointer bg-gradient-to-r from-pink-600 to-rose-600 py-2 text-white font-medium transition-colors hover:from-pink-700 hover:to-rose-700 dark:hover:from-pink-700 dark:hover:to-rose-700 ${
                   isLoading || isFetchingImage
                     ? "opacity-60 cursor-not-allowed"
                     : "opacity-100"
@@ -713,10 +713,10 @@ export default function FTTFlyer({ modelName }: { modelName?: string }) {
           </form>
         </div>
 
-        <div className="flex col-span-2 flex-col gap-4 shadow-md w-full p-6 r bg-white/60 backdrop-blur-sm rounded-lg border border-pink-200">
+        <div className="flex col-span-2 flex-col gap-4 shadow-md w-full p-6 r bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-lg border border-pink-200 dark:border-pink-500/20">
           <div>
-            <h1 className="text-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">Preview</h1>
-            <p className="text-sm text-gray-600 mb-2">
+            <h1 className="text-bold bg-gradient-to-r from-pink-600 to-rose-600 dark:from-pink-400 dark:to-rose-400 bg-clip-text text-transparent">Preview</h1>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
               FTT flyer preview will appear here
             </p>
           </div>
@@ -755,7 +755,7 @@ export default function FTTFlyer({ modelName }: { modelName?: string }) {
             response?.error != "Invalid JSON response from webhook" && (
               <>
                 <div className="flex flex-col lg:flex-row items-center justify-center gap-4 w-full">
-                  <div className="h-80 w-64 bg-white/80 border border-pink-200 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                  <div className="h-80 w-64 bg-white/80 dark:bg-gray-700 border border-pink-200 dark:border-pink-500/30 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                     {formData.croppedImage || formData.templatePosition ? (
                       <div className="relative w-full h-full">
                         {/* Cropped image */}
@@ -789,12 +789,12 @@ export default function FTTFlyer({ modelName }: { modelName?: string }) {
                         )} */}
 
                         {/* Image label */}
-                        <div className="absolute z-30 bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                        <div className="absolute z-30 bottom-2 right-2 bg-black dark:bg-gray-800 bg-opacity-70 text-white text-xs px-2 py-1 rounded">
                           1080x1350
                         </div>
                       </div>
                     ) : (
-                      <p className="text-gray-500">No image selected</p>
+                      <p className="text-gray-500 dark:text-gray-400">No image selected</p>
                     )}
                   </div>
 
@@ -881,8 +881,8 @@ export default function FTTFlyer({ modelName }: { modelName?: string }) {
                       </Link>
                     </div>
                   ) : (
-                    <div className="h-80 w-64 bg-white/80 flex items-center justify-center border border-pink-400 rounded-md">
-                      <span className="text-sm text-gray-500 text-center px-2">
+                    <div className="h-80 w-64 bg-white/80 dark:bg-gray-700 flex items-center justify-center border border-pink-400 dark:border-pink-500/30 rounded-md">
+                      <span className="text-sm text-gray-500 dark:text-gray-400 text-center px-2">
                         Flyer not yet generated
                       </span>
                     </div>
@@ -891,8 +891,8 @@ export default function FTTFlyer({ modelName }: { modelName?: string }) {
                 {webhookData && (
                   <>
                     <div className="h-full flex flex-col gap-2">
-                      <hr className="border-pink-400" />
-                      <span className="text-gray-600">
+                      <hr className="border-pink-400 dark:border-pink-500/30" />
+                      <span className="text-gray-600 dark:text-gray-300">
                         {" "}
                         Generated: {history.length}
                       </span>
@@ -900,7 +900,7 @@ export default function FTTFlyer({ modelName }: { modelName?: string }) {
                         {history.map((item, index) => (
                           <div
                             key={index}
-                            className="border p-2 border-pink-400 rounded-md flex flex-col items-center justify-center hover:bg-pink-50/40"
+                            className="border p-2 border-pink-400 dark:border-pink-500/30 rounded-md flex flex-col items-center justify-center hover:bg-pink-50/40 dark:hover:bg-pink-500/20"
                           >
                             <div className="w-24 h-24 rounded-md overflow-hidden ">
                               <Image

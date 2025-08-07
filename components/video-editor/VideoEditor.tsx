@@ -382,9 +382,9 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
     : null;
 
   return (
-    <div className="min-h-screen bg-white/60 backdrop-blur-sm">
+    <div className="min-h-screen bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm">
       {/* Header */}
-      <div className="bg-white/80 border-b border-pink-200">
+      <div className="bg-white/80 dark:bg-gray-800/80 border-b border-pink-200 dark:border-pink-500/20">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
@@ -392,13 +392,13 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                 <div className="w-8 h-8 bg-gradient-to-r from-pink-600 to-rose-600 rounded-lg flex items-center justify-center">
                   <Play className="w-4 h-4 text-white" />
                 </div>
-                <h1 className="text-xl font-semibold text-gray-700">
+                <h1 className="text-xl font-semibold text-gray-700 dark:text-gray-100">
                   Video Editor
                 </h1>
               </div>
 
               {videos.length > 0 && (
-                <div className="hidden sm:flex items-center space-x-4 text-sm text-gray-600">
+                <div className="hidden sm:flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-300">
                   <span>
                     {videos.length} video{videos.length !== 1 ? "s" : ""}
                   </span>
@@ -412,7 +412,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                   {currentVideo && (
                     <>
                       <span>•</span>
-                      <span className="text-pink-600">
+                      <span className="text-pink-600 dark:text-pink-400">
                         Playing: {currentVideo.file.name}
                       </span>
                     </>
@@ -444,7 +444,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
 
                   <button
                     onClick={() => setShowExportModal(true)}
-                    className="px-4 py-2 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white rounded-lg transition-colors flex items-center space-x-2 shadow-md hover:shadow-pink-500/20 transform hover:-translate-y-0.5"
+                    className="px-4 py-2 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 dark:hover:from-pink-700 dark:hover:to-rose-700 text-white rounded-lg transition-colors flex items-center space-x-2 shadow-md hover:shadow-pink-500/20 transform hover:-translate-y-0.5"
                   >
                     <Download className="w-4 h-4" />
                     <span className="hidden sm:inline">Export</span>
@@ -459,26 +459,26 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4">
         {/* Layout Selector - Only show when videos are loaded */}
         {videos.length > 0 && (
-          <div className="mb-6 bg-white/80 backdrop-blur-sm rounded-xl border border-pink-200 p-4">
+          <div className="mb-6 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl border border-pink-200 dark:border-pink-500/20 p-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-100 mb-2">
                   Video Layout
                 </h3>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
                   Choose how videos are arranged in the preview
                 </p>
               </div>
 
               <div className="flex items-center space-x-4">
                 {/* Layout Toggle */}
-                <div className="flex bg-gray-100 rounded-lg p-1">
+                <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
                   <button
                     onClick={() => setCurrentLayout("single")}
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${
                       currentLayout === "single"
                         ? "bg-pink-600 text-white"
-                        : "text-gray-600 hover:bg-gray-200"
+                        : "text-gray-600 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
                     }`}
                   >
                     <Square className="w-4 h-4" />
@@ -489,7 +489,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                     className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${
                       currentLayout === "side-by-side"
                         ? "bg-pink-600 text-white"
-                        : "text-gray-600 hover:bg-gray-200"
+                        : "text-gray-600 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
                     }`}
                   >
                     <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
@@ -503,7 +503,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                     className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${
                       currentLayout === "vertical-triptych"
                         ? "bg-pink-600 text-white"
-                        : "text-gray-600 hover:bg-gray-200"
+                        : "text-gray-600 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
                     }`}
                   >
                     <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
@@ -518,7 +518,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                     className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${
                       currentLayout === "horizontal-triptych"
                         ? "bg-pink-600 text-white"
-                        : "text-gray-600 hover:bg-gray-200"
+                        : "text-gray-600 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
                     }`}
                   >
                     <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
@@ -533,7 +533,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                     className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${
                       currentLayout === "grid-2x2"
                         ? "bg-pink-600 text-white"
-                        : "text-gray-600 hover:bg-gray-200"
+                        : "text-gray-600 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
                     }`}
                   >
                     <Grid3x3 className="w-4 h-4" />
@@ -550,15 +550,15 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
           /* Upload State */
           <div className="max-w-2xl mx-auto">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-700 mb-2">
+              <h2 className="text-2xl font-bold text-gray-700 dark:text-gray-100 mb-2">
                 Create Your Video Sequence
                 {modelName && (
-                  <span className="block text-lg text-pink-600 font-normal mt-1">
+                  <span className="block text-lg text-pink-600 dark:text-pink-400 font-normal mt-1">
                     for {modelName}
                   </span>
                 )}
               </h2>
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-300">
                 {modelName
                   ? "Upload multiple videos to create a custom sequence with effects and export as GIF"
                   : "Select a model and upload multiple videos to create a custom sequence with effects and export as GIF"}
@@ -645,29 +645,29 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
             </div>
 
             {/* Model Selection */}
-            <div className="bg-white/80 rounded-xl border border-pink-200 p-6 mb-6">
+            <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl border border-pink-200 dark:border-pink-500/20 p-6 mb-6">
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-pink-600 mb-2">
+                  <h3 className="text-lg font-semibold text-pink-600 dark:text-pink-400 mb-2">
                     Select Model
                   </h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
                     Choose a model and type before uploading videos
                   </p>
                 </div>
 
                 {/* Model Type Toggle */}
                 <div className="flex items-center space-x-4">
-                  <span className="text-sm font-medium text-gray-700">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
                     Model Type:
                   </span>
-                  <div className="flex bg-gray-100 rounded-lg p-1">
+                  <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
                     <button
                       onClick={() => setModelType("FREE")}
                       className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${
                         modelType === "FREE"
                           ? "bg-pink-600 text-white"
-                          : "text-gray-600 hover:bg-gray-200"
+                          : "text-gray-600 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
                       }`}
                     >
                       <User className="w-4 h-4" />
@@ -678,7 +678,7 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                       className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center space-x-2 ${
                         modelType === "PAID"
                           ? "bg-rose-600 text-white"
-                          : "text-gray-600 hover:bg-gray-200"
+                          : "text-gray-600 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
                       }`}
                     >
                       <DollarSign className="w-4 h-4" />
@@ -710,12 +710,12 @@ export const VideoEditor: React.FC<VideoEditorProps> = ({ modelName }) => {
                 folderId={folderId}
               />
             ) : (
-              <div className="bg-pink-50 border-2 border-dashed border-pink-200 rounded-xl p-8 text-center">
+              <div className="bg-pink-50 dark:bg-pink-500/10 border-2 border-dashed border-pink-200 dark:border-pink-500/30 rounded-xl p-8 text-center">
                 <Upload className="w-12 h-12 text-pink-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-700 mb-2">
+                <h3 className="text-lg font-medium text-gray-700 dark:text-gray-100 mb-2">
                   Select a Model First
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-gray-600 dark:text-gray-300">
                   Please select a model and type before you can upload videos
                 </p>
               </div>

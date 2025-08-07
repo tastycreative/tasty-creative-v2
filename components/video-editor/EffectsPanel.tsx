@@ -41,13 +41,13 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
 }) => {
   if (!selectedVideo) {
     return (
-      <div className="bg-gradient-to-br from-gray-50 via-white to-pink-50 backdrop-blur-sm rounded-xl border border-pink-300 shadow-lg p-6">
+      <div className="bg-gradient-to-br from-gray-50 via-white to-pink-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 backdrop-blur-sm rounded-xl border border-pink-300 dark:border-pink-500/30 shadow-lg p-6">
         <div className="text-center py-12">
           <Sliders className="w-12 h-12 text-pink-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-800 mb-2">
+          <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">
             No Video Selected
           </h3>
-          <p className="text-gray-700">
+          <p className="text-gray-700 dark:text-gray-300">
             Select a video from the timeline to edit its effects
           </p>
         </div>
@@ -81,12 +81,12 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
   };
 
   return (
-    <div className="bg-gradient-to-br from-gray-50 via-white to-pink-50 backdrop-blur-sm rounded-xl border border-pink-300 shadow-lg p-4 h-fit">
+    <div className="bg-gradient-to-br from-gray-50 via-white to-pink-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-800 backdrop-blur-sm rounded-xl border border-pink-300 dark:border-pink-500/30 shadow-lg p-4 h-fit">
       {/* Header */}
-      <div className="flex items-center justify-between mb-3 p-2 bg-gradient-to-r from-pink-100 to-rose-100 rounded-lg border border-pink-200">
+      <div className="flex items-center justify-between mb-3 p-2 bg-gradient-to-r from-pink-100 to-rose-100 dark:from-pink-900/30 dark:to-rose-900/30 rounded-lg border border-pink-200 dark:border-pink-500/30">
         <div className="flex items-center space-x-2">
           <Sliders className="w-4 h-4 text-pink-600" />
-          <h3 className="text-sm font-semibold text-gray-800">
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
             Video Effects
           </h3>
         </div>
@@ -100,20 +100,20 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
       </div>
 
       {/* Video Info */}
-      <div className="mb-3 p-3 bg-gradient-to-r from-pink-100 to-rose-100 rounded-lg border border-pink-200 shadow-sm">
-        <h4 className="font-medium text-gray-800 text-xs mb-1 truncate">
+      <div className="mb-3 p-3 bg-gradient-to-r from-pink-100 to-rose-100 dark:from-pink-900/30 dark:to-rose-900/30 rounded-lg border border-pink-200 dark:border-pink-500/30 shadow-sm">
+        <h4 className="font-medium text-gray-800 dark:text-gray-200 text-xs mb-1 truncate">
           {selectedVideo.file.name}
         </h4>
-        <div className="grid grid-cols-2 gap-2 text-xs text-gray-700">
+        <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 dark:text-gray-300">
           <div>
-            <span className="block text-pink-700 font-medium">Duration</span>
-            <span className="font-semibold text-gray-800">
+            <span className="block text-pink-700 dark:text-pink-400 font-medium">Duration</span>
+            <span className="font-semibold text-gray-800 dark:text-gray-200">
               {formatDuration(selectedVideo.duration)}
             </span>
           </div>
           <div>
-            <span className="block text-pink-700 font-medium">Size</span>
-            <span className="font-semibold text-gray-800">
+            <span className="block text-pink-700 dark:text-pink-400 font-medium">Size</span>
+            <span className="font-semibold text-gray-800 dark:text-gray-200">
               {formatFileSize(selectedVideo.file.size)}
             </span>
           </div>
@@ -125,9 +125,9 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
         {/* Transform Controls - Side by side */}
         <div className="grid grid-cols-2 gap-2">
           {/* Scale Control */}
-          <div className="p-2 bg-gradient-to-r from-gray-50 to-pink-50 rounded-lg border border-pink-200">
+          <div className="p-2 bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-700 dark:to-gray-600 rounded-lg border border-pink-200 dark:border-pink-500/30">
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-semibold text-gray-800">Scale</label>
+              <label className="text-xs font-semibold text-gray-800 dark:text-gray-200">Scale</label>
               <span className="text-xs font-bold text-pink-700 bg-pink-100 px-1.5 py-0.5 rounded">
                 {((selectedVideo.effects.scale ?? 1.0) * 100).toFixed(0)}%
               </span>
@@ -146,9 +146,9 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
           </div>
 
           {/* Speed */}
-          <div className="p-2 bg-gradient-to-r from-gray-50 to-pink-50 rounded-lg border border-pink-200">
+          <div className="p-2 bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-700 dark:to-gray-600 rounded-lg border border-pink-200 dark:border-pink-500/30">
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-semibold text-gray-800">Speed</label>
+              <label className="text-xs font-semibold text-gray-800 dark:text-gray-200">Speed</label>
               <span className="text-xs font-bold text-pink-700 bg-pink-100 px-1.5 py-0.5 rounded">
                 {(selectedVideo.effects.speed ?? 1).toFixed(1)}x
               </span>
@@ -170,9 +170,9 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
         {/* Position Controls - Side by side */}
         <div className="grid grid-cols-2 gap-2">
           {/* Position X Control */}
-          <div className="p-2 bg-gradient-to-r from-gray-50 to-pink-50 rounded-lg border border-pink-200">
+          <div className="p-2 bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-700 dark:to-gray-600 rounded-lg border border-pink-200 dark:border-pink-500/30">
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-semibold text-gray-800">X Pos</label>
+              <label className="text-xs font-semibold text-gray-800 dark:text-gray-200">X Pos</label>
               <span className="text-xs font-bold text-pink-700 bg-pink-100 px-1.5 py-0.5 rounded">
                 {(selectedVideo.effects.positionX ?? 0).toFixed(0)}%
               </span>
@@ -191,9 +191,9 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
           </div>
 
           {/* Position Y Control */}
-          <div className="p-2 bg-gradient-to-r from-gray-50 to-pink-50 rounded-lg border border-pink-200">
+          <div className="p-2 bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-700 dark:to-gray-600 rounded-lg border border-pink-200 dark:border-pink-500/30">
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-semibold text-gray-800">Y Pos</label>
+              <label className="text-xs font-semibold text-gray-800 dark:text-gray-200">Y Pos</label>
               <span className="text-xs font-bold text-pink-700 bg-pink-100 px-1.5 py-0.5 rounded">
                 {(selectedVideo.effects.positionY ?? 0).toFixed(0)}%
               </span>
@@ -215,7 +215,7 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
         {/* Blur - Full Width */}
         <div className="p-2 bg-gradient-to-r from-gray-50 to-pink-50 rounded-lg border border-pink-200">
           <div className="flex items-center justify-between mb-1">
-            <label className="text-xs font-semibold text-gray-800">Blur Effect</label>
+            <label className="text-xs font-semibold text-gray-800 dark:text-gray-200">Blur Effect</label>
             <span className="text-xs font-bold text-pink-700 bg-pink-100 px-1.5 py-0.5 rounded">
               {selectedVideo.effects.blur}px
             </span>
@@ -234,7 +234,7 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
         </div>
 
         {/* Selective Blur */}
-        <div className="border-t-2 border-pink-200 pt-2 bg-gradient-to-r from-pink-50 to-rose-50 p-2 rounded-lg">
+        <div className="border-t-2 border-pink-200 dark:border-pink-500/30 pt-2 bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 p-2 rounded-lg">
           <SelectiveBlurPanel
             blurRegions={selectedVideo.effects.selectiveBlur || []}
             onAddRegion={(region: Omit<SelectiveBlurRegion, "id">) =>
@@ -260,7 +260,7 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={resetEffects}
-            className="px-2 py-2 text-xs font-semibold text-gray-800 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-lg transition-all duration-200 hover:scale-105 shadow-md border border-gray-300"
+            className="px-2 py-2 text-xs font-semibold text-gray-800 dark:text-gray-200 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-600 dark:to-gray-500 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-500 dark:hover:to-gray-400 rounded-lg transition-all duration-200 hover:scale-105 shadow-md border border-gray-300 dark:border-gray-600"
           >
             Reset
           </button>
@@ -268,7 +268,7 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
           {onTrimVideo && (
             <button
               onClick={() => onTrimVideo(selectedVideo.id)}
-              className="px-2 py-2 text-xs font-semibold text-pink-800 bg-gradient-to-r from-pink-100 to-rose-100 hover:from-pink-200 hover:to-rose-200 rounded-lg transition-all duration-200 hover:scale-105 shadow-md border border-pink-300 flex items-center justify-center space-x-1"
+              className="px-2 py-2 text-xs font-semibold text-pink-800 dark:text-pink-200 bg-gradient-to-r from-pink-100 to-rose-100 dark:from-pink-800/40 dark:to-rose-800/40 hover:from-pink-200 hover:to-rose-200 dark:hover:from-pink-700/50 dark:hover:to-rose-700/50 rounded-lg transition-all duration-200 hover:scale-105 shadow-md border border-pink-300 dark:border-pink-500/40 flex items-center justify-center space-x-1"
             >
               <Scissors className="w-3 h-3" />
               <span>Trim</span>
@@ -276,7 +276,7 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
           )}
         </div>
 
-        <div className="flex items-center justify-center text-xs text-gray-700 bg-pink-50 p-1.5 rounded-lg border border-pink-200">
+        <div className="flex items-center justify-center text-xs text-gray-700 dark:text-gray-300 bg-pink-50 dark:bg-pink-900/20 p-1.5 rounded-lg border border-pink-200 dark:border-pink-500/30">
           <div className="flex items-center space-x-1">
             <Eye className="w-3 h-3 text-pink-600" />
             <span className="font-medium">Live preview</span>

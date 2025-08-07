@@ -484,7 +484,7 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
     <div className="space-y-4">
       {/* Selected Model Info */}
       {model && (
-        <div className="bg-pink-50  border border-pink-200  rounded-lg p-3">
+        <div className="bg-pink-50 dark:bg-pink-500/10 border border-pink-200 dark:border-pink-500/20 rounded-lg p-3">
           <div className="flex items-center space-x-2">
             <div
               className={`w-3 h-3 rounded-full ${(modelType || "FREE") === "FREE" ? "bg-pink-500" : "bg-rose-500"}`}
@@ -525,13 +525,13 @@ export const VideoUploader: React.FC<VideoUploaderProps> = ({
           <div className="mb-4">
             <Film className="w-12 h-12 text-pink-500 mx-auto" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">
+          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-100 mb-2">
             Upload Video Files
           </h3>
-          <p className="text-gray-600 mb-4">
+          <p className="text-gray-600 dark:text-gray-300 mb-4">
             Drag and drop your videos here, or click to browse
           </p>
-          <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
+          <div className="flex items-center justify-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
             <Upload className="w-4 h-4" />
             <span>Supports MP4, WebM, MOV files</span>
           </div>

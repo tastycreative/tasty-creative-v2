@@ -18,7 +18,7 @@ const ContentLayout = ({ children  }: { children: React.ReactNode}) => {
         "hidden lg:flex flex-1 relative transition-all duration-300 min-w-0",
         isCollapsed ? "ml-28" : "ml-78"
       )}>
-        <div className="w-full h-full rounded-2xl backdrop-blur-sm shadow-xl border border-pink-100/50 overflow-hidden bg-white/60">
+        <div className="w-full h-full rounded-2xl backdrop-blur-sm shadow-xl border border-pink-100/50 dark:border-pink-500/30 overflow-hidden bg-white/60 dark:bg-gray-800/60 transition-colors">
           {/* Content */}
           <ProtectedFeature>
             <div className="relative h-full p-6">{children}</div>
@@ -28,7 +28,7 @@ const ContentLayout = ({ children  }: { children: React.ReactNode}) => {
 
       {/* Mobile/Tablet Main Content */}
       <div className="lg:hidden flex-1 w-full pt-16">
-        <div className="h-full rounded-2xl backdrop-blur-sm shadow-xl border border-pink-100/50 overflow-hidden bg-white/60">
+        <div className="h-full rounded-2xl backdrop-blur-sm shadow-xl border border-pink-100/50 dark:border-pink-500/30 overflow-hidden bg-white/60 dark:bg-gray-800/60 transition-colors">
           {/* Content */}
           <ProtectedFeature>
             <div className="relative h-full p-4 sm:p-6">{children}</div>

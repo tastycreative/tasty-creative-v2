@@ -199,9 +199,9 @@ const VaultSelector = ({
       style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0 }}
     >
       {/* Header */}
-      <div className="flex rounded-t-lg items-center justify-between p-6 border-b border-gray-700 bg-gray-800 shadow-lg">
+      <div className="flex rounded-t-lg items-center justify-between p-6 border-b border-gray-700 dark:border-gray-600 bg-gray-800 dark:bg-gray-700 shadow-lg">
         <div className="flex items-center gap-4">
-          <h2 className="text-white text-xl font-semibold">Vault Selector</h2>
+          <h2 className="text-white dark:text-gray-200 text-xl font-semibold">Vault Selector</h2>
           
           {/* Custom Upload Button */}
           <div className="relative">
@@ -218,7 +218,7 @@ const VaultSelector = ({
               }}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
-            <button className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <button className="bg-blue-600 dark:bg-blue-700 hover:bg-blue-500 dark:hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
               📁 Upload from Device
             </button>
           </div>
@@ -226,7 +226,7 @@ const VaultSelector = ({
         
         <button
           onClick={onClose}
-          className="text-gray-400 hover:text-white transition-colors text-xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-700"
+          className="text-gray-400 dark:text-gray-500 hover:text-white dark:hover:text-gray-200 transition-colors text-xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-700 dark:hover:bg-gray-600"
         >
           ✕
         </button>
@@ -234,13 +234,13 @@ const VaultSelector = ({
 
       {/* Tab Selector - Only show if includeImage is true */}
       {includeImage && selectedClient !== null && (
-        <div className="flex bg-gray-800 border-b border-gray-700">
+        <div className="flex bg-gray-800 dark:bg-gray-700 border-b border-gray-700 dark:border-gray-600">
           <button
             onClick={() => setActiveTab("video")}
             className={`px-6 py-3 font-medium transition-colors ${
               activeTab === "video"
-                ? "text-blue-400 border-b-2 border-blue-400"
-                : "text-gray-400 hover:text-white"
+                ? "text-blue-400 dark:text-blue-300 border-b-2 border-blue-400 dark:border-blue-300"
+                : "text-gray-400 dark:text-gray-500 hover:text-white dark:hover:text-gray-200"
             }`}
           >
             Videos
@@ -249,8 +249,8 @@ const VaultSelector = ({
             onClick={() => setActiveTab("image")}
             className={`px-6 py-3 font-medium transition-colors ${
               activeTab === "image"
-                ? "text-blue-400 border-b-2 border-blue-400"
-                : "text-gray-400 hover:text-white"
+                ? "text-blue-400 dark:text-blue-300 border-b-2 border-blue-400 dark:border-blue-300"
+                : "text-gray-400 dark:text-gray-500 hover:text-white dark:hover:text-gray-200"
             }`}
           >
             Images
@@ -277,11 +277,11 @@ const VaultSelector = ({
           </>
         ) : isLoading ? (
           <div className="flex-1 flex items-center justify-center">
-            <div className="text-white text-lg animate-pulse">Loading...</div>
+            <div className="text-white dark:text-gray-200 text-lg animate-pulse">Loading...</div>
           </div>
         ) : (
           <div className="flex-1 flex items-center justify-center">
-            <div className="text-white text-lg">No account found</div>
+            <div className="text-white dark:text-gray-200 text-lg">No account found</div>
           </div>
         )}
       </div>
@@ -289,8 +289,8 @@ const VaultSelector = ({
       {/* Loading overlay with progress */}
       {isDownloading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-10">
-          <div className="bg-gray-800 px-8 py-6 rounded-lg shadow-2xl min-w-[400px]">
-            <div className="text-white text-xl mb-4">
+          <div className="bg-gray-800 dark:bg-gray-700 px-8 py-6 rounded-lg shadow-2xl min-w-[400px]">
+            <div className="text-white dark:text-gray-200 text-xl mb-4">
               Downloading {fullscreenItem?.type === "image" ? "image" : "video"}
               ...
             </div>
@@ -381,7 +381,7 @@ const VaultSelector = ({
 
               {/* Progress percentage overlay */}
               <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-white text-2xl font-bold drop-shadow-lg">
+                <span className="text-white dark:text-gray-200 text-2xl font-bold drop-shadow-lg">
                   {downloadProgress === -1
                     ? "Loading..."
                     : `${downloadProgress}%`}
@@ -431,7 +431,7 @@ const VaultSelector = ({
 
       {/* Error display */}
       {error && (
-        <div className="absolute bottom-6 left-6 right-6 bg-red-500/20 border border-red-500 text-red-300 p-4 rounded-lg">
+        <div className="absolute bottom-6 left-6 right-6 bg-red-500/20 dark:bg-red-900/30 border border-red-500 dark:border-red-400 text-red-300 dark:text-red-200 p-4 rounded-lg">
           <p>{error}</p>
         </div>
       )}

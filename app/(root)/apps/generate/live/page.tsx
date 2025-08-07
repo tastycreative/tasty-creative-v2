@@ -17,13 +17,13 @@ export default function GeneratePage() {
           //transition={{ duration: 0.3, delay: 0.1 }}
           className="text-center"
         >
-          <div className="mb-6 p-6 rounded-full bg-gradient-to-r from-pink-500/20 to-rose-500/20 backdrop-blur-sm">
+          <div className="mb-6 p-6 rounded-full bg-gradient-to-r from-pink-500/20 to-rose-500/20 dark:from-pink-500/10 dark:to-rose-500/10 backdrop-blur-sm">
             <Sparkles className="w-16 h-16 text-pink-500" />
           </div>
-          <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">
+          <h2 className="text-2xl font-bold mb-4 bg-gradient-to-r from-pink-600 to-rose-600 dark:from-pink-400 dark:to-rose-400 bg-clip-text text-transparent">
             Live Flyers
           </h2>
-          <p className="text-gray-600 mb-8 max-w-md">
+          <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-md">
             Create eye-catching graphics for your model&apos;s live streams and
             events.
           </p>

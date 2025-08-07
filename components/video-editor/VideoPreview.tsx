@@ -812,16 +812,16 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
   ]);
 
   return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-pink-200 p-6">
+    <div className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl border border-pink-200 dark:border-pink-500/20 p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-700">Square Preview</h3>
-        <div className="text-sm text-pink-600 font-medium">
+        <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200">Square Preview</h3>
+        <div className="text-sm text-pink-600 dark:text-pink-400 font-medium">
           {width} × {height} (1:1)
         </div>
       </div>
 
       <div
-        className="relative bg-black rounded-lg overflow-hidden shadow-lg border-2 border-pink-200"
+        className="relative bg-black rounded-lg overflow-hidden shadow-lg border-2 border-pink-200 dark:border-pink-500/30"
         style={{ 
           aspectRatio: "1/1",
           width: `${width}px`,
@@ -1156,14 +1156,14 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
       {/* Video Info */}
       <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
         <div>
-          <span className="text-gray-600">Total Videos:</span>
-          <span className="ml-2 font-medium text-gray-700">
+          <span className="text-gray-600 dark:text-gray-400">Total Videos:</span>
+          <span className="ml-2 font-medium text-gray-700 dark:text-gray-300">
             {videos.length}
           </span>
         </div>
         <div>
-          <span className="text-gray-600">Current:</span>
-          <span className="ml-2 font-medium text-gray-700">
+          <span className="text-gray-600 dark:text-gray-400">Current:</span>
+          <span className="ml-2 font-medium text-gray-700 dark:text-gray-300">
             {layout === "single"
               ? (() => {
                   const currentVideo = getCurrentVideo();

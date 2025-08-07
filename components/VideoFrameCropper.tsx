@@ -198,7 +198,7 @@ export default function VideoFrameCropper({
     <div className="space-y-6    ">
       <div className="flex flex-wrap gap-2">
         <div className="space-y-2">
-          <label className="block text-sm font-medium">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
             {itemType != null ? "Upload" : "Download"}
             {" and Crop Image/Video"}
           </label>
@@ -218,7 +218,7 @@ export default function VideoFrameCropper({
                   }
                 }}
               />
-              <label htmlFor={`custom`} className="cursor-pointer">
+              <label htmlFor={`custom`} className="cursor-pointer text-gray-700 dark:text-gray-300">
                 Custom Image/Video
               </label>
             </div>
@@ -236,7 +236,7 @@ export default function VideoFrameCropper({
                   }
                 }}
               />
-              <label htmlFor={`vault`} className="cursor-pointer">
+              <label htmlFor={`vault`} className="cursor-pointer text-gray-700 dark:text-gray-300">
                 Vault Selector
               </label>
             </div>
@@ -245,7 +245,7 @@ export default function VideoFrameCropper({
         <div className="flex flex-col   w-full">
           {itemType === "custom" ? (
             <div className="w-full f">
-              <label className="px-4 w-full py-2 bg-pink-600 hover:bg-pink-700 text-white rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-colors">on
+              <label className="px-4 w-full py-2 bg-pink-600 dark:bg-pink-700 hover:bg-pink-700 dark:hover:bg-pink-600 text-white rounded-lg flex items-center justify-center gap-2 cursor-pointer transition-colors">
                 <input
                   type="file"
                   accept="image/*,image/heic,image/heif,video/*"
@@ -274,11 +274,11 @@ export default function VideoFrameCropper({
           ) : itemType === "vault" ? (
             <>
               <div className="mb-6">
-                <div className="flex items-center justify-between p-4 bg-white/80 border border-pink-200 rounded-lg">
+                <div className="flex items-center justify-between p-4 bg-white/80 dark:bg-gray-800/60 border border-pink-200 dark:border-pink-500/30 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <span
                       className={`font-medium ${
-                        !isPaid ? "text-pink-600" : "text-gray-500"
+                        !isPaid ? "text-pink-600 dark:text-pink-400" : "text-gray-500 dark:text-gray-400"
                       }`}
                     >
                       Free
@@ -297,7 +297,7 @@ export default function VideoFrameCropper({
                     </div>
                     <span
                       className={`font-medium ${
-                        isPaid ? "text-pink-600" : "text-gray-500"
+                        isPaid ? "text-pink-600 dark:text-pink-400" : "text-gray-500 dark:text-gray-400"
                       }`}
                     >
                       Paid
@@ -310,7 +310,7 @@ export default function VideoFrameCropper({
                 disabled={!model}
                 onClick={handleVaultSelect}
                 className={cn(
-                  "px-4 w-full py-2 bg-gray-400 disabled:bg-gray-300 disabled:text-gray-500 text-white rounded-lg flex items-center justify-center gap-2 transition-colors"
+                  "px-4 w-full py-2 bg-gray-400 dark:bg-gray-600 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 dark:disabled:text-gray-400 text-white rounded-lg flex items-center justify-center gap-2 transition-colors"
                   // { "border border-red-500 text-red-500": error }
                 )}
               >
@@ -346,7 +346,7 @@ export default function VideoFrameCropper({
 
       {videoUrl && (
         <div className="space-y-4">
-          <div className="rounded-lg overflow-hidden shadow-lg border border-gray-200">
+          <div className="rounded-lg overflow-hidden shadow-lg border border-gray-200 dark:border-gray-600">
             <video
               ref={videoRef}
               src={videoUrl}
@@ -361,7 +361,7 @@ export default function VideoFrameCropper({
                 className={`px-4 py-2 rounded font-medium transition ${
                   useFrame
                     ? "bg-pink-600 text-white"
-                    : "bg-gray-200 text-gray-800"
+                    : "bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200"
                 }`}
               >
                 Use Captured Frame
@@ -371,7 +371,7 @@ export default function VideoFrameCropper({
                 className={`px-4 py-2 rounded font-medium transition ${
                   !useFrame
                     ? "bg-pink-600 text-white"
-                    : "bg-gray-200 text-gray-800"
+                    : "bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200"
                 }`}
               >
                 Use Full Video
@@ -413,11 +413,11 @@ export default function VideoFrameCropper({
 
       {capturedFrame && (useFrame || itemType) && (
         <div className="flex flex-col w-full items-center gap-4">
-          <p className="text-xs text-gray-600">
+          <p className="text-xs text-gray-600 dark:text-gray-400">
             Crop area will maintain a 1:2 (500x1000px)
           </p>
           <div className="flex flex-col md:flex-row gap-6 items-start">
-            <div className="border border-gray-300 rounded-lg overflow-hidden">
+            <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
               <ReactCrop
                 crop={crop}
                 onChange={(c) => setCrop(c)}
@@ -473,7 +473,7 @@ export default function VideoFrameCropper({
               Apply Crop
             </button>
 
-            <div className="text-sm text-gray-600 bg-pink-50 px-4 py-2 rounded-lg border border-pink-100">
+            <div className="text-sm text-gray-600 dark:text-gray-400 bg-pink-50 dark:bg-pink-900/20 px-4 py-2 rounded-lg border border-pink-100 dark:border-pink-500/30">
               {imageSize.width > 0 && (
                 <div className="flex items-center gap-2">
                   <svg
