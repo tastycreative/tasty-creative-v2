@@ -84,12 +84,17 @@ export async function POST(request: NextRequest) {
     // Step 1: Get sheet information and read data from source spreadsheet (C11:K)
     let sourceData: string[][] = [];
     let sheetName = '';
+    let spreadsheetName = '';
     
     try {
       // First, get spreadsheet metadata to find the correct sheet
       const spreadsheetInfo = await sheets.spreadsheets.get({
         spreadsheetId: sourceSpreadsheetId,
       });
+      
+      // Get the spreadsheet name
+      spreadsheetName = spreadsheetInfo.data.properties?.title || 'Untitled Spreadsheet';
+      console.log('Source spreadsheet name:', spreadsheetName);
       
       if (sourceGid) {
         const targetSheet = spreadsheetInfo.data.sheets?.find(
@@ -156,10 +161,20 @@ export async function POST(request: NextRequest) {
     // Step 2: Create a copy of the destination spreadsheet
     let newSpreadsheetId: string;
     try {
+      // Create a more descriptive filename using the source spreadsheet name
+      const currentDate = new Date();
+      const dateStr = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+      const timeStr = currentDate.toLocaleTimeString('en-US', { 
+        hour12: false, 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      }); // HH:MM format
+      const newFileName = `${spreadsheetName} - ${dateStr} ${timeStr}`;
+      
       const copyResponse = await drive.files.copy({
         fileId: DESTINATION_SPREADSHEET_ID,
         requestBody: {
-          name: `POD Data Copy - ${new Date().toISOString().split('T')[0]} ${new Date().toLocaleTimeString()}`,
+          name: newFileName,
         },
       });
 
@@ -324,6 +339,7 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Data successfully copied with extended column remapping',
       sourceSpreadsheetId,
+      sourceSpreadsheetName: spreadsheetName,
       sourceGid: sourceGid || null,
       sourceSheetName: sheetName || 'Default sheet',
       destinationSheetRenamed: sheetName ? true : false,
