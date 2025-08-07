@@ -87,11 +87,11 @@ export async function POST(request: NextRequest) {
     
     try {
       // First, get spreadsheet metadata to find the correct sheet
+      const spreadsheetInfo = await sheets.spreadsheets.get({
+        spreadsheetId: sourceSpreadsheetId,
+      });
+      
       if (sourceGid) {
-        const spreadsheetInfo = await sheets.spreadsheets.get({
-          spreadsheetId: sourceSpreadsheetId,
-        });
-        
         const targetSheet = spreadsheetInfo.data.sheets?.find(
           sheet => sheet.properties?.sheetId?.toString() === sourceGid
         );
@@ -104,6 +104,13 @@ export async function POST(request: NextRequest) {
             { error: `Sheet with GID ${sourceGid} not found in the spreadsheet` },
             { status: 400 }
           );
+        }
+      } else {
+        // No GID provided, use the first sheet
+        const firstSheet = spreadsheetInfo.data.sheets?.[0];
+        if (firstSheet?.properties?.title) {
+          sheetName = firstSheet.properties.title;
+          console.log('Using first sheet name:', sheetName);
         }
       }
 
@@ -177,6 +184,32 @@ export async function POST(request: NextRequest) {
         { error: 'Failed to create copy of destination spreadsheet' },
         { status: 500 }
       );
+    }
+
+    // Step 2.5: Rename the destination sheet to match the source sheet name
+    if (sheetName) {
+      try {
+        await sheets.spreadsheets.batchUpdate({
+          spreadsheetId: newSpreadsheetId,
+          requestBody: {
+            requests: [
+              {
+                updateSheetProperties: {
+                  properties: {
+                    sheetId: parseInt(DESTINATION_GID),
+                    title: sheetName,
+                  },
+                  fields: 'title',
+                },
+              },
+            ],
+          },
+        });
+        console.log(`Successfully renamed destination sheet to: ${sheetName}`);
+      } catch (error: unknown) {
+        console.warn('Failed to rename destination sheet, but continuing with data copy:', error);
+        // Don't fail the entire operation if renaming fails
+      }
     }
 
     // Step 3: Write data to the new copy (B2:P) with column remapping
@@ -293,6 +326,7 @@ export async function POST(request: NextRequest) {
       sourceSpreadsheetId,
       sourceGid: sourceGid || null,
       sourceSheetName: sheetName || 'Default sheet',
+      destinationSheetRenamed: sheetName ? true : false,
       newSpreadsheetId,
       newSpreadsheetUrl,
       rowsCopied: sourceData.length,
