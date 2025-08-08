@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Loader2, FileSpreadsheet, Copy, CheckCircle, AlertCircle } from 'lucide-react';
 
 const PodComponent = () => {
@@ -48,15 +47,16 @@ const PodComponent = () => {
       const result = await response.json();
 
       if (response.ok) {
-        const successMessage = result.sourceSheetName && result.sourceSheetName !== 'Default sheet' 
-          ? `Successfully copied data! ${result.rowsCopied} rows transferred from "${result.sourceSheetName}" sheet to destination spreadsheet.`
-          : `Successfully copied data! ${result.rowsCopied} rows transferred to destination spreadsheet.`;
+        // Handle the new multiple Schedule #1 sheets API response format
+        const successMessage = result.scheduleSheets && result.sheetsCount > 1
+          ? `Successfully processed ${result.sheetsCount} Schedule #1 sheets with real-time sync!`
+          : `Successfully set up real-time sync for your spreadsheet!`;
         
         setStatus({
           type: 'success',
           message: successMessage
         });
-        setNewSpreadsheetUrl(result.newSpreadsheetUrl); // Store the URL
+        setNewSpreadsheetUrl(result.spreadsheetUrl); // Use spreadsheetUrl from new API response
         setSpreadsheetUrl(''); // Clear input on success
       } else {
         // Handle specific error types
@@ -90,17 +90,6 @@ const PodComponent = () => {
 
   const isValidGoogleSheetsUrl = (url: string) => {
     return url.includes('docs.google.com/spreadsheets') && url.includes('/d/');
-  };
-
-  const extractSheetInfo = (url: string) => {
-    const spreadsheetIdMatch = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-    const gidMatch = url.match(/gid=([0-9]+)/);
-    
-    return {
-      spreadsheetId: spreadsheetIdMatch ? spreadsheetIdMatch[1] : null,
-      gid: gidMatch ? gidMatch[1] : null,
-      hasGid: !!gidMatch
-    };
   };
 
   return (
@@ -152,7 +141,7 @@ const PodComponent = () => {
                   disabled={isLoading}
                 />
                 <p className="text-sm text-gray-500 bg-blue-50 p-3 rounded-lg border border-blue-200">
-                  <strong>💡 Tip:</strong> Enter the full URL with GID to specify which sheet to copy data from (range C12:T, excluding header)
+                  <strong>💡 Tip:</strong> Enter the Google Sheets URL to automatically detect and sync all Schedule #1 sheets with real-time updates!
                 </p>
               </div>
 
@@ -175,37 +164,6 @@ const PodComponent = () => {
                       </>
                     )}
                   </div>
-                  {isValidGoogleSheetsUrl(spreadsheetUrl) && (
-                    <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200 hover:border-purple-300 transition-all duration-300">
-                      {(() => {
-                        const sheetInfo = extractSheetInfo(spreadsheetUrl);
-                        return (
-                          <div className="space-y-2">
-                            <div className="flex items-center space-x-2">
-                              <div className="h-2 w-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"></div>
-                              <strong className="text-gray-800">Spreadsheet ID:</strong> 
-                              <code className="bg-white px-2 py-1 rounded text-sm">{sheetInfo.spreadsheetId}</code>
-                            </div>
-                            {sheetInfo.hasGid ? (
-                              <div className="flex items-center space-x-2">
-                                <div className="h-2 w-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500"></div>
-                                <strong className="text-gray-800">Sheet GID:</strong> 
-                                <code className="bg-white px-2 py-1 rounded text-sm">{sheetInfo.gid}</code>
-                                <Badge className="bg-green-100 text-green-800 border-green-300">✅ Detected</Badge>
-                              </div>
-                            ) : (
-                              <div className="flex items-center space-x-2">
-                                <div className="h-2 w-2 rounded-full bg-gradient-to-r from-orange-500 to-yellow-500"></div>
-                                <span className="text-orange-700 font-medium">
-                                  <strong>⚠️ No GID found:</strong> Will use the default/first sheet
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -255,13 +213,18 @@ const PodComponent = () => {
                       <FileSpreadsheet className="h-5 w-5 text-white" />
                     </div>
                     <h3 className="text-xl font-bold text-green-800">
-                      🎉 New Spreadsheet Created Successfully!
+                      🎉 Real-Time Sync Spreadsheet Created!
                     </h3>
                   </div>
                   <div className="space-y-3">
                     <p className="text-green-700 font-medium">
-                      Your data has been successfully copied to a new spreadsheet:
+                      Your IMPORTRANGE formulas have been set up for real-time data synchronization:
                     </p>
+                    <div className="p-3 bg-green-100 rounded-lg border border-green-300">
+                      <p className="text-sm text-green-800">
+                        <strong>✨ Real-Time Updates:</strong> Any changes to the source spreadsheet will automatically appear in your new destination spreadsheet!
+                      </p>
+                    </div>
                     <div className="flex items-center space-x-3 p-3 bg-white rounded-lg border border-green-300 shadow-sm">
                       <Input
                         value={newSpreadsheetUrl}
@@ -335,21 +298,17 @@ const PodComponent = () => {
                 </div>
                 How it works:
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-                <div className="space-y-2">
-                  <p className="flex items-center"><span className="text-pink-500 mr-2">•</span> Detects the specific sheet using GID from your URL</p>
-                  <p className="flex items-center"><span className="text-pink-500 mr-2">•</span> Reads data from range C12:T in the specified sheet</p>
-                  <p className="flex items-center"><span className="text-pink-500 mr-2">•</span> Creates a copy of the destination template</p>
+                <div className="space-y-4 text-sm text-gray-600">
+                  <p className="flex items-center"><span className="text-pink-500 mr-2">•</span> Automatically detects all Schedule #1 sheets in your spreadsheet</p>
+                  <p className="flex items-center"><span className="text-pink-500 mr-2">•</span> Creates a copy of the destination template for each sheet</p>
+                  <p className="flex items-center"><span className="text-pink-500 mr-2">•</span> Sets up IMPORTRANGE formulas for real-time sync</p>
+                  <p className="flex items-center"><span className="text-purple-500 mr-2">•</span> Maps columns with intelligent data transformation</p>
+                  <p className="flex items-center"><span className="text-purple-500 mr-2">•</span> Auto-updates when source data changes</p>
+                  <p className="flex items-center"><span className="text-purple-500 mr-2">•</span> Returns the URL of the new live-sync spreadsheet</p>
                 </div>
-                <div className="space-y-2">
-                  <p className="flex items-center"><span className="text-purple-500 mr-2">•</span> Maps columns with intelligent mapping</p>
-                  <p className="flex items-center"><span className="text-purple-500 mr-2">•</span> Auto-resizes columns to fit content</p>
-                  <p className="flex items-center"><span className="text-purple-500 mr-2">•</span> Returns the URL of the new spreadsheet</p>
-                </div>
-              </div>
               <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
                 <p className="text-sm text-blue-700">
-                  <strong>📋 Column Mapping:</strong> E→B, D→C, F→D, G→E, I→G, K→I, N→K, M→L, O→M, P→N, R→O, T→P
+                  <strong>� IMPORTRANGE Mapping:</strong> E→B, D→C, F→D, G→E, I→G, K→I, N→K, M→L, O→M, P→N, R→O, T→P (Real-time sync from range C12:T)
                 </p>
               </div>
             </div>

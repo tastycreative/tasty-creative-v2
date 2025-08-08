@@ -81,13 +81,12 @@ export async function POST(request: NextRequest) {
     console.log('Processing source spreadsheet:', sourceSpreadsheetId);
     console.log('Source GID:', sourceGid || 'Using default sheet');
 
-    // Step 1: Get sheet information and read data from source spreadsheet (C11:K)
-    let sourceData: string[][] = [];
-    let sheetName = '';
+    // Step 1: Get sheet information and validate access to source spreadsheet
+    let scheduleSheets: Array<{name: string, id: number}> = [];
     let spreadsheetName = '';
     
     try {
-      // First, get spreadsheet metadata to find the correct sheet
+      // First, get spreadsheet metadata to find all Schedule #1 sheets
       const spreadsheetInfo = await sheets.spreadsheets.get({
         spreadsheetId: sourceSpreadsheetId,
       });
@@ -96,47 +95,56 @@ export async function POST(request: NextRequest) {
       spreadsheetName = spreadsheetInfo.data.properties?.title || 'Untitled Spreadsheet';
       console.log('Source spreadsheet name:', spreadsheetName);
       
-      if (sourceGid) {
-        const targetSheet = spreadsheetInfo.data.sheets?.find(
-          sheet => sheet.properties?.sheetId?.toString() === sourceGid
-        );
+      // Find all sheets that contain "Schedule #1" in their name and are not hidden
+      if (spreadsheetInfo.data.sheets) {
+        scheduleSheets = spreadsheetInfo.data.sheets
+          .filter(sheet => {
+            const sheetTitle = sheet.properties?.title || '';
+            const isHidden = sheet.properties?.hidden === true;
+            return sheetTitle.includes('Schedule #1') && !isHidden;
+          })
+          .map(sheet => ({
+            name: sheet.properties?.title || '',
+            id: sheet.properties?.sheetId || 0
+          }))
+          .sort((a, b) => {
+            // Custom sort to ensure proper alphabetical order (1A, 1B, 1C, etc.)
+            const aMatch = a.name.match(/Schedule #1([A-Z])/);
+            const bMatch = b.name.match(/Schedule #1([A-Z])/);
+            
+            if (aMatch && bMatch) {
+              return aMatch[1].localeCompare(bMatch[1]);
+            }
+            return a.name.localeCompare(b.name);
+          });
         
-        if (targetSheet?.properties?.title) {
-          sheetName = targetSheet.properties.title;
-          console.log('Found sheet name:', sheetName);
-        } else {
-          return NextResponse.json(
-            { error: `Sheet with GID ${sourceGid} not found in the spreadsheet` },
-            { status: 400 }
-          );
-        }
-      } else {
-        // No GID provided, use the first sheet
-        const firstSheet = spreadsheetInfo.data.sheets?.[0];
-        if (firstSheet?.properties?.title) {
-          sheetName = firstSheet.properties.title;
-          console.log('Using first sheet name:', sheetName);
-        }
+        console.log(`Found ${scheduleSheets.length} Schedule #1 sheets (in alphabetical order):`, scheduleSheets.map(s => s.name));
       }
-
-      // Construct the range with sheet name if we have one - Skip the header row by starting from C12
-      const range = sheetName ? `'${sheetName}'!C12:T` : 'C12:T';
-      console.log('Reading from range:', range);
-
-      const sourceResponse = await sheets.spreadsheets.values.get({
-        spreadsheetId: sourceSpreadsheetId,
-        range: range,
-      });
-
-      sourceData = sourceResponse.data.values || [];
-      console.log(`Read ${sourceData.length} rows from source spreadsheet`);
-
-      if (sourceData.length === 0) {
+      
+      if (scheduleSheets.length === 0) {
         return NextResponse.json(
-          { error: `No data found in range ${range} of source spreadsheet` },
+          { error: 'No visible sheets containing "Schedule #1" found in the spreadsheet' },
           { status: 400 }
         );
       }
+
+      // Test access to all schedule sheets to ensure we can read them
+      for (const sheet of scheduleSheets) {
+        const testRange = `'${sheet.name}'!C12:T12`;
+        console.log('Testing access to range:', testRange);
+        
+        try {
+          await sheets.spreadsheets.values.get({
+            spreadsheetId: sourceSpreadsheetId,
+            range: testRange,
+          });
+        } catch (rangeError) {
+          console.warn(`Could not access range in sheet "${sheet.name}":`, rangeError);
+          // Continue with other sheets even if one fails
+        }
+      }
+
+      console.log('Successfully validated access to source spreadsheet');
     } catch (error: unknown) {
       console.error('Error reading source spreadsheet:', error);
       
@@ -201,153 +209,200 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Step 2.5: Rename the destination sheet to match the source sheet name
-    if (sheetName) {
-      try {
+    // Step 2.5: Create additional sheets for each Schedule #1 sheet found and set up IMPORTRANGE formulas
+    try {
+      const sourceSpreadsheetUrl = `https://docs.google.com/spreadsheets/d/${sourceSpreadsheetId}`;
+
+      // Process sheets in reverse order so #1A ends up as the first sheet
+      for (let i = scheduleSheets.length - 1; i >= 0; i--) {
+        const schedule = scheduleSheets[i];
+        let targetSheetId: number;
+
+        // Create duplicate sheets for all schedules (including the first one)
+        try {
+          // Duplicate the original template sheet for each schedule
+          const duplicateSheetResponse = await sheets.spreadsheets.batchUpdate({
+            spreadsheetId: newSpreadsheetId,
+            requestBody: {
+              requests: [
+                {
+                  duplicateSheet: {
+                    sourceSheetId: parseInt(DESTINATION_GID),
+                    newSheetName: schedule.name,
+                  },
+                },
+              ],
+            },
+          });
+          
+          const newSheet = duplicateSheetResponse.data.replies?.[0]?.duplicateSheet?.properties;
+          if (newSheet?.sheetId) {
+            targetSheetId = newSheet.sheetId;
+            console.log(`Duplicated template sheet for "${schedule.name}" with ID: ${targetSheetId}`);
+          } else {
+            console.error(`Failed to get sheet ID for ${schedule.name}`);
+            continue; // Skip this schedule if sheet creation fails
+          }
+        } catch (error) {
+          console.error(`Failed to duplicate template sheet for ${schedule.name}:`, error);
+          continue; // Skip this schedule if sheet creation fails
+        }
+
+        // Create IMPORTRANGE formulas for this specific schedule sheet
+        const importFormulas = [
+          // B2: =IMPORTRANGE("url", "Sheet!E12:E") - Source column E
+          [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!E12:E")`],
+          // C2: =IMPORTRANGE("url", "Sheet!D12:D") - Source column D  
+          [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!D12:D")`],
+          // D2: =IMPORTRANGE("url", "Sheet!F12:F") - Source column F
+          [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!F12:F")`],
+          // E2: =IMPORTRANGE("url", "Sheet!G12:G") - Source column G
+          [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!G12:G")`],
+          // F2: Skip - leave as template (index 4 skipped)
+          null,
+          // G2: =IMPORTRANGE("url", "Sheet!I12:I") - Source column I
+          [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!I12:I")`],
+          // H2: Skip - leave as template (index 6 skipped)
+          null,
+          // I2: =IMPORTRANGE("url", "Sheet!K12:K") - Source column K
+          [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!K12:K")`],
+          // J2: Skip - leave as template (index 8 skipped)
+          null,
+          // K2: =IMPORTRANGE("url", "Sheet!N12:N") - Source column N
+          [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!N12:N")`],
+          // L2: =IMPORTRANGE("url", "Sheet!M12:M") - Source column M
+          [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!M12:M")`],
+          // M2: =IMPORTRANGE("url", "Sheet!O12:O") - Source column O
+          [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!O12:O")`],
+          // N2: =IMPORTRANGE("url", "Sheet!P12:P") - Source column P
+          [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!P12:P")`],
+          // O2: =IMPORTRANGE("url", "Sheet!R12:R") - Source column R
+          [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!R12:R")`],
+          // P2: =IMPORTRANGE("url", "Sheet!T12:T") - Source column T
+          [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!T12:T")`],
+        ];
+
+        // Create update requests for this sheet's IMPORTRANGE formulas
+        const formulaRequests = importFormulas
+          .map((formula, index) => {
+            if (formula === null) return null; // Skip columns F, H, J
+            
+            const targetColumn = index + 1; // B=1, C=2, etc. (0-indexed offset + 1)
+            return {
+              updateCells: {
+                range: {
+                  sheetId: targetSheetId,
+                  startRowIndex: 1, // Row 2 (0-indexed)
+                  endRowIndex: 2,   // Row 2 (exclusive end)
+                  startColumnIndex: targetColumn,
+                  endColumnIndex: targetColumn + 1,
+                },
+                rows: [
+                  {
+                    values: [
+                      {
+                        userEnteredValue: {
+                          formulaValue: formula[0],
+                        },
+                      },
+                    ],
+                  },
+                ],
+                fields: 'userEnteredValue',
+              },
+            };
+          })
+          .filter(request => request !== null); // Remove null entries
+
+        // Execute the batch update for formulas
         await sheets.spreadsheets.batchUpdate({
           spreadsheetId: newSpreadsheetId,
           requestBody: {
-            requests: [
-              {
-                updateSheetProperties: {
-                  properties: {
-                    sheetId: parseInt(DESTINATION_GID),
-                    title: sheetName,
-                  },
-                  fields: 'title',
-                },
-              },
-            ],
+            requests: formulaRequests,
           },
         });
-        console.log(`Successfully renamed destination sheet to: ${sheetName}`);
-      } catch (error: unknown) {
-        console.warn('Failed to rename destination sheet, but continuing with data copy:', error);
-        // Don't fail the entire operation if renaming fails
+
+        // Auto-resize columns for this sheet in a separate request
+        try {
+          await sheets.spreadsheets.batchUpdate({
+            spreadsheetId: newSpreadsheetId,
+            requestBody: {
+              requests: [
+                {
+                  autoResizeDimensions: {
+                    dimensions: {
+                      sheetId: targetSheetId,
+                      dimension: 'COLUMNS',
+                      startIndex: 1, // Column B (0-indexed, so B=1)
+                      endIndex: 16,  // Column P (0-indexed, so P=15, but endIndex is exclusive so 16)
+                    },
+                  },
+                },
+              ],
+            },
+          });
+        } catch (resizeError) {
+          console.warn(`Failed to auto-resize columns for sheet ${schedule.name}:`, resizeError);
+        }
+
+        console.log(`Successfully set up IMPORTRANGE formulas for sheet: ${schedule.name}`);
       }
+
+      console.log(`Successfully set up IMPORTRANGE formulas for ${scheduleSheets.length} Schedule #1 sheets`);
+
+    } catch (error) {
+      console.error('Error setting up IMPORTRANGE formulas:', error);
+      
+      // Clean up the created file if formula setup failed
+      try {
+        await drive.files.delete({
+          fileId: newSpreadsheetId,
+        });
+      } catch (deleteError) {
+        console.error('Error deleting file after failed formula setup:', deleteError);
+      }
+      
+      return NextResponse.json({ 
+        error: 'Failed to set up IMPORTRANGE formulas',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }, { status: 500 });
     }
 
-    // Step 3: Write data to the new copy (B2:P) with column remapping
+    // Step 4: Create shareable link and return success
     try {
-      // Column mapping: 
-      // Original: E->B, D->C, F->D, G->E, I->G, K->I
-      // Additional: N->K, M->L, O->M, P->N, R->O, T->P
-      // Source columns C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T = indices 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17
-      // Target columns B,C,D,E,F,G,H,I,J,K,L,M,N,O,P = indices 0-14
-      const remappedData = sourceData.map(row => {
-        const newRow = new Array(15).fill(''); // Initialize with 15 empty columns (B to P)
-        
-        // Original mappings
-        // E (index 2) -> B (index 0)
-        if (row[2] !== undefined) newRow[0] = row[2];
-        // D (index 1) -> C (index 1) 
-        if (row[1] !== undefined) newRow[1] = row[1];
-        // F (index 3) -> D (index 2)
-        if (row[3] !== undefined) newRow[2] = row[3];
-        // G (index 4) -> E (index 3)
-        if (row[4] !== undefined) newRow[3] = row[4];
-        // I (index 6) -> G (index 5)
-        if (row[6] !== undefined) newRow[5] = row[6];
-        // K (index 8) -> I (index 7)
-        if (row[8] !== undefined) newRow[7] = row[8];
-        
-        // Additional mappings
-        // N (index 11) -> K (index 9)
-        if (row[11] !== undefined) newRow[9] = row[11];
-        // M (index 10) -> L (index 10)
-        if (row[10] !== undefined) newRow[10] = row[10];
-        // O (index 12) -> M (index 11)
-        if (row[12] !== undefined) newRow[11] = row[12];
-        // P (index 13) -> N (index 12)
-        if (row[13] !== undefined) newRow[12] = row[13];
-        // R (index 15) -> O (index 13)
-        if (row[15] !== undefined) newRow[13] = row[15];
-        // T (index 17) -> P (index 14)
-        if (row[17] !== undefined) newRow[14] = row[17];
-        
-        // Columns F, H, J remain empty as per requirements
-        
-        return newRow;
-      });
-
-      const numRows = remappedData.length;
-      const endRow = 1 + numRows; // B2 starts at row 2, so end is 1 + numRows
-      const range = `B2:P${endRow}`;
-
-      await sheets.spreadsheets.values.update({
-        spreadsheetId: newSpreadsheetId,
-        range: range,
-        valueInputOption: 'RAW',
+      await drive.permissions.create({
+        fileId: newSpreadsheetId,
         requestBody: {
-          values: remappedData,
+          role: 'reader',
+          type: 'anyone',
         },
       });
 
-      console.log(`Successfully wrote ${remappedData.length} rows to ${range} with column remapping`);
+      const file = await drive.files.get({
+        fileId: newSpreadsheetId,
+        fields: 'webViewLink,name',
+      });
 
-      // Step 4: Auto-resize columns to fit content
-      try {
-        await sheets.spreadsheets.batchUpdate({
-          spreadsheetId: newSpreadsheetId,
-          requestBody: {
-            requests: [
-              {
-                autoResizeDimensions: {
-                  dimensions: {
-                    sheetId: parseInt(DESTINATION_GID),
-                    dimension: 'COLUMNS',
-                    startIndex: 1, // Column B (0-indexed, so B=1)
-                    endIndex: 16,  // Column P (0-indexed, so P=15, but endIndex is exclusive so 16)
-                  },
-                },
-              },
-            ],
-          },
-        });
-        console.log('Successfully auto-resized columns B to P');
-      } catch (resizeError) {
-        console.warn('Failed to auto-resize columns, but data was written successfully:', resizeError);
-        // Don't fail the entire operation if auto-resize fails
-      }
-
-      console.log(`Successfully wrote ${remappedData.length} rows to ${range}`);
-    } catch (error: unknown) {
-      console.error('Error writing to destination:', error);
-      
-      // Check if the error is from Google API and has a 403 status
-      if (typeof error === 'object' && error !== null && 'code' in error && error.code === 403 && 'errors' in error && Array.isArray(error.errors) && error.errors.length > 0) {
-        console.error('Google API Permission Error (403):', error.errors[0].message);
-        return NextResponse.json(
-          {
-            error: 'GooglePermissionDenied',
-            message: `Google API Error: ${error.errors[0].message || 'The authenticated Google account does not have permission to write to the new spreadsheet.'}`,
-          },
-          { status: 403 }
-        );
-      }
-
-      return NextResponse.json(
-        { error: 'Failed to write data to destination spreadsheet' },
-        { status: 500 }
-      );
+      return NextResponse.json({
+        success: true,
+        message: `IMPORTRANGE formulas set up successfully for ${scheduleSheets.length} Schedule #1 sheets`,
+        spreadsheetUrl: file.data.webViewLink,
+        spreadsheetId: newSpreadsheetId,
+        fileName: file.data.name,
+        syncType: 'IMPORTRANGE',
+        sourceSpreadsheetName: spreadsheetName,
+        scheduleSheets: scheduleSheets.map(s => s.name),
+        sheetsCount: scheduleSheets.length,
+        realTimeSync: true,
+        columnMapping: 'E→B, D→C, F→D, G→E, I→G, K→I, N→K, M→L, O→M, P→N, R→O, T→P',
+      });
+    } catch (error) {
+      console.error('Error creating permissions or getting file info:', error);
+      return NextResponse.json({ 
+        error: 'Failed to finalize spreadsheet setup',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }, { status: 500 });
     }
-
-    // Step 5: Generate the URL for the new spreadsheet
-    const newSpreadsheetUrl = `https://docs.google.com/spreadsheets/d/${newSpreadsheetId}/edit#gid=${DESTINATION_GID}`;
-
-    return NextResponse.json({
-      success: true,
-      message: 'Data successfully copied with extended column remapping',
-      sourceSpreadsheetId,
-      sourceSpreadsheetName: spreadsheetName,
-      sourceGid: sourceGid || null,
-      sourceSheetName: sheetName || 'Default sheet',
-      destinationSheetRenamed: sheetName ? true : false,
-      newSpreadsheetId,
-      newSpreadsheetUrl,
-      rowsCopied: sourceData.length,
-      columnMapping: 'E→B, D→C, F→D, G→E, I→G, K→I, N→K, M→L, O→M, P→N, R→O, T→P',
-    });
 
   } catch (error) {
     console.error('Unexpected error:', error);
