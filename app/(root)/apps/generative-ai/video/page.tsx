@@ -20,10 +20,10 @@ export default function VideoPage() {
           <div className="mb-6 p-6 rounded-full bg-gradient-to-r from-rose-600/20 to-pink-600/20 backdrop-blur-sm">
             <Video className="w-16 h-16 text-rose-600" />
           </div>
-          <h2 className="text-2xl font-bold mb-4 text-gray-700">
+          <h2 className="text-2xl font-bold mb-4 text-gray-700 dark:text-gray-100">
             AI Video
           </h2>
-          <p className="text-gray-600 mb-8 max-w-md">
+          <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-md">
             Create stunning AI-generated videos for your projects, marketing
             campaigns, and creative content.
           </p>

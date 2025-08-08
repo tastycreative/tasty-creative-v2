@@ -1567,16 +1567,16 @@ const AIImage2ImagePage = () => {
   // Auto Mask Selector Component
   const AutoMaskSelector = useMemo(
     () => (
-      <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
+      <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
         <CardHeader className="pb-4">
-          <CardTitle className="text-gray-700 flex items-center">
+          <CardTitle className="text-gray-700 dark:text-gray-200 flex items-center">
             <Settings className="w-5 h-5 mr-3" />
             Auto Masking Mode
             {aiDetectionState.isLoadingModel && (
               <Loader2 className="w-4 h-4 ml-2 animate-spin text-pink-600" />
             )}
           </CardTitle>
-          <CardDescription className="text-gray-600">
+          <CardDescription className="text-gray-600 dark:text-gray-300">
             Choose between manual masking or AI-powered person detection
           </CardDescription>
         </CardHeader>
@@ -1592,7 +1592,7 @@ const AIImage2ImagePage = () => {
                     ? ai
                       ? "bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white"
                       : "bg-pink-500 hover:bg-pink-600 text-white"
-                    : "bg-white border-pink-200 text-gray-700 hover:bg-pink-50"
+                    : "bg-white dark:bg-gray-700 border-pink-200 dark:border-pink-500/30 text-gray-700 dark:text-gray-200 hover:bg-pink-50 dark:hover:bg-gray-600"
                 }`}
               >
                 <Icon className="w-5 h-5 mr-3 flex-shrink-0" />
@@ -1613,8 +1613,8 @@ const AIImage2ImagePage = () => {
 
           {uiState.autoMaskMode === "background" &&
             aiDetectionState.detectedPersons > 0 && (
-              <div className="bg-pink-100/60 border border-pink-300/50 rounded-lg p-3">
-                <div className="flex items-center text-pink-600 text-sm">
+              <div className="bg-pink-100/60 dark:bg-pink-900/40 border border-pink-300/50 dark:border-pink-500/30 rounded-lg p-3">
+                <div className="flex items-center text-pink-600 dark:text-pink-400 text-sm">
                   <Scan className="w-4 h-4 mr-2 flex-shrink-0" />
                   <span>
                     Will mask background, preserving{" "}
@@ -1625,9 +1625,9 @@ const AIImage2ImagePage = () => {
             )}
 
           {aiDetectionState.isProcessingMask && (
-            <div className="flex items-center justify-center p-4 bg-pink-50/40 rounded-lg">
+            <div className="flex items-center justify-center p-4 bg-pink-50/40 dark:bg-pink-900/40 rounded-lg">
               <Loader2 className="w-5 h-5 animate-spin text-pink-600 mr-2" />
-              <span className="text-pink-600 text-sm">
+              <span className="text-pink-600 dark:text-pink-400 text-sm">
                 Running AI person detection...
               </span>
             </div>
@@ -1646,14 +1646,14 @@ const AIImage2ImagePage = () => {
 
   // Render
   return (
-    <div className="min-h-screen bg-white/60 backdrop-blur-sm p-6">
+    <div className="min-h-screen bg-white/60 dark:bg-gray-900/80 backdrop-blur-sm p-6">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold text-gray-700 mb-2">
+          <h1 className="text-4xl font-bold text-gray-700 dark:text-gray-200 mb-2">
             AI Image-to-Image Generator
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
             Transform existing images with AI using automatic person detection
             and masking
           </p>
@@ -1661,21 +1661,21 @@ const AIImage2ImagePage = () => {
 
         {/* Status message */}
         {appState.status && (
-          <div className="bg-pink-100/60 border border-pink-300/50 rounded-lg p-3 text-center">
-            <span className="text-pink-600">{appState.status}</span>
+          <div className="bg-pink-100/60 dark:bg-pink-900/40 border border-pink-300/50 dark:border-pink-500/30 rounded-lg p-3 text-center">
+            <span className="text-pink-600 dark:text-pink-400">{appState.status}</span>
           </div>
         )}
 
         {/* Instagram Data Indicator */}
         {appState.instagramData && (
-          <div className="bg-gradient-to-r from-pink-500/10 to-orange-500/10 border border-pink-500/20 rounded-xl p-4">
+          <div className="bg-gradient-to-r from-pink-500/10 to-orange-500/10 dark:from-pink-500/20 dark:to-orange-500/20 border border-pink-500/20 dark:border-pink-500/30 rounded-xl p-4">
             <div className="flex items-center gap-3">
               <Instagram className="w-5 h-5 text-pink-500" />
               <div className="flex-1">
-                <h3 className="text-gray-700 font-medium">
+                <h3 className="text-gray-700 dark:text-gray-200 font-medium">
                   Loaded from Instagram
                 </h3>
-                <p className="text-gray-600 text-sm">
+                <p className="text-gray-600 dark:text-gray-300 text-sm">
                   {appState.instagramData.originalPost ? (
                     <>
                       From @{appState.instagramData.originalPost.username} •{" "}
@@ -1692,7 +1692,7 @@ const AIImage2ImagePage = () => {
         )}
 
         {/* Status Bar */}
-        <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
+        <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
           <CardContent className="p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex items-center space-x-4">
@@ -1704,7 +1704,7 @@ const AIImage2ImagePage = () => {
                         ComfyUI Connected
                       </span>
                     </div>
-                    <div className="text-gray-600 text-sm">
+                    <div className="text-gray-600 dark:text-gray-300 text-sm">
                       {appState.availableLoraModels.length} models available
                     </div>
                     {aiDetectionState.model && (
@@ -1724,7 +1724,7 @@ const AIImage2ImagePage = () => {
                         ComfyUI Offline
                       </span>
                     </div>
-                    <div className="text-gray-600 text-sm">
+                    <div className="text-gray-600 dark:text-gray-300 text-sm">
                       Check connection
                     </div>
                   </>
@@ -1740,7 +1740,7 @@ const AIImage2ImagePage = () => {
                     </span>
                   </div>
                   {generationState.currentNode && (
-                    <span className="text-xs text-gray-600">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">
                       {generationState.currentNode}
                     </span>
                   )}
@@ -1756,20 +1756,20 @@ const AIImage2ImagePage = () => {
           <div className="xl:col-span-1 space-y-6">
             {AutoMaskSelector}
 
-            <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
+            <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
               <CardHeader className="pb-4">
-                <CardTitle className="text-gray-700 flex items-center">
+                <CardTitle className="text-gray-700 dark:text-gray-200 flex items-center">
                   <Upload className="w-5 h-5 mr-3" />
                   Reference Image
                 </CardTitle>
-                <CardDescription className="text-gray-600">
+                <CardDescription className="text-gray-600 dark:text-gray-300">
                   Upload an image to transform with AI
                 </CardDescription>
               </CardHeader>
 
               <CardContent className="space-y-6">
                 {!canvasState.uploadedImage ? (
-                  <div className="border-2 border-dashed border-white/20 rounded-xl p-8 text-center">
+                  <div className="border-2 border-dashed border-white/20 dark:border-gray-600/30 rounded-xl p-8 text-center">
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -1778,10 +1778,10 @@ const AIImage2ImagePage = () => {
                       className="hidden"
                     />
                     <Upload className="w-16 h-16 mx-auto mb-4 text-pink-500" />
-                    <h3 className="text-gray-700 font-medium mb-2">
+                    <h3 className="text-gray-700 dark:text-gray-200 font-medium mb-2">
                       Upload Image
                     </h3>
-                    <p className="text-gray-600 mb-4 text-sm">
+                    <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm">
                       Choose an image to use as reference for AI transformation
                     </p>
                     <Button
@@ -1843,9 +1843,9 @@ const AIImage2ImagePage = () => {
 
             {/* Masking Tools */}
             {canvasState.uploadedImage && (
-              <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
+              <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
                 <CardHeader className="pb-4">
-                  <CardTitle className="text-gray-700 flex items-center">
+                  <CardTitle className="text-gray-700 dark:text-gray-200 flex items-center">
                     <Brush className="w-5 h-5 mr-3" />
                     Masking Tools
                     {uiState.autoMaskMode !== "manual" && (
@@ -1860,7 +1860,7 @@ const AIImage2ImagePage = () => {
                   {uiState.autoMaskMode === "manual" ? (
                     <>
                       <div>
-                        <Label className="text-gray-600 text-sm font-medium mb-3 block">
+                        <Label className="text-gray-600 dark:text-gray-300 text-sm font-medium mb-3 block">
                           Drawing Tools
                         </Label>
                         <div className="grid grid-cols-3 gap-3">
@@ -1913,7 +1913,7 @@ const AIImage2ImagePage = () => {
 
                       <div>
                         <div className="flex justify-between items-center mb-3">
-                          <Label className="text-gray-600 text-sm font-medium">
+                          <Label className="text-gray-600 dark:text-gray-300 text-sm font-medium">
                             Brush Size
                           </Label>
                           <span className="text-pink-600 text-sm font-mono">
@@ -1967,7 +1967,7 @@ const AIImage2ImagePage = () => {
                   )}
 
                   <div>
-                    <Label className="text-gray-600 text-sm font-medium mb-3 block">
+                    <Label className="text-gray-600 dark:text-gray-300 text-sm font-medium mb-3 block">
                       View Options
                     </Label>
                     <Button
@@ -2002,13 +2002,13 @@ const AIImage2ImagePage = () => {
           {/* Settings Panel */}
           <div className="xl:col-span-1 space-y-6">
             {/* Prompt Input */}
-            <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
+            <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
               <CardHeader className="pb-4">
-                <CardTitle className="text-gray-700 flex items-center">
+                <CardTitle className="text-gray-700 dark:text-gray-200 flex items-center">
                   <Wand2 className="w-5 h-5 mr-3" />
                   Transformation Prompt
                 </CardTitle>
-                <CardDescription className="text-gray-600">
+                <CardDescription className="text-gray-600 dark:text-gray-300">
                   Describe how you want to transform the{" "}
                   {uiState.autoMaskMode === "manual"
                     ? "masked areas"
@@ -2031,7 +2031,7 @@ const AIImage2ImagePage = () => {
                     onChange={(e) =>
                       updateGenerationParams({ prompt: e.target.value })
                     }
-                    className="bg-white border-pink-200 text-gray-700 rounded-xl min-h-[120px] resize-none"
+                    className="bg-white dark:bg-gray-700 border-pink-200 dark:border-pink-500/30 text-gray-700 dark:text-gray-200 rounded-xl min-h-[120px] resize-none"
                     rows={5}
                   />
                 </div>
@@ -2039,9 +2039,9 @@ const AIImage2ImagePage = () => {
             </Card>
 
             {/* Style & Generation Settings */}
-            <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
+            <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
               <CardHeader className="pb-4">
-                <CardTitle className="text-gray-700 flex items-center">
+                <CardTitle className="text-gray-700 dark:text-gray-200 flex items-center">
                   <Palette className="w-5 h-5 mr-3" />
                   Style & Generation Settings
                 </CardTitle>
@@ -2049,7 +2049,7 @@ const AIImage2ImagePage = () => {
               <CardContent className="space-y-6 max-h-[300px] overflow-y-auto">
                 {/* LoRA Model Selection */}
                 <div>
-                  <Label className="text-gray-600 text-sm font-medium mb-3 block">
+                  <Label className="text-gray-600 dark:text-gray-300 text-sm font-medium mb-3 block">
                     LoRA Model
                   </Label>
                   <Select
@@ -2058,10 +2058,10 @@ const AIImage2ImagePage = () => {
                       updateGenerationParams({ selectedLora: value })
                     }
                   >
-                    <SelectTrigger className="bg-white border-pink-200 text-gray-700 rounded-xl h-12 focus:border-pink-500/50">
+                    <SelectTrigger className="bg-white dark:bg-gray-700 border-pink-200 dark:border-pink-500/30 text-gray-700 dark:text-gray-200 rounded-xl h-12 focus:border-pink-500/50">
                       <SelectValue placeholder="Select LoRA model" />
                     </SelectTrigger>
-                    <SelectContent className="bg-white border-pink-200 text-gray-700">
+                    <SelectContent className="bg-white dark:bg-gray-700 border-pink-200 dark:border-pink-500/30 text-gray-700 dark:text-gray-200">
                       {appState.availableLoraModels.map((model) => (
                         <SelectItem key={model} value={model}>
                           <div className="flex items-center space-x-3">
@@ -2079,10 +2079,10 @@ const AIImage2ImagePage = () => {
                 {/* Batch Size */}
                 <div>
                   <div className="flex justify-between items-center mb-3">
-                    <Label className="text-gray-600 text-sm font-medium">
+                    <Label className="text-gray-600 dark:text-gray-300 text-sm font-medium">
                       Batch Size
                     </Label>
-                    <span className="text-pink-600 text-sm font-mono">
+                    <span className="text-pink-600 dark:text-pink-400 text-sm font-mono">
                       {generationParams.batchSize}
                     </span>
                   </div>
@@ -2096,7 +2096,7 @@ const AIImage2ImagePage = () => {
                     step={1}
                     className="py-2"
                   />
-                  <p className="text-xs text-gray-600 mt-2">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
                     Number of variations to generate
                   </p>
                 </div>
@@ -2104,10 +2104,10 @@ const AIImage2ImagePage = () => {
                 {/* Redux Strength */}
                 <div>
                   <div className="flex justify-between items-center mb-3">
-                    <Label className="text-gray-600 text-sm font-medium">
+                    <Label className="text-gray-600 dark:text-gray-300 text-sm font-medium">
                       Redux Strength
                     </Label>
-                    <span className="text-pink-600 text-sm font-mono">
+                    <span className="text-pink-600 dark:text-pink-400 text-sm font-mono">
                       {generationParams.reduxStrength.toFixed(2)}
                     </span>
                   </div>
@@ -2121,7 +2121,7 @@ const AIImage2ImagePage = () => {
                     step={0.05}
                     className="py-2"
                   />
-                  <p className="text-xs text-gray-600 mt-2">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
                     How much the reference image influences the generation
                   </p>
                 </div>
@@ -2129,10 +2129,10 @@ const AIImage2ImagePage = () => {
                 {/* Downsampling Factor */}
                 <div>
                   <div className="flex justify-between items-center mb-3">
-                    <Label className="text-gray-600 text-sm font-medium">
+                    <Label className="text-gray-600 dark:text-gray-300 text-sm font-medium">
                       Downsampling Factor
                     </Label>
-                    <span className="text-pink-600 text-sm font-mono">
+                    <span className="text-pink-600 dark:text-pink-400 text-sm font-mono">
                       {generationParams.downsamplingFactor}
                     </span>
                   </div>
@@ -2146,7 +2146,7 @@ const AIImage2ImagePage = () => {
                     step={1}
                     className="py-2"
                   />
-                  <p className="text-xs text-gray-600 mt-2">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
                     Higher values = faster generation, lower detail
                   </p>
                 </div>
@@ -2175,7 +2175,7 @@ const AIImage2ImagePage = () => {
 
             {/* Error Messages */}
             {generationState.error && (
-              <Alert className="bg-red-900/20 border-red-500/30 text-red-200">
+              <Alert className="bg-red-900/20 dark:bg-red-900/40 border-red-500/30 text-red-200 dark:text-red-300">
                 <ZapOff className="h-4 w-4" />
                 <AlertTitle>Generation Error</AlertTitle>
                 <AlertDescription>{generationState.error}</AlertDescription>
@@ -2185,9 +2185,9 @@ const AIImage2ImagePage = () => {
 
           {/* Preview Panel */}
           <div className="xl:col-span-1 space-y-6">
-            <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
+            <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
               <CardHeader className="pb-4">
-                <CardTitle className="text-gray-700 flex items-center">
+                <CardTitle className="text-gray-700 dark:text-gray-200 flex items-center">
                   <ImageLucide className="w-5 h-5 mr-3" />
                   Latest Creation
                 </CardTitle>
@@ -2201,14 +2201,14 @@ const AIImage2ImagePage = () => {
                         <Loader2 className="w-10 h-10 text-pink-600 animate-spin" />
                       </div>
                       <div>
-                        <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                        <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-2">
                           Transforming Image
                         </h3>
-                        <p className="text-gray-600 mb-2">
+                        <p className="text-gray-600 dark:text-gray-300 mb-2">
                           {generationState.progress.toFixed(2)}% complete
                         </p>
                         {generationState.currentNode && (
-                          <p className="text-gray-500 text-sm">
+                          <p className="text-gray-500 dark:text-gray-400 text-sm">
                             {generationState.currentNode}
                           </p>
                         )}
@@ -2226,10 +2226,10 @@ const AIImage2ImagePage = () => {
 
                       <div className="space-y-4">
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">
                             Latest Transformation
                           </h3>
-                          <p className="text-gray-600 text-sm line-clamp-3">
+                          <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-3">
                             {appState.latestGeneratedImage.prompt}
                           </p>
                         </div>

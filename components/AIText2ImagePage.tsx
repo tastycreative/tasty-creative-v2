@@ -862,9 +862,9 @@ const AIText2ImagePage = () => {
     if (hasError) {
       return (
         <div
-          className={`${className} bg-pink-100/50 flex items-center justify-center rounded-lg border border-pink-200`}
+          className={`${className} bg-pink-100/50 dark:bg-pink-900/20 flex items-center justify-center rounded-lg border border-pink-200 dark:border-pink-500/30`}
         >
-          <div className="text-center text-gray-600 p-4">
+          <div className="text-center text-gray-600 dark:text-gray-400 p-4">
             <Image className="w-8 h-8 mx-auto mb-2 opacity-50" />
             <p className="text-xs mb-2">Failed to load</p>
             <button
@@ -905,20 +905,20 @@ const AIText2ImagePage = () => {
   const actualProgress = comfyUIProgress;
 
   return (
-    <div className="min-h-screen bg-white/60 backdrop-blur-sm p-6">
+    <div className="min-h-screen bg-white/60 dark:bg-gray-900/80 backdrop-blur-sm p-6">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header Section */}
         <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold text-gray-700 mb-2">
+          <h1 className="text-4xl font-bold text-gray-700 dark:text-gray-200 mb-2">
             AI Text-to-Image Generator
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
             Create stunning AI images from text descriptions using ComfyUI
           </p>
         </div>
 
         {/* Status Bar */}
-        <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
+        <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
           <CardContent className="p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex items-center space-x-4">
@@ -926,11 +926,11 @@ const AIText2ImagePage = () => {
                   <>
                     <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 rounded-full bg-pink-500 animate-pulse"></div>
-                      <span className="text-pink-600 font-medium">
+                      <span className="text-pink-600 dark:text-pink-400 font-medium">
                         ComfyUI Connected
                       </span>
                     </div>
-                    <div className="text-gray-600 text-sm">
+                    <div className="text-gray-600 dark:text-gray-300 text-sm">
                       {availableLoraModels.length} models available
                     </div>
                   </>
@@ -938,11 +938,11 @@ const AIText2ImagePage = () => {
                   <>
                     <div className="flex items-center space-x-2">
                       <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                      <span className="text-red-600 font-medium">
+                      <span className="text-red-600 dark:text-red-400 font-medium">
                         ComfyUI Offline
                       </span>
                     </div>
-                    <div className="text-gray-600 text-sm">
+                    <div className="text-gray-600 dark:text-gray-300 text-sm">
                       Check connection
                     </div>
                   </>
@@ -951,14 +951,14 @@ const AIText2ImagePage = () => {
 
               {actuallyGenerating && (
                 <div className="flex items-center space-x-3">
-                  <div className="flex items-center space-x-2 text-pink-600">
+                  <div className="flex items-center space-x-2 text-pink-600 dark:text-pink-400">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span className="text-sm font-medium">
                       {actualProgress}%
                     </span>
                   </div>
                   {currentNode && (
-                    <span className="text-xs text-gray-600">{currentNode}</span>
+                    <span className="text-xs text-gray-600 dark:text-gray-400">{currentNode}</span>
                   )}
                 </div>
               )}
@@ -971,13 +971,13 @@ const AIText2ImagePage = () => {
           {/* Generation Panel */}
           <div className="space-y-6">
             {/* Prompt Input */}
-            <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
+            <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
               <CardHeader className="pb-4">
-                <CardTitle className="text-gray-700 flex items-center">
+                <CardTitle className="text-gray-700 dark:text-gray-200 flex items-center">
                   <Wand2 className="w-5 h-5 mr-3" />
                   Describe Your Vision
                 </CardTitle>
-                <CardDescription className="text-gray-600">
+                <CardDescription className="text-gray-600 dark:text-gray-300">
                   Enter a detailed description of the image you want to create
                 </CardDescription>
               </CardHeader>
@@ -988,10 +988,10 @@ const AIText2ImagePage = () => {
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     maxLength={characterLimit}
-                    className="bg-white border-pink-200 text-gray-700 rounded-xl min-h-[140px] resize-none focus:border-pink-500/50 focus:ring-pink-500/20 transition-all text-base leading-relaxed"
+                    className="bg-white dark:bg-gray-700 border-pink-200 dark:border-pink-500/30 text-gray-700 dark:text-gray-200 rounded-xl min-h-[140px] resize-none focus:border-pink-500/50 focus:ring-pink-500/20 transition-all text-base leading-relaxed"
                     rows={6}
                   />
-                  <div className="absolute bottom-3 right-3 text-xs text-gray-600">
+                  <div className="absolute bottom-3 right-3 text-xs text-gray-600 dark:text-gray-400">
                     {prompt.length}/{characterLimit}
                   </div>
                 </div>
@@ -999,19 +999,19 @@ const AIText2ImagePage = () => {
             </Card>
 
             {/* Model & Style Selection */}
-            <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
+            <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
               <CardHeader className="pb-4">
-                <CardTitle className="text-gray-700 flex items-center">
+                <CardTitle className="text-gray-700 dark:text-gray-200 flex items-center">
                   <Palette className="w-5 h-5 mr-3" />
                   Art Style & Model
                 </CardTitle>
-                <CardDescription className="text-gray-600">
+                <CardDescription className="text-gray-600 dark:text-gray-300">
                   Choose the artistic style for your image
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <Label className="text-gray-600 text-sm font-medium mb-3 block">
+                  <Label className="text-gray-600 dark:text-gray-300 text-sm font-medium mb-3 block">
                     LoRA Model
                   </Label>
                   <Select
@@ -1019,7 +1019,7 @@ const AIText2ImagePage = () => {
                     onValueChange={setSelectedLoraModel}
                     disabled={!isConnected || availableLoraModels.length === 0}
                   >
-                    <SelectTrigger className="bg-white border-pink-200 text-gray-700 rounded-xl h-12 focus:border-pink-500/50">
+                    <SelectTrigger className="bg-white dark:bg-gray-700 border-pink-200 dark:border-pink-500/30 text-gray-700 dark:text-gray-200 rounded-xl h-12 focus:border-pink-500/50">
                       <SelectValue
                         placeholder={
                           isConnected
@@ -1030,7 +1030,7 @@ const AIText2ImagePage = () => {
                         }
                       />
                     </SelectTrigger>
-                    <SelectContent className="bg-white border-pink-200 text-gray-700">
+                    <SelectContent className="bg-white dark:bg-gray-800 border-pink-200 dark:border-pink-500/30 text-gray-700 dark:text-gray-200">
                       {availableLoraModels.map((model) => (
                         <SelectItem key={model} value={model}>
                           <div className="flex items-center space-x-3">
@@ -1048,10 +1048,10 @@ const AIText2ImagePage = () => {
             </Card>
 
             {/* Image Dimensions */}
-            <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
+            <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
               <CardHeader className="pb-4">
-                <CardTitle className="text-gray-700">Image Dimensions</CardTitle>
-                <CardDescription className="text-gray-600">
+                <CardTitle className="text-gray-700 dark:text-gray-200">Image Dimensions</CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-300">
                   Select the size and aspect ratio for your image
                 </CardDescription>
               </CardHeader>
@@ -1063,8 +1063,8 @@ const AIText2ImagePage = () => {
                       variant="outline"
                       className={`h-20 p-4 border-2 transition-all duration-200 ${
                         width === preset.width && height === preset.height
-                          ? "bg-pink-500/30 border-pink-400 text-pink-700"
-                          : "bg-white border-pink-200 text-gray-600 hover:bg-pink-50 hover:border-pink-300"
+                          ? "bg-pink-500/30 dark:bg-pink-500/20 border-pink-400 dark:border-pink-500 text-pink-700 dark:text-pink-300"
+                          : "bg-white dark:bg-gray-700 border-pink-200 dark:border-pink-500/30 text-gray-600 dark:text-gray-300 hover:bg-pink-50 dark:hover:bg-gray-600 hover:border-pink-300 dark:hover:border-pink-500/50"
                       }`}
                       onClick={() => {
                         setWidth(preset.width);
@@ -1086,14 +1086,14 @@ const AIText2ImagePage = () => {
             </Card>
 
             {/* Generation Settings */}
-            <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
+            <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-gray-700">
+                    <CardTitle className="text-gray-700 dark:text-gray-200">
                       Generation Settings
                     </CardTitle>
-                    <CardDescription className="text-gray-600">
+                    <CardDescription className="text-gray-600 dark:text-gray-300">
                       Fine-tune your image generation parameters
                     </CardDescription>
                   </div>
@@ -1277,15 +1277,15 @@ const AIText2ImagePage = () => {
           {/* Preview & Gallery Panel */}
           <div className="space-y-6">
             {/* Preview Card */}
-            <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
+            <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-gray-700 flex items-center">
+                    <CardTitle className="text-gray-700 dark:text-gray-200 flex items-center">
                       <Grid className="w-5 h-5 mr-3" />
                       Gallery
                     </CardTitle>
-                    <CardDescription className="text-gray-600">
+                    <CardDescription className="text-gray-600 dark:text-gray-300">
                       {generatedImages.length} images created
                     </CardDescription>
                   </div>
@@ -1551,15 +1551,15 @@ const AIText2ImagePage = () => {
 
         {/* Success Status */}
         {generationStatus && !error && (
-          <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
+          <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
             <CardContent className="p-6">
               <div className="flex items-center space-x-3">
                 <div className="w-2 h-2 bg-pink-500 rounded-full animate-pulse"></div>
                 <div>
-                  <h3 className="font-medium text-gray-700 mb-1">
+                  <h3 className="font-medium text-gray-700 dark:text-gray-200 mb-1">
                     Generation Status
                   </h3>
-                  <p className="text-gray-600">{generationStatus}</p>
+                  <p className="text-gray-600 dark:text-gray-300">{generationStatus}</p>
                 </div>
               </div>
             </CardContent>

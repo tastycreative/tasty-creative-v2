@@ -209,7 +209,7 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
         className={`relative flex items-center ${sizeClasses[size]} rounded-xl font-medium transition-all duration-200 whitespace-nowrap ${
           isActive
             ? "text-white"
-            : "text-gray-600 hover:text-gray-700"
+            : "text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200"
         }`}
       >
         {/* Active Tab Background */}
@@ -243,10 +243,10 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
 
       {/* Header */}
       <div className="mb-6 sm:mb-8 lg:mb-10 px-4 sm:px-6 lg:px-0">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-700 mb-2 sm:mb-3">
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-700 dark:text-gray-100 mb-2 sm:mb-3">
           Generate AI Content
         </h1>
-        <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 leading-relaxed">
           Create AI voices, images, videos, and more with our powerful
           generative AI tools.
         </p>
@@ -260,16 +260,16 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
           <div className="mb-4">
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="w-full flex items-center justify-between p-4 rounded-2xl bg-white/60 backdrop-blur-sm border border-pink-200"
+              className="w-full flex items-center justify-between p-4 rounded-2xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-pink-200 dark:border-pink-500/20"
             >
               <div className="flex items-center gap-3">
                 {activeTabData && <activeTabData.icon className="w-5 h-5" />}
-                <span className="font-medium text-gray-700">
+                <span className="font-medium text-gray-700 dark:text-gray-200">
                   {activeTabData?.label || "Select Tool"}
                 </span>
               </div>
               <ChevronDown
-                className={`w-5 h-5 text-gray-600 transition-transform duration-200 ${
+                className={`w-5 h-5 text-gray-600 dark:text-gray-300 transition-transform duration-200 ${
                   isMobileMenuOpen ? "rotate-180" : ""
                 }`}
               />
@@ -282,11 +282,11 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="mb-4 p-4 rounded-2xl bg-white/60 backdrop-blur-sm border border-pink-200"
+              className="mb-4 p-4 rounded-2xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-pink-200 dark:border-pink-500/20"
             >
               {/* Generation Tools */}
               <div className="mb-4">
-                <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3">
+                <h3 className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-3">
                   AI Generation
                 </h3>
                 <div className="grid grid-cols-2 gap-2">
@@ -298,7 +298,7 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
 
               {/* Tools */}
               <div>
-                <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3">
+                <h3 className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-3">
                   Tools & Management
                 </h3>
                 <div className="grid grid-cols-2 gap-2">
@@ -316,11 +316,11 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
           <div className="space-y-4">
             {/* Generation Tools Row */}
             <div>
-              <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 px-1">
+              <h3 className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-3 px-1">
                 AI Generation
               </h3>
               <div className="flex gap-3 overflow-x-auto scrollbar-hide">
-                <div className="flex gap-3 p-2 rounded-2xl bg-white/60 backdrop-blur-sm border border-pink-200 min-w-max">
+                <div className="flex gap-3 p-2 rounded-2xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-pink-200 dark:border-pink-500/20 min-w-max">
                   {generationTabs.map((tab) => (
                     <TabButton key={tab.id} tab={tab} size="default" />
                   ))}
@@ -330,11 +330,11 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
 
             {/* Tools Row */}
             <div>
-              <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wider mb-3 px-1">
+              <h3 className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-3 px-1">
                 Tools & Management
               </h3>
               <div className="flex gap-3 overflow-x-auto scrollbar-hide">
-                <div className="flex gap-3 p-2 rounded-2xl bg-white/60 backdrop-blur-sm border border-pink-200 min-w-max">
+                <div className="flex gap-3 p-2 rounded-2xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-pink-200 dark:border-pink-500/20 min-w-max">
                   {toolsTabs.map((tab) => (
                     <TabButton key={tab.id} tab={tab} size="default" />
                   ))}
@@ -349,11 +349,11 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
           <div className="space-y-5">
             {/* Generation Tools Row */}
             <div>
-              <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wider mb-4 px-1">
+              <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-4 px-1">
                 AI Generation
               </h3>
               <div className="flex gap-4">
-                <div className="flex gap-4 p-2 rounded-2xl bg-white/60 backdrop-blur-sm border border-pink-200">
+                <div className="flex gap-4 p-2 rounded-2xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-pink-200 dark:border-pink-500/20">
                   {generationTabs.map((tab) => (
                     <TabButton key={tab.id} tab={tab} size="large" />
                   ))}
@@ -363,11 +363,11 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
 
             {/* Tools Row */}
             <div>
-              <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wider mb-4 px-1">
+              <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider mb-4 px-1">
                 Tools & Management
               </h3>
               <div className="flex gap-4">
-                <div className="flex gap-4 p-2 rounded-2xl bg-white/60 backdrop-blur-sm border border-pink-200">
+                <div className="flex gap-4 p-2 rounded-2xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-pink-200 dark:border-pink-500/20">
                   {toolsTabs.map((tab) => (
                     <TabButton key={tab.id} tab={tab} size="large" />
                   ))}
@@ -381,7 +381,7 @@ export default function GenerateAILayout({ children }: GenerateLayoutProps) {
       {/* Tab Content */}
       <div className="flex-1 relative overflow-hidden px-4 sm:px-6 lg:px-0">
         {/* Content Container */}
-        <div className="h-full rounded-xl sm:rounded-2xl bg-white/60 backdrop-blur-sm border border-pink-200 p-4 sm:p-6 lg:p-8">
+        <div className="h-full rounded-xl sm:rounded-2xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-pink-200 dark:border-pink-500/20 p-4 sm:p-6 lg:p-8">
           {children}
         </div>
       </div>
