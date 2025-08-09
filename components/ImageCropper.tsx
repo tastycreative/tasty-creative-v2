@@ -10,6 +10,7 @@ import React, {
   useEffect,
   useTransition,
 } from "react";
+import { createPortal } from "react-dom";
 import ReactCrop, {
   Crop,
   PixelCrop,
@@ -666,11 +667,11 @@ export default function ImageCropper({
       )}
 
       {/* Google Drive File Picker Modal */}
-      {showFilePicker && (
-        <div className="fixed inset-0 px-4 lg:px-20 bg-black/60 flex items-center justify-center z-50">
+      {showFilePicker && typeof window !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/50 dark:bg-white/20 backdrop-blur-sm flex items-center justify-center" style={{ zIndex: 9999 }}>
           <div
             className={cn(
-              "bg-black/80 rounded-lg px-6 pb-6 w-full max-h-[80vh] overflow-auto relative",
+              "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg w-[90vw] h-[80vh] max-w-6xl shadow-2xl overflow-auto relative",
               { "overflow-hidden": isDownloading }
             )}
           >
@@ -701,16 +702,16 @@ export default function ImageCropper({
                 </span>
               </div>
             )}
-            <div className="sticky top-0 pt-2 py-0.5 bg-black/60 z-50">
+            <div className="sticky top-0 pt-6 pb-2 px-6 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm z-50 border-b border-gray-200 dark:border-gray-700">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
                   {currentFolder
                     ? `Folder: ${currentFolder.name}`
                     : "Select an image"}
                 </h3>
                 <button
                   onClick={() => setShowFilePicker(false)}
-                  className="text-gray-500 hover:text-gray-700 cursor-pointer"
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 cursor-pointer"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -731,10 +732,10 @@ export default function ImageCropper({
 
               {/* Folder navigation */}
               {parentFolder && (
-                <div className="mb-4 w-full h-full">
+                <div className="mb-4 w-full h-full px-6">
                   <button
                     onClick={handleNavigateUp}
-                    className="flex items-center text-sm text-blue-600 hover:text-blue-800"
+                    className="flex items-center text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -757,19 +758,19 @@ export default function ImageCropper({
             </div>
 
             {isGooglePickerLoading ? (
-              <div className="flex justify-center items-center py-8 h-full w-full">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-700"></div>
+              <div className="flex justify-center items-center py-8 h-full w-full px-6">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-700 dark:border-purple-400"></div>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 px-6 pb-6">
                 {googleFiles.length > 0 ? (
                   googleFiles.map((file) => (
                     <div
                       key={file.id}
-                      className="border rounded-md p-2 cursor-pointer hover:bg-gradient-to-r hover:from-purple-600 hover:to-blue-600"
+                      className="border border-gray-200 dark:border-gray-600 rounded-md p-2 cursor-pointer hover:bg-gradient-to-r hover:from-purple-600 hover:to-blue-600 bg-white dark:bg-gray-700"
                       onClick={() => handleFileSelected(file)}
                     >
-                      <div className="h-24 bg-gray-100 flex items-center justify-center mb-2 overflow-hidden">
+                      <div className="h-24 bg-gray-100 dark:bg-gray-600 flex items-center justify-center mb-2 overflow-hidden rounded">
                         {file.isFolder ? (
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -781,7 +782,7 @@ export default function ImageCropper({
                             strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            className="text-amber-500"
+                            className="text-amber-500 dark:text-amber-400"
                           >
                             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
                           </svg>
@@ -805,7 +806,7 @@ export default function ImageCropper({
                             strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            className="text-gray-300"
+                            className="text-gray-300 dark:text-gray-500"
                           >
                             <rect
                               x="3"
@@ -820,20 +821,21 @@ export default function ImageCropper({
                           </svg>
                         )}
                       </div>
-                      <p className="text-xs truncate">
+                      <p className="text-xs truncate text-gray-900 dark:text-gray-100">
                         {file.isFolder ? `📁 ${file.name}` : file.name}
                       </p>
                     </div>
                   ))
                 ) : (
-                  <div className="py-8 text-center col-span-full w-full text-gray-500">
+                  <div className="py-8 text-center col-span-full w-full text-gray-500 dark:text-gray-400">
                     No files found in this folder
                   </div>
                 )}
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {isVaultOpen && (

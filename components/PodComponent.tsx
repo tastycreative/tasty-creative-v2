@@ -93,27 +93,27 @@ const PodComponent = () => {
   };
 
   return (
-    <div className="min-h-screen p-6 space-y-6 bg-gradient-to-br from-gray-50 via-white to-pink-50">
+    <div className="min-h-screen p-6 space-y-6 bg-gradient-to-br from-gray-50 via-white to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="mb-8 p-6 bg-gradient-to-r from-gray-50 to-pink-50 rounded-lg border">
+        <div className="mb-8 p-6 bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-800 dark:to-gray-700 rounded-lg border dark:border-gray-600">
           <div className="text-center">
             <h1 className="text-4xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent mb-2">
               Scheduler POD
             </h1>
-            <p className="text-gray-600 text-lg">
+            <p className="text-gray-600 dark:text-gray-300 text-lg">
               Copy data from any Google Spreadsheet to the POD destination template
             </p>
           </div>
         </div>
 
         {/* Main Card */}
-        <Card className="border border-gray-200 shadow-xl bg-white relative group overflow-hidden">
+        <Card className="border border-gray-200 dark:border-gray-600 shadow-xl bg-white dark:bg-gray-800 relative group overflow-hidden">
           {/* Animated background effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 dark:via-pink-900/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
           
-          <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b border-gray-200 relative">
-            <CardTitle className="text-gray-900 font-bold flex items-center text-xl">
+          <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-700 dark:to-gray-600 border-b border-gray-200 dark:border-gray-600 relative">
+            <CardTitle className="text-gray-900 dark:text-gray-100 font-bold flex items-center text-xl">
               <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center mr-3">
                 <FileSpreadsheet className="h-4 w-4 text-white" />
               </div>
@@ -126,7 +126,7 @@ const PodComponent = () => {
               <div className="space-y-3">
                 <label 
                   htmlFor="spreadsheet-url" 
-                  className="text-sm font-semibold text-gray-700 flex items-center"
+                  className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center"
                 >
                   <div className="h-2 w-2 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 mr-2"></div>
                   Google Spreadsheet URL
@@ -137,10 +137,10 @@ const PodComponent = () => {
                   value={spreadsheetUrl}
                   onChange={(e) => setSpreadsheetUrl(e.target.value)}
                   placeholder="https://docs.google.com/spreadsheets/d/your-spreadsheet-id/edit?gid=123456#gid=123456"
-                  className="w-full h-12 text-base border-2 border-gray-200 focus:border-pink-500 transition-colors duration-300 rounded-lg bg-gray-50 focus:bg-white"
+                  className="w-full h-12 text-base border-2 border-gray-200 dark:border-gray-600 focus:border-pink-500 dark:focus:border-pink-400 transition-colors duration-300 rounded-lg bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 text-gray-900 dark:text-gray-100"
                   disabled={isLoading}
                 />
-                <p className="text-sm text-gray-500 bg-blue-50 p-3 rounded-lg border border-blue-200">
+                <p className="text-sm text-gray-500 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg border border-blue-200 dark:border-blue-700">
                   <strong>💡 Tip:</strong> Enter the Google Sheets URL to automatically detect and sync all Schedule #1 sheets with real-time updates!
                 </p>
               </div>
@@ -154,13 +154,13 @@ const PodComponent = () => {
                   }}>
                     {isValidGoogleSheetsUrl(spreadsheetUrl) ? (
                       <>
-                        <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
-                        <span className="text-green-700 font-medium">Valid Google Sheets URL ✨</span>
+                        <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                        <span className="text-green-700 dark:text-green-300 font-medium">Valid Google Sheets URL ✨</span>
                       </>
                     ) : (
                       <>
-                        <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
-                        <span className="text-red-700 font-medium">Please enter a valid Google Sheets URL</span>
+                        <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0" />
+                        <span className="text-red-700 dark:text-red-300 font-medium">Please enter a valid Google Sheets URL</span>
                       </>
                     )}
                   </div>
@@ -171,10 +171,10 @@ const PodComponent = () => {
               {status && (
                 <div className={`p-6 rounded-xl border-2 transition-all duration-500 ${
                   status.type === 'success' 
-                    ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300 shadow-lg shadow-green-100'
+                    ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border-green-300 dark:border-green-600 shadow-lg shadow-green-100 dark:shadow-green-900/20'
                     : status.type === 'error'
-                    ? 'bg-gradient-to-r from-red-50 to-pink-50 border-red-300 shadow-lg shadow-red-100'
-                    : 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-300 shadow-lg shadow-blue-100'
+                    ? 'bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/30 dark:to-pink-900/30 border-red-300 dark:border-red-600 shadow-lg shadow-red-100 dark:shadow-red-900/20'
+                    : 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-blue-300 dark:border-blue-600 shadow-lg shadow-blue-100 dark:shadow-blue-900/20'
                 }`}>
                   <div className="flex items-start space-x-4">
                     <div className="flex-shrink-0">
@@ -194,9 +194,9 @@ const PodComponent = () => {
                     </div>
                     <div className="flex-1">
                       <p className={`text-sm font-medium ${
-                        status.type === 'success' ? 'text-green-800' 
-                        : status.type === 'error' ? 'text-red-800' 
-                        : 'text-blue-800'
+                        status.type === 'success' ? 'text-green-800 dark:text-green-200' 
+                        : status.type === 'error' ? 'text-red-800 dark:text-red-200' 
+                        : 'text-blue-800 dark:text-blue-200'
                       }`}>
                         {status.message}
                       </p>
@@ -207,36 +207,36 @@ const PodComponent = () => {
 
               {/* Success URL Display */}
               {newSpreadsheetUrl && status?.type === 'success' && (
-                <div className="space-y-4 p-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border-2 border-green-300 shadow-lg">
+                <div className="space-y-4 p-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 rounded-xl border-2 border-green-300 dark:border-green-600 shadow-lg">
                   <div className="flex items-center space-x-3">
                     <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
                       <FileSpreadsheet className="h-5 w-5 text-white" />
                     </div>
-                    <h3 className="text-xl font-bold text-green-800">
+                    <h3 className="text-xl font-bold text-green-800 dark:text-green-200">
                       🎉 Real-Time Sync Spreadsheet Created!
                     </h3>
                   </div>
                   <div className="space-y-3">
-                    <p className="text-green-700 font-medium">
+                    <p className="text-green-700 dark:text-green-300 font-medium">
                       Your IMPORTRANGE formulas have been set up for real-time data synchronization:
                     </p>
-                    <div className="p-3 bg-green-100 rounded-lg border border-green-300">
-                      <p className="text-sm text-green-800">
+                    <div className="p-3 bg-green-100 dark:bg-green-900/40 rounded-lg border border-green-300 dark:border-green-600">
+                      <p className="text-sm text-green-800 dark:text-green-200">
                         <strong>✨ Real-Time Updates:</strong> Any changes to the source spreadsheet will automatically appear in your new destination spreadsheet!
                       </p>
                     </div>
-                    <div className="flex items-center space-x-3 p-3 bg-white rounded-lg border border-green-300 shadow-sm">
+                    <div className="flex items-center space-x-3 p-3 bg-white dark:bg-gray-700 rounded-lg border border-green-300 dark:border-green-600 shadow-sm">
                       <Input
                         value={newSpreadsheetUrl}
                         readOnly
-                        className="flex-1 text-sm bg-transparent border-none focus:ring-0 text-blue-600 font-mono"
+                        className="flex-1 text-sm bg-transparent border-none focus:ring-0 text-blue-600 dark:text-blue-400 font-mono"
                       />
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => navigator.clipboard.writeText(newSpreadsheetUrl)}
-                        className="shrink-0 border-green-400 text-green-700 hover:bg-green-100 transition-all duration-300 hover:scale-105"
+                        className="shrink-0 border-green-400 dark:border-green-500 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-800 transition-all duration-300 hover:scale-105"
                       >
                         <Copy className="h-4 w-4 mr-1" />
                         Copy
@@ -260,7 +260,7 @@ const PodComponent = () => {
                           setNewSpreadsheetUrl(null);
                           setStatus(null);
                         }}
-                        className="border-green-400 text-green-700 hover:bg-green-100 transition-all duration-300 hover:scale-105"
+                        className="border-green-400 dark:border-green-500 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-800 transition-all duration-300 hover:scale-105"
                       >
                         Process Another
                       </Button>
@@ -291,14 +291,14 @@ const PodComponent = () => {
             </form>
 
             {/* Info Section */}
-            <div className="mt-8 p-6 bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl border border-gray-200 shadow-sm">
-              <h3 className="font-bold text-gray-900 mb-4 flex items-center text-lg">
+            <div className="mt-8 p-6 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-700 dark:to-blue-900/30 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm">
+              <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center text-lg">
                 <div className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mr-3">
                   <span className="text-white text-xs">?</span>
                 </div>
                 How it works:
               </h3>
-                <div className="space-y-4 text-sm text-gray-600">
+                <div className="space-y-4 text-sm text-gray-600 dark:text-gray-300">
                   <p className="flex items-center"><span className="text-pink-500 mr-2">•</span> Automatically detects all Schedule #1 sheets in your spreadsheet</p>
                   <p className="flex items-center"><span className="text-pink-500 mr-2">•</span> Creates a copy of the destination template for each sheet</p>
                   <p className="flex items-center"><span className="text-pink-500 mr-2">•</span> Sets up IMPORTRANGE formulas for real-time sync</p>
@@ -306,8 +306,8 @@ const PodComponent = () => {
                   <p className="flex items-center"><span className="text-purple-500 mr-2">•</span> Auto-updates when source data changes</p>
                   <p className="flex items-center"><span className="text-purple-500 mr-2">•</span> Returns the URL of the new live-sync spreadsheet</p>
                 </div>
-              <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
-                <p className="text-sm text-blue-700">
+              <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/30 dark:to-purple-900/30 rounded-lg border border-blue-200 dark:border-blue-600">
+                <p className="text-sm text-blue-700 dark:text-blue-300">
                   <strong>� IMPORTRANGE Mapping:</strong> E→B, D→C, F→D, G→E, I→G, K→I, N→K, M→L, O→M, P→N, R→O, T→P (Real-time sync from range C12:T)
                 </p>
               </div>
