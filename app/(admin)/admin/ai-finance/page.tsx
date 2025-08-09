@@ -451,16 +451,16 @@ export default function AIFinancePage() {
   };
 
   return (
-    <div className="min-h-screen p-6 space-y-6 bg-gradient-to-br from-gray-50 via-white to-pink-50">
+    <div className="min-h-screen p-6 space-y-6 bg-gradient-to-br from-gray-50 via-white to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Header */}
-      <div className="mb-8 p-6 bg-gradient-to-r from-gray-50 to-pink-50 rounded-lg border">
+      <div className="mb-8 p-6 bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-800 dark:to-gray-700 rounded-lg border dark:border-gray-600">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center space-x-3 mb-2">
-              <h1 className="text-3xl font-bold text-gray-900">AI Finance</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">AI Finance</h1>
               <DollarSign className="h-6 w-6 text-pink-500" />
             </div>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-300">
               ElevenLabs billing overview and subscription management
             </p>
           </div>
@@ -468,7 +468,7 @@ export default function AIFinancePage() {
             <button
               onClick={loadAllAccountsBilling}
               disabled={isLoadingAll}
-              className="inline-flex items-center px-4 py-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5"
+              className="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5"
             >
               <RefreshCw
                 className={`h-4 w-4 mr-2 ${isLoadingAll ? "animate-spin" : ""}`}
@@ -481,17 +481,17 @@ export default function AIFinancePage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card className="border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+        <Card className="border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-500 group bg-white dark:bg-gray-700 relative overflow-hidden">
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards]"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 dark:via-pink-900/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards]"></div>
           </div>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Total Monthly Bill
                 </p>
-                <p className="text-3xl font-bold text-gray-900 mb-1">
+                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                   ${totalMonthlyBill.toFixed(2)}
                   {showDebugMode && totalMonthlyBill === 0 && (
                     <span className="text-sm text-red-500 ml-2">⚠️ Zero</span>
@@ -504,24 +504,24 @@ export default function AIFinancePage() {
                   </span>
                 </div>
               </div>
-              <div className="bg-green-50 p-3 rounded-full group-hover:bg-green-100 transition-colors">
-                <DollarSign className="h-6 w-6 text-green-600" />
+              <div className="bg-green-50 dark:bg-green-900/30 p-3 rounded-full group-hover:bg-green-100 dark:group-hover:bg-green-900/50 transition-colors">
+                <DollarSign className="h-6 w-6 text-green-600 dark:text-green-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+        <Card className="border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-500 group bg-white dark:bg-gray-700 relative overflow-hidden">
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards]"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 dark:via-pink-900/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards]"></div>
           </div>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Active Accounts
                 </p>
-                <p className="text-3xl font-bold text-gray-900 mb-1">
+                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                   {activeSubscriptions}
                 </p>
                 <div className="flex items-center text-sm">
@@ -531,24 +531,24 @@ export default function AIFinancePage() {
                   </span>
                 </div>
               </div>
-              <div className="bg-blue-50 p-3 rounded-full group-hover:bg-blue-100 transition-colors">
-                <Activity className="h-6 w-6 text-blue-600" />
+              <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 transition-colors">
+                <Activity className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+        <Card className="border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-500 group bg-white dark:bg-gray-700 relative overflow-hidden">
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards]"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 dark:via-pink-900/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards]"></div>
           </div>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Next Billing
                 </p>
-                <p className="text-xl font-bold text-gray-900 mb-1">
+                <p className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                   {nextBillingDate
                     ? new Date(nextBillingDate * 1000).toLocaleDateString()
                     : "N/A"}
@@ -561,24 +561,24 @@ export default function AIFinancePage() {
                   <span className="text-purple-600 font-medium">Upcoming</span>
                 </div>
               </div>
-              <div className="bg-purple-50 p-3 rounded-full group-hover:bg-purple-100 transition-colors">
-                <Calendar className="h-6 w-6 text-purple-600" />
+              <div className="bg-purple-50 dark:bg-purple-900/30 p-3 rounded-full group-hover:bg-purple-100 dark:group-hover:bg-purple-900/50 transition-colors">
+                <Calendar className="h-6 w-6 text-purple-600 dark:text-purple-400" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+        <Card className="border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-500 group bg-white dark:bg-gray-700 relative overflow-hidden">
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards]"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 dark:via-pink-900/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards]"></div>
           </div>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500 mb-1">
+                <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                   Issues Found
                 </p>
-                <p className="text-3xl font-bold text-gray-900 mb-1">
+                <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-1">
                   {errorAccounts + billingIssueAccounts}
                 </p>
                 <div className="flex items-center text-sm">
@@ -588,8 +588,8 @@ export default function AIFinancePage() {
                   </span>
                 </div>
               </div>
-              <div className="bg-orange-50 p-3 rounded-full group-hover:bg-orange-100 transition-colors">
-                <AlertTriangle className="h-6 w-6 text-orange-600" />
+              <div className="bg-orange-50 dark:bg-orange-900/30 p-3 rounded-full group-hover:bg-orange-100 dark:group-hover:bg-orange-900/50 transition-colors">
+                <AlertTriangle className="h-6 w-6 text-orange-600 dark:text-orange-400" />
               </div>
             </div>
           </CardContent>
@@ -598,21 +598,21 @@ export default function AIFinancePage() {
 
       {/* Global Error Alert */}
       {globalError && (
-        <Alert className="border-red-500 bg-red-50 text-red-800">
-          <AlertCircle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-700">
+        <Alert className="border-red-500 bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300">
+          <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+          <AlertDescription className="text-red-700 dark:text-red-300">
             {globalError}
           </AlertDescription>
         </Alert>
       )}
 
       {/* Status Filter */}
-      <Card className="border border-gray-200 shadow-sm bg-white">
+      <Card className="border border-gray-200 dark:border-gray-600 shadow-sm bg-white dark:bg-gray-700">
         <CardContent className="p-4">
           <div className="flex items-center space-x-4">
             <div className="flex items-center space-x-2">
-              <Filter className="h-4 w-4 text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">
+              <Filter className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Filter by Status:
               </span>
             </div>
@@ -644,8 +644,8 @@ export default function AIFinancePage() {
                   onClick={() => handleFilterChange(filter.value)}
                   className={`px-3 py-1.5 text-sm rounded-full border transition-all duration-200 ${
                     statusFilter === filter.value
-                      ? "bg-pink-100 border-pink-300 text-pink-700 font-medium"
-                      : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"
+                      ? "bg-pink-100 dark:bg-pink-900/30 border-pink-300 dark:border-pink-500/50 text-pink-700 dark:text-pink-400 font-medium"
+                      : "bg-gray-50 dark:bg-gray-600 border-gray-200 dark:border-gray-500 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-500"
                   }`}
                 >
                   {filter.label} ({filter.count})
@@ -657,14 +657,14 @@ export default function AIFinancePage() {
       </Card>
 
       {/* Accounts Billing Table */}
-      <Card className="border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-all duration-300">
+      <Card className="border border-gray-200 dark:border-gray-600 shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 bg-white dark:bg-gray-700">
         <CardHeader className="">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-gray-900 font-bold flex items-center">
+            <CardTitle className="text-gray-900 dark:text-gray-100 font-bold flex items-center">
               <Eye className="h-5 w-5 mr-2 text-pink-500" />
               Account Billing Overview
             </CardTitle>
-            <div className="flex items-center space-x-2 text-sm text-gray-500">
+            <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
               <Calendar className="h-4 w-4" />
               <span>
                 Last updated: {lastUpdated?.toLocaleTimeString() || "Never"}
@@ -675,32 +675,32 @@ export default function AIFinancePage() {
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-600">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Account
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Subscription
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Monthly Bill
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Next Billing
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Usage
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white dark:bg-gray-700 divide-y divide-gray-200 dark:divide-gray-600">
                 {currentAccounts.map((account) => {
                   const usagePercentage = account.character
                     ? getUsagePercentage(
@@ -712,22 +712,22 @@ export default function AIFinancePage() {
                   return (
                     <React.Fragment key={account.profileKey}>
                       <tr
-                        className={`hover:bg-gray-50 transition-colors ${
+                        className={`hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors ${
                           account.status === "billing_issue"
-                            ? "bg-orange-25"
+                            ? "bg-orange-25 dark:bg-orange-900/20"
                             : ""
                         }`}
                       >
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
-                            <div className="bg-pink-100 p-2 rounded-full mr-3">
-                              <CreditCard className="h-4 w-4 text-pink-600" />
+                            <div className="bg-pink-100 dark:bg-pink-900/30 p-2 rounded-full mr-3">
+                              <CreditCard className="h-4 w-4 text-pink-600 dark:text-pink-400" />
                             </div>
                             <div>
-                              <div className="text-sm font-medium text-gray-900">
+                              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                 {account.profileName}
                               </div>
-                              <div className="text-sm text-gray-500">
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
                                 {account.profileKey}
                               </div>
                             </div>
@@ -744,7 +744,7 @@ export default function AIFinancePage() {
                               </span>
                               {account.status === "billing_issue" &&
                                 account.billingIssue && (
-                                  <div className="text-xs text-orange-600 mt-1">
+                                  <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
                                     {account.billingIssue}
                                   </div>
                                 )}
@@ -755,7 +755,7 @@ export default function AIFinancePage() {
                           {account.status === "success" ||
                           account.status === "billing_issue" ? (
                             <div>
-                              <div className="text-sm font-medium text-gray-900">
+                              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                 {account.subscription?.tier || "Unknown"}
                                 {showDebugMode &&
                                   !account.subscription?.tier && (
@@ -764,12 +764,12 @@ export default function AIFinancePage() {
                                     </span>
                                   )}
                               </div>
-                              <div className="text-sm text-gray-500">
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
                                 {account.subscription?.billing_period || "N/A"}
                               </div>
                             </div>
                           ) : account.status === "error" ? (
-                            <div className="text-sm text-red-600">
+                            <div className="text-sm text-red-600 dark:text-red-400">
                               {account.errorType === "invalid_key"
                                 ? "Invalid API Key"
                                 : account.errorType === "missing_key"
@@ -783,7 +783,7 @@ export default function AIFinancePage() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           {account.status === "success" ||
                           account.status === "billing_issue" ? (
-                            <div className="text-sm font-medium text-gray-900">
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                               {formatCurrency(
                                 account.subscription?.monthly_price,
                                 account.subscription?.currency
@@ -796,20 +796,20 @@ export default function AIFinancePage() {
                                 )}
                             </div>
                           ) : (
-                            <span className="text-sm text-gray-400">N/A</span>
+                            <span className="text-sm text-gray-400 dark:text-gray-500">N/A</span>
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           {(account.status === "success" ||
                             account.status === "billing_issue") &&
                           account.subscription?.next_invoice_time_unix ? (
-                            <div className="text-sm text-gray-900">
+                            <div className="text-sm text-gray-900 dark:text-gray-100">
                               {formatDate(
                                 account.subscription.next_invoice_time_unix
                               )}
                             </div>
                           ) : (
-                            <span className="text-sm text-gray-400">
+                            <span className="text-sm text-gray-400 dark:text-gray-500">
                               N/A
                               {showDebugMode &&
                                 (account.status === "success" ||
@@ -831,13 +831,13 @@ export default function AIFinancePage() {
                               >
                                 {usagePercentage}% used
                               </div>
-                              <div className="text-xs text-gray-500 mt-1">
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                 {account.character.used.toLocaleString()} /{" "}
                                 {account.character.limit.toLocaleString()}
                               </div>
                             </div>
                           ) : (
-                            <span className="text-sm text-gray-400">N/A</span>
+                            <span className="text-sm text-gray-400 dark:text-gray-500">N/A</span>
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -849,7 +849,7 @@ export default function AIFinancePage() {
                                 refreshSingleAccount(account.profileKey)
                               }
                               disabled={account.status === "loading"}
-                              className="text-gray-600 hover:text-gray-800 border-gray-300 hover:border-pink-300 hover:bg-pink-50 transition-all"
+                              className="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 border-gray-300 dark:border-gray-600 hover:border-pink-300 dark:hover:border-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/30 transition-all"
                             >
                               {account.status === "loading" ? (
                                 <Loader2 className="w-3 h-3 animate-spin" />
@@ -865,7 +865,7 @@ export default function AIFinancePage() {
                                   onClick={() =>
                                     toggleDebugRow(account.profileKey)
                                   }
-                                  className="text-yellow-600 hover:text-yellow-800 border-yellow-300 hover:border-yellow-400 hover:bg-yellow-50"
+                                  className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-300 border-yellow-300 dark:border-yellow-600 hover:border-yellow-400 dark:hover:border-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/30"
                                 >
                                   {expandedDebugRows.has(account.profileKey) ? (
                                     <ChevronUp className="w-3 h-3" />
@@ -880,18 +880,18 @@ export default function AIFinancePage() {
                       {/* Debug Row */}
                       {showDebugMode &&
                         expandedDebugRows.has(account.profileKey) && (
-                          <tr className="bg-yellow-50">
+                          <tr className="bg-yellow-50 dark:bg-yellow-900/20">
                             <td colSpan={7} className="px-6 py-4">
                               <div className="text-sm">
-                                <h4 className="font-semibold text-yellow-800 mb-2">
+                                <h4 className="font-semibold text-yellow-800 dark:text-yellow-300 mb-2">
                                   Debug Information
                                 </h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                   <div>
-                                    <h5 className="font-medium text-yellow-700 mb-1">
+                                    <h5 className="font-medium text-yellow-700 dark:text-yellow-400 mb-1">
                                       Processed Fields
                                     </h5>
-                                    <pre className="text-xs bg-white p-2 rounded border overflow-auto max-h-40">
+                                    <pre className="text-xs bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 p-2 rounded border overflow-auto max-h-40">
                                       {JSON.stringify(
                                         account.debug?.processedFields || {},
                                         null,
@@ -900,10 +900,10 @@ export default function AIFinancePage() {
                                     </pre>
                                   </div>
                                   <div>
-                                    <h5 className="font-medium text-yellow-700 mb-1">
+                                    <h5 className="font-medium text-yellow-700 dark:text-yellow-400 mb-1">
                                       Raw ElevenLabs Response
                                     </h5>
-                                    <pre className="text-xs bg-white p-2 rounded border overflow-auto max-h-40">
+                                    <pre className="text-xs bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 p-2 rounded border overflow-auto max-h-40">
                                       {JSON.stringify(
                                         account.subscription?._raw ||
                                           account.debug?.rawResponse ||
@@ -916,10 +916,10 @@ export default function AIFinancePage() {
                                 </div>
                                 {account.billingIssue && (
                                   <div className="mt-4">
-                                    <h5 className="font-medium text-orange-700 mb-1">
+                                    <h5 className="font-medium text-orange-700 dark:text-orange-400 mb-1">
                                       Billing Issue Detected
                                     </h5>
-                                    <div className="text-sm text-orange-800 bg-orange-100 p-2 rounded">
+                                    <div className="text-sm text-orange-800 dark:text-orange-300 bg-orange-100 dark:bg-orange-900/30 p-2 rounded">
                                       {account.billingIssue}
                                     </div>
                                   </div>
@@ -937,9 +937,9 @@ export default function AIFinancePage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+            <div className="bg-gray-50 dark:bg-gray-800 px-6 py-4 border-t border-gray-200 dark:border-gray-600">
               <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-700">
+                <div className="text-sm text-gray-700 dark:text-gray-300">
                   Showing <span className="font-medium">{startIndex + 1}</span>{" "}
                   to{" "}
                   <span className="font-medium">
@@ -955,7 +955,7 @@ export default function AIFinancePage() {
                     size="sm"
                     onClick={goToPrevious}
                     disabled={currentPage === 1}
-                    className="text-gray-600 hover:text-gray-800 border-gray-300 hover:border-pink-300 hover:bg-pink-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 border-gray-300 dark:border-gray-600 hover:border-pink-300 dark:hover:border-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/30 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <ChevronLeft className="h-4 w-4 mr-1" />
                     Previous
@@ -980,7 +980,7 @@ export default function AIFinancePage() {
                         return (
                           <React.Fragment key={page}>
                             {showEllipsisBefore && (
-                              <span className="px-2 py-1 text-gray-500">
+                              <span className="px-2 py-1 text-gray-500 dark:text-gray-400">
                                 ...
                               </span>
                             )}
@@ -989,7 +989,7 @@ export default function AIFinancePage() {
                               className={`px-3 py-1 text-sm rounded border transition-all duration-200 ${
                                 currentPage === page
                                   ? "bg-pink-100 border-pink-300 text-pink-700 font-medium"
-                                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                                  : "bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
                               }`}
                             >
                               {page}
@@ -1004,7 +1004,7 @@ export default function AIFinancePage() {
                     size="sm"
                     onClick={goToNext}
                     disabled={currentPage === totalPages}
-                    className="text-gray-600 hover:text-gray-800 border-gray-300 hover:border-pink-300 hover:bg-pink-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 border-gray-300 dark:border-gray-600 hover:border-pink-300 dark:hover:border-pink-500 hover:bg-pink-50 dark:hover:bg-pink-900/30 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Next
                     <ChevronRight className="h-4 w-4 ml-1" />

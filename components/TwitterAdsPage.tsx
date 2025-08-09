@@ -251,21 +251,21 @@ const TwitterAdsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white/60 backdrop-blur-sm text-gray-700 p-6 rounded-lg border border-pink-200">
+    <div className="min-h-screen bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm text-gray-700 dark:text-gray-100 p-6 rounded-lg border border-pink-200 dark:border-pink-500/20">
       <canvas ref={canvasRef} className="hidden" />
 
       <div className="max-w-5xl mx-auto">
         <header className="text-center mb-12">
-          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-600 to-rose-600">
+          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-600 to-rose-600 dark:from-pink-400 dark:to-rose-400">
             Split Collage Maker
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-gray-600 dark:text-gray-300 mt-2">
             Create stunning side-by-side collages for twitter ads
           </p>
         </header>
 
-        <div className="bg-white/80 rounded-xl p-6 mb-8 shadow-lg border border-pink-200 backdrop-blur-sm">
-          <h2 className="text-xl font-semibold mb-4 text-pink-600">
+        <div className="bg-white/80 dark:bg-gray-800/80 rounded-xl p-6 mb-8 shadow-lg border border-pink-200 dark:border-pink-500/20 backdrop-blur-sm">
+          <h2 className="text-xl font-semibold mb-4 text-pink-600 dark:text-pink-400">
             Select Model
           </h2>
           <ModelsDropdown
@@ -278,8 +278,8 @@ const TwitterAdsPage = () => {
         </div>
 
         <div className="flex flex-col md:flex-row gap-8 justify-between mb-10">
-          <div className="w-full md:w-1/2 bg-white/80 rounded-xl p-6 shadow-lg border border-pink-200">
-            <h2 className="text-xl font-semibold mb-4 text-pink-600">
+          <div className="w-full md:w-1/2 bg-white/80 dark:bg-gray-800/80 rounded-xl p-6 shadow-lg border border-pink-200 dark:border-pink-500/20">
+            <h2 className="text-xl font-semibold mb-4 text-pink-600 dark:text-pink-400">
               Left Panel
             </h2>
             <ImageCropper
@@ -293,8 +293,8 @@ const TwitterAdsPage = () => {
             />
           </div>
 
-          <div className="w-full md:w-1/2 bg-white/80 rounded-xl p-6 shadow-lg border border-pink-200">
-            <h2 className="text-xl font-semibold mb-4 text-rose-600">
+          <div className="w-full md:w-1/2 bg-white/80 dark:bg-gray-800/80 rounded-xl p-6 shadow-lg border border-pink-200 dark:border-pink-500/20">
+            <h2 className="text-xl font-semibold mb-4 text-rose-600 dark:text-rose-400">
               Right Panel (Video/Image)
             </h2>
             {/* <ImageCropper
@@ -316,12 +316,12 @@ const TwitterAdsPage = () => {
           </div>
         </div>
 
-        <div className="mt-16 bg-white/70 p-6 rounded-xl border border-pink-200 backdrop-blur-sm shadow-md">
-          <h2 className="text-2xl font-bold mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-pink-600 to-rose-600">
+        <div className="mt-16 bg-white/70 dark:bg-gray-800/70 p-6 rounded-xl border border-pink-200 dark:border-pink-500/20 backdrop-blur-sm shadow-md">
+          <h2 className="text-2xl font-bold mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-pink-600 to-rose-600 dark:from-pink-400 dark:to-rose-400">
             Preview Your Collage
           </h2>
 
-          <div className="w-full max-w-lg mx-auto bg-white/90 rounded-lg shadow-2xl overflow-hidden border border-pink-300">
+          <div className="w-full max-w-lg mx-auto bg-white/90 dark:bg-gray-800/90 rounded-lg shadow-2xl overflow-hidden border border-pink-300 dark:border-pink-500/30">
             <div className="flex w-full aspect-[1/1]">
               {formData.croppedImageLeft ? (
                 <div className="w-1/2 h-full">
@@ -334,8 +334,8 @@ const TwitterAdsPage = () => {
                   />
                 </div>
               ) : (
-                <div className="w-1/2 h-full bg-gray-100 flex items-center justify-center">
-                  <div className="text-gray-500 text-center px-4">
+                <div className="w-1/2 h-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                  <div className="text-gray-500 dark:text-gray-400 text-center px-4">
                     <svg
                       className="w-12 h-12 mx-auto mb-2 opacity-40"
                       fill="currentColor"
@@ -354,7 +354,7 @@ const TwitterAdsPage = () => {
                         clipRule="evenodd"
                       />
                     </svg>
-                    <p>Left image will appear here</p>
+                    <p className="dark:text-gray-400">Left image will appear here</p>
                   </div>
                 </div>
               )}
@@ -389,8 +389,8 @@ const TwitterAdsPage = () => {
                   ></video>
                 </div>
               ) : (
-                <div className="w-1/2 h-full bg-gray-100 flex items-center justify-center">
-                  <div className="text-gray-500 text-center px-4">
+                <div className="w-1/2 h-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                  <div className="text-gray-500 dark:text-gray-400 text-center px-4">
                     <svg
                       className="w-12 h-12 mx-auto mb-2 opacity-40"
                       fill="currentColor"
@@ -400,7 +400,7 @@ const TwitterAdsPage = () => {
                       <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"></path>
                       <path d="M14 6a2 2 0 012-2h2a2 2 0 012 2v8a2 2 0 01-2 2h-2a2 2 0 01-2-2V6z"></path>
                     </svg>
-                    <p>Right video will appear here</p>
+                    <p className="dark:text-gray-400">Right video will appear here</p>
                   </div>
                 </div>
               )}
@@ -425,7 +425,7 @@ const TwitterAdsPage = () => {
                     !combinedVideoUrl) ||
                   !formData.model
                 }
-                className="px-8 py-4 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 rounded-lg font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-pink-500/20 flex items-center gap-2 transform hover:-translate-y-1"
+                className="px-8 py-4 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 dark:hover:from-pink-700 dark:hover:to-rose-700 rounded-lg font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-pink-500/20 flex items-center gap-2 transform hover:-translate-y-1"
                 onClick={
                   !useFrame && combinedVideoUrl
                     ? downloadCombinedVideo
@@ -459,7 +459,7 @@ const TwitterAdsPage = () => {
                     !combinedVideoUrl) ||
                   !formData.model
                 }
-                className="px-8 py-4 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 rounded-lg font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-rose-500/20 flex items-center gap-2 transform hover:-translate-y-1"
+                className="px-8 py-4 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-700 hover:to-pink-700 dark:hover:from-rose-700 dark:hover:to-pink-700 rounded-lg font-semibold text-lg transition-all duration-300 shadow-lg hover:shadow-rose-500/20 flex items-center gap-2 transform hover:-translate-y-1"
                 onClick={
                   !useFrame && combinedVideoUrl
                     ? () => uploadGif(formData.model ?? "", combinedVideoUrl)
@@ -531,7 +531,7 @@ const TwitterAdsPage = () => {
                   href={urlLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-block mt-2 text-pink-600 hover:text-pink-800 underline transition-colors duration-200"
+                  className="inline-block mt-2 text-pink-600 dark:text-pink-400 hover:text-pink-800 dark:hover:text-pink-300 underline transition-colors duration-200"
                 >
                   Click here to view your collage
                 </a>
@@ -539,13 +539,13 @@ const TwitterAdsPage = () => {
             </div>
           )}
 
-          <p className="text-gray-600 text-center mt-4 text-sm">
+          <p className="text-gray-600 dark:text-gray-300 text-center mt-4 text-sm">
             Your collage will be saved in high resolution with your custom
             settings
           </p>
         </div>
 
-        <footer className="mt-16 text-center text-gray-600 text-sm">
+        <footer className="mt-16 text-center text-gray-600 dark:text-gray-300 text-sm">
           <p>
             Create beautiful split-screen collages with our easy-to-use tool
           </p>

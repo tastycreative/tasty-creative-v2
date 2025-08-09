@@ -43,7 +43,7 @@ const LaunchPrepNotification = () => {
                   selectedModelData={notification.editedData} // Passing the `editedData` from the notificationication
                   timestamp={notification.timestamp} // Passing the timestamp
                   editedBy={notification.editedBy} // Passing the editor's name
-                  className="bg-pink-50 border border-pink-200"
+                  className="bg-pink-50 dark:bg-pink-900/30 border border-pink-200 dark:border-pink-700/50"
                   dashboard={true} // Pass the dashboard prop to the component
                   //   triggerTabChange={triggerTabChange} // Pass the handleTabChange function to the component
                 />

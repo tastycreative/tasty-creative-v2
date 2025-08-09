@@ -1653,7 +1653,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   );
 
   return (
-    <div className="bg-gray-900 rounded-lg p-4">
+    <div className="bg-gray-900 dark:bg-gray-800/60 rounded-lg p-4">
       {/* Timeline Controls */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">
@@ -1676,7 +1676,7 @@ export const Timeline: React.FC<TimelineProps> = ({
             className="p-2 hover:bg-gray-800 rounded-lg transition-all duration-200"
             title="Jump to start"
           >
-            <SkipBack className="w-4 h-4 text-gray-300" />
+            <SkipBack className="w-4 h-4 text-gray-300 dark:text-gray-400" />
           </button>
 
           <button
@@ -1684,11 +1684,11 @@ export const Timeline: React.FC<TimelineProps> = ({
             className="p-2 hover:bg-gray-800 rounded-lg transition-all duration-200"
             title="Jump to end"
           >
-            <SkipForward className="w-4 h-4 text-gray-300" />
+            <SkipForward className="w-4 h-4 text-gray-300 dark:text-gray-400" />
           </button>
 
           {/* Divider */}
-          <div className="w-px h-8 bg-gray-700 mx-2" />
+          <div className="w-px h-8 bg-gray-700 dark:bg-gray-600 mx-2" />
 
           {/* Frame Controls */}
           <button
@@ -1697,7 +1697,7 @@ export const Timeline: React.FC<TimelineProps> = ({
             title="Previous frame"
             disabled={getCurrentFrameIndex() <= 0}
           >
-            <ChevronLeft className="w-4 h-4 text-gray-300" />
+            <ChevronLeft className="w-4 h-4 text-gray-300 dark:text-gray-400" />
           </button>
 
           <button
@@ -1706,16 +1706,16 @@ export const Timeline: React.FC<TimelineProps> = ({
             title="Next frame"
             disabled={getCurrentFrameIndex() >= getTotalFrames() - 1}
           >
-            <ChevronRight className="w-4 h-4 text-gray-300" />
+            <ChevronRight className="w-4 h-4 text-gray-300 dark:text-gray-400" />
           </button>
 
           {/* Frame Counter */}
-          <div className="text-xs text-gray-400 font-mono bg-gray-800 px-3 py-1.5 rounded">
+          <div className="text-xs text-gray-400 dark:text-gray-300 font-mono bg-gray-800 dark:bg-gray-700 px-3 py-1.5 rounded">
             F: {getCurrentFrameIndex() + 1}/{getTotalFrames()}
           </div>
 
           {/* Divider */}
-          <div className="w-px h-8 bg-gray-700 mx-2" />
+          <div className="w-px h-8 bg-gray-700 dark:bg-gray-600 mx-2" />
 
           {/* Frame View Toggle */}
           <button
@@ -1723,7 +1723,7 @@ export const Timeline: React.FC<TimelineProps> = ({
             className={`p-2 rounded-lg transition-all duration-200 ${
               showFrameView
                 ? "bg-pink-600 text-white"
-                : "hover:bg-gray-800 text-gray-300"
+                : "hover:bg-gray-800 dark:hover:bg-gray-700 text-gray-300 dark:text-gray-400"
             }`}
             title="Toggle thumbnails"
           >
@@ -1741,7 +1741,7 @@ export const Timeline: React.FC<TimelineProps> = ({
           )}
 
           {/* Divider */}
-          <div className="w-px h-8 bg-gray-700 mx-2" />
+          <div className="w-px h-8 bg-gray-700 dark:bg-gray-600 mx-2" />
 
           {/* Zoom Controls */}
           <button
@@ -1768,7 +1768,7 @@ export const Timeline: React.FC<TimelineProps> = ({
 
           <div className="flex items-center space-x-1">
             <div
-              className="text-xs text-gray-400 font-mono bg-gray-800 px-2 py-1 rounded cursor-pointer hover:bg-gray-700 transition-all duration-200"
+              className="text-xs text-gray-400 dark:text-gray-300 font-mono bg-gray-800 dark:bg-gray-700 px-2 py-1 rounded cursor-pointer hover:bg-gray-700 dark:hover:bg-gray-600 transition-all duration-200"
               onClick={resetZoom}
               title="Reset to 100% zoom (25s visible)"
             >

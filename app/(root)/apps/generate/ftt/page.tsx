@@ -17,7 +17,7 @@ export default function FTTPage() {
           //transition={{ duration: 0.3, delay: 0.1 }}
           className="text-center"
         >
-          <div className="mb-6 p-6 rounded-full bg-gradient-to-r from-blue-500/20 to-cyan-500/20 backdrop-blur-sm">
+          <div className="mb-6 p-6 rounded-full bg-gradient-to-r from-blue-500/20 to-cyan-500/20 dark:from-blue-500/10 dark:to-cyan-500/10 backdrop-blur-sm">
             <Zap className="w-16 h-16 text-blue-500" />
           </div>
           <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-white">
@@ -31,7 +31,7 @@ export default function FTTPage() {
             onClick={() => {
               setStartCreating(true);
             }}
-            className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+            className="px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-medium hover:shadow-lg dark:hover:shadow-blue-500/20 transform hover:scale-105 transition-all duration-200"
           >
             Create Flyer
           </button>

@@ -25,14 +25,24 @@ export const SelectiveBlurPanel: React.FC<SelectiveBlurPanelProps> = ({
   );
 
   const handleAddBlur = () => {
-    onAddRegion({
+    const baseRegion = {
       x: 30,
       y: 30,
       width: 25,
       height: 25,
       intensity: 15,
       shape: selectedShape,
-    });
+    };
+
+    // Add rotation property for rectangles
+    if (selectedShape === "rectangle") {
+      onAddRegion({
+        ...baseRegion,
+        rotation: 0,
+      });
+    } else {
+      onAddRegion(baseRegion);
+    }
   };
 
   return (

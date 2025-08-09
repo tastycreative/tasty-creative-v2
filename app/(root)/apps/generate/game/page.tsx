@@ -12,7 +12,7 @@ export default function GamePage() {
         //transition={{ duration: 0.3, delay: 0.1 }}
         className="text-center"
       >
-        <div className="mb-6 p-6 rounded-full bg-gradient-to-r from-purple-500/20 to-indigo-500/20 backdrop-blur-sm">
+        <div className="mb-6 p-6 rounded-full bg-gradient-to-r from-purple-500/20 to-indigo-500/20 dark:from-purple-500/10 dark:to-indigo-500/10 backdrop-blur-sm">
           <Gamepad2 className="w-16 h-16 text-purple-500" />
         </div>
         <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-white">
@@ -21,7 +21,7 @@ export default function GamePage() {
         <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-md">
           Create gaming-themed graphics and overlays for your streams and videos
         </p>
-        <button className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-medium hover:shadow-lg transform hover:scale-105 transition-all duration-200">
+        <button className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-medium hover:shadow-lg dark:hover:shadow-purple-500/20 transform hover:scale-105 transition-all duration-200">
           Design Game Graphics
         </button>
       </div>

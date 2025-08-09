@@ -126,10 +126,10 @@ export default function GenerateLayout({ children }: GenerateLayoutProps) {
         //animate={{ opacity: isReady ? 1 : 0, y: isReady ? 0 : -20 }}
         //transition={{ duration: 0.4, delay: 0.1 }}
       >
-        <h1 className="text-4xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent mb-2">
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 dark:from-pink-400 dark:to-rose-400 bg-clip-text text-transparent mb-2">
           Generate Content
         </h1>
-        <p className="text-gray-600">
+        <p className="text-gray-600 dark:text-gray-300">
           Create stunning visuals for your campaigns
         </p>
       </div>
@@ -142,7 +142,7 @@ export default function GenerateLayout({ children }: GenerateLayoutProps) {
         //transition={{ duration: 0.4, delay: 0.2 }}
       >
         {/* Tabs Container */}
-        <div className="flex gap-2 p-1 rounded-2xl bg-white/20 backdrop-blur-md border border-pink-200/30">
+        <div className="flex gap-2 p-1 rounded-2xl bg-white/20 dark:bg-gray-800/20 backdrop-blur-md border border-pink-200/30 dark:border-pink-500/30">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -154,7 +154,7 @@ export default function GenerateLayout({ children }: GenerateLayoutProps) {
                 className={`relative flex items-center gap-2 px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
                   isActive
                     ? "text-white"
-                    : "text-gray-600 hover:text-gray-800"
+                    : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
                 }`}
                 // //whileHover={{ scale: 1.05 }}
                 // //whileTap={{ scale: 0.95 }}
@@ -203,7 +203,7 @@ export default function GenerateLayout({ children }: GenerateLayoutProps) {
         //transition={{ duration: 0.4, delay: 0.3 }}
       >
         {/* Content Container */}
-        <div className="h-full rounded-2xl bg-white/60 backdrop-blur-sm border border-pink-200/50 p-6">
+        <div className="h-full rounded-2xl bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-pink-200/50 dark:border-pink-500/30 p-6">
           {children}
         </div>
       </div>

@@ -12,7 +12,7 @@ export default function GeneratePage() {
         //transition={{ duration: 0.3, delay: 0.1 }}
         className="text-center"
       >
-        <div className="mb-6 p-6 rounded-full bg-gradient-to-r from-red-500/20 to-pink-500/20 backdrop-blur-sm">
+        <div className="mb-6 p-6 rounded-full bg-gradient-to-r from-red-500/20 to-pink-500/20 dark:from-red-500/10 dark:to-pink-500/10 backdrop-blur-sm">
           <Sparkles className="w-16 h-16 text-red-500" />
         </div>
         <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-white">

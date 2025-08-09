@@ -187,7 +187,7 @@ const SequenceVideoPlayer: React.FC<{
       >
         <div className="text-center">
           <p className="text-sm">No videos in timeline</p>
-          <p className="text-xs text-gray-500 mt-1">Add clips to see preview</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Add clips to see preview</p>
         </div>
       </div>
     );
@@ -525,15 +525,15 @@ const GifMakerVideoCropper = ({
         vaultName={vaultName}
       />
 
-      <h2 className="text-xl font-semibold text-blue-300">GIF Template</h2>
-      <p className="text-gray-300 mb-2">Choose a template for your GIF.</p>
+      <h2 className="text-xl font-semibold text-blue-300 dark:text-blue-400">GIF Template</h2>
+      <p className="text-gray-300 dark:text-gray-400 mb-2">Choose a template for your GIF.</p>
 
       {/* Video Status */}
-      <div className="mb-4 p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+      <div className="mb-4 p-3 bg-gray-800/50 dark:bg-gray-700/50 rounded-lg border border-gray-700 dark:border-gray-600">
         <div className="flex items-center justify-between">
           <div>
-            <span className="text-sm text-gray-400">Videos loaded: </span>
-            <span className="text-white font-medium">
+            <span className="text-sm text-gray-400 dark:text-gray-500">Videos loaded: </span>
+            <span className="text-white dark:text-gray-200 font-medium">
               {videoClips.filter((clip) => clip.file).length} / {totalCells}
             </span>
           </div>
@@ -545,13 +545,13 @@ const GifMakerVideoCropper = ({
                   handleOpenUploadModal(emptyIndex);
                 }
               }}
-              className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded-full transition-colors"
+              className="text-xs bg-blue-600 dark:bg-blue-700 hover:bg-blue-500 dark:hover:bg-blue-600 text-white px-3 py-1 rounded-full transition-colors"
             >
               + Add Video
             </button>
           )}
         </div>
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
           {totalCells > 1
             ? `Upload up to ${totalCells} videos to create a multi-video GIF with this template`
             : "Upload 1 video for this template"}
@@ -626,7 +626,7 @@ const GifMakerVideoCropper = ({
                 >
                   <div className="text-center">
                     <p className="text-sm">No videos in timeline</p>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       Use &quot;Add Video&quot; to add clips to the sequence
                     </p>
                   </div>

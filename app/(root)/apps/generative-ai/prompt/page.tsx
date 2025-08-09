@@ -19,7 +19,7 @@ export default function PromptPage() {
           <div className="mb-6 p-6 rounded-full bg-gradient-to-r from-pink-500/20 to-rose-500/20 backdrop-blur-sm">
             <PenTool className="w-16 h-16 text-pink-500" />
           </div>
-          <h2 className="text-2xl font-bold mb-4 text-gray-800  ">
+          <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-gray-100">
             AI Prompt Generator
           </h2>
           <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-md">

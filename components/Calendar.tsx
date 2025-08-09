@@ -117,7 +117,7 @@ const Calendar = () => {
 
     return (
       <div className="mt-3 space-y-2">
-        <h4 className="text-sm font-semibold text-gray-800">Meeting Links:</h4>
+        <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Meeting Links:</h4>
         {conferenceData.entryPoints.map((entry, index) => (
           <a
             key={index}
@@ -144,11 +144,11 @@ const Calendar = () => {
 
   return (
     <>
-      <Card className="lg:col-span-2 w-full bg-white/60 backdrop-blur-sm border border-pink-100">
+      <Card className="lg:col-span-2 w-full bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-pink-100 dark:border-pink-500/30">
         <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <CardTitle className="text-gray-800">Calendar</CardTitle>
-            <CardDescription className="text-gray-600">
+            <CardTitle className="text-gray-800 dark:text-gray-200">Calendar</CardTitle>
+            <CardDescription className="text-gray-600 dark:text-gray-300">
               View public calendar events
             </CardDescription>
           </div>
@@ -159,7 +159,7 @@ const Calendar = () => {
             <Button
               variant="outline"
               size="sm"
-              className="bg-pink-50 border-pink-200 text-pink-700 hover:bg-pink-100"
+              className="bg-pink-50 dark:bg-pink-900/30 border-pink-200 dark:border-pink-500/30 text-pink-700 dark:text-pink-300 hover:bg-pink-100 dark:hover:bg-pink-900/50"
               onClick={() => {
                 const newDate = new Date(selectedDate);
                 newDate.setMonth(newDate.getMonth() - 1);
@@ -169,7 +169,7 @@ const Calendar = () => {
               <ChevronLeft size={16} />
             </Button>
 
-            <h3 className="text-gray-800 text-lg font-semibold">
+            <h3 className="text-gray-800 dark:text-gray-200 text-lg font-semibold">
               {selectedDate.toLocaleString("default", {
                 month: "long",
                 year: "numeric",
@@ -179,7 +179,7 @@ const Calendar = () => {
             <Button
               variant="outline"
               size="sm"
-              className="bg-pink-50 border-pink-200 text-pink-700 hover:bg-pink-100"
+              className="bg-pink-50 dark:bg-pink-900/30 border-pink-200 dark:border-pink-500/30 text-pink-700 dark:text-pink-300 hover:bg-pink-100 dark:hover:bg-pink-900/50"
               onClick={() => {
                 const newDate = new Date(selectedDate);
                 newDate.setMonth(newDate.getMonth() + 1);
@@ -193,7 +193,7 @@ const Calendar = () => {
           {/* Calendar grid */}
           <div className="grid grid-cols-7 gap-1 text-center mb-4">
             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-              <div key={day} className="text-gray-600 text-sm py-2">
+              <div key={day} className="text-gray-600 dark:text-gray-300 text-sm py-2">
                 {day}
               </div>
             ))}
@@ -216,7 +216,7 @@ const Calendar = () => {
                 days.push(
                   <div
                     key={`empty-${i}`}
-                    className="h-16 bg-gray-100 rounded-md"
+                    className="h-16 bg-gray-100 dark:bg-gray-700 rounded-md"
                   ></div>
                 );
               }
@@ -245,14 +245,14 @@ const Calendar = () => {
                 days.push(
                   <div
                     key={i}
-                    className={`h-16 p-1 rounded-md text-gray-800 relative overflow-hidden ${dayEvents.length > 0 ? "bg-pink-100 border border-pink-300" : "bg-gray-100"}`}
+                    className={`h-16 p-1 rounded-md text-gray-800 dark:text-gray-200 relative overflow-hidden ${dayEvents.length > 0 ? "bg-pink-100 dark:bg-pink-800/30 border border-pink-300 dark:border-pink-500/30" : "bg-gray-100 dark:bg-gray-700"}`}
                   >
                     <div className="text-right text-sm mb-1">{i}</div>
                     <div className="overflow-y-auto text-xs h-10">
                       {dayEvents.map((event, idx) => (
                         <button
                           key={idx}
-                          className="w-full text-left truncate bg-pink-200 hover:bg-pink-300 text-pink-800 rounded px-1 py-0.5 mb-0.5 transition-colors"
+                          className="w-full text-left truncate bg-pink-200 dark:bg-pink-700 hover:bg-pink-300 dark:hover:bg-pink-600 text-pink-800 dark:text-pink-200 rounded px-1 py-0.5 mb-0.5 transition-colors"
                           title={event.summary}
                           onClick={() =>
                             event.id
@@ -276,10 +276,10 @@ const Calendar = () => {
       </Card>
 
       {/* Right Panel - Events Panel */}
-      <Card className="bg-white/60 backdrop-blur-sm border border-pink-100 rounded-xl">
+      <Card className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-pink-100 dark:border-pink-500/30 rounded-xl">
         <CardHeader>
-          <CardTitle className="text-gray-800">Events Panel</CardTitle>
-          <CardDescription className="text-gray-600">
+          <CardTitle className="text-gray-800 dark:text-gray-200">Events Panel</CardTitle>
+          <CardDescription className="text-gray-600 dark:text-gray-300">
             Public calendar events
           </CardDescription>
         </CardHeader>
@@ -327,8 +327,8 @@ const Calendar = () => {
                       key={index}
                       className={`w-full p-3 border rounded-lg text-left transition-colors ${
                         isPast
-                          ? "border-gray-300 bg-gray-100 opacity-60 hidden"
-                          : "border-pink-200 bg-pink-50 hover:bg-pink-100"
+                          ? "border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 opacity-60 hidden"
+                          : "border-pink-200 dark:border-pink-500/30 bg-pink-50 dark:bg-pink-900/20 hover:bg-pink-100 dark:hover:bg-pink-900/30"
                       }`}
                       onClick={() =>
                         event.id ? handleViewEventDetails(event.id) : undefined
@@ -337,23 +337,23 @@ const Calendar = () => {
                     >
                       <div className="flex items-start">
                         {/* Date box */}
-                        <div className="min-w-14 w-14 bg-pink-100 border border-pink-200 rounded text-center p-1 mr-3">
-                          <div className="text-xs text-gray-600">
+                        <div className="min-w-14 w-14 bg-pink-100 dark:bg-pink-800/40 border border-pink-200 dark:border-pink-500/30 rounded text-center p-1 mr-3">
+                          <div className="text-xs text-gray-600 dark:text-gray-300">
                             {eventDate.toLocaleDateString("en-US", {
                               month: "short",
                             })}
                           </div>
-                          <div className="text-xl font-bold text-gray-800">
+                          <div className="text-xl font-bold text-gray-800 dark:text-gray-200">
                             {eventDate.getDate()}
                           </div>
                         </div>
 
                         {/* Event details */}
                         <div className="flex-1">
-                          <div className="font-medium text-gray-800 mb-1 line-clamp-1">
+                          <div className="font-medium text-gray-800 dark:text-gray-200 mb-1 line-clamp-1">
                             {event.summary}
                           </div>
-                          <div className="text-xs text-gray-600 flex items-center mb-1">
+                          <div className="text-xs text-gray-600 dark:text-gray-300 flex items-center mb-1">
                             <Clock size={10} className="mr-1" />
                             {timeStr}
                           </div>
@@ -361,7 +361,7 @@ const Calendar = () => {
                           {/* Show additional details */}
                           <div className="flex flex-wrap gap-1 mt-1">
                             {event.location && (
-                              <div className="text-xs text-gray-600 flex items-center max-w-full">
+                              <div className="text-xs text-gray-600 dark:text-gray-300 flex items-center max-w-full">
                                 <MapPin
                                   size={10}
                                   className="mr-1 flex-shrink-0"
@@ -373,7 +373,7 @@ const Calendar = () => {
                             )}
 
                             {event.attendees && event.attendees.length > 0 && (
-                              <div className="text-xs text-gray-600 flex items-center">
+                              <div className="text-xs text-gray-600 dark:text-gray-300 flex items-center">
                                 <Users size={10} className="mr-1" />
                                 {event.attendees.length} attendee
                                 {event.attendees.length !== 1 ? "s" : ""}
@@ -381,7 +381,7 @@ const Calendar = () => {
                             )}
 
                             {event.conferenceData && (
-                              <div className="text-xs text-pink-600 flex items-center">
+                              <div className="text-xs text-pink-600 dark:text-pink-400 flex items-center">
                                 <Video size={10} className="mr-1" />
                                 Virtual meeting
                               </div>
@@ -409,15 +409,15 @@ const Calendar = () => {
                 .filter((item) => item !== null)}
             </div>
           ) : (
-            <div className="text-center py-8 border border-pink-200 rounded-lg bg-pink-50">
+            <div className="text-center py-8 border border-pink-200 dark:border-pink-500/30 rounded-lg bg-pink-50 dark:bg-pink-900/20">
               <CalendarIcon
                 size={32}
-                className="mx-auto mb-3 text-gray-500 opacity-50"
+                className="mx-auto mb-3 text-gray-500 dark:text-gray-400 opacity-50"
               />
-              <p className="text-gray-600 mb-1">
+              <p className="text-gray-600 dark:text-gray-300 mb-1">
                 No events found for this month
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 Try changing the month to see other events
               </p>
             </div>
@@ -427,7 +427,7 @@ const Calendar = () => {
           {calendarError && (
             <Alert
               variant="destructive"
-              className="mt-4 bg-red-50 border-red-200 text-red-700"
+              className="mt-4 bg-red-50 dark:bg-red-900/30 border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-300"
             >
               <AlertTitle>Error</AlertTitle>
               <AlertDescription>{calendarError}</AlertDescription>
@@ -438,7 +438,7 @@ const Calendar = () => {
 
       <Dialog open={isEventDetailOpen} onOpenChange={setIsEventDetailOpen}>
         <DialogContent
-          className="bg-white/95 backdrop-blur-xl border border-pink-200 text-gray-800 
+          className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-pink-200 dark:border-pink-500/30 text-gray-800 dark:text-gray-200 
       w-[90%] sm:w-[80%] md:w-[70%] lg:w-[60%] max-w-2xl 
       rounded-xl shadow-xl overflow-hidden"
         >
@@ -448,8 +448,8 @@ const Calendar = () => {
             </div>
           ) : selectedEvent ? (
             <>
-              <DialogHeader className="pb-4 border-b border-pink-200">
-                <DialogTitle className="text-2xl font-bold text-gray-800 flex items-start gap-3">
+              <DialogHeader className="pb-4 border-b border-pink-200 dark:border-pink-500/30">
+                <DialogTitle className="text-2xl font-bold text-gray-800 dark:text-gray-200 flex items-start gap-3">
                   <span className="mr-2">{selectedEvent.summary}</span>
                   {selectedEvent.colorId && (
                     <div
@@ -503,19 +503,19 @@ const Calendar = () => {
               <div className="py-4 space-y-6 max-h-[50vh] md:max-h-[70vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent">
                 {/* Date and Time */}
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-600 mb-2 flex items-center">
-                    <CalendarIcon size={14} className="mr-2 text-pink-600" />
+                  <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2 flex items-center">
+                    <CalendarIcon size={14} className="mr-2 text-pink-600 dark:text-pink-400" />
                     Date & Time
                   </h3>
-                  <div className="bg-pink-50/60 rounded-lg p-4 border border-pink-200">
+                  <div className="bg-pink-50/60 dark:bg-pink-900/20 rounded-lg p-4 border border-pink-200 dark:border-pink-500/30">
                     <div className="flex items-center">
-                      <div className="flex-shrink-0 w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center mr-4">
-                        <CalendarIcon size={20} className="text-pink-600" />
+                      <div className="flex-shrink-0 w-10 h-10 bg-pink-100 dark:bg-pink-800/40 rounded-full flex items-center justify-center mr-4">
+                        <CalendarIcon size={20} className="text-pink-600 dark:text-pink-400" />
                       </div>
                       <div>
                         {selectedEvent.start.date ? (
                           // All-day event
-                          <p className="text-gray-800 text-lg">
+                          <p className="text-gray-800 dark:text-gray-200 text-lg">
                             {formatDateTime(selectedEvent.start.date, true)}
                             {selectedEvent.end &&
                               selectedEvent.end.date &&
@@ -537,7 +537,7 @@ const Calendar = () => {
                           </p>
                         ) : (
                           // Timed event
-                          <p className="text-gray-800 text-lg">
+                          <p className="text-gray-800 dark:text-gray-200 text-lg">
                             {formatDateTime(selectedEvent.start.dateTime)}
                             {selectedEvent.end &&
                               selectedEvent.end.dateTime && (
@@ -569,16 +569,16 @@ const Calendar = () => {
 
                     return (
                       <div>
-                        <h3 className="text-sm font-semibold text-gray-600 mb-2 flex items-center">
+                        <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2 flex items-center">
                           <FileText
                             size={14}
-                            className="mr-2 text-pink-600"
+                            className="mr-2 text-pink-600 dark:text-pink-400"
                           />
                           File Preview
                         </h3>
-                        <div className="bg-pink-50/60 rounded-lg p-4 border border-pink-200">
+                        <div className="bg-pink-50/60 dark:bg-pink-900/20 rounded-lg p-4 border border-pink-200 dark:border-pink-500/30">
                           <div className="w-full">
-                            <div className="relative w-full pb-[56.25%] overflow-hidden rounded-lg bg-white/80 border border-pink-200 mb-3">
+                            <div className="relative w-full pb-[56.25%] overflow-hidden rounded-lg bg-white/80 dark:bg-gray-800/80 border border-pink-200 dark:border-pink-500/30 mb-3">
                               <iframe
                                 src={embedUrl}
                                 className="absolute top-0 left-0 w-full h-full"
@@ -606,12 +606,12 @@ const Calendar = () => {
                 {/* Description */}
                 {selectedEvent.description && (
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-600 mb-2 flex items-center">
-                      <FileText size={14} className="mr-2 text-pink-600" />
+                    <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2 flex items-center">
+                      <FileText size={14} className="mr-2 text-pink-600 dark:text-pink-400" />
                       Description
                     </h3>
-                    <div className="bg-pink-50/60 rounded-lg p-4 border border-pink-200 max-h-60 overflow-y-auto">
-                      <div className="prose prose-sm max-w-none text-gray-700">
+                    <div className="bg-pink-50/60 dark:bg-pink-900/20 rounded-lg p-4 border border-pink-200 dark:border-pink-500/30 max-h-60 overflow-y-auto">
+                      <div className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300">
                         <div
                           dangerouslySetInnerHTML={{
                             __html: selectedEvent.description
@@ -636,16 +636,16 @@ const Calendar = () => {
                 {/* Location */}
                 {selectedEvent.location && (
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-600 mb-2 flex items-center">
-                      <MapPin size={14} className="mr-2 text-pink-600" />
+                    <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2 flex items-center">
+                      <MapPin size={14} className="mr-2 text-pink-600 dark:text-pink-400" />
                       Location
                     </h3>
-                    <div className="bg-pink-50/60 rounded-lg p-4 border border-pink-200">
+                    <div className="bg-pink-50/60 dark:bg-pink-900/20 rounded-lg p-4 border border-pink-200 dark:border-pink-500/30">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center mr-4">
-                          <MapPin size={20} className="text-pink-600" />
+                        <div className="flex-shrink-0 w-10 h-10 bg-pink-100 dark:bg-pink-800/40 rounded-full flex items-center justify-center mr-4">
+                          <MapPin size={20} className="text-pink-600 dark:text-pink-400" />
                         </div>
-                        <p className="text-gray-800">{selectedEvent.location}</p>
+                        <p className="text-gray-800 dark:text-gray-200">{selectedEvent.location}</p>
                       </div>
                     </div>
                   </div>
@@ -654,17 +654,17 @@ const Calendar = () => {
                 {/* Conference Data */}
                 {selectedEvent.conferenceData && (
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-600 mb-2 flex items-center">
-                      <Video size={14} className="mr-2 text-pink-600" />
+                    <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2 flex items-center">
+                      <Video size={14} className="mr-2 text-pink-600 dark:text-pink-400" />
                       Virtual Meeting
                     </h3>
-                    <div className="bg-pink-50/60 rounded-lg p-4 border border-pink-200">
+                    <div className="bg-pink-50/60 dark:bg-pink-900/20 rounded-lg p-4 border border-pink-200 dark:border-pink-500/30">
                       <div className="flex items-start">
-                        <div className="flex-shrink-0 w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center mr-4">
-                          <Video size={20} className="text-pink-600" />
+                        <div className="flex-shrink-0 w-10 h-10 bg-pink-100 dark:bg-pink-800/40 rounded-full flex items-center justify-center mr-4">
+                          <Video size={20} className="text-pink-600 dark:text-pink-400" />
                         </div>
                         <div>
-                          <p className="text-gray-800 font-medium">
+                          <p className="text-gray-800 dark:text-gray-200 font-medium">
                             {selectedEvent.conferenceData.conferenceSolution
                               ?.name || "Virtual Meeting"}
                           </p>
@@ -679,16 +679,16 @@ const Calendar = () => {
                 {selectedEvent.attendees &&
                   selectedEvent.attendees.length > 0 && (
                     <div>
-                      <h3 className="text-sm font-semibold text-gray-600 mb-2 flex items-center">
-                        <Users size={14} className="mr-2 text-pink-600" />
+                      <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2 flex items-center">
+                        <Users size={14} className="mr-2 text-pink-600 dark:text-pink-400" />
                         Attendees ({selectedEvent.attendees.length})
                       </h3>
-                      <div className="bg-pink-50/60 rounded-lg p-4 border border-pink-200 max-h-60 overflow-y-auto">
+                      <div className="bg-pink-50/60 dark:bg-pink-900/20 rounded-lg p-4 border border-pink-200 dark:border-pink-500/30 max-h-60 overflow-y-auto">
                         <ul className="space-y-3">
                           {selectedEvent.attendees.map((attendee, index) => (
                             <li
                               key={index}
-                              className="flex items-center justify-between bg-white/50 p-2 rounded-lg border border-pink-100"
+                              className="flex items-center justify-between bg-white/50 dark:bg-gray-800/50 p-2 rounded-lg border border-pink-100 dark:border-pink-500/30"
                             >
                               <div className="flex items-center">
                                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center mr-3">
@@ -699,7 +699,7 @@ const Calendar = () => {
                                   </span>
                                 </div>
                                 <div>
-                                  <span className="text-gray-800 text-sm font-medium">
+                                  <span className="text-gray-800 dark:text-gray-200 text-sm font-medium">
                                     {attendee.displayName || attendee.email}
                                   </span>
                                   <div className="flex gap-1 mt-1">
@@ -745,16 +745,16 @@ const Calendar = () => {
                 {/* Creator/Organizer */}
                 {(selectedEvent.creator || selectedEvent.organizer) && (
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-600 mb-2 flex items-center">
-                      <User size={14} className="mr-2 text-pink-600" />
+                    <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-2 flex items-center">
+                      <User size={14} className="mr-2 text-pink-600 dark:text-pink-400" />
                       Created by
                     </h3>
-                    <div className="bg-pink-50/60 rounded-lg p-4 border border-pink-200">
+                    <div className="bg-pink-50/60 dark:bg-pink-900/20 rounded-lg p-4 border border-pink-200 dark:border-pink-500/30">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center mr-4">
-                          <User size={20} className="text-pink-600" />
+                        <div className="flex-shrink-0 w-10 h-10 bg-pink-100 dark:bg-pink-800/40 rounded-full flex items-center justify-center mr-4">
+                          <User size={20} className="text-pink-600 dark:text-pink-400" />
                         </div>
-                        <p className="text-gray-800">
+                        <p className="text-gray-800 dark:text-gray-200">
                           {selectedEvent.creator?.displayName ||
                             selectedEvent.creator?.email ||
                             selectedEvent.organizer?.displayName ||
@@ -767,13 +767,13 @@ const Calendar = () => {
                 )}
               </div>
 
-              <div className="pt-4 mt-2 border-t border-pink-200 flex justify-between items-center">
+              <div className="pt-4 mt-2 border-t border-pink-200 dark:border-pink-500/30 flex justify-between items-center">
                 {selectedEvent.htmlLink && (
                   <a
                     href={selectedEvent.htmlLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 transition-colors"
+                    className="inline-flex items-center text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                   >
                     <ExternalLink size={14} className="mr-2" /> View in Google
                     Calendar

@@ -354,9 +354,9 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
         <ServerOffline />
       ) : (
         <>
-          <div className="bg-white/60 backdrop-blur-sm border col-span-1 border-pink-200 p-6 rounded-lg shadow-md">
-            <h1 className="text-2xl font-bold mb-2 bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">VIP Flyer Generation</h1>
-            <p className="text-gray-600 text-sm mb-6">
+          <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border col-span-1 border-pink-200 dark:border-pink-500/20 p-6 rounded-lg shadow-md">
+            <h1 className="text-2xl font-bold mb-2 bg-gradient-to-r from-pink-600 to-rose-600 dark:from-pink-400 dark:to-rose-400 bg-clip-text text-transparent">VIP Flyer Generation</h1>
+            <p className="text-gray-600 dark:text-gray-300 text-sm mb-6">
               Create promotional materials for VIP subscription benefits
             </p>
 
@@ -391,9 +391,9 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
                     checked={formData.customRequest}
                     disabled={isLoading || isFetchingImage || !!webhookData}
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-checked:bg-gradient-to-r peer-checked:from-pink-500 peer-checked:to-rose-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                  <div className="w-11 h-6 bg-gray-200 dark:bg-gray-600 peer-checked:bg-gradient-to-r peer-checked:from-pink-500 peer-checked:to-rose-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:after:bg-gray-200 after:border-gray-300 dark:after:border-gray-500 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                 </label>
-                <h1 className="text-sm text-gray-600 font-medium mb-0">
+                <h1 className="text-sm text-gray-600 dark:text-gray-300 font-medium mb-0">
                   Custom Flyer
                 </h1>
               </div>
@@ -420,7 +420,7 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
 
               {/* Added Checkbox Options */}
               <div className="col-span-2 mt-2">
-                <label className="block text-sm font-medium mb-2">
+                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-200">
                   Options
                 </label>
                 <div className="flex flex-wrap gap-4">
@@ -457,7 +457,7 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
                         }}
                         className="cursor-pointer accent-pink-600 rounded"
                       />
-                      <span className="text-sm">{option}</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-200">{option}</span>
                     </label>
                   ))}
                 </div>
@@ -466,7 +466,7 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
               {!formData.customRequest && (
                 <div className="flex gap-4 col-span-2">
                   <div>
-                    <label className="block text-sm font-medium mb-2">
+                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-200">
                       Template Position
                     </label>
                     <div className="flex space-x-4">
@@ -499,7 +499,7 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
               <div className="flex flex-col">
                 <label
                   htmlFor="noOfTemplate"
-                  className="text-sm font-medium mb-1"
+                  className="text-sm font-medium mb-1 text-gray-700 dark:text-gray-200"
                 >
                   No. of Flyers to generate (1-5)
                 </label>
@@ -508,7 +508,7 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
                     type="number"
                     id="noOfTemplate"
                     name="noOfTemplate"
-                    className="border border-pink-200 bg-white/70 text-gray-700 rounded-md p-2 flex-1 w-[50px] focus:border-pink-400"
+                    className="border border-pink-200 dark:border-pink-500/30 bg-white/70 dark:bg-gray-700 text-gray-700 dark:text-gray-100 rounded-md p-2 flex-1 w-[50px] focus:border-pink-400 dark:focus:border-pink-400"
                     value={formData.noOfTemplate}
                     onChange={handleInputChange}
                     required
@@ -522,7 +522,7 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
               <div className="mt-2 col-span-2">
                 <button
                   type="submit"
-                  className={`rounded-md px-5 w-full cursor-pointer bg-gradient-to-r from-pink-600 to-rose-600 py-2 text-white font-medium transition-colors hover:from-pink-700 hover:to-rose-700 ${
+                  className={`rounded-md px-5 w-full cursor-pointer bg-gradient-to-r from-pink-600 to-rose-600 py-2 text-white font-medium transition-colors hover:from-pink-700 hover:to-rose-700 dark:hover:from-pink-700 dark:hover:to-rose-700 ${
                     isLoading || isFetchingImage
                       ? "opacity-60 cursor-not-allowed"
                       : "opacity-100"
@@ -547,11 +547,11 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
             </form>
           </div>
 
-          <div className="bg-white/60 backdrop-blur-sm border col-span-2 border-pink-200 p-6 rounded-lg shadow-md">
+          <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border col-span-2 border-pink-200 dark:border-pink-500/20 p-6 rounded-lg shadow-md">
             <div className="flex flex-col gap-4 sticky top-8">
               <div>
-                <h1 className="font-bold text-xl bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent">Preview</h1>
-                <p className="text-sm text-gray-600 mb-2">
+                <h1 className="font-bold text-xl bg-gradient-to-r from-pink-600 to-rose-600 dark:from-pink-400 dark:to-rose-400 bg-clip-text text-transparent">Preview</h1>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
                   VIP flyer preview will appear here
                 </p>
               </div>
@@ -590,7 +590,7 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
                 <>
                   <div className="flex lg:flex-row flex-col justify-center items-center gap-4 sticky top-8">
                     {/* Preview Image */}
-                    <div className="h-80 w-64 bg-white/80 border border-pink-200 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="h-80 w-64 bg-white/80 dark:bg-gray-700 border border-pink-200 dark:border-pink-500/30 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                       {formData.croppedImage || formData.templatePosition ? (
                         <div className="relative w-full h-full">
                           {/* Cropped image */}
@@ -624,12 +624,12 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
                           )}
 
                           {/* Image label */}
-                          <div className="absolute z-30 bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                          <div className="absolute z-30 bottom-2 right-2 bg-black dark:bg-gray-800 bg-opacity-70 text-white text-xs px-2 py-1 rounded">
                             1080x1350
                           </div>
                         </div>
                       ) : (
-                        <p className="text-gray-500">No image selected</p>
+                        <p className="text-gray-500 dark:text-gray-400">No image selected</p>
                       )}
                     </div>
 
@@ -718,8 +718,8 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
                         </Link>
                       </div>
                     ) : (
-                      <div className="h-80 w-64 bg-white/80 flex items-center justify-center border border-pink-400 rounded-md">
-                        <span className="text-sm text-gray-500 text-center px-2">
+                      <div className="h-80 w-64 bg-white/80 dark:bg-gray-700 flex items-center justify-center border border-pink-400 dark:border-pink-500/30 rounded-md">
+                        <span className="text-sm text-gray-500 dark:text-gray-400 text-center px-2">
                           Flyer not yet generated
                         </span>
                       </div>

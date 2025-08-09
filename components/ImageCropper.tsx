@@ -448,7 +448,7 @@ export default function ImageCropper({
         ) : imageType === "vault" ? (
           <>
             <div className="mb-6">
-              <div className="flex items-center justify-between p-4 bg-gray-800 rounded-lg">
+              <div className="flex items-center justify-between p-4 bg-gray-800 dark:bg-gray-900 rounded-lg">
                 <div className="flex items-center space-x-3">
                   <span
                     className={`font-medium ${
@@ -558,13 +558,13 @@ export default function ImageCropper({
       {selectedImage && (
         <div className="flex flex-col w-full items-center gap-4">
           {!customRequest && (
-            <p className="text-xs text-gray-300">
+            <p className="text-xs text-gray-300 dark:text-gray-400">
               Crop area will maintain a {id === "default" ? "4:5" : "1:2"} ratio{" "}
               {id === "default" ? "(1080x1350px)" : "(500x1000px)"}
             </p>
           )}
 
-          <div className="border border-gray-300 rounded-lg overflow-hidden">
+          <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
             {customRequest ? (
               <Image
                 ref={imageRef}
@@ -636,7 +636,7 @@ export default function ImageCropper({
                 Apply Crop
               </button>
 
-              <div className="text-sm text-gray-500 bg-black/40 px-4 py-2 rounded-lg border ">
+              <div className="text-sm text-gray-500 dark:text-gray-400 bg-black/40 dark:bg-gray-800/60 px-4 py-2 rounded-lg border dark:border-gray-600">
                 {imageSize.width > 0 && (
                   <div className="flex items-center gap-2">
                     <svg
@@ -696,7 +696,7 @@ export default function ImageCropper({
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-gray-500 dark:text-gray-400">
                   Downloading File...
                 </span>
               </div>

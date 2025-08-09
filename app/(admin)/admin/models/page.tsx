@@ -139,34 +139,34 @@ export default function AdminModelsPage() {
   };
 
   return (
-    <div className="min-h-screen p-6 space-y-6 bg-gradient-to-br from-gray-50 via-white to-pink-50">
+    <div className="min-h-screen p-6 space-y-6 bg-gradient-to-br from-gray-50 via-white to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Header */}
-      <div className="mb-8 p-6 bg-gradient-to-r from-gray-50 to-pink-50 rounded-lg border">
+      <div className="mb-8 p-6 bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-800 dark:to-gray-700 rounded-lg border border-pink-200 dark:border-pink-500/30">
         <div className="flex items-center space-x-3 mb-2">
-          <h1 className="text-3xl font-bold text-gray-900">OnlyFans Models Management</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">OnlyFans Models Management</h1>
           <Sparkles className="h-6 w-6 text-pink-500" />
         </div>
-        <p className="text-gray-600">
+        <p className="text-gray-600 dark:text-gray-300">
           Manage and monitor OnlyFans model performance and data
         </p>
       </div>
 
       {/* Search Section */}
-      <Card className="border border-gray-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+      <Card className="border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-500/50 group bg-white dark:bg-gray-800 relative overflow-hidden">
         {/* Glass reflection effect */}
         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
         </div>
-        <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
-          <CardTitle className="flex items-center space-x-2 text-gray-900">
+        <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-700 dark:to-gray-600 border-b border-gray-200 dark:border-gray-600">
+          <CardTitle className="flex items-center space-x-2 text-gray-900 dark:text-gray-100">
             <Search className="h-5 w-5 text-pink-500" />
             <span>Search OnlyFans Models</span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-6">
+        <CardContent className="p-6 bg-white dark:bg-gray-800">
           <div className="flex gap-4 items-end">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 OnlyFans Username
               </label>
               <Input
@@ -174,58 +174,58 @@ export default function AdminModelsPage() {
                 value={searchUsername}
                 onChange={(e) => setSearchUsername(e.target.value)}
                 placeholder="Enter OnlyFans username..."
-                className="w-full border-gray-200 focus:border-pink-300 focus:ring-pink-200"
+                className="w-full border-gray-200 dark:border-gray-600 focus:border-pink-300 dark:focus:border-pink-500 focus:ring-pink-200 dark:focus:ring-pink-500/20 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
               />
             </div>
             <Button 
               onClick={handleSearch} 
               disabled={loading || !searchUsername.trim()}
-              className="px-6 bg-black hover:bg-gray-800 text-white border-black"
+              className="px-6 bg-black dark:bg-gray-900 hover:bg-gray-800 dark:hover:bg-gray-700 text-white border-black dark:border-gray-700"
             >
               <Search className="w-4 h-4 mr-2" />
               {loading ? "Searching..." : "Search"}
             </Button>
           </div>
           {error && (
-            <p className="text-red-500 text-sm mt-2">{error}</p>
+            <p className="text-red-500 dark:text-red-400 text-sm mt-2">{error}</p>
           )}
         </CardContent>
       </Card>
 
       {/* OnlyFans Data Display */}
       <Tabs defaultValue="accounts" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 bg-white border border-gray-200 rounded-lg p-1">
-          <TabsTrigger value="accounts" className="data-[state=active]:bg-pink-500 data-[state=active]:text-white">All Accounts</TabsTrigger>
-          <TabsTrigger value="overview" className="data-[state=active]:bg-pink-500 data-[state=active]:text-white">Overview</TabsTrigger>
-          <TabsTrigger value="stats" className="data-[state=active]:bg-pink-500 data-[state=active]:text-white">Statistics</TabsTrigger>
-          <TabsTrigger value="posts" className="data-[state=active]:bg-pink-500 data-[state=active]:text-white">Recent Posts</TabsTrigger>
-          <TabsTrigger value="earnings" className="data-[state=active]:bg-pink-500 data-[state=active]:text-white">Earnings</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-1">
+          <TabsTrigger value="accounts" className="data-[state=active]:bg-pink-500 data-[state=active]:text-white text-gray-700 dark:text-gray-300">All Accounts</TabsTrigger>
+          <TabsTrigger value="overview" className="data-[state=active]:bg-pink-500 data-[state=active]:text-white text-gray-700 dark:text-gray-300">Overview</TabsTrigger>
+          <TabsTrigger value="stats" className="data-[state=active]:bg-pink-500 data-[state=active]:text-white text-gray-700 dark:text-gray-300">Statistics</TabsTrigger>
+          <TabsTrigger value="posts" className="data-[state=active]:bg-pink-500 data-[state=active]:text-white text-gray-700 dark:text-gray-300">Recent Posts</TabsTrigger>
+          <TabsTrigger value="earnings" className="data-[state=active]:bg-pink-500 data-[state=active]:text-white text-gray-700 dark:text-gray-300">Earnings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="accounts" className="space-y-6">
-          <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
+          <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-pink-300 dark:hover:border-pink-500/50 transition-all duration-300 relative group overflow-hidden">
             {/* Glass reflection effect */}
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
             </div>
-            <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
-              <CardTitle className="flex items-center space-x-2 text-gray-900">
+            <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-700 dark:to-gray-600 border-b border-gray-200 dark:border-gray-600">
+              <CardTitle className="flex items-center space-x-2 text-gray-900 dark:text-gray-100">
                 <Users className="h-5 w-5 text-pink-500" />
                 <span>Connected OnlyFans Accounts</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-6 bg-white dark:bg-gray-800">
               {accountsLoading ? (
                 <div className="flex items-center justify-center h-40">
                   <div className="flex flex-col items-center space-y-4">
                     <Loader2 className="h-10 w-10 animate-spin text-pink-500" />
-                    <p className="text-sm text-gray-600">Loading accounts...</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Loading accounts...</p>
                   </div>
                 </div>
               ) : accountsData.length > 0 ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {accountsData.map((account, index) => (
-                    <Card key={account.id || index} className="border border-gray-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+                    <Card key={account.id || index} className="border border-gray-200 dark:border-gray-600 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-500/50 group bg-white dark:bg-gray-700 relative overflow-hidden">
                       {/* Glass reflection effect for individual account cards */}
                       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-500 ease-in-out"></div>
@@ -236,25 +236,25 @@ export default function AdminModelsPage() {
                             <img 
                               src={account.avatar} 
                               alt={account.username || account.name}
-                              className="w-12 h-12 rounded-full object-cover border border-gray-200"
+                              className="w-12 h-12 rounded-full object-cover border border-gray-200 dark:border-gray-600"
                             />
                           )}
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-lg truncate text-gray-900">
+                            <h3 className="font-semibold text-lg truncate text-gray-900 dark:text-gray-100">
                               {account.display_name || account.onlyfans_user_data?.name || 'Unknown'}
                             </h3>
-                            <p className="text-sm text-gray-600 truncate">
+                            <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
                               @{account.onlyfans_user_data?.name || 'No username'}
                             </p>
                             <div className="flex items-center gap-2 mt-1">
                               {account.onlyfans_user_data?.isVerified && (
-                                <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-800 border-blue-200">
+                                <Badge variant="secondary" className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 border-blue-200 dark:border-blue-500/50">
                                   Verified
                                 </Badge>
                               )}
                               <Badge 
                                 variant={account.is_authenticated ? "secondary" : "destructive"} 
-                                className={`text-xs ${account.is_authenticated ? "bg-green-100 text-green-800 border-green-200 hover:bg-green-200" : ""}`}
+                                className={`text-xs ${account.is_authenticated ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-green-200 dark:border-green-500/50 hover:bg-green-200 dark:hover:bg-green-900/50" : ""}`}
                               >
                                 {account.authentication_progress}
                               </Badge>
@@ -263,39 +263,39 @@ export default function AdminModelsPage() {
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 mb-4">
-                          <div className="bg-gray-50 p-3 rounded-lg">
+                          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
                             <div className="flex items-center gap-2 mb-1">
                               <Users className="w-4 h-4 text-pink-500" />
-                              <span className="text-xs text-gray-500">Subscribers</span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400">Subscribers</span>
                             </div>
-                            <p className="font-bold text-lg text-gray-900">
+                            <p className="font-bold text-lg text-gray-900 dark:text-gray-100">
                               <CountUp end={account.onlyfans_user_data?.subscribersCount || 0} duration={2} />
                             </p>
                           </div>
-                          <div className="bg-gray-50 p-3 rounded-lg">
+                          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
                             <div className="flex items-center gap-2 mb-1">
                               <Eye className="w-4 h-4 text-green-500" />
-                              <span className="text-xs text-gray-500">Posts</span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400">Posts</span>
                             </div>
-                            <p className="font-bold text-lg text-gray-900">
+                            <p className="font-bold text-lg text-gray-900 dark:text-gray-100">
                               <CountUp end={account.onlyfans_user_data?.postsCount || 0} duration={2} />
                             </p>
                           </div>
-                          <div className="bg-gray-50 p-3 rounded-lg">
+                          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
                             <div className="flex items-center gap-2 mb-1">
                               <DollarSign className="w-4 h-4 text-green-600" />
-                              <span className="text-xs text-gray-500">Price</span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400">Price</span>
                             </div>
-                            <p className="font-bold text-lg text-green-600">
+                            <p className="font-bold text-lg text-green-600 dark:text-green-400">
                               ${account.onlyfans_user_data?.subscribePrice || 'N/A'}
                             </p>
                           </div>
-                          <div className="bg-gray-50 p-3 rounded-lg">
+                          <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
                             <div className="flex items-center gap-2 mb-1">
                               <Star className="w-4 h-4 text-yellow-500" />
-                              <span className="text-xs text-gray-500">Favorites</span>
+                              <span className="text-xs text-gray-500 dark:text-gray-400">Favorites</span>
                             </div>
-                            <p className="font-bold text-lg text-gray-900">
+                            <p className="font-bold text-lg text-gray-900 dark:text-gray-100">
                               <CountUp end={account.onlyfans_user_data?.favoritedCount || 0} duration={2} />
                             </p>
                           </div>
@@ -303,24 +303,24 @@ export default function AdminModelsPage() {
 
                         <div className="space-y-2 mb-4">
                           <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Photos:</span>
-                            <span className="font-medium text-gray-900">{account.onlyfans_user_data?.photosCount?.toLocaleString() || 'N/A'}</span>
+                            <span className="text-gray-600 dark:text-gray-400">Photos:</span>
+                            <span className="font-medium text-gray-900 dark:text-gray-100">{account.onlyfans_user_data?.photosCount?.toLocaleString() || 'N/A'}</span>
                           </div>
                           <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Videos:</span>
-                            <span className="font-medium text-gray-900">{account.onlyfans_user_data?.videosCount?.toLocaleString() || 'N/A'}</span>
+                            <span className="text-gray-600 dark:text-gray-400">Videos:</span>
+                            <span className="font-medium text-gray-900 dark:text-gray-100">{account.onlyfans_user_data?.videosCount?.toLocaleString() || 'N/A'}</span>
                           </div>
                           {account.onlyfans_user_data?.email && (
                             <div className="flex justify-between text-sm">
-                              <span className="text-gray-600">Email:</span>
-                              <span className="font-medium text-blue-600 truncate">{account.onlyfans_user_data.email}</span>
+                              <span className="text-gray-600 dark:text-gray-400">Email:</span>
+                              <span className="font-medium text-blue-600 dark:text-blue-400 truncate">{account.onlyfans_user_data.email}</span>
                             </div>
                           )}
                         </div>
 
                         <Button 
                           size="sm" 
-                          className="w-full bg-black hover:bg-gray-800 text-white border-black group-hover:scale-105 transition-transform duration-300"
+                          className="w-full bg-black dark:bg-gray-900 hover:bg-gray-800 dark:hover:bg-gray-700 text-white border-black dark:border-gray-700 group-hover:scale-105 transition-transform duration-300"
                           onClick={() => {
                             const accountId = account.id || account.username || account.onlyfans_user_data?.name || account.onlyfans_user_data?.id || 'unknown';
                             console.log('Navigating to account details with ID:', accountId, 'Full account data:', account);
@@ -335,8 +335,8 @@ export default function AdminModelsPage() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center text-gray-500 py-8">
-                  <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+                  <Users className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
                   <p>No OnlyFans accounts found</p>
                   <p className="text-sm mt-2">Make sure your API key is configured correctly</p>
                 </div>
@@ -349,34 +349,34 @@ export default function AdminModelsPage() {
           {profileData && (
             <div className="grid gap-6">
               {/* Profile Header */}
-              <Card className="border border-gray-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+              <Card className="border border-gray-200 dark:border-gray-600 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-500 group bg-white dark:bg-gray-700 relative overflow-hidden">
                 {/* Glass reflection effect */}
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 dark:via-pink-900/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
                 </div>
-                <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
+                <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-800 dark:to-gray-700 border-b dark:border-gray-600">
                   <div className="flex items-start gap-4">
                     <img
                       src={profileData.avatar || "/model.png"}
                       alt={profileData.name}
-                      className="w-20 h-20 rounded-full object-cover border-2 border-pink-200"
+                      className="w-20 h-20 rounded-full object-cover border-2 border-pink-200 dark:border-pink-400"
                     />
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <CardTitle className="text-2xl text-gray-900">{profileData.name}</CardTitle>
+                        <CardTitle className="text-2xl text-gray-900 dark:text-gray-100">{profileData.name}</CardTitle>
                         {profileData.isVerified && (
-                          <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-200">
+                          <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 border-blue-200 dark:border-blue-500/50">
                             Verified
                           </Badge>
                         )}
                       </div>
-                      <p className="text-gray-600 mb-2">
+                      <p className="text-gray-600 dark:text-gray-300 mb-2">
                         @{profileData.username}
                       </p>
-                      <p className="text-sm text-gray-500 mb-4">
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                         {profileData.about}
                       </p>
-                      <div className="flex items-center gap-4 text-sm text-gray-500">
+                      <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-4 h-4" />
                           Joined {new Date(profileData.joinDate).toLocaleDateString()}
@@ -401,21 +401,21 @@ export default function AdminModelsPage() {
                 ].map((stat, index) => {
                   const Icon = stat.icon;
                   return (
-                    <Card key={index} className="border border-gray-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+                    <Card key={index} className="border border-gray-200 dark:border-gray-600 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-500 group bg-white dark:bg-gray-700 relative overflow-hidden">
                       {/* Glass reflection effect */}
                       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 dark:via-pink-900/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
                       </div>
                       <CardContent className="p-6">
                         <div className="flex items-center gap-2">
-                          <div className={`${stat.iconBgColor} p-3 rounded-full group-hover:scale-110 transition-transform duration-300`}>
-                            <Icon className={`w-5 h-5 ${stat.color} group-hover:text-pink-600 transition-colors duration-300`} />
+                          <div className={`${stat.iconBgColor} dark:bg-gray-600 p-3 rounded-full group-hover:scale-110 transition-transform duration-300`}>
+                            <Icon className={`w-5 h-5 ${stat.color} group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors duration-300`} />
                           </div>
                           <div>
-                            <p className="text-2xl font-bold text-gray-900">
+                            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                               <CountUp end={stat.value || 0} duration={2.5} />
                             </p>
-                            <p className="text-sm text-gray-600">{stat.label}</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">{stat.label}</p>
                           </div>
                         </div>
                       </CardContent>
@@ -438,18 +438,18 @@ export default function AdminModelsPage() {
               ].map((stat, index) => {
                 const Icon = stat.icon;
                 return (
-                  <Card key={index} className="border border-gray-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+                  <Card key={index} className="border border-gray-200 dark:border-gray-600 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-500 group bg-white dark:bg-gray-700 relative overflow-hidden">
                     {/* Glass reflection effect */}
                     <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 overflow-hidden">
-                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 dark:via-pink-900/25 to-transparent -translate-x-full group-hover:animate-[slideGlassRight_700ms_ease-in-out_forwards] animate-[slideGlassLeft_700ms_ease-in-out_forwards]"></div>
                     </div>
                     <CardContent className="p-6">
                       <div className="flex items-center gap-2">
-                        <div className={`${stat.iconBgColor} p-3 rounded-full group-hover:scale-110 transition-transform duration-300`}>
-                          <Icon className={`w-5 h-5 ${stat.color} group-hover:text-pink-600 transition-colors duration-300`} />
+                        <div className={`${stat.iconBgColor} dark:bg-gray-600 p-3 rounded-full group-hover:scale-110 transition-transform duration-300`}>
+                          <Icon className={`w-5 h-5 ${stat.color} group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors duration-300`} />
                         </div>
                         <div>
-                          <p className="text-2xl font-bold text-gray-900">
+                          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                             {stat.prefix}
                             <CountUp 
                               end={stat.value || 0} 
@@ -458,7 +458,7 @@ export default function AdminModelsPage() {
                             />
                             {stat.suffix}
                           </p>
-                          <p className="text-sm text-gray-600">{stat.label}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">{stat.label}</p>
                         </div>
                       </div>
                     </CardContent>
@@ -473,19 +473,19 @@ export default function AdminModelsPage() {
           {postsData.length > 0 ? (
             <div className="space-y-4">
               {postsData.slice(0, 10).map((post) => (
-                <Card key={post.id} className="border border-gray-200 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 group bg-white relative overflow-hidden">
+                <Card key={post.id} className="border border-gray-200 dark:border-gray-600 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-pink-300 dark:hover:border-pink-500 group bg-white dark:bg-gray-700 relative overflow-hidden">
                   {/* Glass reflection effect */}
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 dark:via-pink-900/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
                   </div>
                   <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
-                        <p className="text-gray-800 mb-2">
+                        <p className="text-gray-800 dark:text-gray-200 mb-2">
                           {post.text.substring(0, 200)}
                           {post.text.length > 200 && "..."}
                         </p>
-                        <div className="flex items-center gap-4 text-sm text-gray-500">
+                        <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                           <span className="flex items-center gap-1">
                             <Heart className="w-4 h-4" />
                             <CountUp end={post.likesCount} duration={1} /> likes
@@ -499,7 +499,7 @@ export default function AdminModelsPage() {
                         </div>
                       </div>
                       {post.price > 0 && (
-                        <Badge variant="outline" className="ml-4 border-green-200 text-green-700 bg-green-50">
+                        <Badge variant="outline" className="ml-4 border-green-200 dark:border-green-500/50 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30">
                           ${post.price}
                         </Badge>
                       )}
@@ -509,30 +509,30 @@ export default function AdminModelsPage() {
               ))}
             </div>
           ) : (
-            <Card className="bg-white border border-gray-200">
+            <Card className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
               <CardContent className="p-6 text-center">
-                <MessageCircle className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">No posts data available</p>
+                <MessageCircle className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                <p className="text-gray-600 dark:text-gray-300">No posts data available</p>
               </CardContent>
             </Card>
           )}
         </TabsContent>
 
         <TabsContent value="earnings" className="space-y-6">
-          <Card className="bg-white border border-gray-200 hover:border-pink-300 transition-all duration-300 relative group overflow-hidden">
+          <Card className="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:border-pink-300 dark:hover:border-pink-500 transition-all duration-300 relative group overflow-hidden">
             {/* Glass reflection effect */}
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 dark:via-pink-900/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
             </div>
-            <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 border-b">
-              <CardTitle className="flex items-center space-x-2 text-gray-900">
+            <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-800 dark:to-gray-700 border-b dark:border-gray-600">
+              <CardTitle className="flex items-center space-x-2 text-gray-900 dark:text-gray-100">
                 <Trophy className="h-5 w-5 text-yellow-500" />
                 <span>Earnings Overview</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="p-6">
-              <div className="text-center text-gray-600">
-                <DollarSign className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <div className="text-center text-gray-600 dark:text-gray-300">
+                <DollarSign className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
                 <p>Detailed earnings data will be displayed here</p>
                 <p className="text-sm mt-2">This section will show earnings breakdowns, trends, and analytics</p>
               </div>
@@ -546,7 +546,7 @@ export default function AdminModelsPage() {
         <div className="flex items-center justify-center h-40">
           <div className="flex flex-col items-center space-y-4">
             <Loader2 className="h-10 w-10 animate-spin text-pink-500" />
-            <p className="text-sm text-gray-600 font-medium">
+            <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">
               Fetching OnlyFans data...
             </p>
           </div>

@@ -15,6 +15,7 @@ interface VideoPreviewProps {
   layout?: VideoLayout;
   activeGridId?: string;
   onGridClick?: (gridId: string) => void;
+  editingBlur?: { videoId: string; regionId: string } | null;
 }
 
 export const VideoPreview: React.FC<VideoPreviewProps> = ({
@@ -27,6 +28,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
   layout = "single",
   activeGridId = "grid-1",
   onGridClick,
+  editingBlur,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement }>({});
@@ -453,6 +455,7 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
 
           ctx.drawImage(videoElement, videoX, videoY, videoWidth, videoHeight);
 
+          // Apply global blur if enabled
           if (video.effects.blur > 0) {
             ctx.filter = `blur(${video.effects.blur}px)`;
             ctx.drawImage(
@@ -463,6 +466,86 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
               videoHeight
             );
             ctx.filter = "none";
+          }
+
+          // Apply selective blur regions
+          if (video.effects.selectiveBlur && video.effects.selectiveBlur.length > 0) {
+            video.effects.selectiveBlur.forEach((region) => {
+              if (region.intensity > 0) {
+                // Calculate blur region position and size
+                const regionX = videoX + (region.x / 100) * videoWidth;
+                const regionY = videoY + (region.y / 100) * videoHeight;
+                const regionWidth = (region.width / 100) * videoWidth;
+                const regionHeight = (region.height / 100) * videoHeight;
+
+                // Save current state
+                ctx.save();
+
+                // Create clipping path for the blur region
+                ctx.beginPath();
+                if (region.shape === 'circle') {
+                  const centerX = regionX + regionWidth / 2;
+                  const centerY = regionY + regionHeight / 2;
+                  const radius = Math.min(regionWidth, regionHeight) / 2;
+                  ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                } else {
+                  // Rectangle (with rotation support)
+                  const centerX = regionX + regionWidth / 2;
+                  const centerY = regionY + regionHeight / 2;
+                  const rotation = (region.rotation || 0) * Math.PI / 180;
+                  
+                  ctx.translate(centerX, centerY);
+                  ctx.rotate(rotation);
+                  ctx.rect(-regionWidth / 2, -regionHeight / 2, regionWidth, regionHeight);
+                  ctx.rotate(-rotation);
+                  ctx.translate(-centerX, -centerY);
+                }
+                ctx.clip();
+
+                // Apply blur filter and draw the region
+                ctx.filter = `blur(${region.intensity}px)`;
+                ctx.drawImage(
+                  videoElement,
+                  videoX,
+                  videoY,
+                  videoWidth,
+                  videoHeight
+                );
+
+                // Restore state
+                ctx.restore();
+
+                // Show outline for the region being edited
+                if (editingBlur && editingBlur.videoId === video.id && editingBlur.regionId === region.id) {
+                  ctx.save();
+                  ctx.strokeStyle = '#ec4899'; // Pink outline
+                  ctx.lineWidth = 3;
+                  ctx.setLineDash([5, 5]); // Dashed line
+                  
+                  if (region.shape === 'circle') {
+                    const centerX = regionX + regionWidth / 2;
+                    const centerY = regionY + regionHeight / 2;
+                    const radius = Math.min(regionWidth, regionHeight) / 2;
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                    ctx.stroke();
+                  } else {
+                    // Rectangle outline with rotation support
+                    const centerX = regionX + regionWidth / 2;
+                    const centerY = regionY + regionHeight / 2;
+                    const rotation = (region.rotation || 0) * Math.PI / 180;
+                    
+                    ctx.translate(centerX, centerY);
+                    ctx.rotate(rotation);
+                    ctx.strokeRect(-regionWidth / 2, -regionHeight / 2, regionWidth, regionHeight);
+                    ctx.rotate(-rotation);
+                    ctx.translate(-centerX, -centerY);
+                  }
+                  
+                  ctx.restore();
+                }
+              }
+            });
           }
 
           if (didClip) {
@@ -729,16 +812,16 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
   ]);
 
   return (
-    <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-pink-200 p-6">
+    <div className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl border border-pink-200 dark:border-pink-500/20 p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-700">Square Preview</h3>
-        <div className="text-sm text-pink-600 font-medium">
+        <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200">Square Preview</h3>
+        <div className="text-sm text-pink-600 dark:text-pink-400 font-medium">
           {width} × {height} (1:1)
         </div>
       </div>
 
       <div
-        className="relative bg-black rounded-lg overflow-hidden shadow-lg border-2 border-pink-200"
+        className="relative bg-black rounded-lg overflow-hidden shadow-lg border-2 border-pink-200 dark:border-pink-500/30"
         style={{ 
           aspectRatio: "1/1",
           width: `${width}px`,
@@ -1073,14 +1156,14 @@ export const VideoPreview: React.FC<VideoPreviewProps> = ({
       {/* Video Info */}
       <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
         <div>
-          <span className="text-gray-600">Total Videos:</span>
-          <span className="ml-2 font-medium text-gray-700">
+          <span className="text-gray-600 dark:text-gray-400">Total Videos:</span>
+          <span className="ml-2 font-medium text-gray-700 dark:text-gray-300">
             {videos.length}
           </span>
         </div>
         <div>
-          <span className="text-gray-600">Current:</span>
-          <span className="ml-2 font-medium text-gray-700">
+          <span className="text-gray-600 dark:text-gray-400">Current:</span>
+          <span className="ml-2 font-medium text-gray-700 dark:text-gray-300">
             {layout === "single"
               ? (() => {
                   const currentVideo = getCurrentVideo();

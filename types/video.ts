@@ -15,6 +15,7 @@ export interface SelectiveBlurRegion {
   height: number; // Height as percentage (0-100)
   intensity: number; // Blur intensity (0-50)
   shape: "rectangle" | "circle"; // Shape of the blur region
+  rotation?: number; // Rotation angle in degrees (0-360), only for rectangles
 }
 
 export interface VideoSequenceItem {

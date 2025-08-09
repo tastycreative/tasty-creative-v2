@@ -1253,20 +1253,20 @@ const AIVideoPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white/60 backdrop-blur-sm p-6">
+    <div className="min-h-screen bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm p-6">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header Section */}
         <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold text-gray-700 mb-2">
+          <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2">
             AI Video Generation
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
             Transform static images into dynamic videos using advanced AI
           </p>
         </div>
 
         {/* Status Bar */}
-        <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
+        <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/20 rounded-xl">
           <CardContent className="p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="flex items-center space-x-4">
@@ -1278,7 +1278,7 @@ const AIVideoPage = () => {
                         ComfyUI Connected
                       </span>
                     </div>
-                    <div className="text-gray-600 text-sm">
+                    <div className="text-gray-600 dark:text-gray-400 text-sm">
                       {availableModels.length} models available
                     </div>
                   </>
@@ -1290,7 +1290,7 @@ const AIVideoPage = () => {
                         ComfyUI Offline
                       </span>
                     </div>
-                    <div className="text-gray-600 text-sm">
+                    <div className="text-gray-600 dark:text-gray-400 text-sm">
                       Check connection
                     </div>
                   </>
@@ -1306,7 +1306,7 @@ const AIVideoPage = () => {
                     </span>
                   </div>
                   {currentStage && (
-                    <span className="text-xs text-gray-600">
+                    <span className="text-xs text-gray-600 dark:text-gray-400">
                       {currentStage}
                     </span>
                   )}
@@ -1321,13 +1321,13 @@ const AIVideoPage = () => {
           {/* Generation Panel */}
           <div className="space-y-6">
             {/* Image Upload */}
-            <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
+            <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
               <CardHeader className="pb-4">
-                <CardTitle className="text-gray-700 flex items-center">
+                <CardTitle className="text-gray-700 dark:text-gray-200 flex items-center">
                   <Upload className="w-5 h-5 mr-3" />
                   Source Image
                 </CardTitle>
-                <CardDescription className="text-gray-600">
+                <CardDescription className="text-gray-600 dark:text-gray-300">
                   Upload an image to animate with AI
                 </CardDescription>
               </CardHeader>
@@ -1338,7 +1338,7 @@ const AIVideoPage = () => {
                       ? "border-pink-500 bg-pink-500/10"
                       : imagePreview
                         ? "border-green-400/50 bg-green-400/5"
-                        : "border-pink-200 bg-pink-50/40"
+                        : "border-pink-200 dark:border-pink-500/30 bg-pink-50/40 dark:bg-pink-900/20"
                   }`}
                   onDrop={handleDrop}
                   onDragOver={handleDragOver}
@@ -1377,7 +1377,7 @@ const AIVideoPage = () => {
                         <p className="text-green-400 text-sm font-medium">
                           ✓ Image loaded: {imageFile?.name}
                         </p>
-                        <p className="text-gray-600 text-xs">
+                        <p className="text-gray-600 dark:text-gray-400 text-xs">
                           Click to change image
                         </p>
                       </div>
@@ -1387,13 +1387,13 @@ const AIVideoPage = () => {
                       <div className="w-20 h-20 bg-pink-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Camera size={40} className="text-pink-600" />
                       </div>
-                      <h3 className="text-gray-700 text-xl font-medium mb-2">
+                      <h3 className="text-gray-700 dark:text-gray-200 text-xl font-medium mb-2">
                         Upload Source Image
                       </h3>
-                      <p className="text-gray-600 mb-4">
+                      <p className="text-gray-600 dark:text-gray-300 mb-4">
                         Drag and drop an image here, or click to browse
                       </p>
-                      <div className="flex items-center justify-center space-x-4 text-sm text-gray-500">
+                      <div className="flex items-center justify-center space-x-4 text-sm text-gray-500 dark:text-gray-400">
                         <span>Supports: PNG, JPG, JPEG, WEBP</span>
                         <span>•</span>
                         <span>Max size: 10MB</span>
@@ -1405,13 +1405,13 @@ const AIVideoPage = () => {
             </Card>
 
             {/* Motion Prompt */}
-            <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
+            <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
               <CardHeader className="pb-4">
-                <CardTitle className="text-gray-700 flex items-center">
+                <CardTitle className="text-gray-700 dark:text-gray-200 flex items-center">
                   <Wand2 className="w-5 h-5 mr-3" />
                   Motion Prompt
                 </CardTitle>
-                <CardDescription className="text-gray-600">
+                <CardDescription className="text-gray-600 dark:text-gray-300">
                   Describe the motion or movement you want to see
                 </CardDescription>
               </CardHeader>
@@ -1421,11 +1421,11 @@ const AIVideoPage = () => {
                     placeholder="The woman is swaying her hips from side to side, her hair flowing gently in the breeze..."
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    className="bg-white border-pink-200 text-gray-700 rounded-xl min-h-[120px] max-h-[200px] resize-none focus:border-pink-500/50 focus:ring-purple-400/20 transition-all text-base leading-relaxed overflow-y-auto"
+                    className="bg-white dark:bg-gray-700 border-pink-200 dark:border-pink-500/30 text-gray-700 dark:text-gray-200 rounded-xl min-h-[120px] max-h-[200px] resize-none focus:border-pink-500/50 focus:ring-purple-400/20 transition-all text-base leading-relaxed overflow-y-auto"
                     rows={5}
                   />
                 </div>
-                <p className="text-gray-500 text-sm">
+                <p className="text-gray-500 dark:text-gray-400 text-sm">
                   Be specific about the type of movement, direction, and style
                   you want to see in your video
                 </p>
@@ -1433,20 +1433,20 @@ const AIVideoPage = () => {
             </Card>
 
             {/* Video Settings */}
-            <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
+            <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
               <CardHeader className="pb-4">
-                <CardTitle className="text-gray-700 flex items-center">
+                <CardTitle className="text-gray-700 dark:text-gray-200 flex items-center">
                   <Settings className="w-5 h-5 mr-3" />
                   Video Settings
                 </CardTitle>
-                <CardDescription className="text-gray-600">
+                <CardDescription className="text-gray-600 dark:text-gray-300">
                   Configure video dimensions and animation parameters
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Size Presets */}
                 <div>
-                  <Label className="text-gray-600 text-sm font-medium mb-3 block">
+                  <Label className="text-gray-600 dark:text-gray-300 text-sm font-medium mb-3 block">
                     Video Dimensions
                   </Label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -1457,7 +1457,7 @@ const AIVideoPage = () => {
                         className={`h-16 p-3 border-2 transition-all duration-200 ${
                           width === preset.width && height === preset.height
                             ? "bg-pink-500/30 border-pink-500 text-pink-700"
-                            : "bg-white border-pink-200 text-gray-600 hover:bg-pink-50 hover:border-pink-300"
+                            : "bg-white dark:bg-gray-700 border-pink-200 dark:border-pink-500/30 text-gray-600 dark:text-gray-200 hover:bg-pink-50 dark:hover:bg-gray-600 hover:border-pink-300"
                         }`}
                         onClick={() => {
                           setWidth(preset.width);
@@ -1481,10 +1481,10 @@ const AIVideoPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <div className="flex justify-between items-center mb-3">
-                      <Label className="text-gray-600 text-sm font-medium">
+                      <Label className="text-gray-600 dark:text-gray-300 text-sm font-medium">
                         Animation Length
                       </Label>
-                      <span className="text-pink-600 text-sm font-mono">
+                      <span className="text-pink-600 dark:text-pink-400 text-sm font-mono">
                         {frameCount}f ({calculateDuration(frameCount, fps)}s)
                       </span>
                     </div>
@@ -1497,7 +1497,7 @@ const AIVideoPage = () => {
                           className={`text-xs h-8 ${
                             frameCount === count
                               ? "bg-pink-500/30 border-pink-500 text-pink-700"
-                              : "bg-white border-pink-200 text-gray-600 hover:bg-pink-50"
+                              : "bg-white dark:bg-gray-700 border-pink-200 dark:border-pink-500/30 text-gray-600 dark:text-gray-200 hover:bg-pink-50 dark:hover:bg-gray-600"
                           }`}
                           onClick={() => setFrameCount(count)}
                         >
@@ -1513,17 +1513,17 @@ const AIVideoPage = () => {
                       onValueChange={(value) => setFrameCount(value[0])}
                       className="py-2"
                     />
-                    <p className="text-xs text-gray-600 mt-2">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
                       More frames = longer video, but slower generation
                     </p>
                   </div>
 
                   <div>
                     <div className="flex justify-between items-center mb-3">
-                      <Label className="text-gray-600 text-sm font-medium">
+                      <Label className="text-gray-600 dark:text-gray-300 text-sm font-medium">
                         Frame Rate
                       </Label>
-                      <span className="text-pink-600 text-sm font-mono">
+                      <span className="text-pink-600 dark:text-pink-400 text-sm font-mono">
                         {fps} FPS
                       </span>
                     </div>
@@ -1536,7 +1536,7 @@ const AIVideoPage = () => {
                           className={`text-xs h-8 ${
                             fps === f
                               ? "bg-pink-500/30 border-pink-500 text-pink-700"
-                              : "bg-white border-pink-200 text-gray-600 hover:bg-pink-50"
+                              : "bg-white dark:bg-gray-700 border-pink-200 dark:border-pink-500/30 text-gray-600 dark:text-gray-200 hover:bg-pink-50 dark:hover:bg-gray-600"
                           }`}
                           onClick={() => setFps(f)}
                         >
@@ -1552,7 +1552,7 @@ const AIVideoPage = () => {
                       onValueChange={(value) => setFps(value[0])}
                       className="py-2"
                     />
-                    <p className="text-xs text-gray-600 mt-2">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
                       Higher FPS = smoother motion, but longer processing
                     </p>
                   </div>
@@ -1563,7 +1563,7 @@ const AIVideoPage = () => {
             {/* Error & Warning Messages */}
             <div className="space-y-4">
               {error && (
-                <Alert className="bg-red-900/20 border-red-500/30 text-red-200">
+                <Alert className="bg-red-900/20 dark:bg-red-900/40 border-red-500/30 text-red-200 dark:text-red-300">
                   <ZapOff className="h-4 w-4" />
                   <AlertTitle>Generation Error</AlertTitle>
                   <AlertDescription>{error}</AlertDescription>
@@ -1571,7 +1571,7 @@ const AIVideoPage = () => {
               )}
 
               {!isConnected && (
-                <Alert className="bg-amber-900/20 border-amber-500/30 text-amber-200">
+                <Alert className="bg-amber-900/20 dark:bg-amber-900/40 border-amber-500/30 text-amber-200 dark:text-amber-300">
                   <Info className="h-4 w-4" />
                   <AlertTitle>Connection Required</AlertTitle>
                   <AlertDescription>
@@ -1606,14 +1606,14 @@ const AIVideoPage = () => {
 
           {/* Preview Panel */}
           <div className="space-y-6">
-            <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
+            <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
               <CardHeader className="pb-4">
                 <div>
-                  <CardTitle className="text-gray-700 flex items-center">
+                  <CardTitle className="text-gray-700 dark:text-gray-200 flex items-center">
                     <Film className="w-5 h-5 mr-3" />
                     Video Preview
                   </CardTitle>
-                  <CardDescription className="text-gray-600">
+                  <CardDescription className="text-gray-600 dark:text-gray-300">
                     {isLoadingVideos
                       ? "Loading..."
                       : `${generatedVideos.length} videos created`}
@@ -1630,10 +1630,10 @@ const AIVideoPage = () => {
                         <Loader2 className="w-10 h-10 text-white animate-spin" />
                       </div>
                       <div>
-                        <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                        <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-2">
                           Loading Videos
                         </h3>
-                        <p className="text-gray-600">
+                        <p className="text-gray-600 dark:text-gray-300">
                           Retrieving your video gallery...
                         </p>
                       </div>
@@ -1644,14 +1644,14 @@ const AIVideoPage = () => {
                         <Loader2 className="w-10 h-10 text-white animate-spin" />
                       </div>
                       <div>
-                        <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                        <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-2">
                           Creating Video
                         </h3>
-                        <p className="text-gray-600 mb-2">
+                        <p className="text-gray-600 dark:text-gray-300 mb-2">
                           {videoProgress}% complete
                         </p>
                         {currentStage && (
-                          <p className="text-gray-500 text-sm">
+                          <p className="text-gray-500 dark:text-gray-400 text-sm">
                             {currentStage}
                           </p>
                         )}
@@ -1676,24 +1676,24 @@ const AIVideoPage = () => {
 
                       <div className="text-center space-y-4">
                         <div>
-                          <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                          <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-2">
                             Latest Creation
                           </h3>
-                          <p className="text-gray-600 text-sm line-clamp-3 leading-relaxed">
+                          <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-3 leading-relaxed">
                             {generatedVideos[0].prompt}
                           </p>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div className="bg-pink-100/60 rounded-lg p-3">
-                            <div className="text-gray-600">Duration</div>
-                            <div className="text-gray-700 font-medium">
+                          <div className="bg-pink-100/60 dark:bg-pink-900/40 rounded-lg p-3">
+                            <div className="text-gray-600 dark:text-gray-300">Duration</div>
+                            <div className="text-gray-700 dark:text-gray-200 font-medium">
                               {formatDuration(generatedVideos[0].duration)}
                             </div>
                           </div>
-                          <div className="bg-pink-100/60 rounded-lg p-3">
-                            <div className="text-gray-600">Resolution</div>
-                            <div className="text-gray-700 font-medium">
+                          <div className="bg-pink-100/60 dark:bg-pink-900/40 rounded-lg p-3">
+                            <div className="text-gray-600 dark:text-gray-300">Resolution</div>
+                            <div className="text-gray-700 dark:text-gray-200 font-medium">
                               {generatedVideos[0].settings.width}×
                               {generatedVideos[0].settings.height}
                             </div>
@@ -1703,7 +1703,7 @@ const AIVideoPage = () => {
                         <div className="flex justify-center gap-3">
                           <Button
                             variant="outline"
-                            className="bg-white border-pink-200 hover:bg-pink-50 text-gray-700 px-4"
+                            className="bg-white dark:bg-gray-700 border-pink-200 dark:border-pink-500/30 hover:bg-pink-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4"
                             onClick={handlePlayVideo}
                           >
                             <Play size={16} className="mr-2" />
@@ -1711,7 +1711,7 @@ const AIVideoPage = () => {
                           </Button>
                           <Button
                             variant="outline"
-                            className="bg-white border-pink-200 hover:bg-pink-50 text-gray-700 px-4"
+                            className="bg-white dark:bg-gray-700 border-pink-200 dark:border-pink-500/30 hover:bg-pink-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4"
                             onClick={() => downloadVideo(generatedVideos[0])}
                           >
                             <Download size={16} className="mr-2" />
@@ -1719,7 +1719,7 @@ const AIVideoPage = () => {
                           </Button>
                           <Button
                             variant="outline"
-                            className="bg-white border-pink-200 hover:bg-pink-50 text-gray-700 px-4"
+                            className="bg-white dark:bg-gray-700 border-pink-200 dark:border-pink-500/30 hover:bg-pink-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 px-4"
                             onClick={() =>
                               toggleBookmark(generatedVideos[0].id)
                             }
@@ -1743,10 +1743,10 @@ const AIVideoPage = () => {
                         <Video className="w-10 h-10 text-white" />
                       </div>
                       <div>
-                        <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                        <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-200 mb-2">
                           No Videos Yet
                         </h3>
-                        <p className="text-gray-600">
+                        <p className="text-gray-600 dark:text-gray-300">
                           {!isConnected
                             ? "Connect to ComfyUI to start generating"
                             : !imageFile
@@ -1764,15 +1764,15 @@ const AIVideoPage = () => {
 
         {/* Success Status */}
         {generationStatus && !error && (
-          <Card className="bg-white/80 backdrop-blur-sm border-pink-200 rounded-xl">
+          <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
             <CardContent className="p-6">
               <div className="flex items-center space-x-3">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
                 <div>
-                  <h3 className="font-medium text-gray-700 mb-1">
+                  <h3 className="font-medium text-gray-700 dark:text-gray-200 mb-1">
                     Generation Status
                   </h3>
-                  <p className="text-gray-600">{generationStatus}</p>
+                  <p className="text-gray-600 dark:text-gray-300">{generationStatus}</p>
                   {!isLoadingVideos && generatedVideos.length > 0 && (
                     <p className="text-green-400 text-sm mt-1">
                       ✅ {generatedVideos.length} videos saved to gallery

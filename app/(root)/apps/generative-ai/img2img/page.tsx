@@ -19,10 +19,10 @@ export default function Img2ImgPage() {
           <div className="mb-6 p-6 rounded-full bg-gradient-to-r from-rose-500/20 to-pink-500/20 backdrop-blur-sm">
             <ImageIcon className="w-16 h-16 text-rose-500" />
           </div>
-          <h2 className="text-2xl font-bold mb-4 text-gray-700">
+          <h2 className="text-2xl font-bold mb-4 text-gray-700 dark:text-gray-100">
             Image-2-Image
           </h2>
-          <p className="text-gray-600 mb-8 max-w-md">
+          <p className="text-gray-600 dark:text-gray-300 mb-8 max-w-md">
             Transform and enhance your images with AI. Upload an image and
             generate new variations, styles, or modifications.
           </p>

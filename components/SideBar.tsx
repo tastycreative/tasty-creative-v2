@@ -9,6 +9,7 @@ import { ChevronLeft, Menu, X } from "lucide-react";
 import { Session } from "next-auth";
 import { useSidebar } from "./SidebarProvider";
 import { useSession } from "next-auth/react";
+import { ThemeToggle } from "./admin/ThemeToggle";
 
 const Sidebar = () => {
   const { isCollapsed, toggleCollapsed } = useSidebar();
@@ -22,19 +23,19 @@ const Sidebar = () => {
           "h-full transition-all duration-300 ease-in-out",
           isCollapsed ? "w-20" : "w-72"
         )}>
-          <div className="h-full rounded-2xl backdrop-blur-sm shadow-lg border border-pink-100/60 bg-white/60 p-6 flex flex-col relative">
+          <div className="h-full rounded-2xl backdrop-blur-sm shadow-lg border border-pink-100/60 dark:border-pink-500/30 bg-white/60 dark:bg-gray-800/60 p-6 flex flex-col relative transition-colors">
             
             {/* Toggle Button - Positioned differently based on collapsed state */}
             <button
               onClick={toggleCollapsed}
               className={clsx(
-                "absolute top-4 p-2 rounded-lg hover:bg-pink-100/50 cursor-pointer transition-all z-10",
+                "absolute top-4 p-2 rounded-lg hover:bg-pink-100/50 dark:hover:bg-pink-500/20 cursor-pointer transition-all z-10",
                 isCollapsed ? "right-1/2 translate-x-1/2" : "right-4"
               )}
               title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               <ChevronLeft className={clsx(
-                "w-4 h-4 text-slate-600 hover:text-pink-600 transition-all duration-300",
+                "w-4 h-4 text-slate-600 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 transition-all duration-300",
                 isCollapsed && "rotate-180"
               )} />
             </button>
@@ -69,16 +70,19 @@ const MobileSidebar = ({ session }: { session: Session | null }) => {
   return (
     <div className="lg:hidden">
       {/* Mobile Header */}
-      <div className="fixed top-0 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-b border-pink-100 px-4 py-3">
+      <div className="fixed top-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-b border-pink-100 dark:border-pink-500/30 px-4 py-3 transition-colors">
         <div className="flex items-center justify-between">
           <Logo />
-          <button
-            onClick={toggleMobile}
-            className="p-2 rounded-lg hover:bg-pink-100 cursor-pointer transition-colors"
-            aria-label="Toggle mobile menu"
-          >
-            <Menu className="w-6 h-6 text-slate-600 hover:text-pink-600 transition-colors" />
-          </button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <button
+              onClick={toggleMobile}
+              className="p-2 rounded-lg hover:bg-pink-100 dark:hover:bg-pink-500/20 cursor-pointer transition-colors"
+              aria-label="Toggle mobile menu"
+            >
+              <Menu className="w-6 h-6 text-slate-600 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 transition-colors" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -93,7 +97,7 @@ const MobileSidebar = ({ session }: { session: Session | null }) => {
       
       {/* Mobile Sidebar Panel */}
       <div className={clsx(
-        "fixed left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white/95 backdrop-blur-sm border-r border-pink-100 z-50 transform transition-transform duration-300 ease-in-out lg:hidden",
+        "fixed left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm border-r border-pink-100 dark:border-pink-500/30 z-50 transform transition-transform duration-300 ease-in-out lg:hidden",
         isOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="h-full p-6 flex flex-col">
@@ -101,10 +105,10 @@ const MobileSidebar = ({ session }: { session: Session | null }) => {
             <Logo />
             <button
               onClick={closeMobile}
-              className="p-2 rounded-lg hover:bg-pink-100 cursor-pointer transition-colors"
+              className="p-2 rounded-lg hover:bg-pink-100 dark:hover:bg-pink-500/20 cursor-pointer transition-colors"
               aria-label="Close mobile menu"
             >
-              <X className="w-5 h-5 text-slate-600 hover:text-pink-600 transition-colors" />
+              <X className="w-5 h-5 text-slate-600 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 transition-colors" />
             </button>
           </div>
           <AccountMenu session={session} />
