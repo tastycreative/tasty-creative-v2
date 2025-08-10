@@ -1,319 +1,354 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, FileSpreadsheet, Copy, CheckCircle, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import PodSidebar from './PodSidebar';
+import WorkflowDashboard from './WorkflowDashboard';
+import SheetsIntegration from './SheetsIntegration';
+
+interface TeamMember {
+  id: string;
+  name: string;
+  role: string;
+}
+
+interface Creator {
+  id: string;
+  name: string;
+  specialty: string;
+  earnings?: string;
+}
+
+interface TeamOption {
+  row: number;
+  name: string;
+  label: string;
+}
+
+interface PodData {
+  teamName: string;
+  teamMembers: TeamMember[];
+  creators: Creator[];
+  rowNumber: number;
+  lastUpdated: string;
+}
+
+const DEFAULT_SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1sTp3x6SA4yKkYEwPUIDPNzAPiu0RnaV1009NXZ7PkZM/edit?gid=0#gid=0';
+const EARNINGS_SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/1uF-zuML1HgP5b95pbJycVQZj_0Nl1mgkTshOe3lUCSs/edit?gid=591071681#gid=591071681';
 
 const PodComponent = () => {
-  const [spreadsheetUrl, setSpreadsheetUrl] = useState('');
+  const [schedulerSpreadsheetUrl, setSchedulerSpreadsheetUrl] = useState<string | undefined>(undefined);
+  const [selectedRow, setSelectedRow] = useState<number>(8);
+  const [podData, setPodData] = useState<PodData | null>(null);
+  const [availableTeams, setAvailableTeams] = useState<TeamOption[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [status, setStatus] = useState<{
-    type: 'success' | 'error' | 'info';
-    message: string;
-  } | null>(null);
-  const [newSpreadsheetUrl, setNewSpreadsheetUrl] = useState<string | null>(null);
+  const [isLoadingTeams, setIsLoadingTeams] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const fetchAvailableTeams = async () => {
+    setIsLoadingTeams(true);
     
-    if (!spreadsheetUrl.trim()) {
-      setStatus({
-        type: 'error',
-        message: 'Please enter a valid spreadsheet URL'
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    setNewSpreadsheetUrl(null); // Clear previous URL
-    setStatus({
-      type: 'info',
-      message: 'Processing spreadsheet data...'
-    });
-
     try {
-      const response = await fetch('/api/pod', {
+      const response = await fetch('/api/pod/teams', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          sourceUrl: spreadsheetUrl
+          spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
+          startRow: 8,
+          endRow: 20
         }),
       });
 
-      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(`Failed to fetch teams: ${response.statusText}`);
+      }
 
-      if (response.ok) {
-        // Handle the new multiple Schedule #1 sheets API response format
-        const successMessage = result.scheduleSheets && result.sheetsCount > 1
-          ? `Successfully processed ${result.sheetsCount} Schedule #1 sheets with real-time sync!`
-          : `Successfully set up real-time sync for your spreadsheet!`;
-        
-        setStatus({
-          type: 'success',
-          message: successMessage
-        });
-        setNewSpreadsheetUrl(result.spreadsheetUrl); // Use spreadsheetUrl from new API response
-        setSpreadsheetUrl(''); // Clear input on success
-      } else {
-        // Handle specific error types
-        if (result.error === 'GoogleAuthExpired' || result.error === 'GoogleAuthInvalid') {
-          setStatus({
-            type: 'error',
-            message: `${result.message || 'Authentication error occurred.'} Please refresh the page and try again.`
-          });
-        } else if (result.error === 'GooglePermissionDenied') {
-          setStatus({
-            type: 'error',
-            message: result.message || 'Permission denied. Please ensure you have access to the spreadsheet.'
-          });
-        } else {
-          setStatus({
-            type: 'error',
-            message: result.error || result.message || 'Failed to process spreadsheet'
-          });
+      const result = await response.json();
+      
+      if (result.success && result.teams) {
+        setAvailableTeams(result.teams);
+        // If no teams and no selected row, use the first available team
+        if (result.teams.length > 0 && !selectedRow) {
+          setSelectedRow(result.teams[0].row);
         }
       }
-    } catch (error) {
-      console.error('Error:', error);
-      setStatus({
-        type: 'error',
-        message: 'Network error. Please try again.'
+    } catch (err) {
+      console.error('Error fetching available teams:', err);
+      // Fallback to basic team options if API fails
+      setAvailableTeams([
+        { row: 8, name: 'Team 8', label: 'Team 8' },
+        { row: 9, name: 'Team 9', label: 'Team 9' },
+        { row: 10, name: 'Team 10', label: 'Team 10' },
+      ]);
+    } finally {
+      setIsLoadingTeams(false);
+    }
+  };
+
+  const fetchCreatorEarnings = async (creatorNames: string[]) => {
+    try {
+      const response = await fetch('/api/pod/earnings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          spreadsheetUrl: EARNINGS_SPREADSHEET_URL,
+          creatorNames: creatorNames
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch earnings: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.earnings) {
+        return result.earnings;
+      }
+      return {};
+    } catch (err) {
+      console.error('Error fetching creator earnings:', err);
+      return {};
+    }
+  };
+
+  const fetchPodData = async (rowNumber = selectedRow) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch('/api/pod/fetch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
+          rowNumber: rowNumber
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch data: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        const basicData = result.data;
+        
+        // Fetch earnings for creators if we have creator names
+        if (basicData.creators && basicData.creators.length > 0) {
+          const creatorNames = basicData.creators.map((creator: Creator) => creator.name);
+          const earnings = await fetchCreatorEarnings(creatorNames);
+          
+          // Update creators with earnings data
+          const creatorsWithEarnings = basicData.creators.map((creator: Creator) => ({
+            ...creator,
+            earnings: earnings[creator.name] || '$0'
+          }));
+          
+          setPodData({
+            ...basicData,
+            creators: creatorsWithEarnings
+          });
+        } else {
+          setPodData(basicData);
+        }
+      } else {
+        throw new Error(result.error || 'Failed to fetch data');
+      }
+    } catch (err) {
+      console.error('Error fetching POD data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch data');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const isValidGoogleSheetsUrl = (url: string) => {
-    return url.includes('docs.google.com/spreadsheets') && url.includes('/d/');
+  // Fetch teams and initial data on component mount
+  useEffect(() => {
+    const initializeData = async () => {
+      await fetchAvailableTeams();
+      await fetchPodData();
+    };
+    initializeData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Generate dynamic tasks based on team members
+  const generateTasks = () => {
+    if (!podData || !podData.teamMembers) return [];
+    
+    const taskTemplates = [
+      { title: 'Design Homepage Banner', status: 'completed' as const, progress: 100, priority: 'high' as const },
+      { title: 'Create Video Thumbnail', status: 'in-progress' as const, progress: 65, priority: 'medium' as const },
+      { title: 'Write Product Description', status: 'review' as const, progress: 90, priority: 'medium' as const },
+      { title: 'Social Media Graphics', status: 'not-started' as const, progress: 0, priority: 'low' as const },
+      { title: 'Website Content Update', status: 'in-progress' as const, progress: 45, priority: 'high' as const },
+      { title: 'Email Campaign Design', status: 'completed' as const, progress: 100, priority: 'medium' as const },
+      { title: 'Mobile App Mockup', status: 'not-started' as const, progress: 0, priority: 'high' as const },
+      { title: 'Brand Guidelines', status: 'review' as const, progress: 80, priority: 'low' as const },
+      { title: 'Performance Analytics', status: 'in-progress' as const, progress: 30, priority: 'medium' as const },
+    ];
+
+    return podData.teamMembers.flatMap((member, memberIndex) => 
+      taskTemplates.slice(memberIndex * 3, (memberIndex + 1) * 3).map((template, taskIndex) => ({
+        id: `${memberIndex}-${taskIndex}`,
+        title: template.title,
+        assignee: member.name,
+        status: template.status,
+        progress: template.progress,
+        dueDate: new Date(Date.now() + (taskIndex + 1) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        priority: template.priority
+      }))
+    );
+  };
+
+  const handleSpreadsheetCreated = (url: string) => {
+    setSchedulerSpreadsheetUrl(url);
   };
 
   return (
-    <div className="min-h-screen p-6 space-y-6 bg-gradient-to-br from-gray-50 via-white to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen p-6 bg-gradient-to-br from-gray-50 via-pink-50/30 to-rose-50/50 dark:from-gray-900 dark:via-gray-900/80 dark:to-black">
+      <div className=" mx-auto">
         {/* Header */}
-        <div className="mb-8 p-6 bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-800 dark:to-gray-700 rounded-lg border dark:border-gray-600">
+        <div className="mb-8 p-6 bg-gradient-to-r from-pink-50/50 to-rose-50/50 dark:from-pink-900/20 dark:to-rose-900/20 rounded-lg border border-pink-200 dark:border-pink-500/30">
           <div className="text-center">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 bg-clip-text text-transparent mb-2">
-              Scheduler POD
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 dark:from-pink-400 dark:to-rose-400 bg-clip-text text-transparent mb-2">
+              POD Management Dashboard
             </h1>
             <p className="text-gray-600 dark:text-gray-300 text-lg">
-              Copy data from any Google Spreadsheet to the POD destination template
+              Manage your team, track workflow progress, and sync with Google Spreadsheets
             </p>
+            
+            {/* Team Selection */}
+            <div className="mt-4 flex items-center justify-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Select Team:
+                </label>
+                <select
+                  value={selectedRow}
+                  onChange={(e) => {
+                    const newRow = parseInt(e.target.value);
+                    setSelectedRow(newRow);
+                    fetchPodData(newRow);
+                  }}
+                  disabled={isLoading || isLoadingTeams}
+                  className="px-3 py-1 bg-white dark:bg-gray-800 border border-pink-200 dark:border-pink-500/30 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:opacity-50"
+                >
+                  {availableTeams.length > 0 ? (
+                    availableTeams.map((team) => (
+                      <option key={team.row} value={team.row}>
+                        {team.name}
+                      </option>
+                    ))
+                  ) : (
+                    <option value={selectedRow}>Loading teams...</option>
+                  )}
+                </select>
+              </div>
+            </div>
+            
+            {/* Data Status */}
+            <div className="mt-4 flex items-center justify-center space-x-4">
+              {isLoading && (
+                <div className="flex items-center text-sm text-pink-600 dark:text-pink-400">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-pink-600 mr-2"></div>
+                  Loading data from spreadsheet...
+                </div>
+              )}
+              {error && (
+                <div className="flex items-center text-sm text-red-600 dark:text-red-400">
+                  <span className="mr-2">⚠️</span>
+                  {error}
+                  <button 
+                    onClick={() => fetchPodData()}
+                    className="ml-2 px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded text-xs hover:bg-red-200 dark:hover:bg-red-900/50"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+              {!isLoading && !error && podData && (
+                <div className="text-sm text-green-600 dark:text-green-400">
+                  ✅ Row {podData.rowNumber} data synced - Last updated: {new Date(podData.lastUpdated).toLocaleTimeString()}
+                </div>
+              )}
+              <button 
+                onClick={() => fetchPodData()}
+                disabled={isLoading}
+                className="px-3 py-1 bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 rounded text-sm hover:bg-pink-200 dark:hover:bg-pink-900/50 disabled:opacity-50"
+              >
+                🔄 Refresh Data
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Main Card */}
-        <Card className="border border-gray-200 dark:border-gray-600 shadow-xl bg-white dark:bg-gray-800 relative group overflow-hidden">
-          {/* Animated background effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 dark:via-pink-900/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
-          
-          <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-700 dark:to-gray-600 border-b border-gray-200 dark:border-gray-600 relative">
-            <CardTitle className="text-gray-900 dark:text-gray-100 font-bold flex items-center text-xl">
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center mr-3">
-                <FileSpreadsheet className="h-4 w-4 text-white" />
-              </div>
-              Source Spreadsheet
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-8 relative">
-            <form onSubmit={handleSubmit} className="space-y-8">
-              {/* URL Input */}
-              <div className="space-y-3">
-                <label 
-                  htmlFor="spreadsheet-url" 
-                  className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center"
-                >
-                  <div className="h-2 w-2 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 mr-2"></div>
-                  Google Spreadsheet URL
-                </label>
-                <Input
-                  id="spreadsheet-url"
-                  type="url"
-                  value={spreadsheetUrl}
-                  onChange={(e) => setSpreadsheetUrl(e.target.value)}
-                  placeholder="https://docs.google.com/spreadsheets/d/your-spreadsheet-id/edit?gid=123456#gid=123456"
-                  className="w-full h-12 text-base border-2 border-gray-200 dark:border-gray-600 focus:border-pink-500 dark:focus:border-pink-400 transition-colors duration-300 rounded-lg bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 text-gray-900 dark:text-gray-100"
-                  disabled={isLoading}
-                />
-                <p className="text-sm text-gray-500 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg border border-blue-200 dark:border-blue-700">
-                  <strong>💡 Tip:</strong> Enter the Google Sheets URL to automatically detect and sync all Schedule #1 sheets with real-time updates!
-                </p>
-              </div>
-
-              {/* URL Validation */}
-              {spreadsheetUrl && (
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3 p-4 rounded-lg border-2 transition-all duration-300" style={{
-                    backgroundColor: isValidGoogleSheetsUrl(spreadsheetUrl) ? '#f0fdf4' : '#fef2f2',
-                    borderColor: isValidGoogleSheetsUrl(spreadsheetUrl) ? '#16a34a' : '#dc2626'
-                  }}>
-                    {isValidGoogleSheetsUrl(spreadsheetUrl) ? (
-                      <>
-                        <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                        <span className="text-green-700 dark:text-green-300 font-medium">Valid Google Sheets URL ✨</span>
-                      </>
-                    ) : (
-                      <>
-                        <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0" />
-                        <span className="text-red-700 dark:text-red-300 font-medium">Please enter a valid Google Sheets URL</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Status Alert */}
-              {status && (
-                <div className={`p-6 rounded-xl border-2 transition-all duration-500 ${
-                  status.type === 'success' 
-                    ? 'bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border-green-300 dark:border-green-600 shadow-lg shadow-green-100 dark:shadow-green-900/20'
-                    : status.type === 'error'
-                    ? 'bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/30 dark:to-pink-900/30 border-red-300 dark:border-red-600 shadow-lg shadow-red-100 dark:shadow-red-900/20'
-                    : 'bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-blue-300 dark:border-blue-600 shadow-lg shadow-blue-100 dark:shadow-blue-900/20'
-                }`}>
-                  <div className="flex items-start space-x-4">
-                    <div className="flex-shrink-0">
-                      {status.type === 'success' ? (
-                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
-                          <CheckCircle className="h-4 w-4 text-white" />
-                        </div>
-                      ) : status.type === 'error' ? (
-                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center">
-                          <AlertCircle className="h-4 w-4 text-white" />
-                        </div>
-                      ) : (
-                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-                          <Loader2 className="h-4 w-4 text-white animate-spin" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className={`text-sm font-medium ${
-                        status.type === 'success' ? 'text-green-800 dark:text-green-200' 
-                        : status.type === 'error' ? 'text-red-800 dark:text-red-200' 
-                        : 'text-blue-800 dark:text-blue-200'
-                      }`}>
-                        {status.message}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Success URL Display */}
-              {newSpreadsheetUrl && status?.type === 'success' && (
-                <div className="space-y-4 p-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 rounded-xl border-2 border-green-300 dark:border-green-600 shadow-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
-                      <FileSpreadsheet className="h-5 w-5 text-white" />
-                    </div>
-                    <h3 className="text-xl font-bold text-green-800 dark:text-green-200">
-                      🎉 Real-Time Sync Spreadsheet Created!
-                    </h3>
-                  </div>
-                  <div className="space-y-3">
-                    <p className="text-green-700 dark:text-green-300 font-medium">
-                      Your IMPORTRANGE formulas have been set up for real-time data synchronization:
-                    </p>
-                    <div className="p-3 bg-green-100 dark:bg-green-900/40 rounded-lg border border-green-300 dark:border-green-600">
-                      <p className="text-sm text-green-800 dark:text-green-200">
-                        <strong>✨ Real-Time Updates:</strong> Any changes to the source spreadsheet will automatically appear in your new destination spreadsheet!
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-3 p-3 bg-white dark:bg-gray-700 rounded-lg border border-green-300 dark:border-green-600 shadow-sm">
-                      <Input
-                        value={newSpreadsheetUrl}
-                        readOnly
-                        className="flex-1 text-sm bg-transparent border-none focus:ring-0 text-blue-600 dark:text-blue-400 font-mono"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigator.clipboard.writeText(newSpreadsheetUrl)}
-                        className="shrink-0 border-green-400 dark:border-green-500 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-800 transition-all duration-300 hover:scale-105"
-                      >
-                        <Copy className="h-4 w-4 mr-1" />
-                        Copy
-                      </Button>
-                    </div>
-                    <div className="flex space-x-3">
-                      <Button
-                        type="button"
-                        size="lg"
-                        onClick={() => window.open(newSpreadsheetUrl, '_blank')}
-                        className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
-                      >
-                        <FileSpreadsheet className="h-4 w-4 mr-2" />
-                        Open Spreadsheet
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="lg"
-                        onClick={() => {
-                          setNewSpreadsheetUrl(null);
-                          setStatus(null);
-                        }}
-                        className="border-green-400 dark:border-green-500 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-800 transition-all duration-300 hover:scale-105"
-                      >
-                        Process Another
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Submit Button */}
-              <Button
-                type="submit"
-                size="lg"
-                className="w-full h-14 text-lg bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                disabled={isLoading || !spreadsheetUrl || !isValidGoogleSheetsUrl(spreadsheetUrl)}
-              >
+        {/* Main Dashboard Layout */}
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Sidebar */}
+          <div className="lg:w-80 w-full">
+            {podData ? (
+              <PodSidebar 
+                teamName={podData.teamName}
+                teamMembers={podData.teamMembers}
+                assignedCreators={podData.creators}
+                schedulerSpreadsheetUrl={schedulerSpreadsheetUrl}
+              />
+            ) : (
+              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6 text-center">
                 {isLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-3 animate-spin" />
-                    Processing Your Request...
-                  </>
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600"></div>
+                    <span className="text-gray-600 dark:text-gray-300">Loading team data...</span>
+                  </div>
+                ) : error ? (
+                  <div className="text-red-600 dark:text-red-400">
+                    <p>Failed to load team data</p>
+                    <button 
+                      onClick={() => fetchPodData()}
+                      className="mt-2 px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded text-sm hover:bg-red-200 dark:hover:bg-red-900/50"
+                    >
+                      Retry
+                    </button>
+                  </div>
                 ) : (
-                  <>
-                    <Copy className="w-5 h-5 mr-3" />
-                    ✨ Copy Data to Destination
-                  </>
+                  <span className="text-gray-500 dark:text-gray-400">No team data available</span>
                 )}
-              </Button>
-            </form>
-
-            {/* Info Section */}
-            <div className="mt-8 p-6 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-700 dark:to-blue-900/30 rounded-xl border border-gray-200 dark:border-gray-600 shadow-sm">
-              <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center text-lg">
-                <div className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mr-3">
-                  <span className="text-white text-xs">?</span>
-                </div>
-                How it works:
-              </h3>
-                <div className="space-y-4 text-sm text-gray-600 dark:text-gray-300">
-                  <p className="flex items-center"><span className="text-pink-500 mr-2">•</span> Automatically detects all Schedule #1 sheets in your spreadsheet</p>
-                  <p className="flex items-center"><span className="text-pink-500 mr-2">•</span> Creates a copy of the destination template for each sheet</p>
-                  <p className="flex items-center"><span className="text-pink-500 mr-2">•</span> Sets up IMPORTRANGE formulas for real-time sync</p>
-                  <p className="flex items-center"><span className="text-purple-500 mr-2">•</span> Maps columns with intelligent data transformation</p>
-                  <p className="flex items-center"><span className="text-purple-500 mr-2">•</span> Auto-updates when source data changes</p>
-                  <p className="flex items-center"><span className="text-purple-500 mr-2">•</span> Returns the URL of the new live-sync spreadsheet</p>
-                </div>
-              <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/30 dark:to-purple-900/30 rounded-lg border border-blue-200 dark:border-blue-600">
-                <p className="text-sm text-blue-700 dark:text-blue-300">
-                  <strong>� IMPORTRANGE Mapping:</strong> E→B, D→C, F→D, G→E, I→G, K→I, N→K, M→L, O→M, P→N, R→O, T→P (Real-time sync from range C12:T)
-                </p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            )}
+          </div>
+
+          {/* Main Content */}
+          <div className="flex-1 space-y-6">
+            {/* Workflow Dashboard */}
+            {podData ? (
+              <WorkflowDashboard 
+                tasks={generateTasks()}
+              />
+            ) : (
+              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6 text-center">
+                {isLoading ? (
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600"></div>
+                    <span className="text-gray-600 dark:text-gray-300">Loading workflow data...</span>
+                  </div>
+                ) : (
+                  <span className="text-gray-500 dark:text-gray-400">Select a team to view workflow</span>
+                )}
+              </div>
+            )}
+
+            {/* Google Sheets Integration */}
+            <SheetsIntegration onSpreadsheetCreated={handleSpreadsheetCreated} />
+          </div>
+        </div>
       </div>
     </div>
   );
