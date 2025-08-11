@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import PodSidebar from './PodSidebar';
 import WorkflowDashboard from './WorkflowDashboard';
 import SheetsIntegration from './SheetsIntegration';
+import SheetViewer from './SheetViewer';
 
 interface TeamMember {
   id: string;
@@ -28,6 +29,8 @@ interface PodData {
   teamName: string;
   teamMembers: TeamMember[];
   creators: Creator[];
+  schedulerSpreadsheetUrl?: string;
+  sheetLinks?: Array<{name: string, url: string, cellGroup?: string}>;
   rowNumber: number;
   lastUpdated: string;
 }
@@ -43,6 +46,9 @@ const PodComponent = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingTeams, setIsLoadingTeams] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'sheets'>('dashboard');
+  const [selectedSheet, setSelectedSheet] = useState<{name: string, url: string} | null>(null);
+  const [viewMode, setViewMode] = useState<'dashboard' | 'sheet'>('dashboard');
 
   const fetchAvailableTeams = async () => {
     setIsLoadingTeams(true);
@@ -115,6 +121,30 @@ const PodComponent = () => {
     }
   };
 
+  const handleSheetClick = (sheetName: string, sheetUrl: string) => {
+    setSelectedSheet({ name: sheetName, url: sheetUrl });
+    setViewMode('sheet');
+    
+    // Update URL with googleUrl parameter
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('googleUrl', encodeURIComponent(sheetUrl));
+      window.history.pushState({}, '', url.toString());
+    }
+  };
+
+  const handleBackToDashboard = () => {
+    setViewMode('dashboard');
+    setSelectedSheet(null);
+    
+    // Remove googleUrl parameter from URL
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('googleUrl');
+      window.history.pushState({}, '', url.toString());
+    }
+  };
+
   const fetchPodData = async (rowNumber = selectedRow) => {
     setIsLoading(true);
     setError(null);
@@ -139,6 +169,11 @@ const PodComponent = () => {
       
       if (result.success && result.data) {
         const basicData = result.data;
+        
+        // Update scheduler spreadsheet URL from API response
+        if (basicData.schedulerSpreadsheetUrl) {
+          setSchedulerSpreadsheetUrl(basicData.schedulerSpreadsheetUrl);
+        }
         
         // Fetch earnings for creators if we have creator names
         if (basicData.creators && basicData.creators.length > 0) {
@@ -168,6 +203,24 @@ const PodComponent = () => {
       setIsLoading(false);
     }
   };
+
+  // Handle URL parameters for Google Sheets
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const googleUrl = urlParams.get('googleUrl');
+      
+      if (googleUrl) {
+        try {
+          const decodedUrl = decodeURIComponent(googleUrl);
+          setSelectedSheet({ name: 'Shared Sheet', url: decodedUrl });
+          setViewMode('sheet');
+        } catch (error) {
+          console.error('Error decoding Google URL parameter:', error);
+        }
+      }
+    }
+  }, []);
 
   // Fetch teams and initial data on component mount
   useEffect(() => {
@@ -290,6 +343,32 @@ const PodComponent = () => {
           </div>
         </div>
 
+        {/* Tab Navigation */}
+        <div className="border-b border-pink-200 dark:border-pink-500/30">
+          <nav className="flex space-x-8">
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'dashboard'
+                  ? 'border-pink-500 text-pink-600 dark:text-pink-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              Dashboard
+            </button>
+            <button
+              onClick={() => setActiveTab('sheets')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'sheets'
+                  ? 'border-pink-500 text-pink-600 dark:text-pink-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              Sheets Integration
+            </button>
+          </nav>
+        </div>
+
         {/* Main Dashboard Layout */}
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Sidebar */}
@@ -327,26 +406,103 @@ const PodComponent = () => {
 
           {/* Main Content */}
           <div className="flex-1 space-y-6">
-            {/* Workflow Dashboard */}
-            {podData ? (
-              <WorkflowDashboard 
-                tasks={generateTasks()}
+            {viewMode === 'sheet' && selectedSheet ? (
+              <SheetViewer
+                sheetName={selectedSheet.name}
+                sheetUrl={selectedSheet.url}
+                onBack={handleBackToDashboard}
               />
             ) : (
-              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6 text-center">
-                {isLoading ? (
-                  <div className="flex items-center justify-center space-x-2">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600"></div>
-                    <span className="text-gray-600 dark:text-gray-300">Loading workflow data...</span>
-                  </div>
+              <>
+                {activeTab === 'dashboard' && (
+              <>
+                {/* Workflow Dashboard */}
+                {podData ? (
+                  <WorkflowDashboard 
+                    tasks={generateTasks()}
+                  />
                 ) : (
-                  <span className="text-gray-500 dark:text-gray-400">Select a team to view workflow</span>
+                  <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6 text-center">
+                    {isLoading ? (
+                      <div className="flex items-center justify-center space-x-2">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600"></div>
+                        <span className="text-gray-600 dark:text-gray-300">Loading workflow data...</span>
+                      </div>
+                    ) : (
+                      <span className="text-gray-500 dark:text-gray-400">Select a team to view workflow</span>
+                    )}
+                  </div>
                 )}
-              </div>
+
+                {/* Sheet Links */}
+                {podData && podData.sheetLinks && podData.sheetLinks.length > 0 && (
+                  <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6 shadow-lg">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center mr-3">
+                        <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2H9a2 2 0 00-2 2v10z" />
+                        </svg>
+                      </div>
+                      📄 Sheet Links
+                      <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
+                        ({podData.sheetLinks.length} sheets)
+                      </span>
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {podData.sheetLinks.map((link, index) => (
+                        <div
+                          key={index}
+                          className="group relative p-4 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border border-emerald-200 dark:border-emerald-500/30 rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer"
+                          onClick={() => handleSheetClick(link.name, link.url)}
+                        >
+                          <div className="flex items-start space-x-3">
+                            <div className="flex-shrink-0">
+                              <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-md">
+                                <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2H9a2 2 0 00-2 2v10z" />
+                                </svg>
+                              </div>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors truncate">
+                                {link.name}
+                              </p>
+                              {link.url && link.url.startsWith('http') ? (
+                                <div className="flex items-center mt-2 text-xs text-emerald-600 dark:text-emerald-400">
+                                  <svg className="h-3 w-3 mr-1 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                  </svg>
+                                  <span className="group-hover:underline">Open Google Sheet</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                  <svg className="h-3 w-3 mr-1 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  <span>No link available</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Hover overlay effect */}
+                          <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-green-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
-            {/* Google Sheets Integration */}
-            <SheetsIntegration onSpreadsheetCreated={handleSpreadsheetCreated} />
+            {activeTab === 'sheets' && (
+              <>
+                {/* Google Sheets Integration */}
+                <SheetsIntegration onSpreadsheetCreated={handleSpreadsheetCreated} />
+              </>
+            )}
+            </>
+            )}
           </div>
         </div>
       </div>
