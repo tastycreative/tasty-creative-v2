@@ -10,14 +10,17 @@ export async function GET(req: NextRequest) {
   // Proxy external image (e.g. Google profile pic)
   if (imageUrl) {
     try {
-      console.log('Fetching external image:', imageUrl);
-      
+      console.log("Fetching external image:", imageUrl);
+
       // Special handling for Google Drive thumbnail URLs
-      if (imageUrl.includes('drive.google.com/thumbnail')) {
+      if (imageUrl.includes("drive.google.com/thumbnail")) {
         const urlObj = new URL(imageUrl);
-        const driveId = urlObj.searchParams.get('id');
+        const driveId = urlObj.searchParams.get("id");
         if (driveId) {
-          console.log('Detected Google Drive thumbnail, using authenticated access for ID:', driveId);
+          console.log(
+            "Detected Google Drive thumbnail, using authenticated access for ID:",
+            driveId
+          );
           // Redirect to the authenticated drive endpoint
           const session = await auth();
           if (!session || !session.user || !session.accessToken) {
@@ -33,7 +36,9 @@ export async function GET(req: NextRequest) {
           oauth2Client.setCredentials({
             access_token: session.accessToken,
             refresh_token: session.refreshToken,
-            expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
+            expiry_date: session.expiresAt
+              ? session.expiresAt * 1000
+              : undefined,
           });
 
           const drive = google.drive({ version: "v3", auth: oauth2Client });
@@ -56,27 +61,37 @@ export async function GET(req: NextRequest) {
           });
         }
       }
-      
+
       // Try with browser-like headers for other external images
       const res = await fetch(imageUrl, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-          'Accept': 'image/*,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.5',
-          'Cache-Control': 'no-cache',
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          Accept: "image/*,*/*;q=0.8",
+          "Accept-Language": "en-US,en;q=0.5",
+          "Cache-Control": "no-cache",
         },
       });
-      console.log('External image response status:', res.status);
-      console.log('External image response headers:', Object.fromEntries(res.headers.entries()));
-      
+      console.log("External image response status:", res.status);
+      console.log(
+        "External image response headers:",
+        Object.fromEntries(res.headers.entries())
+      );
+
       if (!res.ok) {
-        console.error('External image fetch failed:', res.status, res.statusText);
-        return new Response("Failed to fetch external image", { status: res.status });
+        console.error(
+          "External image fetch failed:",
+          res.status,
+          res.statusText
+        );
+        return new Response("Failed to fetch external image", {
+          status: res.status,
+        });
       }
 
       const contentType = res.headers.get("content-type") || "image/jpeg";
-      console.log('External image content type:', contentType);
-      
+      console.log("External image content type:", contentType);
+
       return new Response(res.body, {
         headers: {
           "Content-Type": contentType,
@@ -130,12 +145,13 @@ export async function GET(req: NextRequest) {
         "Cache-Control": "public, max-age=3600",
       },
     });
-
   } catch (error: any) {
     console.error("Drive proxy error:", error);
 
     if (error.code === 403 && error.errors?.length > 0) {
-      return new Response(`Google API Error: ${error.errors[0].message}`, { status: 403 });
+      return new Response(`Google API Error: ${error.errors[0].message}`, {
+        status: 403,
+      });
     }
     if (error.code === 404) {
       return new Response("File not found", { status: 404 });

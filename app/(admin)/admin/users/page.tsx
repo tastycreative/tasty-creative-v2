@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { UserRoleForm } from "@/components/admin/UserRoleForm";
 import { BulkRoleEditor } from "@/components/admin/BulkRoleEditor";
 import { prisma } from "@/lib/prisma";
+import { Role } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

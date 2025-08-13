@@ -344,3 +344,61 @@ interface ClientData {
   chatters: string;
   chattingManagers: string;
 }
+
+// Video Editor Types
+export interface Clip {
+  id: string;
+  start: number;
+  duration: number;
+  src: string;
+  row: number;
+  type: "video" | "image"; // Add type to differentiate between video and image clips
+  fileName?: string; // Optional filename for better labeling
+  startFrom?: number; // Start offset within the video file (for split clips)
+  // Position and size properties for draggable/resizable image clips
+  x?: number; // X position as percentage (0-100)
+  y?: number; // Y position as percentage (0-100)
+  width?: number; // Width as percentage (0-100)
+  height?: number; // Height as percentage (0-100)
+  // 2D rotation (degrees). Only applied for image clips.
+  rotation?: number;
+}
+
+export interface TextOverlay {
+  id: string;
+  start: number;
+  duration: number;
+  text: string;
+  row: number;
+  // Position and size properties for draggable/resizable functionality
+  x?: number; // X position as percentage (0-100)
+  y?: number; // Y position as percentage (0-100)
+  width?: number; // Width as percentage (0-100)
+  height?: number; // Height as percentage (0-100)
+  fontSize?: number; // Font size
+  color?: string; // Text color
+  backgroundColor?: string; // Background color when editing or for label
+  fontFamily?: string; // Font family
+  fontWeight?: "normal" | "bold" | number; // Font weight
+  textAlign?: "left" | "center" | "right"; // Alignment
+  // 2D rotation (degrees)
+  rotation?: number;
+}
+
+export interface BlurOverlay {
+  id: string;
+  start: number;
+  duration: number;
+  row: number;
+  // Position and size properties for draggable/resizable functionality
+  x?: number; // X position as percentage (0-100)
+  y?: number; // Y position as percentage (0-100)
+  width?: number; // Width as percentage (0-100)
+  height?: number; // Height as percentage (0-100)
+  blurIntensity?: number; // Blur intensity in pixels
+  // Blur type and shape
+  blurType?: "gaussian" | "pixelate" | "mosaic";
+  shape?: "rectangle" | "circle";
+  // 2D rotation (degrees)
+  rotation?: number;
+}
