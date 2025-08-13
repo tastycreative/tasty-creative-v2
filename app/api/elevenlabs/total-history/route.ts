@@ -49,6 +49,7 @@ export async function GET(request: Request) {
       account_19: { key: process.env.ELEVENLABS_KEY_ACCOUNT_19, name: "OF Essie's voice" },
       account_20: { key: process.env.ELEVENLABS_KEY_ACCOUNT_20, name: "OF Sirena's voice" },
       account_21: { key: process.env.ELEVENLABS_KEY_ACCOUNT_21, name: "OF Sirena's spanish voice" },
+      account_22: { key: process.env.ELEVENLABS_KEY_ACCOUNT_22, name: "OF Hailey's voice" },
     };
 
     let totalVoiceGenerated = 0;
