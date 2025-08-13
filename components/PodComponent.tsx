@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import PodSidebar from "./PodSidebar";
 import WorkflowDashboard from "./WorkflowDashboard";
 import SheetsIntegration from "./SheetsIntegration";
@@ -58,6 +58,14 @@ const PodComponent = () => {
     url: string;
   } | null>(null);
   const [viewMode, setViewMode] = useState<"dashboard" | "sheet">("dashboard");
+  const [driveSheets, setDriveSheets] = useState<Array<{
+    id: string;
+    name: string;
+    url: string;
+    lastModified: string;
+  }>>([]);
+  const [isDriveLoading, setIsDriveLoading] = useState(false);
+  const [driveError, setDriveError] = useState<string | null>(null);
 
   const fetchAvailableTeams = async () => {
     setIsLoadingTeams(true);
@@ -130,6 +138,51 @@ const PodComponent = () => {
     }
   };
 
+  const fetchDriveSheets = useCallback(async () => {
+    if (!podData?.creators || podData.creators.length === 0) {
+      setDriveSheets([]);
+      return;
+    }
+
+    setIsDriveLoading(true);
+    setDriveError(null);
+
+    try {
+      const creatorNames = podData.creators.map(creator => creator.name);
+      const folderId = "1jV4H9nDmseNL8AdvokY8uAOM5am4YC_c"; // The folder ID from the Google Drive URL
+
+      const response = await fetch('/api/drive/sheets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          folderId: folderId,
+          creatorNames: creatorNames,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch sheets from Google Drive');
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setDriveSheets(data.sheets || []);
+      } else {
+        throw new Error(data.error || 'Failed to fetch sheets');
+      }
+      
+    } catch (err) {
+      console.error('Error fetching drive sheets:', err);
+      setDriveError('Failed to load sheets from Google Drive');
+      setDriveSheets([]);
+    } finally {
+      setIsDriveLoading(false);
+    }
+  }, [podData?.creators]);
+
   const handleSheetClick = (sheetName: string, sheetUrl: string) => {
     setSelectedSheet({ name: sheetName, url: sheetUrl });
     setViewMode("sheet");
@@ -145,11 +198,14 @@ const PodComponent = () => {
   const handleBackToDashboard = () => {
     setViewMode("dashboard");
     setSelectedSheet(null);
+    // Make sure we're on the dashboard tab when going back
+    setActiveTab("dashboard");
 
-    // Remove googleUrl parameter from URL
+    // Remove googleUrl parameter from URL and set tab to dashboard
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
       url.searchParams.delete("googleUrl");
+      url.searchParams.set("tab", "dashboard");
       window.history.pushState({}, "", url.toString());
     }
   };
@@ -245,6 +301,18 @@ const PodComponent = () => {
     }
   }, [podData]); // Run this effect when podData changes
 
+  // Handle tab parameter from URL on component mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get("tab");
+      
+      if (tabParam === "dashboard" || tabParam === "sheets") {
+        setActiveTab(tabParam);
+      }
+    }
+  }, []);
+
   // Fetch teams and initial data on component mount
   useEffect(() => {
     const initializeData = async () => {
@@ -254,6 +322,13 @@ const PodComponent = () => {
     initializeData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Fetch drive sheets when podData creators change
+  useEffect(() => {
+    if (podData?.creators && podData.creators.length > 0) {
+      fetchDriveSheets();
+    }
+  }, [podData?.creators, fetchDriveSheets]);
 
   // Generate dynamic tasks based on team members
   const generateTasks = () => {
@@ -333,8 +408,35 @@ const PodComponent = () => {
     );
   };
 
+  const handleTabChange = (tab: "dashboard" | "sheets") => {
+    console.log('Tab change clicked:', tab, 'Current viewMode:', viewMode);
+    setActiveTab(tab);
+    
+    // If we're currently viewing a sheet, exit sheet view mode
+    if (viewMode === "sheet") {
+      console.log('Exiting sheet view mode');
+      setViewMode("dashboard");
+      setSelectedSheet(null);
+    }
+    
+    // Update URL with tab parameter
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', tab);
+      // Remove googleUrl parameter when switching tabs manually
+      url.searchParams.delete('googleUrl');
+      window.history.pushState({}, '', url.toString());
+    }
+  };
+
   const handleSpreadsheetCreated = (url: string) => {
+    // Set the new spreadsheet URL
     setSchedulerSpreadsheetUrl(url);
+    
+    // Refresh the drive sheets to show the newly created sheet
+    if (podData?.creators && podData.creators.length > 0) {
+      fetchDriveSheets();
+    }
   };
 
   return (
@@ -421,7 +523,7 @@ const PodComponent = () => {
         <div className="border-b border-pink-200 dark:border-pink-500/30">
           <nav className="flex space-x-8">
             <button
-              onClick={() => setActiveTab("dashboard")}
+              onClick={() => handleTabChange("dashboard")}
               className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === "dashboard"
                   ? "border-pink-500 text-pink-600 dark:text-pink-400"
@@ -431,7 +533,7 @@ const PodComponent = () => {
               Dashboard
             </button>
             <button
-              onClick={() => setActiveTab("sheets")}
+              onClick={() => handleTabChange("sheets")}
               className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === "sheets"
                   ? "border-pink-500 text-pink-600 dark:text-pink-400"
@@ -568,7 +670,7 @@ const PodComponent = () => {
                                     </div>
                                   </div>
                                   <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors truncate">
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                                       {link.name}
                                     </p>
                                     {link.url && link.url.startsWith("http") ? (
@@ -618,6 +720,173 @@ const PodComponent = () => {
                           </div>
                         </div>
                       )}
+
+                    {/* Sheet Integrations */}
+                    {podData && podData.creators && podData.creators.length > 0 && (
+                      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-blue-200 dark:border-blue-500/30 rounded-lg p-6 shadow-lg">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mr-3">
+                            <svg
+                              className="h-4 w-4 text-white"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
+                              />
+                            </svg>
+                          </div>
+                          🔗 Sheet Integrations
+                          <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
+                            ({driveSheets.length} found for: {podData.creators.map(c => c.name).join(', ')})
+                          </span>
+                        </h3>
+
+                        {isDriveLoading ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {Array.from({ length: 3 }).map((_, index) => (
+                              <div
+                                key={`loading-${index}`}
+                                className="p-4 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg animate-pulse"
+                              >
+                                <div className="flex items-start space-x-3">
+                                  <div className="h-10 w-10 bg-gray-300 dark:bg-gray-600 rounded-lg"></div>
+                                  <div className="flex-1 space-y-2">
+                                    <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-3/4"></div>
+                                    <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-1/2"></div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : driveError ? (
+                          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 rounded-lg p-4">
+                            <div className="flex items-center space-x-2">
+                              <svg
+                                className="h-5 w-5 text-red-500"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
+                              </svg>
+                              <span className="text-red-700 dark:text-red-300 text-sm">{driveError}</span>
+                            </div>
+                          </div>
+                        ) : driveSheets.length > 0 ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {driveSheets.map((sheet) => (
+                              <div
+                                key={sheet.id}
+                                className="group relative p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-500/30 rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer"
+                                onClick={() => {
+                                  if (sheet.url && sheet.url.startsWith("http")) {
+                                    window.open(sheet.url, "_blank");
+                                  }
+                                }}
+                              >
+                                <div className="flex items-start space-x-3">
+                                  <div className="flex-shrink-0">
+                                    <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md">
+                                      <svg
+                                        className="h-5 w-5 text-white"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2H9a2 2 0 00-2 2v10z"
+                                        />
+                                      </svg>
+                                    </div>
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                      {sheet.name}
+                                    </p>
+                                    <div className="flex items-center mt-2 text-xs text-blue-600 dark:text-blue-400">
+                                      <svg
+                                        className="h-3 w-3 mr-1 flex-shrink-0"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                        stroke="currentColor"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                        />
+                                      </svg>
+                                      <span className="group-hover:underline">
+                                        Open Google Sheet
+                                      </span>
+                                    </div>
+                                    {sheet.lastModified && (
+                                      <div className="flex items-center mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                        <svg
+                                          className="h-3 w-3 mr-1 flex-shrink-0"
+                                          fill="none"
+                                          viewBox="0 0 24 24"
+                                          stroke="currentColor"
+                                        >
+                                          <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                          />
+                                        </svg>
+                                        <span>
+                                          Modified: {new Date(sheet.lastModified).toLocaleDateString()}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Hover overlay effect */}
+                                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-8">
+                            <svg
+                              className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2H9a2 2 0 00-2 2v10z"
+                              />
+                            </svg>
+                            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">
+                              No matching sheets found
+                            </h3>
+                            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                              No Google Sheets found for the assigned creators: {podData.creators.map(c => c.name).join(', ')}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </>
                 )}
 
@@ -626,6 +895,12 @@ const PodComponent = () => {
                     {/* Google Sheets Integration */}
                     <SheetsIntegration
                       onSpreadsheetCreated={handleSpreadsheetCreated}
+                      onSheetCreated={() => {
+                        // Refresh drive sheets when a new sheet is created
+                        if (podData?.creators && podData.creators.length > 0) {
+                          fetchDriveSheets();
+                        }
+                      }}
                     />
                   </>
                 )}

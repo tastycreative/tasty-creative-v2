@@ -8,9 +8,10 @@ import { Loader2, FileSpreadsheet, Copy, CheckCircle, AlertCircle, ExternalLink 
 
 interface SheetsIntegrationProps {
   onSpreadsheetCreated?: (url: string) => void;
+  onSheetCreated?: () => void;
 }
 
-const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({ onSpreadsheetCreated }) => {
+const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({ onSpreadsheetCreated, onSheetCreated }) => {
   const [spreadsheetUrl, setSpreadsheetUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState<{
@@ -65,6 +66,11 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({ onSpreadsheetCrea
         // Notify parent component
         if (onSpreadsheetCreated && result.spreadsheetUrl) {
           onSpreadsheetCreated(result.spreadsheetUrl);
+        }
+        
+        // Refresh the sheet integrations dashboard
+        if (onSheetCreated) {
+          onSheetCreated();
         }
       } else {
         if (result.error === 'GoogleAuthExpired' || result.error === 'GoogleAuthInvalid') {
@@ -140,10 +146,11 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({ onSpreadsheetCrea
           {/* URL Validation */}
           {spreadsheetUrl && (
             <div className="space-y-3">
-              <div className="flex items-center space-x-3 p-4 rounded-lg border-2 transition-all duration-300" style={{
-                backgroundColor: isValidGoogleSheetsUrl(spreadsheetUrl) ? '#f0fdf4' : '#fef2f2',
-                borderColor: isValidGoogleSheetsUrl(spreadsheetUrl) ? '#16a34a' : '#dc2626'
-              }}>
+              <div className={`flex items-center space-x-3 p-4 rounded-lg border-2 transition-all duration-300 ${
+                isValidGoogleSheetsUrl(spreadsheetUrl) 
+                  ? 'bg-green-50 dark:bg-green-900/30 border-green-500 dark:border-green-400' 
+                  : 'bg-red-50 dark:bg-red-900/30 border-red-500 dark:border-red-400'
+              }`}>
                 {isValidGoogleSheetsUrl(spreadsheetUrl) ? (
                   <>
                     <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
@@ -283,11 +290,11 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({ onSpreadsheetCrea
             How it works:
           </h3>
           <div className="space-y-4 text-sm text-gray-600 dark:text-gray-300">
-            <p className="flex items-center"><span className="text-pink-500 mr-2">•</span> Automatically detects all Schedule #1 sheets in your spreadsheet</p>
-            <p className="flex items-center"><span className="text-pink-500 mr-2">•</span> Creates a copy of the destination template for each sheet</p>
-            <p className="flex items-center"><span className="text-pink-500 mr-2">•</span> Sets up IMPORTRANGE formulas for real-time sync</p>
-            <p className="flex items-center"><span className="text-purple-500 mr-2">•</span> Maps columns with intelligent data transformation</p>
-            <p className="flex items-center"><span className="text-purple-500 mr-2">•</span> Auto-updates when source data changes</p>
+            <p className="flex items-center"><span className="text-pink-500 dark:text-pink-400 mr-2">•</span> Automatically detects all Schedule #1 sheets in your spreadsheet</p>
+            <p className="flex items-center"><span className="text-pink-500 dark:text-pink-400 mr-2">•</span> Creates a copy of the destination template for each sheet</p>
+            <p className="flex items-center"><span className="text-pink-500 dark:text-pink-400 mr-2">•</span> Sets up IMPORTRANGE formulas for real-time sync</p>
+            <p className="flex items-center"><span className="text-purple-500 dark:text-purple-400 mr-2">•</span> Maps columns with intelligent data transformation</p>
+            <p className="flex items-center"><span className="text-purple-500 dark:text-purple-400 mr-2">•</span> Auto-updates when source data changes</p>
           </div>
         </div>
       </CardContent>
