@@ -21,6 +21,11 @@ const AnalystSheetViewer: React.FC<AnalystSheetViewerProps> = ({
     }
   };
 
+  const handleGenerateCaption = () => {
+    // TODO: Implement caption generation logic
+    console.log("Generate caption for:", sheetName);
+  };
+
   // Static captions data
   const topPerformingCaptions = [
     {
@@ -132,9 +137,30 @@ const AnalystSheetViewer: React.FC<AnalystSheetViewerProps> = ({
       <div className="max-w-7xl mx-auto">
         <div className="bg-gray-50 dark:bg-gray-900 pt-6">
           <div className="px-6">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
-              Caption Categories
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                Caption Categories
+              </h3>
+              <button
+                onClick={handleGenerateCaption}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                <span>Generate Caption</span>
+              </button>
+            </div>
           </div>
           <nav className="flex relative ">
             <button
