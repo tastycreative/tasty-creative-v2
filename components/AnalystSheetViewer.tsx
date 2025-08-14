@@ -77,12 +77,19 @@ const AnalystSheetViewer: React.FC<AnalystSheetViewerProps> = ({
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.sheets) {
-          // API already filters out hidden sheets, so we can use them directly
-          setAvailableSheets(data.sheets);
+          // Filter sheets to only include those with "FREE" or "PAID" in their names
+          const filteredSheets = data.sheets.filter((sheet: SheetInfo) => {
+            const sheetName = sheet.name.toUpperCase();
+            return sheetName.includes('FREE') || sheetName.includes('PAID');
+          });
           
-          // Set first sheet as default
-          if (data.sheets.length > 0) {
-            setSelectedSheet(data.sheets[0].name);
+          setAvailableSheets(filteredSheets);
+          
+          // Set first sheet as default if any sheets match the filter
+          if (filteredSheets.length > 0) {
+            setSelectedSheet(filteredSheets[0].name);
+          } else {
+            setSelectedSheet("");
           }
         }
       }
@@ -389,7 +396,7 @@ const AnalystSheetViewer: React.FC<AnalystSheetViewerProps> = ({
               <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                 {sheetName}
               </h1>
-              {availableSheets.length > 0 && (
+              {availableSheets.length > 0 ? (
                 <>
                   <div className="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>
                   <div className="flex items-center space-x-2">
@@ -409,6 +416,23 @@ const AnalystSheetViewer: React.FC<AnalystSheetViewerProps> = ({
                     {(isLoadingSheets || isLoadingData) && (
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                     )}
+                  </div>
+                </>
+              ) : !isLoadingSheets ? (
+                <>
+                  <div className="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-amber-600 dark:text-amber-400 font-medium">
+                      No sheets found with "FREE" or "PAID" in the name
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">Loading sheets...</span>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                   </div>
                 </>
               )}
@@ -437,38 +461,39 @@ const AnalystSheetViewer: React.FC<AnalystSheetViewerProps> = ({
       </div>
 
       {/* Folder-Style Tab Navigation */}
-      <div className="max-w-7xl mx-auto">
-        <div className="bg-gray-50 dark:bg-gray-900 pt-6">
-          <div className="px-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                Caption Categories
-              </h3>
-              <button
-                onClick={handleGenerateCaption}
-                disabled={isGeneratingCaptions}
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                  isGeneratingCaptions
-                    ? "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
-                    : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                }`}
-              >
-                {isGeneratingCaptions ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500"></div>
-                    <span>Generating...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                    <span>Generate Caption</span>
-                  </div>
-                )}
-              </button>
+      {availableSheets.length > 0 ? (
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-gray-50 dark:bg-gray-900 pt-6">
+            <div className="px-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                  Caption Categories
+                </h3>
+                <button
+                  onClick={handleGenerateCaption}
+                  disabled={isGeneratingCaptions}
+                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                    isGeneratingCaptions
+                      ? "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                      : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  }`}
+                >
+                  {isGeneratingCaptions ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500"></div>
+                      <span>Generating...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2">
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      <span>Generate Caption</span>
+                    </div>
+                  )}
+                </button>
+              </div>
             </div>
-          </div>
           <nav className="flex relative ">
             <button
               onClick={() => setActiveSubtab("top-performing")}
@@ -1059,7 +1084,29 @@ const AnalystSheetViewer: React.FC<AnalystSheetViewerProps> = ({
             </div>
           </div>
         )}
-      </div>
+        </div>
+      ) : !isLoadingSheets ? (
+        <div className="max-w-7xl mx-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm mt-6 mx-6">
+            <div className="p-8 text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full mb-4">
+                <svg className="w-8 h-8 text-amber-600 dark:text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L5.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                No Compatible Sheets Found
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                This spreadsheet doesn't contain any sheets with "FREE" or "PAID" in their names.
+              </p>
+              <p className="text-sm text-gray-500 dark:text-gray-500">
+                Please ensure your sheet names include "FREE" or "PAID" to use the Analyst Sheet Viewer.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };
