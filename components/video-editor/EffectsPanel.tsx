@@ -1,11 +1,6 @@
 "use client";
 
 import React from "react";
-import {
-  VideoSequenceItem,
-  VideoEffects,
-  SelectiveBlurRegion,
-} from "@/types/video";
 import { Sliders, Trash2, Eye, Scissors } from "lucide-react";
 import { SelectiveBlurPanel } from "./SelectiveBlurPanel";
 
@@ -106,13 +101,17 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
         </h4>
         <div className="grid grid-cols-2 gap-2 text-xs text-gray-700 dark:text-gray-300">
           <div>
-            <span className="block text-pink-700 dark:text-pink-400 font-medium">Duration</span>
+            <span className="block text-pink-700 dark:text-pink-400 font-medium">
+              Duration
+            </span>
             <span className="font-semibold text-gray-800 dark:text-gray-200">
               {formatDuration(selectedVideo.duration)}
             </span>
           </div>
           <div>
-            <span className="block text-pink-700 dark:text-pink-400 font-medium">Size</span>
+            <span className="block text-pink-700 dark:text-pink-400 font-medium">
+              Size
+            </span>
             <span className="font-semibold text-gray-800 dark:text-gray-200">
               {formatFileSize(selectedVideo.file.size)}
             </span>
@@ -127,7 +126,9 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
           {/* Scale Control */}
           <div className="p-2 bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-700 dark:to-gray-600 rounded-lg border border-pink-200 dark:border-pink-500/30">
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-semibold text-gray-800 dark:text-gray-200">Scale</label>
+              <label className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                Scale
+              </label>
               <span className="text-xs font-bold text-pink-700 bg-pink-100 px-1.5 py-0.5 rounded">
                 {((selectedVideo.effects.scale ?? 1.0) * 100).toFixed(0)}%
               </span>
@@ -148,7 +149,9 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
           {/* Speed */}
           <div className="p-2 bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-700 dark:to-gray-600 rounded-lg border border-pink-200 dark:border-pink-500/30">
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-semibold text-gray-800 dark:text-gray-200">Speed</label>
+              <label className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                Speed
+              </label>
               <span className="text-xs font-bold text-pink-700 bg-pink-100 px-1.5 py-0.5 rounded">
                 {(selectedVideo.effects.speed ?? 1).toFixed(1)}x
               </span>
@@ -172,7 +175,9 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
           {/* Position X Control */}
           <div className="p-2 bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-700 dark:to-gray-600 rounded-lg border border-pink-200 dark:border-pink-500/30">
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-semibold text-gray-800 dark:text-gray-200">X Pos</label>
+              <label className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                X Pos
+              </label>
               <span className="text-xs font-bold text-pink-700 bg-pink-100 px-1.5 py-0.5 rounded">
                 {(selectedVideo.effects.positionX ?? 0).toFixed(0)}%
               </span>
@@ -193,7 +198,9 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
           {/* Position Y Control */}
           <div className="p-2 bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-700 dark:to-gray-600 rounded-lg border border-pink-200 dark:border-pink-500/30">
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-semibold text-gray-800 dark:text-gray-200">Y Pos</label>
+              <label className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                Y Pos
+              </label>
               <span className="text-xs font-bold text-pink-700 bg-pink-100 px-1.5 py-0.5 rounded">
                 {(selectedVideo.effects.positionY ?? 0).toFixed(0)}%
               </span>
@@ -215,7 +222,9 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
         {/* Blur - Full Width */}
         <div className="p-2 bg-gradient-to-r from-gray-50 to-pink-50 rounded-lg border border-pink-200">
           <div className="flex items-center justify-between mb-1">
-            <label className="text-xs font-semibold text-gray-800 dark:text-gray-200">Blur Effect</label>
+            <label className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+              Blur Effect
+            </label>
             <span className="text-xs font-bold text-pink-700 bg-pink-100 px-1.5 py-0.5 rounded">
               {selectedVideo.effects.blur}px
             </span>
@@ -293,13 +302,17 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
           background: linear-gradient(135deg, #ec4899, #f43f5e);
           cursor: pointer;
           border: 2px solid #ffffff;
-          box-shadow: 0 2px 4px rgba(236, 72, 153, 0.3), 0 0 0 1px rgba(236, 72, 153, 0.2);
+          box-shadow:
+            0 2px 4px rgba(236, 72, 153, 0.3),
+            0 0 0 1px rgba(236, 72, 153, 0.2);
           transition: all 0.2s ease;
         }
 
         .slider::-webkit-slider-thumb:hover {
           transform: scale(1.1);
-          box-shadow: 0 3px 6px rgba(236, 72, 153, 0.4), 0 0 0 2px rgba(236, 72, 153, 0.3);
+          box-shadow:
+            0 3px 6px rgba(236, 72, 153, 0.4),
+            0 0 0 2px rgba(236, 72, 153, 0.3);
         }
 
         .slider::-moz-range-thumb {
@@ -309,7 +322,9 @@ export const EffectsPanel: React.FC<EffectsPanelProps> = ({
           background: linear-gradient(135deg, #ec4899, #f43f5e);
           cursor: pointer;
           border: 2px solid #ffffff;
-          box-shadow: 0 2px 4px rgba(236, 72, 153, 0.3), 0 0 0 1px rgba(236, 72, 153, 0.2);
+          box-shadow:
+            0 2px 4px rgba(236, 72, 153, 0.3),
+            0 0 0 1px rgba(236, 72, 153, 0.2);
         }
 
         .slider::-webkit-slider-track {

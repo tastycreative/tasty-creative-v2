@@ -1,6 +1,5 @@
 import { Composition, registerRoot } from "remotion";
 import VideoComposition from "../components/gif-maker-3/player/VideoComposition";
-import { Clip, TextOverlay, BlurOverlay } from "../types/types";
 
 export const RemotionRoot: React.FC = () => {
   // Default empty composition; runtime props come from renderer inputProps

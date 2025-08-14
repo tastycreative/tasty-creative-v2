@@ -9,7 +9,6 @@ import {
   Download,
   SlidersHorizontal,
 } from "lucide-react";
-import { Clip, TextOverlay, BlurOverlay } from "@/types/types";
 import TransportControls from "./TransportControls";
 import { PlayerRef } from "@remotion/player";
 

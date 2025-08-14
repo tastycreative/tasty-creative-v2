@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { Clip } from "@/types/types";
 
 interface TemplateImagesProps {
   clips: Clip[];

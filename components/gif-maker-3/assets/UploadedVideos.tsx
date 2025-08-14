@@ -2,7 +2,6 @@
 
 import React from "react";
 import { X } from "lucide-react";
-import { Clip, TextOverlay } from "@/types/types";
 
 interface UploadedVideo {
   id: string;
@@ -49,9 +48,7 @@ const UploadedVideos: React.FC<UploadedVideosProps> = ({
 
   return (
     <div className="mb-4">
-      <h3 className="text-sm font-medium text-slate-300 mb-3">
-        Your Videos
-      </h3>
+      <h3 className="text-sm font-medium text-slate-300 mb-3">Your Videos</h3>
       <div className="space-y-3">
         {uploadedVideos.map((video) => (
           <div

@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import heicConvert from "heic-convert";
 
+export const runtime = "nodejs";
+
 export const dynamic = "force-dynamic";
 
 interface FileMetadata {

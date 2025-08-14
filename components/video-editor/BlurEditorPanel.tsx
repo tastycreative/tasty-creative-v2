@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { SelectiveBlurRegion, VideoSequenceItem } from "@/types/video";
 import { X, Trash2, Circle, Square, Eye, EyeOff } from "lucide-react";
 
 interface BlurEditorPanelProps {
@@ -27,7 +26,7 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [initialRegion, setInitialRegion] =
     useState<SelectiveBlurRegion | null>(null);
-  const [videoAspectRatio, setVideoAspectRatio] = useState<number>(16/9);
+  const [videoAspectRatio, setVideoAspectRatio] = useState<number>(16 / 9);
 
   // Create video element from video file and get aspect ratio
   useEffect(() => {
@@ -35,7 +34,7 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
       const video = videoRef.current;
       if (video) {
         video.src = videoElement.url;
-        video.addEventListener('loadedmetadata', () => {
+        video.addEventListener("loadedmetadata", () => {
           if (video.videoWidth && video.videoHeight) {
             setVideoAspectRatio(video.videoWidth / video.videoHeight);
           }
@@ -55,7 +54,7 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
     try {
       // Use the calculated video aspect ratio
       const aspectRatio = videoAspectRatio;
-      
+
       const maxWidth = 200;
       const maxHeight = 80;
 
@@ -126,20 +125,20 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
       } else {
         const centerX = x + width / 2;
         const centerY = y + height / 2;
-        const rotation = (region.rotation || 0) * Math.PI / 180;
+        const rotation = ((region.rotation || 0) * Math.PI) / 180;
 
         ctx.save();
         ctx.translate(centerX, centerY);
         ctx.rotate(rotation);
         ctx.translate(-width / 2, -height / 2);
-        
+
         ctx.fillRect(0, 0, width, height);
         ctx.strokeRect(0, 0, width, height);
 
         // Draw resize handle for rectangle
         ctx.fillStyle = "#ec4899";
         ctx.fillRect(width - 8, height - 8, 8, 8);
-        
+
         ctx.restore();
       }
 
@@ -312,7 +311,7 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
                 className={`max-w-full max-h-20 transition-all duration-200 cursor-${
                   isDragging || isResizing ? "grabbing" : "pointer"
                 } hover:brightness-110`}
-                style={{ display: 'block', margin: '0 auto' }}
+                style={{ display: "block", margin: "0 auto" }}
               />
               {(isDragging || isResizing) && (
                 <div className="absolute top-2 left-2 px-2 py-1 bg-pink-500 text-white text-xs rounded-md">
@@ -501,11 +500,11 @@ export const BlurEditorPanel: React.FC<BlurEditorPanelProps> = ({
           </div>
         </div>
       </div>
-      
+
       {/* Hidden video element for aspect ratio calculation */}
       <video
         ref={videoRef}
-        style={{ display: 'none' }}
+        style={{ display: "none" }}
         muted
         preload="metadata"
       />

@@ -1,5 +1,4 @@
 import { useState, useCallback } from "react";
-import { Clip } from "@/types/types";
 import { EDITOR_FPS } from "@/utils/fps";
 
 interface UploadedFile {

@@ -19,7 +19,6 @@ import React, {
 } from "react";
 import { Film } from "lucide-react";
 
-import { TextOverlay } from "@/types/types";
 import { VaultPicker } from "../video-editor/VaultPicker";
 import { CanvasTimeline } from "./canvas-timeline";
 import { TextOverlayComponent } from "./text-overlay";

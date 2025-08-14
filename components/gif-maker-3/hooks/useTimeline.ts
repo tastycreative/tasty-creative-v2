@@ -1,5 +1,4 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Clip, TextOverlay, BlurOverlay } from "@/types/types";
 import { PlayerRef } from "@remotion/player";
 
 export const useTimeline = () => {

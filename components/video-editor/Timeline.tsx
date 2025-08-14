@@ -8,7 +8,6 @@ import React, {
   useRef,
 } from "react";
 import { useDebouncedCallback } from "use-debounce";
-import { VideoSequenceItem, SelectiveBlurRegion } from "@/types/video";
 import {
   Play,
   Pause,
@@ -215,7 +214,35 @@ const extractVideoFramesProgressively = (
               console.warn(`Frame extraction error at time ${time}:`, error);
               // Retry on canvas errors too
               if (retryCount < 2) {
-                setTimeout(() => {
+                setTimeout(
+                  () => {
+                    extractFrame(
+                      vid,
+                      canvas,
+                      ctx,
+                      time,
+                      width,
+                      height,
+                      quality,
+                      retryCount + 1
+                    )
+                      .then(resolve)
+                      .catch(() => resolve(null));
+                  },
+                  1000 + retryCount * 500
+                ); // Progressive delay: 1s, 1.5s, 2s
+              } else {
+                resolve(null);
+              }
+            }
+          };
+
+          // Add error handler for video seeking
+          const errorHandler = () => {
+            clearTimeout(timeout);
+            if (retryCount < 2) {
+              setTimeout(
+                () => {
                   extractFrame(
                     vid,
                     canvas,
@@ -228,31 +255,9 @@ const extractVideoFramesProgressively = (
                   )
                     .then(resolve)
                     .catch(() => resolve(null));
-                }, 1000 + (retryCount * 500)); // Progressive delay: 1s, 1.5s, 2s
-              } else {
-                resolve(null);
-              }
-            }
-          };
-
-          // Add error handler for video seeking
-          const errorHandler = () => {
-            clearTimeout(timeout);
-            if (retryCount < 2) {
-              setTimeout(() => {
-                extractFrame(
-                  vid,
-                  canvas,
-                  ctx,
-                  time,
-                  width,
-                  height,
-                  quality,
-                  retryCount + 1
-                )
-                  .then(resolve)
-                  .catch(() => resolve(null));
-              }, 1000 + (retryCount * 500)); // Progressive delay: 1s, 1.5s, 2s
+                },
+                1000 + retryCount * 500
+              ); // Progressive delay: 1s, 1.5s, 2s
             } else {
               resolve(null);
             }
@@ -329,10 +334,16 @@ const extractVideoFramesProgressively = (
             });
 
             // Add timeout to prevent hanging batches - increased for concurrent processing
-            const timeoutDuration = 20000 + (globalExtractionManager.activeExtractions.size * 5000); // Dynamic timeout based on concurrent extractions
+            const timeoutDuration =
+              20000 + globalExtractionManager.activeExtractions.size * 5000; // Dynamic timeout based on concurrent extractions
             const timeoutPromise = new Promise((_, reject) =>
               setTimeout(
-                () => reject(new Error(`Batch timeout at ${i} after ${timeoutDuration}ms`)),
+                () =>
+                  reject(
+                    new Error(
+                      `Batch timeout at ${i} after ${timeoutDuration}ms`
+                    )
+                  ),
                 timeoutDuration
               )
             );
@@ -340,11 +351,15 @@ const extractVideoFramesProgressively = (
             const batchResults = await Promise.race([
               Promise.allSettled(batchPromises), // Use allSettled to get partial results
               timeoutPromise,
-            ]).then(results => {
+            ]).then((results) => {
               // If we get timeout, return empty array to continue
               if (results instanceof Error) return [];
               // Extract successful results from allSettled
-              return Array.isArray(results) ? results.map(r => r.status === 'fulfilled' ? r.value : null) : [];
+              return Array.isArray(results)
+                ? results.map((r) =>
+                    r.status === "fulfilled" ? r.value : null
+                  )
+                : [];
             });
 
             batchResults.forEach((frame, j) => {
@@ -369,7 +384,7 @@ const extractVideoFramesProgressively = (
               error
             );
             // Add a small delay before next batch to reduce resource pressure
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise((resolve) => setTimeout(resolve, 200));
             // Continue with next batch instead of failing entire extraction
           }
         }

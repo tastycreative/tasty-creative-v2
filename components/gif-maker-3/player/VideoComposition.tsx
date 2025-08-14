@@ -2,7 +2,6 @@
 
 import React, { memo, useMemo } from "react";
 import { Sequence, Video, Img } from "remotion";
-import { Clip, TextOverlay, BlurOverlay } from "../../../types/types";
 import { TextOverlayComponent } from "../text-overlay";
 import { BlurOverlayComponent } from "../blur-overlay";
 

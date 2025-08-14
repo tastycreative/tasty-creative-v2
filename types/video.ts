@@ -1,4 +1,4 @@
-export interface VideoEffects {
+interface VideoEffects {
   blur: number;
   speed: number; // Video playback speed multiplier (0.5 = half speed, 2.0 = double speed)
   selectiveBlur?: SelectiveBlurRegion[]; // Optional selective blur regions
@@ -7,7 +7,7 @@ export interface VideoEffects {
   positionY: number; // Y position offset as percentage (-100 to 100)
 }
 
-export interface SelectiveBlurRegion {
+interface SelectiveBlurRegion {
   id: string;
   x: number; // X position as percentage (0-100)
   y: number; // Y position as percentage (0-100)
@@ -18,7 +18,7 @@ export interface SelectiveBlurRegion {
   rotation?: number; // Rotation angle in degrees (0-360), only for rectangles
 }
 
-export interface VideoSequenceItem {
+interface VideoSequenceItem {
   id: string;
   file: File;
   url: string;
@@ -32,7 +32,7 @@ export interface VideoSequenceItem {
   gridId?: string; // Which grid this video belongs to (for side-by-side layout)
 }
 
-export interface ExportSettings {
+interface ExportSettings {
   fps: number;
   width: number;
   height: number;
@@ -43,12 +43,12 @@ export interface ExportSettings {
   forceSquare: boolean; // Force square aspect ratio output
 }
 
-export interface TimelinePosition {
+interface TimelinePosition {
   currentTime: number;
   totalDuration: number;
 }
 
-export interface DragItem {
+interface DragItem {
   id: string;
   index: number;
   type: string;

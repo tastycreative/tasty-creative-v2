@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { Scissors, Check, X, RotateCcw, Play, Pause } from "lucide-react";
-import type { VideoSequenceItem } from "@/types/video";
 
 interface TrimmerPanelProps {
   video: VideoSequenceItem;
@@ -478,9 +477,7 @@ export const TrimmerPanel: React.FC<TrimmerPanelProps> = ({
               <h3 className="text-lg font-semibold text-gray-700">
                 Trim Video
               </h3>
-              <p className="text-sm text-gray-600">
-                {video.file.name}
-              </p>
+              <p className="text-sm text-gray-600">{video.file.name}</p>
             </div>
           </div>
 
@@ -525,9 +522,7 @@ export const TrimmerPanel: React.FC<TrimmerPanelProps> = ({
           {/* Trim Timeline */}
           <div className="space-y-3 pb-8">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">
-                Trim Range
-              </span>
+              <span className="text-gray-600">Trim Range</span>
               <span className="text-gray-700 font-medium">
                 {formatTime(trimmedDuration)} selected
               </span>
@@ -667,9 +662,7 @@ export const TrimmerPanel: React.FC<TrimmerPanelProps> = ({
             {/* Trim Info */}
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="bg-pink-50 rounded-lg p-3">
-                <div className="text-gray-600 mb-1">
-                  Start Time
-                </div>
+                <div className="text-gray-600 mb-1">Start Time</div>
                 <div className="font-mono text-lg text-pink-600">
                   {formatTime(startTime)}
                 </div>
@@ -682,9 +675,7 @@ export const TrimmerPanel: React.FC<TrimmerPanelProps> = ({
               </div>
 
               <div className="bg-pink-50 rounded-lg p-3">
-                <div className="text-gray-600 mb-1">
-                  End Time
-                </div>
+                <div className="text-gray-600 mb-1">End Time</div>
                 <div className="font-mono text-lg text-pink-600">
                   {formatTime(endTime)}
                 </div>

@@ -346,7 +346,7 @@ interface ClientData {
 }
 
 // Video Editor Types
-export interface Clip {
+interface Clip {
   id: string;
   start: number;
   duration: number;
@@ -364,7 +364,7 @@ export interface Clip {
   rotation?: number;
 }
 
-export interface TextOverlay {
+interface TextOverlay {
   id: string;
   start: number;
   duration: number;
@@ -385,7 +385,7 @@ export interface TextOverlay {
   rotation?: number;
 }
 
-export interface BlurOverlay {
+interface BlurOverlay {
   id: string;
   start: number;
   duration: number;

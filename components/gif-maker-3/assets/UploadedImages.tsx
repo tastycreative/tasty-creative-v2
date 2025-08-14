@@ -2,7 +2,6 @@
 
 import React from "react";
 import { X } from "lucide-react";
-import { Clip } from "@/types/types";
 
 interface UploadedImage {
   id: string;

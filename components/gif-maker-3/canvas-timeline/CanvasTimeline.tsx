@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useRef, useEffect, useState, useCallback } from "react";
-import { Clip, TextOverlay, BlurOverlay } from "@/types/types";
 
 interface CanvasTimelineProps {
   clips: Clip[];

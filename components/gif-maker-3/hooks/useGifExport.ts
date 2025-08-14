@@ -1,5 +1,4 @@
 import { useState, useCallback } from "react";
-import { Clip, TextOverlay, BlurOverlay } from "@/types/types";
 
 interface ExportProgressEvent {
   type: "progress" | "complete" | "error";

@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { Clip, TextOverlay } from "@/types/types";
 
 interface TimelineItemProps {
   item: Clip | TextOverlay;
@@ -10,7 +9,12 @@ interface TimelineItemProps {
   totalDuration: number;
 }
 
-const TimelineItem: React.FC<TimelineItemProps> = ({ item, type, index, totalDuration }) => {
+const TimelineItem: React.FC<TimelineItemProps> = ({
+  item,
+  type,
+  index,
+  totalDuration,
+}) => {
   // Different colors for video vs image clips
   let bgColor = "bg-purple-500"; // default for text
   if (type === "clip" && "type" in item) {

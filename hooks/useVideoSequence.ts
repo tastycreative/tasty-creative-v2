@@ -1,9 +1,4 @@
 import { useState, useCallback, useRef } from "react";
-import {
-  VideoSequenceItem,
-  VideoEffects,
-  SelectiveBlurRegion,
-} from "@/types/video";
 
 export const useVideoSequence = () => {
   const [videos, setVideos] = useState<VideoSequenceItem[]>([]);
