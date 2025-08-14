@@ -17,7 +17,8 @@ export const useGifExport = () => {
       textOverlays: TextOverlay[],
       blurOverlays: BlurOverlay[],
       clipEffects: Record<string, any>,
-      contentDuration: number
+      contentDuration: number,
+      opts?: { playbackSpeed?: number }
     ) => {
       try {
         setIsExporting(true);
@@ -52,7 +53,8 @@ export const useGifExport = () => {
           textOverlays,
           blurOverlays,
           clipEffects,
-          contentDuration
+          contentDuration,
+          opts
         );
       } catch (error: any) {
         console.error("GIF export failed:", error);
@@ -71,15 +73,20 @@ export const useGifExport = () => {
       textOverlays: TextOverlay[],
       blurOverlays: BlurOverlay[],
       clipEffects: Record<string, any>,
-      contentDuration: number
+      contentDuration: number,
+      opts?: { playbackSpeed?: number }
     ) => {
       // Optimized settings for performance
+      const playbackSpeed = Math.max(
+        0.25,
+        Math.min(4, Number(opts?.playbackSpeed || 1))
+      );
       const fps = 15; // Reduced from 30 for faster processing
       const outWidth = 480; // Reduced resolution
       const outHeight = Math.round((outWidth * 1080) / 1920);
       const totalFrames = Math.max(
         1,
-        Math.round(((contentDuration || 1) / 30) * fps)
+        Math.round((((contentDuration || 1) / 30) * fps) / playbackSpeed)
       );
 
       // Create canvas
@@ -163,7 +170,9 @@ export const useGifExport = () => {
 
       // Render frames with progress updates
       for (let frameIndex = 0; frameIndex < totalFrames; frameIndex++) {
-        const timelineFrame = Math.round((frameIndex * 30) / fps);
+        const timelineFrame = Math.round(
+          ((frameIndex * 30) / fps) * playbackSpeed
+        );
 
         // Clear canvas
         ctx.fillStyle = "#000";
@@ -182,7 +191,12 @@ export const useGifExport = () => {
               timelineFrame -
               activeVideoClip.start +
               (activeVideoClip.startFrom || 0);
-            const videoTime = Math.max(0, localFrame / 30 - 0.01);
+            // Map timeline frames to source video time (no per-clip speed)
+            let videoTime = Math.max(0, localFrame / 30 - 0.01);
+            if (!Number.isNaN(video.duration) && video.duration > 0) {
+              const maxTime = Math.max(0, video.duration - 0.05);
+              videoTime = Math.min(videoTime, maxTime);
+            }
 
             try {
               video.currentTime = videoTime;

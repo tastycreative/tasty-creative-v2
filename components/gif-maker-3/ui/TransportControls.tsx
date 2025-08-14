@@ -9,6 +9,7 @@ interface TransportControlsProps {
   currentFrame: number;
   totalDuration: number;
   onFrameChange?: (frame: number) => void;
+  playbackSpeed?: number;
 }
 
 const TransportControls: React.FC<TransportControlsProps> = ({
@@ -16,6 +17,7 @@ const TransportControls: React.FC<TransportControlsProps> = ({
   currentFrame,
   totalDuration,
   onFrameChange,
+  playbackSpeed,
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -45,7 +47,8 @@ const TransportControls: React.FC<TransportControlsProps> = ({
   }, [playerRef]);
   const handlePrevious = () => {
     if (playerRef.current) {
-      const newFrame = Math.max(0, currentFrame - 30);
+      const step = 30 * (playbackSpeed || 1);
+      const newFrame = Math.max(0, Math.round(currentFrame - step));
       playerRef.current.seekTo(newFrame);
       onFrameChange?.(newFrame);
     }
@@ -63,7 +66,11 @@ const TransportControls: React.FC<TransportControlsProps> = ({
 
   const handleNext = () => {
     if (playerRef.current) {
-      const newFrame = Math.min(totalDuration - 1, currentFrame + 30);
+      const step = 30 * (playbackSpeed || 1);
+      const newFrame = Math.min(
+        totalDuration - 1,
+        Math.round(currentFrame + step)
+      );
       playerRef.current.seekTo(newFrame);
       onFrameChange?.(newFrame);
     }
