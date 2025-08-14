@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect, useState, useCallback } from "react";
+import { useTheme } from "next-themes";
 
 interface CanvasTimelineProps {
   clips: Clip[];
@@ -93,6 +94,53 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
   onTimelineClick,
   onSplitClip,
 }) => {
+  const { theme } = useTheme();
+  const isDarkMode = theme === "dark";
+
+  // Theme-aware color system
+  const getThemeColors = () => ({
+    background: {
+      primary: isDarkMode ? "#1E293B" : "#F8FAFC",
+      secondary: isDarkMode ? "#0F172A" : "#F1F5F9",
+    },
+    track: {
+      background: isDarkMode ? "#1A202C" : "#FFFFFF",
+      alternateBackground: isDarkMode ? "#171923" : "#F9FAFB",
+      separator: isDarkMode ? "#374151" : "#E5E7EB",
+      highlight: isDarkMode ? "#1F2937" : "#F3F4F6",
+    },
+    labels: {
+      background: isDarkMode ? "#374151" : "#E5E7EB",
+      backgroundGradient: isDarkMode ? "#475569" : "#D1D5DB",
+      text: isDarkMode ? "#F1F5F9" : "#374151",
+      border: isDarkMode ? "#6B7280" : "#9CA3AF",
+    },
+    ruler: {
+      background: isDarkMode ? "#475569" : "#E5E7EB",
+      backgroundGradient: isDarkMode ? "#374151" : "#D1D5DB",
+      majorTick: isDarkMode ? "#E2E8F0" : "#6B7280",
+      minorTick: isDarkMode ? "#CBD5E1" : "#9CA3AF",
+      text: isDarkMode ? "#F1F5F9" : "#374151",
+      border: isDarkMode ? "#6B7280" : "#9CA3AF",
+    },
+    items: {
+      border: isDarkMode ? "rgba(255, 255, 255, 0.3)" : "rgba(0, 0, 0, 0.2)",
+      selection: isDarkMode
+        ? "rgba(255,255,255,0.95)"
+        : "rgba(59, 130, 246, 0.8)",
+      selectionGlow: isDarkMode
+        ? "rgba(255,255,255,0.6)"
+        : "rgba(59, 130, 246, 0.4)",
+      text: isDarkMode ? "#FFFFFF" : "#374151",
+    },
+    filmstrip: {
+      background: isDarkMode ? "#1f2937" : "#E5E7EB",
+      cellEven: isDarkMode ? "#0b1220" : "#F3F4F6",
+      cellOdd: isDarkMode ? "#111827" : "#FFFFFF",
+    },
+  });
+
+  const colors = getThemeColors();
   // Layered canvases: base for tracks/items, overlay for playhead/interaction
   const baseCanvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -250,8 +298,16 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
 
             // Determine number of frames using ~0.5s cadence across the clip segment
             const FPS = 30;
+            const speed = Math.max(
+              0.25,
+              Math.min(4, Number((clip as any).speed || 1))
+            );
             const sourceStartSec = (clip.startFrom || 0) / FPS;
-            const clipDurationSec = Math.max(0.001, (clip.duration || 0) / FPS);
+            // When sped up (>1), we traverse source faster; when slowed (<1), slower
+            const clipDurationSec = Math.max(
+              0.001,
+              ((clip.duration || 0) / FPS) * (speed || 1)
+            );
             const segmentStart = Math.max(
               0,
               Math.min(sourceStartSec, Math.max(0.001, video.duration - 0.1))
@@ -764,7 +820,7 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
     height: number
   ) => {
     // Fallback to filmstrip if thumbnail not available
-    ctx.fillStyle = "#1f2937"; // slate-800
+    ctx.fillStyle = colors.filmstrip.background;
     ctx.beginPath();
     ctx.roundRect(x, y, width, height, 6);
     ctx.fill();
@@ -776,13 +832,22 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
     const cellW = (width - 8) / cells;
     for (let i = 0; i < cells; i++) {
       const cx = x + 4 + i * cellW;
-      ctx.fillStyle = i % 2 === 0 ? "#0b1220" : "#111827"; // alternating darks
+      ctx.fillStyle =
+        i % 2 === 0 ? colors.filmstrip.cellEven : colors.filmstrip.cellOdd;
       ctx.fillRect(cx, stripY, cellW - 2, stripH);
     }
     // top and bottom shine
     const grad = ctx.createLinearGradient(0, stripY, 0, stripY + stripH);
-    grad.addColorStop(0, "rgba(255,255,255,0.06)");
-    grad.addColorStop(1, "rgba(255,255,255,0.02)");
+    const shineIntensity = isDarkMode ? 0.06 : 0.15;
+    const shineFade = isDarkMode ? 0.02 : 0.05;
+    grad.addColorStop(
+      0,
+      `rgba(${isDarkMode ? "255,255,255" : "0,0,0"},${shineIntensity})`
+    );
+    grad.addColorStop(
+      1,
+      `rgba(${isDarkMode ? "255,255,255" : "0,0,0"},${shineFade})`
+    );
     ctx.fillStyle = grad;
     ctx.fillRect(x + 4, stripY, width - 8, stripH);
   };
@@ -864,20 +929,20 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
 
     // Draw background with gradient
     const bgGradient = ctx.createLinearGradient(0, 0, 0, canvasSize.height);
-    bgGradient.addColorStop(0, "#1E293B");
-    bgGradient.addColorStop(1, "#0F172A");
+    bgGradient.addColorStop(0, colors.background.primary);
+    bgGradient.addColorStop(1, colors.background.secondary);
     ctx.fillStyle = bgGradient;
     ctx.fillRect(0, 0, canvasSize.width, canvasSize.height);
 
     // Draw track labels with modern styling
     const labelGradient = ctx.createLinearGradient(0, 0, TRACK_LABEL_WIDTH, 0);
-    labelGradient.addColorStop(0, "#374151");
-    labelGradient.addColorStop(1, "#475569");
+    labelGradient.addColorStop(0, colors.labels.background);
+    labelGradient.addColorStop(1, colors.labels.backgroundGradient);
     ctx.fillStyle = labelGradient;
     ctx.fillRect(0, 0, TRACK_LABEL_WIDTH, canvasSize.height);
 
     // Add subtle border to track labels
-    ctx.strokeStyle = "#6B7280";
+    ctx.strokeStyle = colors.labels.border;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(TRACK_LABEL_WIDTH - 0.5, 0);
@@ -885,7 +950,7 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
     ctx.stroke();
 
     // Draw track label text with better typography
-    ctx.fillStyle = "#F1F5F9";
+    ctx.fillStyle = colors.labels.text;
     ctx.font = "bold 11px system-ui, -apple-system, sans-serif";
     ctx.textAlign = "center";
 
@@ -945,10 +1010,10 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
         canvasSize.width,
         y
       );
-      separatorGradient.addColorStop(0, "#1F2937");
-      separatorGradient.addColorStop(0.2, "#374151");
-      separatorGradient.addColorStop(0.8, "#374151");
-      separatorGradient.addColorStop(1, "#1F2937");
+      separatorGradient.addColorStop(0, colors.track.highlight);
+      separatorGradient.addColorStop(0.2, colors.track.separator);
+      separatorGradient.addColorStop(0.8, colors.track.separator);
+      separatorGradient.addColorStop(1, colors.track.highlight);
 
       ctx.strokeStyle = separatorGradient;
       ctx.lineWidth = 1;
@@ -959,7 +1024,8 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
 
       // Add subtle highlight line above separator
       if (i > 0) {
-        ctx.strokeStyle = "rgba(148, 163, 184, 0.1)";
+        const highlightOpacity = isDarkMode ? 0.1 : 0.2;
+        ctx.strokeStyle = `rgba(${isDarkMode ? "148, 163, 184" : "107, 114, 128"}, ${highlightOpacity})`;
         ctx.lineWidth = 0.5;
         ctx.beginPath();
         ctx.moveTo(0, y - 1);
@@ -977,13 +1043,13 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
     const secondWidth = timelineWidth / (effectiveTotal / 30); // 30 fps
 
     const rulerGradient = ctx.createLinearGradient(0, 0, 0, RULER_HEIGHT);
-    rulerGradient.addColorStop(0, "#475569");
-    rulerGradient.addColorStop(1, "#374151");
+    rulerGradient.addColorStop(0, colors.ruler.background);
+    rulerGradient.addColorStop(1, colors.ruler.backgroundGradient);
     ctx.fillStyle = rulerGradient;
     ctx.fillRect(TRACK_LABEL_WIDTH, 0, timelineWidth, RULER_HEIGHT);
 
     // Add subtle border to ruler
-    ctx.strokeStyle = "#6B7280";
+    ctx.strokeStyle = colors.ruler.border;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(TRACK_LABEL_WIDTH, RULER_HEIGHT - 0.5);
@@ -1002,15 +1068,15 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
 
       // Alternate between slightly different tones for visual distinction
       if (track % 2 === 0) {
-        // Even tracks - slightly warmer tone
-        trackBgGradient.addColorStop(0, "#1E2937");
-        trackBgGradient.addColorStop(0.5, "#1A202C");
-        trackBgGradient.addColorStop(1, "#171923");
+        // Even tracks
+        trackBgGradient.addColorStop(0, colors.track.background);
+        trackBgGradient.addColorStop(0.5, colors.track.highlight);
+        trackBgGradient.addColorStop(1, colors.track.alternateBackground);
       } else {
-        // Odd tracks - slightly cooler tone
-        trackBgGradient.addColorStop(0, "#1E293B");
-        trackBgGradient.addColorStop(0.5, "#1A202C");
-        trackBgGradient.addColorStop(1, "#0F1419");
+        // Odd tracks
+        trackBgGradient.addColorStop(0, colors.track.alternateBackground);
+        trackBgGradient.addColorStop(0.5, colors.track.highlight);
+        trackBgGradient.addColorStop(1, colors.track.background);
       }
 
       ctx.fillStyle = trackBgGradient;
@@ -1045,13 +1111,13 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
         // Create gradient for tick marks
         const tickGradient = ctx.createLinearGradient(x, 0, x, RULER_HEIGHT);
         if (isMajor) {
-          tickGradient.addColorStop(0, "#E2E8F0");
-          tickGradient.addColorStop(1, "#94A3B8");
+          tickGradient.addColorStop(0, colors.ruler.majorTick);
+          tickGradient.addColorStop(1, colors.ruler.minorTick);
           ctx.strokeStyle = tickGradient;
           ctx.lineWidth = 2;
         } else {
-          tickGradient.addColorStop(0, "#CBD5E1");
-          tickGradient.addColorStop(1, "#64748B");
+          tickGradient.addColorStop(0, colors.ruler.minorTick);
+          tickGradient.addColorStop(1, colors.ruler.majorTick);
           ctx.strokeStyle = tickGradient;
           ctx.lineWidth = 1;
         }
@@ -1064,10 +1130,13 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
         // Time labels with text shadow for better readability
         if (isMajor) {
           // Shadow
-          ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+          const shadowColor = isDarkMode
+            ? "rgba(0, 0, 0, 0.5)"
+            : "rgba(255, 255, 255, 0.8)";
+          ctx.fillStyle = shadowColor;
           ctx.fillText(`${second}s`, x + 5, RULER_HEIGHT - 7);
           // Main text
-          ctx.fillStyle = "#F1F5F9";
+          ctx.fillStyle = colors.ruler.text;
           ctx.fillText(`${second}s`, x + 4, RULER_HEIGHT - 8);
         }
       }
@@ -1127,7 +1196,7 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
       }
 
       // Draw border
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
+      ctx.strokeStyle = colors.items.border;
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.roundRect(x, y, width, height, 4);
@@ -1136,16 +1205,19 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
       // Draw selection outline if selected with professional trim handles
       if (isItemSelected(item)) {
         // Main selection border with glow effect
-        ctx.strokeStyle = "rgba(255,255,255,0.95)";
+        ctx.strokeStyle = colors.items.selection;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.roundRect(x, y, width, height, 6);
         ctx.stroke();
 
         // Add subtle glow effect
-        ctx.shadowColor = "rgba(255,255,255,0.3)";
+        const glowColor = isDarkMode
+          ? "rgba(255,255,255,0.3)"
+          : "rgba(59, 130, 246, 0.3)";
+        ctx.shadowColor = glowColor;
         ctx.shadowBlur = 4;
-        ctx.strokeStyle = "rgba(255,255,255,0.6)";
+        ctx.strokeStyle = colors.items.selectionGlow;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.roundRect(x - 1, y - 1, width + 2, height + 2, 7);
@@ -1310,7 +1382,7 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
       }
 
       // Draw label
-      ctx.fillStyle = "#FFFFFF";
+      ctx.fillStyle = colors.items.text;
       ctx.font = "10px system-ui, sans-serif";
       ctx.textAlign = "left";
       const text =
@@ -1328,6 +1400,8 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
     hoverState,
     thumbnailCache,
     loadedThumbnails,
+    theme,
+    colors,
   ]);
 
   // Draw only the playhead on overlay layer
@@ -1738,7 +1812,10 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
   };
 
   return (
-    <div ref={containerRef} className="w-full h-full bg-slate-900 relative">
+    <div
+      ref={containerRef}
+      className="w-full h-full bg-gray-50 dark:bg-slate-900 relative"
+    >
       <canvas
         ref={baseCanvasRef}
         onMouseDown={handleMouseDown}

@@ -154,6 +154,24 @@ export const useTimeline = () => {
     []
   );
 
+  const removeBlurOverlay = useCallback((overlayId: string) => {
+    setBlurOverlays((prev) => prev.filter((b) => b.id !== overlayId));
+    setSelectedBlurOverlayId((prev) => (prev === overlayId ? null : prev));
+  }, []);
+
+  const cloneBlurOverlay = useCallback((overlayId: string) => {
+    setBlurOverlays((prev) => {
+      const blur = prev.find((b) => b.id === overlayId);
+      if (!blur) return prev;
+      const clone: BlurOverlay = {
+        ...blur,
+        id: `blur-${Date.now()}`,
+        start: blur.start + blur.duration,
+      };
+      return [...prev, clone];
+    });
+  }, []);
+
   // Selection management
   const handleSelectionChange = useCallback(
     (itemId: string | null) => {
@@ -238,6 +256,8 @@ export const useTimeline = () => {
     updateTextOverlay,
     addBlurOverlay,
     updateBlurOverlay,
+    removeBlurOverlay,
+    cloneBlurOverlay,
     handleSelectionChange,
     handleCanvasTimelineClick,
     handleZoomIn,

@@ -16,6 +16,7 @@ interface PlayerComponentProps {
   contentDuration: number;
   previewQuality: "LOW" | "MED" | "HIGH";
   onPlayerClick: (e: React.MouseEvent) => void;
+  playbackSpeed: number;
 }
 
 const PlayerComponent: React.FC<PlayerComponentProps> = memo(
@@ -25,6 +26,7 @@ const PlayerComponent: React.FC<PlayerComponentProps> = memo(
     contentDuration,
     previewQuality,
     onPlayerClick,
+    playbackSpeed,
   }) => {
     const compositionWidth =
       previewQuality === "LOW" ? 960 : previewQuality === "MED" ? 1280 : 1920;
@@ -67,7 +69,10 @@ const PlayerComponent: React.FC<PlayerComponentProps> = memo(
             compositionHeight={compositionHeight}
             controls={false}
             fps={EDITOR_FPS}
-            playbackRate={1}
+            playbackRate={Math.max(
+              0.25,
+              Math.min(4, Number(playbackSpeed || 1))
+            )}
             allowFullscreen={false}
             showVolumeControls={false}
             clickToPlay={false}

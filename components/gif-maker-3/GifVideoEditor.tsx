@@ -28,9 +28,11 @@ import { TemplateImages, UploadedVideos, UploadedImages } from "./assets";
 import { UploadZone } from "./upload";
 import { VaultSection } from "./vault";
 import { KeyboardShortcutsModal, TimelineToolbar, SearchBar } from "./ui";
+import Timeline from "./timeline/Timeline";
 import ProgressModal from "./ui/ProgressModal";
 import PlayerComponent from "./PlayerComponent";
 import PlayerControls from "./PlayerControls";
+import { ThemeToggle } from "../admin/ThemeToggle";
 
 // Custom hooks for performance optimization
 import { useTimeline } from "./hooks/useTimeline";
@@ -70,6 +72,8 @@ const GifVideoEditor: React.FC = memo(() => {
     updateTextOverlay,
     addBlurOverlay,
     updateBlurOverlay,
+    removeBlurOverlay,
+    cloneBlurOverlay,
     handleSelectionChange,
     handleCanvasTimelineClick,
     handleZoomIn,
@@ -95,6 +99,7 @@ const GifVideoEditor: React.FC = memo(() => {
   const [previewQuality, setPreviewQuality] = useState<"LOW" | "MED" | "HIGH">(
     "HIGH"
   );
+  const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
 
   // Model selection state (like in VideoEditor)
   const [formData, setFormData] = useState<{ model?: string }>({
@@ -285,7 +290,8 @@ const GifVideoEditor: React.FC = memo(() => {
         textOverlays,
         blurOverlays,
         clipEffects,
-        contentDuration
+        contentDuration,
+        { playbackSpeed }
       );
     } catch (error: unknown) {
       console.error("Export failed:", error);
@@ -346,7 +352,7 @@ const GifVideoEditor: React.FC = memo(() => {
   // Render mobile view message if on a mobile device
   if (isMobile) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-900 text-white p-4">
+      <div className="flex items-center justify-center h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white p-4">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">Mobile View Not Supported</h2>
           <p className="text-md">
@@ -359,43 +365,88 @@ const GifVideoEditor: React.FC = memo(() => {
 
   // Main render
   return (
-    <div className="flex h-screen bg-slate-900 text-white">
-      {/* Left Sidebar - Asset Library */}
-      <div className="w-80 bg-slate-800 border-r border-slate-700 flex flex-col">
-        {/* Header with Tabs */}
-        <div className="border-b border-slate-700">
-          <div className="p-4 pb-0">
-            <h2 className="text-lg font-semibold text-white mb-3">
-              Media Library
-            </h2>
+    <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-900 dark:to-slate-800 text-gray-900 dark:text-white overflow-hidden">
+      {/* Left Sidebar - Modern Media Library */}
+      <div className="w-80 bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700 border-r border-gray-200/60 dark:border-slate-600/50 flex flex-col shadow-xl">
+        {/* Modern Header with Glass Morphism */}
+        <div className="relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-gray-200/30 dark:border-slate-700/30">
+          {/* Gradient Background Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-50/20 via-purple-50/20 to-emerald-50/20 dark:from-blue-900/10 dark:via-purple-900/10 dark:to-emerald-900/10"></div>
+
+          {/* Header Content */}
+          <div className="relative p-5 pb-3">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-emerald-500 flex items-center justify-center shadow-lg">
+                  <Film className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                    Media Library
+                  </h2>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 -mt-0.5">
+                    Manage your assets
+                  </p>
+                </div>
+              </div>
+              <ThemeToggle />
+            </div>
           </div>
-          <div className="flex border-b border-slate-600">
-            <button
-              className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
-                activeMediaTab === "videos"
-                  ? "bg-slate-700 text-white border-b-2 border-blue-500"
-                  : "text-slate-400 hover:text-white"
-              }`}
-              onClick={() => setActiveMediaTab("videos")}
-            >
-              Videos
-            </button>
-            <button
-              className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
-                activeMediaTab === "images"
-                  ? "bg-slate-700 text-white border-b-2 border-blue-500"
-                  : "text-slate-400 hover:text-white"
-              }`}
-              onClick={() => setActiveMediaTab("images")}
-            >
-              Images
-            </button>
+
+          {/* Modern Tab System */}
+          <div className="relative px-5 pb-3">
+            <div className="relative bg-gray-100/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl p-1 shadow-inner flex gap-1">
+              <button
+                className={`relative flex-1 px-4 py-2.5 text-sm font-semibold transition-all duration-300 rounded-lg ${
+                  activeMediaTab === "videos"
+                    ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-lg shadow-blue-500/20 dark:shadow-blue-400/20"
+                    : "text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50"
+                }`}
+                onClick={() => setActiveMediaTab("videos")}
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <Film className="w-4 h-4" />
+                  Videos
+                </span>
+                {activeMediaTab === "videos" && (
+                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
+                )}
+              </button>
+              <button
+                className={`relative flex-1 px-4 py-2.5 text-sm font-semibold transition-all duration-300 rounded-lg ${
+                  activeMediaTab === "images"
+                    ? "bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-lg shadow-emerald-500/20 dark:shadow-emerald-400/20"
+                    : "text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50"
+                }`}
+                onClick={() => setActiveMediaTab("images")}
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                  Images
+                </span>
+                {activeMediaTab === "images" && (
+                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full"></div>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Asset Categories */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-4">
+        {/* Modern Content Area */}
+        <div className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-50/50 to-white dark:from-slate-800/50 dark:to-slate-900">
+          <div className="p-6 space-y-6">
             {activeMediaTab === "videos" && (
               <>
                 <SearchBar placeholder="Search videos..." />
@@ -465,7 +516,7 @@ const GifVideoEditor: React.FC = memo(() => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
         {/* Video Preview Area */}
-        <div className="flex-1 bg-slate-900 relative overflow-hidden">
+        <div className="flex-1 bg-gray-200 dark:bg-slate-900 relative overflow-hidden">
           {/* Full-screen player container */}
           <div className="absolute inset-0">
             {/* Optimized Player Component */}
@@ -475,6 +526,7 @@ const GifVideoEditor: React.FC = memo(() => {
                 compositionInputProps={compositionInputProps}
                 contentDuration={contentDuration}
                 previewQuality={previewQuality}
+                playbackSpeed={playbackSpeed}
                 onPlayerClick={(e) => {
                   // Only deselect if clicking on the container itself, not on interactive overlays
                   if (
@@ -596,9 +648,9 @@ const GifVideoEditor: React.FC = memo(() => {
             {clips.length === 0 &&
               textOverlays.length === 0 &&
               blurOverlays.length === 0 && (
-                <div className="absolute inset-0 flex items-center justify-center bg-slate-800/50">
-                  <div className="text-center text-slate-400">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-700 flex items-center justify-center">
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-100/50 dark:bg-slate-800/50">
+                  <div className="text-center text-gray-600 dark:text-slate-400">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-200 dark:bg-slate-700 flex items-center justify-center">
                       <Film className="w-8 h-8" />
                     </div>
                     <p className="text-lg font-medium mb-2">No content yet</p>
@@ -612,7 +664,7 @@ const GifVideoEditor: React.FC = memo(() => {
         </div>
 
         {/* Timeline Section */}
-        <div className="bg-slate-900 border-t border-slate-700 flex flex-col max-h-[45vh] min-h-[20rem] overflow-y-auto">
+        <div className="bg-gray-100 dark:bg-slate-900 border-t border-gray-200 dark:border-slate-700 flex flex-col max-h-[45vh] min-h-[20rem] overflow-y-auto">
           <TimelineToolbar
             selectedClipId={selectedClipId}
             selectedBlurOverlayId={selectedBlurOverlayId}
@@ -622,10 +674,15 @@ const GifVideoEditor: React.FC = memo(() => {
             currentFrame={currentFrame}
             totalDuration={totalDuration}
             playerRef={playerRef}
+            onClipUpdate={updateClip}
+            playbackSpeed={playbackSpeed}
+            onPlaybackSpeedChange={setPlaybackSpeed}
             onDeleteSelectedClip={deleteSelectedClip}
             onCloneClip={handleCloneClip}
             onAddTextOverlay={addTextOverlay}
             onAddBlurOverlay={addBlurOverlay}
+            onDeleteBlurOverlay={removeBlurOverlay}
+            onCloneBlurOverlay={cloneBlurOverlay}
             onShowShortcuts={handleShowShortcuts}
             onFrameChange={setCurrentFrame}
             onZoomIn={handleZoomIn}
@@ -639,38 +696,40 @@ const GifVideoEditor: React.FC = memo(() => {
             onUpdateTextSettings={handleUpdateTextSettings}
           />
           {/* Preview quality toggle */}
-          <div className="px-3 py-2 border-t border-slate-700 flex items-center gap-2 text-xs text-slate-300">
+          <div className="px-3 py-2 border-t border-gray-200 dark:border-slate-700 flex items-center gap-3 text-xs text-gray-600 dark:text-slate-300">
             <span>Preview quality:</span>
-            <button
-              className={`px-2 py-1 rounded ${
-                previewQuality === "LOW"
-                  ? "bg-slate-700 text-white"
-                  : "bg-slate-800"
-              }`}
-              onClick={() => setPreviewQuality("LOW")}
-            >
-              Low
-            </button>
-            <button
-              className={`px-2 py-1 rounded ${
-                previewQuality === "MED"
-                  ? "bg-slate-700 text-white"
-                  : "bg-slate-800"
-              }`}
-              onClick={() => setPreviewQuality("MED")}
-            >
-              Med
-            </button>
-            <button
-              className={`px-2 py-1 rounded ${
-                previewQuality === "HIGH"
-                  ? "bg-slate-700 text-white"
-                  : "bg-slate-800"
-              }`}
-              onClick={() => setPreviewQuality("HIGH")}
-            >
-              High
-            </button>
+            <div className="flex bg-gray-100 dark:bg-slate-800 rounded-md p-1 gap-1">
+              <button
+                className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${
+                  previewQuality === "LOW"
+                    ? "bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-sm"
+                    : "text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-300"
+                }`}
+                onClick={() => setPreviewQuality("LOW")}
+              >
+                Low
+              </button>
+              <button
+                className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${
+                  previewQuality === "MED"
+                    ? "bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-sm"
+                    : "text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-300"
+                }`}
+                onClick={() => setPreviewQuality("MED")}
+              >
+                Med
+              </button>
+              <button
+                className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${
+                  previewQuality === "HIGH"
+                    ? "bg-white dark:bg-slate-700 text-gray-900 dark:text-white shadow-sm"
+                    : "text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-300"
+                }`}
+                onClick={() => setPreviewQuality("HIGH")}
+              >
+                High
+              </button>
+            </div>
           </div>
 
           {/* Timeline */}
