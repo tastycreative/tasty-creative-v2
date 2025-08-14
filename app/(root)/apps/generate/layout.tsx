@@ -4,7 +4,15 @@ import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Sparkles, Crown, Gamepad2, Zap, Twitter, Film } from "lucide-react";
 
-type TabType = "live" | "vip" | "game" | "ftt" | "twitter" | "gif" | "gif2";
+type TabType =
+  | "live"
+  | "vip"
+  | "game"
+  | "ftt"
+  | "twitter"
+  | "gif"
+  | "gif2"
+  | "gif3";
 
 interface Tab {
   id: TabType;
@@ -83,12 +91,19 @@ export default function GenerateLayout({ children }: GenerateLayoutProps) {
       color: "from-green-500 to-emerald-500",
       href: "/apps/generate/gif",
     },
-     {
+    {
       id: "gif2",
       label: "GIF Maker2",
       icon: Film,
       color: "from-green-500 to-emerald-500",
       href: "/apps/generate/gif2",
+    },
+    {
+      id: "gif3",
+      label: "GIF Maker 3",
+      icon: Film,
+      color: "from-emerald-500 to-teal-500",
+      href: "/apps/generate/gif3",
     },
   ];
 

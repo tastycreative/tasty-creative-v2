@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { SelectiveBlurRegion } from "@/types/video";
 import { Plus, Circle, Square } from "lucide-react";
 
 interface SelectiveBlurPanelProps {
@@ -94,8 +93,6 @@ export const SelectiveBlurPanel: React.FC<SelectiveBlurPanelProps> = ({
           </button>
         </div>
       </div>
-
-
 
       <div className="text-xs text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/10 p-3 rounded-lg border border-purple-200 dark:border-purple-700">
         <div className="flex items-start space-x-2">

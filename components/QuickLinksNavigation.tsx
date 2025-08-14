@@ -23,7 +23,7 @@ const QuicklinksNavigation = () => {
   if(!session) {
     return null
   }
-  if (pathName === "/sign-in" || pathName === "/sign-up") {
+  if (pathName === "/sign-in" || pathName === "/sign-up" || pathName === "/apps/generate/gif3") {
     return null;
   }
 

@@ -1,8 +1,3 @@
-import {
-  VideoSequenceItem,
-  ExportSettings,
-  SelectiveBlurRegion,
-} from "@/types/video";
 import { createFFmpeg } from "@ffmpeg/ffmpeg";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -75,7 +70,6 @@ export const applyVideoEffects = (
   canvas.width = targetWidth;
   canvas.height = targetHeight;
 
-
   // --- Apply scale, positionX, positionY ---
   const videoAspect = video.videoWidth / video.videoHeight;
   // --- COVER LOGIC: always fill and center, may crop ---
@@ -109,7 +103,8 @@ export const applyVideoEffects = (
   ctx.save();
   try {
     // Apply global blur filter (excluding blur if we have selective blur)
-    const hasSelectiveBlur = effects.selectiveBlur && effects.selectiveBlur.length > 0;
+    const hasSelectiveBlur =
+      effects.selectiveBlur && effects.selectiveBlur.length > 0;
     const globalBlur = hasSelectiveBlur ? 0 : effects.blur;
     if (globalBlur > 0) {
       ctx.filter = `blur(${Math.max(0, globalBlur)}px)`;
@@ -137,7 +132,7 @@ export const applyVideoEffects = (
     ctx.drawImage(video, offsetX, offsetY, drawWidth, drawHeight);
   }
   ctx.restore();
-}
+};
 
 // --- Patch: Support side-by-side export in canvasBasedVideoExport ---
 // If videos have gridId, render each grid's video in its half of the canvas
@@ -207,8 +202,11 @@ export const canvasBasedVideoExport = async (
       for (let frame = 0; frame < frameCount; frame++) {
         const normalizedTime = frame / (frameCount - 1);
         const frameTime = trimStart + normalizedTime * trimmedDuration;
-        videoElement.currentTime = Math.min(Math.max(frameTime, trimStart), trimEnd - 0.01);
-        await new Promise<void>(resolve => {
+        videoElement.currentTime = Math.min(
+          Math.max(frameTime, trimStart),
+          trimEnd - 0.01
+        );
+        await new Promise<void>((resolve) => {
           videoElement.onseeked = () => resolve();
           if (videoElement.readyState >= 2) resolve();
         });
@@ -221,7 +219,9 @@ export const canvasBasedVideoExport = async (
         );
         const frameImageData = canvas.toDataURL("image/png");
         const frameData = frameImageData.split(",")[1];
-        const frameBytes = Uint8Array.from(atob(frameData), c => c.charCodeAt(0));
+        const frameBytes = Uint8Array.from(atob(frameData), (c) =>
+          c.charCodeAt(0)
+        );
         const frameFilename = `frame_${currentFrame.toString().padStart(6, "0")}.png`;
         ffmpeg.FS("writeFile", frameFilename, frameBytes);
         frameFiles.push(frameFilename);
@@ -233,7 +233,10 @@ export const canvasBasedVideoExport = async (
     if (onProgress) onProgress(75);
     const outputFilename = `output.${settings.format}`;
     const pixelCount = settings.width * settings.height;
-    const baseBitrate = Math.min(8000, Math.max(2000, Math.floor((pixelCount * 2) / 1000)));
+    const baseBitrate = Math.min(
+      8000,
+      Math.max(2000, Math.floor((pixelCount * 2) / 1000))
+    );
     const qualityMultiplier = settings.quality / 100;
     const targetBitrate = Math.floor(baseBitrate * qualityMultiplier);
     let outputArgs: string[];
@@ -279,9 +282,13 @@ export const canvasBasedVideoExport = async (
     const outputData = ffmpeg.FS("readFile", outputFilename);
     if (onProgress) onProgress(95);
     for (const frameFile of frameFiles) {
-      try { ffmpeg.FS("unlink", frameFile); } catch {}
+      try {
+        ffmpeg.FS("unlink", frameFile);
+      } catch {}
     }
-    try { ffmpeg.FS("unlink", outputFilename); } catch {}
+    try {
+      ffmpeg.FS("unlink", outputFilename);
+    } catch {}
     if (onProgress) onProgress(100);
     const mimeType = settings.format === "mp4" ? "video/mp4" : "video/webm";
     const blob = new Blob([outputData], { type: mimeType });
@@ -298,7 +305,7 @@ export const canvasBasedVideoExport = async (
   // Find max duration across both grids
   const allVideos = [...(grids["grid-1"] || []), ...(grids["grid-2"] || [])];
   const maxDuration = Math.max(
-    ...allVideos.map(v => (v.trimEnd || v.duration) - (v.trimStart || 0))
+    ...allVideos.map((v) => (v.trimEnd || v.duration) - (v.trimStart || 0))
   );
   const fps = settings.fps;
   const totalFrames = Math.ceil(maxDuration * fps);
@@ -306,7 +313,7 @@ export const canvasBasedVideoExport = async (
   // Prepare video elements for each grid
   const gridVideoElements: Record<string, HTMLVideoElement[]> = {};
   for (const gridId of gridKeys) {
-    gridVideoElements[gridId] = grids[gridId].map(v => {
+    gridVideoElements[gridId] = grids[gridId].map((v) => {
       const el = document.createElement("video");
       el.src = v.url;
       el.muted = true;
@@ -317,12 +324,15 @@ export const canvasBasedVideoExport = async (
 
   // Wait for all videos to load
   await Promise.all(
-    Object.values(gridVideoElements).flat().map(
-      v => new Promise<void>((resolve, reject) => {
-        v.onloadeddata = () => resolve();
-        v.onerror = () => reject(new Error("Failed to load video"));
-      })
-    )
+    Object.values(gridVideoElements)
+      .flat()
+      .map(
+        (v) =>
+          new Promise<void>((resolve, reject) => {
+            v.onloadeddata = () => resolve();
+            v.onerror = () => reject(new Error("Failed to load video"));
+          })
+      )
   );
 
   // Prepare canvas
@@ -363,15 +373,18 @@ export const canvasBasedVideoExport = async (
           videoElement = gridVideoElements[gridId][vIdx];
           // Map timeline time to video time, accounting for speed
           const relativeTime = localTimeline - acc;
-          localTimeline = trimStart + (relativeTime * speedMultiplier);
+          localTimeline = trimStart + relativeTime * speedMultiplier;
           break;
         }
         acc += effectiveDuration;
       }
       if (video && videoElement) {
         // Seek video to localTimeline
-        videoElement.currentTime = Math.min(Math.max(localTimeline, 0), (video.trimEnd || video.duration) - 0.01);
-        await new Promise<void>(resolve => {
+        videoElement.currentTime = Math.min(
+          Math.max(localTimeline, 0),
+          (video.trimEnd || video.duration) - 0.01
+        );
+        await new Promise<void>((resolve) => {
           videoElement.onseeked = () => resolve();
           if (videoElement.readyState >= 2) resolve();
         });
@@ -395,7 +408,7 @@ export const canvasBasedVideoExport = async (
     // Save frame
     const frameImageData = canvas.toDataURL("image/png");
     const frameData = frameImageData.split(",")[1];
-    const frameBytes = Uint8Array.from(atob(frameData), c => c.charCodeAt(0));
+    const frameBytes = Uint8Array.from(atob(frameData), (c) => c.charCodeAt(0));
     const frameFilename = `frame_${frame.toString().padStart(6, "0")}.png`;
     ffmpeg.FS("writeFile", frameFilename, frameBytes);
     frameFiles.push(frameFilename);
@@ -406,7 +419,10 @@ export const canvasBasedVideoExport = async (
   if (onProgress) onProgress(75);
   const outputFilename = `output.${settings.format}`;
   const pixelCount = width * height;
-  const baseBitrate = Math.min(8000, Math.max(2000, Math.floor((pixelCount * 2) / 1000)));
+  const baseBitrate = Math.min(
+    8000,
+    Math.max(2000, Math.floor((pixelCount * 2) / 1000))
+  );
   const qualityMultiplier = settings.quality / 100;
   const targetBitrate = Math.floor(baseBitrate * qualityMultiplier);
   let outputArgs: string[];
@@ -452,15 +468,18 @@ export const canvasBasedVideoExport = async (
   const outputData = ffmpeg.FS("readFile", outputFilename);
   if (onProgress) onProgress(95);
   for (const frameFile of frameFiles) {
-    try { ffmpeg.FS("unlink", frameFile); } catch {}
+    try {
+      ffmpeg.FS("unlink", frameFile);
+    } catch {}
   }
-  try { ffmpeg.FS("unlink", outputFilename); } catch {}
+  try {
+    ffmpeg.FS("unlink", outputFilename);
+  } catch {}
   if (onProgress) onProgress(100);
   const mimeType = settings.format === "mp4" ? "video/mp4" : "video/webm";
   const blob = new Blob([outputData], { type: mimeType });
   return blob;
 };
-
 
 export const exportMedia = async (
   videos: VideoSequenceItem[],
@@ -840,7 +859,7 @@ export const exportToGif = async (
     // Preload all videos for all grids
     const gridVideoElements: Record<string, HTMLVideoElement[]> = {};
     for (const gridId of gridKeys) {
-      gridVideoElements[gridId] = grids[gridId].map(v => {
+      gridVideoElements[gridId] = grids[gridId].map((v) => {
         const el = document.createElement("video");
         el.src = v.url;
         el.muted = true;
@@ -849,19 +868,22 @@ export const exportToGif = async (
       });
     }
     await Promise.all(
-      Object.values(gridVideoElements).flat().map(
-        v => new Promise<void>((resolve, reject) => {
-          v.onloadeddata = () => resolve();
-          v.onerror = () => reject(new Error("Failed to load video"));
-        })
-      )
+      Object.values(gridVideoElements)
+        .flat()
+        .map(
+          (v) =>
+            new Promise<void>((resolve, reject) => {
+              v.onloadeddata = () => resolve();
+              v.onerror = () => reject(new Error("Failed to load video"));
+            })
+        )
     );
     if (onProgress) onProgress(10);
 
     // Calculate max duration for both grids
     const allVideos = Object.values(grids).flat();
     const maxDuration = Math.max(
-      ...allVideos.map(v => (v.trimEnd || v.duration) - (v.trimStart || 0))
+      ...allVideos.map((v) => (v.trimEnd || v.duration) - (v.trimStart || 0))
     );
     const fps = settings.fps;
     const totalFrames = Math.ceil(maxDuration * fps);
@@ -892,20 +914,26 @@ export const exportToGif = async (
             const trimEnd = v.trimEnd || v.duration;
             const trimmedDuration = trimEnd - trimStart;
             const effectiveDuration = trimmedDuration / speedMultiplier;
-            if (localTimeline >= acc && localTimeline < acc + effectiveDuration) {
+            if (
+              localTimeline >= acc &&
+              localTimeline < acc + effectiveDuration
+            ) {
               video = v;
               videoElement = gridVideoElements[gridId][vIdx];
               // Map timeline time to video time, accounting for speed
               const relativeTime = localTimeline - acc;
-              localTimeline = trimStart + (relativeTime * speedMultiplier);
+              localTimeline = trimStart + relativeTime * speedMultiplier;
               break;
             }
             acc += effectiveDuration;
           }
           if (video && videoElement) {
             // Seek video to localTimeline
-            videoElement.currentTime = Math.min(Math.max(localTimeline, 0), (video.trimEnd || video.duration) - 0.01);
-            await new Promise<void>(resolve => {
+            videoElement.currentTime = Math.min(
+              Math.max(localTimeline, 0),
+              (video.trimEnd || video.duration) - 0.01
+            );
+            await new Promise<void>((resolve) => {
               videoElement.onseeked = () => resolve();
               if (videoElement.readyState >= 2) resolve();
             });
@@ -957,8 +985,12 @@ export const exportToGif = async (
               const videoSpeedMultiplier = video.effects.speed || 1;
               const videoTrimStart = video.trimStart || 0;
               const videoTrimEnd = video.trimEnd || video.duration;
-              const videoTrimmedDuration = Math.max(0.1, videoTrimEnd - videoTrimStart);
-              const videoEffectiveDuration = videoTrimmedDuration / videoSpeedMultiplier;
+              const videoTrimmedDuration = Math.max(
+                0.1,
+                videoTrimEnd - videoTrimStart
+              );
+              const videoEffectiveDuration =
+                videoTrimmedDuration / videoSpeedMultiplier;
               videoStartTime += videoEffectiveDuration;
             }
             const relativeTime = t - videoStartTime;
@@ -966,10 +998,13 @@ export const exportToGif = async (
             const trimEnd = currentVideo.trimEnd || currentVideo.duration;
             const videoTime = Math.max(
               trimStart,
-              Math.min(trimStart + (relativeTime * speedMultiplier), trimEnd - 0.01)
+              Math.min(
+                trimStart + relativeTime * speedMultiplier,
+                trimEnd - 0.01
+              )
             );
             videoElement.currentTime = videoTime;
-            await new Promise<void>(resolve => {
+            await new Promise<void>((resolve) => {
               videoElement.onseeked = () => resolve();
               if (videoElement.readyState >= 2) resolve();
             });
@@ -1025,4 +1060,3 @@ export const exportToGif = async (
     throw error;
   }
 };
-

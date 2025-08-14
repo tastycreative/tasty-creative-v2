@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { SelectiveBlurRegion } from "@/types/video";
 import { X, Trash2, Circle, Square, Eye, EyeOff } from "lucide-react";
 
 interface BlurEditorModalProps {

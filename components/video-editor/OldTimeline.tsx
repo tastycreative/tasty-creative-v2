@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useMemo, useCallback, useState } from "react";
-import { VideoSequenceItem, SelectiveBlurRegion } from "@/types/video";
 import { Play, Pause, SkipBack, SkipForward, Clock } from "lucide-react";
 import { BlurTimelineOverlay } from "./BlurTimelineOverlay";
 

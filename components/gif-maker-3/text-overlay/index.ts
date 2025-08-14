@@ -1,0 +1,1 @@
+export { default as TextOverlayComponent } from "./TextOverlayComponent";

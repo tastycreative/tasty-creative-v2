@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { VideoSequenceItem, ExportSettings } from "@/types/video";
 import { Download, X, Settings, Film, Loader2 } from "lucide-react";
 import { exportMedia } from "@/lib/videoProcessor";
 
@@ -189,22 +188,16 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         <div className="p-6 space-y-6">
           {/* Video Info */}
           <div className="bg-pink-50 border border-pink-100 rounded-lg p-4">
-            <h3 className="font-medium text-gray-700 mb-2">
-              Source Videos
-            </h3>
+            <h3 className="font-medium text-gray-700 mb-2">Source Videos</h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-gray-600">
-                  Videos:
-                </span>
+                <span className="text-gray-600">Videos:</span>
                 <span className="ml-2 font-medium text-gray-700">
                   {videos.length}
                 </span>
               </div>
               <div>
-                <span className="text-gray-600">
-                  Duration:
-                </span>
+                <span className="text-gray-600">Duration:</span>
                 <span className="ml-2 font-medium text-gray-700">
                   {formatTime(totalDuration)}
                 </span>
@@ -216,9 +209,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
           <div className="space-y-4">
             <div className="flex items-center space-x-2 mb-4">
               <Settings className="w-4 h-4 text-gray-500" />
-              <h3 className="font-medium text-gray-700">
-                Export Settings
-              </h3>
+              <h3 className="font-medium text-gray-700">Export Settings</h3>
             </div>
 
             {/* Format Selection */}
@@ -477,25 +468,19 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             </h4>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-pink-700">
-                  Duration:
-                </span>
+                <span className="text-pink-700">Duration:</span>
                 <span className="ml-2 font-medium text-gray-700">
                   {formatTime(settings.endTime - settings.startTime)}
                 </span>
               </div>
               <div>
-                <span className="text-pink-700">
-                  Est. Size:
-                </span>
+                <span className="text-pink-700">Est. Size:</span>
                 <span className="ml-2 font-medium text-gray-700">
                   ~{estimatedFileSize()} MB
                 </span>
               </div>
               <div>
-                <span className="text-pink-700">
-                  Frames:
-                </span>
+                <span className="text-pink-700">Frames:</span>
                 <span className="ml-2 font-medium text-gray-700">
                   {Math.ceil(
                     (settings.endTime - settings.startTime) * settings.fps
@@ -503,9 +488,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 </span>
               </div>
               <div>
-                <span className="text-pink-700">
-                  Resolution:
-                </span>
+                <span className="text-pink-700">Resolution:</span>
                 <span className="ml-2 font-medium text-gray-700">
                   {settings.width}×{settings.height}
                 </span>
