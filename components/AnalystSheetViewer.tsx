@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 
 interface AnalystSheetViewerProps {
   sheetName: string;
@@ -13,23 +13,64 @@ const AnalystSheetViewer: React.FC<AnalystSheetViewerProps> = ({
   sheetUrl,
   onBack,
 }) => {
+  const [activeSubtab, setActiveSubtab] = useState<"top-performing" | "scraped" | "chatter-submitted" | "mm-ideas">("top-performing");
+
   const handleOpenInNewTab = () => {
     if (sheetUrl && sheetUrl.startsWith("http")) {
       window.open(sheetUrl, "_blank");
     }
   };
 
-  // Static creator notes data
-  const creatorNotesData = [
+  // Static captions data
+  const topPerformingCaptions = [
     {
-      clientRequests: "no request",
-      scheduleStyle: "no request",
-      contentStyle: "",
-      contentDescription: "",
-      lowestPricing: "",
-      notes: "",
-      emojiGuide: "",
-      generalSlang: "",
+      caption: "Sample top performing caption text here...",
+      captionCategory: "Engagement",
+      contentType: "Photo",
+    },
+    {
+      caption: "Another high-performing caption example...",
+      captionCategory: "Promotional",
+      contentType: "Video",
+    },
+  ];
+
+  const scrapedCaptions = [
+    {
+      caption: "Scraped caption example from social media...",
+      captionCategory: "Lifestyle",
+      contentType: "Story",
+    },
+    {
+      caption: "Another scraped caption for reference...",
+      captionCategory: "Entertainment",
+      contentType: "Reel",
+    },
+  ];
+
+  const chatterSubmittedCaptions = [
+    {
+      caption: "Chatter submitted caption idea...",
+      captionCategory: "Interactive",
+      contentType: "Live",
+    },
+    {
+      caption: "Fan-suggested caption content...",
+      captionCategory: "Community",
+      contentType: "Photo",
+    },
+  ];
+
+  const scrapedCaptionsMMIdeas = [
+    {
+      caption: "Mass message idea based on trending content...",
+      captionCategory: "Marketing",
+      descriptionExplanation: "This caption works well for promotional mass messages due to its engaging hook and clear call-to-action.",
+    },
+    {
+      caption: "Another MM idea from scraped content...",
+      captionCategory: "Conversion",
+      descriptionExplanation: "Effective for driving subscriptions by creating curiosity and offering value.",
     },
   ];
 
@@ -87,155 +128,250 @@ const AnalystSheetViewer: React.FC<AnalystSheetViewerProps> = ({
         </div>
       </div>
 
-      {/* Content */}
+      {/* Folder-Style Tab Navigation */}
       <div className="max-w-7xl mx-auto">
-        {/* Creator Notes */}
-        <div className="p-6">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-            Creator Notes
-          </h3>
+        <div className="bg-gray-50 dark:bg-gray-900 pt-6">
+          <div className="px-6">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
+              Caption Categories
+            </h3>
+          </div>
+          <nav className="flex relative ">
+            <button
+              onClick={() => setActiveSubtab("top-performing")}
+              className={`px-6 py-3 transition-all duration-200 flex items-center space-x-3 font-medium relative border-l border-t border-r ${
+                activeSubtab === "top-performing"
+                  ? "bg-white dark:bg-gray-800 text-green-700 dark:text-green-300 border-gray-200 dark:border-gray-600 rounded-t-lg -mb-px z-20"
+                  : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-gray-100 rounded-t-lg border-gray-300 dark:border-gray-600 z-10 border-b border-b-gray-300 dark:border-b-gray-600"
+              } -mr-3`}
+            >
+              <span className="h-3 w-3 bg-green-500 rounded-full flex-shrink-0"></span>
+              <span className="text-sm">Top Performing</span>
+            </button>
+            
+            <button
+              onClick={() => setActiveSubtab("scraped")}
+              className={`px-6 py-3 transition-all duration-200 flex items-center space-x-3 font-medium relative border-l border-t border-r ${
+                activeSubtab === "scraped"
+                  ? "bg-white dark:bg-gray-800 text-blue-700 dark:text-blue-300 border-gray-200 dark:border-gray-600 rounded-t-lg -mb-px z-20"
+                  : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-gray-100 rounded-t-lg border-gray-300 dark:border-gray-600 z-10 border-b border-b-gray-300 dark:border-b-gray-600"
+              } -mr-3`}
+            >
+              <span className="h-3 w-3 bg-blue-500 rounded-full flex-shrink-0"></span>
+              <span className="text-sm">Scraped Captions</span>
+            </button>
+            
+            <button
+              onClick={() => setActiveSubtab("chatter-submitted")}
+              className={`px-6 py-3 transition-all duration-200 flex items-center space-x-3 font-medium relative border-l border-t border-r ${
+                activeSubtab === "chatter-submitted"
+                  ? "bg-white dark:bg-gray-800 text-purple-700 dark:text-purple-300 border-gray-200 dark:border-gray-600 rounded-t-lg -mb-px z-20"
+                  : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-gray-100 rounded-t-lg border-gray-300 dark:border-gray-600 z-10 border-b border-b-gray-300 dark:border-b-gray-600"
+              } -mr-3`}
+            >
+              <span className="h-3 w-3 bg-purple-500 rounded-full flex-shrink-0"></span>
+              <span className="text-sm">Chatter-submitted</span>
+            </button>
+            
+            <button
+              onClick={() => setActiveSubtab("mm-ideas")}
+              className={`px-6 py-3 transition-all duration-200 flex items-center space-x-3 font-medium relative border-l border-t border-r ${
+                activeSubtab === "mm-ideas"
+                  ? "bg-white dark:bg-gray-800 text-orange-700 dark:text-orange-300 border-gray-200 dark:border-gray-600 rounded-t-lg -mb-px z-20"
+                  : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-gray-100 rounded-t-lg border-gray-300 dark:border-gray-600 z-10 border-b border-b-gray-300 dark:border-b-gray-600"
+              }`}
+            >
+              <span className="h-3 w-3 bg-orange-500 rounded-full flex-shrink-0"></span>
+              <span className="text-sm">MM Ideas</span>
+            </button>
+          </nav>
+        </div>
 
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-            {/* Table Header */}
-            <div className="bg-gray-50 dark:bg-gray-700 px-6 py-4 border-b border-gray-200 dark:border-gray-600">
-              <div className="grid grid-cols-1 lg:grid-cols-8 gap-4 text-sm font-medium text-gray-700 dark:text-gray-300">
-                <div>Client Requests:</div>
-                <div>Schedule Style:</div>
-                <div>Content Style / Category:</div>
-                <div>Content Description:</div>
-                <div>Lowest Pricing:</div>
-                <div>Notes:</div>
-                <div>Emoji Guide:</div>
-                <div>General Slang/Words:</div>
-              </div>
-            </div>
-
-            {/* Table Content */}
+        {/* Main Content Area - Connected to Active Tab */}
+        <div className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 border-t-0 shadow-sm ${
+          activeSubtab === "top-performing" 
+            ? "rounded-b-lg rounded-tr-lg rounded-tl-0" 
+            : activeSubtab === "scraped"
+            ? "rounded-b-lg rounded-tr-lg "
+            : activeSubtab === "chatter-submitted"
+            ? "rounded-b-lg rounded-tr-lg "
+            : "rounded-b-lg rounded-tr-lg "
+        }`}>
+          {activeSubtab === "top-performing" && (
             <div className="p-6">
-              {creatorNotesData.map((note, index) => (
-                <div
-                  key={index}
-                  className="grid grid-cols-1 lg:grid-cols-8 gap-4 text-sm"
-                >
-                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded border">
-                    <span className="text-gray-600 dark:text-gray-400 lg:hidden font-medium">
-                      Client Requests:{" "}
-                    </span>
-                    <span className="text-gray-900 dark:text-gray-100">
-                      {note.clientRequests}
-                    </span>
-                  </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded border">
-                    <span className="text-gray-600 dark:text-gray-400 lg:hidden font-medium">
-                      Schedule Style:{" "}
-                    </span>
-                    <span className="text-gray-900 dark:text-gray-100">
-                      {note.scheduleStyle}
-                    </span>
-                  </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded border">
-                    <span className="text-gray-600 dark:text-gray-400 lg:hidden font-medium">
-                      Content Style:{" "}
-                    </span>
-                    <span className="text-gray-900 dark:text-gray-100">
-                      {note.contentStyle || "-"}
-                    </span>
-                  </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded border">
-                    <span className="text-gray-600 dark:text-gray-400 lg:hidden font-medium">
-                      Content Description:{" "}
-                    </span>
-                    <span className="text-gray-900 dark:text-gray-100">
-                      {note.contentDescription || "-"}
-                    </span>
-                  </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded border">
-                    <span className="text-gray-600 dark:text-gray-400 lg:hidden font-medium">
-                      Lowest Pricing:{" "}
-                    </span>
-                    <span className="text-gray-900 dark:text-gray-100">
-                      {note.lowestPricing || "-"}
-                    </span>
-                  </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded border">
-                    <span className="text-gray-600 dark:text-gray-400 lg:hidden font-medium">
-                      Notes:{" "}
-                    </span>
-                    <span className="text-gray-900 dark:text-gray-100">
-                      {note.notes || "-"}
-                    </span>
-                  </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded border">
-                    <span className="text-gray-600 dark:text-gray-400 lg:hidden font-medium">
-                      Emoji Guide:{" "}
-                    </span>
-                    <span className="text-gray-900 dark:text-gray-100">
-                      {note.emojiGuide || "-"}
-                    </span>
-                  </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded border">
-                    <span className="text-gray-600 dark:text-gray-400 lg:hidden font-medium">
-                      General Slang:{" "}
-                    </span>
-                    <span className="text-gray-900 dark:text-gray-100">
-                      {note.generalSlang || "-"}
-                    </span>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
+                <span className="h-3 w-3 bg-green-500 rounded-full mr-3"></span>
+                Top Performing Captions
+              </h3>
+              <div className="overflow-hidden">
+                {/* Header */}
+                <div className="bg-green-50 dark:bg-green-900/20 px-6 py-4 border-b border-green-200 dark:border-green-500/30">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 text-sm font-medium text-green-700 dark:text-green-300">
+                    <div>Caption</div>
+                    <div>Caption Category</div>
+                    <div>Content Type</div>
                   </div>
                 </div>
-              ))}
+                {/* Content */}
+                <div className="divide-y divide-gray-200 dark:divide-gray-600">
+                  {topPerformingCaptions.map((caption, index) => (
+                    <div key={index} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 lg:hidden">Caption:</div>
+                          <div className="text-sm text-gray-900 dark:text-gray-100">{caption.caption}</div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 lg:hidden">Caption Category:</div>
+                          <div className="text-sm text-gray-700 dark:text-gray-300">
+                            <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs font-medium">
+                              {caption.captionCategory}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 lg:hidden">Content Type:</div>
+                          <div className="text-sm text-gray-700 dark:text-gray-300">{caption.contentType}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Additional Information */}
-          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg border border-blue-200 dark:border-blue-500/30">
-              <h4 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-3 flex items-center">
-                <svg
-                  className="h-5 w-5 mr-2"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-                Analysis Summary
-              </h4>
-              <p className="text-blue-700 dark:text-blue-300 text-sm">
-                Currently showing default creator notes structure. This section
-                displays client requirements, content preferences, and style
-                guidelines for content creation.
-              </p>
+          {activeSubtab === "scraped" && (
+            <div className="p-6">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
+                <span className="h-3 w-3 bg-blue-500 rounded-full mr-3"></span>
+                Scraped Captions
+              </h3>
+              <div className="overflow-hidden">
+                {/* Header */}
+                <div className="bg-blue-50 dark:bg-blue-900/20 px-6 py-4 border-b border-blue-200 dark:border-blue-500/30">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 text-sm font-medium text-blue-700 dark:text-blue-300">
+                    <div>Caption</div>
+                    <div>Caption Category</div>
+                    <div>Content Type</div>
+                  </div>
+                </div>
+                {/* Content */}
+                <div className="divide-y divide-gray-200 dark:divide-gray-600">
+                  {scrapedCaptions.map((caption, index) => (
+                    <div key={index} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 lg:hidden">Caption:</div>
+                          <div className="text-sm text-gray-900 dark:text-gray-100">{caption.caption}</div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 lg:hidden">Caption Category:</div>
+                          <div className="text-sm text-gray-700 dark:text-gray-300">
+                            <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs font-medium">
+                              {caption.captionCategory}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 lg:hidden">Content Type:</div>
+                          <div className="text-sm text-gray-700 dark:text-gray-300">{caption.contentType}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
+          )}
 
-            <div className="bg-emerald-50 dark:bg-emerald-900/20 p-6 rounded-lg border border-emerald-200 dark:border-emerald-500/30">
-              <h4 className="text-lg font-semibold text-emerald-900 dark:text-emerald-100 mb-3 flex items-center">
-                <svg
-                  className="h-5 w-5 mr-2"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                Data Status
-              </h4>
-              <p className="text-emerald-700 dark:text-emerald-300 text-sm">
-                No specific client requests or style preferences have been set.
-                Update the spreadsheet to populate these fields with relevant
-                information.
-              </p>
+          {activeSubtab === "chatter-submitted" && (
+            <div className="p-6">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
+                <span className="h-3 w-3 bg-purple-500 rounded-full mr-3"></span>
+                Chatter-submitted Captions
+              </h3>
+              <div className="overflow-hidden">
+                {/* Header */}
+                <div className="bg-purple-50 dark:bg-purple-900/20 px-6 py-4 border-b border-purple-200 dark:border-purple-500/30">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 text-sm font-medium text-purple-700 dark:text-purple-300">
+                    <div>Caption</div>
+                    <div>Caption Category</div>
+                    <div>Content Type</div>
+                  </div>
+                </div>
+                {/* Content */}
+                <div className="divide-y divide-gray-200 dark:divide-gray-600">
+                  {chatterSubmittedCaptions.map((caption, index) => (
+                    <div key={index} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 lg:hidden">Caption:</div>
+                          <div className="text-sm text-gray-900 dark:text-gray-100">{caption.caption}</div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 lg:hidden">Caption Category:</div>
+                          <div className="text-sm text-gray-700 dark:text-gray-300">
+                            <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-xs font-medium">
+                              {caption.captionCategory}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 lg:hidden">Content Type:</div>
+                          <div className="text-sm text-gray-700 dark:text-gray-300">{caption.contentType}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
+
+          {activeSubtab === "mm-ideas" && (
+            <div className="p-6">
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center">
+                <span className="h-3 w-3 bg-orange-500 rounded-full mr-3"></span>
+                Scraped Captions/MM Ideas
+              </h3>
+              <div className="overflow-hidden">
+                {/* Header */}
+                <div className="bg-orange-50 dark:bg-orange-900/20 px-6 py-4 border-b border-orange-200 dark:border-orange-500/30">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 text-sm font-medium text-orange-700 dark:text-orange-300">
+                    <div>Caption</div>
+                    <div>Caption Category</div>
+                    <div>Description/Explanation</div>
+                  </div>
+                </div>
+                {/* Content */}
+                <div className="divide-y divide-gray-200 dark:divide-gray-600">
+                  {scrapedCaptionsMMIdeas.map((caption, index) => (
+                    <div key={index} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 lg:hidden">Caption:</div>
+                          <div className="text-sm text-gray-900 dark:text-gray-100">{caption.caption}</div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 lg:hidden">Caption Category:</div>
+                          <div className="text-sm text-gray-700 dark:text-gray-300">
+                            <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-full text-xs font-medium">
+                              {caption.captionCategory}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium text-gray-500 dark:text-gray-400 lg:hidden">Description/Explanation:</div>
+                          <div className="text-sm text-gray-700 dark:text-gray-300">{caption.descriptionExplanation}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
