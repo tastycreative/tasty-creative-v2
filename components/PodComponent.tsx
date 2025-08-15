@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import PodSidebar from "./PodSidebar";
 import WorkflowDashboard from "./WorkflowDashboard";
 import SheetsIntegration from "./SheetsIntegration";
 import SheetViewer from "./SheetViewer";
+import PodAdminDashboard from "./PodAdminDashboard";
 
 interface TeamMember {
   id: string;
@@ -41,6 +43,7 @@ const EARNINGS_SPREADSHEET_URL =
   "https://docs.google.com/spreadsheets/d/1uF-zuML1HgP5b95pbJycVQZj_0Nl1mgkTshOe3lUCSs/edit?gid=591071681#gid=591071681";
 
 const PodComponent = () => {
+  const { data: session } = useSession();
   const [schedulerSpreadsheetUrl, setSchedulerSpreadsheetUrl] = useState<
     string | undefined
   >(undefined);
@@ -50,7 +53,7 @@ const PodComponent = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingTeams, setIsLoadingTeams] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "sheets">(
+  const [activeTab, setActiveTab] = useState<"dashboard" | "sheets" | "admin">(
     "dashboard"
   );
   const [selectedSheet, setSelectedSheet] = useState<{
@@ -109,7 +112,7 @@ const PodComponent = () => {
     }
   };
 
-  const fetchCreatorEarnings = async (creatorNames: string[]) => {
+  const fetchCreatorEarnings = async (creatorNames: string[], retryCount = 0) => {
     try {
       const response = await fetch("/api/pod/earnings", {
         method: "POST",
@@ -123,6 +126,13 @@ const PodComponent = () => {
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        // Check for quota exceeded error
+        if (response.status === 429 && errorText.includes('Quota exceeded') && retryCount < 3) {
+          console.log(`Quota exceeded, retrying in ${(retryCount + 1) * 2} seconds...`);
+          await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
+          return fetchCreatorEarnings(creatorNames, retryCount + 1);
+        }
         throw new Error(`Failed to fetch earnings: ${response.statusText}`);
       }
 
@@ -134,6 +144,12 @@ const PodComponent = () => {
       return {};
     } catch (err) {
       console.error("Error fetching creator earnings:", err);
+      // If it's a quota error and we haven't exhausted retries, try again
+      if (err instanceof Error && err.message.includes('quota') && retryCount < 3) {
+        console.log(`Retrying earnings fetch after error, attempt ${retryCount + 1}`);
+        await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
+        return fetchCreatorEarnings(creatorNames, retryCount + 1);
+      }
       return {};
     }
   };
@@ -210,7 +226,7 @@ const PodComponent = () => {
     }
   };
 
-  const fetchPodData = async (rowNumber = selectedRow) => {
+  const fetchPodData = async (rowNumber = selectedRow, retryCount = 0) => {
     setIsLoading(true);
     setError(null);
 
@@ -227,6 +243,13 @@ const PodComponent = () => {
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        // Check for quota exceeded error
+        if (response.status === 429 && errorText.includes('Quota exceeded') && retryCount < 3) {
+          console.log(`Quota exceeded, retrying in ${(retryCount + 1) * 2} seconds...`);
+          await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
+          return fetchPodData(rowNumber, retryCount + 1);
+        }
         throw new Error(`Failed to fetch data: ${response.statusText}`);
       }
 
@@ -267,6 +290,12 @@ const PodComponent = () => {
       }
     } catch (err) {
       console.error("Error fetching POD data:", err);
+      // If it's a quota error and we haven't exhausted retries, try again
+      if (err instanceof Error && err.message.includes('quota') && retryCount < 3) {
+        console.log(`Retrying pod data fetch after error, attempt ${retryCount + 1}`);
+        await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 2000));
+        return fetchPodData(rowNumber, retryCount + 1);
+      }
       setError(err instanceof Error ? err.message : "Failed to fetch data");
     } finally {
       setIsLoading(false);
@@ -303,32 +332,37 @@ const PodComponent = () => {
 
   // Handle tab parameter from URL on component mount
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const urlParams = new URLSearchParams(window.location.search);
-      const tabParam = urlParams.get("tab");
-      
-      if (tabParam === "dashboard" || tabParam === "sheets") {
-        setActiveTab(tabParam);
+    const initializeComponent = async () => {
+      // Set active tab from URL parameter
+      if (typeof window !== "undefined") {
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabParam = urlParams.get("tab");
+        
+        if (tabParam === "dashboard" || tabParam === "sheets" || tabParam === "admin") {
+          setActiveTab(tabParam);
+        }
       }
-    }
-  }, []);
-
-  // Fetch teams and initial data on component mount
-  useEffect(() => {
-    const initializeData = async () => {
+      
+      // Always fetch teams data on mount as it's needed for team selection
       await fetchAvailableTeams();
-      await fetchPodData();
     };
-    initializeData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
+    initializeComponent();
   }, []);
 
-  // Fetch drive sheets when podData creators change
+  // Fetch dashboard-specific data when dashboard tab becomes active
   useEffect(() => {
-    if (podData?.creators && podData.creators.length > 0) {
+    if (activeTab === "dashboard" && !podData) {
+      fetchPodData();
+    }
+  }, [activeTab, podData]);
+
+  // Fetch drive sheets only when sheets tab is active and we have creator data
+  useEffect(() => {
+    if (activeTab === "sheets" && podData?.creators && podData.creators.length > 0) {
       fetchDriveSheets();
     }
-  }, [podData?.creators, fetchDriveSheets]);
+  }, [activeTab, podData?.creators, fetchDriveSheets]);
 
   // Generate dynamic tasks based on team members
   const generateTasks = () => {
@@ -408,7 +442,7 @@ const PodComponent = () => {
     );
   };
 
-  const handleTabChange = (tab: "dashboard" | "sheets") => {
+  const handleTabChange = (tab: "dashboard" | "sheets" | "admin") => {
     console.log('Tab change clicked:', tab, 'Current viewMode:', viewMode);
     setActiveTab(tab);
     
@@ -417,6 +451,18 @@ const PodComponent = () => {
       console.log('Exiting sheet view mode');
       setViewMode("dashboard");
       setSelectedSheet(null);
+    }
+    
+    // Lazy load data for the selected tab
+    if (tab === "dashboard" && !podData) {
+      fetchPodData();
+    } else if (tab === "sheets") {
+      // For sheets tab, we need pod data first
+      if (!podData) {
+        fetchPodData(); // This will trigger drive sheets fetch via useEffect
+      } else if (podData.creators && podData.creators.length > 0 && driveSheets.length === 0) {
+        fetchDriveSheets();
+      }
     }
     
     // Update URL with tab parameter
@@ -542,50 +588,64 @@ const PodComponent = () => {
             >
               Sheets Integration
             </button>
+            {session?.user?.role === "ADMIN" && (
+              <button
+                onClick={() => handleTabChange("admin")}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === "admin"
+                    ? "border-pink-500 text-pink-600 dark:text-pink-400"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                }`}
+              >
+                Admin
+              </button>
+            )}
           </nav>
         </div>
 
         {/* Main Dashboard Layout */}
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Sidebar */}
-          <div className="lg:w-80 w-full">
-            {podData ? (
-              <PodSidebar
-                teamName={podData.teamName}
-                teamMembers={podData.teamMembers}
-                assignedCreators={podData.creators}
-                schedulerSpreadsheetUrl={schedulerSpreadsheetUrl}
-              />
-            ) : (
-              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6 text-center">
-                {isLoading ? (
-                  <div className="flex items-center justify-center space-x-2">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600"></div>
-                    <span className="text-gray-600 dark:text-gray-300">
-                      Loading team data...
+          {/* Sidebar - Hidden when admin tab is active */}
+          {activeTab !== "admin" && (
+            <div className="lg:w-80 w-full">
+              {podData ? (
+                <PodSidebar
+                  teamName={podData.teamName}
+                  teamMembers={podData.teamMembers}
+                  assignedCreators={podData.creators}
+                  schedulerSpreadsheetUrl={schedulerSpreadsheetUrl}
+                />
+              ) : (
+                <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6 text-center">
+                  {isLoading ? (
+                    <div className="flex items-center justify-center space-x-2">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600"></div>
+                      <span className="text-gray-600 dark:text-gray-300">
+                        Loading team data...
+                      </span>
+                    </div>
+                  ) : error ? (
+                    <div className="text-red-600 dark:text-red-400">
+                      <p>Failed to load team data</p>
+                      <button
+                        onClick={() => fetchPodData()}
+                        className="mt-2 px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded text-sm hover:bg-red-200 dark:hover:bg-red-900/50"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-gray-500 dark:text-gray-400">
+                      No team data available
                     </span>
-                  </div>
-                ) : error ? (
-                  <div className="text-red-600 dark:text-red-400">
-                    <p>Failed to load team data</p>
-                    <button
-                      onClick={() => fetchPodData()}
-                      className="mt-2 px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded text-sm hover:bg-red-200 dark:hover:bg-red-900/50"
-                    >
-                      Retry
-                    </button>
-                  </div>
-                ) : (
-                  <span className="text-gray-500 dark:text-gray-400">
-                    No team data available
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Main Content */}
-          <div className="flex-1 space-y-6">
+          <div className={`${activeTab === "admin" ? "w-full" : "flex-1"} space-y-6`}>
             {viewMode === "sheet" && selectedSheet ? (
               <SheetViewer
                 sheetName={selectedSheet.name}
@@ -892,16 +952,33 @@ const PodComponent = () => {
 
                 {activeTab === "sheets" && (
                   <>
-                    {/* Google Sheets Integration */}
-                    <SheetsIntegration
-                      onSpreadsheetCreated={handleSpreadsheetCreated}
-                      onSheetCreated={() => {
-                        // Refresh drive sheets when a new sheet is created
-                        if (podData?.creators && podData.creators.length > 0) {
-                          fetchDriveSheets();
-                        }
-                      }}
-                    />
+                    {/* Show loading state if pod data is not loaded yet */}
+                    {!podData ? (
+                      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6">
+                        <div className="flex items-center space-x-3">
+                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600"></div>
+                          <span className="text-gray-700 dark:text-gray-300">Loading team data for sheets integration...</span>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Google Sheets Integration */
+                      <SheetsIntegration
+                        onSpreadsheetCreated={handleSpreadsheetCreated}
+                        onSheetCreated={() => {
+                          // Refresh drive sheets when a new sheet is created
+                          if (podData?.creators && podData.creators.length > 0) {
+                            fetchDriveSheets();
+                          }
+                        }}
+                      />
+                    )}
+                  </>
+                )}
+
+                {activeTab === "admin" && session?.user?.role === "ADMIN" && (
+                  <>
+                    {/* Admin Dashboard - loads its own data when rendered */}
+                    <PodAdminDashboard />
                   </>
                 )}
               </>

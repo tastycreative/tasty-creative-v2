@@ -127,6 +127,7 @@ enum Role {
   MODERATOR
   GUEST
   SWD
+  POD
 }
 
 enum VoiceStatus {

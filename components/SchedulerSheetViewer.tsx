@@ -256,126 +256,6 @@ const SchedulerSheetViewer: React.FC<SchedulerSheetViewerProps> = ({
 
       {/* Content */}
       <div className="max-w-7xl mx-auto">
-        {/* Schedule Checker */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-            Schedule Checker
-          </h3>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Mass Messages Section */}
-            <div>
-              <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                <span className="h-2 w-2 bg-blue-500 rounded-full mr-2"></span>
-                Mass Messages
-              </h4>
-              <div className="space-y-3">
-                {isLoading
-                  ? // Loading skeleton for Mass Messages
-                    Array.from({ length: 3 }).map((_, index) => (
-                      <div
-                        key={`mass-loading-${index}`}
-                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg animate-pulse"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className="h-2 w-2 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
-                          <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-48"></div>
-                        </div>
-                        <div className="h-6 bg-gray-300 dark:bg-gray-600 rounded w-16"></div>
-                      </div>
-                    ))
-                  : scheduleCheckerData.massMessages.map((item, index) => (
-                      <div
-                        key={`mass-${index}`}
-                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div
-                            className={`h-2 w-2 rounded-full ${
-                              item.checker === "Yes"
-                                ? "bg-green-500"
-                                : item.checker === "No"
-                                  ? "bg-red-500"
-                                  : "bg-yellow-500"
-                            }`}
-                          ></div>
-                          <span className="text-sm text-gray-700 dark:text-gray-300">
-                            {item.text}
-                          </span>
-                        </div>
-                        <span
-                          className={`text-xs px-2 py-1 rounded ${
-                            item.checker === "Yes"
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                              : item.checker === "No"
-                                ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                                : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                          }`}
-                        >
-                          {item.checker || "Pending"}
-                        </span>
-                      </div>
-                    ))}
-              </div>
-            </div>
-
-            {/* Wall Posts Section */}
-            <div>
-              <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                <span className="h-2 w-2 bg-purple-500 rounded-full mr-2"></span>
-                Wall Posts
-              </h4>
-              <div className="space-y-3">
-                {isLoading
-                  ? // Loading skeleton for Wall Posts
-                    Array.from({ length: 3 }).map((_, index) => (
-                      <div
-                        key={`wall-loading-${index}`}
-                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg animate-pulse"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div className="h-2 w-2 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
-                          <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-48"></div>
-                        </div>
-                        <div className="h-6 bg-gray-300 dark:bg-gray-600 rounded w-16"></div>
-                      </div>
-                    ))
-                  : scheduleCheckerData.wallPosts.map((item, index) => (
-                      <div
-                        key={`wall-${index}`}
-                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <div
-                            className={`h-2 w-2 rounded-full ${
-                              item.checker === "Yes"
-                                ? "bg-green-500"
-                                : item.checker === "No"
-                                  ? "bg-red-500"
-                                  : "bg-yellow-500"
-                            }`}
-                          ></div>
-                          <span className="text-sm text-gray-700 dark:text-gray-300">
-                            {item.text}
-                          </span>
-                        </div>
-                        <span
-                          className={`text-xs px-2 py-1 rounded ${
-                            item.checker === "Yes"
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                              : item.checker === "No"
-                                ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                                : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                          }`}
-                        >
-                          {item.checker || "Pending"}
-                        </span>
-                      </div>
-                    ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Broad Schedule Overview */}
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">
@@ -443,6 +323,106 @@ const SchedulerSheetViewer: React.FC<SchedulerSheetViewerProps> = ({
                 </div>
               );
             })}
+          </div>
+        </div>
+
+        {/* Schedule Checker */}
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">
+            Schedule Checker
+          </h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Mass Messages Section */}
+            <div>
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+                <span className="h-2 w-2 bg-blue-500 rounded-full mr-2"></span>
+                Mass Messages
+              </h4>
+              <div className="space-y-3">
+                {isLoading
+                  ? // Loading skeleton for Mass Messages
+                    Array.from({ length: 3 }).map((_, index) => (
+                      <div
+                        key={`mass-loading-${index}`}
+                        className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-500/30 animate-pulse"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-3 flex-1">
+                            <div className="h-4 bg-blue-300 dark:bg-blue-600 rounded w-3/4"></div>
+                            <div className="h-6 bg-blue-300 dark:bg-blue-600 rounded w-1/2"></div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  : scheduleCheckerData.massMessages.map((item, index) => (
+                      <div
+                        key={`mass-${index}`}
+                        className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-500/30"
+                      >
+                        <div className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">
+                          {item.text}:
+                        </div>
+                        <div
+                          className={`text-2xl font-bold ${
+                            item.checker === "Yes"
+                              ? "text-green-900 dark:text-green-100"
+                              : item.checker === "No"
+                                ? "text-red-900 dark:text-red-100"
+                                : "text-yellow-900 dark:text-yellow-100"
+                          }`}
+                        >
+                          {item.checker || "Pending"}
+                        </div>
+                      </div>
+                    ))}
+              </div>
+            </div>
+
+            {/* Wall Posts Section */}
+            <div>
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+                <span className="h-2 w-2 bg-purple-500 rounded-full mr-2"></span>
+                Wall Posts
+              </h4>
+              <div className="space-y-3">
+                {isLoading
+                  ? // Loading skeleton for Wall Posts
+                    Array.from({ length: 3 }).map((_, index) => (
+                      <div
+                        key={`wall-loading-${index}`}
+                        className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-500/30 animate-pulse"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-3 flex-1">
+                            <div className="h-4 bg-purple-300 dark:bg-purple-600 rounded w-3/4"></div>
+                            <div className="h-6 bg-purple-300 dark:bg-purple-600 rounded w-1/2"></div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  : scheduleCheckerData.wallPosts.map((item, index) => (
+                      <div
+                        key={`wall-${index}`}
+                        className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-500/30"
+                      >
+                        <div className="text-sm font-medium text-purple-700 dark:text-purple-300 mb-1">
+                          {item.text}:
+                        </div>
+                        <div
+                          className={`text-2xl font-bold ${
+                            item.checker === "Yes"
+                              ? "text-green-900 dark:text-green-100"
+                              : item.checker === "No"
+                                ? "text-red-900 dark:text-red-100"
+                                : "text-yellow-900 dark:text-yellow-100"
+                          }`}
+                        >
+                          {item.checker || "Pending"}
+                        </div>
+                      </div>
+                    ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
