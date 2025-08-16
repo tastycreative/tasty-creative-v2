@@ -359,7 +359,7 @@ const PodComponent = () => {
 
   // Fetch drive sheets only when sheets tab is active and we have creator data
   useEffect(() => {
-    if (activeTab === "sheets" && podData?.creators && podData.creators.length > 0) {
+    if (activeTab === "dashboard" && podData?.creators && podData.creators.length > 0) {
       fetchDriveSheets();
     }
   }, [activeTab, podData?.creators, fetchDriveSheets]);

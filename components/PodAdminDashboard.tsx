@@ -30,6 +30,7 @@ import {
   Edit2,
   UserMinus,
   Check,
+  AlertTriangle,
 } from "lucide-react";
 import { updateUserRole } from "@/app/actions/admin";
 import { Role } from "@prisma/client";
@@ -131,10 +132,15 @@ const PodAdminDashboard = () => {
   const [showMembersModal, setShowMembersModal] = useState<string | null>(null);
   const [showTasksModal, setShowTasksModal] = useState<string | null>(null);
   const [editingMember, setEditingMember] = useState<string | null>(null);
-  const [showAddMemberDropdown, setShowAddMemberDropdown] = useState<string | null>(null);
   const [podUsers, setPodUsers] = useState<SystemUser[]>([]);
   const [editingTask, setEditingTask] = useState<string | null>(null);
   const [showAddTaskForm, setShowAddTaskForm] = useState<string | null>(null);
+  const [showRemoveMemberConfirm, setShowRemoveMemberConfirm] = useState<{
+    teamId: string;
+    memberId: string;
+    memberName: string;
+    teamName: string;
+  } | null>(null);
   const [newTaskData, setNewTaskData] = useState({
     title: '',
     description: '',
@@ -162,17 +168,11 @@ const PodAdminDashboard = () => {
       ) {
         setShowTeamMenu(null);
       }
-      if (
-        showAddMemberDropdown &&
-        !(event.target as Element).closest(".add-member-dropdown-container")
-      ) {
-        setShowAddMemberDropdown(null);
-      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showUserDropdown, showTeamMenu, showAddMemberDropdown]);
+  }, [showUserDropdown, showTeamMenu]);
 
   // Helper functions
   const getStatusColor = (status: string) => {
@@ -249,9 +249,10 @@ const PodAdminDashboard = () => {
               name: apiTeam.name,
               description:
                 teamData?.description || `Team from row ${apiTeam.row}`,
-              members: teamData?.members || [],
+              members: apiTeam.members || [], // Use members from API response
               tasks: teamData?.tasks || [],
-              sheetUrl: teamData?.sheetUrl,
+              sheetUrl: apiTeam.sheetUrl || teamData?.sheetUrl,
+              rowNumber: apiTeam.row,
             };
           })
         );
@@ -401,34 +402,132 @@ const PodAdminDashboard = () => {
   };
 
   // Member management functions
-  const addMemberToTeam = async (teamId: string, userId: string) => {
+  const addMemberToTeam = async (teamId: string, data: { userId: string; role: string }) => {
     try {
       const team = teams.find(t => t.id === teamId);
       if (!team) return;
 
-      const user = podUsers.find(u => u.id === userId);
+      const user = podUsers.find(u => u.id === data.userId);
       if (!user) return;
 
       const newMember = {
         id: user.id,
         name: user.name || 'Unknown User',
         email: user.email || '',
-        role: user.role as Role
+        role: data.role as any // Use the provided role instead of user.role
       };
 
       const updatedMembers = [...team.members, newMember];
       
-      // Update team in state
+      // Update team in local state first
       setTeams(teams.map(t => 
         t.id === teamId 
           ? { ...t, members: updatedMembers }
           : t
       ));
 
-      setShowAddMemberDropdown(null);
+      // Update Google Sheets with new member list
+      try {
+        const rowNumber = parseInt(teamId.replace('team-', ''));
+        if (!isNaN(rowNumber)) {
+          const response = await fetch('/api/pod/update-team-members', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
+              rowNumber: rowNumber,
+              members: updatedMembers
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Failed to update Google Sheets:', errorData.error);
+            // Don't revert local state for now, just log the error
+            alert(`Member added locally, but failed to sync with Google Sheets: ${errorData.error}`);
+          } else {
+            console.log('Successfully synced team members with Google Sheets');
+          }
+        }
+      } catch (syncError) {
+        console.error('Error syncing with Google Sheets:', syncError);
+        alert('Member added locally, but failed to sync with Google Sheets');
+      }
+
+      setShowAddMemberForm(null);
     } catch (error) {
       console.error('Error adding member:', error);
       alert('Failed to add member to team');
+    }
+  };
+
+  // Add multiple members to team at once
+  const addMultipleMembersToTeam = async (teamId: string, users: { userId: string; role: string }[]) => {
+    try {
+      const team = teams.find(t => t.id === teamId);
+      if (!team) return;
+
+      const newMembers = users.map(userData => {
+        const user = podUsers.find(u => u.id === userData.userId);
+        if (!user) return null;
+
+        return {
+          id: user.id,
+          name: user.name || 'Unknown User',
+          email: user.email || '',
+          role: userData.role as any
+        };
+      }).filter((member): member is NonNullable<typeof member> => member !== null); // Type guard to remove nulls
+
+      if (newMembers.length === 0) {
+        alert('No valid users found to add');
+        return;
+      }
+
+      const updatedMembers = [...team.members, ...newMembers];
+      
+      // Update team in local state first
+      setTeams(teams.map(t => 
+        t.id === teamId 
+          ? { ...t, members: updatedMembers }
+          : t
+      ));
+
+      // Update Google Sheets with new member list
+      try {
+        const rowNumber = parseInt(teamId.replace('team-', ''));
+        if (!isNaN(rowNumber)) {
+          const response = await fetch('/api/pod/update-team-members', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
+              rowNumber: rowNumber,
+              members: updatedMembers
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Failed to update Google Sheets:', errorData.error);
+            alert(`Members added locally, but failed to sync with Google Sheets: ${errorData.error}`);
+          } else {
+            console.log('Successfully synced team members with Google Sheets');
+          }
+        }
+      } catch (syncError) {
+        console.error('Error syncing with Google Sheets:', syncError);
+        alert('Members added locally, but failed to sync with Google Sheets');
+      }
+
+      setShowAddMemberForm(null);
+    } catch (error) {
+      console.error('Error adding members:', error);
+      alert('Failed to add members to team');
     }
   };
 
@@ -439,33 +538,92 @@ const PodAdminDashboard = () => {
 
       const updatedMembers = team.members.filter(m => m.id !== memberId);
       
-      // Update team in state
+      // Update team in local state first
       setTeams(teams.map(t => 
         t.id === teamId 
           ? { ...t, members: updatedMembers }
           : t
       ));
+
+      // Update Google Sheets with new member list
+      try {
+        const rowNumber = parseInt(teamId.replace('team-', ''));
+        if (!isNaN(rowNumber)) {
+          const response = await fetch('/api/pod/update-team-members', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
+              rowNumber: rowNumber,
+              members: updatedMembers
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Failed to update Google Sheets:', errorData.error);
+            // Don't revert local state for now, just log the error
+            alert(`Member removed locally, but failed to sync with Google Sheets: ${errorData.error}`);
+          } else {
+            console.log('Successfully synced team members with Google Sheets');
+          }
+        }
+      } catch (syncError) {
+        console.error('Error syncing with Google Sheets:', syncError);
+        alert('Member removed locally, but failed to sync with Google Sheets');
+      }
     } catch (error) {
       console.error('Error removing member:', error);
       alert('Failed to remove member from team');
     }
   };
 
-  const updateMemberRole = async (teamId: string, memberId: string, newRole: Role) => {
+  const updateMemberRole = async (teamId: string, memberId: string, newRole: string) => {
     try {
       const team = teams.find(t => t.id === teamId);
       if (!team) return;
 
-      const updatedMembers = team.members.map(m => 
-        m.id === memberId ? { ...m, role: newRole } : m
+      // Update member role in local state
+      const updatedMembers = team.members.map(member =>
+        member.id === memberId ? { ...member, role: newRole } : member
       );
       
-      // Update team in state
       setTeams(teams.map(t => 
         t.id === teamId 
           ? { ...t, members: updatedMembers }
           : t
       ));
+
+      // Update Google Sheets with new member list
+      try {
+        const rowNumber = parseInt(teamId.replace('team-', ''));
+        if (!isNaN(rowNumber)) {
+          const response = await fetch('/api/pod/update-team-members', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
+              rowNumber: rowNumber,
+              members: updatedMembers
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Failed to update Google Sheets:', errorData.error);
+            alert(`Member role updated locally, but failed to sync with Google Sheets: ${errorData.error}`);
+          } else {
+            console.log('Successfully synced team members with Google Sheets');
+          }
+        }
+      } catch (syncError) {
+        console.error('Error syncing with Google Sheets:', syncError);
+        alert('Member role updated locally, but failed to sync with Google Sheets');
+      }
 
       setEditingMember(null);
     } catch (error) {
@@ -648,6 +806,98 @@ const PodAdminDashboard = () => {
       setUpdatingTeamName(null);
       setEditingTeamName(null);
       setEditingTeamNameValue("");
+    }
+  };
+
+  // Add Team function
+  const handleAddTeam = async (data: { teamName: string; sheetUrl: string; spreadsheetUrl: string; creators: string[]; members?: { userId: string; role: string }[] }) => {
+    try {
+      // First, find the next available row by checking existing teams
+      const currentRows = teams.map(team => {
+        const rowMatch = team.id.match(/team-(\d+)/);
+        return rowMatch ? parseInt(rowMatch[1]) : 0;
+      });
+      
+      // Find the next available row (start from row 8 as per API default)
+      const nextRow = Math.max(8, Math.max(...currentRows, 0) + 1);
+
+      // Call the API to add the team to Google Sheets
+      const response = await fetch('/api/pod/add-team', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          spreadsheetUrl: data.spreadsheetUrl,
+          teamName: data.teamName.trim(),
+          sheetUrl: data.sheetUrl.trim(),
+          rowNumber: nextRow,
+          creators: data.creators, // Add creators to the API call
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to add team');
+      }
+
+      // Create new team object with initial members if provided
+      const initialMembers = data.members ? data.members.map(memberData => {
+        const user = users.find(u => u.id === memberData.userId);
+        return user ? {
+          id: user.id,
+          name: user.name || 'Unknown User',
+          email: user.email || '',
+          role: memberData.role as any
+        } : null;
+      }).filter(Boolean) as TeamMember[] : [];
+
+      const newTeam: Team = {
+        id: `team-${nextRow}`,
+        name: data.teamName.trim(),
+        members: initialMembers,
+        tasks: [],
+        sheetUrl: data.sheetUrl.trim(),
+        rowNumber: nextRow,
+      };
+
+      // Add team to local state
+      setTeams(prev => [...prev, newTeam]);
+
+      // If members were added, update Google Sheets with member list
+      if (initialMembers.length > 0) {
+        try {
+          await fetch('/api/pod/update-team-members', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              spreadsheetUrl: data.spreadsheetUrl,
+              rowNumber: nextRow,
+              members: initialMembers.map(member => member.email).join(', ')
+            }),
+          });
+        } catch (memberError) {
+          console.error('Error updating team members in Google Sheets:', memberError);
+          // Don't throw here as the team was successfully created
+        }
+      }
+
+      // Update stats
+      setStats(prev => ({
+        ...prev,
+        totalTeams: prev.totalTeams + 1,
+      }));
+
+      // Show success message
+      alert('Team added successfully!');
+      
+    } catch (err) {
+      console.error("Error adding team:", err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to add team';
+      alert(`Error: ${errorMessage}`);
+      throw err; // Re-throw to handle in form
     }
   };
 
@@ -1436,61 +1686,16 @@ const PodAdminDashboard = () => {
                       </div>
                       <div className="flex items-center space-x-3">
                         {/* Add Member Button */}
-                        <div className="relative">
-                          <button
-                            onClick={() => {
-                              setShowAddMemberDropdown(showAddMemberDropdown === team.id ? null : team.id);
-                              if (!podUsers.length) fetchUsers();
-                            }}
-                            className="flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
-                          >
-                            <Plus className="h-4 w-4" />
-                            <span>Add Member</span>
-                          </button>
-                          
-                          {/* Add Member Dropdown */}
-                          {showAddMemberDropdown === team.id && (
-                            <div 
-                              className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50"
-                              id="add-member-dropdown-container"
-                            >
-                              <div className="p-3 border-b border-gray-200 dark:border-gray-700">
-                                <h4 className="font-medium text-gray-900 dark:text-gray-100">Select POD User</h4>
-                              </div>
-                              <div className="max-h-48 overflow-y-auto">
-                                {podUsers.length > 0 ? (
-                                  podUsers
-                                    .filter(user => !team.members.some(member => member.id === user.id))
-                                    .map(user => (
-                                    <button
-                                      key={user.id}
-                                      onClick={() => addMemberToTeam(team.id, user.id)}
-                                      className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                                    >
-                                      <div className="flex items-center space-x-3">
-                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
-                                          {(user.name || 'Unknown User')
-                                            .split(" ")
-                                            .map((n) => n[0])
-                                            .join("")
-                                            .slice(0, 2)}
-                                        </div>
-                                        <div>
-                                          <div className="font-medium text-gray-900 dark:text-gray-100">{user.name || 'Unknown User'}</div>
-                                          <div className="text-sm text-gray-500 dark:text-gray-400">{user.email}</div>
-                                        </div>
-                                      </div>
-                                    </button>
-                                  ))
-                                ) : (
-                                  <div className="px-3 py-4 text-center text-gray-500 dark:text-gray-400">
-                                    No POD users available
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                        <button
+                          onClick={() => {
+                            setShowAddMemberForm(team.id);
+                            if (!podUsers.length) fetchUsers();
+                          }}
+                          className="flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
+                        >
+                          <Plus className="h-4 w-4" />
+                          <span>Add Member</span>
+                        </button>
                         
                         <button
                           onClick={() => setShowMembersModal(null)}
@@ -1539,12 +1744,12 @@ const PodAdminDashboard = () => {
                                 <div className="flex items-center space-x-2">
                                   <select
                                     value={member.role}
-                                    onChange={(e) => updateMemberRole(team.id, member.id, e.target.value as Role)}
+                                    onChange={(e) => updateMemberRole(team.id, member.id, e.target.value)}
                                     className="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm"
                                   >
-                                    <option value="POD">POD</option>
-                                    <option value="USER">USER</option>
-                                    <option value="GUEST">GUEST</option>
+                                    <option value="Member">Member</option>
+                                    <option value="Lead">Lead</option>
+                                    <option value="Manager">Manager</option>
                                   </select>
                                   <button
                                     onClick={() => setEditingMember(null)}
@@ -1555,10 +1760,10 @@ const PodAdminDashboard = () => {
                                 </div>
                               ) : (
                                 <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                  member.role === 'POD' 
-                                    ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
-                                    : member.role === 'USER'
-                                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                                  member.role === 'Manager' 
+                                    ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                                    : member.role === 'Lead'
+                                    ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
                                     : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
                                 }`}>
                                   {member.role}
@@ -1593,7 +1798,14 @@ const PodAdminDashboard = () => {
                                 
                                 {/* Remove Member Button */}
                                 <button
-                                  onClick={() => removeMemberFromTeam(team.id, member.id)}
+                                  onClick={() => {
+                                    setShowRemoveMemberConfirm({
+                                      teamId: team.id,
+                                      memberId: member.id,
+                                      memberName: member.name,
+                                      teamName: team.name
+                                    });
+                                  }}
                                   className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
                                   title="Remove from team"
                                 >
@@ -2131,6 +2343,42 @@ const PodAdminDashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Add Team Form Modal */}
+      <AddTeamForm
+        isOpen={showAddTeamForm}
+        onClose={() => setShowAddTeamForm(false)}
+        onSubmit={handleAddTeam}
+        defaultSpreadsheetUrl={DEFAULT_SPREADSHEET_URL}
+        podUsers={users}
+      />
+
+      {/* Add Member Form Modal */}
+      {showAddMemberForm && (
+        <AddMemberForm
+          isOpen={!!showAddMemberForm}
+          onClose={() => setShowAddMemberForm(null)}
+          onSubmit={(users) => addMultipleMembersToTeam(showAddMemberForm, users)}
+          podUsers={podUsers}
+          existingMembers={teams.find(t => t.id === showAddMemberForm)?.members || []}
+          onRefreshUsers={fetchUsers}
+        />
+      )}
+
+      {/* Remove Member Confirmation Modal */}
+      {showRemoveMemberConfirm && (
+        <RemoveMemberConfirmModal
+          isOpen={!!showRemoveMemberConfirm}
+          onClose={() => setShowRemoveMemberConfirm(null)}
+          onConfirm={() => {
+            if (showRemoveMemberConfirm) {
+              removeMemberFromTeam(showRemoveMemberConfirm.teamId, showRemoveMemberConfirm.memberId);
+            }
+          }}
+          memberName={showRemoveMemberConfirm.memberName}
+          teamName={showRemoveMemberConfirm.teamName}
+        />
+      )}
     </div>
   );
 };
@@ -2291,6 +2539,918 @@ const UserRoleCard: React.FC<UserRoleCardProps> = ({ user, onRoleUpdate }) => {
         <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
           <span>Joined {new Date(user.createdAt).toLocaleDateString()}</span>
           <span>ID: {user.id.slice(0, 8)}...</span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Add Team Form Component
+const AddTeamForm = ({ 
+  isOpen, 
+  onClose, 
+  onSubmit,
+  defaultSpreadsheetUrl,
+  podUsers 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  onSubmit: (data: { teamName: string; sheetUrl: string; spreadsheetUrl: string; creators: string[]; members?: { userId: string; role: string }[] }) => void;
+  defaultSpreadsheetUrl: string;
+  podUsers: SystemUser[];
+}) => {
+  const [formData, setFormData] = useState({
+    teamName: '',
+    sheetUrl: '',
+    spreadsheetUrl: defaultSpreadsheetUrl
+  });
+  const [selectedCreators, setSelectedCreators] = useState<string[]>([]);
+  const [availableCreators, setAvailableCreators] = useState<string[]>([]);
+  const [isLoadingCreators, setIsLoadingCreators] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [creatorsSearchTerm, setCreatorsSearchTerm] = useState('');
+  const [selectedMembers, setSelectedMembers] = useState<{ userId: string; role: string }[]>([]);
+  const [membersSearchTerm, setMembersSearchTerm] = useState('');
+
+  const MAX_CREATORS = 3;
+  const MAX_MEMBERS = 5; // Optional team members limit
+
+  // Filter creators based on search term
+  const filteredCreators = availableCreators.filter(creator =>
+    creator.toLowerCase().includes(creatorsSearchTerm.toLowerCase())
+  );
+
+  // Filter POD users for members based on search term and exclude already selected
+  const filteredPodUsers = podUsers
+    .filter(user => user.role === 'POD')
+    .filter(user => !selectedMembers.some(member => member.userId === user.id))
+    .filter(user => 
+      user.name?.toLowerCase().includes(membersSearchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(membersSearchTerm.toLowerCase())
+    );
+
+  // Handle creator selection
+  const handleCreatorToggle = (creator: string) => {
+    setSelectedCreators(prev => {
+      if (prev.includes(creator)) {
+        return prev.filter(c => c !== creator);
+      } else if (prev.length < MAX_CREATORS) {
+        return [...prev, creator];
+      }
+      return prev;
+    });
+  };
+
+  // Handle member selection
+  const handleMemberAdd = (userId: string, role: string) => {
+    if (selectedMembers.length < MAX_MEMBERS) {
+      setSelectedMembers(prev => [...prev, { userId, role }]);
+    }
+  };
+
+  // Handle member removal
+  const handleMemberRemove = (userId: string) => {
+    setSelectedMembers(prev => prev.filter(member => member.userId !== userId));
+  };
+
+  // Fetch all available creators from API (using models endpoint)
+  const fetchAvailableCreators = async () => {
+    setIsLoadingCreators(true);
+    try {
+      const response = await fetch("/api/models");
+      const data = await response.json();
+      
+      if (Array.isArray(data.models)) {
+        // Extract creator names from models data
+        const creatorNames = data.models
+          .map((model: any) => model.name?.split(/[-_\s]/)[0]?.trim() || model.name?.trim())
+          .filter((name: string, index: number, array: string[]) => 
+            name && name.length > 0 && array.indexOf(name) === index
+          )
+          .sort();
+        setAvailableCreators(creatorNames);
+      } else {
+        console.error('Failed to fetch creators from models:', data.error);
+        // Fallback to sample creators if API fails
+        setAvailableCreators([
+          'Alex', 'Bailey', 'Casey', 'Drew', 'Emery', 'Finley', 'Gray', 'Hayden',
+          'Indigo', 'Jamie', 'Kai', 'Lane', 'Morgan', 'Nova', 'Oakley', 'Parker',
+          'Quinn', 'River', 'Sage', 'Taylor', 'Uma', 'Val', 'Winter', 'Xen', 'Yuki', 'Zara'
+        ]);
+      }
+    } catch (error) {
+      console.error('Error fetching creators:', error);
+      // Fallback to sample creators on error
+      setAvailableCreators([
+        'Alex', 'Bailey', 'Casey', 'Drew', 'Emery', 'Finley', 'Gray', 'Hayden',
+        'Indigo', 'Jamie', 'Kai', 'Lane', 'Morgan', 'Nova', 'Oakley', 'Parker',
+        'Quinn', 'River', 'Sage', 'Taylor', 'Uma', 'Val', 'Winter', 'Xen', 'Yuki', 'Zara'
+      ]);
+    } finally {
+      setIsLoadingCreators(false);
+    }
+  };
+
+  // Fetch creators when component mounts
+  useEffect(() => {
+    if (isOpen) {
+      fetchAvailableCreators();
+    }
+  }, [isOpen]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.teamName.trim() || !formData.sheetUrl.trim()) return;
+    
+    setIsSubmitting(true);
+    try {
+      await onSubmit({
+        ...formData,
+        creators: selectedCreators,
+        members: selectedMembers.length > 0 ? selectedMembers : undefined
+      });
+      setFormData({ teamName: '', sheetUrl: '', spreadsheetUrl: defaultSpreadsheetUrl });
+      setSelectedCreators([]);
+      setSelectedMembers([]);
+      setCreatorsSearchTerm('');
+      setMembersSearchTerm('');
+      onClose();
+    } catch (error) {
+      console.error('Error adding team:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const isValidUrl = (url: string) => {
+    return /^https:\/\/docs\.google\.com\/spreadsheets\/d\/[a-zA-Z0-9-_]+/.test(url);
+  };
+
+  const isFormValid = formData.teamName.trim() && 
+                     formData.sheetUrl.trim() && 
+                     isValidUrl(formData.sheetUrl);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-8 w-full max-w-5xl mx-4 max-h-[95vh] overflow-y-auto shadow-2xl">
+        <div className="flex items-center justify-between mb-8">
+          <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            Add New Team
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Basic Team Information Section */}
+          <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-6 space-y-6">
+            <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+              <span className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center text-purple-600 dark:text-purple-400 text-sm font-bold mr-3">1</span>
+              Basic Information
+            </h4>
+            
+            {/* Team Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Team Name
+              </label>
+              <input
+                type="text"
+                value={formData.teamName}
+                onChange={(e) => setFormData(prev => ({ ...prev, teamName: e.target.value }))}
+                placeholder="Enter team name"
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                required
+              />
+            </div>
+
+            {/* Google Sheet URL */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Google Sheet URL
+              </label>
+              <input
+                type="url"
+                value={formData.sheetUrl}
+                onChange={(e) => setFormData(prev => ({ ...prev, sheetUrl: e.target.value }))}
+                placeholder="https://docs.google.com/spreadsheets/d/..."
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                required
+              />
+              {formData.sheetUrl && !isValidUrl(formData.sheetUrl) && (
+                <p className="text-sm text-red-600 dark:text-red-400 mt-2">
+                  Please enter a valid Google Sheets URL
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Creators Assignment Section */}
+          <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-6 space-y-6">
+            <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+              <span className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center text-purple-600 dark:text-purple-400 text-sm font-bold mr-3">2</span>
+              Assign Creators
+            </h4>
+            
+            <div>
+              <div className="flex items-center justify-between mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Assign Creators (Max {MAX_CREATORS})
+              </label>
+              <div className="flex items-center space-x-3">
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  {selectedCreators.length}/{MAX_CREATORS} selected
+                </div>
+                {!isLoadingCreators && (
+                  <button
+                    type="button"
+                    onClick={fetchAvailableCreators}
+                    className="text-xs text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300"
+                    title="Refresh creators list"
+                  >
+                    🔄 Refresh
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            {/* Selection Limit Warning */}
+            {selectedCreators.length >= MAX_CREATORS && (
+              <div className="mb-3 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-500/30 rounded-lg">
+                <p className="text-sm text-amber-800 dark:text-amber-300">
+                  Maximum of {MAX_CREATORS} creators can be assigned to a team.
+                </p>
+              </div>
+            )}
+
+            {/* Creators Search */}
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="Search creators..."
+                value={creatorsSearchTerm}
+                onChange={(e) => setCreatorsSearchTerm(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+              />
+            </div>
+
+            {/* Creators Grid */}
+            {isLoadingCreators ? (
+              <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-6 bg-gray-50 dark:bg-gray-800 text-center">
+                <div className="flex items-center justify-center space-x-2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
+                  <span className="text-gray-600 dark:text-gray-300">Loading creators...</span>
+                </div>
+              </div>
+            ) : filteredCreators.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-80 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-6 bg-gray-50 dark:bg-gray-800">
+                {filteredCreators.map(creator => {
+                  const isSelected = selectedCreators.includes(creator);
+                  const canSelect = selectedCreators.length < MAX_CREATORS || isSelected;
+                  
+                  return (
+                    <label
+                      key={creator}
+                      className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-all duration-200 ${
+                        !canSelect ? 'opacity-50 cursor-not-allowed' : ''
+                      } ${
+                        isSelected 
+                          ? 'bg-purple-100 dark:bg-purple-900/30 border-2 border-purple-300 dark:border-purple-500 shadow-md' 
+                          : 'bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 hover:border-purple-200 dark:hover:border-purple-400'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => canSelect && handleCreatorToggle(creator)}
+                        disabled={!canSelect}
+                        className="h-5 w-5 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
+                      />
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate flex-1">
+                        {creator}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-6 bg-gray-50 dark:bg-gray-800 text-center">
+                <p className="text-gray-500 dark:text-gray-400 text-sm">
+                  {availableCreators.length === 0 
+                    ? "No creators found. Please check your Google Drive connection."
+                    : `No creators match "${creatorsSearchTerm}"`
+                  }
+                </p>
+                {availableCreators.length === 0 && (
+                  <button
+                    type="button"
+                    onClick={fetchAvailableCreators}
+                    className="mt-2 px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded text-sm hover:bg-purple-200 dark:hover:bg-purple-900/50"
+                  >
+                    Retry
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Selected Creators Preview */}
+            {selectedCreators.length > 0 && (
+              <div className="mt-3 p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Selected Creators ({selectedCreators.length}):
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {selectedCreators.map(creator => (
+                    <span
+                      key={creator}
+                      className="inline-flex items-center px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 text-xs font-medium rounded-full"
+                    >
+                      {creator}
+                      <button
+                        type="button"
+                        onClick={() => handleCreatorToggle(creator)}
+                        className="ml-1 text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-200"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          </div>
+
+          {/* Optional Team Members Section */}
+          <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-6 space-y-6">
+            <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+              <span className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 text-sm font-bold mr-3">3</span>
+              Add Team Members (Optional)
+            </h4>
+            
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Select POD Users (Max {MAX_MEMBERS})
+                </label>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  {selectedMembers.length}/{MAX_MEMBERS} selected
+                </div>
+              </div>
+
+              {/* Members Search */}
+              <div className="mb-4">
+                <input
+                  type="text"
+                  placeholder="Search POD users by name or email..."
+                  value={membersSearchTerm}
+                  onChange={(e) => setMembersSearchTerm(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                />
+              </div>
+
+              {/* Available POD Users */}
+              {filteredPodUsers.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-4 bg-white dark:bg-gray-700">
+                  {filteredPodUsers.map(user => (
+                    <div key={user.id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                          {user.name || 'Unknown User'}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          {user.email}
+                        </p>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <select
+                          onChange={(e) => {
+                            if (e.target.value && selectedMembers.length < MAX_MEMBERS) {
+                              handleMemberAdd(user.id, e.target.value);
+                              e.target.value = '';
+                            }
+                          }}
+                          className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          disabled={selectedMembers.length >= MAX_MEMBERS}
+                        >
+                          <option value="">Add as...</option>
+                          <option value="ADMIN">Admin</option>
+                          <option value="USER">User</option>
+                        </select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-6 bg-gray-50 dark:bg-gray-800 text-center">
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">
+                    {podUsers.filter(u => u.role === 'POD').length === 0 
+                      ? "No POD users available"
+                      : selectedMembers.length >= MAX_MEMBERS
+                      ? "Maximum number of members selected"
+                      : `No POD users match "${membersSearchTerm}"`
+                    }
+                  </p>
+                </div>
+              )}
+
+              {/* Selected Members Preview */}
+              {selectedMembers.length > 0 && (
+                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <p className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-2">
+                    Selected Members ({selectedMembers.length}):
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedMembers.map(member => {
+                      const user = podUsers.find(u => u.id === member.userId);
+                      return (
+                        <span
+                          key={member.userId}
+                          className="inline-flex items-center px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-sm rounded-full"
+                        >
+                          {user?.name || 'Unknown'} ({member.role})
+                          <button
+                            type="button"
+                            onClick={() => handleMemberRemove(member.userId)}
+                            className="ml-2 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!isFormValid || isSubmitting}
+              className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>Adding...</span>
+                </>
+              ) : (
+                <span>Add Team</span>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Add Member Form Component
+const AddMemberForm = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  podUsers,
+  existingMembers,
+  onRefreshUsers
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (users: { userId: string; role: string }[]) => void;
+  podUsers: SystemUser[];
+  existingMembers: TeamMember[];
+  onRefreshUsers: () => void;
+}) => {
+  const [selectedUsers, setSelectedUsers] = useState<SystemUser[]>([]);
+  const [userRoles, setUserRoles] = useState<Record<string, 'Member' | 'Lead' | 'Manager'>>({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const MAX_SELECTIONS = 3;
+
+  // Filter available users (POD users not already in team)
+  const availableUsers = podUsers.filter(user => 
+    !existingMembers.some(member => member.id === user.id) &&
+    (user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+     user.email?.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await onRefreshUsers();
+    } catch (error) {
+      console.error('Error refreshing users:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const handleUserToggle = (user: SystemUser) => {
+    setSelectedUsers(prev => {
+      const isSelected = prev.some(u => u.id === user.id);
+      if (isSelected) {
+        // Remove user and their role
+        setUserRoles(prevRoles => {
+          const newRoles = { ...prevRoles };
+          delete newRoles[user.id];
+          return newRoles;
+        });
+        return prev.filter(u => u.id !== user.id);
+      } else {
+        // Add user if under limit
+        if (prev.length < MAX_SELECTIONS) {
+          // Set default role for new user
+          setUserRoles(prevRoles => ({
+            ...prevRoles,
+            [user.id]: 'Member'
+          }));
+          return [...prev, user];
+        }
+        return prev;
+      }
+    });
+  };
+
+  const handleRoleChange = (userId: string, role: 'Member' | 'Lead' | 'Manager') => {
+    setUserRoles(prev => ({
+      ...prev,
+      [userId]: role
+    }));
+  };
+
+  const isUserSelected = (user: SystemUser) => {
+    return selectedUsers.some(u => u.id === user.id);
+  };
+
+  const canSelectMore = selectedUsers.length < MAX_SELECTIONS;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedUsers.length === 0) return;
+
+    setIsSubmitting(true);
+    try {
+      // Create array of users with their individual roles
+      const usersToAdd = selectedUsers.map(user => ({
+        userId: user.id,
+        role: userRoles[user.id] || 'Member'
+      }));
+      
+      // Submit all users at once
+      await onSubmit(usersToAdd);
+      
+      // Reset form
+      setSelectedUsers([]);
+      setUserRoles({});
+      setSearchQuery('');
+      onClose();
+    } catch (error) {
+      console.error('Error adding members:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'Manager':
+        return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border border-red-300 dark:border-red-500/30';
+      case 'Lead':
+        return 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 border border-orange-300 dark:border-orange-500/30';
+      case 'Member':
+      default:
+        return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-300 dark:border-green-500/30';
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-lg mx-4 max-h-[80vh] overflow-hidden flex flex-col">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            Add Team Member
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1">
+          {/* User Search */}
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Search POD Users
+              </label>
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Refresh POD users list"
+              >
+                <svg 
+                  className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" 
+                  />
+                </svg>
+                <span>{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
+              </button>
+            </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by name or email..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          {/* User Selection */}
+          <div className="mb-4 flex-1 min-h-0">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Select Users (Max {MAX_SELECTIONS})
+              </label>
+              <div className="flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400">
+                <span>{selectedUsers.length}/{MAX_SELECTIONS} selected</span>
+                <span>•</span>
+                <span>{availableUsers.length} available</span>
+              </div>
+            </div>
+            
+            {/* Selection Limit Warning */}
+            {selectedUsers.length >= MAX_SELECTIONS && (
+              <div className="mb-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-500/30 rounded-lg">
+                <p className="text-sm text-amber-800 dark:text-amber-300">
+                  Maximum of {MAX_SELECTIONS} members can be selected at once.
+                </p>
+              </div>
+            )}
+            
+            <div className="border border-gray-300 dark:border-gray-600 rounded-lg max-h-40 overflow-y-auto">
+              {availableUsers.length > 0 ? (
+                availableUsers.map(user => {
+                  const selected = isUserSelected(user);
+                  const canSelect = canSelectMore || selected;
+                  
+                  return (
+                    <label
+                      key={user.id}
+                      className={`flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-b border-gray-200 dark:border-gray-600 last:border-b-0 cursor-pointer ${
+                        !canSelect ? 'opacity-50 cursor-not-allowed' : ''
+                      } ${selected ? 'bg-purple-50 dark:bg-purple-900/30' : ''}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => canSelect && handleUserToggle(user)}
+                        disabled={!canSelect}
+                        className="mr-3 h-4 w-4 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
+                      />
+                      
+                      <div className="flex items-center space-x-3 flex-1">
+                        {user.image ? (
+                          <img
+                            src={`/api/image-proxy?url=${encodeURIComponent(user.image)}`}
+                            alt={user.name || ""}
+                            className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
+                            {(user.name || user.email || "U").charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                            {user.name || 'No Name'}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                            {user.email}
+                          </div>
+                        </div>
+                        {selected && (
+                          <div className="text-purple-600 dark:text-purple-400">
+                            <Check className="h-5 w-5" />
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  );
+                })
+              ) : (
+                <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                  {searchQuery ? 'No users match your search' : 'No POD users available'}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Selected Users Preview with Individual Role Selection */}
+          {selectedUsers.length > 0 && (
+            <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Selected Members ({selectedUsers.length}) - Assign Individual Roles:
+              </div>
+              <div className="space-y-3 max-h-64 overflow-y-auto">
+                {selectedUsers.map(user => {
+                  const userRole = userRoles[user.id] || 'Member';
+                  return (
+                    <div key={user.id} className="flex items-center space-x-3 p-3 bg-white dark:bg-gray-600 rounded-lg border border-gray-200 dark:border-gray-500">
+                      {user.image ? (
+                        <img
+                          src={`/api/image-proxy?url=${encodeURIComponent(user.image)}`}
+                          alt={user.name || ""}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
+                          {(user.name || user.email || "U").charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-900 dark:text-gray-100 text-sm truncate">
+                          {user.name || 'No Name'}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          {user.email}
+                        </div>
+                      </div>
+                      
+                      {/* Individual Role Selector */}
+                      <div className="flex items-center space-x-2">
+                        <select
+                          value={userRole}
+                          onChange={(e) => handleRoleChange(user.id, e.target.value as 'Member' | 'Lead' | 'Manager')}
+                          className="text-xs border border-gray-300 dark:border-gray-500 rounded px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                        >
+                          <option value="Member">Member</option>
+                          <option value="Lead">Lead</option>
+                          <option value="Manager">Manager</option>
+                        </select>
+                        
+                        <button
+                          type="button"
+                          onClick={() => handleUserToggle(user)}
+                          className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-1"
+                          title={`Remove ${user.name || user.email}`}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              Cancel
+            </button>
+            
+            {selectedUsers.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedUsers([]);
+                  setUserRoles({});
+                }}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center space-x-2"
+              >
+                <X className="h-4 w-4" />
+                <span>Clear All</span>
+              </button>
+            )}
+            
+            <button
+              type="submit"
+              disabled={selectedUsers.length === 0 || isSubmitting}
+              className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>Adding...</span>
+                </>
+              ) : (
+                <span>
+                  Add {selectedUsers.length === 1 ? 'Member' : `${selectedUsers.length} Members`}
+                </span>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Remove Member Confirmation Modal Component
+const RemoveMemberConfirmModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  memberName,
+  teamName
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  memberName: string;
+  teamName: string;
+}) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
+        <div className="flex items-center space-x-3 mb-4">
+          <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              Remove Team Member
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              This action cannot be undone
+            </p>
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <p className="text-gray-700 dark:text-gray-300">
+            Are you sure you want to remove <span className="font-semibold text-gray-900 dark:text-gray-100">{memberName}</span> from <span className="font-semibold text-gray-900 dark:text-gray-100">{teamName}</span>?
+          </p>
+          <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-500/30 rounded-lg">
+            <div className="flex items-start space-x-2">
+              <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-yellow-800 dark:text-yellow-300">
+                <p className="font-medium">This will also update the Google Sheet</p>
+                <p>The member will be removed from both the team and the associated spreadsheet.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex space-x-3">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              onConfirm();
+              onClose();
+            }}
+            className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center justify-center space-x-2"
+          >
+            <UserMinus className="h-4 w-4" />
+            <span>Remove Member</span>
+          </button>
         </div>
       </div>
     </div>

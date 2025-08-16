@@ -57,10 +57,10 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Fetch team names from column C for the specified range
+      // Fetch team data from columns C (names), D (sheet URLs), and E (members)
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: spreadsheetId,
-        range: `C${startRow}:C${endRow}`,
+        range: `C${startRow}:E${endRow}`,
       });
 
       const values = response.data.values;
@@ -72,13 +72,34 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Parse team names and create team list
+      // Parse team data and create team list
       const teams = values
-        .map((row, index) => ({
-          row: startRow + index,
-          name: row[0] || '',
-          label: row[0] || `Team ${startRow + index}`
-        }))
+        .map((row, index) => {
+          const rowNumber = startRow + index;
+          const teamName = row[0] || '';
+          const sheetUrl = row[1] || '';
+          const membersString = row[2] || '';
+          
+          // Parse members from comma-separated email string
+          const members = membersString
+            .split(',')
+            .map((email: string) => email.trim())
+            .filter((email: string) => email)
+            .map((email: string, memberIndex: number) => ({
+              id: `member-${rowNumber}-${memberIndex}`,
+              name: email.split('@')[0], // Use email username as name fallback
+              email: email,
+              role: 'Member' // Default role
+            }));
+
+          return {
+            row: rowNumber,
+            name: teamName,
+            label: teamName || `Team ${rowNumber}`,
+            sheetUrl: sheetUrl,
+            members: members
+          };
+        })
         .filter(team => team.name.trim() !== '');
 
       // Return the teams list
