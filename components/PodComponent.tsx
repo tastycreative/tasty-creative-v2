@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import PodSidebar from "./PodSidebar";
+import { Users, UserPlus, Calendar, ExternalLink, RefreshCw } from "lucide-react";
 import WorkflowDashboard from "./WorkflowDashboard";
 import SheetsIntegration from "./SheetsIntegration";
 import SheetViewer from "./SheetViewer";
@@ -69,6 +69,8 @@ const PodComponent = () => {
   }>>([]);
   const [isDriveLoading, setIsDriveLoading] = useState(false);
   const [driveError, setDriveError] = useState<string | null>(null);
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [isTasksLoading, setIsTasksLoading] = useState(false);
 
   const fetchAvailableTeams = async () => {
     setIsLoadingTeams(true);
@@ -153,6 +155,57 @@ const PodComponent = () => {
       return {};
     }
   };
+
+  const fetchTasks = useCallback(async (teamId: string) => {
+    if (!teamId) {
+      setTasks([]);
+      return;
+    }
+
+    setIsTasksLoading(true);
+    try {
+      const response = await fetch(`/api/tasks?teamId=${teamId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch tasks');
+      }
+      const result = await response.json();
+      if (result.success && result.tasks) {
+        // Convert database tasks to WorkflowDashboard format
+        const formattedTasks = result.tasks.map((task: any) => {
+          // If assignedTo is an email, extract the name part or use session name
+          let assigneeName = task.assignedTo || 'Unassigned';
+          if (assigneeName.includes('@')) {
+            // Check if it's the current user
+            if (session?.user?.email === assigneeName) {
+              assigneeName = session.user.name || session.user.email.split('@')[0];
+            } else {
+              // Extract username from email
+              assigneeName = assigneeName.split('@')[0];
+            }
+          }
+          
+          return {
+            id: task.id,
+            title: task.title,
+            assignee: assigneeName,
+            status: task.status.toLowerCase().replace('_', '-') as 'not-started' | 'in-progress' | 'completed' | 'review',
+            progress: task.status === 'COMPLETED' ? 100 : 
+                     task.status === 'IN_PROGRESS' ? 50 : 0,
+            dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            priority: task.priority.toLowerCase() as 'low' | 'medium' | 'high'
+          };
+        });
+        setTasks(formattedTasks);
+      } else {
+        setTasks([]);
+      }
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+      setTasks([]);
+    } finally {
+      setIsTasksLoading(false);
+    }
+  }, [session]);
 
   const fetchDriveSheets = useCallback(async () => {
     if (!podData?.creators || podData.creators.length === 0) {
@@ -364,83 +417,14 @@ const PodComponent = () => {
     }
   }, [activeTab, podData?.creators, fetchDriveSheets]);
 
-  // Generate dynamic tasks based on team members
-  const generateTasks = () => {
-    if (!podData || !podData.teamMembers) return [];
+  // Fetch tasks when selectedRow changes or when dashboard tab is active
+  useEffect(() => {
+    if (activeTab === "dashboard" && selectedRow) {
+      const teamId = `team-${selectedRow}`;
+      fetchTasks(teamId);
+    }
+  }, [activeTab, selectedRow, fetchTasks]);
 
-    const taskTemplates = [
-      {
-        title: "Design Homepage Banner",
-        status: "completed" as const,
-        progress: 100,
-        priority: "high" as const,
-      },
-      {
-        title: "Create Video Thumbnail",
-        status: "in-progress" as const,
-        progress: 65,
-        priority: "medium" as const,
-      },
-      {
-        title: "Write Product Description",
-        status: "review" as const,
-        progress: 90,
-        priority: "medium" as const,
-      },
-      {
-        title: "Social Media Graphics",
-        status: "not-started" as const,
-        progress: 0,
-        priority: "low" as const,
-      },
-      {
-        title: "Website Content Update",
-        status: "in-progress" as const,
-        progress: 45,
-        priority: "high" as const,
-      },
-      {
-        title: "Email Campaign Design",
-        status: "completed" as const,
-        progress: 100,
-        priority: "medium" as const,
-      },
-      {
-        title: "Mobile App Mockup",
-        status: "not-started" as const,
-        progress: 0,
-        priority: "high" as const,
-      },
-      {
-        title: "Brand Guidelines",
-        status: "review" as const,
-        progress: 80,
-        priority: "low" as const,
-      },
-      {
-        title: "Performance Analytics",
-        status: "in-progress" as const,
-        progress: 30,
-        priority: "medium" as const,
-      },
-    ];
-
-    return podData.teamMembers.flatMap((member, memberIndex) =>
-      taskTemplates
-        .slice(memberIndex * 3, (memberIndex + 1) * 3)
-        .map((template, taskIndex) => ({
-          id: `${memberIndex}-${taskIndex}`,
-          title: template.title,
-          assignee: member.name,
-          status: template.status,
-          progress: template.progress,
-          dueDate: new Date(Date.now() + (taskIndex + 1) * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .split("T")[0],
-          priority: template.priority,
-        }))
-    );
-  };
 
   const handleTabChange = (tab: "dashboard" | "sheets" | "admin") => {
     console.log('Tab change clicked:', tab, 'Current viewMode:', viewMode);
@@ -499,35 +483,6 @@ const PodComponent = () => {
               Spreadsheets
             </p>
 
-            {/* Team Selection */}
-            <div className="mt-4 flex items-center justify-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Select Team:
-                </label>
-                <select
-                  value={selectedRow}
-                  onChange={(e) => {
-                    const newRow = parseInt(e.target.value);
-                    setSelectedRow(newRow);
-                    fetchPodData(newRow);
-                  }}
-                  disabled={isLoading || isLoadingTeams}
-                  className="px-3 py-1 bg-white dark:bg-gray-800 border border-pink-200 dark:border-pink-500/30 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:opacity-50"
-                >
-                  {availableTeams.length > 0 ? (
-                    availableTeams.map((team) => (
-                      <option key={team.row} value={team.row}>
-                        {team.name}
-                      </option>
-                    ))
-                  ) : (
-                    <option value={selectedRow}>Loading teams...</option>
-                  )}
-                </select>
-              </div>
-            </div>
-
             {/* Data Status */}
             <div className="mt-4 flex items-center justify-center space-x-4">
               {isLoading && (
@@ -554,13 +509,6 @@ const PodComponent = () => {
                   {new Date(podData.lastUpdated).toLocaleTimeString()}
                 </div>
               )}
-              <button
-                onClick={() => fetchPodData()}
-                disabled={isLoading}
-                className="px-3 py-1 bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 rounded text-sm hover:bg-pink-200 dark:hover:bg-pink-900/50 disabled:opacity-50"
-              >
-                🔄 Refresh Data
-              </button>
             </div>
           </div>
         </div>
@@ -609,12 +557,144 @@ const PodComponent = () => {
           {activeTab !== "admin" && (
             <div className="lg:w-80 w-full">
               {podData ? (
-                <PodSidebar
-                  teamName={podData.teamName}
-                  teamMembers={podData.teamMembers}
-                  assignedCreators={podData.creators}
-                  schedulerSpreadsheetUrl={schedulerSpreadsheetUrl}
-                />
+                <div className="w-full space-y-6">
+                  {/* Team Selection & Info Combined */}
+                  <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg shadow-lg">
+                    {/* Team Selection Header */}
+                    <div className="bg-gradient-to-r from-purple-50/50 to-indigo-50/50 dark:from-purple-900/30 dark:to-indigo-900/30 border-b border-purple-200 dark:border-purple-500/30 p-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center">
+                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mr-3">
+                            <Users className="h-4 w-4 text-white" />
+                          </div>
+                          {podData.teamName}
+                        </h3>
+                        <button
+                          onClick={() => fetchPodData()}
+                          disabled={isLoading}
+                          className="p-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 disabled:opacity-50"
+                          title="Refresh team data"
+                        >
+                          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Team Selection Dropdown */}
+                    <div className="p-4 border-b border-gray-200 dark:border-gray-600">
+                      <div className="space-y-3">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Switch Team:
+                        </label>
+                        <select
+                          value={selectedRow || ''}
+                          onChange={(e) => {
+                            const newRow = parseInt(e.target.value);
+                            setSelectedRow(newRow);
+                            fetchPodData(newRow);
+                          }}
+                          disabled={isLoading || isLoadingTeams}
+                          className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-purple-200 dark:border-purple-500/30 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:opacity-50 text-gray-900 dark:text-gray-100"
+                        >
+                          {availableTeams.length > 0 ? (
+                            availableTeams.map((team) => (
+                              <option key={team.row} value={team.row}>
+                                {team.name}
+                              </option>
+                            ))
+                          ) : (
+                            <option value={selectedRow || ''}>Loading teams...</option>
+                          )}
+                        </select>
+                        {(isLoading || isLoadingTeams) && (
+                          <div className="flex items-center text-sm text-purple-600 dark:text-purple-400">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 mr-2"></div>
+                            {isLoadingTeams ? 'Loading teams...' : 'Loading data...'}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Team Members */}
+                    <div className="p-4 border-b border-gray-200 dark:border-gray-600">
+                      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center">
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Team Members ({podData.teamMembers.length})
+                      </h4>
+                      <div className="space-y-2">
+                        {podData.teamMembers.length > 0 ? (
+                          podData.teamMembers.map((member) => (
+                            <div
+                              key={member.id}
+                              className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-md"
+                            >
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {member.name}
+                              </span>
+                              <span className="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full">
+                                {member.role}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            No team members assigned
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Assigned Creators */}
+                    <div className="p-4">
+                      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center">
+                        <Users className="h-4 w-4 mr-2" />
+                        Assigned Creators ({podData.creators.length})
+                      </h4>
+                      <div className="space-y-2">
+                        {podData.creators.length > 0 ? (
+                          podData.creators.map((creator) => (
+                            <div
+                              key={creator.id}
+                              className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-md"
+                            >
+                              <div>
+                                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                  {creator.name}
+                                </span>
+                             
+                              </div>
+                              {creator.earnings && (
+                                <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full">
+                                  {creator.earnings}
+                                </span>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            No creators assigned
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Scheduler Link */}
+                    {schedulerSpreadsheetUrl && (
+                      <div className="p-4 border-t border-gray-200 dark:border-gray-600">
+                        <a
+                          href={schedulerSpreadsheetUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center w-full p-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 text-sm font-medium"
+                        >
+                          <Calendar className="h-4 w-4 mr-2" />
+                          Open Scheduler
+                          <ExternalLink className="h-3 w-3 ml-2" />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
               ) : (
                 <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6 text-center">
                   {isLoading ? (
@@ -658,7 +738,18 @@ const PodComponent = () => {
                   <>
                     {/* Workflow Dashboard */}
                     {podData ? (
-                      <WorkflowDashboard tasks={generateTasks()} />
+                      isTasksLoading ? (
+                        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6 text-center">
+                          <div className="flex items-center justify-center space-x-2">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600"></div>
+                            <span className="text-gray-600 dark:text-gray-300">
+                              Loading tasks...
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <WorkflowDashboard tasks={tasks} />
+                      )
                     ) : (
                       <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6 text-center">
                         {isLoading ? (

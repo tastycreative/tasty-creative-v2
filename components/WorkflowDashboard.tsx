@@ -28,44 +28,7 @@ interface WorkflowDashboardProps {
 }
 
 const WorkflowDashboard: React.FC<WorkflowDashboardProps> = ({
-  tasks = [
-    {
-      id: '1',
-      title: 'Design Homepage Banner',
-      assignee: 'Sarah Wilson',
-      status: 'completed',
-      progress: 100,
-      dueDate: '2025-08-10',
-      priority: 'high'
-    },
-    {
-      id: '2',
-      title: 'Create Video Thumbnail',
-      assignee: 'Alex Chen',
-      status: 'in-progress',
-      progress: 65,
-      dueDate: '2025-08-12',
-      priority: 'medium'
-    },
-    {
-      id: '3',
-      title: 'Write Product Description',
-      assignee: 'Emma Davis',
-      status: 'review',
-      progress: 90,
-      dueDate: '2025-08-11',
-      priority: 'medium'
-    },
-    {
-      id: '4',
-      title: 'Social Media Graphics',
-      assignee: 'Sarah Wilson',
-      status: 'not-started',
-      progress: 0,
-      dueDate: '2025-08-15',
-      priority: 'low'
-    },
-  ]
+  tasks = []
 }) => {
   const completedTasks = tasks.filter(task => task.status === 'completed').length;
   const totalTasks = tasks.length;
@@ -152,48 +115,63 @@ const WorkflowDashboard: React.FC<WorkflowDashboardProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {Array.from(new Set(tasks.map(t => t.assignee))).map(assignee => {
-              const memberTasks = tasks.filter(t => t.assignee === assignee);
-              
-              return (
-                <div key={assignee} className="p-4 rounded-lg border border-pink-200 dark:border-pink-500/30 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-                  {/* Member Header */}
-                  <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-pink-200 dark:border-pink-500/30">
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">
-                        {assignee.split(' ').map(n => n[0]).join('')}
-                      </span>
-                    </div>
-                    <div>
-                      <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{assignee}</h3>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">{memberTasks.length} tasks</p>
-                    </div>
-                  </div>
-                  
-                  {/* Simple Task List with Checkboxes */}
-                  <div className="space-y-2">
-                    {memberTasks.map((task) => (
-                      <div key={task.id} className="flex items-center space-x-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                        {/* Checkbox */}
-                        <input
-                          type="checkbox"
-                          checked={task.status === 'completed'}
-                          readOnly
-                          className="h-4 w-4 text-green-600 rounded border-gray-300 dark:border-gray-600 focus:ring-green-500"
-                        />
-                        
-                        {/* Task Title Only */}
-                        <span className={`text-sm ${task.status === 'completed' ? 'line-through text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-gray-100'}`}>
-                          {task.title}
+          {tasks.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {Array.from(new Set(tasks.map(t => t.assignee))).map(assignee => {
+                const memberTasks = tasks.filter(t => t.assignee === assignee);
+                
+                return (
+                  <div key={assignee} className="p-4 rounded-lg border border-pink-200 dark:border-pink-500/30 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+                    {/* Member Header */}
+                    <div className="flex items-center space-x-3 mb-4 pb-3 border-b border-pink-200 dark:border-pink-500/30">
+                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">
+                          {assignee.split(' ').map(n => n[0]).join('')}
                         </span>
                       </div>
-                    ))}
+                      <div>
+                        <h3 className="text-base font-bold text-gray-900 dark:text-gray-100">{assignee}</h3>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">{memberTasks.length} tasks</p>
+                      </div>
+                    </div>
+                    
+                    {/* Simple Task List with Checkboxes */}
+                    <div className="space-y-2">
+                      {memberTasks.map((task) => (
+                        <div key={task.id} className="flex items-center space-x-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                          {/* Checkbox */}
+                          <input
+                            type="checkbox"
+                            checked={task.status === 'completed'}
+                            readOnly
+                            className="h-4 w-4 text-green-600 rounded border-gray-300 dark:border-gray-600 focus:ring-green-500"
+                          />
+                          
+                          {/* Task Title Only */}
+                          <span className={`text-sm ${task.status === 'completed' ? 'line-through text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-gray-100'}`}>
+                            {task.title}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="h-16 w-16 rounded-full bg-gradient-to-br from-pink-100 to-rose-100 dark:from-pink-900/20 dark:to-rose-900/20 flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">📋</span>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No tasks found</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                There are no tasks assigned to this team yet.
+              </p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                Create tasks in the Admin panel to see them here.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

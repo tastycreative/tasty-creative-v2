@@ -3,7 +3,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, UserPlus, Calendar, ExternalLink } from 'lucide-react';
+import { Users, UserPlus, Calendar, ExternalLink, RefreshCw } from 'lucide-react';
 
 interface TeamMember {
   id: string;
@@ -19,21 +19,93 @@ interface Creator {
   earnings?: string;
 }
 
+interface TeamOption {
+  row: number;
+  name: string;
+  label: string;
+}
+
 interface PodSidebarProps {
   teamName?: string;
   teamMembers?: TeamMember[];
   assignedCreators?: Creator[];
   schedulerSpreadsheetUrl?: string;
+  selectedRow?: number;
+  availableTeams?: TeamOption[];
+  isLoadingTeams?: boolean;
+  isLoading?: boolean;
+  onTeamChange?: (rowNumber: number) => void;
+  onRefresh?: () => void;
 }
 
 const PodSidebar: React.FC<PodSidebarProps> = ({
   teamName,
   teamMembers = [],
   assignedCreators = [],
-  schedulerSpreadsheetUrl
+  schedulerSpreadsheetUrl,
+  selectedRow,
+  availableTeams = [],
+  isLoadingTeams = false,
+  isLoading = false,
+  onTeamChange,
+  onRefresh
 }) => {
   return (
     <div className="w-full space-y-6">
+      {/* Team Selection */}
+      <Card className="border border-pink-200 dark:border-pink-500/30 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+        <CardHeader className="bg-gradient-to-r from-purple-50/50 to-indigo-50/50 dark:from-purple-900/30 dark:to-indigo-900/30 border-b border-purple-200 dark:border-purple-500/30">
+          <CardTitle className="text-gray-900 dark:text-gray-100 font-bold flex items-center text-lg">
+            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mr-3">
+              <Users className="h-4 w-4 text-white" />
+            </div>
+            Team Selection
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4">
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Select Team:
+            </label>
+            <select
+              value={selectedRow || ''}
+              onChange={(e) => {
+                const newRow = parseInt(e.target.value);
+                if (onTeamChange) onTeamChange(newRow);
+              }}
+              disabled={isLoading || isLoadingTeams}
+              className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-purple-200 dark:border-purple-500/30 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:opacity-50 text-gray-900 dark:text-gray-100"
+            >
+              {availableTeams.length > 0 ? (
+                availableTeams.map((team) => (
+                  <option key={team.row} value={team.row}>
+                    {team.name}
+                  </option>
+                ))
+              ) : (
+                <option value={selectedRow || ''}>Loading teams...</option>
+              )}
+            </select>
+            {(isLoading || isLoadingTeams) && (
+              <div className="flex items-center text-sm text-purple-600 dark:text-purple-400">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 mr-2"></div>
+                {isLoadingTeams ? 'Loading teams...' : 'Loading data...'}
+              </div>
+            )}
+            {onRefresh && (
+              <Button
+                onClick={onRefresh}
+                disabled={isLoading}
+                className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-300 disabled:opacity-50"
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                Refresh Data
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Team Information */}
       <Card className="border border-pink-200 dark:border-pink-500/30 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
         <CardHeader className="bg-gradient-to-r from-pink-50/50 to-rose-50/50 dark:from-pink-900/30 dark:to-rose-900/30 border-b border-pink-200 dark:border-pink-500/30">

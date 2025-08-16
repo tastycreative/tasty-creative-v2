@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { updateUserRole } from "@/app/actions/admin";
 import { Role } from "@prisma/client";
+import { useSession } from "next-auth/react";
 
 interface AdminStats {
   totalUsers: number;
@@ -86,6 +87,7 @@ interface SystemUser {
 }
 
 const PodAdminDashboard = () => {
+  const { data: session } = useSession();
   const [stats, setStats] = useState<AdminStats>({
     totalUsers: 0,
     totalTeams: 0,
@@ -141,6 +143,7 @@ const PodAdminDashboard = () => {
     memberName: string;
     teamName: string;
   } | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [newTaskData, setNewTaskData] = useState({
     title: '',
     description: '',
@@ -244,13 +247,15 @@ const PodAdminDashboard = () => {
         const apiTeams: Team[] = await Promise.all(
           result.teams.map(async (apiTeam: any) => {
             const teamData = await fetchTeamData(apiTeam.row);
+            const teamId = `team-${apiTeam.row}`;
+            const dbTasks = await fetchTasksFromDB(teamId);
             return {
-              id: `team-${apiTeam.row}`,
+              id: teamId,
               name: apiTeam.name,
               description:
                 teamData?.description || `Team from row ${apiTeam.row}`,
               members: apiTeam.members || [], // Use members from API response
-              tasks: teamData?.tasks || [],
+              tasks: dbTasks.length > 0 ? dbTasks : (teamData?.tasks || []),
               sheetUrl: apiTeam.sheetUrl || teamData?.sheetUrl,
               rowNumber: apiTeam.row,
             };
@@ -312,35 +317,8 @@ const PodAdminDashboard = () => {
               `${member.name.toLowerCase().replace(" ", ".")}@example.com`,
           })) || [];
 
-        const tasks: Task[] =
-          teamMembers.length > 0
-            ? [
-                {
-                  id: `task-${rowNumber}-1`,
-                  title: "Review team performance metrics",
-                  description:
-                    "Analyze current team productivity and identify improvement areas",
-                  assignedTo: teamMembers[0]?.id || "",
-                  status: "in-progress",
-                  priority: "medium",
-                  dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-                    .toISOString()
-                    .split("T")[0],
-                },
-                {
-                  id: `task-${rowNumber}-2`,
-                  title: "Prepare weekly report",
-                  description:
-                    "Compile team activities and accomplishments for the week",
-                  assignedTo: teamMembers[teamMembers.length - 1]?.id || "",
-                  status: "not-started",
-                  priority: "high",
-                  dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
-                    .toISOString()
-                    .split("T")[0],
-                },
-              ]
-            : [];
+        // Tasks are now loaded from database via fetchTasksFromDB in fetchAvailableTeams
+        const tasks: Task[] = [];
 
         return {
           description: `${basicData.teamName} - Managed team`,
@@ -367,6 +345,54 @@ const PodAdminDashboard = () => {
       }
       return null;
     }
+  };
+
+  // Fetch tasks from database
+  const fetchTasksFromDB = async (teamId: string): Promise<Task[]> => {
+    try {
+      const response = await fetch(`/api/tasks?teamId=${teamId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch tasks');
+      }
+      const result = await response.json();
+      if (result.success && result.tasks) {
+        return result.tasks.map((task: any) => ({
+          id: task.id,
+          title: task.title,
+          description: task.description || '',
+          status: task.status.toLowerCase().replace('_', '-') as 'not-started' | 'in-progress' | 'completed' | 'on-hold',
+          priority: task.priority.toLowerCase() as 'low' | 'medium' | 'high',
+          assignedTo: task.assignedTo || '',
+          dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : ''
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+      return [];
+    }
+  };
+
+  // Refresh tasks for a specific team
+  const refreshTeamTasks = async (teamId: string) => {
+    try {
+      const dbTasks = await fetchTasksFromDB(teamId);
+      setTeams(teams.map(t => 
+        t.id === teamId 
+          ? { ...t, tasks: dbTasks }
+          : t
+      ));
+    } catch (error) {
+      console.error('Error refreshing team tasks:', error);
+    }
+  };
+
+  // Show success message with auto-dismiss
+  const showSuccessMessage = (message: string) => {
+    setSuccessMessage(message);
+    setTimeout(() => {
+      setSuccessMessage(null);
+    }, 3000); // Auto-dismiss after 3 seconds
   };
 
   const fetchUsers = async () => {
@@ -638,34 +664,57 @@ const PodAdminDashboard = () => {
       const team = teams.find(t => t.id === teamId);
       if (!team || !newTaskData.title.trim()) return;
 
-      const newTask = {
-        id: `task-${Date.now()}`,
-        title: newTaskData.title.trim(),
-        description: newTaskData.description.trim(),
-        status: 'not-started' as const,
-        priority: newTaskData.priority,
-        assignedTo: newTaskData.assignedTo || '',
-        dueDate: newTaskData.dueDate || ''
-      };
-
-      const updatedTasks = [...team.tasks, newTask];
-      
-      // Update team in state
-      setTeams(teams.map(t => 
-        t.id === teamId 
-          ? { ...t, tasks: updatedTasks }
-          : t
-      ));
-
-      // Reset form
-      setNewTaskData({
-        title: '',
-        description: '',
-        priority: 'medium',
-        assignedTo: '',
-        dueDate: ''
+      // Create task in database
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: newTaskData.title.trim(),
+          description: newTaskData.description.trim() || null,
+          priority: newTaskData.priority.toUpperCase(),
+          assignedTo: newTaskData.assignedTo || null,
+          dueDate: newTaskData.dueDate || null,
+          teamId,
+          teamName: team.name,
+        }),
       });
-      setShowAddTaskForm(null);
+
+      if (!response.ok) {
+        throw new Error('Failed to create task');
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.task) {
+        // Convert database task to local format
+        const newTask: Task = {
+          id: result.task.id,
+          title: result.task.title,
+          description: result.task.description || '',
+          status: result.task.status.toLowerCase().replace('_', '-') as 'not-started' | 'in-progress' | 'completed' | 'on-hold',
+          priority: result.task.priority.toLowerCase() as 'low' | 'medium' | 'high',
+          assignedTo: result.task.assignedTo || '',
+          dueDate: result.task.dueDate ? new Date(result.task.dueDate).toISOString().split('T')[0] : ''
+        };
+
+        // Refresh tasks from database to ensure consistency
+        await refreshTeamTasks(teamId);
+
+        // Show success message
+        showSuccessMessage(`Task "${newTaskData.title}" created successfully!`);
+
+        // Reset form
+        setNewTaskData({
+          title: '',
+          description: '',
+          priority: 'medium',
+          assignedTo: '',
+          dueDate: ''
+        });
+        setShowAddTaskForm(null);
+      }
     } catch (error) {
       console.error('Error adding task:', error);
       alert('Failed to add task to team');
@@ -677,14 +726,22 @@ const PodAdminDashboard = () => {
       const team = teams.find(t => t.id === teamId);
       if (!team) return;
 
-      const updatedTasks = team.tasks.filter(t => t.id !== taskId);
+      // Delete task from database
+      const response = await fetch(`/api/tasks?id=${taskId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete task');
+      }
+
+      const result = await response.json();
       
-      // Update team in state
-      setTeams(teams.map(t => 
-        t.id === teamId 
-          ? { ...t, tasks: updatedTasks }
-          : t
-      ));
+      if (result.success) {
+        // Refresh tasks from database to ensure consistency
+        await refreshTeamTasks(teamId);
+        showSuccessMessage('Task deleted successfully!');
+      }
     } catch (error) {
       console.error('Error removing task:', error);
       alert('Failed to remove task from team');
@@ -696,16 +753,32 @@ const PodAdminDashboard = () => {
       const team = teams.find(t => t.id === teamId);
       if (!team) return;
 
-      const updatedTasks = team.tasks.map(t => 
-        t.id === taskId ? { ...t, status: newStatus } : t
-      );
+      // Convert status to database format
+      const dbStatus = newStatus.toUpperCase().replace('-', '_');
+
+      // Update task in database
+      const response = await fetch('/api/tasks', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: taskId,
+          status: dbStatus,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update task status');
+      }
+
+      const result = await response.json();
       
-      // Update team in state
-      setTeams(teams.map(t => 
-        t.id === teamId 
-          ? { ...t, tasks: updatedTasks }
-          : t
-      ));
+      if (result.success) {
+        // Refresh tasks from database to ensure consistency
+        await refreshTeamTasks(teamId);
+        showSuccessMessage(`Task status updated to "${newStatus.replace('-', ' ')}"!`);
+      }
     } catch (error) {
       console.error('Error updating task status:', error);
       alert('Failed to update task status');
@@ -717,16 +790,35 @@ const PodAdminDashboard = () => {
       const team = teams.find(t => t.id === teamId);
       if (!team) return;
 
-      const updatedTasks = team.tasks.map(t => 
-        t.id === taskId ? { ...t, assignedTo: newAssignee } : t
-      );
+      // Convert member ID to email for database storage
+      const member = team.members.find(m => m.id === newAssignee);
+      const assigneeEmail = member?.email || newAssignee;
+
+      // Update task in database
+      const response = await fetch('/api/tasks', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: taskId,
+          assignedTo: assigneeEmail || null,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update task assignment');
+      }
+
+      const result = await response.json();
       
-      // Update team in state
-      setTeams(teams.map(t => 
-        t.id === teamId 
-          ? { ...t, tasks: updatedTasks }
-          : t
-      ));
+      if (result.success) {
+        // Refresh tasks from database to ensure consistency
+        await refreshTeamTasks(teamId);
+        const member = team.members.find(m => m.id === newAssignee);
+        const assigneeName = member?.name || (newAssignee ? 'assigned user' : 'unassigned');
+        showSuccessMessage(`Task assigned to ${assigneeName}!`);
+      }
 
       setEditingTask(null);
     } catch (error) {
@@ -1069,6 +1161,32 @@ const PodAdminDashboard = () => {
 
   return (
     <div className="space-y-6">
+      {/* Success Message */}
+      {successMessage && (
+        <div className="fixed top-4 right-4 z-50 max-w-sm w-full animate-in slide-in-from-right-full duration-300">
+          <div className="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-500/30 rounded-lg p-4 shadow-lg backdrop-blur-sm">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-3 flex-1">
+                <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                  {successMessage}
+                </p>
+              </div>
+              <button
+                onClick={() => setSuccessMessage(null)}
+                className="ml-3 flex-shrink-0 text-green-400 hover:text-green-600 dark:hover:text-green-300 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header with Navigation */}
       <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6">
         <div className="flex items-center justify-between mb-6">
@@ -1881,10 +1999,31 @@ const PodAdminDashboard = () => {
                         </p>
                       </div>
                       <div className="flex items-center space-x-3">
+                        {/* Refresh Tasks Button */}
+                        <button
+                          onClick={() => refreshTeamTasks(team.id)}
+                          className="flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
+                          title="Refresh tasks from database"
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          <span>Refresh</span>
+                        </button>
+                        
                         {/* Add Task Button */}
                         <button
                           onClick={() => {
-                            setShowAddTaskForm(showAddTaskForm === team.id ? null : team.id);
+                            if (showAddTaskForm === team.id) {
+                              setShowAddTaskForm(null);
+                            } else {
+                              setShowAddTaskForm(team.id);
+                              // Set current user as default assignee
+                              setNewTaskData(prev => ({
+                                ...prev,
+                                assignedTo: session?.user?.email || ''
+                              }));
+                            }
                             if (!podUsers.length) fetchUsers();
                           }}
                           className="flex items-center space-x-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors text-sm"
@@ -1943,8 +2082,13 @@ const PodAdminDashboard = () => {
                               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                             >
                               <option value="">Unassigned</option>
+                              {session?.user?.email && (
+                                <option value={session.user.email}>
+                                  {session.user.name || session.user.email} (You)
+                                </option>
+                              )}
                               {team.members.map(member => (
-                                <option key={member.id} value={member.id}>
+                                <option key={member.id} value={member.email || member.id}>
                                   {member.name}
                                 </option>
                               ))}
@@ -2056,7 +2200,12 @@ const PodAdminDashboard = () => {
                                       {editingTask === task.id ? (
                                         <div className="flex items-center space-x-2">
                                           <select
-                                            value={task.assignedTo}
+                                            value={
+                                              // Find the member by email first, fallback to ID for backwards compatibility
+                                              team.members.find(m => m.email === task.assignedTo)?.id ||
+                                              team.members.find(m => m.id === task.assignedTo)?.id ||
+                                              ''
+                                            }
                                             onChange={(e) => updateTaskAssignment(team.id, task.id, e.target.value)}
                                             className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
                                           >
@@ -2079,14 +2228,18 @@ const PodAdminDashboard = () => {
                                           {task.assignedTo ? (
                                             <div className="flex items-center space-x-2">
                                               <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xs">
-                                                {(team.members.find(m => m.id === task.assignedTo)?.name || 'U')
+                                                {((team.members.find(m => m.email === task.assignedTo || m.id === task.assignedTo)?.name) || 
+                                                  (session?.user?.email === task.assignedTo ? session.user.name : null) ||
+                                                  task.assignedTo.split('@')[0] || 'U')
                                                   .split(" ")
                                                   .map((n) => n[0])
                                                   .join("")
                                                   .slice(0, 2)}
                                               </div>
                                               <span className="text-xs text-gray-600 dark:text-gray-400">
-                                                {team.members.find(m => m.id === task.assignedTo)?.name || 'Unknown'}
+                                                {(team.members.find(m => m.email === task.assignedTo || m.id === task.assignedTo)?.name) || 
+                                                 (session?.user?.email === task.assignedTo ? session.user.name : null) ||
+                                                 task.assignedTo.split('@')[0] || 'Unknown'}
                                               </span>
                                             </div>
                                           ) : (
