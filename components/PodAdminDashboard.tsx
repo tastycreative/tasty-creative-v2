@@ -151,6 +151,7 @@ const PodAdminDashboard = () => {
     assignedTo: '',
     dueDate: ''
   });
+  const [hasDueDate, setHasDueDate] = useState(false);
 
   // Constants for API calls
   const DEFAULT_SPREADSHEET_URL =
@@ -713,6 +714,7 @@ const PodAdminDashboard = () => {
           assignedTo: '',
           dueDate: ''
         });
+        setHasDueDate(false);
         setShowAddTaskForm(null);
       }
     } catch (error) {
@@ -2095,15 +2097,35 @@ const PodAdminDashboard = () => {
                             </select>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                              Due Date
-                            </label>
-                            <input
-                              type="date"
-                              value={newTaskData.dueDate}
-                              onChange={(e) => setNewTaskData({...newTaskData, dueDate: e.target.value})}
-                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                            />
+                            <div className="flex items-center space-x-2 mb-2">
+                              <input
+                                type="checkbox"
+                                id="set-due-date"
+                                checked={hasDueDate}
+                                onChange={(e) => {
+                                  setHasDueDate(e.target.checked);
+                                  if (!e.target.checked) {
+                                    setNewTaskData({...newTaskData, dueDate: ''});
+                                  }
+                                }}
+                                className="rounded border-gray-300 dark:border-gray-600 text-emerald-600 focus:ring-emerald-500 dark:bg-gray-700"
+                              />
+                              <label htmlFor="set-due-date" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Set due date
+                              </label>
+                            </div>
+                            {hasDueDate ? (
+                              <input
+                                type="date"
+                                value={newTaskData.dueDate}
+                                onChange={(e) => setNewTaskData({...newTaskData, dueDate: e.target.value})}
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                              />
+                            ) : (
+                              <div className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 italic">
+                                No deadline set
+                              </div>
+                            )}
                           </div>
                           <div className="md:col-span-2">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -2120,7 +2142,17 @@ const PodAdminDashboard = () => {
                         </div>
                         <div className="flex items-center justify-end space-x-3 mt-4">
                           <button
-                            onClick={() => setShowAddTaskForm(null)}
+                            onClick={() => {
+                              setShowAddTaskForm(null);
+                              setHasDueDate(false);
+                              setNewTaskData({
+                                title: '',
+                                description: '',
+                                priority: 'medium',
+                                assignedTo: '',
+                                dueDate: ''
+                              });
+                            }}
                             className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
                           >
                             Cancel
@@ -2255,10 +2287,15 @@ const PodAdminDashboard = () => {
                                         </div>
                                       )}
 
-                                      {task.dueDate && (
+                                      {task.dueDate ? (
                                         <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
                                           <Calendar className="h-3 w-3" />
                                           <span>{new Date(task.dueDate).toLocaleDateString()}</span>
+                                        </div>
+                                      ) : (
+                                        <div className="flex items-center space-x-1 text-xs text-gray-400 dark:text-gray-500">
+                                          <Calendar className="h-3 w-3" />
+                                          <span className="italic">No deadline</span>
                                         </div>
                                       )}
                                     </div>

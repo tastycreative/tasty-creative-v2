@@ -1491,15 +1491,41 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
                       {/* Edit Due Date */}
                       <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                          Due Date
-                        </label>
-                        <input
-                          type="date"
-                          value={editingTaskData.dueDate || ''}
-                          onChange={(e) => setEditingTaskData(prev => ({ ...prev, dueDate: e.target.value }))}
-                          className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
-                        />
+                        <div className="flex items-center space-x-3 mb-3">
+                          <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                            Due Date
+                          </label>
+                          <input
+                            type="checkbox"
+                            id="has-due-date-edit"
+                            checked={!!editingTaskData.dueDate}
+                            onChange={(e) => {
+                              if (!e.target.checked) {
+                                setEditingTaskData(prev => ({ ...prev, dueDate: '' }));
+                              } else {
+                                // Set to today's date as default when enabled
+                                const today = new Date().toISOString().split('T')[0];
+                                setEditingTaskData(prev => ({ ...prev, dueDate: today }));
+                              }
+                            }}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                          <label htmlFor="has-due-date-edit" className="text-sm text-gray-700 dark:text-gray-300">
+                            Set due date
+                          </label>
+                        </div>
+                        {editingTaskData.dueDate ? (
+                          <input
+                            type="date"
+                            value={editingTaskData.dueDate || ''}
+                            onChange={(e) => setEditingTaskData(prev => ({ ...prev, dueDate: e.target.value }))}
+                            className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                          />
+                        ) : (
+                          <div className="px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50/50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 text-sm italic">
+                            No deadline set
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -1788,15 +1814,41 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
                   {/* Due Date */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                      Due Date
-                    </label>
-                    <input
-                      type="date"
-                      value={newTaskData.dueDate}
-                      onChange={(e) => setNewTaskData(prev => ({ ...prev, dueDate: e.target.value }))}
-                      className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
-                    />
+                    <div className="flex items-center space-x-3 mb-3">
+                      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        Due Date
+                      </label>
+                      <input
+                        type="checkbox"
+                        id="has-due-date-new"
+                        checked={!!newTaskData.dueDate}
+                        onChange={(e) => {
+                          if (!e.target.checked) {
+                            setNewTaskData(prev => ({ ...prev, dueDate: '' }));
+                          } else {
+                            // Set to today's date as default when enabled
+                            const today = new Date().toISOString().split('T')[0];
+                            setNewTaskData(prev => ({ ...prev, dueDate: today }));
+                          }
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <label htmlFor="has-due-date-new" className="text-sm text-gray-700 dark:text-gray-300">
+                        Set due date
+                      </label>
+                    </div>
+                    {newTaskData.dueDate ? (
+                      <input
+                        type="date"
+                        value={newTaskData.dueDate}
+                        onChange={(e) => setNewTaskData(prev => ({ ...prev, dueDate: e.target.value }))}
+                        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                      />
+                    ) : (
+                      <div className="px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50/50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 text-sm italic">
+                        No deadline set
+                      </div>
+                    )}
                   </div>
                 </div>
 
