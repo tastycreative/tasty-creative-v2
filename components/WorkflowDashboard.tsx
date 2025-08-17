@@ -2,16 +2,45 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Clock, Play, CheckCircle2, XCircle } from 'lucide-react';
 
 // Simple Progress component
 const Progress = ({ value, className }: { value: number; className?: string }) => (
   <div className={`w-full bg-gray-200 dark:bg-gray-700 rounded-full ${className}`}>
     <div
-      className="bg-gradient-to-r from-purple-500 to-blue-600 h-full rounded-full transition-all duration-300"
+      className="bg-gradient-to-r from-purple-500 to-blue-600 dark:from-purple-400 dark:to-blue-500 h-full rounded-full transition-all duration-300"
       style={{ width: `${Math.min(Math.max(value, 0), 100)}%` }}
     ></div>
   </div>
 );
+
+// Status configuration matching the Board component
+const statusConfig = {
+  'not-started': {
+    label: 'Not Started',
+    icon: Clock,
+    color: 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600',
+    bgColor: 'bg-gray-50 dark:bg-gray-800/50'
+  },
+  'in-progress': {
+    label: 'In Progress',
+    icon: Play,
+    color: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-600',
+    bgColor: 'bg-blue-50 dark:bg-blue-900/20'
+  },
+  'completed': {
+    label: 'Completed',
+    icon: CheckCircle2,
+    color: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-600',
+    bgColor: 'bg-green-50 dark:bg-green-900/20'
+  },
+  'review': {
+    label: 'Cancelled',
+    icon: XCircle,
+    color: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-600',
+    bgColor: 'bg-red-50 dark:bg-red-900/20'
+  }
+};
 
 interface Task {
   id: string;
@@ -66,15 +95,27 @@ const WorkflowDashboard: React.FC<WorkflowDashboardProps> = ({
             <div className="space-y-3">
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Status Summary</h3>
               <div className="grid grid-cols-2 gap-2">
-                <div className="text-center p-2 bg-pink-50 dark:bg-pink-900/20 rounded-lg">
-                  <p className="text-lg font-bold text-pink-600 dark:text-pink-400">{completedTasks}</p>
-                  <p className="text-xs text-pink-700 dark:text-pink-300">Completed</p>
+                <div className="text-center p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <p className="text-lg font-bold text-green-600 dark:text-green-400">{completedTasks}</p>
+                  <p className="text-xs text-green-700 dark:text-green-300">Completed</p>
                 </div>
-                <div className="text-center p-2 bg-rose-50 dark:bg-rose-900/20 rounded-lg">
-                  <p className="text-lg font-bold text-rose-600 dark:text-rose-400">
+                <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
                     {tasks.filter(t => t.status === 'in-progress').length}
                   </p>
-                  <p className="text-xs text-rose-700 dark:text-rose-300">In Progress</p>
+                  <p className="text-xs text-blue-700 dark:text-blue-300">In Progress</p>
+                </div>
+                <div className="text-center p-2 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
+                  <p className="text-lg font-bold text-gray-600 dark:text-gray-400">
+                    {tasks.filter(t => t.status === 'not-started').length}
+                  </p>
+                  <p className="text-xs text-gray-700 dark:text-gray-300">Not Started</p>
+                </div>
+                <div className="text-center p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                  <p className="text-lg font-bold text-red-600 dark:text-red-400">
+                    {tasks.filter(t => t.status === 'review').length}
+                  </p>
+                  <p className="text-xs text-red-700 dark:text-red-300">Cancelled</p>
                 </div>
               </div>
             </div>
@@ -135,24 +176,33 @@ const WorkflowDashboard: React.FC<WorkflowDashboardProps> = ({
                       </div>
                     </div>
                     
-                    {/* Simple Task List with Checkboxes */}
+                    {/* Task List with Status Badges */}
                     <div className="space-y-2">
-                      {memberTasks.map((task) => (
-                        <div key={task.id} className="flex items-center space-x-3 p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                          {/* Checkbox */}
-                          <input
-                            type="checkbox"
-                            checked={task.status === 'completed'}
-                            readOnly
-                            className="h-4 w-4 text-green-600 rounded border-gray-300 dark:border-gray-600 focus:ring-green-500"
-                          />
-                          
-                          {/* Task Title Only */}
-                          <span className={`text-sm ${task.status === 'completed' ? 'line-through text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-gray-100'}`}>
-                            {task.title}
-                          </span>
-                        </div>
-                      ))}
+                      {memberTasks.map((task) => {
+                        const config = statusConfig[task.status];
+                        const IconComponent = config.icon;
+                        
+                        return (
+                          <div key={task.id} className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${config.bgColor} border-gray-200 dark:border-gray-600`}>
+                            <div className="flex items-center space-x-3 flex-1">
+                              {/* Status Icon */}
+                              <div className={`p-1 rounded-full ${config.color}`}>
+                                <IconComponent className="h-3 w-3" />
+                              </div>
+                              
+                              {/* Task Title */}
+                              <span className={`text-sm font-medium flex-1 ${task.status === 'completed' ? 'line-through text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-gray-100'}`}>
+                                {task.title}
+                              </span>
+                            </div>
+                            
+                            {/* Status Badge */}
+                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${config.color}`}>
+                              {config.label}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 );

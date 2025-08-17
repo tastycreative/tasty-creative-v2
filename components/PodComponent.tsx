@@ -7,6 +7,7 @@ import WorkflowDashboard from "./WorkflowDashboard";
 import SheetsIntegration from "./SheetsIntegration";
 import SheetViewer from "./SheetViewer";
 import PodAdminDashboard from "./PodAdminDashboard";
+import Board from "./pod/Board";
 
 interface TeamMember {
   id: string;
@@ -53,7 +54,7 @@ const PodComponent = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingTeams, setIsLoadingTeams] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "sheets" | "admin">(
+  const [activeTab, setActiveTab] = useState<"dashboard" | "sheets" | "board" | "admin">(
     "dashboard"
   );
   const [selectedSheet, setSelectedSheet] = useState<{
@@ -177,20 +178,29 @@ const PodComponent = () => {
           if (assigneeName.includes('@')) {
             // Check if it's the current user
             if (session?.user?.email === assigneeName) {
-              assigneeName = session.user.name || session.user.email.split('@')[0];
+              assigneeName = session?.user?.name || session?.user?.email?.split('@')[0] || 'Current User';
             } else {
               // Extract username from email
               assigneeName = assigneeName.split('@')[0];
             }
           }
           
+          // Map database status to dashboard format
+          const statusMapping: Record<string, 'not-started' | 'in-progress' | 'completed' | 'review'> = {
+            'NOT_STARTED': 'not-started',
+            'IN_PROGRESS': 'in-progress', 
+            'COMPLETED': 'completed',
+            'CANCELLED': 'review' // Map cancelled to review status for dashboard display
+          };
+          
           return {
             id: task.id,
             title: task.title,
             assignee: assigneeName,
-            status: task.status.toLowerCase().replace('_', '-') as 'not-started' | 'in-progress' | 'completed' | 'review',
+            status: statusMapping[task.status] || 'not-started',
             progress: task.status === 'COMPLETED' ? 100 : 
-                     task.status === 'IN_PROGRESS' ? 50 : 0,
+                     task.status === 'IN_PROGRESS' ? 50 : 
+                     task.status === 'CANCELLED' ? 0 : 0,
             dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
             priority: task.priority.toLowerCase() as 'low' | 'medium' | 'high'
           };
@@ -391,7 +401,7 @@ const PodComponent = () => {
         const urlParams = new URLSearchParams(window.location.search);
         const tabParam = urlParams.get("tab");
         
-        if (tabParam === "dashboard" || tabParam === "sheets" || tabParam === "admin") {
+        if (tabParam === "dashboard" || tabParam === "sheets" || tabParam === "board" || tabParam === "admin") {
           setActiveTab(tabParam);
         }
       }
@@ -426,7 +436,7 @@ const PodComponent = () => {
   }, [activeTab, selectedRow, fetchTasks]);
 
 
-  const handleTabChange = (tab: "dashboard" | "sheets" | "admin") => {
+  const handleTabChange = (tab: "dashboard" | "sheets" | "board" | "admin") => {
     console.log('Tab change clicked:', tab, 'Current viewMode:', viewMode);
     setActiveTab(tab);
     
@@ -536,6 +546,16 @@ const PodComponent = () => {
             >
               Sheets Integration
             </button>
+            <button
+              onClick={() => handleTabChange("board")}
+              className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === "board"
+                  ? "border-pink-500 text-pink-600 dark:text-pink-400"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+              }`}
+            >
+              Board
+            </button>
             {session?.user?.role === "ADMIN" && (
               <button
                 onClick={() => handleTabChange("admin")}
@@ -554,7 +574,7 @@ const PodComponent = () => {
         {/* Main Dashboard Layout */}
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Sidebar - Hidden when admin tab is active */}
-          {activeTab !== "admin" && (
+          {activeTab !== "admin" && activeTab !== "board" && (
             <div className="lg:w-80 w-full">
               {podData ? (
                 <div className="w-full space-y-6">
@@ -725,7 +745,7 @@ const PodComponent = () => {
           )}
 
           {/* Main Content */}
-          <div className={`${activeTab === "admin" ? "w-full" : "flex-1"} space-y-6`}>
+          <div className={`${activeTab === "admin" || activeTab === "board" ? "w-full" : "flex-1"} space-y-6`}>
             {viewMode === "sheet" && selectedSheet ? (
               <SheetViewer
                 sheetName={selectedSheet.name}
@@ -1064,6 +1084,17 @@ const PodComponent = () => {
                       />
                     )}
                   </>
+                )}
+
+                {activeTab === "board" && (
+                  <Board 
+                    teamId={`team-${selectedRow}`}
+                    teamName={availableTeams.find(team => team.row === selectedRow)?.name || 'Selected Team'}
+                    session={session}
+                    availableTeams={availableTeams}
+                    onTeamChange={setSelectedRow}
+                    selectedRow={selectedRow}
+                  />
                 )}
 
                 {activeTab === "admin" && session?.user?.role === "ADMIN" && (

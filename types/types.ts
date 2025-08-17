@@ -402,3 +402,4 @@ interface BlurOverlay {
   // 2D rotation (degrees)
   rotation?: number;
 }
+

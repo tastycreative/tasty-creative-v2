@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const { title, description, priority, assignedTo, dueDate, teamId, teamName } = await request.json();
+    const { title, description, priority, assignedTo, dueDate, teamId, teamName, status } = await request.json();
 
     if (!title || !teamId || !teamName) {
       return NextResponse.json(
@@ -26,17 +26,45 @@ export async function POST(request: NextRequest) {
         title: title.trim(),
         description: description?.trim() || null,
         priority: priority || 'MEDIUM',
+        status: status || 'NOT_STARTED',
         assignedTo: assignedTo || null,
         dueDate: dueDate ? new Date(dueDate) : null,
         teamId,
         teamName,
         createdById: session.user.id,
       },
+      include: {
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
     });
+
+    // Fetch assigned user information
+    let assignedUser = null;
+    if (task.assignedTo) {
+      assignedUser = await prisma.user.findUnique({
+        where: { email: task.assignedTo },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      });
+    }
+
+    const taskWithAssignedUser = {
+      ...task,
+      assignedUser,
+    };
 
     return NextResponse.json({
       success: true,
-      task,
+      task: taskWithAssignedUser,
     });
 
   } catch (error) {
@@ -84,9 +112,33 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // Fetch assigned user information for each task
+    const tasksWithAssignedUsers = await Promise.all(
+      tasks.map(async (task) => {
+        let assignedUser = null;
+        
+        if (task.assignedTo) {
+          // Try to find user by email
+          assignedUser = await prisma.user.findUnique({
+            where: { email: task.assignedTo },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          });
+        }
+        
+        return {
+          ...task,
+          assignedUser,
+        };
+      })
+    );
+
     return NextResponse.json({
       success: true,
-      tasks,
+      tasks: tasksWithAssignedUsers,
     });
 
   } catch (error) {
@@ -123,11 +175,38 @@ export async function PUT(request: NextRequest) {
     const updatedTask = await prisma.task.update({
       where: { id },
       data: updateData,
+      include: {
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
     });
+
+    // Fetch assigned user information if assignedTo was updated
+    let assignedUser = null;
+    if (updatedTask.assignedTo) {
+      assignedUser = await prisma.user.findUnique({
+        where: { email: updatedTask.assignedTo },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      });
+    }
+
+    const taskWithAssignedUser = {
+      ...updatedTask,
+      assignedUser,
+    };
 
     return NextResponse.json({
       success: true,
-      task: updatedTask,
+      task: taskWithAssignedUser,
     });
 
   } catch (error) {
