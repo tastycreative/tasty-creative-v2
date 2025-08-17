@@ -22,6 +22,7 @@ import {
   X
 } from 'lucide-react';
 import { useSocketTasks } from '@/hooks/useSocketTasks';
+import UserDropdown from '@/components/UserDropdown';
 // import { UserSearchInput } from '@/components/UserSearchInput';
 
 // Task types based on Prisma schema
@@ -176,6 +177,17 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isEditingTask, setIsEditingTask] = useState(false);
   const [editingTaskData, setEditingTaskData] = useState<Partial<Task>>({});
+
+  // New task modal state
+  const [showNewTaskModal, setShowNewTaskModal] = useState(false);
+  const [newTaskStatus, setNewTaskStatus] = useState<Task['status'] | null>(null);
+  const [newTaskData, setNewTaskData] = useState({
+    title: '',
+    description: '',
+    priority: 'MEDIUM' as Task['priority'],
+    assignedTo: '',
+    dueDate: ''
+  });
 
   // Real-time task updates
   const { broadcastTaskUpdate } = useSocketTasks({
@@ -486,6 +498,84 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     }
   };
 
+  // New task modal functions
+  const openNewTaskModal = (status: string) => {
+    setNewTaskStatus(status as Task['status']);
+    setNewTaskData({
+      title: '',
+      description: '',
+      priority: 'MEDIUM',
+      assignedTo: '',
+      dueDate: ''
+    });
+    setShowNewTaskModal(true);
+  };
+
+  const closeNewTaskModal = () => {
+    setShowNewTaskModal(false);
+    setNewTaskStatus(null);
+    setNewTaskData({
+      title: '',
+      description: '',
+      priority: 'MEDIUM',
+      assignedTo: '',
+      dueDate: ''
+    });
+  };
+
+  const createTaskFromModal = async () => {
+    if (!newTaskData.title.trim() || !newTaskStatus) return;
+
+    setIsCreatingTask(true);
+
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: newTaskData.title.trim(),
+          description: newTaskData.description.trim() || null,
+          priority: newTaskData.priority,
+          assignedTo: newTaskData.assignedTo.trim() || null,
+          dueDate: newTaskData.dueDate ? new Date(newTaskData.dueDate).toISOString() : null,
+          teamId: currentTeamId,
+          teamName,
+          status: newTaskStatus,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create task');
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.task) {
+        // Add the new task to local state
+        setTasks(prevTasks => [result.task, ...prevTasks]);
+        
+        // Broadcast the new task to other users
+        await broadcastTaskUpdate({
+          type: 'TASK_CREATED',
+          taskId: result.task.id,
+          data: result.task
+        });
+        
+        // Close modal
+        closeNewTaskModal();
+      } else {
+        throw new Error('Failed to create task');
+      }
+    } catch (error) {
+      console.error('Error creating task:', error);
+      setError('Failed to create task');
+    } finally {
+      setIsCreatingTask(false);
+    }
+  };
+
   const canMoveTask = (task: Task) => {
     if (!session?.user) return false;
     
@@ -652,52 +742,133 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   if (isLoading && tasks.length === 0) {
     return (
       <div className="space-y-6">
-        {/* Board Header Skeleton */}
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg shadow-lg p-6 animate-pulse">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center space-x-4">
-              <div>
-                <div className="h-8 bg-gray-300 dark:bg-gray-600 rounded w-32 mb-2"></div>
-                <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-48"></div>
+        {/* Board Header with Team Selection - Always visible during loading */}
+        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-gray-200/30 dark:border-gray-700/30 rounded-xl shadow-lg p-6">
+          <div className="flex items-center justify-between flex-wrap gap-6">
+            <div className="flex items-center space-x-6">
+              <div className="flex flex-col">
+                <div className="flex items-center space-x-3 mb-1">
+                  <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
+                    Task Board
+                  </h2>
+                  <div className="flex items-center space-x-2 px-3 py-1 bg-blue-50 dark:bg-blue-900/30 rounded-full">
+                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>
+                    <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
+                      Loading
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                  <span className="font-medium">{teamName}</span>
+                  <span>•</span>
+                  <div className="flex items-center space-x-1">
+                    <div className="animate-spin rounded-full h-3 w-3 border border-blue-500 border-t-transparent"></div>
+                    <span className="text-blue-600 dark:text-blue-400">Loading tasks...</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center space-x-3">
-                <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-10"></div>
-                <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded w-32"></div>
+              
+              {/* Team Selector - Always functional */}
+              <div className="relative">
+                <div className="flex items-center space-x-3 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/50 rounded-lg px-4 py-2 shadow-sm hover:shadow-md transition-all">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
+                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                      Team
+                    </span>
+                  </div>
+                  <div className="h-4 w-px bg-gray-300 dark:bg-gray-600"></div>
+                  <select
+                    value={selectedRow}
+                    onChange={(e) => handleTeamChange(Number(e.target.value))}
+                    className="bg-transparent border-none outline-none text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors appearance-none pr-6"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
+                      backgroundPosition: 'right 0.5rem center',
+                      backgroundRepeat: 'no-repeat',
+                      backgroundSize: '1rem 1rem'
+                    }}
+                  >
+                    {availableTeams.map((team) => (
+                      <option key={team.row} value={team.row} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+                        {team.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-40"></div>
+            
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400 bg-gray-50/50 dark:bg-gray-700/50 px-3 py-2 rounded-lg">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                </svg>
+                <span>Drag to reorder</span>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Skeleton Board */}
+        {/* Search and Filter Controls - Simplified during loading */}
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4">
+          <div className="flex items-center justify-center py-4">
+            <div className="flex items-center space-x-3 text-gray-500 dark:text-gray-400">
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent"></div>
+              <span className="text-sm font-medium">Loading board data...</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Board with Skeleton Content - Only task content is skeleton */}
         <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden">
-          {/* Column Headers Skeleton */}
+          {/* Column Headers - Always visible with real data */}
           <div className="grid grid-cols-4 border-b-2 border-gray-200 dark:border-gray-600">
-            {[0, 1, 2, 3].map((index) => (
-              <div
-                key={index}
-                className={`${index < 3 ? 'border-r-2 border-gray-200 dark:border-gray-600' : ''}`}
-              >
-                <ColumnHeaderSkeleton />
-              </div>
-            ))}
+            {Object.entries(statusConfig).map(([status, config], index) => {
+              const IconComponent = config.icon;
+              return (
+                <div
+                  key={status}
+                  className={`p-4 ${config.headerColor} dark:bg-gray-700 ${
+                    index < 3 ? 'border-r-2 border-gray-200 dark:border-gray-600' : ''
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <IconComponent className="h-5 w-5 text-gray-600 dark:text-gray-400 mr-2" />
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
+                        {config.label}
+                      </h3>
+                      <span className="ml-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs px-2 py-1 rounded-full">
+                        <div className="w-2 h-2 bg-gray-400 rounded animate-pulse"></div>
+                      </span>
+                    </div>
+                    <button
+                      disabled
+                      className={`${config.buttonColor} text-white p-1 rounded-md opacity-50 cursor-not-allowed`}
+                      title="Loading..."
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
-          {/* Column Content Skeleton */}
+          {/* Column Content - Only this part shows skeleton loading */}
           <div className="grid grid-cols-4 min-h-[600px]">
-            {[0, 1, 2, 3].map((columnIndex) => (
+            {Object.entries(statusConfig).map(([status, config], index) => (
               <div
-                key={columnIndex}
+                key={status}
                 className={`p-4 ${
-                  columnIndex < 3 ? 'border-r-2 border-gray-200 dark:border-gray-600' : ''
+                  index < 3 ? 'border-r-2 border-gray-200 dark:border-gray-600' : ''
                 }`}
               >
                 <div className="space-y-3">
-                  {/* Show 2-3 skeleton tasks per column */}
-                  {Array.from({ length: Math.floor(Math.random() * 2) + 2 }).map((_, taskIndex) => (
-                    <TaskSkeleton key={taskIndex} />
+                  {/* Skeleton Tasks */}
+                  {Array.from({ length: Math.floor(Math.random() * 3) + 1 }).map((_, taskIndex) => (
+                    <TaskSkeleton key={`${status}-skeleton-${taskIndex}`} />
                   ))}
                 </div>
               </div>
@@ -710,48 +881,76 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   return (
     <div className="space-y-6">
-      {/* Board Header with Team Selection */}
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg shadow-lg p-6">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center space-x-4">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                Task Board
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
-                {teamName} • {filteredAndSortedTasks.length} of {tasks.length} tasks
-              </p>
+      {/* Board Header with Team Selection - Modern Jira Style */}
+      <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-gray-200/30 dark:border-gray-700/30 rounded-xl shadow-lg p-6">
+        <div className="flex items-center justify-between flex-wrap gap-6">
+          <div className="flex items-center space-x-6">
+            <div className="flex flex-col">
+              <div className="flex items-center space-x-3 mb-1">
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
+                  Task Board
+                </h2>
+                <div className="flex items-center space-x-2 px-3 py-1 bg-blue-50 dark:bg-blue-900/30 rounded-full">
+                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>
+                  <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
+                    Live
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                <span className="font-medium">{teamName}</span>
+                <span>•</span>
+                <span>{filteredAndSortedTasks.length} of {tasks.length} tasks</span>
+                {isLoading && (
+                  <>
+                    <span>•</span>
+                    <div className="flex items-center space-x-1">
+                      <div className="animate-spin rounded-full h-3 w-3 border border-blue-500 border-t-transparent"></div>
+                      <span className="text-blue-600 dark:text-blue-400">Syncing</span>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
             
-            {/* Team Selector */}
-            <div className="flex items-center space-x-3">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Team:
-              </label>
-              <select
-                value={selectedRow}
-                onChange={(e) => handleTeamChange(Number(e.target.value))}
-                className="px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
-              >
-                {availableTeams.map((team) => (
-                  <option key={team.row} value={team.row}>
-                    {team.name}
-                  </option>
-                ))}
-              </select>
+            {/* Team Selector - Modern Jira Style */}
+            <div className="relative">
+              <div className="flex items-center space-x-3 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/50 rounded-lg px-4 py-2 shadow-sm hover:shadow-md transition-all">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
+                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                    Team
+                  </span>
+                </div>
+                <div className="h-4 w-px bg-gray-300 dark:bg-gray-600"></div>
+                <select
+                  value={selectedRow}
+                  onChange={(e) => handleTeamChange(Number(e.target.value))}
+                  className="bg-transparent border-none outline-none text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors appearance-none pr-6"
+                  style={{
+                    backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
+                    backgroundPosition: 'right 0.5rem center',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundSize: '1rem 1rem'
+                  }}
+                >
+                  {availableTeams.map((team) => (
+                    <option key={team.row} value={team.row} className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+                      {team.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
           
-          <div className="flex items-center space-x-2">
-            {isLoading && (
-              <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-pink-500"></div>
-                <span>Loading tasks...</span>
-              </div>
-            )}
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              Drag tasks to change status
-            </span>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400 bg-gray-50/50 dark:bg-gray-700/50 px-3 py-2 rounded-lg">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+              </svg>
+              <span>Drag to reorder</span>
+            </div>
           </div>
         </div>
       </div>
@@ -949,7 +1148,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                     </span>
                   </div>
                   <button
-                    onClick={() => setShowNewTaskForm(status)}
+                    onClick={() => openNewTaskModal(status)}
                     className={`${config.buttonColor} text-white p-1 rounded-md transition-colors hover:scale-105`}
                     title="Add new task"
                   >
@@ -975,12 +1174,11 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                       className="w-full p-2 mt-2 border border-gray-200 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500"
                       rows={2}
                     />
-                    <input
-                      type="email"
+                    <UserDropdown
                       value={newTaskAssignee}
-                      onChange={(e) => setNewTaskAssignee(e.target.value)}
-                      placeholder="Assign to (enter email)..."
-                      className="w-full px-3 py-2 mt-2 border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
+                      onChange={(email) => setNewTaskAssignee(email)}
+                      placeholder="Search and select user..."
+                      className=""
                     />
                     <div className="flex items-center justify-between mt-3">
                       <select
@@ -1016,8 +1214,8 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           })}
         </div>
 
-        {/* Column Content Area */}
-        <div className={`grid grid-cols-4 min-h-[600px] transition-all duration-300 ${isLoading ? 'opacity-60' : 'opacity-100'}`}>
+        {/* Column Content Area - Only task content shows loading states */}
+        <div className="grid grid-cols-4 min-h-[600px]">
           {Object.entries(statusConfig).map(([status, config], index) => {
             const statusTasks = getTasksForStatus(status as Task['status']);
 
@@ -1034,7 +1232,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, status as Task['status'])}
               >
-                {/* Task List */}
+                {/* Task List - Only this section shows loading */}
                 <div className="space-y-3">
                   {statusTasks.map((task) => (
                     <div
@@ -1117,13 +1315,13 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                           <div className="flex items-center text-xs text-blue-600 dark:text-blue-400">
                             <User className="h-3 w-3 mr-1" />
                             <span className="font-medium">Assigned to:</span>
-                            <span className="ml-1">{task.assignedUser.name || task.assignedUser.email?.split('@')[0] || 'Unknown'}</span>
+                            <span className="ml-1">{task.assignedUser.name || task.assignedUser.email?.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
                           </div>
                         ) : task.assignedTo ? (
                           <div className="flex items-center text-xs text-blue-600 dark:text-blue-400">
                             <User className="h-3 w-3 mr-1" />
                             <span className="font-medium">Assigned to:</span>
-                            <span className="ml-1">{task.assignedTo.includes('@') ? task.assignedTo.split('@')[0] : task.assignedTo}</span>
+                            <span className="ml-1">{task.assignedTo.includes('@') ? task.assignedTo.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : task.assignedTo}</span>
                           </div>
                         ) : null}
                         
@@ -1131,7 +1329,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                         <div className="flex items-center text-xs text-gray-600 dark:text-gray-400">
                           <UserPlus className="h-3 w-3 mr-1" />
                           <span className="font-medium">Created by:</span>
-                          <span className="ml-1 mr-2">{task.createdBy.name || task.createdBy.email?.split('@')[0] || 'Unknown'}</span>
+                          <span className="ml-1 mr-2">{task.createdBy.name || task.createdBy.email?.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
                           <span className="text-gray-400 dark:text-gray-500">
                             {formatDate(task.createdAt)}
                           </span>
@@ -1157,7 +1355,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                         No tasks in {config.label.toLowerCase()}
                       </p>
                       <button
-                        onClick={() => setShowNewTaskForm(status)}
+                        onClick={() => openNewTaskModal(status)}
                         className="text-xs text-pink-500 hover:text-pink-600 font-medium"
                       >
                         Add the first task
@@ -1165,12 +1363,12 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                     </div>
                   )}
 
-                  {/* Loading State for Team Switch */}
+                  {/* Skeleton Loading State - Only shown when loading tasks for team switch */}
                   {statusTasks.length === 0 && isLoading && (
                     <div className="space-y-3">
                       {/* Show 1-2 skeleton tasks during team switch */}
                       {Array.from({ length: Math.floor(Math.random() * 2) + 1 }).map((_, taskIndex) => (
-                        <TaskSkeleton key={`loading-${taskIndex}`} />
+                        <TaskSkeleton key={`loading-${status}-${taskIndex}`} />
                       ))}
                     </div>
                   )}
@@ -1310,12 +1508,11 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                       <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
                         Assignee
                       </label>
-                      <input
-                        type="email"
+                      <UserDropdown
                         value={editingTaskData.assignedTo || ''}
-                        onChange={(e) => setEditingTaskData(prev => ({ ...prev, assignedTo: e.target.value }))}
-                        placeholder="Enter email to assign..."
-                        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                        onChange={(email) => setEditingTaskData(prev => ({ ...prev, assignedTo: email }))}
+                        placeholder="Search and select user..."
+                        className=""
                       />
                     </div>
                   </div>
@@ -1423,7 +1620,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {selectedTask.assignedUser.name || 'Unknown'}
+                            {selectedTask.assignedUser.name || selectedTask.assignedUser.email?.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">
                             {selectedTask.assignedUser.email}
@@ -1482,7 +1679,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                         </div>
                         <div>
                           <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                            {selectedTask.createdBy.name || 'Unknown'}
+                            {selectedTask.createdBy.name || selectedTask.createdBy.email?.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                           </p>
                         </div>
                       </div>
@@ -1507,6 +1704,141 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                       </span>
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* New Task Modal */}
+      {showNewTaskModal && newTaskStatus && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden border border-white/20 dark:border-gray-700/50">
+            {/* Modal Header */}
+            <div className="relative px-8 py-6 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-white/50 to-gray-50/50 dark:from-gray-800/50 dark:to-gray-900/50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className={`w-3 h-3 rounded-full ${statusConfig[newTaskStatus].color.split(' ')[0]}`}></div>
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    Create New Task
+                  </h3>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    in {statusConfig[newTaskStatus].label}
+                  </span>
+                </div>
+                
+                <button
+                  onClick={closeNewTaskModal}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 rounded-lg p-2 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-8 overflow-y-auto max-h-[calc(90vh-120px)]">
+              <div className="space-y-6">
+                {/* Task Title */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                    Task Title *
+                  </label>
+                  <input
+                    type="text"
+                    value={newTaskData.title}
+                    onChange={(e) => setNewTaskData(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Enter task title..."
+                    className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                    autoFocus
+                  />
+                </div>
+
+                {/* Task Description */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                    Description
+                  </label>
+                  <textarea
+                    value={newTaskData.description}
+                    onChange={(e) => setNewTaskData(prev => ({ ...prev, description: e.target.value }))}
+                    rows={4}
+                    placeholder="Add a description..."
+                    className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Priority */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                      Priority
+                    </label>
+                    <select
+                      value={newTaskData.priority}
+                      onChange={(e) => setNewTaskData(prev => ({ ...prev, priority: e.target.value as Task['priority'] }))}
+                      className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                    >
+                      <option value="LOW">🟢 Low</option>
+                      <option value="MEDIUM">🟡 Medium</option>
+                      <option value="HIGH">🔴 High</option>
+                    </select>
+                  </div>
+
+                  {/* Due Date */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                      Due Date
+                    </label>
+                    <input
+                      type="date"
+                      value={newTaskData.dueDate}
+                      onChange={(e) => setNewTaskData(prev => ({ ...prev, dueDate: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Assignee */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                    Assignee
+                  </label>
+                  <UserDropdown
+                    value={newTaskData.assignedTo}
+                    onChange={(email) => setNewTaskData(prev => ({ ...prev, assignedTo: email }))}
+                    placeholder="Search and select user..."
+                    className=""
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
+                  <button
+                    onClick={closeNewTaskModal}
+                    disabled={isCreatingTask}
+                    className="px-6 py-3 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={createTaskFromModal}
+                    disabled={!newTaskData.title.trim() || isCreatingTask}
+                    className="px-6 py-3 text-sm font-medium bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  >
+                    {isCreatingTask ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>Creating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4" />
+                        <span>Create Task</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
