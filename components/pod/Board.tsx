@@ -190,7 +190,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   });
 
   // Real-time task updates
-  const { broadcastTaskUpdate, isConnected, connectionType } = useSocketTasks({
+  const { broadcastTaskUpdate } = useSocketTasks({
     teamId: currentTeamId,
     onTaskUpdate: (update) => {
       console.log('Board received task update:', update);
@@ -586,7 +586,13 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     if (task.createdById === session.user.id) return true;
     
     // Assigned user can move their assigned tasks
-    if (task.assignedTo === session.user.id) return true;
+    // Check both assignedTo (could be email or ID) and assignedUser.id
+    if (task.assignedTo === session.user.id || 
+        task.assignedTo === session.user.email ||
+        task.assignedUser?.id === session.user.id ||
+        task.assignedUser?.email === session.user.email) {
+      return true;
+    }
     
     return false;
   };
@@ -890,20 +896,6 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                 <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
                   Task Board
                 </h2>
-                <div className="flex items-center space-x-2 px-3 py-1 bg-blue-50 dark:bg-blue-900/30 rounded-full">
-                  <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-                  <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
-                    {isConnected ? 'Live' : 'Offline'}
-                    {connectionType && (
-                      <span className="ml-1 text-xs opacity-75">
-                        ({connectionType === 'socketio' ? 'Socket.IO' : 
-                          connectionType === 'websocket' ? 'WebSocket' : 
-                          connectionType === 'sse' ? 'SSE' : 
-                          connectionType === 'polling' ? 'Polling' : 'Unknown'})
-                      </span>
-                    )}
-                  </span>
-                </div>
               </div>
               <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
                 <span className="font-medium">{teamName}</span>

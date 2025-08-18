@@ -14,11 +14,10 @@ interface UseSocketTasksProps {
 }
 
 // Detect if we're in production (Vercel) or development
+// Use very conservative detection - only treat as production if explicitly on Vercel domain
 const isProduction = typeof window !== 'undefined' && (
-  process.env.NODE_ENV === 'production' || 
   window.location.hostname.includes('vercel.app') ||
-  window.location.hostname.includes('.app') ||
-  process.env.VERCEL === '1'
+  window.location.hostname.includes('vercel.com')
 );
 
 export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
@@ -27,6 +26,19 @@ export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
   const socketRef = useRef<Socket | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+
+  // Debug environment detection
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      console.log('🌍 Environment Debug:', {
+        hostname: window.location.hostname,
+        NODE_ENV: process.env.NODE_ENV,
+        VERCEL: process.env.VERCEL,
+        isProduction: isProduction,
+        willUse: isProduction ? 'WebSocket/SSE' : 'Socket.IO'
+      });
+    }
+  }, []);
 
   useEffect(() => {
     if (!teamId) return;
@@ -58,7 +70,6 @@ export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
       socketRef.current = socket;
 
       socket.on('connect', () => {
-        console.log('Socket.IO connected:', socket.id);
         setIsConnected(true);
         setConnectionType('socketio');
         
@@ -69,12 +80,10 @@ export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
       });
 
       socket.on('joined-team', (joinedTeamId: string) => {
-        console.log('Joined team room:', joinedTeamId);
+        // Silent join confirmation
       });
 
-      socket.on('task-updated', (update: TaskUpdate) => {
-        console.log('Received task update via Socket.IO:', update);
-        
+      socket.on('task-updated', (update: TaskUpdate) => {        
         // Only process updates for the current team
         if (update.teamId === teamId) {
           onTaskUpdate(update);
@@ -82,7 +91,6 @@ export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
       });
 
       socket.on('disconnect', () => {
-        console.log('Socket.IO disconnected');
         setIsConnected(false);
       });
 
@@ -122,7 +130,6 @@ export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
       // Set a timeout to quickly fail and fallback to SSE
       const connectionTimeout = setTimeout(() => {
         if (ws.readyState === WebSocket.CONNECTING) {
-          console.log('WebSocket connection timeout, falling back to SSE');
           ws.close();
           initializeSSE();
         }
@@ -130,7 +137,6 @@ export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
 
       ws.onopen = () => {
         clearTimeout(connectionTimeout);
-        console.log('WebSocket connected for production');
         setIsConnected(true);
         setConnectionType('websocket');
         
@@ -146,7 +152,6 @@ export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
           const update = JSON.parse(event.data);
           
           if (update.type === 'SUBSCRIBED') {
-            console.log('Subscribed to team updates:', update.teamId);
             return;
           }
 
@@ -160,7 +165,6 @@ export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
 
       ws.onclose = () => {
         clearTimeout(connectionTimeout);
-        console.log('WebSocket connection closed, falling back to SSE');
         setIsConnected(false);
         // Don't try to reconnect WebSocket, go straight to SSE
         initializeSSE();
@@ -168,14 +172,12 @@ export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
 
       ws.onerror = (error) => {
         clearTimeout(connectionTimeout);
-        console.log('WebSocket not available on this platform, using SSE instead');
         setIsConnected(false);
         // Fallback to SSE immediately
         initializeSSE();
       };
 
     } catch (error) {
-      console.log('WebSocket not supported, using SSE');
       initializeSSE();
     }
   };
@@ -186,7 +188,6 @@ export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
       eventSourceRef.current = eventSource;
 
       eventSource.onopen = () => {
-        console.log('✅ Real-time connection established via SSE');
         setIsConnected(true);
         setConnectionType('sse');
       };
@@ -196,7 +197,6 @@ export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
           const update = JSON.parse(event.data);
           
           if (update.type === 'CONNECTED') {
-            console.log('SSE: Connected to team', update.teamId);
             return;
           }
           
@@ -206,7 +206,6 @@ export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
           }
 
           if (update.teamId === teamId) {
-            console.log('SSE: Received task update', update.type, update.taskId);
             onTaskUpdate(update);
           }
         } catch (error) {
@@ -215,7 +214,6 @@ export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
       };
 
       eventSource.onerror = (error) => {
-        console.log('SSE connection interrupted, will retry...');
         setIsConnected(false);
         
         // Close the current connection
@@ -224,7 +222,6 @@ export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
         // Retry after a delay
         setTimeout(() => {
           if (teamId && !eventSourceRef.current) {
-            console.log('Retrying SSE connection...');
             initializeSSE();
           }
         }, 5000);
@@ -238,7 +235,6 @@ export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
   };
 
   const initializePolling = () => {
-    console.log('Using polling fallback for production');
     setConnectionType('polling');
     
     // Simple polling mechanism as last resort
@@ -307,20 +303,16 @@ export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
           throw new Error('Failed to broadcast update');
         }
 
-        console.log('Task update broadcasted via HTTP API:', payload);
         return true;
       } catch (error) {
-        console.error('Failed to broadcast update via HTTP API:', error);
         return false;
       }
     } else {
       // Development: Use Socket.IO
       if (socketRef.current && isConnected) {
-        console.log('Broadcasting task update via Socket.IO:', payload);
         socketRef.current.emit('task-update', payload);
         return true;
       } else {
-        console.warn('Socket.IO not connected, cannot broadcast update');
         return false;
       }
     }
