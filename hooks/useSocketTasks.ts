@@ -14,11 +14,15 @@ interface UseSocketTasksProps {
 }
 
 // Detect if we're in production (Vercel) or development
-// Use very conservative detection - only treat as production if explicitly on Vercel domain
-const isProduction = typeof window !== 'undefined' && (
-  window.location.hostname.includes('vercel.app') ||
-  window.location.hostname.includes('vercel.com')
-);
+// Check for localhost/development vs production
+const isProduction = typeof window !== 'undefined' && !(
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1' ||
+  window.location.hostname.startsWith('192.168.') ||
+  window.location.hostname.includes('.local') ||
+  window.location.port === '3000' ||
+  window.location.port === '3001'
+) && process.env.NODE_ENV === 'production';
 
 export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
   const [isConnected, setIsConnected] = useState(false);
@@ -32,10 +36,12 @@ export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
     if (typeof window !== 'undefined') {
       console.log('🌍 Environment Debug:', {
         hostname: window.location.hostname,
+        port: window.location.port,
+        protocol: window.location.protocol,
         NODE_ENV: process.env.NODE_ENV,
         VERCEL: process.env.VERCEL,
         isProduction: isProduction,
-        willUse: isProduction ? 'WebSocket/SSE' : 'Socket.IO'
+        willUse: isProduction ? 'WebSocket/SSE (Production)' : 'Socket.IO (Development)'
       });
     }
   }, []);
