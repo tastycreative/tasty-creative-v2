@@ -119,7 +119,17 @@ export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
+      // Set a timeout to quickly fail and fallback to SSE
+      const connectionTimeout = setTimeout(() => {
+        if (ws.readyState === WebSocket.CONNECTING) {
+          console.log('WebSocket connection timeout, falling back to SSE');
+          ws.close();
+          initializeSSE();
+        }
+      }, 3000); // 3 second timeout
+
       ws.onopen = () => {
+        clearTimeout(connectionTimeout);
         console.log('WebSocket connected for production');
         setIsConnected(true);
         setConnectionType('websocket');
@@ -149,25 +159,23 @@ export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
       };
 
       ws.onclose = () => {
-        console.log('WebSocket disconnected');
+        clearTimeout(connectionTimeout);
+        console.log('WebSocket connection closed, falling back to SSE');
         setIsConnected(false);
-        // Try to reconnect after a delay
-        setTimeout(() => {
-          if (teamId) {
-            initializeWebSocket();
-          }
-        }, 3000);
+        // Don't try to reconnect WebSocket, go straight to SSE
+        initializeSSE();
       };
 
       ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        clearTimeout(connectionTimeout);
+        console.log('WebSocket not available on this platform, using SSE instead');
         setIsConnected(false);
-        // Fallback to SSE
+        // Fallback to SSE immediately
         initializeSSE();
       };
 
     } catch (error) {
-      console.error('Failed to initialize WebSocket:', error);
+      console.log('WebSocket not supported, using SSE');
       initializeSSE();
     }
   };
@@ -178,7 +186,7 @@ export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
       eventSourceRef.current = eventSource;
 
       eventSource.onopen = () => {
-        console.log('SSE connected for production');
+        console.log('✅ Real-time connection established via SSE');
         setIsConnected(true);
         setConnectionType('sse');
       };
@@ -187,11 +195,18 @@ export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
         try {
           const update = JSON.parse(event.data);
           
-          if (update.type === 'CONNECTED' || update.type === 'HEARTBEAT') {
-            return; // Ignore connection and heartbeat messages
+          if (update.type === 'CONNECTED') {
+            console.log('SSE: Connected to team', update.teamId);
+            return;
+          }
+          
+          if (update.type === 'HEARTBEAT') {
+            // Silent heartbeat - just to keep connection alive
+            return;
           }
 
           if (update.teamId === teamId) {
+            console.log('SSE: Received task update', update.type, update.taskId);
             onTaskUpdate(update);
           }
         } catch (error) {
@@ -200,14 +215,24 @@ export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
       };
 
       eventSource.onerror = (error) => {
-        console.error('SSE error:', error);
+        console.log('SSE connection interrupted, will retry...');
         setIsConnected(false);
-        // Fallback to polling
-        initializePolling();
+        
+        // Close the current connection
+        eventSource.close();
+        
+        // Retry after a delay
+        setTimeout(() => {
+          if (teamId && !eventSourceRef.current) {
+            console.log('Retrying SSE connection...');
+            initializeSSE();
+          }
+        }, 5000);
       };
 
     } catch (error) {
       console.error('Failed to initialize SSE:', error);
+      // Last resort: polling
       initializePolling();
     }
   };
@@ -255,6 +280,9 @@ export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
       clearInterval((window as any).__taskPollingInterval);
       delete (window as any).__taskPollingInterval;
     }
+    
+    setIsConnected(false);
+    setConnectionType(null);
   };
 
   // Function to broadcast task updates
