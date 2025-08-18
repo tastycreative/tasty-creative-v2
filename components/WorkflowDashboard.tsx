@@ -152,7 +152,7 @@ const WorkflowDashboard: React.FC<WorkflowDashboardProps> = ({
             <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center mr-3">
               <span className="text-white text-sm">👤</span>
             </div>
-            Active Tasks
+            Recent Tasks
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">

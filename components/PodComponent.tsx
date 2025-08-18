@@ -8,6 +8,15 @@ import SheetsIntegration from "./SheetsIntegration";
 import SheetViewer from "./SheetViewer";
 import PodAdminDashboard from "./PodAdminDashboard";
 import Board from "./pod/Board";
+import { 
+  TeamMemberSkeleton, 
+  CreatorSkeleton, 
+  SheetLinkSkeleton, 
+  SheetIntegrationSkeleton, 
+  TeamSelectorSkeleton, 
+  WorkflowDashboardSkeleton,
+  Skeleton
+} from "./ui/skeleton";
 
 interface TeamMember {
   id: string;
@@ -413,12 +422,12 @@ const PodComponent = () => {
     initializeComponent();
   }, []);
 
-  // Fetch dashboard-specific data when dashboard tab becomes active
+  // Fetch dashboard-specific data when dashboard tab becomes active or team changes
   useEffect(() => {
-    if (activeTab === "dashboard" && !podData) {
+    if (activeTab === "dashboard") {
       fetchPodData();
     }
-  }, [activeTab, podData]);
+  }, [activeTab, selectedRow]);
 
   // Fetch drive sheets only when sheets tab is active and we have creator data
   useEffect(() => {
@@ -602,47 +611,55 @@ const PodComponent = () => {
 
                     {/* Team Selection Dropdown */}
                     <div className="p-4 border-b border-gray-200 dark:border-gray-600">
-                      <div className="space-y-3">
-                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Switch Team:
-                        </label>
-                        <select
-                          value={selectedRow || ''}
-                          onChange={(e) => {
-                            const newRow = parseInt(e.target.value);
-                            setSelectedRow(newRow);
-                            fetchPodData(newRow);
-                          }}
-                          disabled={isLoading || isLoadingTeams}
-                          className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-purple-200 dark:border-purple-500/30 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:opacity-50 text-gray-900 dark:text-gray-100"
-                        >
-                          {availableTeams.length > 0 ? (
-                            availableTeams.map((team) => (
-                              <option key={team.row} value={team.row}>
-                                {team.name}
-                              </option>
-                            ))
-                          ) : (
-                            <option value={selectedRow || ''}>Loading teams...</option>
+                      {isLoadingTeams ? (
+                        <TeamSelectorSkeleton />
+                      ) : (
+                        <div className="space-y-3">
+                          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Switch Team:
+                          </label>
+                          <select
+                            value={selectedRow || ''}
+                            onChange={(e) => {
+                              const newRow = parseInt(e.target.value);
+                              setSelectedRow(newRow);
+                              fetchPodData(newRow);
+                            }}
+                            disabled={isLoading || isLoadingTeams}
+                            className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-purple-200 dark:border-purple-500/30 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:opacity-50 text-gray-900 dark:text-gray-100"
+                          >
+                            {availableTeams.length > 0 ? (
+                              availableTeams.map((team) => (
+                                <option key={team.row} value={team.row}>
+                                  {team.name}
+                                </option>
+                              ))
+                            ) : (
+                              <option value={selectedRow || ''}>Loading teams...</option>
+                            )}
+                          </select>
+                          {(isLoading || isLoadingTeams) && (
+                            <div className="flex items-center text-sm text-purple-600 dark:text-purple-400">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 mr-2"></div>
+                              {isLoadingTeams ? 'Loading teams...' : 'Loading data...'}
+                            </div>
                           )}
-                        </select>
-                        {(isLoading || isLoadingTeams) && (
-                          <div className="flex items-center text-sm text-purple-600 dark:text-purple-400">
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 mr-2"></div>
-                            {isLoadingTeams ? 'Loading teams...' : 'Loading data...'}
-                          </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Team Members */}
                     <div className="p-4 border-b border-gray-200 dark:border-gray-600">
                       <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center">
                         <UserPlus className="h-4 w-4 mr-2" />
-                        Team Members ({podData.teamMembers.length})
+                        Team Members {!isLoading && podData && `(${podData.teamMembers.length})`}
                       </h4>
                       <div className="space-y-2">
-                        {podData.teamMembers.length > 0 ? (
+                        {isLoading ? (
+                          Array.from({ length: 3 }).map((_, index) => (
+                            <TeamMemberSkeleton key={index} />
+                          ))
+                        ) : podData && podData.teamMembers.length > 0 ? (
                           podData.teamMembers.map((member) => (
                             <div
                               key={member.id}
@@ -668,10 +685,14 @@ const PodComponent = () => {
                     <div className="p-4">
                       <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center">
                         <Users className="h-4 w-4 mr-2" />
-                        Assigned Creators ({podData.creators.length})
+                        Assigned Creators {!isLoading && podData && `(${podData.creators.length})`}
                       </h4>
                       <div className="space-y-2">
-                        {podData.creators.length > 0 ? (
+                        {isLoading ? (
+                          Array.from({ length: 3 }).map((_, index) => (
+                            <CreatorSkeleton key={index} />
+                          ))
+                        ) : podData && podData.creators.length > 0 ? (
                           podData.creators.map((creator) => (
                             <div
                               key={creator.id}
@@ -715,30 +736,83 @@ const PodComponent = () => {
                     )}
                   </div>
                 </div>
+              ) : error ? (
+                <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-red-200 dark:border-red-500/30 rounded-lg p-6 text-center">
+                  <div className="text-red-600 dark:text-red-400">
+                    <p>Failed to load team data</p>
+                    <button
+                      onClick={() => fetchPodData()}
+                      className="mt-2 px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded text-sm hover:bg-red-200 dark:hover:bg-red-900/50"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                </div>
+              ) : isLoading ? (
+                <div className="w-full space-y-6">
+                  {/* Team Selection & Info Combined */}
+                  <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg shadow-lg">
+                    {/* Team Selection Header */}
+                    <div className="bg-gradient-to-r from-purple-50/50 to-indigo-50/50 dark:from-purple-900/30 dark:to-indigo-900/30 border-b border-purple-200 dark:border-purple-500/30 p-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center">
+                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mr-3">
+                            <Users className="h-4 w-4 text-white" />
+                          </div>
+                          <Skeleton className="h-6 w-32" />
+                        </h3>
+                        <button
+                          disabled
+                          className="p-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg shadow-md opacity-50"
+                          title="Loading..."
+                        >
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Team Selection Dropdown */}
+                    <div className="p-4 border-b border-gray-200 dark:border-gray-600">
+                      <div className="space-y-3">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Switch Team:
+                        </label>
+                        <Skeleton className="h-10 w-full rounded-lg" />
+                      </div>
+                    </div>
+
+                    {/* Team Members */}
+                    <div className="p-4 border-b border-gray-200 dark:border-gray-600">
+                      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center">
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Team Members
+                      </h4>
+                      <div className="space-y-2">
+                        {Array.from({ length: 3 }).map((_, index) => (
+                          <TeamMemberSkeleton key={index} />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Assigned Creators */}
+                    <div className="p-4">
+                      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center">
+                        <Users className="h-4 w-4 mr-2" />
+                        Assigned Creators
+                      </h4>
+                      <div className="space-y-2">
+                        {Array.from({ length: 3 }).map((_, index) => (
+                          <CreatorSkeleton key={index} />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ) : (
                 <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6 text-center">
-                  {isLoading ? (
-                    <div className="flex items-center justify-center space-x-2">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600"></div>
-                      <span className="text-gray-600 dark:text-gray-300">
-                        Loading team data...
-                      </span>
-                    </div>
-                  ) : error ? (
-                    <div className="text-red-600 dark:text-red-400">
-                      <p>Failed to load team data</p>
-                      <button
-                        onClick={() => fetchPodData()}
-                        className="mt-2 px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded text-sm hover:bg-red-200 dark:hover:bg-red-900/50"
-                      >
-                        Retry
-                      </button>
-                    </div>
-                  ) : (
-                    <span className="text-gray-500 dark:text-gray-400">
-                      No team data available
-                    </span>
-                  )}
+                  <span className="text-gray-500 dark:text-gray-400">
+                    No team data available
+                  </span>
                 </div>
               )}
             </div>
@@ -757,64 +831,60 @@ const PodComponent = () => {
                 {activeTab === "dashboard" && (
                   <>
                     {/* Workflow Dashboard */}
-                    {podData ? (
+                    {isLoading ? (
+                      <WorkflowDashboardSkeleton />
+                    ) : podData ? (
                       isTasksLoading ? (
-                        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6 text-center">
-                          <div className="flex items-center justify-center space-x-2">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600"></div>
-                            <span className="text-gray-600 dark:text-gray-300">
-                              Loading tasks...
-                            </span>
-                          </div>
-                        </div>
+                        <WorkflowDashboardSkeleton />
                       ) : (
                         <WorkflowDashboard tasks={tasks} />
                       )
                     ) : (
                       <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6 text-center">
-                        {isLoading ? (
-                          <div className="flex items-center justify-center space-x-2">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600"></div>
-                            <span className="text-gray-600 dark:text-gray-300">
-                              Loading workflow data...
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-gray-500 dark:text-gray-400">
-                            Select a team to view workflow
-                          </span>
-                        )}
+                        <span className="text-gray-500 dark:text-gray-400">
+                          Select a team to view workflow
+                        </span>
                       </div>
                     )}
 
                     {/* Sheet Links */}
-                    {podData &&
-                      podData.sheetLinks &&
-                      podData.sheetLinks.length > 0 && (
-                        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6 shadow-lg">
-                          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center mr-3">
-                              <svg
-                                className="h-4 w-4 text-white"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2H9a2 2 0 00-2 2v10z"
-                                />
-                              </svg>
-                            </div>
-                            📄 Sheet Links
+                    {(isLoading || (podData && podData.sheetLinks && podData.sheetLinks.length > 0)) && (
+                      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6 shadow-lg">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center mr-3">
+                            <svg
+                              className="h-4 w-4 text-white"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2H9a2 2 0 00-2 2v10z"
+                              />
+                            </svg>
+                          </div>
+                          📄 Sheet Links
+                          {!isLoading && podData && podData.sheetLinks && (
                             <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
                               ({podData.sheetLinks.length} sheets)
                             </span>
-                          </h3>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {podData.sheetLinks.map((link, index) => (
+                          )}
+                          {isLoading && (
+                            <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
+                              (Loading...)
+                            </span>
+                          )}
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          {isLoading ? (
+                            Array.from({ length: 3 }).map((_, index) => (
+                              <SheetLinkSkeleton key={index} />
+                            ))
+                          ) : (
+                            podData?.sheetLinks?.map((link, index) => (
                               <div
                                 key={index}
                                 className="group relative p-4 bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border border-emerald-200 dark:border-emerald-500/30 rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer"
@@ -887,13 +957,14 @@ const PodComponent = () => {
                                 {/* Hover overlay effect */}
                                 <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-green-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                               </div>
-                            ))}
-                          </div>
+                            ))
+                          )}
                         </div>
-                      )}
+                      </div>
+                    )}
 
                     {/* Sheet Integrations */}
-                    {podData && podData.creators && podData.creators.length > 0 && (
+                    {(isLoading || (podData && podData.creators && podData.creators.length > 0)) && (
                       <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-blue-200 dark:border-blue-500/30 rounded-lg p-6 shadow-lg">
                         <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
                           <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mr-3">
@@ -912,26 +983,22 @@ const PodComponent = () => {
                             </svg>
                           </div>
                           🔗 Sheet Integrations
-                          <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
-                            ({driveSheets.length} found for: {podData.creators.map(c => c.name).join(', ')})
-                          </span>
+                          {!isLoading && !isDriveLoading && podData && podData.creators && (
+                            <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
+                              ({driveSheets.length} found for: {podData.creators.map(c => c.name).join(', ')})
+                            </span>
+                          )}
+                          {(isLoading || isDriveLoading) && (
+                            <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
+                              (Loading...)
+                            </span>
+                          )}
                         </h3>
 
-                        {isDriveLoading ? (
+                        {(isLoading || isDriveLoading) ? (
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {Array.from({ length: 3 }).map((_, index) => (
-                              <div
-                                key={`loading-${index}`}
-                                className="p-4 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg animate-pulse"
-                              >
-                                <div className="flex items-start space-x-3">
-                                  <div className="h-10 w-10 bg-gray-300 dark:bg-gray-600 rounded-lg"></div>
-                                  <div className="flex-1 space-y-2">
-                                    <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-3/4"></div>
-                                    <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-1/2"></div>
-                                  </div>
-                                </div>
-                              </div>
+                              <SheetIntegrationSkeleton key={index} />
                             ))}
                           </div>
                         ) : driveError ? (
@@ -1052,7 +1119,7 @@ const PodComponent = () => {
                               No matching sheets found
                             </h3>
                             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                              No Google Sheets found for the assigned creators: {podData.creators.map(c => c.name).join(', ')}
+                              No Google Sheets found for the assigned creators: {podData?.creators?.map(c => c.name).join(', ')}
                             </p>
                           </div>
                         )}
