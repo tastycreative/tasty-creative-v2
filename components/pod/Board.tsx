@@ -190,7 +190,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   });
 
   // Real-time task updates
-  const { broadcastTaskUpdate } = useSocketTasks({
+  const { broadcastTaskUpdate, isConnected, connectionType } = useSocketTasks({
     teamId: currentTeamId,
     onTaskUpdate: (update) => {
       console.log('Board received task update:', update);
@@ -891,9 +891,17 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                   Task Board
                 </h2>
                 <div className="flex items-center space-x-2 px-3 py-1 bg-blue-50 dark:bg-blue-900/30 rounded-full">
-                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></div>
+                  <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
                   <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
-                    Live
+                    {isConnected ? 'Live' : 'Offline'}
+                    {connectionType && (
+                      <span className="ml-1 text-xs opacity-75">
+                        ({connectionType === 'socketio' ? 'Socket.IO' : 
+                          connectionType === 'websocket' ? 'WebSocket' : 
+                          connectionType === 'sse' ? 'SSE' : 
+                          connectionType === 'polling' ? 'Polling' : 'Unknown'})
+                      </span>
+                    )}
                   </span>
                 </div>
               </div>
