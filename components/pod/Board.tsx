@@ -597,6 +597,71 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     return false;
   };
 
+  const canEditTask = (task: Task) => {
+    if (!session?.user) return false;
+    
+    // Admin can edit any task
+    if (session.user.role === 'ADMIN') return true;
+    
+    // Assigned user can edit their assigned tasks
+    // Check both assignedTo (could be email or ID) and assignedUser.id
+    if (task.assignedTo === session.user.id || 
+        task.assignedTo === session.user.email ||
+        task.assignedUser?.id === session.user.id ||
+        task.assignedUser?.email === session.user.email) {
+      return true;
+    }
+    
+    return false;
+  };
+
+  const updateTaskStatusInModal = async (newStatus: Task['status']) => {
+    if (!selectedTask) return;
+
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: selectedTask.id,
+          status: newStatus,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update task');
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.task) {
+        // Update local state
+        setTasks(prevTasks => 
+          prevTasks.map(task => 
+            task.id === selectedTask.id ? result.task : task
+          )
+        );
+        
+        // Update selected task
+        setSelectedTask(result.task);
+        
+        // Broadcast the update to other users
+        await broadcastTaskUpdate({
+          type: 'TASK_UPDATED',
+          taskId: selectedTask.id,
+          data: result.task
+        });
+      } else {
+        throw new Error('Failed to update task');
+      }
+    } catch (error) {
+      console.error('Error updating task status:', error);
+      setError('Failed to update task status');
+    }
+  };
+
   const handleDragStart = (e: React.DragEvent, task: Task) => {
     if (!canMoveTask(task)) {
       e.preventDefault();
@@ -748,13 +813,13 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   if (isLoading && tasks.length === 0) {
     return (
       <div className="space-y-6">
-        {/* Board Header with Team Selection - Always visible during loading */}
-        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-gray-200/30 dark:border-gray-700/30 rounded-xl shadow-lg p-6">
-          <div className="flex items-center justify-between flex-wrap gap-6">
-            <div className="flex items-center space-x-6">
+        {/* Board Header with Team Selection - Mobile Responsive Loading */}
+        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-gray-200/30 dark:border-gray-700/30 rounded-xl shadow-lg p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
               <div className="flex flex-col">
                 <div className="flex items-center space-x-3 mb-1">
-                  <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
+                  <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
                     Task Board
                   </h2>
                   <div className="flex items-center space-x-2 px-3 py-1 bg-blue-50 dark:bg-blue-900/30 rounded-full">
@@ -764,9 +829,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+                <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                   <span className="font-medium">{teamName}</span>
-                  <span>•</span>
+                  <span className="hidden sm:inline">•</span>
                   <div className="flex items-center space-x-1">
                     <div className="animate-spin rounded-full h-3 w-3 border border-blue-500 border-t-transparent"></div>
                     <span className="text-blue-600 dark:text-blue-400">Loading tasks...</span>
@@ -774,9 +839,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                 </div>
               </div>
               
-              {/* Team Selector - Always functional */}
-              <div className="relative">
-                <div className="flex items-center space-x-3 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/50 rounded-lg px-4 py-2 shadow-sm hover:shadow-md transition-all">
+              {/* Team Selector - Mobile Responsive */}
+              <div className="relative w-full sm:w-auto">
+                <div className="flex items-center space-x-2 sm:space-x-3 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/50 rounded-lg px-3 sm:px-4 py-2 shadow-sm hover:shadow-md transition-all">
                   <div className="flex items-center space-x-2">
                     <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
                     <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
@@ -787,7 +852,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                   <select
                     value={selectedRow}
                     onChange={(e) => handleTeamChange(Number(e.target.value))}
-                    className="bg-transparent border-none outline-none text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors appearance-none pr-6"
+                    className="bg-transparent border-none outline-none text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors appearance-none pr-6 min-w-0 flex-1"
                     style={{
                       backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
                       backgroundPosition: 'right 0.5rem center',
@@ -802,15 +867,6 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                     ))}
                   </select>
                 </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400 bg-gray-50/50 dark:bg-gray-700/50 px-3 py-2 rounded-lg">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                </svg>
-                <span>Drag to reorder</span>
               </div>
             </div>
           </div>
@@ -887,23 +943,23 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   return (
     <div className="space-y-6">
-      {/* Board Header with Team Selection - Modern Jira Style */}
-      <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-gray-200/30 dark:border-gray-700/30 rounded-xl shadow-lg p-6">
-        <div className="flex items-center justify-between flex-wrap gap-6">
-          <div className="flex items-center space-x-6">
+      {/* Board Header with Team Selection - Mobile Responsive */}
+      <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-md border border-gray-200/30 dark:border-gray-700/30 rounded-xl shadow-lg p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
             <div className="flex flex-col">
               <div className="flex items-center space-x-3 mb-1">
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
+                <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent">
                   Task Board
                 </h2>
               </div>
-              <div className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-400">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                 <span className="font-medium">{teamName}</span>
-                <span>•</span>
+                <span className="hidden sm:inline">•</span>
                 <span>{filteredAndSortedTasks.length} of {tasks.length} tasks</span>
                 {isLoading && (
                   <>
-                    <span>•</span>
+                    <span className="hidden sm:inline">•</span>
                     <div className="flex items-center space-x-1">
                       <div className="animate-spin rounded-full h-3 w-3 border border-blue-500 border-t-transparent"></div>
                       <span className="text-blue-600 dark:text-blue-400">Syncing</span>
@@ -913,9 +969,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
               </div>
             </div>
             
-            {/* Team Selector - Modern Jira Style */}
-            <div className="relative">
-              <div className="flex items-center space-x-3 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/50 rounded-lg px-4 py-2 shadow-sm hover:shadow-md transition-all">
+            {/* Team Selector - Mobile Responsive */}
+            <div className="relative w-full sm:w-auto">
+              <div className="flex items-center space-x-2 sm:space-x-3 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/50 rounded-lg px-3 sm:px-4 py-2 shadow-sm hover:shadow-md transition-all">
                 <div className="flex items-center space-x-2">
                   <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
                   <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
@@ -926,7 +982,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                 <select
                   value={selectedRow}
                   onChange={(e) => handleTeamChange(Number(e.target.value))}
-                  className="bg-transparent border-none outline-none text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors appearance-none pr-6"
+                  className="bg-transparent border-none outline-none text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors appearance-none pr-6 min-w-0 flex-1"
                   style={{
                     backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
                     backgroundPosition: 'right 0.5rem center',
@@ -944,7 +1000,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
             </div>
           </div>
           
-          <div className="flex items-center space-x-4">
+          <div className="hidden lg:flex items-center space-x-4">
             <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400 bg-gray-50/50 dark:bg-gray-700/50 px-3 py-2 rounded-lg">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
@@ -955,17 +1011,17 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         </div>
       </div>
 
-      {/* Search, Filter, and Sort Controls */}
+      {/* Search, Filter, and Sort Controls - Mobile Responsive */}
       <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4 space-y-4">
         {/* Search Bar and Filter Toggle */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center space-x-4 flex-1">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 flex-1">
             {/* Search Input */}
-            <div className="relative flex-1 max-w-md">
+            <div className="relative flex-1 sm:max-w-md">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search tasks, assignees, or descriptions..."
+                placeholder="Search tasks..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
@@ -981,8 +1037,8 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
             </div>
 
             {/* Sort Controls */}
-            <div className="flex items-center space-x-2">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Sort:</label>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:block">Sort:</label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
@@ -1004,7 +1060,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           </div>
 
           {/* Filter Toggle and Clear */}
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Quick My Tasks Filter */}
             <button
               onClick={() => setAssigneeFilter(assigneeFilter === 'MY_TASKS' ? 'ALL' : 'MY_TASKS')}
@@ -1015,10 +1071,10 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
               }`}
             >
               <User className="h-4 w-4" />
-              <span>My Tasks</span>
+              <span className="hidden sm:inline">My Tasks</span>
             </button>
 
-            <span className="text-sm text-gray-500 dark:text-gray-400">
+            <span className="text-sm text-gray-500 dark:text-gray-400 hidden sm:inline">
               {filteredAndSortedTasks.length} of {tasks.length} tasks
             </span>
             <button
@@ -1030,10 +1086,11 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
               }`}
             >
               <Filter className="h-4 w-4" />
-              <span>Filters</span>
+              <span className="hidden sm:inline">Filters</span>
               {(priorityFilter !== 'ALL' || assigneeFilter !== 'ALL' || dueDateFilter !== 'ALL') && (
                 <span className="ml-1 px-2 py-0.5 text-xs bg-pink-100 dark:bg-pink-900 text-pink-700 dark:text-pink-300 rounded-full">
-                  Active
+                  <span className="sm:hidden">!</span>
+                  <span className="hidden sm:inline">Active</span>
                 </span>
               )}
             </button>
@@ -1047,7 +1104,8 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                 }}
                 className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
-                Clear all
+                <span className="sm:hidden">Clear</span>
+                <span className="hidden sm:inline">Clear all</span>
               </button>
             )}
           </div>
@@ -1122,10 +1180,36 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         </div>
       )}
 
-      {/* Unified Kanban Board */}
+      {/* Responsive Kanban Board */}
       <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden">
-        {/* Column Headers */}
-        <div className="grid grid-cols-4 border-b-2 border-gray-200 dark:border-gray-600">
+        {/* Mobile Column Navigation - Only visible on mobile */}
+        <div className="md:hidden border-b border-gray-200 dark:border-gray-600">
+          <div className="flex overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+            {Object.entries(statusConfig).map(([status, config]) => {
+              const statusTasks = getTasksForStatus(status as Task['status']);
+              const IconComponent = config.icon;
+              return (
+                <button
+                  key={status}
+                  className={`flex-shrink-0 flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    status === 'NOT_STARTED' // Default selected for demo
+                      ? `${config.headerColor} border-gray-400 dark:border-gray-500 text-gray-900 dark:text-gray-100`
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                  }`}
+                >
+                  <IconComponent className="h-4 w-4" />
+                  <span>{config.label}</span>
+                  <span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs px-2 py-0.5 rounded-full">
+                    {statusTasks.length}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Desktop Column Headers - Hidden on mobile */}
+        <div className="hidden md:grid md:grid-cols-4 border-b-2 border-gray-200 dark:border-gray-600">
           {Object.entries(statusConfig).map(([status, config], index) => {
             const statusTasks = getTasksForStatus(status as Task['status']);
             const IconComponent = config.icon;
@@ -1214,8 +1298,142 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           })}
         </div>
 
-        {/* Column Content Area - Only task content shows loading states */}
-        <div className="grid grid-cols-4 min-h-[600px]">
+        {/* Mobile: Horizontal Scrolling Columns, Desktop: Grid Layout */}
+        <div className="md:hidden">
+          {/* Mobile Horizontal Scrolling Layout */}
+          <div className="flex overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 min-h-[600px]">
+            {Object.entries(statusConfig).map(([status, config], index) => {
+              const statusTasks = getTasksForStatus(status as Task['status']);
+
+              return (
+                <div
+                  key={status}
+                  className={`flex-shrink-0 w-80 p-4 border-r border-gray-200 dark:border-gray-600 last:border-r-0 transition-all duration-200 ${
+                    draggedTask && draggedTask.status !== status 
+                      ? 'bg-pink-50/30 dark:bg-pink-900/10' 
+                      : ''
+                  }`}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, status as Task['status'])}
+                >
+                  {/* Mobile Column Header */}
+                  <div className="flex items-center justify-between mb-4 sticky top-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm p-2 -m-2 rounded-lg">
+                    <div className="flex items-center">
+                      <config.icon className="h-4 w-4 text-gray-600 dark:text-gray-400 mr-2" />
+                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
+                        {config.label}
+                      </h3>
+                      <span className="ml-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs px-2 py-1 rounded-full">
+                        {statusTasks.length}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => openNewTaskModal(status)}
+                      className={`${config.buttonColor} text-white p-2 rounded-md transition-colors hover:scale-105`}
+                      title="Add new task"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {/* Task List */}
+                  <div className="space-y-3">
+                    {statusTasks.map((task) => (
+                      <div
+                        key={task.id}
+                        draggable={canMoveTask(task)}
+                        onDragStart={(e) => handleDragStart(e, task)}
+                        onDragEnd={handleDragEnd}
+                        onClick={() => openTaskDetail(task)}
+                        className={`bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 ${
+                          canMoveTask(task) ? 'cursor-move hover:scale-[1.02]' : 'cursor-pointer'
+                        } ${draggedTask?.id === task.id ? 'opacity-50 scale-95' : ''} ${
+                          draggedTask && draggedTask.id !== task.id ? 'hover:bg-gray-100 dark:hover:bg-gray-700' : ''
+                        } touch-manipulation`}
+                      >
+                        {/* Task content remains the same */}
+                        <div className="flex items-start justify-between mb-2">
+                          <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm line-clamp-2 flex-1 mr-2">
+                            {task.title}
+                          </h4>
+                          <MoreHorizontal className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                        </div>
+                        
+                        {task.description && (
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+                            {task.description}
+                          </p>
+                        )}
+                        
+                        <div className="flex items-center justify-between mb-3">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${priorityConfig[task.priority].color}`}>
+                            {priorityConfig[task.priority].label}
+                          </span>
+                          {task.dueDate && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              {formatDate(task.dueDate)}
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="space-y-1 text-xs text-gray-500 dark:text-gray-400">
+                          <div className="flex items-center">
+                            <User className="h-3 w-3 mr-1" />
+                            <span className="truncate">
+                              Created by: {task.createdBy.name || task.createdBy.email}
+                            </span>
+                          </div>
+                          {task.assignedUser ? (
+                            <div className="flex items-center">
+                              <UserPlus className="h-3 w-3 mr-1" />
+                              <span className="truncate">
+                                Assigned: {task.assignedUser.name || task.assignedUser.email}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center">
+                              <UserPlus className="h-3 w-3 mr-1" />
+                              <span>Unassigned</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Empty state for mobile */}
+                    {statusTasks.length === 0 && !isLoading && (
+                      <div className="flex flex-col items-center justify-center py-8 text-gray-500 dark:text-gray-400">
+                        <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-3">
+                          <config.icon className="h-8 w-8" />
+                        </div>
+                        <p className="text-sm font-medium mb-1">No {config.label.toLowerCase()} tasks</p>
+                        <p className="text-xs text-center">Tasks will appear here when created</p>
+                      </div>
+                    )}
+
+                    {/* Loading skeletons for mobile */}
+                    {statusTasks.length === 0 && isLoading && (
+                      <>
+                        <TaskSkeleton />
+                        <TaskSkeleton />
+                      </>
+                    )}
+
+                    {/* Drop zone indicator for mobile */}
+                    {draggedTask && draggedTask.status !== status && (
+                      <div className="border-2 border-dashed border-pink-300 dark:border-pink-600 rounded-lg p-4 text-center text-pink-600 dark:text-pink-400 bg-pink-50/50 dark:bg-pink-900/20">
+                        <div className="text-sm font-medium">Drop here to move to {config.label}</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Desktop Grid Layout */}
+        <div className="hidden md:grid md:grid-cols-4 min-h-[600px]">
           {Object.entries(statusConfig).map(([status, config], index) => {
             const statusTasks = getTasksForStatus(status as Task['status']);
 
@@ -1232,7 +1450,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, status as Task['status'])}
               >
-                {/* Task List - Only this section shows loading */}
+                {/* Task List */}
                 <div className="space-y-3">
                   {statusTasks.map((task) => (
                     <div
@@ -1419,13 +1637,22 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                 
                 <div className="flex items-center space-x-3 ml-6">
                   {!isEditingTask ? (
-                    <button
-                      onClick={startEditingTask}
-                      className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors"
-                    >
-                      <Edit3 className="h-4 w-4" />
-                      <span>Edit</span>
-                    </button>
+                    <>
+                      {canEditTask(selectedTask) && (
+                        <button
+                          onClick={startEditingTask}
+                          className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors"
+                        >
+                          <Edit3 className="h-4 w-4" />
+                          <span>Edit</span>
+                        </button>
+                      )}
+                      {!canEditTask(selectedTask) && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400 px-4 py-2 bg-gray-100/50 dark:bg-gray-700/50 rounded-lg">
+                          View Only
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div className="flex space-x-2">
                       <button
@@ -1452,10 +1679,10 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
               </div>
             </div>
 
-            {/* Modal Content */}
-            <div className="flex max-h-[calc(90vh-120px)] overflow-hidden">
-              {/* Main Content */}
-              <div className="flex-1 p-8 overflow-y-auto">
+            {/* Modal Content - Mobile Responsive */}
+            <div className="flex flex-col lg:flex-row max-h-[calc(90vh-120px)] overflow-hidden">
+              {/* Main Content - Mobile Responsive */}
+              <div className="flex-1 p-4 sm:p-8 overflow-y-auto">
                 {isEditingTask ? (
                   <div className="space-y-6">
                     {/* Edit Description */}
@@ -1598,22 +1825,36 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                 )}
               </div>
 
-              {/* Sidebar */}
-              <div className="w-80 bg-gray-50/50 dark:bg-gray-800/30 border-l border-gray-200/50 dark:border-gray-700/50 p-6 overflow-y-auto">
+              {/* Sidebar - Mobile Responsive */}
+              <div className="w-full lg:w-80 bg-gray-50/50 dark:bg-gray-800/30 border-t lg:border-t-0 lg:border-l border-gray-200/50 dark:border-gray-700/50 p-4 sm:p-6 overflow-y-auto">
                 <div className="space-y-6">
-                  {/* Status */}
+                  {/* Status - Interactive for authorized users */}
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
                       Status
                     </label>
-                    <div className="flex items-center space-x-3">
-                      {React.createElement(statusConfig[selectedTask.status].icon, { 
-                        className: "h-4 w-4 text-gray-500" 
-                      })}
-                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {statusConfig[selectedTask.status].label}
-                      </span>
-                    </div>
+                    {canEditTask(selectedTask) ? (
+                      <select
+                        value={selectedTask.status}
+                        onChange={(e) => updateTaskStatusInModal(e.target.value as Task['status'])}
+                        className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                      >
+                        {Object.entries(statusConfig).map(([status, config]) => (
+                          <option key={status} value={status}>
+                            {config.label}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="flex items-center space-x-3 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                        {React.createElement(statusConfig[selectedTask.status].icon, { 
+                          className: "h-4 w-4 text-gray-500" 
+                        })}
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {statusConfig[selectedTask.status].label}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Priority */}
@@ -1730,6 +1971,39 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                       </span>
                     </div>
                   </div>
+
+                  {/* Permissions */}
+                  <div className="pt-4 border-t border-gray-200/50 dark:border-gray-700/50">
+                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                      Permissions
+                    </label>
+                    <div className="space-y-2 text-xs">
+                      {session?.user?.role === 'ADMIN' && (
+                        <div className="flex items-center space-x-2 text-green-600 dark:text-green-400">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          <span>Admin - Full Access</span>
+                        </div>
+                      )}
+                      {canEditTask(selectedTask) && session?.user?.role !== 'ADMIN' && (
+                        <div className="flex items-center space-x-2 text-blue-600 dark:text-blue-400">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <span>Assignee - Can Edit</span>
+                        </div>
+                      )}
+                      {!canEditTask(selectedTask) && (
+                        <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
+                          <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                          <span>View Only Access</span>
+                        </div>
+                      )}
+                      {canMoveTask(selectedTask) && (
+                        <div className="flex items-center space-x-2 text-purple-600 dark:text-purple-400">
+                          <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                          <span>Can Move Between Columns</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1737,34 +2011,36 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         </div>
       )}
 
-      {/* New Task Modal */}
+      {/* New Task Modal - Mobile Responsive */}
       {showNewTaskModal && newTaskStatus && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden border border-white/20 dark:border-gray-700/50">
-            {/* Modal Header */}
-            <div className="relative px-8 py-6 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-white/50 to-gray-50/50 dark:from-gray-800/50 dark:to-gray-900/50">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50">
+          <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-xl shadow-2xl w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden border border-white/20 dark:border-gray-700/50">
+            {/* Modal Header - Mobile Responsive */}
+            <div className="relative px-4 sm:px-8 py-4 sm:py-6 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-white/50 to-gray-50/50 dark:from-gray-800/50 dark:to-gray-900/50">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-3 h-3 rounded-full ${statusConfig[newTaskStatus].color.split(' ')[0]}`}></div>
-                  <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    Create New Task
-                  </h3>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    in {statusConfig[newTaskStatus].label}
-                  </span>
+                <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
+                  <div className={`w-3 h-3 rounded-full ${statusConfig[newTaskStatus].color.split(' ')[0]} flex-shrink-0`}></div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
+                      Create New Task
+                    </h3>
+                    <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 block sm:inline">
+                      in {statusConfig[newTaskStatus].label}
+                    </span>
+                  </div>
                 </div>
                 
                 <button
                   onClick={closeNewTaskModal}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 rounded-lg p-2 transition-colors"
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 rounded-lg p-2 transition-colors flex-shrink-0 ml-2"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
             </div>
 
-            {/* Modal Content */}
-            <div className="p-8 overflow-y-auto max-h-[calc(90vh-120px)]">
+            {/* Modal Content - Mobile Responsive */}
+            <div className="p-4 sm:p-8 overflow-y-auto max-h-[calc(95vh-120px)] sm:max-h-[calc(90vh-120px)]">
               <div className="space-y-6">
                 {/* Task Title */}
                 <div>

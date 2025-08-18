@@ -15,13 +15,15 @@ interface UserDropdownProps {
   onChange: (email: string) => void;
   placeholder?: string;
   className?: string;
+  teamId?: string; // New prop to filter users by team
 }
 
 export default function UserDropdown({ 
   value = '', 
   onChange, 
   placeholder = "Search and select user...",
-  className = ""
+  className = "",
+  teamId
 }: UserDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -46,17 +48,25 @@ export default function UserDropdown({
   // Search users when search term changes OR when dropdown opens
   useEffect(() => {
     const searchUsers = async () => {
-      // Always fetch if dropdown is open (either with search term or to show all POD users)
+      // Always fetch if dropdown is open (either with search term or to show all users)
       if (!isOpen) {
         return;
       }
 
-      // If no search term, fetch all POD users
-      const queryParam = searchTerm.length >= 2 ? searchTerm : 'POD_USERS_ALL';
-
       setLoading(true);
       try {
-        const response = await fetch(`/api/users/search?q=${encodeURIComponent(queryParam)}`);
+        let response;
+        
+        if (teamId) {
+          // If teamId is provided, use team-specific endpoint
+          const queryParam = searchTerm.length >= 2 ? searchTerm : '';
+          response = await fetch(`/api/users/team?teamId=${encodeURIComponent(teamId)}&q=${encodeURIComponent(queryParam)}`);
+        } else {
+          // Fallback to original behavior for non-team contexts
+          const queryParam = searchTerm.length >= 2 ? searchTerm : 'POD_USERS_ALL';
+          response = await fetch(`/api/users/search?q=${encodeURIComponent(queryParam)}`);
+        }
+        
         if (response.ok) {
           const result = await response.json();
           if (result.success) {
@@ -80,7 +90,7 @@ export default function UserDropdown({
         searchUsers();
       }
     }
-  }, [searchTerm, isOpen]);
+  }, [searchTerm, isOpen, teamId]);
 
   // Find selected user when value changes
   useEffect(() => {
@@ -93,7 +103,16 @@ export default function UserDropdown({
         // If user not found but we have an email, fetch user info
         const fetchUserInfo = async () => {
           try {
-            const response = await fetch(`/api/users/search?q=${encodeURIComponent(value)}`);
+            let response;
+            
+            if (teamId) {
+              // For team context, check if the email is in the team
+              response = await fetch(`/api/users/team?teamId=${encodeURIComponent(teamId)}&q=${encodeURIComponent(value)}`);
+            } else {
+              // Fallback to original search
+              response = await fetch(`/api/users/search?q=${encodeURIComponent(value)}`);
+            }
+            
             if (response.ok) {
               const result = await response.json();
               if (result.success && result.users.length > 0) {
@@ -124,7 +143,7 @@ export default function UserDropdown({
     } else if (!value) {
       setSelectedUser(null);
     }
-  }, [value, users]);
+  }, [value, users, teamId]);
 
   const handleUserSelect = (user: User) => {
     setSelectedUser(user);
