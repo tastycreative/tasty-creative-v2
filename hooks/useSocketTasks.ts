@@ -14,7 +14,12 @@ interface UseSocketTasksProps {
 }
 
 // Detect if we're in production (Vercel) or development
-const isProduction = process.env.NODE_ENV === 'production' && process.env.VERCEL === '1';
+const isProduction = typeof window !== 'undefined' && (
+  process.env.NODE_ENV === 'production' || 
+  window.location.hostname.includes('vercel.app') ||
+  window.location.hostname.includes('.app') ||
+  process.env.VERCEL === '1'
+);
 
 export function useSocketTasks({ teamId, onTaskUpdate }: UseSocketTasksProps) {
   const [isConnected, setIsConnected] = useState(false);

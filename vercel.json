@@ -1,20 +1,7 @@
 {
   "functions": {
-    "app/api/websocket/route.ts": {
-      "runtime": "edge"
-    },
     "app/api/realtime/route.ts": {
-      "maxDuration": 300
+      "maxDuration": 60
     }
-  },
-  "rewrites": [
-    {
-      "source": "/websocket",
-      "destination": "/api/websocket"
-    },
-    {
-      "source": "/realtime",
-      "destination": "/api/realtime"
-    }
-  ]
+  }
 }

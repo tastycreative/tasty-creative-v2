@@ -1,125 +1,51 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
-export const runtime = 'edge'
-
-// WebSocket upgrade handler for Vercel Edge Runtime
+// Simple HTTP endpoint that indicates WebSocket is not available
+// This will trigger the SSE fallback in the client
 export async function GET(request: NextRequest) {
   const upgradeHeader = request.headers.get('upgrade')
   
-  if (upgradeHeader !== 'websocket') {
-    return new Response('Expected Upgrade: websocket', { status: 426 })
+  if (upgradeHeader === 'websocket') {
+    // Return error to trigger SSE fallback
+    return new NextResponse(JSON.stringify({
+      error: 'WebSocket not supported on Vercel Edge Runtime',
+      fallback: 'sse',
+      redirect: '/api/realtime'
+    }), {
+      status: 501,
+      headers: { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    })
   }
 
-  // Create WebSocket pair
-  const { 0: client, 1: server } = new WebSocketPair()
-
-  // Handle WebSocket connection
-  handleWebSocket(server)
-
-  return new Response(null, {
-    status: 101,
-    webSocket: client,
+  // Return status for non-WebSocket requests
+  return NextResponse.json({
+    status: 'WebSocket endpoint - use with upgrade header',
+    method: 'GET',
+    availableFallbacks: ['sse', 'polling']
   })
 }
 
-interface TaskUpdate {
-  type: 'TASK_UPDATED' | 'TASK_CREATED' | 'TASK_DELETED'
-  taskId: string
-  teamId: string
-  data?: any
-}
-
-interface WebSocketClient {
-  socket: WebSocket
-  teamSubscriptions: Set<string>
-}
-
-// Store active connections (this will be per-edge instance)
-const connections = new Map<string, WebSocketClient>()
-
-function handleWebSocket(webSocket: WebSocket) {
-  const clientId = crypto.randomUUID()
-  
-  connections.set(clientId, {
-    socket: webSocket,
-    teamSubscriptions: new Set()
-  })
-
-  webSocket.addEventListener('message', (event) => {
-    try {
-      const data = JSON.parse(event.data)
-      handleMessage(clientId, data)
-    } catch (error) {
-      console.error('Error parsing WebSocket message:', error)
-    }
-  })
-
-  webSocket.addEventListener('close', () => {
-    connections.delete(clientId)
-    console.log(`WebSocket client ${clientId} disconnected`)
-  })
-
-  webSocket.addEventListener('error', (event) => {
-    console.error('WebSocket error:', event)
-    connections.delete(clientId)
-  })
-
-  console.log(`WebSocket client ${clientId} connected`)
-}
-
-function handleMessage(clientId: string, data: any) {
-  const client = connections.get(clientId)
-  if (!client) return
-
-  switch (data.type) {
-    case 'SUBSCRIBE':
-      if (data.teamId) {
-        client.teamSubscriptions.add(data.teamId)
-        console.log(`Client ${clientId} subscribed to team: ${data.teamId}`)
-        
-        // Send confirmation
-        client.socket.send(JSON.stringify({
-          type: 'SUBSCRIBED',
-          teamId: data.teamId
-        }))
-      }
-      break
-
-    case 'UNSUBSCRIBE':
-      if (data.teamId) {
-        client.teamSubscriptions.delete(data.teamId)
-        console.log(`Client ${clientId} unsubscribed from team: ${data.teamId}`)
-      }
-      break
-
-    case 'TASK_UPDATED':
-    case 'TASK_CREATED':
-    case 'TASK_DELETED':
-      broadcastToTeam(data.teamId, data, clientId)
-      break
+// Handle POST requests for testing
+export async function POST(request: NextRequest) {
+  try {
+    const data = await request.json()
+    
+    // Log the attempt for debugging
+    console.log('WebSocket endpoint received POST:', data)
+    
+    return NextResponse.json({
+      success: true,
+      message: 'WebSocket endpoint received data',
+      note: 'This is a fallback - real WebSocket not available on Vercel',
+      data: data
+    })
+  } catch (error) {
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to process WebSocket request'
+    }, { status: 400 })
   }
-}
-
-function broadcastToTeam(teamId: string, message: TaskUpdate, excludeClientId?: string) {
-  const broadcast = {
-    type: message.type,
-    taskId: message.taskId,
-    teamId: teamId,
-    data: message.data
-  }
-
-  connections.forEach((client, clientId) => {
-    if (
-      clientId !== excludeClientId &&
-      client.socket.readyState === WebSocket.OPEN &&
-      client.teamSubscriptions.has(teamId)
-    ) {
-      try {
-        client.socket.send(JSON.stringify(broadcast))
-      } catch (error) {
-        console.error('Error sending WebSocket message:', error)
-        connections.delete(clientId)
-      }
-    }
-  })
 }
