@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect, useState, useCallback } from "react";
+import React, { useRef, useEffect, useState, useCallback, memo } from "react";
 import { useTheme } from "next-themes";
 
 interface CanvasTimelineProps {
@@ -46,7 +46,9 @@ interface DragState {
   itemId: string | null;
   dragType: "move" | "trim-start" | "trim-end" | "playhead" | null;
   startX: number;
+  startY: number; // Add Y coordinate for vertical movement
   startTime: number;
+  startRow: number; // Add original row tracking
   originalDuration: number;
 }
 
@@ -78,7 +80,7 @@ const FOLLOW_PLAYHEAD_THUMBS = false;
 // Live scrub thumbnail throttle (ms)
 const LIVE_SCRUB_THROTTLE_MS = 200;
 
-export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
+const CanvasTimelineComponent: React.FC<CanvasTimelineProps> = ({
   clips,
   textOverlays,
   blurOverlays,
@@ -157,17 +159,53 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
     itemId: null,
     dragType: null,
     startX: 0,
+    startY: 0,
     startTime: 0,
+    startRow: 0,
     originalDuration: 0,
   });
-  // // Mouse hover state for professional trim handle feedback
-  const [hoverState, setHoverState] = useState<{
+  // Mouse hover state for professional trim handle feedback (using ref to avoid re-renders)
+  const hoverStateRef = useRef<{
     itemId: string | null;
     dragType: "move" | "trim-start" | "trim-end" | null;
   }>({
     itemId: null,
     dragType: null,
   });
+  
+  // Selection state refs to avoid re-renders
+  const selectedClipIdRef = useRef<string | null>(null);
+  const selectedBlurOverlayIdRef = useRef<string | null>(null);
+  
+  // Update refs when props change
+  useEffect(() => {
+    selectedClipIdRef.current = selectedClipId;
+    selectedBlurOverlayIdRef.current = selectedBlurOverlayId || null;
+    // Redraw overlay when selection changes
+    requestAnimationFrame(() => drawOverlay());
+  }, [selectedClipId, selectedBlurOverlayId]);
+
+  // Visual feedback state for drag operations (optimized to prevent re-renders)
+  const dragPreviewRef = useRef<{
+    visible: boolean;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    newRow: number;
+    currentDraggedItem: TimelineItem | null;
+  }>({
+    visible: false,
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+    newRow: 0,
+    currentDraggedItem: null,
+  });
+
+  // Minimal state for drag preview to trigger re-renders only when necessary
+  const [dragPreviewVisible, setDragPreviewVisible] = useState(false);
 
   // Flag to prevent multiple simultaneous thumbnail generations
   const isGeneratingThumbnail = useRef(false);
@@ -175,14 +213,17 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
   const inFlightClipIdsRef = useRef<Set<string>>(new Set());
   const lastLiveScrubUpdateMsRef = useRef<number>(0);
 
-  // Helper function to determine if an item is selected
+  // Throttle overlay redraws during drag for better performance
+  const overlayRedrawTimeoutRef = useRef<number | null>(null);
+
+  // Helper function to determine if an item is selected (using refs)
   const isItemSelected = (item: TimelineItem): boolean => {
     // Blur overlays use selectedBlurOverlayId
     if (item.type === "blur") {
-      return selectedBlurOverlayId === item.id;
+      return selectedBlurOverlayIdRef.current === item.id;
     }
     // Text overlays, image clips, and video clips all use selectedClipId
-    return selectedClipId === item.id;
+    return selectedClipIdRef.current === item.id;
   };
 
   // Convert clips and text overlays to timeline items
@@ -864,7 +905,8 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
 
       const rect = containerRef.current.getBoundingClientRect();
       const width = rect.width;
-      const height = RULER_HEIGHT + numRows * (TRACK_HEIGHT + TRACK_MARGIN);
+      const dynamicNumRows = getExpandedNumRows();
+      const height = RULER_HEIGHT + dynamicNumRows * (TRACK_HEIGHT + TRACK_MARGIN);
 
       setCanvasSize({ width, height });
 
@@ -888,7 +930,7 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
     }
 
     return () => resizeObserver.disconnect();
-  }, [numRows]); // Re-calculate when number of rows changes
+  }, [numRows]); // Only recalculate when number of rows changes
 
   // Time to pixel conversion
   const timeToPixel = (time: number): number => {
@@ -914,6 +956,47 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
   // Get track Y position
   const getTrackY = (row: number): number => {
     return RULER_HEIGHT + row * (TRACK_HEIGHT + TRACK_MARGIN);
+  };
+
+  // Get row from Y position (with dynamic layer creation support)
+  const getRowFromY = (y: number): number => {
+    const adjustedY = y - RULER_HEIGHT;
+    const row = Math.floor(adjustedY / (TRACK_HEIGHT + TRACK_MARGIN));
+    // Allow negative rows (new layer above) and rows beyond current range (new layer below)
+    return Math.max(-1, row); // Allow -1 for creating layer above, unlimited for layers below
+  };
+
+  // Calculate expanded row count including potential new layers during drag
+  const getExpandedNumRows = (): number => {
+    let maxDisplayRow = maxRow;
+    
+    // If dragging, check if we need to show additional rows
+    if (dragState.isDragging && dragPreviewRef.current.visible) {
+      maxDisplayRow = Math.max(maxDisplayRow, dragPreviewRef.current.newRow);
+    }
+    
+    // Show minimal empty layers - only 1 empty layer at bottom normally
+    // Add extra drop zones only during drag operations
+    if (dragState.isDragging) {
+      // During drag: show current max + 3 extra rows for drop zones
+      return Math.max(3, maxDisplayRow + 4);
+    } else {
+      // Normal state: show only 1 empty layer at bottom
+      // Minimum 3 rows for usability, but only 1 empty layer beyond actual content
+      return Math.max(3, maxDisplayRow + 2);
+    }
+  };
+
+  // Helper function to sort timeline items by layering order (lower rows = higher z-index)
+  const sortItemsByLayer = (items: TimelineItem[]): TimelineItem[] => {
+    return [...items].sort((a, b) => {
+      // Lower row numbers should render last (on top)
+      if (a.row !== b.row) {
+        return b.row - a.row; // Reverse order: higher rows first, lower rows last
+      }
+      // If same row, maintain original order by start time
+      return a.start - b.start;
+    });
   };
 
   // Draw the timeline (base layer)
@@ -955,7 +1038,8 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
     ctx.textAlign = "center";
 
     // Dynamic track labels based on items in each row
-    for (let row = 0; row < numRows; row++) {
+    const dynamicNumRows = getExpandedNumRows();
+    for (let row = 0; row < dynamicNumRows; row++) {
       const itemsInRow = timelineItems.filter((item) => item.row === row);
       let label = `Track ${row + 1}`;
 
@@ -1000,7 +1084,7 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
     }
 
     // Draw track separators with enhanced styling
-    for (let i = 0; i <= numRows; i++) {
+    for (let i = 0; i <= dynamicNumRows; i++) {
       const y = getTrackY(i) - TRACK_MARGIN / 2;
 
       // Create gradient line for separator
@@ -1057,7 +1141,7 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
     ctx.stroke();
 
     // Draw track background areas with subtle patterns
-    for (let track = 0; track < numRows; track++) {
+    for (let track = 0; track < dynamicNumRows; track++) {
       const trackY = getTrackY(track);
       const trackBgGradient = ctx.createLinearGradient(
         TRACK_LABEL_WIDTH,
@@ -1142,8 +1226,9 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
       }
     }
 
-    // Draw timeline items with modern styling
-    timelineItems.forEach((item) => {
+    // Draw timeline items with modern styling - sorted for proper layering
+    const sortedItems = sortItemsByLayer(timelineItems);
+    sortedItems.forEach((item) => {
       const x = timeToPixel(item.start);
       // Use effectiveTotal to keep widths in sync with playhead scale
       const width = Math.max(
@@ -1202,184 +1287,7 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
       ctx.roundRect(x, y, width, height, 4);
       ctx.stroke();
 
-      // Draw selection outline if selected with professional trim handles
-      if (isItemSelected(item)) {
-        // Main selection border with glow effect
-        ctx.strokeStyle = colors.items.selection;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.roundRect(x, y, width, height, 6);
-        ctx.stroke();
-
-        // Add subtle glow effect
-        const glowColor = isDarkMode
-          ? "rgba(255,255,255,0.3)"
-          : "rgba(59, 130, 246, 0.3)";
-        ctx.shadowColor = glowColor;
-        ctx.shadowBlur = 4;
-        ctx.strokeStyle = colors.items.selectionGlow;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.roundRect(x - 1, y - 1, width + 2, height + 2, 7);
-        ctx.stroke();
-        ctx.shadowBlur = 0; // Reset shadow
-
-        // Professional trim handles - only show if item is wide enough
-        if (width > 16) {
-          // Further reduced minimum width to support shorter items
-          // Debug log to verify trim handles are being drawn
-
-          const isHovering = hoverState.itemId === item.id;
-          const hoverType = hoverState.dragType;
-          // Left trim handle with professional positioning
-          const leftHandleX = x - 2;
-          const leftHandleY = y + height / 2 - 10;
-          const handleWidth = 14;
-          const handleHeight = 20;
-
-          // Left handle background with gradient
-          const leftGradient = ctx.createLinearGradient(
-            leftHandleX,
-            leftHandleY,
-            leftHandleX + handleWidth,
-            leftHandleY + handleHeight
-          );
-          if (isHovering && hoverType === "trim-start") {
-            leftGradient.addColorStop(0, "rgba(59, 130, 246, 1)"); // blue-500 full opacity
-            leftGradient.addColorStop(1, "rgba(37, 99, 235, 1)"); // blue-600 full opacity
-          } else {
-            leftGradient.addColorStop(0, "rgba(59, 130, 246, 0.8)"); // blue-500
-            leftGradient.addColorStop(1, "rgba(37, 99, 235, 0.8)"); // blue-600
-          }
-
-          // Add handle shadow for depth
-          ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
-          ctx.shadowBlur = 3;
-          ctx.shadowOffsetX = 1;
-          ctx.shadowOffsetY = 1;
-
-          ctx.fillStyle = leftGradient;
-          ctx.beginPath();
-          ctx.roundRect(leftHandleX, leftHandleY, handleWidth, handleHeight, 5);
-          ctx.fill();
-
-          // Reset shadow
-          ctx.shadowBlur = 0;
-          ctx.shadowOffsetX = 0;
-          ctx.shadowOffsetY = 0;
-
-          // Left handle border
-          // Left handle border with enhanced styling
-          ctx.strokeStyle =
-            isHovering && hoverType === "trim-start"
-              ? "rgba(255,255,255,1)"
-              : "rgba(255,255,255,0.7)";
-          ctx.lineWidth = isHovering && hoverType === "trim-start" ? 2 : 1;
-          ctx.beginPath();
-          ctx.roundRect(leftHandleX, leftHandleY, handleWidth, handleHeight, 5);
-          ctx.stroke();
-
-          // Left handle icon (trim indicator)
-          ctx.fillStyle = "#FFFFFF";
-          ctx.font = "bold 8px system-ui";
-          ctx.textAlign = "center";
-          ctx.fillText(
-            "◄",
-            leftHandleX + handleWidth / 2,
-            leftHandleY + handleHeight / 2 + 2
-          );
-
-          // Right trim handle with professional positioning
-          const rightHandleX = x + width - handleWidth + 2;
-          const rightHandleY = y + height / 2 - 10;
-
-          // Right handle background with gradient
-          const rightGradient = ctx.createLinearGradient(
-            rightHandleX,
-            rightHandleY,
-            rightHandleX + handleWidth,
-            rightHandleY + handleHeight
-          );
-          if (isHovering && hoverType === "trim-end") {
-            rightGradient.addColorStop(0, "rgba(16, 185, 129, 1)"); // emerald-500 full opacity
-            rightGradient.addColorStop(1, "rgba(5, 150, 105, 1)"); // emerald-600 full opacity
-          } else {
-            rightGradient.addColorStop(0, "rgba(16, 185, 129, 0.8)"); // emerald-500
-            rightGradient.addColorStop(1, "rgba(5, 150, 105, 0.8)"); // emerald-600
-          }
-
-          // Add handle shadow for depth
-          ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
-          ctx.shadowBlur = 3;
-          ctx.shadowOffsetX = 1;
-          ctx.shadowOffsetY = 1;
-
-          ctx.fillStyle = rightGradient;
-          ctx.beginPath();
-          ctx.roundRect(
-            rightHandleX,
-            rightHandleY,
-            handleWidth,
-            handleHeight,
-            5
-          );
-          ctx.fill();
-
-          // Reset shadow
-          ctx.shadowBlur = 0;
-          ctx.shadowOffsetX = 0;
-          ctx.shadowOffsetY = 0;
-
-          // Right handle border with enhanced styling
-          ctx.strokeStyle =
-            isHovering && hoverType === "trim-end"
-              ? "rgba(255,255,255,1)"
-              : "rgba(255,255,255,0.7)";
-          ctx.lineWidth = isHovering && hoverType === "trim-end" ? 2 : 1;
-          ctx.beginPath();
-          ctx.roundRect(
-            rightHandleX,
-            rightHandleY,
-            handleWidth,
-            handleHeight,
-            5
-          );
-          ctx.stroke();
-
-          // Right handle icon (trim indicator)
-          ctx.fillStyle = "#FFFFFF";
-          ctx.font = "bold 8px system-ui";
-          ctx.textAlign = "center";
-          ctx.fillText(
-            "►",
-            rightHandleX + handleWidth / 2,
-            rightHandleY + handleHeight / 2 + 2
-          );
-
-          // Enhanced edge highlight zones with hover feedback - made more visible
-          if (isHovering && hoverType === "trim-start") {
-            ctx.fillStyle = "rgba(59, 130, 246, 0.4)"; // Much stronger blue tint when hovering
-            ctx.fillRect(x, y, 12, height);
-          } else if (isItemSelected(item)) {
-            ctx.fillStyle = "rgba(59, 130, 246, 0.2)"; // More visible blue tint for left edge
-            ctx.fillRect(x, y, 12, height);
-          }
-
-          if (isHovering && hoverType === "trim-end") {
-            ctx.fillStyle = "rgba(16, 185, 129, 0.4)"; // Much stronger green tint when hovering
-            ctx.fillRect(x + width - 12, y, 12, height);
-          } else if (isItemSelected(item)) {
-            ctx.fillStyle = "rgba(16, 185, 129, 0.2)"; // More visible green tint for right edge
-            ctx.fillRect(x + width - 12, y, 12, height);
-          }
-
-          // Add subtle move zone highlight
-          if (isHovering && hoverType === "move") {
-            ctx.fillStyle = "rgba(168, 85, 247, 0.15)"; // More visible purple tint for move area
-            ctx.fillRect(x + 12, y, width - 24, height);
-          }
-        }
-      }
+      // Selection visuals moved to drawOverlay for better performance
 
       // Draw label
       ctx.fillStyle = colors.items.text;
@@ -1395,9 +1303,6 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
     canvasSize,
     timelineItems,
     totalDuration,
-    selectedClipId,
-    selectedBlurOverlayId,
-    hoverState,
     thumbnailCache,
     loadedThumbnails,
     theme,
@@ -1491,7 +1396,241 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
         ctx.fillRect(TRACK_LABEL_WIDTH, 0, timelineWidth, canvasSize.height);
       }
     }
-  }, [canvasSize, currentFrame, dragState]);
+
+    // Draw drag preview using ref for better performance
+    const dragPreview = dragPreviewRef.current;
+    if (dragPreview.visible && dragState.isDragging) {
+      // Draw row highlight if moving to a different row
+      if (dragPreview.newRow !== dragState.startRow) {
+        const rowY = getTrackY(dragPreview.newRow);
+        ctx.fillStyle = "rgba(59, 130, 246, 0.1)"; // Light blue highlight
+        ctx.fillRect(TRACK_LABEL_WIDTH, rowY, canvasSize.width - TRACK_LABEL_WIDTH, TRACK_HEIGHT);
+        
+        // Row border highlight
+        ctx.strokeStyle = "rgba(59, 130, 246, 0.5)";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(TRACK_LABEL_WIDTH, rowY);
+        ctx.lineTo(canvasSize.width, rowY);
+        ctx.moveTo(TRACK_LABEL_WIDTH, rowY + TRACK_HEIGHT);
+        ctx.lineTo(canvasSize.width, rowY + TRACK_HEIGHT);
+        ctx.stroke();
+        ctx.setLineDash([]); // Reset dash
+        
+        // Add row number indicator
+        ctx.fillStyle = "rgba(59, 130, 246, 0.9)";
+        ctx.font = "bold 12px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        
+        // Check if this is a new layer creation
+        const isNewLayer = dragPreview.newRow > maxRow || 
+          (dragPreview.newRow === 0 && dragState.startRow > 0 && 
+           !timelineItems.some(item => item.id !== dragState.itemId && item.row === 0));
+        
+        const labelText = isNewLayer ? `NEW Layer ${dragPreview.newRow + 1}` : `Layer ${dragPreview.newRow + 1}`;
+        ctx.fillText(labelText, TRACK_LABEL_WIDTH / 2, rowY + TRACK_HEIGHT / 2 + 4);
+        
+        // Add "NEW" indicator for new layers
+        if (isNewLayer) {
+          ctx.fillStyle = "rgba(34, 197, 94, 0.9)"; // Green for new layers
+          ctx.font = "bold 10px system-ui, sans-serif";
+          ctx.fillText("NEW", TRACK_LABEL_WIDTH / 2, rowY + TRACK_HEIGHT / 2 - 8);
+        }
+      }
+      
+      // Draw item preview outline
+      ctx.strokeStyle = "rgba(59, 130, 246, 0.8)";
+      ctx.fillStyle = "rgba(59, 130, 246, 0.2)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.roundRect(dragPreview.x, dragPreview.y, dragPreview.width, dragPreview.height, 6);
+      ctx.fill();
+      ctx.stroke();
+      ctx.setLineDash([]); // Reset dash
+    }
+
+    // Draw selection visuals and trim handles
+    const sortedItems = sortItemsByLayer(timelineItems);
+    sortedItems.forEach((item) => {
+      if (!isItemSelected(item)) return;
+
+      const x = timeToPixel(item.start);
+      const effectiveTotal = totalDuration * timelineZoom;
+      const timelineWidth = canvasSize.width - TRACK_LABEL_WIDTH;
+      const width = Math.max(
+        4,
+        (item.duration / effectiveTotal) * timelineWidth
+      );
+      const y = getTrackY(item.row) + TRACK_MARGIN;
+      const height = TRACK_HEIGHT - TRACK_MARGIN * 2;
+
+      // Main selection border with glow effect
+      ctx.strokeStyle = colors.items.selection;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(x, y, width, height, 6);
+      ctx.stroke();
+
+      // Add subtle glow effect
+      const glowColor = isDarkMode
+        ? "rgba(255,255,255,0.3)"
+        : "rgba(59, 130, 246, 0.3)";
+      ctx.shadowColor = glowColor;
+      ctx.shadowBlur = 4;
+      ctx.strokeStyle = colors.items.selectionGlow;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(x - 1, y - 1, width + 2, height + 2, 7);
+      ctx.stroke();
+      ctx.shadowBlur = 0; // Reset shadow
+
+      // Professional trim handles - only show if item is wide enough
+      if (width > 16) {
+        const isHovering = hoverStateRef.current.itemId === item.id;
+        const hoverType = hoverStateRef.current.dragType;
+        
+        // Left trim handle with professional positioning
+        const leftHandleX = x - 2;
+        const leftHandleY = y + height / 2 - 10;
+        const handleWidth = 14;
+        const handleHeight = 20;
+
+        // Left handle background with gradient
+        const leftGradient = ctx.createLinearGradient(
+          leftHandleX,
+          leftHandleY,
+          leftHandleX + handleWidth,
+          leftHandleY + handleHeight
+        );
+        if (isHovering && hoverType === "trim-start") {
+          leftGradient.addColorStop(0, "rgba(59, 130, 246, 1)");
+          leftGradient.addColorStop(1, "rgba(37, 99, 235, 1)");
+        } else {
+          leftGradient.addColorStop(0, "rgba(59, 130, 246, 0.8)");
+          leftGradient.addColorStop(1, "rgba(37, 99, 235, 0.8)");
+        }
+
+        ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+        ctx.shadowBlur = 3;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 1;
+
+        ctx.fillStyle = leftGradient;
+        ctx.beginPath();
+        ctx.roundRect(leftHandleX, leftHandleY, handleWidth, handleHeight, 5);
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+
+        ctx.strokeStyle =
+          isHovering && hoverType === "trim-start"
+            ? "rgba(255,255,255,1)"
+            : "rgba(255,255,255,0.7)";
+        ctx.lineWidth = isHovering && hoverType === "trim-start" ? 2 : 1;
+        ctx.beginPath();
+        ctx.roundRect(leftHandleX, leftHandleY, handleWidth, handleHeight, 5);
+        ctx.stroke();
+
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = "bold 8px system-ui";
+        ctx.textAlign = "center";
+        ctx.fillText(
+          "◄",
+          leftHandleX + handleWidth / 2,
+          leftHandleY + handleHeight / 2 + 2
+        );
+
+        // Right trim handle with professional positioning
+        const rightHandleX = x + width - handleWidth + 2;
+        const rightHandleY = y + height / 2 - 10;
+
+        const rightGradient = ctx.createLinearGradient(
+          rightHandleX,
+          rightHandleY,
+          rightHandleX + handleWidth,
+          rightHandleY + handleHeight
+        );
+        if (isHovering && hoverType === "trim-end") {
+          rightGradient.addColorStop(0, "rgba(16, 185, 129, 1)");
+          rightGradient.addColorStop(1, "rgba(5, 150, 105, 1)");
+        } else {
+          rightGradient.addColorStop(0, "rgba(16, 185, 129, 0.8)");
+          rightGradient.addColorStop(1, "rgba(5, 150, 105, 0.8)");
+        }
+
+        ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+        ctx.shadowBlur = 3;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 1;
+
+        ctx.fillStyle = rightGradient;
+        ctx.beginPath();
+        ctx.roundRect(
+          rightHandleX,
+          rightHandleY,
+          handleWidth,
+          handleHeight,
+          5
+        );
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+
+        ctx.strokeStyle =
+          isHovering && hoverType === "trim-end"
+            ? "rgba(255,255,255,1)"
+            : "rgba(255,255,255,0.7)";
+        ctx.lineWidth = isHovering && hoverType === "trim-end" ? 2 : 1;
+        ctx.beginPath();
+        ctx.roundRect(
+          rightHandleX,
+          rightHandleY,
+          handleWidth,
+          handleHeight,
+          5
+        );
+        ctx.stroke();
+
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = "bold 8px system-ui";
+        ctx.textAlign = "center";
+        ctx.fillText(
+          "►",
+          rightHandleX + handleWidth / 2,
+          rightHandleY + handleHeight / 2 + 2
+        );
+
+        // Enhanced edge highlight zones with hover feedback
+        if (isHovering && hoverType === "trim-start") {
+          ctx.fillStyle = "rgba(59, 130, 246, 0.4)";
+          ctx.fillRect(x, y, 12, height);
+        } else if (isItemSelected(item)) {
+          ctx.fillStyle = "rgba(59, 130, 246, 0.2)";
+          ctx.fillRect(x, y, 12, height);
+        }
+
+        if (isHovering && hoverType === "trim-end") {
+          ctx.fillStyle = "rgba(16, 185, 129, 0.4)";
+          ctx.fillRect(x + width - 12, y, 12, height);
+        } else if (isItemSelected(item)) {
+          ctx.fillStyle = "rgba(16, 185, 129, 0.2)";
+          ctx.fillRect(x + width - 12, y, 12, height);
+        }
+
+        // Add subtle move zone highlight
+        if (isHovering && hoverType === "move") {
+          ctx.fillStyle = "rgba(168, 85, 247, 0.15)";
+          ctx.fillRect(x + 12, y, width - 24, height);
+        }
+      }
+    });
+  }, [canvasSize, currentFrame, dragState, dragPreviewVisible, timelineItems, totalDuration, timelineZoom, colors, isDarkMode]);
 
   // Redraw when dependencies change
   useEffect(() => {
@@ -1526,10 +1665,12 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
 
     if (hoverResult && isItemSelected(hoverResult.item)) {
       // Update hover state for visual feedback
-      setHoverState({
+      hoverStateRef.current = {
         itemId: hoverResult.item.id,
         dragType: hoverResult.dragType,
-      });
+      };
+      // Redraw overlay to show hover effect
+      requestAnimationFrame(() => drawOverlay());
 
       // Set cursor based on drag type
       const canvas = baseCanvasRef.current;
@@ -1540,13 +1681,15 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
             canvas.style.cursor = "col-resize";
             break;
           case "move":
-            canvas.style.cursor = "grab";
+            canvas.style.cursor = dragState.isDragging ? "grabbing" : "grab";
             break;
         }
       }
     } else {
       // Clear hover state
-      setHoverState({ itemId: null, dragType: null });
+      hoverStateRef.current = { itemId: null, dragType: null };
+      // Redraw overlay to clear hover effect
+      requestAnimationFrame(() => drawOverlay());
       const canvas = baseCanvasRef.current;
       if (canvas) {
         canvas.style.cursor = "default";
@@ -1621,7 +1764,9 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
         itemId: "playhead",
         dragType: "playhead",
         startX: x,
+        startY: y,
         startTime: currentFrame,
+        startRow: 0,
         originalDuration: 0,
       });
       return;
@@ -1642,7 +1787,9 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
         itemId: item.id,
         dragType,
         startX: x,
+        startY: y,
         startTime: item.start,
+        startRow: item.row,
         originalDuration: item.duration,
       });
     } else {
@@ -1673,9 +1820,24 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
     if (!rect) return;
 
     const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
     const deltaX = x - dragState.startX;
+    const deltaY = y - dragState.startY;
     const deltaTime =
       (deltaX / (canvasSize.width - TRACK_LABEL_WIDTH)) * totalDuration;
+    
+    // Calculate new row based on Y position for move operations
+    let newRow = dragState.dragType === "move" ? getRowFromY(y) : dragState.startRow;
+    
+    // Handle dynamic layer creation
+    let rowShiftNeeded = 0;
+    if (dragState.dragType === "move" && newRow !== dragState.startRow) {
+      // If targeting row -1 (above existing), we'll create a new layer at top
+      if (newRow === -1) {
+        newRow = 0; // Place at new top layer
+        rowShiftNeeded = 1; // All existing layers shift down by 1
+      }
+    }
 
     if (dragState.dragType === "playhead") {
       const newTime = Math.max(
@@ -1703,18 +1865,74 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
               dragState.startTime + deltaTime
             )
           );
+          // Add row updates for vertical movement
+          if (newRow !== item.row) {
+            updates.row = newRow;
+          }
+
+          // Update drag preview for visual feedback using ref (no re-render)
+          const newStartTime = Math.max(
+            0,
+            Math.min(
+              totalDuration - item.duration,
+              dragState.startTime + deltaTime
+            )
+          );
+          const previewX = timeToPixel(newStartTime);
+          const previewY = getTrackY(newRow) + TRACK_MARGIN;
+          const previewWidth = Math.max(
+            4,
+            (item.duration / totalDuration) * (canvasSize.width - TRACK_LABEL_WIDTH)
+          );
+          const previewHeight = TRACK_HEIGHT - TRACK_MARGIN * 2;
+
+          // Update ref directly to avoid re-renders
+          dragPreviewRef.current = {
+            visible: true,
+            x: previewX,
+            y: previewY,
+            width: previewWidth,
+            height: previewHeight,
+            newRow: newRow,
+            currentDraggedItem: item,
+          };
+
+          // Only trigger re-render if preview visibility changed
+          if (!dragPreviewVisible) {
+            setDragPreviewVisible(true);
+          }
+
+          // Throttled overlay redraw for smooth drag feedback
+          if (overlayRedrawTimeoutRef.current) {
+            clearTimeout(overlayRedrawTimeoutRef.current);
+          }
+          overlayRedrawTimeoutRef.current = window.setTimeout(() => {
+            drawOverlay();
+          }, 16); // ~60fps
           break;
         case "trim-start":
           const newStart = Math.max(0, dragState.startTime + deltaTime);
           const endTime = dragState.startTime + dragState.originalDuration;
           updates.start = newStart;
           updates.duration = Math.max(10, endTime - newStart);
+          
+          // Hide drag preview for trim operations
+          dragPreviewRef.current.visible = false;
+          if (dragPreviewVisible) {
+            setDragPreviewVisible(false);
+          }
           break;
         case "trim-end":
           updates.duration = Math.max(
             10,
             dragState.originalDuration + deltaTime
           );
+          
+          // Hide drag preview for trim operations
+          dragPreviewRef.current.visible = false;
+          if (dragPreviewVisible) {
+            setDragPreviewVisible(false);
+          }
           break;
       }
 
@@ -1756,6 +1974,41 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
   };
 
   const handleMouseUp = () => {
+    // Handle dynamic layer creation/shifting if needed
+    if (dragState.isDragging && dragState.itemId && dragState.dragType === "move") {
+      const currentItem = timelineItems.find((i) => i.id === dragState.itemId);
+      
+      if (currentItem && dragPreviewRef.current.visible) {
+        const targetRow = dragPreviewRef.current.newRow;
+        const originalRow = dragState.startRow;
+        
+        // Check if we're creating a new top layer (moving to row 0 when there are existing items)
+        if (targetRow === 0 && originalRow > 0) {
+          const hasItemsAtRowZero = timelineItems.some(item => 
+            item.id !== currentItem.id && item.row === 0
+          );
+          
+          // If there are items at row 0 and we're moving from a higher row, shift everything down
+          if (hasItemsAtRowZero) {
+            timelineItems.forEach(item => {
+              if (item.id !== currentItem.id) {
+                const itemType = item.type;
+                if (itemType === "text") {
+                  onTextOverlayUpdate(item.id, { row: item.row + 1 });
+                } else if (itemType === "blur") {
+                  onBlurOverlayUpdate(item.id, { row: item.row + 1 });
+                } else {
+                  onClipUpdate(item.id, { row: item.row + 1 });
+                }
+              }
+            });
+          }
+        }
+        
+        // For bottom layer creation, no shifting is needed - items can be placed at any row > maxRow
+      }
+    }
+
     // If we trimmed the start or end of a selected item, finalize trim semantics
     if (dragState.isDragging && dragState.itemId) {
       const item = timelineItems.find((i) => i.id === dragState.itemId);
@@ -1800,9 +2053,15 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
       itemId: null,
       dragType: null,
       startX: 0,
+      startY: 0,
       startTime: 0,
+      startRow: 0,
       originalDuration: 0,
     });
+
+    // Clear drag preview
+    dragPreviewRef.current.visible = false;
+    setDragPreviewVisible(false);
   };
 
   const handleMouseLeave = () => {
@@ -1810,6 +2069,18 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
       handleMouseUp();
     }
   };
+
+  // Clean up timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (overlayRedrawTimeoutRef.current) {
+        clearTimeout(overlayRedrawTimeoutRef.current);
+      }
+      if (dragRafRef.current) {
+        cancelAnimationFrame(dragRafRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div
@@ -1826,7 +2097,8 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
         onMouseUp={handleMouseUp}
         onMouseLeave={(e) => {
           // Clear hover state when mouse leaves canvas
-          setHoverState({ itemId: null, dragType: null });
+          hoverStateRef.current = { itemId: null, dragType: null };
+          requestAnimationFrame(() => drawOverlay());
           const canvas = baseCanvasRef.current;
           if (canvas) canvas.style.cursor = "default";
           // Also handle drag state cleanup
@@ -1845,4 +2117,6 @@ export const CanvasTimeline: React.FC<CanvasTimelineProps> = ({
   );
 };
 
+// Export with React.memo for performance optimization
+export const CanvasTimeline = memo(CanvasTimelineComponent);
 export default CanvasTimeline;

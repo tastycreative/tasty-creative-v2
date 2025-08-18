@@ -346,6 +346,36 @@ interface ClientData {
 }
 
 // Video Editor Types
+// Transform properties for clip positioning and scaling
+interface ClipTransform {
+  scale: number; // Scale factor (1.0 = 100%, 0.5 = 50%, 2.0 = 200%)
+  positionX: number; // X position in pixels from center
+  positionY: number; // Y position in pixels from center
+  rotation: number; // Rotation in degrees
+  fitMode: "contain" | "cover" | "fill"; // How video fits in canvas
+  crop?: {
+    top: number; // Crop in pixels or percentage
+    right: number;
+    bottom: number;
+    left: number;
+  };
+  // Frame/border styling for visual separation in multi-layout modes
+  frame?: {
+    show: boolean;
+    style: "border" | "outline" | "shadow" | "glow";
+    width: number; // Border width in pixels
+    radius: number; // Corner radius in pixels
+    opacity: number; // 0-1 opacity
+    color: string; // CSS color value
+    includeInExport: boolean; // Whether to include frame in final render
+  };
+  // Optional keyframe support for future animation
+  keyframes?: Array<{
+    time: number; // Frame number
+    transform: Partial<Omit<ClipTransform, "keyframes">>;
+  }>;
+}
+
 interface Clip {
   id: string;
   start: number;
@@ -362,6 +392,13 @@ interface Clip {
   height?: number; // Height as percentage (0-100)
   // 2D rotation (degrees). Only applied for image clips.
   rotation?: number;
+  // Intrinsic media dimensions for accurate transform calculations
+  intrinsicWidth?: number;
+  intrinsicHeight?: number;
+  // New transform properties for advanced positioning
+  transform?: ClipTransform;
+  // Auto-fit flag - when true, clip automatically fits to layout cell
+  autoFit?: boolean;
 }
 
 interface TextOverlay {

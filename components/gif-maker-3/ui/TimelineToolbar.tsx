@@ -8,9 +8,17 @@ import {
   ZoomOut as ZoomOutIcon,
   Download,
   SlidersHorizontal,
+  Grid3X3,
+  Layers,
+  Square,
+  RectangleHorizontal,
+  RectangleVertical,
+  Move,
 } from "lucide-react";
 import TransportControls from "./TransportControls";
 import { PlayerRef } from "@remotion/player";
+import { VideoLayout } from "../hooks/useTimeline";
+import { useShowTransformHandles, useSetShowTransformHandles } from "../hooks/useSelectionStore";
 
 interface TimelineToolbarProps {
   selectedClipId: string | null;
@@ -46,6 +54,15 @@ interface TimelineToolbarProps {
     overlayId: string,
     updates: Partial<BlurOverlay>
   ) => void;
+  // New layout props
+  videoLayout?: VideoLayout;
+  onVideoLayoutChange?: (layout: VideoLayout) => void;
+  layerAssignments?: Record<string, number>;
+  onAssignClipToLayer?: (clipId: string, layer: number) => void;
+  getMaxLayers?: () => number;
+  // Auto-fit props
+  getAutoFit?: (clipId: string) => boolean;
+  setAutoFit?: (clipId: string, autoFit: boolean) => void;
 }
 
 const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
@@ -77,7 +94,17 @@ const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
   onBlurOverlayUpdate,
   playbackSpeed,
   onPlaybackSpeedChange,
+  // New layout props
+  videoLayout = "single",
+  onVideoLayoutChange,
+  layerAssignments = {},
+  onAssignClipToLayer,
+  getMaxLayers,
+  getAutoFit,
+  setAutoFit,
 }) => {
+  const showTransformHandles = useShowTransformHandles();
+  const setShowTransformHandles = useSetShowTransformHandles();
   const selectedBlur: BlurOverlay | null =
     (selectedBlurOverlayId &&
       blurOverlays.find((b) => b.id === selectedBlurOverlayId)) ||
@@ -218,8 +245,90 @@ const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
               : "No selection"}
         </div>
 
-        {/* Right: Add elements */}
+        {/* Right: Add elements and layout controls */}
         <div className="flex items-center gap-2">
+          {/* Layout Selection */}
+          <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-white/60 dark:bg-slate-800/40 border border-gray-300 dark:border-slate-700/50">
+            <span className="text-xs text-gray-600 dark:text-slate-400 mr-1">Layout:</span>
+            
+            <button
+              onClick={() => onVideoLayoutChange?.("single")}
+              className={`inline-flex items-center justify-center h-7 w-7 rounded transition-colors ${
+                videoLayout === "single"
+                  ? "bg-blue-500 text-white shadow-sm"
+                  : "hover:bg-gray-200 dark:hover:bg-slate-700/60 text-gray-600 dark:text-slate-300"
+              }`}
+              title="Single Layer"
+            >
+              <Square className="h-3 w-3" />
+            </button>
+
+            <button
+              onClick={() => onVideoLayoutChange?.("2-layer")}
+              className={`inline-flex items-center justify-center h-7 w-7 rounded transition-colors ${
+                videoLayout === "2-layer"
+                  ? "bg-blue-500 text-white shadow-sm"
+                  : "hover:bg-gray-200 dark:hover:bg-slate-700/60 text-gray-600 dark:text-slate-300"
+              }`}
+              title="2-Layer Split"
+            >
+              <Layers className="h-3 w-3" />
+            </button>
+
+            <button
+              onClick={() => onVideoLayoutChange?.("v-triptych")}
+              className={`inline-flex items-center justify-center h-7 w-7 rounded transition-colors ${
+                videoLayout === "v-triptych"
+                  ? "bg-blue-500 text-white shadow-sm"
+                  : "hover:bg-gray-200 dark:hover:bg-slate-700/60 text-gray-600 dark:text-slate-300"
+              }`}
+              title="Vertical Triptych"
+            >
+              <RectangleVertical className="h-3 w-3" />
+            </button>
+
+            <button
+              onClick={() => onVideoLayoutChange?.("h-triptych")}
+              className={`inline-flex items-center justify-center h-7 w-7 rounded transition-colors ${
+                videoLayout === "h-triptych"
+                  ? "bg-blue-500 text-white shadow-sm"
+                  : "hover:bg-gray-200 dark:hover:bg-slate-700/60 text-gray-600 dark:text-slate-300"
+              }`}
+              title="Horizontal Triptych"
+            >
+              <RectangleHorizontal className="h-3 w-3" />
+            </button>
+
+            <button
+              onClick={() => onVideoLayoutChange?.("2x2-grid")}
+              className={`inline-flex items-center justify-center h-7 w-7 rounded transition-colors ${
+                videoLayout === "2x2-grid"
+                  ? "bg-blue-500 text-white shadow-sm"
+                  : "hover:bg-gray-200 dark:hover:bg-slate-700/60 text-gray-600 dark:text-slate-300"
+              }`}
+              title="2×2 Grid"
+            >
+              <Grid3X3 className="h-3 w-3" />
+            </button>
+          </div>
+
+          <div className="h-6 w-px bg-gray-300 dark:bg-slate-700/50" />
+
+          {/* Transform Handles Toggle */}
+          <button
+            onClick={() => setShowTransformHandles(!showTransformHandles)}
+            className={`inline-flex items-center justify-center h-9 w-9 rounded-md transition-colors ${
+              showTransformHandles
+                ? "bg-blue-500 text-white shadow-md"
+                : "bg-white/80 dark:bg-slate-800/60 border border-gray-300 dark:border-slate-700/70 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700/60"
+            }`}
+            title="Toggle Transform Handles"
+          >
+            <Move className="h-4 w-4" />
+          </button>
+
+          <div className="h-6 w-px bg-gray-300 dark:bg-slate-700/50" />
+
           <button
             onClick={onAddTextOverlay}
             className="px-3 h-9 inline-flex items-center justify-center rounded-md bg-white/80 dark:bg-slate-800/60 border border-gray-300 dark:border-slate-700/70 text-gray-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700/60 hover:text-gray-900 dark:hover:text-white text-sm transition-colors shadow-sm"
@@ -238,6 +347,63 @@ const TimelineToolbar: React.FC<TimelineToolbarProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Layer Assignment Panel - Shows when video clip is selected in multi-layer mode */}
+      {selectedClip && selectedClip.type === "video" && videoLayout !== "single" && onAssignClipToLayer && (
+        <div className="bg-blue-50/95 dark:bg-blue-900/20 backdrop-blur-md border-b border-blue-300/60 dark:border-blue-700/60 px-4 py-3 shadow-inner">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <Layers className="h-4 w-4 text-blue-500" />
+                <span className="text-sm font-medium text-gray-800 dark:text-slate-200">
+                  Layer Assignment
+                </span>
+                <div className="h-4 w-px bg-gray-400 dark:bg-slate-600" />
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-600 dark:text-slate-400">
+                  Assign "{selectedClip.fileName || selectedClip.id.slice(-6)}" to layer:
+                </span>
+                
+                <div className="flex gap-1">
+                  {Array.from({ length: getMaxLayers?.() || 1 }, (_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => onAssignClipToLayer(selectedClip.id, i)}
+                      className={`w-8 h-8 rounded-md text-sm font-medium transition-colors ${
+                        (layerAssignments[selectedClip.id] ?? 0) === i
+                          ? "bg-blue-500 text-white shadow-md"
+                          : "bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-300 border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-600"
+                      }`}
+                      title={`Layer ${i + 1}`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-slate-400">
+              <span>Current: Layer {(layerAssignments[selectedClip.id] ?? 0) + 1}</span>
+              
+              {/* Auto-fit toggle */}
+              {getAutoFit && setAutoFit && (
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={getAutoFit(selectedClip.id)}
+                    onChange={(e) => setAutoFit(selectedClip.id, e.target.checked)}
+                    className="w-3 h-3 text-blue-500 rounded border-gray-300 dark:border-slate-600 focus:ring-blue-500 dark:focus:ring-blue-400"
+                  />
+                  <span>Auto-fit</span>
+                </label>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Contextual Blur Controls Panel - Slides down when blur overlay is selected */}
       {selectedBlur && (
