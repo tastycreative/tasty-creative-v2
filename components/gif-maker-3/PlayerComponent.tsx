@@ -5,10 +5,13 @@
 
 "use client";
 
-import React, { memo, useEffect } from "react";
+import React, { memo, useEffect, useRef } from "react";
 import { Player, PlayerRef } from "@remotion/player";
 import { VideoComposition } from "./player";
 import { EDITOR_FPS } from "@/utils/fps";
+import { VideoLayout } from "./hooks/useTimeline";
+import { TransformHandles } from "./player/TransformHandles";
+import { useSelectedClipId, useShowTransformHandles } from "./hooks/useSelectionStore";
 
 interface PlayerComponentProps {
   playerRef: React.RefObject<PlayerRef>;
@@ -17,6 +20,14 @@ interface PlayerComponentProps {
   previewQuality: "LOW" | "MED" | "HIGH";
   onPlayerClick: (e: React.MouseEvent) => void;
   playbackSpeed: number;
+  // New layout props
+  videoLayout?: VideoLayout;
+  layerAssignments?: Record<string, number>;
+  getClipLayer?: (clipId: string) => number;
+  // Transform props
+  clips?: Clip[];
+  onTransformChange?: (clipId: string, transform: Partial<ClipTransform>) => void;
+  getClipTransform?: (clipId: string) => ClipTransform;
 }
 
 const PlayerComponent: React.FC<PlayerComponentProps> = memo(
@@ -27,7 +38,17 @@ const PlayerComponent: React.FC<PlayerComponentProps> = memo(
     previewQuality,
     onPlayerClick,
     playbackSpeed,
+    videoLayout = "single",
+    layerAssignments = {},
+    getClipLayer,
+    clips = [],
+    onTransformChange,
+    getClipTransform,
   }) => {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const selectedClipId = useSelectedClipId();
+    const selectedClip = clips.find(clip => clip.id === selectedClipId);
+    const showTransformHandles = useShowTransformHandles();
     const compositionWidth =
       previewQuality === "LOW" ? 960 : previewQuality === "MED" ? 1280 : 1920;
 
@@ -55,7 +76,11 @@ const PlayerComponent: React.FC<PlayerComponentProps> = memo(
     }, [playerRef]);
 
     return (
-      <div className="relative w-full h-full bg-black" onClick={onPlayerClick}>
+      <div 
+        ref={containerRef}
+        className="relative w-full h-full bg-black" 
+        onClick={onPlayerClick}
+      >
         <div className="w-full h-full">
           <Player
             ref={playerRef}
@@ -90,8 +115,29 @@ const PlayerComponent: React.FC<PlayerComponentProps> = memo(
                 </div>
               </div>
             )}
-            inputProps={compositionInputProps}
+            inputProps={{
+              ...compositionInputProps,
+              videoLayout,
+              layerAssignments,
+              getClipLayer,
+            }}
           />
+          
+          {/* Transform handles overlay */}
+          {selectedClip && showTransformHandles && onTransformChange && getClipTransform && (
+            <TransformHandles
+              clipId={selectedClip.id}
+              transform={getClipTransform(selectedClip.id)}
+              onTransformChange={onTransformChange}
+              canvasWidth={compositionWidth}
+              canvasHeight={compositionHeight}
+              intrinsicWidth={selectedClip.intrinsicWidth}
+              intrinsicHeight={selectedClip.intrinsicHeight}
+              zoom={1} // TODO: Add actual zoom prop when Player zoom is implemented
+              videoLayout={videoLayout}
+              layerAssignments={layerAssignments}
+            />
+          )}
         </div>
       </div>
     );

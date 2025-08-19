@@ -61,8 +61,8 @@ const GifVideoEditor: React.FC = memo(() => {
     selectedBlurOverlayId,
     playerRef,
     setCurrentFrame,
-    setSelectedClipId,
-    setSelectedBlurOverlayId,
+    setSelectedClip,
+    setSelectedBlurOverlay,
     setTextOverlays,
     getNextAvailableRow,
     addClip,
@@ -78,6 +78,25 @@ const GifVideoEditor: React.FC = memo(() => {
     handleCanvasTimelineClick,
     handleZoomIn,
     handleZoomOut,
+    // New layout state and functions
+    videoLayout,
+    layerAssignments,
+    setVideoLayout,
+    assignClipToLayer,
+    assignClipToLayerWithAutoFit,
+    getClipLayer,
+    getMaxLayers,
+    getLayerClips,
+    // Transform functions
+    updateClipTransform,
+    resetClipTransform,
+    getClipTransform,
+    // Auto-fit functions
+    autoFitClip,
+    setAutoFit,
+    getAutoFit,
+    // Selection actions
+    clearAllSelections,
   } = timeline;
 
   const {
@@ -191,9 +210,9 @@ const GifVideoEditor: React.FC = memo(() => {
   const deleteSelectedClip = useCallback(() => {
     if (selectedClipId) {
       removeClip(selectedClipId);
-      handleSelectionChange(null);
+      setSelectedClip(null);
     }
-  }, [selectedClipId, removeClip, handleSelectionChange]);
+  }, [selectedClipId, removeClip, setSelectedClip]);
 
   // Clone clip functionality using hooks
   const handleCloneClip = useCallback(() => {
@@ -226,9 +245,9 @@ const GifVideoEditor: React.FC = memo(() => {
         start: t.start + t.duration,
       };
       setTextOverlays([...textOverlays, clone]);
-      setSelectedClipId(clone.id);
+      setSelectedClip(clone.id);
     },
-    [textOverlays, setTextOverlays, setSelectedClipId]
+    [textOverlays, setTextOverlays, setSelectedClip]
   );
 
   const handleDeleteText = useCallback(
@@ -240,9 +259,9 @@ const GifVideoEditor: React.FC = memo(() => {
       // If not exposed, fallback to updateTextOverlay for no-op
       // We have setTextOverlays in the hook return
       setTextOverlays(next);
-      if (selectedClipId === id) setSelectedClipId(null);
+      if (selectedClipId === id) setSelectedClip(null);
     },
-    [textOverlays, setTextOverlays, selectedClipId, setSelectedClipId]
+    [textOverlays, setTextOverlays, selectedClipId, setSelectedClip]
   );
 
   const handleUpdateTextSettings = useCallback(
@@ -527,14 +546,19 @@ const GifVideoEditor: React.FC = memo(() => {
                 contentDuration={contentDuration}
                 previewQuality={previewQuality}
                 playbackSpeed={playbackSpeed}
+                videoLayout={videoLayout}
+                layerAssignments={layerAssignments}
+                getClipLayer={getClipLayer}
+                clips={clips}
+                onTransformChange={updateClipTransform}
+                getClipTransform={getClipTransform}
                 onPlayerClick={(e) => {
                   // Only deselect if clicking on the container itself, not on interactive overlays
                   if (
                     e.target === e.currentTarget ||
                     (e.target as HTMLElement).tagName === "VIDEO"
                   ) {
-                    setSelectedClipId(null);
-                    setSelectedBlurOverlayId(null);
+                    clearAllSelections();
                   }
                 }}
               />
@@ -664,8 +688,10 @@ const GifVideoEditor: React.FC = memo(() => {
         </div>
 
         {/* Timeline Section */}
-        <div className="bg-gray-100 dark:bg-slate-900 border-t border-gray-200 dark:border-slate-700 flex flex-col max-h-[45vh] min-h-[20rem] overflow-y-auto">
-          <TimelineToolbar
+        <div className="bg-gray-100 dark:bg-slate-900 border-t border-gray-200 dark:border-slate-700 flex flex-col max-h-[45vh] min-h-[20rem]">
+          {/* Sticky Timeline Toolbar */}
+          <div className="sticky top-0 z-10 bg-gray-100 dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700">
+            <TimelineToolbar
             selectedClipId={selectedClipId}
             selectedBlurOverlayId={selectedBlurOverlayId}
             clips={clips}
@@ -694,9 +720,17 @@ const GifVideoEditor: React.FC = memo(() => {
             onDeleteText={handleDeleteText}
             selectedTextOverlay={selectedTextOverlay}
             onUpdateTextSettings={handleUpdateTextSettings}
-          />
-          {/* Preview quality toggle */}
-          <div className="px-3 py-2 border-t border-gray-200 dark:border-slate-700 flex items-center gap-3 text-xs text-gray-600 dark:text-slate-300">
+            videoLayout={videoLayout}
+            onVideoLayoutChange={setVideoLayout}
+            layerAssignments={layerAssignments}
+            onAssignClipToLayer={assignClipToLayerWithAutoFit}
+            getMaxLayers={getMaxLayers}
+            getAutoFit={getAutoFit}
+            setAutoFit={setAutoFit}
+            />
+            
+            {/* Preview quality toggle */}
+            <div className="px-3 py-2 border-t border-gray-200 dark:border-slate-700 flex items-center gap-3 text-xs text-gray-600 dark:text-slate-300">
             <span>Preview quality:</span>
             <div className="flex bg-gray-100 dark:bg-slate-800 rounded-md p-1 gap-1">
               <button
@@ -730,10 +764,11 @@ const GifVideoEditor: React.FC = memo(() => {
                 High
               </button>
             </div>
+            </div>
           </div>
 
-          {/* Timeline */}
-          <div className="flex-1">
+          {/* Scrollable Timeline Container */}
+          <div className="flex-1 overflow-y-auto">
             <CanvasTimeline
               clips={clips}
               textOverlays={textOverlays}

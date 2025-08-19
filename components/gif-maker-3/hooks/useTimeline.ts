@@ -1,5 +1,22 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { PlayerRef } from "@remotion/player";
+import { 
+  useSelectionStore, 
+  useSetSelectedClip,
+  useSetSelectedTextOverlay,
+  useSetSelectedBlurOverlay,
+  useClearAllSelections
+} from "./useSelectionStore";
+import { createDefaultTransform, validateTransform } from "../utils/transformUtils";
+import { calculateAutoFitTransform, getLayoutCells } from "../utils/contentRect";
+
+// Layout types for multi-layer video support
+export type VideoLayout = 
+  | "single" 
+  | "2-layer" 
+  | "v-triptych" 
+  | "h-triptych" 
+  | "2x2-grid";
 
 export const useTimeline = () => {
   const [clips, setClips] = useState<Clip[]>([]);
@@ -9,10 +26,17 @@ export const useTimeline = () => {
   const [totalDuration, setTotalDuration] = useState(1);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [timelineZoom, setTimelineZoom] = useState(1);
-  const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
-  const [selectedBlurOverlayId, setSelectedBlurOverlayId] = useState<
-    string | null
-  >(null);
+  
+  // Use selection store instead of local state to prevent flicker
+  const { selectedClipId, selectedTextOverlayId, selectedBlurOverlayId } = useSelectionStore();
+  const setSelectedClip = useSetSelectedClip();
+  const setSelectedTextOverlay = useSetSelectedTextOverlay();
+  const setSelectedBlurOverlay = useSetSelectedBlurOverlay();
+  const clearAllSelections = useClearAllSelections();
+  
+  // New layout state
+  const [videoLayout, setVideoLayout] = useState<VideoLayout>("single");
+  const [layerAssignments, setLayerAssignments] = useState<Record<string, number>>({});
 
   const playerRef = useRef<PlayerRef>(null);
 
@@ -139,8 +163,8 @@ export const useTimeline = () => {
 
     setBlurOverlays((prev) => [...prev, newOverlay]);
     // Auto-select the newly added blur overlay to expose contextual controls
-    setSelectedBlurOverlayId(newOverlay.id);
-    setSelectedClipId(null);
+    setSelectedBlurOverlay(newOverlay.id);
+    setSelectedClip(null);
   }, [clips, textOverlays, blurOverlays, getNextAvailableRow]);
 
   const updateBlurOverlay = useCallback(
@@ -156,8 +180,8 @@ export const useTimeline = () => {
 
   const removeBlurOverlay = useCallback((overlayId: string) => {
     setBlurOverlays((prev) => prev.filter((b) => b.id !== overlayId));
-    setSelectedBlurOverlayId((prev) => (prev === overlayId ? null : prev));
-  }, []);
+    setSelectedBlurOverlay(null);
+  }, [setSelectedBlurOverlay]);
 
   const cloneBlurOverlay = useCallback((overlayId: string) => {
     setBlurOverlays((prev) => {
@@ -183,17 +207,14 @@ export const useTimeline = () => {
       );
 
       if (isBlurOverlay) {
-        setSelectedBlurOverlayId(itemId);
-        setSelectedClipId(null);
+        setSelectedBlurOverlay(itemId);
       } else if (isTextOverlay) {
-        setSelectedClipId(itemId);
-        setSelectedBlurOverlayId(null);
+        setSelectedTextOverlay(itemId);
       } else {
-        setSelectedClipId(itemId);
-        setSelectedBlurOverlayId(null);
+        setSelectedClip(itemId);
       }
     },
-    [blurOverlays, textOverlays]
+    [blurOverlays, textOverlays, setSelectedBlurOverlay, setSelectedTextOverlay, setSelectedClip]
   );
 
   // Timeline controls
@@ -225,6 +246,134 @@ export const useTimeline = () => {
     setTimelineZoom((prev) => Math.max(prev - 0.5, 1));
   }, []);
 
+  // Layout management functions
+  const assignClipToLayer = useCallback((clipId: string, layer: number) => {
+    setLayerAssignments(prev => ({ ...prev, [clipId]: layer }));
+  }, []);
+
+  const getClipLayer = useCallback((clipId: string): number => {
+    return layerAssignments[clipId] ?? 0; // Default to layer 0
+  }, [layerAssignments]);
+
+  const getMaxLayers = useCallback((): number => {
+    switch (videoLayout) {
+      case "single": return 1;
+      case "2-layer": return 2;
+      case "v-triptych": 
+      case "h-triptych": return 3;
+      case "2x2-grid": return 4;
+      default: return 1;
+    }
+  }, [videoLayout]);
+
+  const getLayerClips = useCallback((layer: number): Clip[] => {
+    return clips.filter(clip => 
+      clip.type === "video" && getClipLayer(clip.id) === layer
+    );
+  }, [clips, getClipLayer]);
+
+  // Transform management functions
+  const updateClipTransform = useCallback((clipId: string, transform: Partial<ClipTransform>) => {
+    const clip = clips.find(c => c.id === clipId);
+    if (!clip) return;
+
+    const currentTransform = clip.transform || createDefaultTransform();
+    const validatedTransform = validateTransform({ ...currentTransform, ...transform });
+    const newTransform = { ...currentTransform, ...validatedTransform };
+
+    updateClip(clipId, { transform: newTransform });
+  }, [clips, updateClip]);
+
+  const resetClipTransform = useCallback((clipId: string) => {
+    updateClip(clipId, { transform: createDefaultTransform() });
+  }, [updateClip]);
+
+  const getClipTransform = useCallback((clipId: string): ClipTransform => {
+    const clip = clips.find(c => c.id === clipId);
+    return clip?.transform || createDefaultTransform();
+  }, [clips]);
+
+  // Auto-fit functionality
+  const autoFitClip = useCallback((clipId: string) => {
+    const clip = clips.find(c => c.id === clipId);
+    if (!clip || clip.type !== "video") return;
+
+    // For multi-layer layouts, the video container already handles sizing
+    // We just need to reset position and keep scale at 1.0
+    // For single layout, we might need to calculate scale for non-standard aspect ratios
+    
+    const currentTransform = getClipTransform(clipId);
+    
+    if (videoLayout === 'single') {
+      // Single layout - calculate auto-fit if video doesn't match canvas aspect ratio
+      const canvasWidth = 1920;
+      const canvasHeight = 1080;
+      const intrinsicWidth = clip.intrinsicWidth || 1920;
+      const intrinsicHeight = clip.intrinsicHeight || 1080;
+      
+      const autoFitTransform = calculateAutoFitTransform(
+        { width: intrinsicWidth, height: intrinsicHeight },
+        { width: canvasWidth, height: canvasHeight },
+        8 // 8px gutter
+      );
+      
+      updateClipTransform(clipId, {
+        scale: autoFitTransform.scale,
+        positionX: 0,
+        positionY: 0,
+        rotation: currentTransform.rotation,
+        fitMode: "contain",
+      });
+    } else {
+      // Multi-layer layouts - the cell container handles sizing
+      // Just reset position and keep scale at 1.0
+      updateClipTransform(clipId, {
+        scale: 1.0, // Keep at 1.0 - the cell container handles actual sizing
+        positionX: 0, // Center in cell
+        positionY: 0, // Center in cell
+        rotation: currentTransform.rotation,
+        fitMode: "contain", // Object-fit handles aspect ratio
+      });
+    }
+  }, [clips, videoLayout, getClipTransform, updateClipTransform]);
+
+  const setAutoFit = useCallback((clipId: string, autoFit: boolean) => {
+    updateClip(clipId, { autoFit });
+  }, [updateClip]);
+
+  const getAutoFit = useCallback((clipId: string): boolean => {
+    const clip = clips.find(c => c.id === clipId);
+    return clip?.autoFit ?? true; // Default to true
+  }, [clips]);
+
+  // Auto-fit clips when layout changes (only if layout actually changes)
+  const previousLayoutRef = useRef(videoLayout);
+  useEffect(() => {
+    // Only auto-fit if layout actually changed
+    if (previousLayoutRef.current !== videoLayout) {
+      previousLayoutRef.current = videoLayout;
+      
+      clips.forEach(clip => {
+        if (clip.type === "video" && (clip.autoFit ?? true)) {
+          autoFitClip(clip.id);
+        }
+      });
+    }
+  }, [videoLayout, clips, autoFitClip]); // Include proper dependencies
+
+  // Auto-fit specific clip when it's assigned to a new layer
+  const assignClipToLayerWithAutoFit = useCallback((clipId: string, layer: number) => {
+    const previousLayer = layerAssignments[clipId] ?? 0;
+    assignClipToLayer(clipId, layer);
+    
+    // Auto-fit if enabled and layer actually changed
+    const clip = clips.find(c => c.id === clipId);
+    if (clip && (clip.autoFit ?? true) && layer !== previousLayer) {
+      // Use setTimeout to ensure state is updated first
+      setTimeout(() => autoFitClip(clipId), 0);
+    }
+  }, [layerAssignments, assignClipToLayer, clips, autoFitClip]);
+
   return {
     // State
     clips,
@@ -238,13 +387,23 @@ export const useTimeline = () => {
     selectedBlurOverlayId,
     playerRef,
 
+    // Layout state
+    videoLayout,
+    layerAssignments,
+
     // Setters
     setClips,
     setTextOverlays,
     setBlurOverlays,
     setCurrentFrame,
-    setSelectedClipId,
-    setSelectedBlurOverlayId,
+    setVideoLayout,
+    setLayerAssignments,
+    
+    // Selection actions (from store)
+    setSelectedClip,
+    setSelectedTextOverlay,
+    setSelectedBlurOverlay,
+    clearAllSelections,
 
     // Operations
     getNextAvailableRow,
@@ -262,5 +421,22 @@ export const useTimeline = () => {
     handleCanvasTimelineClick,
     handleZoomIn,
     handleZoomOut,
+
+    // Layout operations
+    assignClipToLayer,
+    assignClipToLayerWithAutoFit,
+    getClipLayer,
+    getMaxLayers,
+    getLayerClips,
+    
+    // Transform operations
+    updateClipTransform,
+    resetClipTransform,
+    getClipTransform,
+    
+    // Auto-fit operations
+    autoFitClip,
+    setAutoFit,
+    getAutoFit,
   };
 };
