@@ -128,10 +128,10 @@ export function BulkRoleEditor({ users }: BulkRoleEditorProps) {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-lg transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5"
+        className="inline-flex items-center justify-center w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-lg transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5"
       >
         <Settings className="h-4 w-4 mr-2" />
-        Bulk Edit Roles
+        <span className="whitespace-nowrap">Bulk Edit Roles</span>
       </button>
     );
   }
@@ -139,17 +139,17 @@ export function BulkRoleEditor({ users }: BulkRoleEditorProps) {
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/60 backdrop-blur-sm flex items-start justify-center p-2 sm:p-4 overflow-y-auto">
         {/* Main Modal */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-pink-200 dark:border-pink-500/30">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-4xl my-4 sm:my-8 border border-pink-200 dark:border-pink-500/30">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-pink-200 dark:border-pink-500/30 bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-800 dark:to-gray-800/80">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6 border-b border-pink-200 dark:border-pink-500/30 bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-800 dark:to-gray-800/80 gap-4 sm:gap-0">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-pink-100 dark:bg-pink-500/20 rounded-lg">
                 <Settings className="h-5 w-5 text-pink-600 dark:text-pink-400" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100">
                   Bulk Role Editor
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -159,16 +159,16 @@ export function BulkRoleEditor({ users }: BulkRoleEditorProps) {
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors self-end sm:self-auto"
             >
               <X className="h-5 w-5" />
             </button>
           </div>
 
           {/* Controls */}
-          <div className="p-6 bg-gray-50 dark:bg-gray-900 border-b border-pink-200 dark:border-pink-500/30">
+          <div className="p-4 sm:p-6 bg-gray-50 dark:bg-gray-900 border-b border-pink-200 dark:border-pink-500/30">
             {/* Search and Filter Row */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-4">
+            <div className="flex flex-col lg:flex-row gap-4 mb-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
                 <input
@@ -179,12 +179,12 @@ export function BulkRoleEditor({ users }: BulkRoleEditorProps) {
                   className="w-full pl-10 pr-4 py-2 border border-pink-200 dark:border-pink-500/30 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
                 />
               </div>
-              <div className="relative">
+              <div className="relative w-full lg:w-auto">
                 <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
                 <select
                   value={filterRole}
                   onChange={(e) => setFilterRole(e.target.value as Role | "ALL")}
-                  className="appearance-none bg-white dark:bg-gray-800 border border-pink-200 dark:border-pink-500/30 rounded-lg pl-10 pr-10 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500"
+                  className="appearance-none bg-white dark:bg-gray-800 border border-pink-200 dark:border-pink-500/30 rounded-lg pl-10 pr-10 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 w-full lg:w-auto"
                 >
                   <option value="ALL">All Roles</option>
                   <option value="GUEST">Guest</option>
@@ -198,11 +198,11 @@ export function BulkRoleEditor({ users }: BulkRoleEditorProps) {
             </div>
 
             {/* Selection Controls Row */}
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-              <div className="flex items-center space-x-4">
+            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                 <button
                   onClick={handleSelectAll}
-                  className="text-sm text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 font-medium transition-colors"
+                  className="text-sm text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 font-medium transition-colors text-left"
                 >
                   {selectedUsers.size === filteredUsers.length && filteredUsers.length > 0 ? 'Deselect All' : 'Select All'}
                 </button>
@@ -212,12 +212,12 @@ export function BulkRoleEditor({ users }: BulkRoleEditorProps) {
               </div>
               
               {selectedUsers.size > 0 && (
-                <div className="flex items-center space-x-3 bg-white dark:bg-gray-800 p-3 rounded-lg border border-pink-200 dark:border-pink-500/30">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 bg-white dark:bg-gray-800 p-3 rounded-lg border border-pink-200 dark:border-pink-500/30 w-full lg:w-auto">
                   <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Change to:</span>
                   <select
                     value={selectedRole}
                     onChange={(e) => setSelectedRole(e.target.value as Role)}
-                    className="border border-pink-200 dark:border-pink-500/30 rounded-lg px-3 py-1 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    className="border border-pink-200 dark:border-pink-500/30 rounded-lg px-3 py-1 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500 w-full sm:w-auto"
                   >
                     <option value="GUEST">Guest</option>
                     <option value="USER">User</option>
@@ -228,7 +228,7 @@ export function BulkRoleEditor({ users }: BulkRoleEditorProps) {
                   <button
                     onClick={handleBulkUpdate}
                     disabled={isPending}
-                    className="inline-flex items-center px-4 py-1 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white text-sm rounded-lg transition-all disabled:opacity-50 shadow-sm"
+                    className="inline-flex items-center justify-center px-4 py-1 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white text-sm rounded-lg transition-all disabled:opacity-50 shadow-sm w-full sm:w-auto"
                   >
                     <UserPlus className="h-3 w-3 mr-1" />
                     Update ({selectedUsers.size})
@@ -239,8 +239,8 @@ export function BulkRoleEditor({ users }: BulkRoleEditorProps) {
           </div>
 
           {/* User List */}
-          <div className="overflow-y-auto" style={{ maxHeight: '400px' }}>
-            <div className="bg-gray-100 dark:bg-gray-900 px-6 py-3 border-b border-pink-200 dark:border-pink-500/30">
+          <div className="overflow-y-auto max-h-[50vh] sm:max-h-[400px]">
+            <div className="bg-gray-100 dark:bg-gray-900 px-4 sm:px-6 py-3 border-b border-pink-200 dark:border-pink-500/30">
               <div className="flex items-center space-x-3">
                 <Users className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -259,44 +259,45 @@ export function BulkRoleEditor({ users }: BulkRoleEditorProps) {
                   onClick={() => handleUserToggle(user.id)}
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-3 min-w-0 flex-1">
                       <input
                         type="checkbox"
                         checked={selectedUsers.has(user.id)}
                         onChange={() => handleUserToggle(user.id)}
-                        className="h-4 w-4 text-pink-600 focus:ring-pink-500 border-pink-200 dark:border-pink-500/30 rounded bg-white dark:bg-gray-800"
+                        className="h-4 w-4 text-pink-600 focus:ring-pink-500 border-pink-200 dark:border-pink-500/30 rounded bg-white dark:bg-gray-800 flex-shrink-0"
                       />
                       
                       {user.image ? (
                         <img
-                          className="h-8 w-8 rounded-full object-cover"
+                          className="h-8 w-8 rounded-full object-cover flex-shrink-0"
                           src={`/api/image-proxy?url=${encodeURIComponent(user.image)}`}
                           alt={user.name || ""}
                         />
                       ) : (
-                        <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                        <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center flex-shrink-0">
                           <span className="text-xs text-gray-600 dark:text-gray-300 font-medium">
                             {(user.name?.[0] || user.email?.[0] || "?").toUpperCase()}
                           </span>
                         </div>
                       )}
                       
-                      <div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                           {user.name || "No name"}
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
                           {user.email}
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 ml-2 flex-shrink-0">
                       <span className="text-sm">
                         {getRoleIcon(user.role)}
                       </span>
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeClass(user.role)}`}>
-                        {user.role === "SWD" ? "Script Writer" : user.role}
+                        <span className="hidden sm:inline">{user.role === "SWD" ? "Script Writer" : user.role}</span>
+                        <span className="sm:hidden">{user.role === "SWD" ? "SWD" : user.role}</span>
                       </span>
                     </div>
                   </div>

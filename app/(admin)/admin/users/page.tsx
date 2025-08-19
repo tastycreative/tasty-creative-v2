@@ -29,6 +29,7 @@ type User = {
   role: string;
   image: string | null;
   createdAt: Date;
+  emailVerified: Date | null;
 };
 
 export default async function AdminUsersPage() {
@@ -48,6 +49,7 @@ export default async function AdminUsersPage() {
       role: true,
       image: true,
       createdAt: true,
+      emailVerified: true,
     },
     orderBy: {
       createdAt: "desc",
@@ -73,22 +75,22 @@ export default async function AdminUsersPage() {
   return (
     <div className="min-h-screen p-6 space-y-6 bg-gradient-to-br from-gray-50 via-white to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Header */}
-      <div className="mb-8 p-6 bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-800 dark:to-gray-700 rounded-lg border dark:border-gray-600">
-        <div className="flex items-center justify-between">
+      <div className="mb-8 p-4 sm:p-6 bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-800 dark:to-gray-700 rounded-lg border dark:border-gray-600">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
             <div className="flex items-center space-x-3 mb-2">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
                 User Management
               </h1>
-              <Users className="h-6 w-6 text-pink-500" />
+              <Users className="h-5 w-5 sm:h-6 sm:w-6 text-pink-500" />
             </div>
-            <p className="text-gray-600 dark:text-gray-300">
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
               Manage user accounts, roles, and permissions across your platform
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <BulkRoleEditor users={users} />
-            <button className="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5">
+            <button className="inline-flex items-center justify-center px-4 py-2 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5">
               <Download className="h-4 w-4 mr-2" />
               Export
             </button>
@@ -279,20 +281,95 @@ export default async function AdminUsersPage() {
 
       {/* Enhanced Users Table */}
       <Card className="border border-pink-200 dark:border-pink-500/30 shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 bg-white dark:bg-gray-800">
-        <CardHeader className="bg-gray-50 dark:bg-gray-900 border-b border-pink-200 dark:border-pink-500/30">
-          <div className="flex items-center justify-between">
+        <CardHeader className="bg-gray-50 dark:bg-gray-900 border-b border-pink-200 dark:border-pink-500/30 p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <CardTitle className="text-gray-900 dark:text-gray-100 font-bold flex items-center">
               <Eye className="h-5 w-5 mr-2 text-pink-500" />
               All Users ({totalUsers})
             </CardTitle>
             <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
               <Clock className="h-4 w-4" />
-              <span>Last updated: {new Date().toLocaleTimeString()}</span>
+              <span className="hidden sm:inline">Last updated: </span>
+              <span>{new Date().toLocaleTimeString()}</span>
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          {/* Mobile Card View */}
+          <div className="block lg:hidden">
+            <div className="divide-y divide-pink-200 dark:divide-pink-500/30">
+              {users.map((user) => (
+                <div
+                  key={user.id}
+                  className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-300"
+                >
+                  <div className="flex items-start space-x-4">
+                    {user.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        className="h-12 w-12 rounded-full object-cover border-2 border-pink-200 dark:border-pink-500/30 flex-shrink-0"
+                        src={`/api/image-proxy?url=${encodeURIComponent(user.image)}`}
+                        alt={user.name || ""}
+                      />
+                    ) : (
+                      <div className="h-12 w-12 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center flex-shrink-0">
+                        <User className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                            {user.name || "No name"}
+                          </p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                            {user.email}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                            Joined {new Date(user.createdAt).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end space-y-2 ml-2">
+                          <Badge
+                            variant="secondary"
+                            className={`
+                              font-medium border text-xs
+                              ${
+                                user.role === "ADMIN"
+                                  ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white border-pink-500"
+                                  : user.role === "MODERATOR"
+                                    ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border-yellow-300 dark:border-yellow-500/30"
+                                    : user.role === "SWD"
+                                      ? "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-500/30"
+                                      : user.role === "USER"
+                                        ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-300 dark:border-green-500/30"
+                                        : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-500/30"
+                              }
+                            `}
+                          >
+                            {user.role === "SWD" ? "Script Writer" : user.role}
+                          </Badge>
+                          <UserRoleForm
+                            userId={user.id}
+                            currentRole={user.role as Role}
+                            userName={user.name || user.email || "User"}
+                            isCurrentUser={user.id === session?.user?.id}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr className="border-b border-pink-200 dark:border-pink-500/30">
@@ -347,8 +424,8 @@ export default async function AdminUsersPage() {
                       <div className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
                         {user.email}
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        Verified Account
+                      <div className={`text-xs ${user.emailVerified ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                        {user.emailVerified ? 'Verified Account' : 'Unverified Account'}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -406,7 +483,7 @@ export default async function AdminUsersPage() {
                           userId={user.id}
                           currentRole={user.role as Role}
                           userName={user.name || user.email || "User"}
-                          isCurrentUser={user.id === session.user.id}
+                          isCurrentUser={user.id === session?.user?.id}
                         />
                         <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-300 hover:scale-110">
                           <MoreHorizontal className="h-4 w-4 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300" />
