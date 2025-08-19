@@ -31,28 +31,31 @@ const LaunchPrepNotification = () => {
     return () => clearInterval(intervalId);
   }, []);
 
+  // Empty state
+  if (!notifications || notifications.length === 0) {
+    return (
+      <div className="py-4">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          No notifications at this time
+        </p>
+      </div>
+    );
+  }
+
+  // Simple single notification display
+  const latestNotification = notifications[0];
+  
   return (
-    <>
-      {Array.isArray(notifications) && notifications && (
-        <div className="">
-          {notifications.map(
-            (notification: NotificationData, index: number) => (
-              <div className="py-1" key={index}>
-                <LaunchPrepDetails
-                  modelDataLoading={false} // Replace with actual loading state if needed
-                  selectedModelData={notification.editedData} // Passing the `editedData` from the notificationication
-                  timestamp={notification.timestamp} // Passing the timestamp
-                  editedBy={notification.editedBy} // Passing the editor's name
-                  className="bg-pink-50 dark:bg-pink-900/30 border border-pink-200 dark:border-pink-700/50"
-                  dashboard={true} // Pass the dashboard prop to the component
-                  //   triggerTabChange={triggerTabChange} // Pass the handleTabChange function to the component
-                />
-              </div>
-            )
-          )}
-        </div>
-      )}
-    </>
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+      <LaunchPrepDetails
+        modelDataLoading={false}
+        selectedModelData={latestNotification.editedData}
+        timestamp={latestNotification.timestamp}
+        editedBy={latestNotification.editedBy}
+        className="bg-transparent border-0 shadow-none hover:shadow-none p-0"
+        dashboard={true}
+      />
+    </div>
   );
 };
 

@@ -25,7 +25,7 @@ const LaunchPrepDetails = ({
   editedBy,
   className,
   dashboard = false,
-  triggerTabChange,
+  // triggerTabChange, // Unused in current implementation
 }: LaunchPrepDetailsProps) => {
   const [animatedWidth, setAnimatedWidth] = useState(0);
   const prepItems = selectedModelData
@@ -80,7 +80,9 @@ const LaunchPrepDetails = ({
   return (
     <div
       className={cn(
-        "w-full bg-transparent backdrop-blur-sm border border-pink-200 rounded-xl px-4 sm:px-6 pt-5 transition-all duration-300 shadow-lg hover:shadow-xl",
+        dashboard
+          ? "w-full"
+          : "w-full bg-transparent backdrop-blur-sm border border-pink-200 rounded-xl px-4 sm:px-6 pt-5 transition-all duration-300 shadow-lg hover:shadow-xl",
         className
       )}
     >
@@ -98,52 +100,57 @@ const LaunchPrepDetails = ({
         </div>
       ) : selectedModelData ? (
         <>
-          {/* Update notification */}
-          {timestamp && (
-            <div className="mb-6 p-3 rounded-lg bg-gradient-to-r from-emerald-50/50 to-pink-50/50 dark:from-emerald-900/30 dark:to-pink-900/30 border border-emerald-200/30 dark:border-emerald-700/30">
-              <div className="flex items-center space-x-2">
-                <div className="flex items-center space-x-2">
+          {/* Dashboard Mode - Card with model details and progress */}
+          {dashboard ? (
+            <div className="space-y-4">
+              {/* Update notification */}
+              {timestamp && (
+                <div className="flex items-center gap-2 text-xs">
                   <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-bold text-sm">
-                    NEW!
+                  <span className="text-emerald-600 dark:text-emerald-400 font-medium">NEW!</span>
+                  <span className="text-gray-600 dark:text-gray-400">
+                    Updated {formatRelativeTime(timestamp)} by {editedBy}
                   </span>
                 </div>
-                <span className="text-gray-600 dark:text-gray-300 text-sm">
-                  Updated {formatRelativeTime(timestamp)} by{" "}
-                  <span className="font-medium text-gray-800 dark:text-gray-200">
-                    {editedBy}
-                  </span>
-                </span>
-              </div>
-            </div>
-          )}
+              )}
 
-          {/* Header with model info and progress */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-6">
-            <div className="flex-1">
-              <div className="flex flex-wrap items-center gap-3 mb-2">
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-200">
+              {/* Model info */}
+              <div className="space-y-2">
+                <div className="text-base font-semibold text-gray-900 dark:text-gray-100">
                   {selectedModel || selectedModelData.Model}
-                </h1>
-
-                <div className="flex items-center space-x-1 px-3 py-1 bg-gradient-to-r from-pink-100 to-rose-100 dark:from-pink-900/40 dark:to-rose-900/40 rounded-full border border-pink-200/50 dark:border-pink-700/50">
-                  <div className="w-2 h-2 bg-pink-500 rounded-full"></div>
-                  <span className="text-sm font-semibold text-pink-700 dark:text-pink-300">
-                    <CountUp end={completionRate} />% Complete
-                  </span>
+                </div>
+                
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  {completedCount} of {totalCount} tasks completed
                 </div>
               </div>
-
-              {dashboard && (
+              
+              {/* Progress bar */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-600 dark:text-gray-400">Progress</span>
+                  <span className="font-medium text-pink-600 dark:text-pink-400">
+                    {completionRate}%
+                  </span>
+                </div>
+                
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div
+                    className="bg-gradient-to-r from-pink-500 to-rose-500 h-2 rounded-full transition-all duration-700"
+                    style={{ width: `${animatedWidth}%` }}
+                  />
+                </div>
+              </div>
+              
+              {/* View details link */}
+              <div className="pt-1">
                 <Link
                   href={`/apps/onboarding?model=${selectedModelData.Model}`}
-                  className="inline-flex items-center space-x-1 text-sm text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 duration-200 group"
+                  className="inline-flex items-center text-sm text-pink-600 dark:text-pink-400 hover:text-rose-600 dark:hover:text-rose-400 underline underline-offset-2"
                 >
-                  <span className="underline decoration-dotted underline-offset-2 group-hover:decoration-solid">
-                    Click here for more details
-                  </span>
+                  <span>View details</span>
                   <svg
-                    className="w-4 h-4 transition-transform group-hover:translate-x-1"
+                    className="ml-1 w-4 h-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -156,11 +163,49 @@ const LaunchPrepDetails = ({
                     />
                   </svg>
                 </Link>
-              )}
+              </div>
             </div>
+          ) : (
+            <>
+              {/* Regular Mode - Keep existing layout */}
+              {timestamp && (
+                <div className="mb-6 p-3 rounded-lg bg-gradient-to-r from-emerald-50/50 to-pink-50/50 dark:from-emerald-900/30 dark:to-pink-900/30 border border-emerald-200/30 dark:border-emerald-700/30">
+                  <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+                        NEW!
+                      </span>
+                    </div>
+                    <span className="text-gray-600 dark:text-gray-300 text-sm">
+                      Updated {formatRelativeTime(timestamp)} by{" "}
+                      <span className="font-medium text-gray-800 dark:text-gray-200">
+                        {editedBy}
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              )}
 
-            {/* Progress section */}
-            <div className="lg:w-80">
+              {/* Header with model info and progress */}
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-6">
+                <div className="flex-1">
+                  <div className="flex flex-wrap items-center gap-3 mb-2">
+                    <h1 className="text-xl sm:text-2xl font-bold text-gray-800 dark:text-gray-200">
+                      {selectedModel || selectedModelData.Model}
+                    </h1>
+
+                    <div className="flex items-center space-x-1 px-3 py-1 bg-gradient-to-r from-pink-100 to-rose-100 dark:from-pink-900/40 dark:to-rose-900/40 rounded-full border border-pink-200/50 dark:border-pink-700/50">
+                      <div className="w-2 h-2 bg-pink-500 rounded-full"></div>
+                      <span className="text-sm font-semibold text-pink-700 dark:text-pink-300">
+                        <CountUp end={completionRate} />% Complete
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Progress section */}
+                <div className="lg:w-80">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
                   Progress
@@ -177,9 +222,11 @@ const LaunchPrepDetails = ({
                 >
                   <div className="absolute inset-0 bg-white/20 animate-pulse rounded-full"></div>
                 </div>
+                </div>
               </div>
             </div>
-          </div>
+            </>
+          )}
 
           {/* Task grid */}
           {!dashboard && (
