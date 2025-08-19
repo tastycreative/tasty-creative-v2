@@ -4,6 +4,35 @@ import { useSession } from "next-auth/react"
 import { useState } from "react"
 import { resendVerificationEmail } from "@/app/actions/auth"
 
+// Common email domain typos
+const commonDomainTypos = {
+  'gmail.con': 'gmail.com',
+  'gmail.co': 'gmail.com',
+  'gmail.cmo': 'gmail.com',
+  'gmial.com': 'gmail.com',
+  'gmai.com': 'gmail.com',
+  'yahoo.con': 'yahoo.com',
+  'yahoo.co': 'yahoo.com',
+  'yahooo.com': 'yahoo.com',
+  'yaho.com': 'yahoo.com',
+  'hotmail.con': 'hotmail.com',
+  'hotmail.co': 'hotmail.com',
+  'hotmial.com': 'hotmail.com',
+  'outlook.con': 'outlook.com',
+  'outlook.co': 'outlook.com',
+  'outlok.com': 'outlook.com',
+}
+
+function detectEmailTypo(email: string): string | null {
+  if (!email) return null
+  
+  const domain = email.split('@')[1]?.toLowerCase()
+  if (!domain) return null
+  
+  const suggestedDomain = commonDomainTypos[domain]
+  return suggestedDomain ? email.replace(domain, suggestedDomain) : null
+}
+
 export function EmailVerificationBanner() {
   const { data: session } = useSession()
   const [sending, setSending] = useState(false)
@@ -14,6 +43,8 @@ export function EmailVerificationBanner() {
   if (!session?.user || session.user.emailVerified) {
     return null
   }
+
+  const suggestedEmail = detectEmailTypo(session.user.email || "")
 
   const handleResend = async () => {
     setSending(true)
@@ -75,6 +106,13 @@ export function EmailVerificationBanner() {
           </div>
           {error && (
             <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
+          )}
+          {suggestedEmail && (
+            <div className="mt-2 w-full">
+              <p className="text-sm text-orange-600 dark:text-orange-400">
+                ⚠️ Did you mean <strong>{suggestedEmail}</strong>? Your current email might have a typo.
+              </p>
+            </div>
           )}
         </div>
       </div>
