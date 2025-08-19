@@ -1382,25 +1382,27 @@ const PodAdminDashboard = () => {
       )}
 
       {/* Header with Navigation */}
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-3">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
-              <Settings className="h-4 w-4 text-white" />
+      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-4 sm:p-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+            <div className="flex items-center space-x-3">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+                <Settings className="h-4 w-4 text-white" />
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
+                Admin Dashboard
+              </h2>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              Admin Dashboard
-            </h2>
-            <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-sm font-medium">
+            <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-sm font-medium self-start sm:self-auto">
               Admin Only
             </span>
           </div>
 
-          {/* View Toggle */}
-          <div className="flex space-x-2">
+          {/* View Toggle - Mobile Responsive */}
+          <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
             <button
               onClick={() => setActiveView("overview")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full sm:w-auto ${
                 activeView === "overview"
                   ? "bg-purple-600 text-white"
                   : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
@@ -1410,26 +1412,28 @@ const PodAdminDashboard = () => {
             </button>
             <button
               onClick={() => setActiveView("teams")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full sm:w-auto ${
                 activeView === "teams"
                   ? "bg-purple-600 text-white"
                   : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
               }`}
             >
-              Team Management
+              <span className="hidden sm:inline">Team Management</span>
+              <span className="sm:hidden">Teams</span>
             </button>
             <button
               onClick={() => {
                 setActiveView("users");
                 if (users.length === 0) fetchUsers();
               }}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full sm:w-auto ${
                 activeView === "users"
                   ? "bg-purple-600 text-white"
                   : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
               }`}
             >
-              User Management
+              <span className="hidden sm:inline">User Management</span>
+              <span className="sm:hidden">Users</span>
             </button>
           </div>
         </div>
@@ -1523,31 +1527,31 @@ const PodAdminDashboard = () => {
         {/* Team Management View */}
         {activeView === "teams" && (
           <div className="space-y-6">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              <div className="flex items-center space-x-4">
-                <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
                   Team Management
                 </h3>
-                <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full text-sm font-medium">
+                <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full text-sm font-medium self-start sm:self-auto">
                   {filteredTeams.length} teams
                 </span>
               </div>
 
-              <div className="flex items-center space-x-3">
-                <div className="relative">
+              <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+                <div className="relative flex-1 xl:flex-initial">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
                     type="text"
                     placeholder="Search teams..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-4 py-2 w-64 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="pl-10 pr-4 py-2 w-full xl:w-64 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
                 </div>
 
                 <button
                   onClick={() => setShowAddTeamForm(true)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                  className="flex items-center justify-center space-x-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors w-full sm:w-auto whitespace-nowrap"
                 >
                   <Plus className="h-4 w-4" />
                   <span>Add Team</span>
@@ -2154,176 +2158,182 @@ const PodAdminDashboard = () => {
 
         {/* Members Modal */}
         {showMembersModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full my-4 sm:my-8">
               {(() => {
                 const team = teams.find((t) => t.id === showMembersModal);
                 if (!team) return null;
 
                 return (
                   <>
-                    {/* Modal Header */}
-                    <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                          {team.name} - Team Members
-                        </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {team.members.length} members in this team
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        {/* Add Member Button */}
-                        <button
-                          onClick={() => {
-                            setShowAddMemberForm(team.id);
-                            if (!podUsers.length) fetchUsers();
-                          }}
-                          className="flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
-                        >
-                          <Plus className="h-4 w-4" />
-                          <span>Add Member</span>
-                        </button>
+                    {/* Modal Header - Mobile Responsive */}
+                    <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="min-w-0">
+                          <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 truncate">
+                            {team.name} - Team Members
+                          </h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {team.members.length} members in this team
+                          </p>
+                        </div>
+                        <div className="flex items-center space-x-3 flex-shrink-0">
+                          {/* Add Member Button */}
+                          <button
+                            onClick={() => {
+                              setShowAddMemberForm(team.id);
+                              if (!podUsers.length) fetchUsers();
+                            }}
+                            className="flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm whitespace-nowrap"
+                          >
+                            <Plus className="h-4 w-4" />
+                            <span className="hidden sm:inline">Add Member</span>
+                            <span className="sm:hidden">Add</span>
+                          </button>
 
-                        <button
-                          onClick={() => setShowMembersModal(null)}
-                          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                        >
-                          <X className="h-5 w-5 text-gray-500" />
-                        </button>
+                          <button
+                            onClick={() => setShowMembersModal(null)}
+                            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex-shrink-0"
+                          >
+                            <X className="h-5 w-5 text-gray-500" />
+                          </button>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Modal Content */}
-                    <div className="p-6 overflow-y-auto max-h-[60vh]">
+                    {/* Modal Content - Mobile Responsive */}
+                    <div className="p-4 sm:p-6 max-h-[60vh] sm:max-h-[50vh] overflow-y-auto">
                       {team.members.length > 0 ? (
                         <div className="space-y-4">
                           {team.members.map((member, index) => (
                             <div
                               key={member.id}
-                              className="flex items-center space-x-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                              className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
                             >
-                              {/* Member Avatar */}
-                              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg">
-                                {member.name
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")
-                                  .slice(0, 2)}
-                              </div>
+                              {/* Member Avatar and Info */}
+                              <div className="flex items-center space-x-4 flex-1 min-w-0">
+                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+                                  {member.name
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")
+                                    .slice(0, 2)}
+                                </div>
 
-                              {/* Member Info */}
-                              <div className="flex-1">
-                                <h4 className="font-semibold text-gray-900 dark:text-gray-100">
-                                  {member.name}
-                                </h4>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">
-                                  {member.role}
-                                </p>
-                                {member.email && (
-                                  <p className="text-xs text-gray-500 dark:text-gray-500">
-                                    {member.email}
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
+                                    {member.name}
+                                  </h4>
+                                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                                    {member.role}
                                   </p>
-                                )}
+                                  {member.email && (
+                                    <p className="text-xs text-gray-500 dark:text-gray-500 truncate">
+                                      {member.email}
+                                    </p>
+                                  )}
+                                </div>
                               </div>
 
                               {/* Role Badge or Role Editor */}
-                              {editingMember === `${team.id}-${member.id}` ? (
-                                <div className="flex items-center space-x-2">
-                                  <select
-                                    value={member.role}
-                                    onChange={(e) =>
-                                      updateMemberRole(
-                                        team.id,
-                                        member.id,
-                                        e.target.value
+                              <div className="flex items-center justify-between sm:justify-end space-x-3">
+                                {editingMember === `${team.id}-${member.id}` ? (
+                                  <div className="flex items-center space-x-2">
+                                    <select
+                                      value={member.role}
+                                      onChange={(e) =>
+                                        updateMemberRole(
+                                          team.id,
+                                          member.id,
+                                          e.target.value
+                                        )
+                                      }
+                                      className="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm w-full sm:w-auto"
+                                    >
+                                      <option value="Member">Member</option>
+                                      <option value="Lead">Lead</option>
+                                      <option value="Manager">Manager</option>
+                                    </select>
+                                    <button
+                                      onClick={() => setEditingMember(null)}
+                                      className="p-1 text-green-600 hover:text-green-800 flex-shrink-0"
+                                    >
+                                      <Check className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div
+                                    className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
+                                      member.role === "Manager"
+                                        ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                                        : member.role === "Lead"
+                                          ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300"
+                                          : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                                    }`}
+                                  >
+                                    {member.role}
+                                  </div>
+                                )}
+
+                                {/* Member Actions */}
+                                <div className="flex items-center space-x-1 sm:space-x-2">
+                                  <button
+                                    onClick={() => {
+                                      if (member.email) {
+                                        window.location.href = `mailto:${member.email}`;
+                                      }
+                                    }}
+                                    className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                                    title="Send email"
+                                    disabled={!member.email}
+                                  >
+                                    <svg
+                                      className="h-4 w-4"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                                      />
+                                    </svg>
+                                  </button>
+
+                                  {/* Edit Role Button */}
+                                  <button
+                                    onClick={() =>
+                                      setEditingMember(
+                                        editingMember ===
+                                          `${team.id}-${member.id}`
+                                          ? null
+                                          : `${team.id}-${member.id}`
                                       )
                                     }
-                                    className="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm"
+                                    className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                                    title="Edit role"
                                   >
-                                    <option value="Member">Member</option>
-                                    <option value="Lead">Lead</option>
-                                    <option value="Manager">Manager</option>
-                                  </select>
+                                    <Edit2 className="h-4 w-4" />
+                                  </button>
+
+                                  {/* Remove Member Button */}
                                   <button
-                                    onClick={() => setEditingMember(null)}
-                                    className="p-1 text-green-600 hover:text-green-800"
+                                    onClick={() => {
+                                      setShowRemoveMemberConfirm({
+                                        teamId: team.id,
+                                        memberId: member.id,
+                                        memberName: member.name,
+                                        teamName: team.name,
+                                      });
+                                    }}
+                                    className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
+                                    title="Remove from team"
                                   >
-                                    <Check className="h-4 w-4" />
+                                    <UserMinus className="h-4 w-4" />
                                   </button>
                                 </div>
-                              ) : (
-                                <div
-                                  className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                    member.role === "Manager"
-                                      ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-                                      : member.role === "Lead"
-                                        ? "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300"
-                                        : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-                                  }`}
-                                >
-                                  {member.role}
-                                </div>
-                              )}
-
-                              {/* Member Actions */}
-                              <div className="flex items-center space-x-2">
-                                <button
-                                  onClick={() => {
-                                    if (member.email) {
-                                      window.location.href = `mailto:${member.email}`;
-                                    }
-                                  }}
-                                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
-                                  title="Send email"
-                                  disabled={!member.email}
-                                >
-                                  <svg
-                                    className="h-4 w-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                                    />
-                                  </svg>
-                                </button>
-
-                                {/* Edit Role Button */}
-                                <button
-                                  onClick={() =>
-                                    setEditingMember(
-                                      editingMember ===
-                                        `${team.id}-${member.id}`
-                                        ? null
-                                        : `${team.id}-${member.id}`
-                                    )
-                                  }
-                                  className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
-                                  title="Edit role"
-                                >
-                                  <Edit2 className="h-4 w-4" />
-                                </button>
-
-                                {/* Remove Member Button */}
-                                <button
-                                  onClick={() => {
-                                    setShowRemoveMemberConfirm({
-                                      teamId: team.id,
-                                      memberId: member.id,
-                                      memberName: member.name,
-                                      teamName: team.name,
-                                    });
-                                  }}
-                                  className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-200 dark:hover:bg-gray-600 rounded"
-                                  title="Remove from team"
-                                >
-                                  <UserMinus className="h-4 w-4" />
-                                </button>
                               </div>
                             </div>
                           ))}
@@ -2373,87 +2383,104 @@ const PodAdminDashboard = () => {
           </div>
         )}
 
-        {/* Tasks Modal */}
+        {/* Tasks Modal - Mobile Responsive */}
         {showTasksModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-hidden">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full mx-2 sm:mx-4 max-h-[90vh] sm:max-h-[80vh] my-2 sm:my-8 overflow-hidden">
               {(() => {
                 const team = teams.find((t) => t.id === showTasksModal);
                 if (!team) return null;
 
                 return (
                   <>
-                    {/* Modal Header */}
-                    <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                          {team.name} - Team Tasks
-                        </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {team.tasks.length} tasks in this team
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        {/* Refresh Tasks Button */}
-                        <button
-                          onClick={() => refreshTeamTasks(team.id)}
-                          className="flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
-                          title="Refresh tasks from database"
-                        >
-                          <svg
-                            className="h-4 w-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                            />
-                          </svg>
-                          <span>Refresh</span>
-                        </button>
-
-                        {/* Add Task Button */}
-                        <button
-                          onClick={() => {
-                            if (showAddTaskForm === team.id) {
-                              setShowAddTaskForm(null);
-                            } else {
-                              setShowAddTaskForm(team.id);
-                              // Set current user as default assignee
-                              setNewTaskData((prev) => ({
-                                ...prev,
-                                assignedTo: session?.user?.email || "",
-                              }));
-                            }
-                            if (!podUsers.length) fetchUsers();
-                          }}
-                          className="flex items-center space-x-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors text-sm"
-                        >
-                          <Plus className="h-4 w-4" />
-                          <span>Add Task</span>
-                        </button>
-
+                    {/* Modal Header - Mobile Responsive */}
+                    <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+                      {/* Title Section */}
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 truncate">
+                            <span className="sm:hidden">{team.name}</span>
+                            <span className="hidden sm:inline">{team.name} - Team Tasks</span>
+                          </h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {team.tasks.length} {team.tasks.length === 1 ? 'task' : 'tasks'}
+                          </p>
+                        </div>
+                        
+                        {/* Close button for mobile */}
                         <button
                           onClick={() => setShowTasksModal(null)}
-                          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          className="sm:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors self-start"
+                        >
+                          <X className="h-5 w-5 text-gray-500" />
+                        </button>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-3 sm:mt-0">
+                        <div className="flex flex-row gap-2 sm:gap-3 flex-1">
+                          {/* Refresh Tasks Button */}
+                          <button
+                            onClick={() => refreshTeamTasks(team.id)}
+                            className="flex items-center justify-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm flex-1 sm:flex-none"
+                            title="Refresh tasks from database"
+                          >
+                            <svg
+                              className="h-4 w-4"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                              />
+                            </svg>
+                            <span className="hidden sm:inline">Refresh</span>
+                          </button>
+
+                          {/* Add Task Button */}
+                          <button
+                            onClick={() => {
+                              if (showAddTaskForm === team.id) {
+                                setShowAddTaskForm(null);
+                              } else {
+                                setShowAddTaskForm(team.id);
+                                // Set current user as default assignee
+                                setNewTaskData((prev) => ({
+                                  ...prev,
+                                  assignedTo: session?.user?.email || "",
+                                }));
+                              }
+                              if (!podUsers.length) fetchUsers();
+                            }}
+                            className="flex items-center justify-center space-x-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors text-sm flex-1 sm:flex-none"
+                          >
+                            <Plus className="h-4 w-4" />
+                            <span>Add Task</span>
+                          </button>
+                        </div>
+
+                        {/* Desktop Close Button */}
+                        <button
+                          onClick={() => setShowTasksModal(null)}
+                          className="hidden sm:block p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                         >
                           <X className="h-5 w-5 text-gray-500" />
                         </button>
                       </div>
                     </div>
 
-                    {/* Add Task Form */}
+                    {/* Add Task Form - Mobile Responsive */}
                     {showAddTaskForm === team.id && (
-                      <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+                      <div className="px-4 sm:px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
                         <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">
                           Add New Task
                         </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="sm:col-span-2">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                               Task Title *
                             </label>
@@ -2523,7 +2550,7 @@ const PodAdminDashboard = () => {
                               ))}
                             </select>
                           </div>
-                          <div>
+                          <div className="sm:col-span-2">
                             <div className="flex items-center space-x-2 mb-2">
                               <input
                                 type="checkbox"
@@ -2565,7 +2592,7 @@ const PodAdminDashboard = () => {
                               </div>
                             )}
                           </div>
-                          <div className="md:col-span-2">
+                          <div className="sm:col-span-2">
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                               Description
                             </label>
@@ -2583,7 +2610,7 @@ const PodAdminDashboard = () => {
                             />
                           </div>
                         </div>
-                        <div className="flex items-center justify-end space-x-3 mt-4">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 sm:gap-3 sm:space-x-0 mt-4">
                           <button
                             onClick={() => {
                               setShowAddTaskForm(null);
@@ -2596,7 +2623,7 @@ const PodAdminDashboard = () => {
                                 dueDate: "",
                               });
                             }}
-                            className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+                            className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                           >
                             Cancel
                           </button>
@@ -2611,8 +2638,8 @@ const PodAdminDashboard = () => {
                       </div>
                     )}
 
-                    {/* Modal Content */}
-                    <div className="p-6 overflow-y-auto max-h-[60vh]">
+                    {/* Modal Content - Mobile Responsive */}
+                    <div className="p-4 sm:p-6 overflow-y-auto max-h-[50vh] sm:max-h-[60vh]">
                       {team.tasks.length > 0 ? (
                         <div className="space-y-3">
                           {team.tasks.map((task, index) => (
@@ -2620,76 +2647,95 @@ const PodAdminDashboard = () => {
                               key={task.id}
                               className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-white dark:bg-gray-800 hover:shadow-md transition-shadow"
                             >
-                              <div className="flex items-start space-x-4">
-                                {/* Task Status Selector */}
-                                <div className="flex-shrink-0">
-                                  <select
-                                    value={task.status}
-                                    onChange={(e) =>
-                                      updateTaskStatus(
-                                        team.id,
-                                        task.id,
-                                        e.target.value as
-                                          | "not-started"
-                                          | "in-progress"
-                                          | "completed"
-                                          | "on-hold"
-                                      )
-                                    }
-                                    className={`w-28 px-2 py-1 rounded text-xs font-medium border-0 cursor-pointer ${
-                                      task.status === "completed"
-                                        ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-                                        : task.status === "in-progress"
-                                          ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-                                          : task.status === "on-hold"
-                                            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
-                                            : "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300"
-                                    }`}
-                                  >
-                                    <option value="not-started">
-                                      Not Started
-                                    </option>
-                                    <option value="in-progress">
-                                      In Progress
-                                    </option>
-                                    <option value="on-hold">On Hold</option>
-                                    <option value="completed">Completed</option>
-                                  </select>
-                                </div>
+                              <div className="space-y-4">
+                                {/* Task Header - Mobile Layout */}
+                                <div className="flex flex-col sm:flex-row sm:items-start space-y-3 sm:space-y-0 sm:space-x-4">
+                                  {/* Task Status and Info */}
+                                  <div className="flex items-start space-x-3 flex-1 min-w-0">
+                                    {/* Task Status Selector */}
+                                    <div className="flex-shrink-0">
+                                      <select
+                                        value={task.status}
+                                        onChange={(e) =>
+                                          updateTaskStatus(
+                                            team.id,
+                                            task.id,
+                                            e.target.value as
+                                              | "not-started"
+                                              | "in-progress"
+                                              | "completed"
+                                              | "on-hold"
+                                          )
+                                        }
+                                        className={`w-24 sm:w-28 px-2 py-1 rounded text-xs font-medium border-0 cursor-pointer ${
+                                          task.status === "completed"
+                                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                                            : task.status === "in-progress"
+                                              ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                                              : task.status === "on-hold"
+                                                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+                                                : "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300"
+                                        }`}
+                                      >
+                                        <option value="not-started">
+                                          Not Started
+                                        </option>
+                                        <option value="in-progress">
+                                          In Progress
+                                        </option>
+                                        <option value="on-hold">On Hold</option>
+                                        <option value="completed">Completed</option>
+                                      </select>
+                                    </div>
 
-                                {/* Task Info */}
-                                <div className="flex-1">
-                                  <div className="flex items-start justify-between">
-                                    <div>
-                                      <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
-                                        {task.title}
-                                      </h4>
+                                    {/* Task Info */}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-start justify-between gap-2">
+                                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 text-sm sm:text-base leading-tight">
+                                          {task.title}
+                                        </h4>
+                                        
+                                        {/* Task Priority Badge */}
+                                        <div
+                                          className={`px-2 py-1 rounded text-xs font-medium flex-shrink-0 ${
+                                            task.priority === "high"
+                                              ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                                              : task.priority === "medium"
+                                                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+                                                : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                                          }`}
+                                        >
+                                          {task.priority}
+                                        </div>
+                                      </div>
+                                      
                                       {task.description && (
-                                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
                                           {task.description}
                                         </p>
                                       )}
                                     </div>
-
-                                    {/* Task Priority Badge */}
-                                    <div
-                                      className={`px-2 py-1 rounded text-xs font-medium flex-shrink-0 ml-2 ${
-                                        task.priority === "high"
-                                          ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-                                          : task.priority === "medium"
-                                            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
-                                            : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-                                      }`}
-                                    >
-                                      {task.priority}
-                                    </div>
                                   </div>
 
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-4">
-                                      {/* Assignee Selector */}
+                                  {/* Task Actions - Mobile */}
+                                  <button
+                                    onClick={() =>
+                                      removeTaskFromTeam(team.id, task.id)
+                                    }
+                                    className="sm:hidden p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer self-start"
+                                    title="Remove task"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
+                                </div>
+
+                                {/* Task Footer - Assignment and Due Date */}
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1">
+                                    {/* Assignee Section */}
+                                    <div className="flex items-center gap-2">
                                       {editingTask === task.id ? (
-                                        <div className="flex items-center space-x-2">
+                                        <div className="flex items-center space-x-2 flex-1">
                                           <select
                                             value={
                                               // Find the member by email first, fallback to ID for backwards compatibility
@@ -2709,7 +2755,7 @@ const PodAdminDashboard = () => {
                                                 e.target.value
                                               )
                                             }
-                                            className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
+                                            className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 flex-1 min-w-0"
                                           >
                                             <option value="">Unassigned</option>
                                             {team.members.map((member) => (
@@ -2723,16 +2769,16 @@ const PodAdminDashboard = () => {
                                           </select>
                                           <button
                                             onClick={() => setEditingTask(null)}
-                                            className="p-1 text-green-600 hover:text-green-800"
+                                            className="p-1 text-green-600 hover:text-green-800 flex-shrink-0"
                                           >
                                             <Check className="h-3 w-3" />
                                           </button>
                                         </div>
                                       ) : (
-                                        <div className="flex items-center space-x-2">
+                                        <div className="flex items-center space-x-2 flex-1">
                                           {task.assignedTo ? (
-                                            <div className="flex items-center space-x-2">
-                                              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xs">
+                                            <div className="flex items-center space-x-2 min-w-0">
+                                              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
                                                 {(
                                                   team.members.find(
                                                     (m) =>
@@ -2754,7 +2800,7 @@ const PodAdminDashboard = () => {
                                                   .join("")
                                                   .slice(0, 2)}
                                               </div>
-                                              <span className="text-xs text-gray-600 dark:text-gray-400">
+                                              <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
                                                 {team.members.find(
                                                   (m) =>
                                                     m.email ===
@@ -2780,17 +2826,20 @@ const PodAdminDashboard = () => {
                                             onClick={() =>
                                               setEditingTask(task.id)
                                             }
-                                            className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                                            className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 flex-shrink-0"
                                             title="Edit assignment"
                                           >
                                             <Edit2 className="h-3 w-3" />
                                           </button>
                                         </div>
                                       )}
+                                    </div>
 
+                                    {/* Due Date */}
+                                    <div className="flex items-center gap-2">
                                       {task.dueDate ? (
                                         <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
-                                          <Calendar className="h-3 w-3" />
+                                          <Calendar className="h-3 w-3 flex-shrink-0" />
                                           <span>
                                             {new Date(
                                               task.dueDate
@@ -2799,25 +2848,25 @@ const PodAdminDashboard = () => {
                                         </div>
                                       ) : (
                                         <div className="flex items-center space-x-1 text-xs text-gray-400 dark:text-gray-500">
-                                          <Calendar className="h-3 w-3" />
+                                          <Calendar className="h-3 w-3 flex-shrink-0" />
                                           <span className="italic">
                                             No deadline
                                           </span>
                                         </div>
                                       )}
                                     </div>
-
-                                    {/* Task Actions */}
-                                    <button
-                                      onClick={() =>
-                                        removeTaskFromTeam(team.id, task.id)
-                                      }
-                                      className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer"
-                                      title="Remove task"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </button>
                                   </div>
+
+                                  {/* Task Actions - Desktop */}
+                                  <button
+                                    onClick={() =>
+                                      removeTaskFromTeam(team.id, task.id)
+                                    }
+                                    className="hidden sm:block p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer flex-shrink-0"
+                                    title="Remove task"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </button>
                                 </div>
                               </div>
                             </div>
@@ -2829,36 +2878,38 @@ const PodAdminDashboard = () => {
                           <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
                             No Tasks
                           </h3>
-                          <p className="text-gray-500 dark:text-gray-400">
+                          <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base">
                             This team doesn't have any tasks yet.
                           </p>
                         </div>
                       )}
                     </div>
 
-                    {/* Modal Footer */}
-                    <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                      <div className="text-sm text-gray-500 dark:text-gray-400">
-                        Team tasks from Google Sheets
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        {team.sheetUrl && (
-                          <a
-                            href={team.sheetUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm"
+                    {/* Modal Footer - Mobile Responsive */}
+                    <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          Team tasks from Google Sheets
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                          {team.sheetUrl && (
+                            <a
+                              href={team.sheetUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                              <span>Open Team Sheet</span>
+                            </a>
+                          )}
+                          <button
+                            onClick={() => setShowTasksModal(null)}
+                            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm"
                           >
-                            <ExternalLink className="h-4 w-4" />
-                            <span>Open Team Sheet</span>
-                          </a>
-                        )}
-                        <button
-                          onClick={() => setShowTasksModal(null)}
-                          className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm"
-                        >
-                          Close
-                        </button>
+                            Close
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </>
