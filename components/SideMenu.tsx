@@ -38,8 +38,7 @@ const SideMenu = ({ collapsed, onItemClick, session }: SideMenuProps) => {
       "text-slate-700 dark:text-gray-300 hover:text-pink-700 dark:hover:text-pink-400",
       "hover:bg-pink-50 dark:hover:bg-pink-900/30",
       isActive(path) &&
-        "bg-pink-100 dark:bg-pink-900/50 text-pink-700 dark:text-pink-300 shadow-sm",
-        session?.user?.role != "ADMIN" && path === "/admin/users" && "hidden"
+        "bg-pink-100 dark:bg-pink-900/50 text-pink-700 dark:text-pink-300 shadow-sm"
     );
 
   const iconClass = (path: string) =>
@@ -60,7 +59,7 @@ const SideMenu = ({ collapsed, onItemClick, session }: SideMenuProps) => {
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { href: "/apps", icon: AppWindow, label: "Apps" },
     { href: "/calendar", icon: Calendar1, label: "Calendar" },
-    { href: "/admin/dashboard", icon: UserLock, label: "Admin" },
+    ...(session?.user?.role === "ADMIN" ? [{ href: "/admin/dashboard", icon: UserLock, label: "Admin" }] : []),
   ];
 
   return (
