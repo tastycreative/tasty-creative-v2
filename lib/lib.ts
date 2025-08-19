@@ -286,3 +286,21 @@ export const appPages = [
     description: "Print on Demand Data Transfer",
   },
 ];
+
+export const commonDomainTypos: { [key: string]: string } = {
+  'gmail.con': 'gmail.com',
+  'gmail.co': 'gmail.com',
+  'gmail.cmo': 'gmail.com',
+  'gmial.com': 'gmail.com',
+  'gmai.com': 'gmail.com',
+  'yahoo.con': 'yahoo.com',
+  'yahoo.co': 'yahoo.com',
+  'yahooo.com': 'yahoo.com',
+  'yaho.com': 'yahoo.com',
+  'hotmail.con': 'hotmail.com',
+  'hotmail.co': 'hotmail.com',
+  'hotmial.com': 'hotmail.com',
+  'outlook.con': 'outlook.com',
+  'outlook.co': 'outlook.com',
+  'outlok.com': 'outlook.com',
+}

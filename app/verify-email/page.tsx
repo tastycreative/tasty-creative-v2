@@ -1,18 +1,24 @@
 // app/verify-email/page.tsx
-import { Metadata } from "next";
+"use client"
 
-export const metadata: Metadata = {
-  title: "Verify Email",
-};
+import { commonDomainTypos } from "@/lib/lib"
+import { useSearchParams } from "next/navigation"
 
-export default async function VerifyEmail({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
-  // Await the searchParams promise
-  const params = await searchParams;
-  const email = params.email as string | undefined;
+
+function detectEmailTypo(email: string): string | null {
+  if (!email) return null
+  
+  const domain = email.split('@')[1]?.toLowerCase()
+  if (!domain) return null
+  
+  const suggestedDomain = commonDomainTypos[domain]
+  return suggestedDomain ? email.replace(domain, suggestedDomain) : null
+}
+
+export default function VerifyEmail() {
+  const searchParams = useSearchParams()
+  const email = searchParams?.get('email') || undefined
+  const suggestedEmail = detectEmailTypo(email || "")
 
   return (
     <div className="w-full max-w-md mx-auto">
@@ -35,13 +41,24 @@ export default async function VerifyEmail({
         </h2>
         <p className="mt-2 text-gray-600 dark:text-gray-400">
           We&apos;ve sent a verification link to{" "}
-          <span className="font-medium text-gray-900 dark:text-white">
+          <span className="font-medium text-gray-900 dark:text-white break-all">
             {email || "your email address"}
           </span>
         </p>
         <p className="mt-4 text-sm text-gray-500 dark:text-gray-500">
           Please check your inbox and click the verification link to complete your registration.
         </p>
+        {suggestedEmail && (
+          <div className="mt-4 p-3 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/50 rounded-lg">
+            <p className="text-sm text-orange-600 dark:text-orange-400">
+              ⚠️ <strong>Possible typo detected:</strong> Did you mean{" "}
+              <span className="font-semibold">{suggestedEmail}</span>?
+            </p>
+            <p className="text-xs text-orange-500 dark:text-orange-500 mt-1">
+              If your email has a typo, you won&apos;t receive the verification email.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

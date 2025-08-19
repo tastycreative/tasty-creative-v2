@@ -3,25 +3,7 @@
 import { useSession } from "next-auth/react"
 import { useState } from "react"
 import { resendVerificationEmail } from "@/app/actions/auth"
-
-// Common email domain typos
-const commonDomainTypos = {
-  'gmail.con': 'gmail.com',
-  'gmail.co': 'gmail.com',
-  'gmail.cmo': 'gmail.com',
-  'gmial.com': 'gmail.com',
-  'gmai.com': 'gmail.com',
-  'yahoo.con': 'yahoo.com',
-  'yahoo.co': 'yahoo.com',
-  'yahooo.com': 'yahoo.com',
-  'yaho.com': 'yahoo.com',
-  'hotmail.con': 'hotmail.com',
-  'hotmail.co': 'hotmail.com',
-  'hotmial.com': 'hotmail.com',
-  'outlook.con': 'outlook.com',
-  'outlook.co': 'outlook.com',
-  'outlok.com': 'outlook.com',
-}
+import { commonDomainTypos } from "@/lib/lib"
 
 function detectEmailTypo(email: string): string | null {
   if (!email) return null
@@ -64,8 +46,8 @@ export function EmailVerificationBanner() {
     <div className="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800/50 relative z-10">
       <div className="max-w-7xl mx-auto py-3 px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between flex-wrap">
-          <div className="w-0 flex-1 flex items-center">
-            <span className="flex p-2 rounded-lg bg-yellow-100 dark:bg-yellow-800/30">
+          <div className="w-0 flex-1 flex items-center min-w-0">
+            <span className="flex p-2 rounded-lg bg-yellow-100 dark:bg-yellow-800/30 flex-shrink-0">
               <svg
                 className="h-6 w-6 text-yellow-600 dark:text-yellow-400"
                 fill="none"
@@ -80,7 +62,7 @@ export function EmailVerificationBanner() {
                 />
               </svg>
             </span>
-            <p className="ml-3 font-medium text-yellow-700 dark:text-yellow-300">
+            <p className="ml-3 font-medium text-yellow-700 dark:text-yellow-300 truncate">
               <span className="md:hidden">
                 Verify your email ({session.user.email}) to access all features.
               </span>
@@ -89,32 +71,34 @@ export function EmailVerificationBanner() {
               </span>
             </p>
           </div>
-          <div className="order-3 mt-2 flex-shrink-0 w-full sm:order-2 sm:mt-0 sm:w-auto">
+          <div className="flex-shrink-0 ml-4">
             {sent ? (
-              <span className="text-sm text-green-600 dark:text-green-400">
+              <span className="text-sm text-green-600 dark:text-green-400 whitespace-nowrap">
                 Verification email sent to {session.user.email}! Check your inbox.
               </span>
             ) : (
               <button
                 onClick={handleResend}
                 disabled={sending}
-                className="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-800/30 hover:bg-yellow-200 dark:hover:bg-yellow-800/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 dark:focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-800/30 hover:bg-yellow-200 dark:hover:bg-yellow-800/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 dark:focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
               >
                 {sending ? "Sending..." : "Resend verification email"}
               </button>
             )}
           </div>
-          {error && (
-            <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
-          )}
-          {suggestedEmail && (
-            <div className="mt-2 w-full">
+        </div>
+        {(error || suggestedEmail) && (
+          <div className="mt-3 space-y-2">
+            {error && (
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            )}
+            {suggestedEmail && (
               <p className="text-sm text-orange-600 dark:text-orange-400">
                 ⚠️ Did you mean <strong>{suggestedEmail}</strong>? Your current email might have a typo.
               </p>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

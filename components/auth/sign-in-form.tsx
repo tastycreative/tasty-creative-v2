@@ -3,11 +3,24 @@
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { commonDomainTypos } from "@/lib/lib";
+
+
+function detectEmailTypo(email: string): string | null {
+  if (!email) return null
+  
+  const domain = email.split('@')[1]?.toLowerCase()
+  if (!domain) return null
+  
+  const suggestedDomain = commonDomainTypos[domain]
+  return suggestedDomain ? email.replace(domain, suggestedDomain) : null
+}
 
 export function SignInForm() {
   const searchParams = useSearchParams();
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
 
   // Check for verification success message
   const verified = searchParams?.get("verified") === "true";
@@ -100,9 +113,16 @@ export function SignInForm() {
               type="email"
               autoComplete="email"
               required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="mt-1 block w-full rounded-lg border border-input px-3 py-2 bg-background text-foreground shadow-sm placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               placeholder="you@example.com"
             />
+            {email && detectEmailTypo(email) && (
+              <p className="mt-1 text-xs text-orange-600 dark:text-orange-400">
+                ⚠️ Did you mean <strong>{detectEmailTypo(email)}</strong>?
+              </p>
+            )}
           </div>
 
           <div>
