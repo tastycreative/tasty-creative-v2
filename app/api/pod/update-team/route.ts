@@ -36,11 +36,11 @@ export async function POST(request: NextRequest) {
 
     const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
 
-    const { spreadsheetUrl, rowNumber, newTeamName, newSheetUrl } = await request.json();
+    const { spreadsheetUrl, rowNumber, newTeamName, newSheetUrl, newCreators } = await request.json();
 
-    if (!spreadsheetUrl || !rowNumber || (!newTeamName && !newSheetUrl)) {
+    if (!spreadsheetUrl || !rowNumber || (!newTeamName && !newSheetUrl && !newCreators)) {
       return NextResponse.json(
-        { error: 'Spreadsheet URL, row number, and either new team name or new sheet URL are required' },
+        { error: 'Spreadsheet URL, row number, and at least one update field (team name, sheet URL, or creators) are required' },
         { status: 400 }
       );
     }
@@ -108,6 +108,18 @@ export async function POST(request: NextRequest) {
         updatedData.sheetUrl = newSheetUrl;
         message += `Sheet URL updated (fallback method). `;
       }
+    }
+
+    // Update creators if provided (Column F)
+    if (newCreators !== undefined) {
+      const creatorsRange = `F${rowNumber}`;
+      const creatorsString = Array.isArray(newCreators) ? newCreators.join(', ') : newCreators;
+      updates.push({
+        range: creatorsRange,
+        values: [[creatorsString]]
+      });
+      updatedData.creators = newCreators;
+      message += `Creators updated. `;
     }
 
     // Perform batch update if there are any updates

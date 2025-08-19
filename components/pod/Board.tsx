@@ -1608,15 +1608,15 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
       {/* Task Detail Modal */}
       {selectedTask && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden border border-white/20 dark:border-gray-700/50">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center p-2 sm:p-4 z-50 overflow-y-auto">
+          <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-xl shadow-2xl w-full max-w-4xl border border-white/20 dark:border-gray-700/50 my-4 sm:my-8">
             {/* Modal Header */}
-            <div className="relative px-8 py-6 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-white/50 to-gray-50/50 dark:from-gray-800/50 dark:to-gray-900/50">
+            <div className="relative px-4 sm:px-8 py-4 sm:py-6 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-white/50 to-gray-50/50 dark:from-gray-800/50 dark:to-gray-900/50">
               <div className="flex items-start justify-between">
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-3 mb-2">
                     <div className={`w-2 h-2 rounded-full ${statusConfig[selectedTask.status].color.split(' ')[0]}`}></div>
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">
                       {selectedTask.teamName} • {statusConfig[selectedTask.status].label}
                     </span>
                   </div>
@@ -1625,31 +1625,32 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                       type="text"
                       value={editingTaskData.title || ''}
                       onChange={(e) => setEditingTaskData(prev => ({ ...prev, title: e.target.value }))}
-                      className="text-2xl font-bold text-gray-900 dark:text-gray-100 bg-transparent border-none outline-none focus:ring-0 p-0 w-full"
+                      className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 bg-transparent border-none outline-none focus:ring-0 p-0 w-full"
                       placeholder="Task title..."
                     />
                   ) : (
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 leading-tight">
+                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 leading-tight pr-4">
                       {selectedTask.title}
                     </h3>
                   )}
                 </div>
                 
-                <div className="flex items-center space-x-3 ml-6">
+                <div className="flex items-center space-x-2 sm:space-x-3 ml-2 sm:ml-6 flex-shrink-0">
                   {!isEditingTask ? (
                     <>
                       {canEditTask(selectedTask) && (
                         <button
                           onClick={startEditingTask}
-                          className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors"
+                          className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors"
                         >
                           <Edit3 className="h-4 w-4" />
-                          <span>Edit</span>
+                          <span className="hidden sm:inline">Edit</span>
                         </button>
                       )}
                       {!canEditTask(selectedTask) && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400 px-4 py-2 bg-gray-100/50 dark:bg-gray-700/50 rounded-lg">
-                          View Only
+                        <div className="text-xs text-gray-500 dark:text-gray-400 px-2 sm:px-4 py-2 bg-gray-100/50 dark:bg-gray-700/50 rounded-lg">
+                          <span className="hidden sm:inline">View Only</span>
+                          <span className="sm:hidden">View</span>
                         </div>
                       )}
                     </>
@@ -1657,21 +1658,23 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                     <div className="flex space-x-2">
                       <button
                         onClick={cancelEditingTask}
-                        className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors"
+                        className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors"
                       >
-                        Cancel
+                        <span className="hidden sm:inline">Cancel</span>
+                        <span className="sm:hidden">✕</span>
                       </button>
                       <button
                         onClick={saveTaskChanges}
-                        className="px-4 py-2 text-sm font-medium bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl"
+                        className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl"
                       >
-                        Save Changes
+                        <span className="hidden sm:inline">Save Changes</span>
+                        <span className="sm:hidden">Save</span>
                       </button>
                     </div>
                   )}
                   <button
                     onClick={closeTaskDetail}
-                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 rounded-lg p-2 transition-colors"
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 rounded-lg p-2 transition-colors flex-shrink-0"
                   >
                     <X className="h-5 w-5" />
                   </button>
@@ -1680,9 +1683,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
             </div>
 
             {/* Modal Content - Mobile Responsive */}
-            <div className="flex flex-col lg:flex-row max-h-[calc(90vh-120px)] overflow-hidden">
+            <div className="flex flex-col lg:flex-row">
               {/* Main Content - Mobile Responsive */}
-              <div className="flex-1 p-4 sm:p-8 overflow-y-auto">
+              <div className="flex-1 p-4 sm:p-8">
                 {isEditingTask ? (
                   <div className="space-y-6">
                     {/* Edit Description */}
@@ -1693,9 +1696,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                       <textarea
                         value={editingTaskData.description || ''}
                         onChange={(e) => setEditingTaskData(prev => ({ ...prev, description: e.target.value }))}
-                        rows={6}
+                        rows={4}
                         placeholder="Add a description..."
-                        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all resize-none"
                       />
                     </div>
 
@@ -1826,8 +1829,8 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
               </div>
 
               {/* Sidebar - Mobile Responsive */}
-              <div className="w-full lg:w-80 bg-gray-50/50 dark:bg-gray-800/30 border-t lg:border-t-0 lg:border-l border-gray-200/50 dark:border-gray-700/50 p-4 sm:p-6 overflow-y-auto">
-                <div className="space-y-6">
+              <div className="w-full lg:w-80 bg-gray-50/50 dark:bg-gray-800/30 border-t lg:border-t-0 lg:border-l border-gray-200/50 dark:border-gray-700/50 p-4 sm:p-6">
+                <div className="space-y-4 sm:space-y-6">
                   {/* Status - Interactive for authorized users */}
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
@@ -1880,16 +1883,16 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                     </label>
                     {selectedTask.assignedUser ? (
                       <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center">
+                        <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
                           <span className="text-white text-xs font-medium">
                             {selectedTask.assignedUser.name?.charAt(0) || selectedTask.assignedUser.email?.charAt(0) || 'U'}
                           </span>
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                             {selectedTask.assignedUser.name || selectedTask.assignedUser.email?.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                           </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                             {selectedTask.assignedUser.email}
                           </p>
                         </div>
@@ -1908,11 +1911,11 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                         Due Date
                       </label>
                       <div className="flex items-center space-x-2">
-                        <Calendar className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm text-gray-900 dark:text-gray-100">
+                        <Calendar className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                        <span className="text-sm text-gray-900 dark:text-gray-100 truncate">
                           {new Date(selectedTask.dueDate).toLocaleDateString('en-US', {
                             year: 'numeric',
-                            month: 'long',
+                            month: 'short',
                             day: 'numeric'
                           })}
                         </span>
@@ -1927,8 +1930,8 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                     </label>
                     <div className="space-y-2">
                       <div className="flex items-center space-x-2">
-                        <Clock className="h-4 w-4 text-gray-500" />
-                        <span className="text-xs text-gray-600 dark:text-gray-400">
+                        <Clock className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                        <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
                           {new Date(selectedTask.createdAt).toLocaleDateString('en-US', {
                             year: 'numeric',
                             month: 'short',
@@ -1939,13 +1942,13 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                         </span>
                       </div>
                       <div className="flex items-center space-x-3">
-                        <div className="w-6 h-6 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center">
+                        <div className="w-6 h-6 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center flex-shrink-0">
                           <span className="text-white text-xs font-medium">
                             {selectedTask.createdBy.name?.charAt(0) || selectedTask.createdBy.email?.charAt(0) || 'U'}
                           </span>
                         </div>
-                        <div>
-                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
                             {selectedTask.createdBy.name || selectedTask.createdBy.email?.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                           </p>
                         </div>
@@ -1959,8 +1962,8 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                       Last Updated
                     </label>
                     <div className="flex items-center space-x-2">
-                      <Clock className="h-4 w-4 text-gray-500" />
-                      <span className="text-xs text-gray-600 dark:text-gray-400">
+                      <Clock className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                      <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
                         {new Date(selectedTask.updatedAt).toLocaleDateString('en-US', {
                           year: 'numeric',
                           month: 'short',
@@ -1980,20 +1983,20 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                     <div className="space-y-2 text-xs">
                       {session?.user?.role === 'ADMIN' && (
                         <div className="flex items-center space-x-2 text-green-600 dark:text-green-400">
-                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          <span>Admin - Full Access</span>
+                          <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0"></div>
+                          <span className="truncate">Admin - Full Access</span>
                         </div>
                       )}
                       {canEditTask(selectedTask) && session?.user?.role !== 'ADMIN' && (
                         <div className="flex items-center space-x-2 text-blue-600 dark:text-blue-400">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                          <span>Assignee - Can Edit</span>
+                          <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                          <span className="truncate">Assignee - Can Edit</span>
                         </div>
                       )}
                       {!canEditTask(selectedTask) && (
                         <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
-                          <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                          <span>View Only Access</span>
+                          <div className="w-2 h-2 bg-gray-400 rounded-full flex-shrink-0"></div>
+                          <span className="truncate">View Only Access</span>
                         </div>
                       )}
                       {canMoveTask(selectedTask) && (
@@ -2013,8 +2016,8 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
       {/* New Task Modal - Mobile Responsive */}
       {showNewTaskModal && newTaskStatus && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 z-50">
-          <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-xl shadow-2xl w-full max-w-2xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden border border-white/20 dark:border-gray-700/50">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center p-2 sm:p-4 z-50 overflow-y-auto">
+          <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-xl shadow-2xl w-full max-w-2xl border border-white/20 dark:border-gray-700/50 my-4 sm:my-8">
             {/* Modal Header - Mobile Responsive */}
             <div className="relative px-4 sm:px-8 py-4 sm:py-6 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-white/50 to-gray-50/50 dark:from-gray-800/50 dark:to-gray-900/50">
               <div className="flex items-center justify-between">
@@ -2040,7 +2043,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
             </div>
 
             {/* Modal Content - Mobile Responsive */}
-            <div className="p-4 sm:p-8 overflow-y-auto max-h-[calc(95vh-120px)] sm:max-h-[calc(90vh-120px)]">
+            <div className="p-4 sm:p-8">
               <div className="space-y-6">
                 {/* Task Title */}
                 <div>
@@ -2065,13 +2068,13 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                   <textarea
                     value={newTaskData.description}
                     onChange={(e) => setNewTaskData(prev => ({ ...prev, description: e.target.value }))}
-                    rows={4}
+                    rows={3}
                     placeholder="Add a description..."
-                    className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                    className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all resize-none"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                   {/* Priority */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
@@ -2141,19 +2144,19 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                   />
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
+                {/* Action Buttons - Mobile Responsive */}
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
                   <button
                     onClick={closeNewTaskModal}
                     disabled={isCreatingTask}
-                    className="px-6 py-3 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors disabled:opacity-50"
+                    className="w-full sm:w-auto px-4 sm:px-6 py-3 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors disabled:opacity-50 order-2 sm:order-1"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={createTaskFromModal}
                     disabled={!newTaskData.title.trim() || isCreatingTask}
-                    className="px-6 py-3 text-sm font-medium bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                    className="w-full sm:w-auto px-4 sm:px-6 py-3 text-sm font-medium bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 order-1 sm:order-2"
                   >
                     {isCreatingTask ? (
                       <>

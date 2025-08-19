@@ -57,10 +57,10 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Fetch team data from columns C (names), D (sheet URLs), and E (members)
+      // Fetch team data from columns C (names), D (sheet URLs), E (members), and F (creators)
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: spreadsheetId,
-        range: `C${startRow}:E${endRow}`,
+        range: `C${startRow}:F${endRow}`,
       });
 
       const values = response.data.values;
@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
           const teamName = row[0] || '';
           const sheetUrl = row[1] || '';
           const membersString = row[2] || '';
+          const creatorsString = row[3] || '';
           
           // Parse members from comma-separated email string
           const members = membersString
@@ -92,12 +93,19 @@ export async function POST(request: NextRequest) {
               role: 'Member' // Default role
             }));
 
+          // Parse creators from comma-separated string
+          const creators = creatorsString
+            .split(',')
+            .map((creator: string) => creator.trim())
+            .filter((creator: string) => creator);
+
           return {
             row: rowNumber,
             name: teamName,
             label: teamName || `Team ${rowNumber}`,
             sheetUrl: sheetUrl,
-            members: members
+            members: members,
+            creators: creators
           };
         })
         .filter(team => team.name.trim() !== '');
