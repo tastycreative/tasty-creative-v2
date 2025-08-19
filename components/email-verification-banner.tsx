@@ -50,16 +50,18 @@ export function EmailVerificationBanner() {
               </svg>
             </span>
             <p className="ml-3 font-medium text-yellow-700 dark:text-yellow-300">
-              <span className="md:hidden">Verify your email to access all features.</span>
+              <span className="md:hidden">
+                Verify your email ({session.user.email}) to access all features.
+              </span>
               <span className="hidden md:inline">
-                Please verify your email address to access all features.
+                Please verify your email address ({session.user.email}) to access all features.
               </span>
             </p>
           </div>
           <div className="order-3 mt-2 flex-shrink-0 w-full sm:order-2 sm:mt-0 sm:w-auto">
             {sent ? (
               <span className="text-sm text-green-600 dark:text-green-400">
-                Verification email sent! Check your inbox.
+                Verification email sent to {session.user.email}! Check your inbox.
               </span>
             ) : (
               <button
