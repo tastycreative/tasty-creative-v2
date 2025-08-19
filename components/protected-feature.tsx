@@ -63,8 +63,7 @@ export function ProtectedFeature({
             Guest Access Restricted
           </h3>
           <p className="text-gray-500 dark:text-gray-400 mb-4">
-            This feature is not available for guest users. You can sign in with
-            Google for full access or contact an Admin/Moderator.
+            This feature is not available for guest users. Wait or contact an Admin/Moderator to elevate your access.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
             <button
