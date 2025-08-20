@@ -1,9 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Users, UserPlus, Calendar, ExternalLink, RefreshCw } from 'lucide-react';
+import { Users, UserPlus, Calendar, ExternalLink, RefreshCw, Sparkles } from 'lucide-react';
 
 interface TeamMember {
   id: string;
@@ -51,158 +49,200 @@ const PodSidebar: React.FC<PodSidebarProps> = ({
   onRefresh
 }) => {
   return (
-    <div className="w-full space-y-6">
-      {/* Team Selection */}
-      <Card className="border border-pink-200 dark:border-pink-500/30 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-        <CardHeader className="bg-gradient-to-r from-purple-50/50 to-indigo-50/50 dark:from-purple-900/30 dark:to-indigo-900/30 border-b border-purple-200 dark:border-purple-500/30">
-          <CardTitle className="text-gray-900 dark:text-gray-100 font-bold flex items-center text-lg">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mr-3">
-              <Users className="h-4 w-4 text-white" />
+    <div className="h-full bg-gray-50 dark:bg-gray-950 p-4">
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center p-2 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl mb-3">
+            <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+          </div>
+          <h2 className="text-2xl font-light text-gray-900 dark:text-gray-50 tracking-tight mb-1">
+            POD Dashboard
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">
+            Team management and scheduling
+          </p>
+        </div>
+
+        {/* Team Selection Card */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-none dark:ring-1 dark:ring-gray-800 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-br from-purple-500/20 to-indigo-500/20 rounded-xl">
+                <Users className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              </div>
+              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 tracking-tight">
+                Team Selection
+              </h3>
             </div>
-            Team Selection
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="space-y-3">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Select Team:
-            </label>
-            <select
-              value={selectedRow || ''}
-              onChange={(e) => {
-                const newRow = parseInt(e.target.value);
-                if (onTeamChange) onTeamChange(newRow);
-              }}
-              disabled={isLoading || isLoadingTeams}
-              className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-purple-200 dark:border-purple-500/30 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:opacity-50 text-gray-900 dark:text-gray-100"
-            >
-              {availableTeams.length > 0 ? (
-                availableTeams.map((team) => (
-                  <option key={team.row} value={team.row}>
-                    {team.name}
-                  </option>
+          </div>
+          <div className="p-6">
+            <div className="space-y-4">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Select Team:
+              </label>
+              <select
+                value={selectedRow || ''}
+                onChange={(e) => {
+                  const newRow = parseInt(e.target.value);
+                  if (onTeamChange) onTeamChange(newRow);
+                }}
+                disabled={isLoading || isLoadingTeams}
+                className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500/50 transition-all duration-200 disabled:opacity-50"
+              >
+                {availableTeams.length > 0 ? (
+                  availableTeams.map((team) => (
+                    <option key={team.row} value={team.row}>
+                      {team.name}
+                    </option>
+                  ))
+                ) : (
+                  <option value={selectedRow || ''}>Loading teams...</option>
+                )}
+              </select>
+              {(isLoading || isLoadingTeams) && (
+                <div className="flex items-center text-sm text-purple-600 dark:text-purple-400">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 mr-2"></div>
+                  {isLoadingTeams ? 'Loading teams...' : 'Loading data...'}
+                </div>
+              )}
+              {onRefresh && (
+                <button
+                  onClick={onRefresh}
+                  disabled={isLoading}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl transition-all duration-200 disabled:opacity-50 shadow-lg hover:shadow-xl transform hover:scale-[1.02] flex items-center justify-center"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                  Refresh Data
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Team Information Card */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-none dark:ring-1 dark:ring-gray-800 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-xl">
+                <Users className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+              </div>
+              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 tracking-tight">
+                {teamName || 'Team Information'}
+              </h3>
+            </div>
+          </div>
+          <div className="p-6">
+            <div className="space-y-4">
+              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Team Members
+              </h4>
+              {teamMembers.length > 0 ? (
+                teamMembers.map((member) => (
+                  <div key={member.id} className="flex items-center space-x-4 p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-white font-medium text-sm">
+                      {member.name.split(' ').map(n => n[0]).join('')}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                        {member.name}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {member.role}
+                      </p>
+                    </div>
+                  </div>
                 ))
               ) : (
-                <option value={selectedRow || ''}>Loading teams...</option>
+                <div className="text-center py-8">
+                  <Users className="mx-auto h-10 w-10 text-gray-400 mb-3 opacity-50" />
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No team members</p>
+                </div>
               )}
-            </select>
-            {(isLoading || isLoadingTeams) && (
-              <div className="flex items-center text-sm text-purple-600 dark:text-purple-400">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600 mr-2"></div>
-                {isLoadingTeams ? 'Loading teams...' : 'Loading data...'}
-              </div>
-            )}
-            {onRefresh && (
-              <Button
-                onClick={onRefresh}
-                disabled={isLoading}
-                className="w-full bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-300 disabled:opacity-50"
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                Refresh Data
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Team Information */}
-      <Card className="border border-pink-200 dark:border-pink-500/30 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-        <CardHeader className="bg-gradient-to-r from-pink-50/50 to-rose-50/50 dark:from-pink-900/30 dark:to-rose-900/30 border-b border-pink-200 dark:border-pink-500/30">
-          <CardTitle className="text-gray-900 dark:text-gray-100 font-bold flex items-center text-lg">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center mr-3">
-              <Users className="h-4 w-4 text-white" />
             </div>
-            {teamName}
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="space-y-3">
-            <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center">
-              <div className="h-2 w-2 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 mr-2"></div>
-              Team Members
-            </h4>
-            {teamMembers.map((member) => (
-              <div key={member.id} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-pink-50/50 dark:hover:bg-pink-900/20 transition-colors">
-                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pink-400 to-rose-600 flex items-center justify-center">
-                  <span className="text-white text-xs font-medium">
-                    {member.name.split(' ').map(n => n[0]).join('')}
-                  </span>
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{member.name}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{member.role}</p>
-                </div>
-              </div>
-            ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      {/* Assigned Creators */}
-      <Card className="border border-pink-200 dark:border-pink-500/30 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-        <CardHeader className="bg-gradient-to-r from-rose-50/50 to-pink-50/50 dark:from-rose-900/30 dark:to-pink-900/30 border-b border-pink-200 dark:border-pink-500/30">
-          <CardTitle className="text-gray-900 dark:text-gray-100 font-bold flex items-center text-lg">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center mr-3">
-              <UserPlus className="h-4 w-4 text-white" />
+        {/* Assigned Creators Card */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-none dark:ring-1 dark:ring-gray-800 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-br from-rose-500/20 to-pink-500/20 rounded-xl">
+                <UserPlus className="h-4 w-4 text-rose-600 dark:text-rose-400" />
+              </div>
+              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 tracking-tight">
+                Assigned Creators
+              </h3>
             </div>
-            Assigned Creators
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="space-y-3">
-            {assignedCreators.map((creator) => (
-              <div key={creator.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-pink-50/50 dark:hover:bg-pink-900/20 transition-colors border border-pink-100 dark:border-pink-500/20">
-                <div className="flex items-center space-x-3">
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-rose-400 to-pink-600 flex items-center justify-center">
-                    <span className="text-white text-sm font-bold">
-                      {creator.name.split(' ').map(n => n[0]).join('')}
-                    </span>
+          </div>
+          <div className="p-6">
+            <div className="space-y-4">
+              {assignedCreators.length > 0 ? (
+                assignedCreators.map((creator) => (
+                  <div key={creator.id} className="flex items-center justify-between p-4 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200 border border-gray-100 dark:border-gray-800">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center text-white font-medium text-sm">
+                        {creator.name.split(' ').map(n => n[0]).join('')}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {creator.name}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {creator.specialty}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-medium">
+                      {creator.earnings || '$0'}
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{creator.name}</p>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <UserPlus className="mx-auto h-10 w-10 text-gray-400 mb-3 opacity-50" />
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No assigned creators</p>
                 </div>
-                <div className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white px-3 py-1 rounded-full shadow-md">
-                  <p className="text-sm font-bold">{creator.earnings || '$0'}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Scheduler Spreadsheet Link */}
-      <Card className="border border-pink-200 dark:border-pink-500/30 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-        <CardHeader className="bg-gradient-to-r from-pink-50/50 to-rose-50/50 dark:from-pink-900/30 dark:to-rose-900/30 border-b border-pink-200 dark:border-pink-500/30">
-          <CardTitle className="text-gray-900 dark:text-gray-100 font-bold flex items-center text-lg">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center mr-3">
-              <Calendar className="h-4 w-4 text-white" />
+              )}
             </div>
-            Scheduler POD
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="space-y-3">
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              Access the main scheduler spreadsheet for this POD team.
-            </p>
-            {schedulerSpreadsheetUrl ? (
-              <Button
-                onClick={() => window.open(schedulerSpreadsheetUrl, '_blank')}
-                className="w-full bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Open Scheduler
-              </Button>
-            ) : (
-              <div className="p-3 bg-pink-50/50 dark:bg-pink-900/20 rounded-lg border-2 border-dashed border-pink-300 dark:border-pink-500/30 text-center">
-                <p className="text-sm text-pink-600 dark:text-pink-400">No scheduler link configured</p>
-              </div>
-            )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Scheduler Link Card */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-none dark:ring-1 dark:ring-gray-800 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-xl">
+                <Calendar className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+              </div>
+              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 tracking-tight">
+                Scheduler POD
+              </h3>
+            </div>
+          </div>
+          <div className="p-6">
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Access the main scheduler spreadsheet for this POD team.
+              </p>
+              {schedulerSpreadsheetUrl ? (
+                <button
+                  onClick={() => window.open(schedulerSpreadsheetUrl, '_blank')}
+                  className="w-full px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] flex items-center justify-center"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open Scheduler
+                </button>
+              ) : (
+                <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 text-center">
+                  <Calendar className="mx-auto h-8 w-8 text-gray-400 mb-2 opacity-50" />
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No scheduler link configured</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

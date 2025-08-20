@@ -8,12 +8,17 @@ import {
   Calendar,
   ExternalLink,
   RefreshCw,
+  FileSpreadsheet,
+  FileText,
+  Link,
+  Sparkles,
 } from "lucide-react";
 import WorkflowDashboard from "./WorkflowDashboard";
 import SheetsIntegration from "./SheetsIntegration";
 import SheetViewer from "./SheetViewer";
 import PodAdminDashboard from "./PodAdminDashboard";
 import Board from "./pod/Board";
+import PricingGuide from "./PricingGuide";
 import {
   TeamMemberSkeleton,
   CreatorSkeleton,
@@ -70,7 +75,7 @@ const PodComponent = () => {
   const [isLoadingTeams, setIsLoadingTeams] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "sheets" | "board" | "admin"
+    "dashboard" | "sheets" | "board" | "admin" | "pricing"
   >("dashboard");
   const [selectedSheet, setSelectedSheet] = useState<{
     name: string;
@@ -477,7 +482,8 @@ const PodComponent = () => {
           tabParam === "dashboard" ||
           tabParam === "sheets" ||
           tabParam === "board" ||
-          tabParam === "admin"
+          tabParam === "admin" ||
+          tabParam === "pricing"
         ) {
           setActiveTab(tabParam);
         }
@@ -516,7 +522,7 @@ const PodComponent = () => {
     }
   }, [activeTab, selectedRow, fetchTasks]);
 
-  const handleTabChange = (tab: "dashboard" | "sheets" | "board" | "admin") => {
+  const handleTabChange = (tab: "dashboard" | "sheets" | "board" | "admin" | "pricing") => {
     console.log("Tab change clicked:", tab, "Current viewMode:", viewMode);
     setActiveTab(tab);
 
@@ -564,8 +570,20 @@ const PodComponent = () => {
   };
 
   return (
-    <div className="min-h-screen p-3 sm:p-6 bg-gradient-to-br from-gray-50 via-pink-50/30 to-rose-50/50 dark:from-gray-900 dark:via-gray-900/80 dark:to-black">
-      <div className="mx-auto">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 sm:p-6">
+      <div className="mx-auto max-w-7xl">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center p-2 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl mb-3">
+            <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+          </div>
+          <h1 className="text-3xl font-light text-gray-900 dark:text-gray-50 tracking-tight mb-2">
+            POD Management
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">
+            Team workflow and content management
+          </p>
+        </div>
         {/* Header */}
         <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-gradient-to-r from-pink-50/50 to-rose-50/50 dark:from-pink-900/20 dark:to-rose-900/20 rounded-lg border border-pink-200 dark:border-pink-500/30">
           <div className="text-center">
@@ -614,6 +632,17 @@ const PodComponent = () => {
               >
                 Board
               </button>
+              <button
+                onClick={() => handleTabChange("pricing")}
+                className={`py-3 sm:py-4 px-3 sm:px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                  activeTab === "pricing"
+                    ? "border-pink-500 text-pink-600 dark:text-pink-400"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                }`}
+              >
+                <span className="sm:hidden">Pricing</span>
+                <span className="hidden sm:inline">Pricing Guide</span>
+              </button>
               {session?.user?.role === "ADMIN" && (
                 <button
                   onClick={() => handleTabChange("admin")}
@@ -632,26 +661,28 @@ const PodComponent = () => {
 
         {/* Main Dashboard Layout */}
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
-          {/* Sidebar - Hidden when admin tab is active */}
+          {/* Sidebar - Hidden when admin or board tab is active */}
           {activeTab !== "admin" && activeTab !== "board" && (
             <div className="lg:w-80 w-full">
               {podData ? (
-                <div className="w-full space-y-4 sm:space-y-6">
+                <div className="w-full space-y-6">
                   {/* Team Selection & Info Combined */}
-                  <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg shadow-lg">
+                  <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-none dark:ring-1 dark:ring-gray-800 overflow-hidden">
                     {/* Team Selection Header */}
-                    <div className="bg-gradient-to-r from-purple-50/50 to-indigo-50/50 dark:from-purple-900/30 dark:to-indigo-900/30 border-b border-purple-200 dark:border-purple-500/30 p-3 sm:p-4">
+                    <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
                       <div className="flex items-center justify-between">
-                        <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center">
-                          <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mr-2 sm:mr-3">
-                            <Users className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
+                        <div className="flex items-center space-x-3">
+                          <div className="p-2 bg-gradient-to-br from-purple-500/20 to-indigo-500/20 rounded-xl">
+                            <Users className="h-4 w-4 text-purple-600 dark:text-purple-400" />
                           </div>
-                          <span className="truncate">{podData.teamName}</span>
-                        </h3>
+                          <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 tracking-tight truncate">
+                            {podData.teamName}
+                          </h3>
+                        </div>
                         <button
                           onClick={() => fetchPodData()}
                           disabled={isLoading}
-                          className="p-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 disabled:opacity-50"
+                          className="p-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl transition-all duration-200 disabled:opacity-50 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
                           title="Refresh team data"
                         >
                           <RefreshCw
@@ -662,11 +693,11 @@ const PodComponent = () => {
                     </div>
 
                     {/* Team Selection Dropdown */}
-                    <div className="p-4 border-b border-gray-200 dark:border-gray-600">
+                    <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
                       {isLoadingTeams ? (
                         <TeamSelectorSkeleton />
                       ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                             Switch Team:
                           </label>
@@ -678,7 +709,7 @@ const PodComponent = () => {
                               fetchPodData(newRow);
                             }}
                             disabled={isLoading || isLoadingTeams}
-                            className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-purple-200 dark:border-purple-500/30 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:opacity-50 text-gray-900 dark:text-gray-100"
+                            className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500/50 transition-all duration-200 disabled:opacity-50"
                           >
                             {availableTeams.length > 0 ? (
                               availableTeams.map((team) => (
@@ -705,15 +736,17 @@ const PodComponent = () => {
                     </div>
 
                     {/* Team Members */}
-                    <div className="p-4 border-b border-gray-200 dark:border-gray-600">
-                      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center">
-                        <UserPlus className="h-4 w-4 mr-2" />
+                    <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 flex items-center">
+                        <div className="p-1 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-lg mr-2">
+                          <UserPlus className="h-3 w-3 text-pink-600 dark:text-pink-400" />
+                        </div>
                         Team Members{" "}
                         {!isLoading &&
                           podData &&
                           `(${podData.teamMembers.length})`}
                       </h4>
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {isLoading ? (
                           Array.from({ length: 3 }).map((_, index) => (
                             <TeamMemberSkeleton key={index} />
@@ -722,34 +755,44 @@ const PodComponent = () => {
                           podData.teamMembers.map((member) => (
                             <div
                               key={member.id}
-                              className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-md"
+                              className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200"
                             >
-                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {member.name}
-                              </span>
-                              <span className="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-white font-medium text-xs">
+                                  {member.name.split(' ').map(n => n[0]).join('')}
+                                </div>
+                                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                  {member.name}
+                                </span>
+                              </div>
+                              <span className="text-xs px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full font-medium">
                                 {member.role}
                               </span>
                             </div>
                           ))
                         ) : (
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            No team members assigned
-                          </p>
+                          <div className="text-center py-6">
+                            <UserPlus className="mx-auto h-8 w-8 text-gray-400 mb-2 opacity-50" />
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              No team members assigned
+                            </p>
+                          </div>
                         )}
                       </div>
                     </div>
 
                     {/* Assigned Creators */}
-                    <div className="p-4">
-                      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center">
-                        <Users className="h-4 w-4 mr-2" />
+                    <div className="px-6 py-4">
+                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 flex items-center">
+                        <div className="p-1 bg-gradient-to-br from-rose-500/20 to-pink-500/20 rounded-lg mr-2">
+                          <Users className="h-3 w-3 text-rose-600 dark:text-rose-400" />
+                        </div>
                         Assigned Creators{" "}
                         {!isLoading &&
                           podData &&
                           `(${podData.creators.length})`}
                       </h4>
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {isLoading ? (
                           Array.from({ length: 3 }).map((_, index) => (
                             <CreatorSkeleton key={index} />
@@ -758,41 +801,45 @@ const PodComponent = () => {
                           podData.creators.map((creator) => (
                             <div
                               key={creator.id}
-                              className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-md"
+                              className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200 border border-gray-100 dark:border-gray-800"
                             >
-                              <div>
+                              <div className="flex items-center space-x-3">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center text-white font-medium text-xs">
+                                  {creator.name.split(' ').map(n => n[0]).join('')}
+                                </div>
                                 <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                   {creator.name}
                                 </span>
                               </div>
                               {creator.earnings && (
-                                <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full">
+                                <span className="text-xs px-2 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-full font-medium">
                                   {creator.earnings}
                                 </span>
                               )}
                             </div>
                           ))
                         ) : (
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            No creators assigned
-                          </p>
+                          <div className="text-center py-6">
+                            <Users className="mx-auto h-8 w-8 text-gray-400 mb-2 opacity-50" />
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              No creators assigned
+                            </p>
+                          </div>
                         )}
                       </div>
                     </div>
 
                     {/* Scheduler Link */}
                     {schedulerSpreadsheetUrl && (
-                      <div className="p-4 border-t border-gray-200 dark:border-gray-600">
-                        <a
-                          href={schedulerSpreadsheetUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center justify-center w-full p-2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 text-sm font-medium"
+                      <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800">
+                        <button
+                          onClick={() => window.open(schedulerSpreadsheetUrl, '_blank')}
+                          className="flex items-center justify-center w-full px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] text-sm font-medium"
                         >
                           <Calendar className="h-4 w-4 mr-2" />
                           Open Scheduler
                           <ExternalLink className="h-3 w-3 ml-2" />
-                        </a>
+                        </button>
                       </div>
                     )}
                   </div>
@@ -915,36 +962,29 @@ const PodComponent = () => {
                       (podData &&
                         podData.sheetLinks &&
                         podData.sheetLinks.length > 0)) && (
-                      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6 shadow-lg">
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center mr-3">
-                            <svg
-                              className="h-4 w-4 text-white"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2H9a2 2 0 00-2 2v10z"
-                              />
-                            </svg>
+                      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
+                        <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+                          <div className="flex items-center">
+                            <div className="p-2 bg-gradient-to-r from-emerald-500 to-green-600 rounded-lg">
+                              <FileSpreadsheet className="h-5 w-5 text-white" />
+                            </div>
+                            <h3 className="ml-3 text-lg font-semibold text-gray-900 dark:text-white">
+                              📄 Sheet Links
+                              {!isLoading && podData && podData.sheetLinks && (
+                                <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
+                                  ({podData.sheetLinks.length} sheets)
+                                </span>
+                              )}
+                              {isLoading && (
+                                <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
+                                  (Loading...)
+                                </span>
+                              )}
+                            </h3>
                           </div>
-                          📄 Sheet Links
-                          {!isLoading && podData && podData.sheetLinks && (
-                            <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
-                              ({podData.sheetLinks.length} sheets)
-                            </span>
-                          )}
-                          {isLoading && (
-                            <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
-                              (Loading...)
-                            </span>
-                          )}
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        </div>
+                        <div className="p-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {isLoading
                             ? Array.from({ length: 3 }).map((_, index) => (
                                 <SheetLinkSkeleton key={index} />
@@ -1024,6 +1064,7 @@ const PodComponent = () => {
                                   <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 to-green-500/10 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                                 </div>
                               ))}
+                          </div>
                         </div>
                       </div>
                     )}
@@ -1033,40 +1074,33 @@ const PodComponent = () => {
                       (podData &&
                         podData.creators &&
                         podData.creators.length > 0)) && (
-                      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-blue-200 dark:border-blue-500/30 rounded-lg p-6 shadow-lg">
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mr-3">
-                            <svg
-                              className="h-4 w-4 text-white"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
-                              />
-                            </svg>
+                      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
+                        <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+                          <div className="flex items-center">
+                            <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg">
+                              <Link className="h-5 w-5 text-white" />
+                            </div>
+                            <h3 className="ml-3 text-lg font-semibold text-gray-900 dark:text-white">
+                              🔗 Sheet Integrations
+                              {!isLoading &&
+                                !isDriveLoading &&
+                                podData &&
+                                podData.creators && (
+                                  <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
+                                    ({driveSheets.length} found for:{" "}
+                                    {podData.creators.map((c) => c.name).join(", ")}
+                                    )
+                                  </span>
+                                )}
+                              {(isLoading || isDriveLoading) && (
+                                <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
+                                  (Loading...)
+                                </span>
+                              )}
+                            </h3>
                           </div>
-                          🔗 Sheet Integrations
-                          {!isLoading &&
-                            !isDriveLoading &&
-                            podData &&
-                            podData.creators && (
-                              <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
-                                ({driveSheets.length} found for:{" "}
-                                {podData.creators.map((c) => c.name).join(", ")}
-                                )
-                              </span>
-                            )}
-                          {(isLoading || isDriveLoading) && (
-                            <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
-                              (Loading...)
-                            </span>
-                          )}
-                        </h3>
+                        </div>
+                        <div className="p-6">
 
                         {isLoading || isDriveLoading ? (
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1205,6 +1239,7 @@ const PodComponent = () => {
                             </p>
                           </div>
                         )}
+                        </div>
                       </div>
                     )}
                   </>
@@ -1258,6 +1293,13 @@ const PodComponent = () => {
                   <>
                     {/* Admin Dashboard - loads its own data when rendered */}
                     <PodAdminDashboard />
+                  </>
+                )}
+
+                {activeTab === "pricing" && (
+                  <>
+                    {/* Pricing Guide */}
+                    <PricingGuide creators={podData?.creators || []} />
                   </>
                 )}
               </>
