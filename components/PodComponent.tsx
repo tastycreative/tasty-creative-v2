@@ -572,18 +572,7 @@ const PodComponent = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 sm:p-6">
       <div className="mx-auto max-w-7xl">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center p-2 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-2xl mb-3">
-            <Sparkles className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-          </div>
-          <h1 className="text-3xl font-light text-gray-900 dark:text-gray-50 tracking-tight mb-2">
-            POD Management
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 text-sm">
-            Team workflow and content management
-          </p>
-        </div>
+        
         {/* Header */}
         <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-gradient-to-r from-pink-50/50 to-rose-50/50 dark:from-pink-900/20 dark:to-rose-900/20 rounded-lg border border-pink-200 dark:border-pink-500/30">
           <div className="text-center">

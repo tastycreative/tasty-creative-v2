@@ -26,6 +26,44 @@ interface PricingGuideProps {
   creators?: Creator[];
 }
 
+// Retry helper function for API calls
+async function fetchWithRetry(url: string, retryCount = 0): Promise<Response> {
+  const maxRetries = 3;
+  const baseDelay = 1000; // 1 second
+
+  try {
+    const response = await fetch(url);
+
+    // If we get a 429 (quota exceeded) or 500 error, retry
+    if (
+      (response.status === 429 || response.status === 500) &&
+      retryCount < maxRetries
+    ) {
+      const delay = baseDelay * Math.pow(2, retryCount); // Exponential backoff: 1s, 2s, 4s
+      console.log(
+        `API request failed (${response.status}), retrying in ${delay}ms... (attempt ${retryCount + 1}/${maxRetries})`
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return fetchWithRetry(url, retryCount + 1);
+    }
+
+    return response;
+  } catch (error) {
+    // For network errors, also retry
+    if (retryCount < maxRetries) {
+      const delay = baseDelay * Math.pow(2, retryCount);
+      console.log(
+        `Network error, retrying in ${delay}ms... (attempt ${retryCount + 1}/${maxRetries})`
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return fetchWithRetry(url, retryCount + 1);
+    }
+
+    throw error;
+  }
+}
 
 const PricingAccordionRow: React.FC<{
   group: PricingGroup;
@@ -40,13 +78,19 @@ const PricingAccordionRow: React.FC<{
         onClick={onToggle}
         className="w-full px-6 py-6 hover:bg-gradient-to-r hover:from-transparent hover:via-purple-500/5 hover:to-transparent transition-all duration-300"
       >
-        <div className={`grid grid-cols-1 gap-4 items-center`} style={{
-          gridTemplateColumns: creators.length > 0 
-            ? `minmax(0,1fr) repeat(${creators.length}, 120px)` 
-            : 'minmax(0,1fr)'
-        }}>
+        <div
+          className={`grid grid-cols-1 gap-4 items-center`}
+          style={{
+            gridTemplateColumns:
+              creators.length > 0
+                ? `minmax(0,1fr) repeat(${creators.length}, 120px)`
+                : "minmax(0,1fr)",
+          }}
+        >
           <div className="flex items-center space-x-4">
-            <div className={`transition-all duration-300 ${isOpen ? "rotate-180" : ""}`}>
+            <div
+              className={`transition-all duration-300 ${isOpen ? "rotate-180" : ""}`}
+            >
               <ChevronDown className="h-4 w-4 text-gray-400 dark:text-gray-500" />
             </div>
             <div className="text-left">
@@ -79,11 +123,15 @@ const PricingAccordionRow: React.FC<{
                 className={`py-4 ${index !== 0 ? "border-t border-gray-100 dark:border-gray-800" : ""}`}
               >
                 {/* Item Info and Pricing */}
-                <div className={`grid grid-cols-1 gap-4 items-center`} style={{
-                  gridTemplateColumns: creators.length > 0 
-                    ? `minmax(0,1fr) repeat(${creators.length}, 120px)` 
-                    : 'minmax(0,1fr)'
-                }}>
+                <div
+                  className={`grid grid-cols-1 gap-4 items-center`}
+                  style={{
+                    gridTemplateColumns:
+                      creators.length > 0
+                        ? `minmax(0,1fr) repeat(${creators.length}, 120px)`
+                        : "minmax(0,1fr)",
+                  }}
+                >
                   <div>
                     <h4 className="font-medium text-gray-800 dark:text-gray-200 text-sm">
                       {item.name}
@@ -119,71 +167,98 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch data from Google Sheets on component mount
+  // Fetch data from Google Sheets only if assigned creators are available
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       setError(null);
       try {
-        // Fetch both pricing data and creator data from our API route
-        const response = await fetch('/api/pricing-data');
-        
+        // Fetch both pricing data and creator data from our API route with retry
+        const response = await fetchWithRetry("/api/pricing-data");
+
         if (!response.ok) {
-          throw new Error('Failed to fetch pricing data');
+          throw new Error("Failed to fetch pricing data");
         }
 
-        const { pricingData: sheetPricingData, creators: sheetCreatorData } = await response.json();
+        const { pricingData: sheetPricingData, creators: sheetCreatorData } =
+          await response.json();
+
+        console.log("Fetched pricing data:", sheetPricingData);
+        console.log("Fetched creators:", sheetCreatorData);
 
         if (sheetPricingData && sheetPricingData.length > 0) {
           setPricingData(sheetPricingData);
+          console.log("Set pricing data:", sheetPricingData);
         }
 
         if (sheetCreatorData && sheetCreatorData.length > 0) {
           setDisplayCreators(sheetCreatorData);
+          console.log("Set display creators:", sheetCreatorData);
         }
       } catch (err) {
-        console.error('Failed to fetch data from Google Sheets:', err);
-        setError('Failed to load pricing data from Google Sheets.');
+        console.error("Failed to fetch data from Google Sheets:", err);
+        setError("Failed to load pricing data from Google Sheets.");
       } finally {
         setLoading(false);
       }
     };
 
-    // Always fetch from Google Sheets, but use provided creators if available
+    // Only fetch pricing data if there are assigned creators from props
     if (creators.length > 0) {
       setDisplayCreators(creators);
+      loadData();
+    } else {
+      // If no assigned creators, clear data and stop loading
+      setPricingData([]);
+      setDisplayCreators([]);
+      setLoading(false);
     }
-    
-    loadData();
   }, [creators]);
 
   // Get assigned creators (show all assigned creators, even if no pricing data)
   const availableCreators = useMemo(() => {
-    // If creators prop is provided (from PodComponent), use only those creators
+    console.log("Available creators calculation:", {
+      creators: creators,
+      displayCreators: displayCreators,
+      pricingData: pricingData,
+    });
+
+    // If creators prop is provided (from PodComponent), always use those creators
+    // Don't filter them based on pricing data - show them even if no pricing exists
     if (creators.length > 0) {
+      console.log("Using creators prop:", creators);
       return creators.slice(0, 3);
     }
-    
+
     // Otherwise, use creators from Google Sheet that have pricing data
     const creatorsWithPricing = new Set<string>();
-    pricingData.forEach(group => {
-      Object.keys(group.pricing).forEach(creatorName => {
+    pricingData.forEach((group) => {
+      console.log("Processing group:", group);
+      Object.keys(group.pricing).forEach((creatorName) => {
         // Check if creator has any item pricing
         const creatorPricing = group.pricing[creatorName];
         if (creatorPricing && Object.keys(creatorPricing).length > 0) {
           creatorsWithPricing.add(creatorName);
+          console.log("Added creator with pricing:", creatorName);
         }
       });
     });
-    
-    return displayCreators.filter(creator => 
-      creatorsWithPricing.has(creator.name)
-    ).slice(0, 3);
+
+    const result = displayCreators
+      .filter((creator) => creatorsWithPricing.has(creator.name))
+      .slice(0, 3);
+
+    console.log("Final available creators:", result);
+    return result;
   }, [creators, displayCreators, pricingData]);
 
   // Filter pricing data based on search query
   const filteredPricingData = useMemo(() => {
-    if (!searchQuery.trim()) return pricingData;
+    console.log("Filtering pricing data:", { searchQuery, pricingData });
+    if (!searchQuery.trim()) {
+      console.log("No search query, returning all pricing data:", pricingData);
+      return pricingData;
+    }
 
     return pricingData
       .map((group) => {
@@ -209,21 +284,7 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
         return null;
       })
       .filter(Boolean) as PricingGroup[];
-  }, [searchQuery]);
-
-  // Auto-expand groups when searching
-  useEffect(() => {
-    if (searchQuery.trim()) {
-      const expandedGroups = filteredPricingData.reduce(
-        (acc, group) => ({
-          ...acc,
-          [group.id]: true,
-        }),
-        {}
-      );
-      setOpenGroups(expandedGroups);
-    }
-  }, [searchQuery, filteredPricingData]);
+  }, [searchQuery, pricingData]);
 
   const toggleGroup = (groupId: string) => {
     setOpenGroups((prev) => ({
@@ -290,11 +351,15 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
 
           {/* Creator Headers & Search - All screens */}
           <div className="px-6 py-4 bg-gray-50/50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-800">
-            <div className={`grid grid-cols-1 gap-4 items-end`} style={{
-              gridTemplateColumns: availableCreators.length > 0 
-                ? `minmax(0,1fr) repeat(${availableCreators.length}, 120px)` 
-                : 'minmax(0,1fr)'
-            }}>
+            <div
+              className={`grid grid-cols-1 gap-4 items-end`}
+              style={{
+                gridTemplateColumns:
+                  availableCreators.length > 0
+                    ? `minmax(0,1fr) repeat(${availableCreators.length}, 120px)`
+                    : "minmax(0,1fr)",
+              }}
+            >
               {/* Search bar (spans first column) */}
               <div className="relative max-w-md w-full md:w-full col-span-1">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -315,25 +380,22 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
                 )}
               </div>
               {/* Creator headers (each in their own column) */}
-              {loading ? (
-                // Skeleton loaders for creator headers
-                Array.from({ length: 3 }, (_, i) => (
-                  <div key={i} className="text-right min-w-[120px]">
-                    <div className="animate-pulse space-y-1">
-                      <div className="h-4 w-16 bg-gray-300 dark:bg-gray-600 rounded ml-auto"></div>
-                      <div className="h-3 w-20 bg-gray-200 dark:bg-gray-700 rounded ml-auto"></div>
+              {loading
+                ? // Skeleton loaders for creator headers
+                  Array.from({ length: 3 }, (_, i) => (
+                    <div key={i} className="text-right min-w-[120px]">
+                      <div className="animate-pulse">
+                        <div className="h-4 w-16 bg-gray-300 dark:bg-gray-600 rounded ml-auto"></div>
+                      </div>
                     </div>
-                  </div>
-                ))
-              ) : (
-                availableCreators.map((creator) => (
-                  <div key={creator.id} className="text-right min-w-[120px]">
-                    <div className="text-sm font-semibold text-purple-700 dark:text-purple-300 truncate">
-                      {creator.name}
+                  ))
+                : availableCreators.map((creator) => (
+                    <div key={creator.id} className="text-right min-w-[120px]">
+                      <div className="text-sm font-semibold text-purple-700 dark:text-purple-300 truncate">
+                        {creator.name}
+                      </div>
                     </div>
-                  </div>
-                ))
-              )}
+                  ))}
             </div>
             {/* Search results count (all screens, below search) */}
             {searchQuery && (
@@ -345,6 +407,15 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
             )}
           </div>
 
+          {/* Debug info */}
+          {console.log("Render state:", {
+            loading,
+            availableCreators: availableCreators.length,
+            pricingData: pricingData.length,
+            filteredPricingData: filteredPricingData.length,
+            searchQuery,
+          })}
+
           {/* Accordion Rows */}
           {loading ? (
             <div className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -353,9 +424,12 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
                 <div key={groupIndex} className="px-6 py-6">
                   <div className="animate-pulse">
                     {/* Group header skeleton */}
-                    <div className={`grid grid-cols-1 gap-4 items-center mb-4`} style={{
-                      gridTemplateColumns: 'minmax(0,1fr) repeat(3, 120px)'
-                    }}>
+                    <div
+                      className={`grid grid-cols-1 gap-4 items-center mb-4`}
+                      style={{
+                        gridTemplateColumns: "minmax(0,1fr) repeat(3, 120px)",
+                      }}
+                    >
                       <div className="flex items-center space-x-4">
                         <div className="h-4 w-4 bg-gray-300 dark:bg-gray-600 rounded"></div>
                         <div className="space-y-2">
@@ -367,14 +441,21 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
                       <div className="hidden md:block"></div>
                       <div className="hidden md:block"></div>
                     </div>
-                    
+
                     {/* Items skeleton */}
                     <div className="border-l-2 border-gray-100 dark:border-gray-800 ml-2 pl-10 space-y-4">
                       {Array.from({ length: 4 }, (_, itemIndex) => (
-                        <div key={itemIndex} className={`py-4 ${itemIndex !== 0 ? "border-t border-gray-100 dark:border-gray-800" : ""}`}>
-                          <div className={`grid grid-cols-1 gap-4 items-center`} style={{
-                            gridTemplateColumns: 'minmax(0,1fr) repeat(3, 120px)'
-                          }}>
+                        <div
+                          key={itemIndex}
+                          className={`py-4 ${itemIndex !== 0 ? "border-t border-gray-100 dark:border-gray-800" : ""}`}
+                        >
+                          <div
+                            className={`grid grid-cols-1 gap-4 items-center`}
+                            style={{
+                              gridTemplateColumns:
+                                "minmax(0,1fr) repeat(3, 120px)",
+                            }}
+                          >
                             <div className="space-y-2">
                               <div className="h-4 w-28 bg-gray-300 dark:bg-gray-600 rounded"></div>
                               <div className="h-3 w-40 bg-gray-200 dark:bg-gray-700 rounded"></div>
@@ -390,7 +471,7 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
                 </div>
               ))}
             </div>
-          ) : filteredPricingData.length > 0 ? (
+          ) : filteredPricingData.length > 0 && availableCreators.length > 0 ? (
             <div className="divide-y divide-gray-100 dark:divide-gray-800">
               {filteredPricingData.map((group) => (
                 <PricingAccordionRow
@@ -402,7 +483,7 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
                 />
               ))}
             </div>
-          ) : availableCreators.length > 0 ? (
+          ) : availableCreators.length > 0 && pricingData.length === 0 ? (
             // Show a placeholder when we have assigned creators but no pricing data from Google Sheets
             <div className="px-6 py-16 text-center">
               <div className="text-gray-400 dark:text-gray-600">
@@ -411,7 +492,8 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
                 </div>
                 <p className="text-lg">Pricing data unavailable</p>
                 <p className="text-sm mt-1">
-                  No pricing information found for: {availableCreators.map(c => c.name).join(", ")}
+                  No pricing information found for:{" "}
+                  {availableCreators.map((c) => c.name).join(", ")}
                 </p>
               </div>
             </div>
@@ -427,7 +509,9 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
                 ) : (
                   <>
                     <p className="text-lg">No pricing data available</p>
-                    <p className="text-sm mt-1">Please check back later or contact support</p>
+                    <p className="text-sm mt-1">
+                      Please check back later or contact support
+                    </p>
                   </>
                 )}
               </div>
@@ -438,8 +522,8 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
         {/* Footer Note */}
         <div className="mt-6 text-center">
           <p className="text-xs text-gray-500 dark:text-gray-500">
-            Prices shown are base rates • Timeline and complexity may affect
-            final pricing
+            Prices shown are based on Client Basic Information and Notes on
+            Google Sheets final pricing
           </p>
         </div>
       </div>
