@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
-import { ChevronDown, Search, X, Sparkles } from "lucide-react";
+import { ChevronDown, Search, X, Sparkles, Edit2, Check, X as XIcon } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 interface PricingItem {
   id: string;
@@ -20,10 +21,19 @@ interface Creator {
   id: string;
   name: string;
   specialty: string;
+  rowNumber?: number; // Add row number for efficient updates
 }
 
 interface PricingGuideProps {
   creators?: Creator[];
+}
+
+interface EditingState {
+  creatorName: string;
+  itemName: string;
+  originalValue: string;
+  newValue: string;
+  creatorRowNumber?: number; // Add row number for efficient updates
 }
 
 // Retry helper function for API calls
@@ -70,7 +80,24 @@ const PricingAccordionRow: React.FC<{
   creators: Creator[];
   isOpen: boolean;
   onToggle: () => void;
-}> = ({ group, creators, isOpen, onToggle }) => {
+  isAdmin: boolean;
+  editingCell: EditingState | null;
+  onEditStart: (creatorName: string, itemName: string, currentValue: string, creatorRowNumber?: number) => void;
+  onEditSave: () => void;
+  onEditCancel: () => void;
+  onEditValueChange: (value: string) => void;
+}> = ({ 
+  group, 
+  creators, 
+  isOpen, 
+  onToggle, 
+  isAdmin, 
+  editingCell, 
+  onEditStart, 
+  onEditSave, 
+  onEditCancel, 
+  onEditValueChange 
+}) => {
   return (
     <div className="group">
       {/* Group Header */}
@@ -142,13 +169,56 @@ const PricingAccordionRow: React.FC<{
                       </p>
                     )}
                   </div>
-                  {creators.map((creator) => (
-                    <div key={creator.id} className="text-right">
-                      <div className="text-lg font-light text-gray-700 dark:text-gray-300 tabular-nums">
-                        {group.pricing[creator.name]?.[item.name] || "—"}
+                  {creators.map((creator) => {
+                    const currentValue = group.pricing[creator.name]?.[item.name] || "—";
+                    const isEditing = editingCell && 
+                      editingCell.creatorName === creator.name && 
+                      editingCell.itemName === item.name;
+                    
+                    return (
+                      <div key={creator.id} className="text-right">
+                        {isAdmin && !isEditing ? (
+                          <div className="group/price relative">
+                            <div className="text-lg font-light text-gray-700 dark:text-gray-300 tabular-nums group-hover/price:bg-gray-50 dark:group-hover/price:bg-gray-700 px-2 py-1 rounded cursor-pointer"
+                                 onClick={() => onEditStart(creator.name, item.name, currentValue, creator.rowNumber)}>
+                              {currentValue}
+                            </div>
+                            <Edit2 className="absolute -top-1 -right-1 h-3 w-3 text-gray-400 opacity-0 group-hover/price:opacity-100 transition-opacity" />
+                          </div>
+                        ) : isEditing ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="text"
+                              value={editingCell.newValue}
+                              onChange={(e) => onEditValueChange(e.target.value)}
+                              className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') onEditSave();
+                                if (e.key === 'Escape') onEditCancel();
+                              }}
+                            />
+                            <button 
+                              onClick={onEditSave}
+                              className="p-1 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+                            >
+                              <Check className="h-3 w-3" />
+                            </button>
+                            <button 
+                              onClick={onEditCancel}
+                              className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                            >
+                              <XIcon className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="text-lg font-light text-gray-700 dark:text-gray-300 tabular-nums">
+                            {currentValue}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ))}
@@ -160,12 +230,17 @@ const PricingAccordionRow: React.FC<{
 };
 
 const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
+  const { data: session } = useSession();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [pricingData, setPricingData] = useState<PricingGroup[]>([]);
   const [displayCreators, setDisplayCreators] = useState<Creator[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingCell, setEditingCell] = useState<EditingState | null>(null);
+  const [updateStatus, setUpdateStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  
+  const isAdmin = session?.user?.role === 'ADMIN';
 
   // Fetch data from Google Sheets only if assigned creators are available
   useEffect(() => {
@@ -223,11 +298,27 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
       pricingData: pricingData,
     });
 
-    // If creators prop is provided (from PodComponent), always use those creators
-    // Don't filter them based on pricing data - show them even if no pricing exists
+    // If creators prop is provided (from PodComponent), merge with displayCreators to get row numbers
     if (creators.length > 0) {
       console.log("Using creators prop:", creators);
-      return creators.slice(0, 3);
+      
+      // Create a map of displayCreators by name to get their row numbers
+      const displayCreatorMap = new Map();
+      displayCreators.forEach(creator => {
+        displayCreatorMap.set(creator.name.toLowerCase(), creator);
+      });
+      
+      // Merge prop creators with displayCreators to get row numbers
+      const mergedCreators = creators.map(creator => {
+        const displayCreator = displayCreatorMap.get(creator.name.toLowerCase());
+        return {
+          ...creator,
+          rowNumber: displayCreator?.rowNumber || creator.rowNumber
+        };
+      });
+      
+      console.log("Merged creators with row numbers:", mergedCreators);
+      return mergedCreators.slice(0, 3);
     }
 
     // Otherwise, use creators from Google Sheet that have pricing data
@@ -309,6 +400,78 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
     setSearchQuery("");
   };
 
+  const handleEditStart = (creatorName: string, itemName: string, currentValue: string, creatorRowNumber?: number) => {
+    setEditingCell({
+      creatorName,
+      itemName,
+      originalValue: currentValue,
+      newValue: currentValue === '—' ? '' : currentValue,
+      creatorRowNumber
+    });
+  };
+
+  const handleEditCancel = () => {
+    setEditingCell(null);
+  };
+
+  const handleEditValueChange = (value: string) => {
+    if (editingCell) {
+      setEditingCell({ ...editingCell, newValue: value });
+    }
+  };
+
+  const handleEditSave = async () => {
+    if (!editingCell || !isAdmin) return;
+
+    try {
+      setUpdateStatus(null);
+      
+      const response = await fetch('/api/pricing-update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          creatorName: editingCell.creatorName,
+          itemName: editingCell.itemName,
+          newPrice: editingCell.newValue,
+          creatorRowNumber: editingCell.creatorRowNumber
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update price');
+      }
+
+      // Update local state
+      setPricingData(prevData => 
+        prevData.map(group => ({
+          ...group,
+          pricing: {
+            ...group.pricing,
+            [editingCell.creatorName]: {
+              ...group.pricing[editingCell.creatorName],
+              [editingCell.itemName]: editingCell.newValue || '—'
+            }
+          }
+        }))
+      );
+
+      setUpdateStatus({ type: 'success', message: 'Price updated successfully!' });
+      setEditingCell(null);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setUpdateStatus(null), 3000);
+      
+    } catch (error) {
+      console.error('Error updating price:', error);
+      setUpdateStatus({ type: 'error', message: 'Failed to update price. Please try again.' });
+      
+      // Clear error message after 5 seconds
+      setTimeout(() => setUpdateStatus(null), 5000);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="max-w-5xl mx-auto">
@@ -323,15 +486,25 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
                 </div>
                 <div className="ml-3">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Pricing Guide
+                    Pricing Guide {isAdmin && <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full ml-2">Admin</span>}
                   </h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     Transparent pricing for all creative contents
                     {loading && " (Loading latest data...)"}
+                    {isAdmin && " • Click prices to edit"}
                   </p>
                   {error && (
                     <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
                       {error}
+                    </p>
+                  )}
+                  {updateStatus && (
+                    <p className={`text-xs mt-1 ${
+                      updateStatus.type === 'success' 
+                        ? 'text-green-600 dark:text-green-400' 
+                        : 'text-red-600 dark:text-red-400'
+                    }`}>
+                      {updateStatus.message}
                     </p>
                   )}
                 </div>
@@ -480,6 +653,12 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
                   creators={availableCreators}
                   isOpen={openGroups[group.id] || false}
                   onToggle={() => toggleGroup(group.id)}
+                  isAdmin={isAdmin}
+                  editingCell={editingCell}
+                  onEditStart={handleEditStart}
+                  onEditSave={handleEditSave}
+                  onEditCancel={handleEditCancel}
+                  onEditValueChange={handleEditValueChange}
                 />
               ))}
             </div>

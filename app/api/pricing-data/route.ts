@@ -76,11 +76,12 @@ export async function GET() {
     // Extract client names from column A (first column of data rows)
     const clientNames = allDataRows.map(row => row[0]).filter(Boolean);
 
-    // Create creators list
+    // Create creators list with row numbers (adding 2 because row 1 is headers and arrays are 0-indexed)
     const creators = clientNames.map((clientName, clientIndex) => ({
       id: `creator-${clientIndex}`,
       name: clientName.trim(),
       specialty: 'Content Creator',
+      rowNumber: clientIndex + 2, // Row number in the actual sheet (accounting for header row)
     }));
 
     // Helper function to create a pricing group from ranges
