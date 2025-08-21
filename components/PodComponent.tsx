@@ -94,6 +94,7 @@ const PodComponent = () => {
   const [driveError, setDriveError] = useState<string | null>(null);
   const [tasks, setTasks] = useState<any[]>([]);
   const [isTasksLoading, setIsTasksLoading] = useState(false);
+  const [pricingPreview, setPricingPreview] = useState<Array<{name: string, price: string, creator: string, totalCombinations?: number}>>([]);
 
   const fetchAvailableTeams = async () => {
     setIsLoadingTeams(true);
@@ -276,6 +277,98 @@ const PodComponent = () => {
     },
     [session]
   );
+
+  const fetchPricingPreview = useCallback(async () => {
+    if (!podData?.creators || podData.creators.length === 0) {
+      setPricingPreview([]);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/pricing-data');
+      if (!response.ok) {
+        // If pricing API fails, show content items with "—" prices
+        createFallbackPreview();
+        return;
+      }
+      
+      const data = await response.json();
+      if (!data.pricingData || !Array.isArray(data.pricingData)) {
+        createFallbackPreview();
+        return;
+      }
+
+      // Always show content items, even if creators don't have pricing
+      const contentItems: Array<{name: string, price: string, creator: string}> = [];
+      
+      // Get all available items from pricing data
+      const allItems: string[] = [];
+      data.pricingData.forEach((group: any) => {
+        if (group.items) {
+          group.items.forEach((item: any) => {
+            if (!allItems.includes(item.name)) {
+              allItems.push(item.name);
+            }
+          });
+        }
+      });
+
+      // Create preview with actual items but "—" prices if no pricing found
+      const itemsToShow = Math.min(allItems.length, podData.creators.length >= 3 ? 5 : podData.creators.length * 2);
+      const shuffledItems = allItems.sort(() => 0.5 - Math.random()).slice(0, itemsToShow);
+      
+      shuffledItems.forEach((itemName, index) => {
+        const creator = podData.creators[index % podData.creators.length];
+        
+        // Try to find actual price for this creator/item combination
+        let actualPrice = '—';
+        data.pricingData.forEach((group: any) => {
+          if (group.pricing && group.pricing[creator.name] && group.pricing[creator.name][itemName]) {
+            const price = group.pricing[creator.name][itemName];
+            if (price && price !== '—' && price.trim()) {
+              actualPrice = price;
+            }
+          }
+        });
+
+        contentItems.push({
+          name: itemName,
+          price: actualPrice,
+          creator: creator.name
+        });
+      });
+
+      // Calculate total possible combinations (24 items × number of creators)
+      const totalItems = 24 * podData.creators.length;
+
+      setPricingPreview(contentItems.map(item => ({ ...item, totalCombinations: totalItems })));
+      
+    } catch (error) {
+      createFallbackPreview();
+    }
+  }, [podData?.creators]);
+
+  const createFallbackPreview = useCallback(() => {
+    if (!podData?.creators || podData.creators.length === 0) return;
+
+    // Common content items as fallback
+    const commonItems = [
+      'Solo Content', 'Boy Girl', 'Custom Content', 'Video Call', 'Sexting',
+      'Live Show', 'Photos', 'Videos', 'Audio', 'Messages'
+    ];
+
+    const itemsToShow = Math.min(commonItems.length, podData.creators.length >= 3 ? 5 : podData.creators.length * 2);
+    const shuffledItems = commonItems.sort(() => 0.5 - Math.random()).slice(0, itemsToShow);
+    
+    const fallbackItems = shuffledItems.map((itemName, index) => ({
+      name: itemName,
+      price: '—',
+      creator: podData.creators[index % podData.creators.length].name,
+      totalCombinations: 24 * podData.creators.length
+    }));
+
+    setPricingPreview(fallbackItems);
+  }, [podData?.creators]);
 
   const fetchDriveSheets = useCallback(async () => {
     if (!podData?.creators || podData.creators.length === 0) {
@@ -521,6 +614,22 @@ const PodComponent = () => {
       fetchTasks(teamId);
     }
   }, [activeTab, selectedRow, fetchTasks]);
+
+  // Fetch pricing preview only when podData is fully loaded with creators
+  useEffect(() => {
+    if (
+      activeTab === "dashboard" && 
+      podData?.creators && 
+      podData.creators.length > 0 && 
+      !isLoading && // Wait until POD data is loaded
+      podData.lastUpdated // Ensure POD data has been fetched
+    ) {
+      fetchPricingPreview();
+    } else {
+      // Clear pricing preview if conditions aren't met
+      setPricingPreview([]);
+    }
+  }, [activeTab, podData?.creators, podData?.lastUpdated, isLoading, fetchPricingPreview]);
 
   const handleTabChange = (tab: "dashboard" | "sheets" | "board" | "admin" | "pricing") => {
     console.log("Tab change clicked:", tab, "Current viewMode:", viewMode);
@@ -936,7 +1045,12 @@ const PodComponent = () => {
                       isTasksLoading ? (
                         <WorkflowDashboardSkeleton />
                       ) : (
-                        <WorkflowDashboard tasks={tasks} />
+                        <WorkflowDashboard 
+                          tasks={tasks} 
+                          creators={podData?.creators || []}
+                          onPricingGuideClick={() => handleTabChange("pricing")}
+                          pricingPreview={pricingPreview}
+                        />
                       )
                     ) : (
                       <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6 text-center">
