@@ -121,11 +121,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Validate column and row limits
+    const columnNumber = itemColumnIndex + 1; // +1 because columns are 1-indexed
+    if (columnNumber > 100) { // Reasonable limit
+      return NextResponse.json(
+        { error: `Column ${columnNumber} is too high. Item "${itemName}" may not exist in this sheet.` },
+        { status: 400 }
+      );
+    }
+    
+    if (creatorRowIndex > 1000) { // Sheet limit
+      return NextResponse.json(
+        { error: `Row ${creatorRowIndex} exceeds sheet limits. Creator "${creatorName}" may not exist in this sheet.` },
+        { status: 400 }
+      );
+    }
+
     // Convert column index to letter notation (A, B, C, ..., Z, AA, AB, AC, etc.)
-    const columnLetter = numberToColumnLetter(itemColumnIndex + 1); // +1 because columns are 1-indexed
+    const columnLetter = numberToColumnLetter(columnNumber);
+    
+    console.log(`Updating cell: Client Info!${columnLetter}${creatorRowIndex} with value: "${newPrice}"`);
     
     // Update the specific cell
-    const updateRange = `${columnLetter}${creatorRowIndex}`;
+    const updateRange = `Client Info!${columnLetter}${creatorRowIndex}`;
     
     await sheets.spreadsheets.values.update({
       spreadsheetId: SHEET_ID,
