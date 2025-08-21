@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import { auth } from '@/auth';
 
-const SHEET_ID = '1wv_XfkNu5Iu3JUgNgUJoH7sfYeMJjOEvR9MtG36e7aA';
+const SHEET_ID = process.env.GOOGLE_DRIVE_SHEET_MODEL_NAMES;
 
 // Helper function to convert column number to letter notation (1=A, 2=B, ..., 27=AA, 28=AB, 29=AC, etc.)
 function numberToColumnLetter(columnNumber: number): string {
