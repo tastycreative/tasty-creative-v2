@@ -256,6 +256,17 @@ export const API_KEY_PROFILES = {
       },
     ],
   },
+  account_24: {
+    name: "OF Sharna's voice",
+    description: "Backup account for high-volume usage",
+    voices: [
+      {
+        name: "OF Sharna",
+        voiceId: "FxNQ5ZfzZG0tTtJVVNS3",
+        category: "professional",
+      },
+    ],
+  },
 };
 
 // Available ElevenLabs models
