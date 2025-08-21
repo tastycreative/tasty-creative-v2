@@ -64,7 +64,7 @@ export const TeamSelectorSkeleton = () => (
 export const WorkflowDashboardSkeleton = () => (
   <div className="space-y-6">
     {/* Dashboard Header - Match exact structure */}
-    <div className="border border-pink-200 dark:border-pink-500/30 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg">
+    <div className=" shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg">
       <div className="bg-gradient-to-r from-pink-50/50 to-rose-50/50 dark:from-pink-900/30 dark:to-rose-900/30 border-b border-pink-200 dark:border-pink-500/30 p-6">
         <h2 className="text-gray-900 dark:text-gray-100 font-bold flex items-center text-2xl">
           <div className="h-10 w-10 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center mr-4">
@@ -146,103 +146,159 @@ export const WorkflowDashboardSkeleton = () => (
     {/* Recent Tasks and Pricing Guide - Side by Side */}
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Recent Tasks */}
-      <div className="border border-pink-200 dark:border-pink-500/30 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg">
-        <div className="bg-gradient-to-r from-pink-50/50 to-rose-50/50 dark:from-pink-900/30 dark:to-rose-900/30 border-b border-pink-200 dark:border-pink-500/30 p-6">
-          <h2 className="text-gray-900 dark:text-gray-100 font-bold flex items-center text-lg">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center mr-3">
-              <span className="text-white text-sm">👤</span>
+      <div className="bg-white border-0 dark:bg-gray-900 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-none dark:ring-1 dark:ring-gray-800 overflow-hidden">
+        <div className="border-b border-gray-100 dark:border-gray-700 p-6">
+          <div className="text-gray-900 dark:text-gray-100 font-bold flex items-center text-lg">
+            <div className="p-2 bg-gradient-to-r from-pink-500 to-rose-600 rounded-lg mr-3">
+              <span className="h-5 w-5 text-white text-lg flex items-center justify-center">👤</span>
             </div>
-            Recent Tasks
-          </h2>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                Recent Tasks
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Latest team activity and progress
+              </p>
+            </div>
+          </div>
         </div>
         <div className="p-6">
           <div className="space-y-4">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <div key={index} className="p-4 rounded-lg border border-pink-200 dark:border-pink-500/30 bg-gradient-to-r from-pink-50/50 to-rose-50/50 dark:from-pink-900/20 dark:to-rose-900/20">
-                {/* Member Header */}
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="h-6 w-6 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center">
-                    <Skeleton className="h-3 w-3" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                      <Skeleton className="h-3 w-16" />
-                    </h3>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">
-                      <Skeleton className="h-3 w-12" />
-                    </p>
-                  </div>
+            {/* Tasks Table */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden">
+              {/* Table Header */}
+              <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+                <div className="text-sm font-semibold text-gray-900 dark:text-white text-left">
+                  Task
                 </div>
-                
-                {/* Task List */}
-                <div className="space-y-2">
-                  {Array.from({ length: 2 }).map((_, taskIndex) => (
-                    <div key={taskIndex} className="flex items-center justify-between p-2 rounded-lg bg-white/60 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-600">
-                      <div className="flex items-center space-x-2 flex-1">
-                        {/* Status Icon */}
+                <div className="text-sm font-semibold text-gray-900 dark:text-white text-center">
+                  Assignee
+                </div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-white text-right">
+                  Status
+                </div>
+              </div>
+
+              {/* Table Body */}
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <div key={index} className="grid grid-cols-3 gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors">
+                    <div className="text-left">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        <Skeleton className="h-4 w-32" />
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <Skeleton className="h-3 w-20" />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-center">
+                      <div className="flex items-center justify-center space-x-2">
+                        <div className="h-6 w-6 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center">
+                          <Skeleton className="h-3 w-3" />
+                        </div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white hidden sm:inline">
+                          <Skeleton className="h-4 w-16" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="flex items-center justify-end space-x-2">
                         <div className="p-1 rounded-full bg-gray-100 dark:bg-gray-700">
                           <Skeleton className="h-3 w-3" />
                         </div>
-                        
-                        {/* Task Title */}
-                        <span className="text-xs font-medium flex-1 text-gray-900 dark:text-gray-100">
-                          <Skeleton className="h-3 w-24" />
+                        <span className="text-xs px-2 py-1 rounded-full font-medium bg-gray-100 dark:bg-gray-700">
+                          <Skeleton className="h-3 w-12" />
                         </span>
                       </div>
-                      
-                      {/* Status Badge */}
-                      <span className="text-xs px-2 py-1 rounded-full font-medium bg-gray-100 dark:bg-gray-700">
-                        <Skeleton className="h-3 w-8" />
-                      </span>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+
+            {/* Summary */}
+            <div className="text-center py-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+              <div className="text-sm font-medium text-gray-900 dark:text-white">
+                <Skeleton className="h-4 w-20 mx-auto" />
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <Skeleton className="h-3 w-32 mx-auto" />
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Pricing Guide Shortcut */}
-      <div className="border border-purple-200 dark:border-purple-500/30 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg">
-        <div className="bg-gradient-to-r from-purple-50/50 to-indigo-50/50 dark:from-purple-900/30 dark:to-indigo-900/30 border-b border-purple-200 dark:border-purple-500/30 p-6">
-          <h2 className="text-gray-900 dark:text-gray-100 font-bold flex items-center justify-between text-lg">
+      <div className="bg-white border-0 dark:bg-gray-900 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-none dark:ring-1 dark:ring-gray-800 overflow-hidden">
+        <div className="border-b border-gray-100 dark:border-gray-700 p-6">
+          <div className="text-gray-900 dark:text-gray-100 font-bold flex items-center justify-between text-lg">
             <div className="flex items-center">
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mr-3">
-                <span className="h-4 w-4 text-white">✨</span>
+              <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg mr-3">
+                <span className="h-5 w-5 text-white">✨</span>
               </div>
-              Pricing Guide
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Pricing Guide
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Quick preview of content pricing
+                </p>
+              </div>
             </div>
             <div className="text-purple-600 dark:text-purple-400">
               <Skeleton className="h-4 w-4" />
             </div>
-          </h2>
+          </div>
         </div>
         <div className="p-6">
           <div className="space-y-4">
-            {/* Pricing Items Preview */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Preview Contents</h4>
-              {Array.from({ length: 4 }).map((_, index) => (
-                <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-purple-50/50 to-indigo-50/50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-500/30">
-                  <div className="flex-1 min-w-0">
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100 block">
-                      <Skeleton className="h-4 w-24" />
-                    </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      <Skeleton className="h-3 w-16" />
-                    </span>
-                  </div>
-                  <span className="text-sm font-bold text-purple-600 dark:text-purple-400 ml-2">
-                    <Skeleton className="h-4 w-8" />
-                  </span>
+            {/* Mini Pricing Table */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden">
+              {/* Table Header */}
+              <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+                <div className="text-sm font-semibold text-gray-900 dark:text-white text-left">
+                  Content Item
                 </div>
-              ))}
-              
-              <div className="text-center pt-2">
-                <span className="text-xs text-gray-500 dark:text-gray-400">
-                  <Skeleton className="h-3 w-32 mx-auto" />
-                </span>
+                <div className="text-sm font-semibold text-gray-900 dark:text-white text-right">
+                  Price
+                </div>
+              </div>
+
+              {/* Table Body */}
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div key={index} className="grid grid-cols-2 gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors">
+                    <div className="text-left">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        <Skeleton className="h-4 w-24" />
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-300 tabular-nums">
+                        <Skeleton className="h-4 w-8" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Progress Bar Skeleton */}
+            <div className="px-4">
+              <Skeleton className="h-1 w-full rounded-full" />
+            </div>
+
+            {/* Summary */}
+            <div className="text-center py-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+              <div className="text-sm font-medium text-gray-900 dark:text-white">
+                <Skeleton className="h-4 w-24 mx-auto" />
+              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <Skeleton className="h-3 w-32 mx-auto" />
               </div>
             </div>
 

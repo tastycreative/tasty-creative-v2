@@ -1,14 +1,35 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, Play, CheckCircle2, XCircle, Sparkles, ExternalLink } from 'lucide-react';
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Clock,
+  Play,
+  CheckCircle2,
+  XCircle,
+  Sparkles,
+  ExternalLink,
+} from "lucide-react";
 
 // Simple Progress component
-const Progress = ({ value, className }: { value: number; className?: string }) => (
-  <div className={`w-full bg-gray-200 dark:bg-gray-700 rounded-full ${className}`}>
+const Progress = ({
+  value,
+  className,
+  subtle = false,
+}: {
+  value: number;
+  className?: string;
+  subtle?: boolean;
+}) => (
+  <div
+    className={`w-full bg-gray-100 dark:bg-gray-800 rounded-full ${className}`}
+  >
     <div
-      className="bg-gradient-to-r from-purple-500 to-blue-600 dark:from-purple-400 dark:to-blue-500 h-full rounded-full transition-all duration-300"
+      className={`h-full rounded-full transition-all duration-300 ${
+        subtle 
+          ? "bg-gray-300 dark:bg-gray-600" 
+          : "bg-gradient-to-r from-purple-500 to-blue-600 dark:from-purple-400 dark:to-blue-500"
+      }`}
       style={{ width: `${Math.min(Math.max(value, 0), 100)}%` }}
     ></div>
   </div>
@@ -16,40 +37,44 @@ const Progress = ({ value, className }: { value: number; className?: string }) =
 
 // Status configuration matching the Board component
 const statusConfig = {
-  'not-started': {
-    label: 'Not Started',
+  "not-started": {
+    label: "Not Started",
     icon: Clock,
-    color: 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600',
-    bgColor: 'bg-gray-50 dark:bg-gray-800/50'
+    color:
+      "bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600",
+    bgColor: "bg-gray-50 dark:bg-gray-800/50",
   },
-  'in-progress': {
-    label: 'In Progress',
+  "in-progress": {
+    label: "In Progress",
     icon: Play,
-    color: 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-600',
-    bgColor: 'bg-blue-50 dark:bg-blue-900/20'
+    color:
+      "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-600",
+    bgColor: "bg-blue-50 dark:bg-blue-900/20",
   },
-  'completed': {
-    label: 'Completed',
+  completed: {
+    label: "Completed",
     icon: CheckCircle2,
-    color: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-600',
-    bgColor: 'bg-green-50 dark:bg-green-900/20'
+    color:
+      "bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-600",
+    bgColor: "bg-green-50 dark:bg-green-900/20",
   },
-  'review': {
-    label: 'Cancelled',
+  review: {
+    label: "Cancelled",
     icon: XCircle,
-    color: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-600',
-    bgColor: 'bg-red-50 dark:bg-red-900/20'
-  }
+    color:
+      "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-600",
+    bgColor: "bg-red-50 dark:bg-red-900/20",
+  },
 };
 
 interface Task {
   id: string;
   title: string;
   assignee: string;
-  status: 'not-started' | 'in-progress' | 'review' | 'completed';
+  status: "not-started" | "in-progress" | "review" | "completed";
   progress: number;
   dueDate: string;
-  priority: 'low' | 'medium' | 'high';
+  priority: "low" | "medium" | "high";
 }
 
 interface Creator {
@@ -71,22 +96,27 @@ interface WorkflowDashboardProps {
   creators?: Creator[];
   onPricingGuideClick?: () => void;
   pricingPreview?: PricingItem[];
+  pricingRotationProgress?: number;
 }
 
 const WorkflowDashboard: React.FC<WorkflowDashboardProps> = ({
   tasks = [],
   creators = [],
   onPricingGuideClick,
-  pricingPreview = []
+  pricingPreview = [],
+  pricingRotationProgress = 0,
 }) => {
-  const completedTasks = tasks.filter(task => task.status === 'completed').length;
+  const completedTasks = tasks.filter(
+    (task) => task.status === "completed"
+  ).length;
   const totalTasks = tasks.length;
-  const overallProgress = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+  const overallProgress =
+    totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
   return (
     <div className="space-y-6">
       {/* Dashboard Header */}
-      <Card className="border border-pink-200 dark:border-pink-500/30 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+      <Card className="bg-white border-0 dark:bg-gray-900 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-none dark:ring-1 dark:ring-gray-800 overflow-hidden">
         <CardHeader className="bg-gradient-to-r from-pink-50/50 to-rose-50/50 dark:from-pink-900/30 dark:to-rose-900/30 border-b border-pink-200 dark:border-pink-500/30">
           <CardTitle className="text-gray-900 dark:text-gray-100 font-bold flex items-center text-2xl">
             <div className="h-10 w-10 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center mr-4">
@@ -100,7 +130,9 @@ const WorkflowDashboard: React.FC<WorkflowDashboardProps> = ({
             {/* Overall Progress */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Overall Progress</h3>
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  Overall Progress
+                </h3>
                 <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
                   {completedTasks}/{totalTasks} completed
                 </span>
@@ -113,52 +145,79 @@ const WorkflowDashboard: React.FC<WorkflowDashboardProps> = ({
 
             {/* Status Summary */}
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Status Summary</h3>
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                Status Summary
+              </h3>
               <div className="grid grid-cols-2 gap-2">
                 <div className="text-center p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <p className="text-lg font-bold text-green-600 dark:text-green-400">{completedTasks}</p>
-                  <p className="text-xs text-green-700 dark:text-green-300">Completed</p>
+                  <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                    {completedTasks}
+                  </p>
+                  <p className="text-xs text-green-700 dark:text-green-300">
+                    Completed
+                  </p>
                 </div>
                 <div className="text-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                   <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                    {tasks.filter(t => t.status === 'in-progress').length}
+                    {tasks.filter((t) => t.status === "in-progress").length}
                   </p>
-                  <p className="text-xs text-blue-700 dark:text-blue-300">In Progress</p>
+                  <p className="text-xs text-blue-700 dark:text-blue-300">
+                    In Progress
+                  </p>
                 </div>
                 <div className="text-center p-2 bg-gray-50 dark:bg-gray-900/20 rounded-lg">
                   <p className="text-lg font-bold text-gray-600 dark:text-gray-400">
-                    {tasks.filter(t => t.status === 'not-started').length}
+                    {tasks.filter((t) => t.status === "not-started").length}
                   </p>
-                  <p className="text-xs text-gray-700 dark:text-gray-300">Not Started</p>
+                  <p className="text-xs text-gray-700 dark:text-gray-300">
+                    Not Started
+                  </p>
                 </div>
                 <div className="text-center p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
                   <p className="text-lg font-bold text-red-600 dark:text-red-400">
-                    {tasks.filter(t => t.status === 'review').length}
+                    {tasks.filter((t) => t.status === "review").length}
                   </p>
-                  <p className="text-xs text-red-700 dark:text-red-300">Cancelled</p>
+                  <p className="text-xs text-red-700 dark:text-red-300">
+                    Cancelled
+                  </p>
                 </div>
               </div>
             </div>
 
             {/* Team Performance */}
             <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Team Performance</h3>
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                Team Performance
+              </h3>
               <div className="space-y-2">
-                {Array.from(new Set(tasks.map(t => t.assignee))).map(assignee => {
-                  const memberTasks = tasks.filter(t => t.assignee === assignee);
-                  const completedCount = memberTasks.filter(t => t.status === 'completed').length;
-                  const memberProgress = memberTasks.length > 0 ? (completedCount / memberTasks.length) * 100 : 0;
-                  
-                  return (
-                    <div key={assignee} className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{assignee}</span>
-                        <span className="text-xs text-gray-500 dark:text-gray-500">{memberProgress.toFixed(0)}%</span>
+                {Array.from(new Set(tasks.map((t) => t.assignee))).map(
+                  (assignee) => {
+                    const memberTasks = tasks.filter(
+                      (t) => t.assignee === assignee
+                    );
+                    const completedCount = memberTasks.filter(
+                      (t) => t.status === "completed"
+                    ).length;
+                    const memberProgress =
+                      memberTasks.length > 0
+                        ? (completedCount / memberTasks.length) * 100
+                        : 0;
+
+                    return (
+                      <div key={assignee} className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                            {assignee}
+                          </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-500">
+                            {memberProgress.toFixed(0)}%
+                          </span>
+                        </div>
+                        <Progress value={memberProgress} className="h-2" />
                       </div>
-                      <Progress value={memberProgress} className="h-2" />
-                    </div>
-                  );
-                })}
+                    );
+                  }
+                )}
               </div>
             </div>
           </div>
@@ -168,94 +227,148 @@ const WorkflowDashboard: React.FC<WorkflowDashboardProps> = ({
       {/* Recent Tasks and Pricing Guide */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Task List */}
-        <Card className="border border-pink-200 dark:border-pink-500/30 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-          <CardHeader className="bg-gradient-to-r from-pink-50/50 to-rose-50/50 dark:from-pink-900/30 dark:to-rose-900/30 border-b border-pink-200 dark:border-pink-500/30">
+        <Card className="bg-white border-0 dark:bg-gray-900 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-none dark:ring-1 dark:ring-gray-800 overflow-hidden">
+          <CardHeader className="border-b border-gray-100 dark:border-gray-700 p-6">
             <CardTitle className="text-gray-900 dark:text-gray-100 font-bold flex items-center text-lg">
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center mr-3">
-                <span className="text-white text-sm">👤</span>
+              <div className="p-2 bg-gradient-to-r from-pink-500 to-rose-600 rounded-lg mr-3">
+                <span className="h-5 w-5 text-white text-lg flex items-center justify-center">
+                  👤
+                </span>
               </div>
-              Recent Tasks
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Recent Tasks
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Latest team activity and progress
+                </p>
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-          {tasks.length > 0 ? (
-            <div className="space-y-4">
-              {Array.from(new Set(tasks.map(t => t.assignee))).slice(0, 3).map(assignee => {
-                const memberTasks = tasks.filter(t => t.assignee === assignee).slice(0, 3); // Limit to 3 tasks per member
-                
-                return (
-                  <div key={assignee} className="p-4 rounded-lg border border-pink-200 dark:border-pink-500/30 bg-gradient-to-r from-pink-50/50 to-rose-50/50 dark:from-pink-900/20 dark:to-rose-900/20">
-                    {/* Member Header */}
-                    <div className="flex items-center space-x-3 mb-3">
-                      <div className="h-6 w-6 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center">
-                        <span className="text-white text-xs font-bold">
-                          {assignee.split(' ').map(n => n[0]).join('')}
-                        </span>
-                      </div>
-                      <div>
-                        <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100">{assignee}</h3>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">{tasks.filter(t => t.assignee === assignee).length} tasks</p>
-                      </div>
+            {tasks.length > 0 ? (
+              <div className="space-y-4">
+                {/* Tasks Table */}
+                <div className="bg-white dark:bg-gray-800  rounded-lg overflow-hidden">
+                  {/* Table Header */}
+                  <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+                    <div className="text-sm font-semibold text-gray-900 dark:text-white text-left">
+                      Task
                     </div>
-                    
-                    {/* Task List with Status Badges */}
-                    <div className="space-y-2">
-                      {memberTasks.map((task) => {
-                        const config = statusConfig[task.status];
-                        const IconComponent = config.icon;
-                        
-                        return (
-                          <div key={task.id} className="flex items-center justify-between p-2 rounded-lg bg-white/60 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-600">
-                            <div className="flex items-center space-x-2 flex-1">
-                              {/* Status Icon */}
-                              <div className={`p-1 rounded-full ${config.color}`}>
-                                <IconComponent className="h-3 w-3" />
-                              </div>
-                              
-                              {/* Task Title */}
-                              <span className={`text-xs font-medium flex-1 ${task.status === 'completed' ? 'line-through text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-gray-100'}`}>
-                                {task.title}
-                              </span>
-                            </div>
-                            
-                            {/* Status Badge */}
-                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${config.color}`}>
-                              {config.label}
-                            </span>
-                          </div>
-                        );
-                      })}
+                    <div className="text-sm font-semibold text-gray-900 dark:text-white text-center">
+                      Assignee
+                    </div>
+                    <div className="text-sm font-semibold text-gray-900 dark:text-white text-right">
+                      Status
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-pink-100 to-rose-100 dark:from-pink-900/20 dark:to-rose-900/20 flex items-center justify-center mx-auto mb-3">
-                <span className="text-xl">📋</span>
+
+                  {/* Table Body */}
+                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {tasks.slice(0, 5).map((task) => {
+                      const config = statusConfig[task.status];
+                      const IconComponent = config.icon;
+
+                      return (
+                        <div
+                          key={task.id}
+                          className="grid grid-cols-3 gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors"
+                        >
+                          <div className="text-left">
+                            <div
+                              className={`text-sm font-medium ${task.status === "completed" ? "line-through text-gray-500 dark:text-gray-400" : "text-gray-900 dark:text-white"}`}
+                            >
+                              {task.title}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              Due: {new Date(task.dueDate).toLocaleDateString()}
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <div className="flex items-center justify-start space-x-2">
+                              <div className="h-6 w-6 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center">
+                                <span className="text-white text-xs font-bold">
+                                  {task.assignee
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")}
+                                </span>
+                              </div>
+                              <span className="text-sm font-medium text-gray-900 dark:text-white hidden sm:inline">
+                                {task.assignee}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="flex items-center justify-end space-x-2">
+                              <div
+                                className={`p-1 rounded-full ${config.color}`}
+                              >
+                                <IconComponent className="h-3 w-3" />
+                              </div>
+                              <span
+                                className={`text-xs px-2 py-1 rounded-full font-medium ${config.color}`}
+                              >
+                                {config.label}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Summary */}
+                {tasks.length > 5 && (
+                  <div className="text-center py-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                    <div className="text-sm font-medium text-gray-900 dark:text-white">
+                      {tasks.length} Total Tasks
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Showing 5 of {tasks.length} recent tasks
+                    </div>
+                  </div>
+                )}
               </div>
-              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">No tasks found</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                No tasks assigned to this team yet.
-              </p>
-            </div>
-          )}
+            ) : (
+              <div className="text-center py-12">
+                <div className="p-3 bg-gradient-to-r from-pink-500 to-rose-600 rounded-lg w-fit mx-auto mb-4">
+                  <span className="h-6 w-6 text-white text-xl flex items-center justify-center">
+                    📋
+                  </span>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                  No tasks found
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  No tasks assigned to this team yet. Tasks will appear here
+                  once created.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 
         {/* Pricing Guide Shortcut */}
-        <Card className="border border-purple-200 dark:border-purple-500/30 shadow-lg bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-          <CardHeader className="bg-gradient-to-r from-purple-50/50 to-indigo-50/50 dark:from-purple-900/30 dark:to-indigo-900/30 border-b border-purple-200 dark:border-purple-500/30">
+        <Card className="bg-white border-0 dark:bg-gray-900 rounded-2xl shadow-lg shadow-gray-200/50 dark:shadow-none dark:ring-1 dark:ring-gray-800 overflow-hidden">
+          <CardHeader className="border-b border-gray-100 dark:border-gray-700 p-6">
             <CardTitle className="text-gray-900 dark:text-gray-100 font-bold flex items-center justify-between text-lg">
               <div className="flex items-center">
-                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center mr-3">
-                  <Sparkles className="h-4 w-4 text-white" />
+                <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg mr-3">
+                  <Sparkles className="h-5 w-5 text-white" />
                 </div>
-                Pricing Guide
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Pricing Guide
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Quick preview of content pricing
+                  </p>
+                </div>
               </div>
               {onPricingGuideClick && (
-                <button 
+                <button
                   onClick={onPricingGuideClick}
                   className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
                 >
@@ -267,42 +380,70 @@ const WorkflowDashboard: React.FC<WorkflowDashboardProps> = ({
           <CardContent className="p-6">
             {pricingPreview.length > 0 ? (
               <div className="space-y-4">
-                {/* Pricing Items Preview */}
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Preview Contents</h4>
-                  {pricingPreview.slice(0, 4).map((item, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-purple-50/50 to-indigo-50/50 dark:from-purple-900/20 dark:to-indigo-900/20 border border-purple-200 dark:border-purple-500/30">
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100 block truncate">
-                          {item.name}
-                        </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {item.creator}
-                        </span>
+                {/* Mini Pricing Table */}
+                <div className="bg-white dark:bg-gray-800  rounded-lg overflow-hidden">
+                  {/* Table Header */}
+                  <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+                    <div className="text-sm font-semibold text-gray-900 dark:text-white text-left">
+                      Content Item
+                    </div>
+                    <div className="text-sm font-semibold text-gray-900 dark:text-white text-right">
+                      Price
+                    </div>
+                  </div>
+
+                  {/* Table Body */}
+                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {pricingPreview.slice(0, 4).map((item, index) => (
+                      <div
+                        key={index}
+                        className="grid grid-cols-2 gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors"
+                      >
+                        <div className="text-left">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {item.name}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {item.creator}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-lg font-light text-gray-700 dark:text-gray-300 tabular-nums">
+                            {item.price}
+                          </div>
+                        </div>
                       </div>
-                      <span className="text-sm font-bold text-purple-600 dark:text-purple-400 ml-2">
-                        {item.price}
-                      </span>
-                    </div>
-                  ))}
-                  
-                  {pricingPreview.length > 0 && (
-                    <div className="text-center pt-2">
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {pricingPreview[0]?.totalCombinations ? 
-                          `+${pricingPreview[0].totalCombinations - Math.min(pricingPreview.length, 4)} more pricing combinations` :
-                          `+${Math.max(pricingPreview.length - 4, 0)} more pricing combinations`
-                        }
-                      </span>
-                    </div>
-                  )}
+                    ))}
+                  </div>
                 </div>
+
+                {/* Progress Bar */}
+                <div className="px-4">
+                  <Progress value={pricingRotationProgress} className="h-1" subtle />
+                </div>
+
+                {/* Summary */}
+                {pricingPreview.length > 0 && (
+                  <div className="text-center py-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                    <div className="text-sm font-medium text-gray-900 dark:text-white">
+                      {pricingPreview[0]?.totalCombinations ||
+                        pricingPreview.length}{" "}
+                      Total Contents
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Showing {Math.min(pricingPreview.length, 4)} of{" "}
+                      {pricingPreview[0]?.totalCombinations ||
+                        pricingPreview.length}{" "}
+                      pricing options
+                    </div>
+                  </div>
+                )}
 
                 {/* View All Button */}
                 {onPricingGuideClick && (
                   <button
                     onClick={onPricingGuideClick}
-                    className="w-full mt-4 px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] text-sm font-medium flex items-center justify-center space-x-2"
+                    className="w-full mt-4 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white rounded-lg transition-all duration-200 shadow-md hover:shadow-lg text-sm font-medium flex items-center justify-center space-x-2"
                   >
                     <span>View Full Pricing Guide</span>
                     <ExternalLink className="h-4 w-4" />
@@ -310,20 +451,22 @@ const WorkflowDashboard: React.FC<WorkflowDashboardProps> = ({
                 )}
               </div>
             ) : (
-              <div className="text-center py-8">
-                <div className="h-12 w-12 rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/20 dark:to-indigo-900/20 flex items-center justify-center mx-auto mb-3">
-                  <Sparkles className="h-6 w-6 text-purple-500 dark:text-purple-400" />
+              <div className="text-center py-12">
+                <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg w-fit mx-auto mb-4">
+                  <Sparkles className="h-6 w-6 text-white" />
                 </div>
-                <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">No creators assigned</h3>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
-                  Assign creators to see pricing information.
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                  No pricing data available
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                  Assign creators to your team to see pricing information
                 </p>
                 {onPricingGuideClick && (
                   <button
                     onClick={onPricingGuideClick}
-                    className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 text-xs font-medium transition-colors"
+                    className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white rounded-lg transition-all duration-200 shadow-md hover:shadow-lg text-sm font-medium"
                   >
-                    Browse Pricing Guide →
+                    Browse Full Pricing Guide
                   </button>
                 )}
               </div>

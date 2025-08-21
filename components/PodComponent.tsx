@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import {
   Users,
@@ -95,6 +95,10 @@ const PodComponent = () => {
   const [tasks, setTasks] = useState<any[]>([]);
   const [isTasksLoading, setIsTasksLoading] = useState(false);
   const [pricingPreview, setPricingPreview] = useState<Array<{name: string, price: string, creator: string, totalCombinations?: number}>>([]);
+  const [isPricingPreviewLoading, setIsPricingPreviewLoading] = useState(false);
+  const [pricingRotationProgress, setPricingRotationProgress] = useState(0);
+  const [allPricingData, setAllPricingData] = useState<Array<{name: string, price: string, creator: string, totalCombinations?: number}>>([]);
+  const lastFetchedCreators = useRef<string>('');
 
   const fetchAvailableTeams = async () => {
     setIsLoadingTeams(true);
@@ -281,8 +285,11 @@ const PodComponent = () => {
   const fetchPricingPreview = useCallback(async () => {
     if (!podData?.creators || podData.creators.length === 0) {
       setPricingPreview([]);
+      setIsPricingPreviewLoading(false);
       return;
     }
+
+    setIsPricingPreviewLoading(true);
 
     try {
       const response = await fetch('/api/pricing-data');
@@ -313,38 +320,46 @@ const PodComponent = () => {
         }
       });
 
-      // Create preview with actual items but "—" prices if no pricing found
-      const itemsToShow = Math.min(allItems.length, podData.creators.length >= 3 ? 5 : podData.creators.length * 2);
-      const shuffledItems = allItems.sort(() => 0.5 - Math.random()).slice(0, itemsToShow);
+      // Create all possible item combinations for rotation
+      const allCombinations: Array<{name: string, price: string, creator: string}> = [];
       
-      shuffledItems.forEach((itemName, index) => {
-        const creator = podData.creators[index % podData.creators.length];
-        
-        // Try to find actual price for this creator/item combination
-        let actualPrice = '—';
-        data.pricingData.forEach((group: any) => {
-          if (group.pricing && group.pricing[creator.name] && group.pricing[creator.name][itemName]) {
-            const price = group.pricing[creator.name][itemName];
-            if (price && price !== '—' && price.trim()) {
-              actualPrice = price;
+      allItems.forEach((itemName) => {
+        podData.creators.forEach((creator) => {
+          // Try to find actual price for this creator/item combination
+          let actualPrice = '—';
+          data.pricingData.forEach((group: any) => {
+            if (group.pricing && group.pricing[creator.name] && group.pricing[creator.name][itemName]) {
+              const price = group.pricing[creator.name][itemName];
+              if (price && price !== '—' && price.trim()) {
+                actualPrice = price;
+              }
             }
-          }
-        });
+          });
 
-        contentItems.push({
-          name: itemName,
-          price: actualPrice,
-          creator: creator.name
+          allCombinations.push({
+            name: itemName,
+            price: actualPrice,
+            creator: creator.name
+          });
         });
       });
 
-      // Calculate total possible combinations (24 items × number of creators)
-      const totalItems = 24 * podData.creators.length;
+      // Calculate total possible combinations
+      const totalItems = allCombinations.length;
 
-      setPricingPreview(contentItems.map(item => ({ ...item, totalCombinations: totalItems })));
+      // Store all data for rotation
+      const allDataWithTotal = allCombinations.map(item => ({ ...item, totalCombinations: totalItems }));
+      setAllPricingData(allDataWithTotal);
+
+      // Show initial subset
+      const itemsToShow = Math.min(allCombinations.length, podData.creators.length >= 3 ? 5 : podData.creators.length * 2);
+      const shuffledItems = allCombinations.sort(() => 0.5 - Math.random()).slice(0, itemsToShow);
+      setPricingPreview(shuffledItems.map(item => ({ ...item, totalCombinations: totalItems })));
       
     } catch (error) {
       createFallbackPreview();
+    } finally {
+      setIsPricingPreviewLoading(false);
     }
   }, [podData?.creators]);
 
@@ -354,20 +369,38 @@ const PodComponent = () => {
     // Common content items as fallback
     const commonItems = [
       'Solo Content', 'Boy Girl', 'Custom Content', 'Video Call', 'Sexting',
-      'Live Show', 'Photos', 'Videos', 'Audio', 'Messages'
+      'Live Show', 'Photos', 'Videos', 'Audio', 'Messages', 'GFE', 'Fetish',
+      'Dick Rating', 'Custom Photos', 'Custom Videos', 'Live Chat', 'Voice Notes',
+      'Text Chat', 'Cam Show', 'Strip Tease', 'Roleplay', 'ASMR', 'JOI', 'Tribute'
     ];
 
-    const itemsToShow = Math.min(commonItems.length, podData.creators.length >= 3 ? 5 : podData.creators.length * 2);
-    const shuffledItems = commonItems.sort(() => 0.5 - Math.random()).slice(0, itemsToShow);
+    // Create all combinations for rotation
+    const allCombinations: Array<{name: string, price: string, creator: string}> = [];
     
-    const fallbackItems = shuffledItems.map((itemName, index) => ({
-      name: itemName,
-      price: '—',
-      creator: podData.creators[index % podData.creators.length].name,
-      totalCombinations: 24 * podData.creators.length
-    }));
+    commonItems.forEach((itemName) => {
+      podData.creators.forEach((creator) => {
+        allCombinations.push({
+          name: itemName,
+          price: '—',
+          creator: creator.name
+        });
+      });
+    });
+
+    const totalItems = allCombinations.length;
+    
+    // Store all data for rotation
+    const allDataWithTotal = allCombinations.map(item => ({ ...item, totalCombinations: totalItems }));
+    setAllPricingData(allDataWithTotal);
+
+    // Show initial subset
+    const itemsToShow = Math.min(allCombinations.length, podData.creators.length >= 3 ? 5 : podData.creators.length * 2);
+    const shuffledItems = allCombinations.sort(() => 0.5 - Math.random()).slice(0, itemsToShow);
+    
+    const fallbackItems = shuffledItems.map(item => ({ ...item, totalCombinations: totalItems }));
 
     setPricingPreview(fallbackItems);
+    setIsPricingPreviewLoading(false);
   }, [podData?.creators]);
 
   const fetchDriveSheets = useCallback(async () => {
@@ -617,19 +650,60 @@ const PodComponent = () => {
 
   // Fetch pricing preview only when podData is fully loaded with creators
   useEffect(() => {
+    const creatorsKey = podData?.creators?.map(c => c.name).sort().join(',') || '';
+    
     if (
       activeTab === "dashboard" && 
       podData?.creators && 
       podData.creators.length > 0 && 
       !isLoading && // Wait until POD data is loaded
-      podData.lastUpdated // Ensure POD data has been fetched
+      podData.lastUpdated && // Ensure POD data has been fetched
+      !isPricingPreviewLoading && // Don't start new fetch if already loading
+      lastFetchedCreators.current !== creatorsKey // Only fetch if creators changed
     ) {
+      lastFetchedCreators.current = creatorsKey;
       fetchPricingPreview();
-    } else {
-      // Clear pricing preview if conditions aren't met
+    } else if (activeTab === "dashboard" && (!podData?.creators || podData.creators.length === 0) && !isLoading) {
+      // Clear data when no creators
       setPricingPreview([]);
+      setAllPricingData([]);
+      setPricingRotationProgress(0);
+      setIsPricingPreviewLoading(false);
+      lastFetchedCreators.current = '';
     }
-  }, [activeTab, podData?.creators, podData?.lastUpdated, isLoading, fetchPricingPreview]);
+  }, [activeTab, podData?.creators, podData?.lastUpdated, isLoading, isPricingPreviewLoading]);
+
+  // Auto-rotate pricing preview every 5 seconds with progress bar
+  useEffect(() => {
+    if (
+      activeTab === "dashboard" && 
+      allPricingData.length > 0 && 
+      !isPricingPreviewLoading &&
+      podData?.creators &&
+      podData.creators.length > 0
+    ) {
+      const interval = setInterval(() => {
+        // Rotate to new random items
+        const itemsToShow = Math.min(allPricingData.length, podData.creators.length >= 3 ? 5 : podData.creators.length * 2);
+        const shuffledItems = [...allPricingData].sort(() => 0.5 - Math.random()).slice(0, itemsToShow);
+        setPricingPreview(shuffledItems);
+        setPricingRotationProgress(0); // Reset progress
+      }, 5000); // 5 seconds
+
+      // Progress bar animation
+      const progressInterval = setInterval(() => {
+        setPricingRotationProgress(prev => {
+          if (prev >= 100) return 0;
+          return prev + 2; // Update every 100ms, reach 100% in 5 seconds
+        });
+      }, 100);
+
+      return () => {
+        clearInterval(interval);
+        clearInterval(progressInterval);
+      };
+    }
+  }, [activeTab, allPricingData, isPricingPreviewLoading, podData?.creators]);
 
   const handleTabChange = (tab: "dashboard" | "sheets" | "board" | "admin" | "pricing") => {
     console.log("Tab change clicked:", tab, "Current viewMode:", viewMode);
@@ -1050,6 +1124,7 @@ const PodComponent = () => {
                           creators={podData?.creators || []}
                           onPricingGuideClick={() => handleTabChange("pricing")}
                           pricingPreview={pricingPreview}
+                          pricingRotationProgress={pricingRotationProgress}
                         />
                       )
                     ) : (
