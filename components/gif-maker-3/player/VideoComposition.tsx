@@ -153,7 +153,7 @@ const VideoComposition: React.FC<VideoCompositionProps> = memo(
     const videoSequences = useMemo(() => {
       const sequences: JSX.Element[] = [];
       
-      // For single layout, render all video clips without layer complexity
+      // For single layout, render all video clips allowing them to coexist with transforms
       if (videoLayout === "single") {
         sortedVideoClips.forEach((clip) => {
           // Check if frame should be rendered
@@ -177,8 +177,9 @@ const VideoComposition: React.FC<VideoCompositionProps> = memo(
                   height: "100%",
                   top: 0,
                   left: 0,
-                  overflow: "hidden",
-                  ...frameStyles, // Apply frame styles to container
+                  overflow: "visible", // Changed from "hidden" to allow transformed content to be visible
+                  pointerEvents: "none", // Prevent interference with transforms
+                  ...frameStyles,
                 }}
               >
                 <Video
@@ -345,7 +346,6 @@ const VideoComposition: React.FC<VideoCompositionProps> = memo(
     const textSequences = useMemo(
       () =>
         sortedTextOverlays
-          .filter((overlay) => overlay.id !== (selectedTextOverlayId || ""))
           .map((overlay) => (
             <Sequence
               key={overlay.id}
