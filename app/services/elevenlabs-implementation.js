@@ -267,6 +267,17 @@ export const API_KEY_PROFILES = {
       },
     ],
   },
+  account_25: {
+    name: "OF Forrest's voice",
+    description: "Backup account for high-volume usage",
+    voices: [
+      {
+        name: "OF Forrest",
+        voiceId: "6guoeJMVrrQwag5L6lJd",
+        category: "professional",
+      },
+    ],
+  },
 };
 
 // Available ElevenLabs models
