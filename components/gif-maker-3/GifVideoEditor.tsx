@@ -58,6 +58,7 @@ const GifVideoEditor: React.FC = memo(() => {
     currentFrame,
     timelineZoom,
     selectedClipId,
+    selectedTextOverlayId,
     selectedBlurOverlayId,
     playerRef,
     setCurrentFrame,
@@ -229,10 +230,10 @@ const GifVideoEditor: React.FC = memo(() => {
     }
   }, [selectedClipId, clips, addClip]);
 
-  // Text clone/delete and settings handlers
+  // Text clone/delete and settings handlers - Fixed to use selectedTextOverlayId
   const selectedTextOverlay = useMemo(
-    () => textOverlays.find((t) => t.id === selectedClipId) || null,
-    [textOverlays, selectedClipId]
+    () => textOverlays.find((t) => t.id === selectedTextOverlayId) || null,
+    [textOverlays, selectedTextOverlayId]
   );
 
   const handleCloneText = useCallback(
@@ -310,7 +311,12 @@ const GifVideoEditor: React.FC = memo(() => {
         blurOverlays,
         clipEffects,
         contentDuration,
-        { playbackSpeed }
+        { 
+          playbackSpeed,
+          videoLayout,
+          layerAssignments,
+          getClipLayer
+        }
       );
     } catch (error: unknown) {
       console.error("Export failed:", error);
@@ -323,6 +329,10 @@ const GifVideoEditor: React.FC = memo(() => {
     blurOverlays,
     clipEffects,
     contentDuration,
+    playbackSpeed,
+    videoLayout,
+    layerAssignments,
+    getClipLayer,
   ]);
 
   // Stable inputProps for Remotion Player to avoid component remounts
@@ -332,7 +342,7 @@ const GifVideoEditor: React.FC = memo(() => {
       textOverlays,
       blurOverlays,
       clipEffects,
-      selectedTextOverlayId: selectedClipId,
+      selectedTextOverlayId,
       selectedBlurOverlayId,
     }),
     [
@@ -340,7 +350,7 @@ const GifVideoEditor: React.FC = memo(() => {
       textOverlays,
       blurOverlays,
       clipEffects,
-      selectedClipId,
+      selectedTextOverlayId,
       selectedBlurOverlayId,
     ]
   );
@@ -570,12 +580,12 @@ const GifVideoEditor: React.FC = memo(() => {
               style={{ zIndex: 10 }}
             >
               {/* Show interactive controls for selected text overlay (always editable) */}
-              {selectedClipId &&
-                textOverlays.find((t) => t.id === selectedClipId) && (
+              {selectedTextOverlayId &&
+                textOverlays.find((t) => t.id === selectedTextOverlayId) && (
                   <div className="pointer-events-auto">
                     {(() => {
                       const overlay = textOverlays.find(
-                        (t) => t.id === selectedClipId
+                        (t) => t.id === selectedTextOverlayId
                       )!;
                       return (
                         <TextOverlayComponent
@@ -593,6 +603,7 @@ const GifVideoEditor: React.FC = memo(() => {
                           textAlign={
                             overlay.textAlign as "left" | "center" | "right"
                           }
+                          containerRef={previewContainerRef}
                           onUpdate={(updates) =>
                             updateTextOverlay(overlay.id, updates)
                           }

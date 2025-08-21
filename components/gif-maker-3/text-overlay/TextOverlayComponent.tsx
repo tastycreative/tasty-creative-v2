@@ -19,6 +19,8 @@ interface TextOverlayComponentProps {
   // Visual properties
   color?: string;
   fontWeight?: "normal" | "bold" | number;
+  fontFamily?: string; // Font family support
+  fontStyle?: "normal" | "italic"; // Font style support
   textAlign?: "left" | "center" | "right";
   allowOverflow?: boolean; // if true, center can go 0..100 even if box extends out
   containerRef?: React.RefObject<HTMLElement>;
@@ -31,6 +33,8 @@ interface TextOverlayComponentProps {
     rotation?: number;
     color?: string;
     fontWeight?: "normal" | "bold" | number;
+    fontFamily?: string;
+    fontStyle?: "normal" | "italic";
     textAlign?: "left" | "center" | "right";
   }) => void;
 }
@@ -49,6 +53,8 @@ const TextOverlayComponent: React.FC<TextOverlayComponentProps> = ({
   animate = false,
   color = "#ffffff",
   fontWeight = "bold",
+  fontFamily = "system-ui",
+  fontStyle = "normal",
   textAlign = "center",
   allowOverflow = true,
   containerRef,
@@ -140,30 +146,38 @@ const TextOverlayComponent: React.FC<TextOverlayComponentProps> = ({
           color,
           fontSize: `${fontSize}rem`,
           fontWeight,
+          fontFamily,
+          fontStyle,
           margin: 0,
           padding: "10px",
           textShadow: "2px 2px 4px rgba(0,0,0,0.8)",
-          border: isInteractive ? "2px dashed rgba(255,255,255,0.8)" : "none",
+          border: isInteractive ? "2px solid rgba(59, 130, 246, 0.8)" : "none",
           backgroundColor: isInteractive
-            ? "rgba(255,255,255,0.1)"
+            ? "rgba(59, 130, 246, 0.1)"
             : "transparent",
+          borderRadius: isInteractive ? "8px" : "0",
+          outline: isInteractive ? "2px solid rgba(59, 130, 246, 0.3)" : "none",
+          outlineOffset: isInteractive ? "4px" : "0",
+          backdropFilter: isInteractive ? "blur(4px)" : "none",
         }}
       >
         {text}
       </h1>
 
-      {/* Resize handles for interactive mode */}
+      {/* Enhanced Resize handles for interactive mode */}
       {isInteractive && onUpdate && (
         <div
           style={{
             position: "absolute",
-            bottom: "-5px",
-            right: "-5px",
-            width: "10px",
-            height: "10px",
-            backgroundColor: "white",
+            bottom: "-6px",
+            right: "-6px",
+            width: "12px",
+            height: "12px",
+            backgroundColor: "rgba(59, 130, 246, 0.9)",
             cursor: "se-resize",
-            border: "1px solid #333",
+            border: "2px solid white",
+            borderRadius: "3px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
           }}
           onMouseDown={(e) => {
             e.stopPropagation();
@@ -210,24 +224,24 @@ const TextOverlayComponent: React.FC<TextOverlayComponentProps> = ({
         />
       )}
 
-      {/* Rotation handle */}
+      {/* Enhanced Rotation handle */}
       {isInteractive && onUpdate && (
         <div
           style={{
             position: "absolute",
-            top: "-26px",
+            top: "-30px",
             left: "50%",
             transform: "translateX(-50%)",
-            width: "20px",
-            height: "20px",
-            backgroundColor: "rgba(255,255,255,0.95)",
+            width: "24px",
+            height: "24px",
+            backgroundColor: "rgba(59, 130, 246, 0.95)",
             cursor: "grab",
-            border: "1px solid #333",
+            border: "2px solid white",
             borderRadius: "50%",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: "0 1px 2px rgba(0,0,0,0.3)",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
           }}
           onMouseDown={(e) => {
             e.stopPropagation();
@@ -261,8 +275,8 @@ const TextOverlayComponent: React.FC<TextOverlayComponentProps> = ({
           title={`Rotate (${Math.round(rotation)}°)`}
         >
           <svg
-            width="12"
-            height="12"
+            width="14"
+            height="14"
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
@@ -270,15 +284,15 @@ const TextOverlayComponent: React.FC<TextOverlayComponentProps> = ({
           >
             <path
               d="M21 4v6h-6"
-              stroke="#1F2937"
-              strokeWidth="2"
+              stroke="white"
+              strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
             <path
               d="M20.49 13A9 9 0 1 1 15 3.51"
-              stroke="#1F2937"
-              strokeWidth="2"
+              stroke="white"
+              strokeWidth="2.5"
               strokeLinecap="round"
               strokeLinejoin="round"
             />

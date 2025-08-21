@@ -1037,8 +1037,8 @@ const CanvasTimelineComponent: React.FC<CanvasTimelineProps> = ({
     ctx.font = "bold 11px system-ui, -apple-system, sans-serif";
     ctx.textAlign = "center";
 
-    // Dynamic track labels based on items in each row
-    const dynamicNumRows = getExpandedNumRows();
+    // Use static numRows instead of dynamic expansion to prevent scale changes during drag
+    const dynamicNumRows = numRows;
     for (let row = 0; row < dynamicNumRows; row++) {
       const itemsInRow = timelineItems.filter((item) => item.row === row);
       let label = `Track ${row + 1}`;
@@ -1303,6 +1303,7 @@ const CanvasTimelineComponent: React.FC<CanvasTimelineProps> = ({
     canvasSize,
     timelineItems,
     totalDuration,
+    timelineZoom,
     thumbnailCache,
     loadedThumbnails,
     theme,
@@ -1457,7 +1458,10 @@ const CanvasTimelineComponent: React.FC<CanvasTimelineProps> = ({
       if (!isItemSelected(item)) return;
 
       const x = timeToPixel(item.start);
-      const effectiveTotal = totalDuration * timelineZoom;
+      const effectiveTotal = Math.max(
+        1,
+        totalDuration / Math.max(0.1, timelineZoom)
+      );
       const timelineWidth = canvasSize.width - TRACK_LABEL_WIDTH;
       const width = Math.max(
         4,
@@ -1705,11 +1709,16 @@ const CanvasTimelineComponent: React.FC<CanvasTimelineProps> = ({
     item: TimelineItem;
     dragType: "move" | "trim-start" | "trim-end";
   } | null => {
+    const effectiveTotal = Math.max(
+      1,
+      totalDuration / Math.max(0.1, timelineZoom)
+    );
+    const timelineWidth = canvasSize.width - TRACK_LABEL_WIDTH;
     for (const item of timelineItems) {
       const itemX = timeToPixel(item.start);
       const itemWidth = Math.max(
         4,
-        (item.duration / totalDuration) * (canvasSize.width - TRACK_LABEL_WIDTH)
+        (item.duration / effectiveTotal) * timelineWidth
       );
       const itemY = getTrackY(item.row) + TRACK_MARGIN;
       const itemHeight = TRACK_HEIGHT - TRACK_MARGIN * 2;
@@ -1823,8 +1832,12 @@ const CanvasTimelineComponent: React.FC<CanvasTimelineProps> = ({
     const y = e.clientY - rect.top;
     const deltaX = x - dragState.startX;
     const deltaY = y - dragState.startY;
+    const effectiveTotal = Math.max(
+      1,
+      totalDuration / Math.max(0.1, timelineZoom)
+    );
     const deltaTime =
-      (deltaX / (canvasSize.width - TRACK_LABEL_WIDTH)) * totalDuration;
+      (deltaX / (canvasSize.width - TRACK_LABEL_WIDTH)) * effectiveTotal;
     
     // Calculate new row based on Y position for move operations
     let newRow = dragState.dragType === "move" ? getRowFromY(y) : dragState.startRow;
@@ -1880,9 +1893,14 @@ const CanvasTimelineComponent: React.FC<CanvasTimelineProps> = ({
           );
           const previewX = timeToPixel(newStartTime);
           const previewY = getTrackY(newRow) + TRACK_MARGIN;
+          const effectiveTotal = Math.max(
+            1,
+            totalDuration / Math.max(0.1, timelineZoom)
+          );
+          const timelineWidth = canvasSize.width - TRACK_LABEL_WIDTH;
           const previewWidth = Math.max(
             4,
-            (item.duration / totalDuration) * (canvasSize.width - TRACK_LABEL_WIDTH)
+            (item.duration / effectiveTotal) * timelineWidth
           );
           const previewHeight = TRACK_HEIGHT - TRACK_MARGIN * 2;
 
