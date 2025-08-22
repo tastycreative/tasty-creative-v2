@@ -54,11 +54,11 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Convert members array to comma-separated email string
-      // members should be an array of objects with email property
+      // Convert members array to comma-separated email-role string
+      // members should be an array of objects with email and role properties
       const memberEmails = members
-        .map(member => member.email)
-        .filter(email => email && email.trim())
+        .map(member => member.email && member.role ? `${member.email} - ${member.role}` : member.email)
+        .filter(emailRole => emailRole && emailRole.trim())
         .join(', ');
 
       // Update team members in Column E

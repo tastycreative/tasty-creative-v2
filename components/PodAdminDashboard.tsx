@@ -1138,7 +1138,7 @@ const PodAdminDashboard = () => {
             body: JSON.stringify({
               spreadsheetUrl: data.spreadsheetUrl,
               rowNumber: nextRow,
-              members: initialMembers.map((member) => member.email).join(", "),
+              members: initialMembers.map((member) => `${member.email} - ${member.role}`).join(", "),
             }),
           });
         } catch (memberError) {
@@ -2224,14 +2224,9 @@ const PodAdminDashboard = () => {
                                   <h4 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
                                     {member.name}
                                   </h4>
-                                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                                    {member.role}
+                                  <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                                    {member.email ? `${member.email} - ${member.role}` : member.role}
                                   </p>
-                                  {member.email && (
-                                    <p className="text-xs text-gray-500 dark:text-gray-500 truncate">
-                                      {member.email}
-                                    </p>
-                                  )}
                                 </div>
                               </div>
 
@@ -3800,7 +3795,7 @@ const AddTeamForm = ({
                           key={member.userId}
                           className="inline-flex items-center px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-sm rounded-full"
                         >
-                          {user?.name || "Unknown"} ({member.role})
+                          {user?.email ? `${user.email} - ${member.role}` : `${user?.name || "Unknown"} - ${member.role}`}
                           <button
                             type="button"
                             onClick={() => handleMemberRemove(member.userId)}
@@ -4151,7 +4146,7 @@ const AddMemberForm = ({
                           {user.name || "No Name"}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                          {user.email}
+                          {user.email ? `${user.email} - ${userRole}` : userRole}
                         </div>
                       </div>
 

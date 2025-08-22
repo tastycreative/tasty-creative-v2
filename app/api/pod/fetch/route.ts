@@ -351,19 +351,35 @@ export async function POST(request: NextRequest) {
       const displayText = spreadsheetUrlRange?.values?.[0]?.[0] || "";
       const schedulerSpreadsheetUrl = hyperlinkUrl || displayText;
 
-      // Parse team members (E{rowNumber}) - comma-separated
+      // Parse team members (E{rowNumber}) - comma-separated with email - role format
       const teamMembersRange = values[2];
       const teamMembersString = teamMembersRange?.values?.[0]?.[0] || "";
       const teamMembers = teamMembersString
         .split(",")
-        .map((name: string, index: number) => ({
-          id: (index + 1).toString(),
-          name: name.trim(),
-          role:
-            index === 0 ? "Team Lead" : index === 1 ? "Designer" : "Developer",
-        }))
+        .map((memberStr: string, index: number) => {
+          const trimmed = memberStr.trim();
+          
+          // Check if the member string contains " - " to separate email and role
+          if (trimmed.includes(" - ")) {
+            const [email, role] = trimmed.split(" - ");
+            return {
+              id: (index + 1).toString(),
+              name: email.split("@")[0] || email, // Use part before @ as name
+              email: email.trim(),
+              role: role.trim(),
+            };
+          } else {
+            // Fallback for old format without roles
+            return {
+              id: (index + 1).toString(),
+              name: trimmed,
+              email: trimmed.includes("@") ? trimmed : "",
+              role: index === 0 ? "Team Lead" : index === 1 ? "Designer" : "Developer",
+            };
+          }
+        })
         .filter(
-          (member: { id: string; name: string; role: string }) =>
+          (member: { id: string; name: string; email: string; role: string }) =>
             member.name !== ""
         );
 
