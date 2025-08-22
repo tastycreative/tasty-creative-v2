@@ -18,7 +18,12 @@ export const useGifExport = () => {
       blurOverlays: BlurOverlay[],
       clipEffects: Record<string, any>,
       contentDuration: number,
-      opts?: { playbackSpeed?: number }
+      opts?: { 
+        playbackSpeed?: number;
+        videoLayout?: string;
+        layerAssignments?: Record<string, number>;
+        getClipLayer?: (clipId: string) => number;
+      }
     ) => {
       try {
         setIsExporting(true);
@@ -74,13 +79,21 @@ export const useGifExport = () => {
       blurOverlays: BlurOverlay[],
       clipEffects: Record<string, any>,
       contentDuration: number,
-      opts?: { playbackSpeed?: number }
+      opts?: { 
+        playbackSpeed?: number;
+        videoLayout?: string;
+        layerAssignments?: Record<string, number>;
+        getClipLayer?: (clipId: string) => number;
+      }
     ) => {
-      // Optimized settings for performance
+      // Extract layout parameters
       const playbackSpeed = Math.max(
         0.25,
         Math.min(4, Number(opts?.playbackSpeed || 1))
       );
+      const videoLayout = opts?.videoLayout || "single";
+      const layerAssignments = opts?.layerAssignments || {};
+      const getClipLayer = opts?.getClipLayer || ((clipId: string) => layerAssignments[clipId] ?? 0);
       const fps = 15; // Reduced from 30 for faster processing
       const outWidth = 480; // Reduced resolution
       const outHeight = Math.round((outWidth * 1080) / 1920);
@@ -178,41 +191,31 @@ export const useGifExport = () => {
         ctx.fillStyle = "#000";
         ctx.fillRect(0, 0, outWidth, outHeight);
 
-        // Render active video clip
-        const activeVideoClip = videoClips.find(
+        // Render all active video clips with multi-layer support
+        const activeVideoClips = videoClips.filter(
           (c) =>
             timelineFrame >= c.start && timelineFrame < c.start + c.duration
         );
 
-        if (activeVideoClip) {
-          const video = videos[activeVideoClip.id];
-          if (video) {
-            const localFrame =
-              timelineFrame -
-              activeVideoClip.start +
-              (activeVideoClip.startFrom || 0);
-            // Map timeline frames to source video time (no per-clip speed)
-            let videoTime = Math.max(0, localFrame / 30 - 0.01);
-            if (!Number.isNaN(video.duration) && video.duration > 0) {
-              const maxTime = Math.max(0, video.duration - 0.05);
-              videoTime = Math.min(videoTime, maxTime);
+        if (videoLayout === "single") {
+          // Single layout: render only the first active video clip (legacy behavior)
+          const activeVideoClip = activeVideoClips[0];
+          if (activeVideoClip) {
+            const video = videos[activeVideoClip.id];
+            if (video) {
+              await renderVideoClip(ctx, video, activeVideoClip, timelineFrame, outWidth, outHeight, { x: 0, y: 0, width: outWidth, height: outHeight });
             }
-
-            try {
-              video.currentTime = videoTime;
-              await new Promise<void>((resolve) => {
-                const handleSeeked = () => {
-                  video.removeEventListener("seeked", handleSeeked);
-                  resolve();
-                };
-                video.addEventListener("seeked", handleSeeked);
-                if (video.readyState >= 2) resolve();
-              });
-
-              // Draw video with cover fit
-              drawVideoCover(ctx, video, outWidth, outHeight);
-            } catch (e) {
-              console.warn("Video seek failed:", e);
+          }
+        } else {
+          // Multi-layer layout: render all active video clips in their assigned layers
+          for (const clip of activeVideoClips) {
+            const video = videos[clip.id];
+            if (video) {
+              const layer = getClipLayer(clip.id);
+              const layerBounds = getLayerBounds(layer, videoLayout, outWidth, outHeight);
+              if (layerBounds) {
+                await renderVideoClip(ctx, video, clip, timelineFrame, outWidth, outHeight, layerBounds);
+              }
             }
           }
         }
@@ -277,7 +280,119 @@ export const useGifExport = () => {
     []
   );
 
-  // Helper functions
+  // Helper functions for multi-layer rendering
+  const getLayerBounds = (
+    layer: number,
+    videoLayout: string,
+    canvasWidth: number,
+    canvasHeight: number
+  ) => {
+    switch (videoLayout) {
+      case "single":
+        return { x: 0, y: 0, width: canvasWidth, height: canvasHeight };
+      
+      case "2-layer":
+        return layer === 0 
+          ? { x: 0, y: 0, width: canvasWidth / 2, height: canvasHeight }
+          : { x: canvasWidth / 2, y: 0, width: canvasWidth / 2, height: canvasHeight };
+      
+      case "v-triptych":
+        return layer === 0
+          ? { x: 0, y: 0, width: canvasWidth, height: canvasHeight / 3 }
+          : layer === 1
+            ? { x: 0, y: canvasHeight / 3, width: canvasWidth, height: canvasHeight / 3 }
+            : { x: 0, y: (2 * canvasHeight) / 3, width: canvasWidth, height: canvasHeight / 3 };
+      
+      case "h-triptych":
+        return layer === 0
+          ? { x: 0, y: 0, width: canvasWidth / 3, height: canvasHeight }
+          : layer === 1
+            ? { x: canvasWidth / 3, y: 0, width: canvasWidth / 3, height: canvasHeight }
+            : { x: (2 * canvasWidth) / 3, y: 0, width: canvasWidth / 3, height: canvasHeight };
+      
+      case "2x2-grid":
+        return layer === 0
+          ? { x: 0, y: 0, width: canvasWidth / 2, height: canvasHeight / 2 }
+          : layer === 1
+            ? { x: canvasWidth / 2, y: 0, width: canvasWidth / 2, height: canvasHeight / 2 }
+            : layer === 2
+              ? { x: 0, y: canvasHeight / 2, width: canvasWidth / 2, height: canvasHeight / 2 }
+              : { x: canvasWidth / 2, y: canvasHeight / 2, width: canvasWidth / 2, height: canvasHeight / 2 };
+      
+      default:
+        return { x: 0, y: 0, width: canvasWidth, height: canvasHeight };
+    }
+  };
+
+  const renderVideoClip = async (
+    ctx: CanvasRenderingContext2D,
+    video: HTMLVideoElement,
+    clip: Clip,
+    timelineFrame: number,
+    canvasWidth: number,
+    canvasHeight: number,
+    bounds: { x: number; y: number; width: number; height: number }
+  ) => {
+    const localFrame = timelineFrame - clip.start + (clip.startFrom || 0);
+    let videoTime = Math.max(0, localFrame / 30 - 0.01);
+    if (!Number.isNaN(video.duration) && video.duration > 0) {
+      const maxTime = Math.max(0, video.duration - 0.05);
+      videoTime = Math.min(videoTime, maxTime);
+    }
+
+    try {
+      video.currentTime = videoTime;
+      await new Promise<void>((resolve) => {
+        const handleSeeked = () => {
+          video.removeEventListener("seeked", handleSeeked);
+          resolve();
+        };
+        video.addEventListener("seeked", handleSeeked);
+        if (video.readyState >= 2) resolve();
+      });
+
+      // Draw video within the specified bounds
+      drawVideoInBounds(ctx, video, bounds);
+    } catch (e) {
+      console.warn("Video seek failed:", e);
+    }
+  };
+
+  const drawVideoInBounds = (
+    ctx: CanvasRenderingContext2D,
+    video: HTMLVideoElement,
+    bounds: { x: number; y: number; width: number; height: number }
+  ) => {
+    const { x, y, width, height } = bounds;
+    const boundsAspect = width / height;
+    const videoAspect = video.videoWidth && video.videoHeight
+      ? video.videoWidth / video.videoHeight
+      : 16 / 9;
+
+    let drawW = width;
+    let drawH = height;
+
+    // Cover fit: scale to fill bounds, cropping if necessary
+    if (videoAspect > boundsAspect) {
+      drawH = height;
+      drawW = drawH * videoAspect;
+    } else {
+      drawW = width;
+      drawH = drawW / videoAspect;
+    }
+
+    const offsetX = x + (width - drawW) / 2;
+    const offsetY = y + (height - drawH) / 2;
+    
+    // Clip to bounds to prevent overflow
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, y, width, height);
+    ctx.clip();
+    ctx.drawImage(video, offsetX, offsetY, drawW, drawH);
+    ctx.restore();
+  };
+
   const drawVideoCover = (
     ctx: CanvasRenderingContext2D,
     video: HTMLVideoElement,

@@ -88,8 +88,44 @@ export const useTimeline = () => {
 
   // Clip operations
   const addClip = useCallback((clip: Clip) => {
+    // For video clips with auto-fit enabled, pre-calculate and set the transform
+    if (clip.type === "video" && (clip.autoFit ?? true) && clip.intrinsicWidth && clip.intrinsicHeight) {
+      const canvasWidth = 1920;
+      const canvasHeight = 1080;
+      
+      let transform: ClipTransform;
+      if (videoLayout === 'single') {
+        // Single layout - calculate auto-fit transform
+        const autoFitTransform = calculateAutoFitTransform(
+          { width: clip.intrinsicWidth, height: clip.intrinsicHeight },
+          { width: canvasWidth, height: canvasHeight },
+          8 // 8px gutter
+        );
+        
+        transform = {
+          scale: autoFitTransform.scale,
+          positionX: 0,
+          positionY: 0,
+          rotation: 0,
+          fitMode: "contain",
+        };
+      } else {
+        // Multi-layer layouts - set proper defaults
+        transform = {
+          scale: 1.0, // Keep at 1.0 - the cell container handles actual sizing
+          positionX: 0, // Center in cell
+          positionY: 0, // Center in cell
+          rotation: 0,
+          fitMode: "contain", // Object-fit handles aspect ratio
+        };
+      }
+      
+      // Add the clip with the pre-calculated transform
+      clip.transform = transform;
+    }
+    
     setClips((prev) => [...prev, clip]);
-  }, []);
+  }, [videoLayout]);
 
   const updateClip = useCallback((clipId: string, updates: Partial<Clip>) => {
     setClips((prev) =>
@@ -384,6 +420,7 @@ export const useTimeline = () => {
     currentFrame,
     timelineZoom,
     selectedClipId,
+    selectedTextOverlayId,
     selectedBlurOverlayId,
     playerRef,
 

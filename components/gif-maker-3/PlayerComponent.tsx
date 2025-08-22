@@ -69,6 +69,20 @@ const PlayerComponent: React.FC<PlayerComponentProps> = memo(
           console.warn("Remotion Player audio renderer error (ignored):", err);
           return;
         }
+        
+        // Handle video format errors
+        if (
+          typeof err?.message === "string" &&
+          err.message.includes("MEDIA_ELEMENT_ERROR")
+        ) {
+          console.error("Video format error:", err);
+          alert(
+            "Video format not supported. Please use MP4, WebM, or MOV files with H.264/H.265 encoding. " +
+            "Try converting your video with a tool like FFmpeg or HandBrake."
+          );
+          return;
+        }
+        
         console.warn("Remotion Player error:", err);
       };
       player.addEventListener("error", handleError);
