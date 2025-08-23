@@ -12,6 +12,7 @@ import {
   CalendarRange,
   PenTool,
   MessageCircle,
+  Bookmark,
 } from "lucide-react";
 
 export const TIMEZONES = [
@@ -284,6 +285,14 @@ export const appPages = [
     icon: FileSpreadsheet,
     color: "from-emerald-500 to-teal-500",
     description: "Print on Demand Data Transfer",
+  },
+  {
+    id: 12,
+    name: "Gallery",
+    path: "/apps/gallery",
+    icon: Bookmark,
+    color: "from-rose-500 to-pink-500",
+    description: "Content Gallery & Favorites",
   },
 ];
 
