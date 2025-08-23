@@ -38,6 +38,26 @@ const nextConfig = {
         hostname: "cdn2.onlyfans.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "allthiscash.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "www.allthiscash.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "betterfans.app",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "www.betterfans.app",
+        pathname: "/**",
+      },
     ],
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
@@ -59,10 +79,28 @@ const nextConfig = {
         ],
       },
       {
+        source: "/api/media-proxy",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "*" },
+          { key: "Access-Control-Allow-Methods", value: "GET" },
+          { key: "Cross-Origin-Resource-Policy", value: "cross-origin" },
+          { key: "Cache-Control", value: "public, max-age=3600" },
+        ],
+      },
+      {
+        source: "/apps/gallery",
+        headers: [
+          { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+          { key: "Cross-Origin-Embedder-Policy", value: "unsafe-none" }, // Disable COEP for gallery
+          { key: "Cross-Origin-Resource-Policy", value: "cross-origin" },
+        ],
+      },
+      {
         source: "/:path*",
         headers: [
           { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
-          { key: "Cross-Origin-Embedder-Policy", value: "require-corp" },
+          { key: "Cross-Origin-Embedder-Policy", value: "unsafe-none" }, // Relax COEP globally
+          { key: "Cross-Origin-Resource-Policy", value: "cross-origin" },
         ],
       },
     ];
