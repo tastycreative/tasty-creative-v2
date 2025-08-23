@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { getApiKey } from '@/app/services/elevenlabs-implementation';
 
 export async function POST(request: NextRequest) {
   let apiKeyProfileKey: string | undefined;
@@ -21,36 +22,8 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Map profile keys to environment variables
-    const API_KEY_MAP: Record<string, string | undefined> = {
-      account_1: process.env.ELEVENLABS_KEY_ACCOUNT_1,
-      account_2: process.env.ELEVENLABS_KEY_ACCOUNT_2,
-      account_3: process.env.ELEVENLABS_KEY_ACCOUNT_3,
-      account_4: process.env.ELEVENLABS_KEY_ACCOUNT_4,
-      account_5: process.env.ELEVENLABS_KEY_ACCOUNT_5,
-      account_6: process.env.ELEVENLABS_KEY_ACCOUNT_6,
-      account_7: process.env.ELEVENLABS_KEY_ACCOUNT_7,
-      account_8: process.env.ELEVENLABS_KEY_ACCOUNT_8,
-      account_9: process.env.ELEVENLABS_KEY_ACCOUNT_9,
-      account_10: process.env.ELEVENLABS_KEY_ACCOUNT_10,
-      account_11: process.env.ELEVENLABS_KEY_ACCOUNT_11,
-      account_12: process.env.ELEVENLABS_KEY_ACCOUNT_12,
-      account_13: process.env.ELEVENLABS_KEY_ACCOUNT_13,
-      account_14: process.env.ELEVENLABS_KEY_ACCOUNT_14,
-      account_15: process.env.ELEVENLABS_KEY_ACCOUNT_15,
-      account_16: process.env.ELEVENLABS_KEY_ACCOUNT_16,
-      account_17: process.env.ELEVENLABS_KEY_ACCOUNT_17,
-      account_18: process.env.ELEVENLABS_KEY_ACCOUNT_18,
-      account_19: process.env.ELEVENLABS_KEY_ACCOUNT_19,
-      account_20: process.env.ELEVENLABS_KEY_ACCOUNT_20,
-      account_21: process.env.ELEVENLABS_KEY_ACCOUNT_21,
-      account_22: process.env.ELEVENLABS_KEY_ACCOUNT_22,
-      account_23: process.env.ELEVENLABS_KEY_ACCOUNT_23,
-      account_24: process.env.ELEVENLABS_KEY_ACCOUNT_24,
-      account_25: process.env.ELEVENLABS_KEY_ACCOUNT_25,
-    };
-    
-    const apiKey = API_KEY_MAP[apiKeyProfileKey];
+    // Use the new dynamic API key function
+    const apiKey = await getApiKey(apiKeyProfileKey);
     
     // Log for debugging
     console.log(`Checking balance for ${apiKeyProfileKey}...`);

@@ -54,20 +54,60 @@ import {
   getHistoryAudio,
   getVoiceParameters,
   getVoicesForProfile,
-} from "@/app/services/elevenlabs-implementation";
+} from "@/app/services/elevenlabs-client";
 import { truncateText, formatDate } from "@/lib/utils";
+
+// Type definitions
+interface ApiKeyBalance {
+  character: {
+    limit: number;
+    remaining: number;
+    used: number;
+  };
+  status?: string;
+  error?: string;
+  subscription?: any;
+}
+
+interface Voice {
+  name: string;
+  voiceId: string;
+  category: string;
+}
+
+interface GeneratedAudio {
+  audioBlob: Blob;
+  audioUrl: string;
+  voiceName?: string;
+  profile?: string;
+  voiceId?: string;
+}
+
+interface HistoryItem {
+  history_item_id: string;
+  text: string;
+  voice_id: string;
+  voice_name?: string;
+  date_unix: number;
+}
+
+interface HistoryAudio {
+  audioBlob: Blob;
+  audioUrl: string;
+  historyItemId: string;
+}
 
 // Profile status type - simplified to 3 states
 type ProfileStatus = "healthy" | "low-credits" | "error";
 
 const AIVoicePage = () => {
-  // API Key Profile state
+  // Dynamic Voice Model Profiles
+  const [voiceModels, setVoiceModels] = useState<any[]>([]);
   const [selectedApiKeyProfile, setSelectedApiKeyProfile] =
-    useState("account_1");
+    useState<string>("");
   const [apiKeyBalance, setApiKeyBalance] = useState<ApiKeyBalance | null>(
     null
   );
-  // Profile statuses state - simplified
   const [profileStatuses, setProfileStatuses] = useState<
     Record<string, ProfileStatus>
   >({});
@@ -75,8 +115,6 @@ const AIVoicePage = () => {
     {}
   );
   const [isCheckingStatuses, setIsCheckingStatuses] = useState(false);
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [availableVoices, setAvailableVoices] = useState<Voice[]>([]);
   const [voiceText, setVoiceText] = useState("");
   const [selectedVoice, setSelectedVoice] = useState("");
@@ -140,11 +178,19 @@ const AIVoicePage = () => {
         const stats = await response.json();
         setVnStats(stats);
         console.log("VN Stats loaded in AIVoicePage:", stats);
+      } else if (response.status === 401) {
+        // Unauthorized - user doesn't have admin/moderator access
+        // This is expected for regular users, so don't log as error
+        console.log("VN Stats not available - admin access required");
+        setVnStats(null);
       } else {
         console.error("Failed to load VN stats:", response.status);
+        setVnStats(null);
       }
     } catch (error) {
-      console.error("Error loading VN stats:", error);
+      // Only log network errors, not authentication errors
+      console.log("VN Stats service unavailable:", error);
+      setVnStats(null);
     } finally {
       setIsLoadingStats(false);
     }
@@ -274,15 +320,13 @@ const AIVoicePage = () => {
     }
   };
 
-  // Function to check all profile statuses
+  // Function to check all profile statuses (dynamic)
   const checkAllProfileStatuses = async () => {
     setIsCheckingStatuses(true);
-
-    const profiles = Object.keys(API_KEY_PROFILES);
+    const profiles = voiceModels.map((model) => model.accountKey || model.id);
     const statusPromises = profiles.map((profileKey) =>
       checkProfileStatus(profileKey)
     );
-
     try {
       await Promise.allSettled(statusPromises);
     } catch (error) {
@@ -295,7 +339,7 @@ const AIVoicePage = () => {
   // Function to get status indicator props - simplified to 3 states
   const getStatusIndicator = (status: ProfileStatus) => {
     switch (status) {
-       case "healthy":
+      case "healthy":
         return {
           color: "bg-green-400",
           pulse: false,
@@ -768,74 +812,58 @@ const AIVoicePage = () => {
     loadVnStats();
   }, []);
 
+  // Fetch voice models on mount
   useEffect(() => {
-    const fetchApiData = async () => {
-      if (!selectedApiKeyProfile) return;
-
-      setVoiceError("");
-
+    const fetchVoiceModels = async () => {
       try {
-        const balance = await checkApiKeyBalance(selectedApiKeyProfile);
-        setApiKeyBalance(balance);
-
-        // Extract error message from the response
-        const errorMessage = balance?.error || "";
-
-        // Update status for the selected profile
-        const status = determineProfileStatus(balance, errorMessage);
-        setProfileStatuses((prev) => ({
-          ...prev,
-          [selectedApiKeyProfile]: status,
-        }));
-
-        // Store error message if present
-        if (errorMessage) {
-          setProfileErrors((prev) => ({
-            ...prev,
-            [selectedApiKeyProfile]: errorMessage,
-          }));
-        } else {
-          setProfileErrors((prev) => ({
-            ...prev,
-            [selectedApiKeyProfile]: "",
-          }));
+        const res = await fetch("/api/voice-models");
+        const data = await res.json();
+        if (data.success && Array.isArray(data.models)) {
+          setVoiceModels(data.models);
+          // Set default selected profile if not set
+          if (!selectedApiKeyProfile && data.models.length > 0) {
+            setSelectedApiKeyProfile(
+              data.models[0].accountKey || data.models[0].id
+            );
+          }
         }
-
-        const profileVoices = getVoicesForProfile(selectedApiKeyProfile);
-        setAvailableVoices(profileVoices);
-
-        setSelectedVoice(profileVoices[0]?.voiceId || "");
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (error: any) {
-        console.error("Error fetching API data:", error);
-        setApiKeyBalance({
-          character: {
-            limit: 0,
-            remaining: 0,
-            used: 0,
-          },
-          status: "error",
-        });
-        setProfileStatuses((prev) => ({
-          ...prev,
-          [selectedApiKeyProfile]: "error",
-        }));
-        setProfileErrors((prev) => ({
-          ...prev,
-          [selectedApiKeyProfile]: error.message || error.toString(),
-        }));
-        setVoiceError("There was an issue connecting to the API.");
-      } finally {
+      } catch (err) {
+        console.error("Failed to fetch voice models", err);
       }
     };
-
-    fetchApiData();
-  }, [selectedApiKeyProfile]);
-
-  // Check all profile statuses on component mount
-  useEffect(() => {
-    checkAllProfileStatuses();
+    fetchVoiceModels();
   }, []);
+
+  // Update available voices when selected profile changes
+  useEffect(() => {
+    if (!selectedApiKeyProfile) {
+      setAvailableVoices([]);
+      return;
+    }
+    const model = voiceModels.find(
+      (m) => (m.accountKey || m.id) === selectedApiKeyProfile
+    );
+    if (model && model.voiceId && model.voiceName) {
+      setAvailableVoices([
+        {
+          name: model.voiceName,
+          voiceId: model.voiceId,
+          category: model.category || "professional",
+        },
+      ]);
+      setSelectedVoice(model.voiceId);
+    } else {
+      setAvailableVoices([]);
+    }
+  }, [selectedApiKeyProfile, voiceModels]);
+
+  // Check all profile statuses when voiceModels change
+  useEffect(() => {
+    if (voiceModels.length > 0) {
+      checkAllProfileStatuses();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceModels]);
 
   return (
     <div className="min-h-screen bg-white/60 dark:bg-gray-900/80 backdrop-blur-sm p-6 transition-colors">
@@ -853,7 +881,9 @@ const AIVoicePage = () => {
         {/* Status Guide */}
         <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
           <CardHeader className="pb-4">
-            <CardTitle className="text-gray-700 dark:text-gray-200">💡 Status Guide</CardTitle>
+            <CardTitle className="text-gray-700 dark:text-gray-200">
+              💡 Status Guide
+            </CardTitle>
             <CardDescription className="text-gray-600 dark:text-gray-400">
               Understanding account status indicators
             </CardDescription>
@@ -863,7 +893,9 @@ const AIVoicePage = () => {
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 bg-green-400 rounded-full"></div>
                 <div>
-                  <p className="text-gray-700 dark:text-gray-200 font-medium">Green - Healthy</p>
+                  <p className="text-gray-700 dark:text-gray-200 font-medium">
+                    Green - Healthy
+                  </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     100,000+ credits remaining
                   </p>
@@ -872,7 +904,9 @@ const AIVoicePage = () => {
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
                 <div>
-                  <p className="text-gray-700 dark:text-gray-200 font-medium">Yellow - Low Credits</p>
+                  <p className="text-gray-700 dark:text-gray-200 font-medium">
+                    Yellow - Low Credits
+                  </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Below 100,000 remaining
                   </p>
@@ -881,7 +915,9 @@ const AIVoicePage = () => {
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                 <div>
-                  <p className="text-gray-700 dark:text-gray-200 font-medium">Red - Problems</p>
+                  <p className="text-gray-700 dark:text-gray-200 font-medium">
+                    Red - Problems
+                  </p>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     Issues, billing problems, or no credits
                   </p>
@@ -909,19 +945,23 @@ const AIVoicePage = () => {
                       <SelectValue placeholder="Select API profile" />
                     </SelectTrigger>
                     <SelectContent className="bg-white dark:bg-gray-800 border-pink-200 dark:border-pink-500/30 text-gray-700 dark:text-gray-200">
-                      {Object.entries(API_KEY_PROFILES).map(
-                        ([key, profile]) => (
-                          <SelectItem key={key} value={key}>
-                            <div className="flex items-center gap-3 py-1">
-                              <StatusIndicator
-                                status={profileStatuses[key] || "error"}
-                                profileKey={key}
-                              />
-                              <span>{profile.name}</span>
-                            </div>
-                          </SelectItem>
-                        )
-                      )}
+                      {voiceModels.map((model) => (
+                        <SelectItem
+                          key={model.accountKey || model.id}
+                          value={model.accountKey || model.id}
+                        >
+                          <div className="flex items-center gap-3 py-1">
+                            <StatusIndicator
+                              status={
+                                profileStatuses[model.accountKey || model.id] ||
+                                "error"
+                              }
+                              profileKey={model.accountKey || model.id}
+                            />
+                            <span>{model.accountName || model.voiceName}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <Button
@@ -970,7 +1010,9 @@ const AIVoicePage = () => {
             {/* Voice & Model Selection */}
             <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
               <CardHeader className="pb-4">
-                <CardTitle className="text-gray-700 dark:text-gray-200">Voice Selection</CardTitle>
+                <CardTitle className="text-gray-700 dark:text-gray-200">
+                  Voice Selection
+                </CardTitle>
                 <CardDescription className="text-gray-600 dark:text-gray-400">
                   Choose your voice and AI model
                 </CardDescription>
@@ -1028,7 +1070,9 @@ const AIVoicePage = () => {
             {/* Text Input */}
             <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
               <CardHeader className="pb-4">
-                <CardTitle className="text-gray-700 dark:text-gray-200">Voice Text</CardTitle>
+                <CardTitle className="text-gray-700 dark:text-gray-200">
+                  Voice Text
+                </CardTitle>
                 <CardDescription className="text-gray-600 dark:text-gray-400">
                   Enter the text you want to convert to speech
                 </CardDescription>
@@ -1043,7 +1087,9 @@ const AIVoicePage = () => {
                 />
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-4">
-                    <Label className="text-gray-600 dark:text-gray-400">Audio No:</Label>
+                    <Label className="text-gray-600 dark:text-gray-400">
+                      Audio No:
+                    </Label>
                     <Input
                       value={audioNo}
                       onChange={(e) => setAudioNo(Number(e.target.value))}
@@ -1074,7 +1120,9 @@ const AIVoicePage = () => {
             {/* Voice Parameters */}
             <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
               <CardHeader className="pb-4">
-                <CardTitle className="text-gray-700 dark:text-gray-200">Voice Parameters</CardTitle>
+                <CardTitle className="text-gray-700 dark:text-gray-200">
+                  Voice Parameters
+                </CardTitle>
                 <CardDescription className="text-gray-600 dark:text-gray-400">
                   Fine-tune your voice generation settings
                 </CardDescription>
@@ -1129,7 +1177,9 @@ const AIVoicePage = () => {
 
                   <div>
                     <div className="flex justify-between items-center mb-3">
-                      <Label className="text-gray-600 dark:text-gray-400 font-medium">Speed</Label>
+                      <Label className="text-gray-600 dark:text-gray-400 font-medium">
+                        Speed
+                      </Label>
                       <span className="text-sm text-pink-600 dark:text-pink-400 font-mono">
                         {speed.toFixed(2)}x
                       </span>
@@ -1214,7 +1264,9 @@ const AIVoicePage = () => {
             {/* Voice Preview */}
             <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
               <CardHeader className="pb-4">
-                <CardTitle className="text-gray-700 dark:text-gray-200">Voice Preview</CardTitle>
+                <CardTitle className="text-gray-700 dark:text-gray-200">
+                  Voice Preview
+                </CardTitle>
                 <CardDescription className="text-gray-600 dark:text-gray-400">
                   Listen to and download your generated voice
                 </CardDescription>
@@ -1316,7 +1368,10 @@ const AIVoicePage = () => {
                   </div>
                 ) : (
                   <div className="text-center py-12">
-                    <Mic size={64} className="mx-auto mb-4 text-gray-500 dark:text-gray-400" />
+                    <Mic
+                      size={64}
+                      className="mx-auto mb-4 text-gray-500 dark:text-gray-400"
+                    />
                     <h3 className="text-lg font-medium text-gray-600 dark:text-gray-400 mb-2">
                       No Audio Generated Yet
                     </h3>
@@ -1376,7 +1431,9 @@ const AIVoicePage = () => {
                   {vnStats && (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-500/10 dark:to-rose-500/10 rounded-lg border border-pink-200 dark:border-pink-500/30">
                       <div className="text-center">
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Today&apos;s Sales</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Today&apos;s Sales
+                        </p>
                         <p className="text-lg font-bold text-pink-600 dark:text-pink-400">
                           $
                           {isLoadingStats
@@ -1385,7 +1442,9 @@ const AIVoicePage = () => {
                         </p>
                       </div>
                       <div className="text-center">
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Total Revenue</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Total Revenue
+                        </p>
                         <p className="text-lg font-bold text-gray-700 dark:text-gray-200">
                           $
                           {isLoadingStats
@@ -1394,7 +1453,9 @@ const AIVoicePage = () => {
                         </p>
                       </div>
                       <div className="text-center">
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Total VN Count</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Total VN Count
+                        </p>
                         <p className="text-lg font-bold text-rose-600 dark:text-rose-400">
                           {isLoadingStats
                             ? "..."
@@ -1402,7 +1463,9 @@ const AIVoicePage = () => {
                         </p>
                       </div>
                       <div className="text-center">
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Avg Price</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Avg Price
+                        </p>
                         <p className="text-lg font-bold text-pink-600 dark:text-pink-400">
                           $
                           {isLoadingStats
@@ -1416,7 +1479,10 @@ const AIVoicePage = () => {
                   {/* Admin Access Notice */}
                   <div className="bg-pink-50 dark:bg-pink-500/10 border border-pink-200 dark:border-pink-500/30 rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-2">
-                      <AlertCircle size={16} className="text-pink-600 dark:text-pink-400" />
+                      <AlertCircle
+                        size={16}
+                        className="text-pink-600 dark:text-pink-400"
+                      />
                       <span className="text-pink-700 dark:text-pink-300 font-medium">
                         Admin Required
                       </span>
@@ -1484,7 +1550,10 @@ const AIVoicePage = () => {
                   {/* Voice Note Preview */}
                   <div className="bg-pink-50 dark:bg-gray-800/60 border border-pink-200 dark:border-pink-500/30 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <Volume2 size={16} className="text-pink-600 dark:text-pink-400" />
+                      <Volume2
+                        size={16}
+                        className="text-pink-600 dark:text-pink-400"
+                      />
                       <span className="text-gray-700 dark:text-gray-200 font-medium">
                         {historyItemForSale
                           ? historyItemForSale.voice_name
@@ -1811,7 +1880,9 @@ const AIVoicePage = () => {
                             size={48}
                             className="mx-auto mb-3 text-gray-500 dark:text-gray-400"
                           />
-                          <p className="text-gray-600 dark:text-gray-300 mb-1">No history found</p>
+                          <p className="text-gray-600 dark:text-gray-300 mb-1">
+                            No history found
+                          </p>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
                             Generate some audio to see it here
                           </p>
@@ -1845,7 +1916,9 @@ const AIVoicePage = () => {
                   <h3 className="font-medium text-gray-700 dark:text-gray-200 mb-1">
                     Generation Status
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-300">{generationStatus}</p>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    {generationStatus}
+                  </p>
                 </div>
               </div>
             </CardContent>

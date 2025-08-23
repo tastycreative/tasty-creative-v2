@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getAllApiKeyProfiles, getApiKey } from '@/app/services/elevenlabs-implementation';
 
 // In-memory cache for API responses
 let cachedData: any = null;
@@ -26,35 +27,9 @@ export async function GET(request: Request) {
 
     console.log('🔄 Fetching fresh data from ElevenLabs...');
 
-    // Map all API key profiles with their names
-    const API_KEY_MAP: Record<string, { key: string | undefined, name: string }> = {
-      account_1: { key: process.env.ELEVENLABS_KEY_ACCOUNT_1, name: "OF Bri's voice" },
-      account_2: { key: process.env.ELEVENLABS_KEY_ACCOUNT_2, name: "OF Coco's voice" },
-      account_3: { key: process.env.ELEVENLABS_KEY_ACCOUNT_3, name: "OF Mel's voice" },
-      account_4: { key: process.env.ELEVENLABS_KEY_ACCOUNT_4, name: "OF Lala's voice" },
-      account_5: { key: process.env.ELEVENLABS_KEY_ACCOUNT_5, name: "OF Bronwin's voice" },
-      account_6: { key: process.env.ELEVENLABS_KEY_ACCOUNT_6, name: "OF Nicole's voice" },
-      account_7: { key: process.env.ELEVENLABS_KEY_ACCOUNT_7, name: "OF Sarah's voice" },
-      account_8: { key: process.env.ELEVENLABS_KEY_ACCOUNT_8, name: "OF Carter Cameron's voice" },
-      account_9: { key: process.env.ELEVENLABS_KEY_ACCOUNT_9, name: "OF Sinatra's voice" },
-      account_10: { key: process.env.ELEVENLABS_KEY_ACCOUNT_10, name: "OF Michelle G's voice" },
-      account_11: { key: process.env.ELEVENLABS_KEY_ACCOUNT_11, name: "OF Oakly's voice" },
-      account_12: { key: process.env.ELEVENLABS_KEY_ACCOUNT_12, name: "OF Marcie's voice" },
-      account_13: { key: process.env.ELEVENLABS_KEY_ACCOUNT_13, name: "OF Elle's voice" },
-      account_14: { key: process.env.ELEVENLABS_KEY_ACCOUNT_14, name: "OF Razz's voice" },
-      account_15: { key: process.env.ELEVENLABS_KEY_ACCOUNT_15, name: "OF Autumn's voice" },
-      account_16: { key: process.env.ELEVENLABS_KEY_ACCOUNT_16, name: "OF Natalie's voice" },
-      account_17: { key: process.env.ELEVENLABS_KEY_ACCOUNT_17, name: "OF Dakota's voice" },
-      account_18: { key: process.env.ELEVENLABS_KEY_ACCOUNT_18, name: "OF Victoria's voice" },
-      account_19: { key: process.env.ELEVENLABS_KEY_ACCOUNT_19, name: "OF Essie's voice" },
-      account_20: { key: process.env.ELEVENLABS_KEY_ACCOUNT_20, name: "OF Sirena's voice" },
-      account_21: { key: process.env.ELEVENLABS_KEY_ACCOUNT_21, name: "OF Sirena's spanish voice" },
-      account_22: { key: process.env.ELEVENLABS_KEY_ACCOUNT_22, name: "OF Hailey's voice" },
-      account_23: { key: process.env.ELEVENLABS_KEY_ACCOUNT_23, name: "OF Emmie's voice" },
-      account_24: { key: process.env.ELEVENLABS_KEY_ACCOUNT_24, name: "OF Sharna's voice" },
-      account_25: { key: process.env.ELEVENLABS_KEY_ACCOUNT_25, name: "OF Forrest's voice" },
-    };
-
+    // Get all API key profiles (combines database and legacy accounts)
+    const allProfiles = await getAllApiKeyProfiles();
+    
     let totalVoiceGenerated = 0;
     let totalGeneratedToday = 0;
     const today = new Date().toDateString();
@@ -82,24 +57,30 @@ export async function GET(request: Request) {
     const dailyBreakdown: Record<string, number> = {};
     
     // Fetch history from each account with enhanced analytics
-    for (const [profileKey, { key: apiKey, name: accountName }] of Object.entries(API_KEY_MAP)) {
-      if (!apiKey) continue;
-
+    for (const [profileKey, profile] of Object.entries(allProfiles)) {
       try {
+        // Get API key dynamically (works for both database and legacy accounts)
+        const apiKey = await getApiKey(profileKey);
+        
+        if (!apiKey) {
+          console.log(`⚠️ No API key found for ${profile.name}, skipping...`);
+          continue;
+        }
+
         // Fetch all history with proper pagination
         let allHistoryItems: any[] = [];
         let hasMoreData = true;
         let startAfter = '';
         let pageCount = 0;
         
-        console.log(`📊 Analyzing ${accountName}...`);
+        console.log(`📊 Analyzing ${profile.name}...`);
         
         while (hasMoreData && pageCount < 20) {
-          const url = startAfter 
+          const historyUrl = startAfter 
             ? `https://api.elevenlabs.io/v1/history?page_size=1000&start_after_history_item_id=${startAfter}`
             : 'https://api.elevenlabs.io/v1/history?page_size=1000';
             
-          const response = await fetch(url, {
+          const response = await fetch(historyUrl, {
             method: 'GET',
             headers: {
               'Accept': 'application/json',
@@ -124,13 +105,13 @@ export async function GET(request: Request) {
               }
             }
           } else {
-            console.error(`❌ API Error for ${accountName}:`, response.status);
+            console.error(`❌ API Error for ${profile.name}:`, response.status);
             hasMoreData = false;
           }
         }
         
         const historyItems = allHistoryItems;
-        console.log(`✅ ${accountName}: ${historyItems.length} total generations`);
+        console.log(`✅ ${profile.name}: ${historyItems.length} total generations`);
 
         // Enhanced analytics calculations
         const accountTotal = historyItems.length;
@@ -205,7 +186,7 @@ export async function GET(request: Request) {
         // Add to account stats
         accountStats.push({
           accountId: profileKey,
-          accountName,
+          accountName: profile.name,
           totalGenerated: accountTotal,
           generatedToday: todayCount,
           generatedYesterday: yesterdayCount,
@@ -220,11 +201,11 @@ export async function GET(request: Request) {
         });
         
       } catch (error) {
-        console.error(`❌ Error processing ${accountName}:`, error);
+        console.error(`❌ Error processing ${profile.name}:`, error);
         // Add account with 0 stats if error occurred
         accountStats.push({
           accountId: profileKey,
-          accountName,
+          accountName: profile.name,
           totalGenerated: 0,
           generatedToday: 0,
           generatedYesterday: 0,

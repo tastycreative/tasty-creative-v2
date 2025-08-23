@@ -122,6 +122,26 @@ model VoiceGenAccount {
   @@index([accountType])
 }
 
+model VoiceModel {
+  id          String             @id @default(cuid())
+  accountKey  String             @unique // e.g., "account_26"
+  accountName String             // e.g., "OF Jessica's voice"
+  voiceName   String             // e.g., "OF Jessica"
+  voiceId     String             @unique // ElevenLabs voice ID
+  apiKey      String             // Encrypted API key
+  description String?            @default("Backup account for high-volume usage")
+  category    VoiceModelCategory @default(PROFESSIONAL)
+  isActive    Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@index([accountKey])
+  @@index([voiceId])
+  @@index([category])
+  @@index([isActive])
+  @@index([createdAt])
+}
+
 model Task {
   id          String       @id @default(cuid())
   title       String
@@ -162,6 +182,12 @@ enum VoiceStatus {
 enum AccountType {
   GMAIL
   ELEVENLABS
+}
+
+enum VoiceModelCategory {
+  PROFESSIONAL
+  CASUAL
+  EXPERIMENTAL
 }
 
 enum TaskStatus {

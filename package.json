@@ -7,7 +7,8 @@
     "build": "prisma generate && next build",
     "postinstall": "prisma generate",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "migrate-accounts": "node scripts/migrate-all-accounts.js"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.9.1",
@@ -48,6 +49,8 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "copy-webpack-plugin": "^13.0.0",
+    "crypto-js": "^4.2.0",
+    "dotenv": "^17.2.1",
     "framer-motion": "^12.16.0",
     "gif.js": "^0.2.0",
     "gifuct-js": "^2.1.2",

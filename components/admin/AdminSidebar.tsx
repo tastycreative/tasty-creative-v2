@@ -87,9 +87,19 @@ const adminNavItems = [
         description: "Sales summary and metrics",
       },
       {
-        title: "Voice Gen Accounts",
+        title: "Model's Elevenlabs Accounts",
         href: "/admin/vn-sales/accounts",
         description: "Account management",
+      },
+      {
+        title: "Voice Gen Accounts",
+        href: "/admin/vn-sales/voice-accounts",
+        description: "Manage voice generation accounts",
+      },
+      {
+        title: "Add New Voice Model",
+        href: "/admin/vn-sales/add-model",
+        description: "Create new voice models",
       },
     ],
   },
@@ -205,15 +215,21 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
           {/* Header */}
           <div className="relative flex items-center justify-between p-4 border-b border-pink-200 dark:border-pink-500/30">
             {!isCollapsed && (
-              <img 
-                src={mounted && theme === 'dark' ? "/logo-dark.png" : "/logo.png"} 
-                alt="Logo" 
-                className="h-8 w-auto" 
+              <img
+                src={
+                  mounted && theme === "dark" ? "/logo-dark.png" : "/logo.png"
+                }
+                alt="Logo"
+                className="h-8 w-auto"
               />
             )}
             {isCollapsed && (
               <img
-                src={mounted && theme === 'dark' ? "/logo-collapsed-dark.png" : "/logo-collapsed.png"}
+                src={
+                  mounted && theme === "dark"
+                    ? "/logo-collapsed-dark.png"
+                    : "/logo-collapsed.png"
+                }
                 alt="Logo"
                 className="h-8 w-auto"
               />
@@ -352,7 +368,11 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
                     >
                       <Icon
                         size={20}
-                        className={isActive ? "text-white" : "text-gray-600 dark:text-gray-300"}
+                        className={
+                          isActive
+                            ? "text-white"
+                            : "text-gray-600 dark:text-gray-300"
+                        }
                       />
                       {!isCollapsed && (
                         <>
@@ -361,7 +381,9 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
                             <div
                               className={cn(
                                 "text-xs",
-                                isActive ? "text-pink-100" : "text-gray-500 dark:text-gray-400"
+                                isActive
+                                  ? "text-pink-100"
+                                  : "text-gray-500 dark:text-gray-400"
                               )}
                             >
                               {item.description}
@@ -371,7 +393,9 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
                             size={16}
                             className={cn(
                               "transition-transform duration-200",
-                              isActive ? "text-pink-200" : "text-gray-400 dark:text-gray-500",
+                              isActive
+                                ? "text-pink-200"
+                                : "text-gray-400 dark:text-gray-500",
                               isExpanded && "rotate-180"
                             )}
                           />
@@ -399,7 +423,9 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
                               <div
                                 className={cn(
                                   "w-2 h-2 rounded-full",
-                                  isSubActive ? "bg-pink-500" : "bg-gray-400 dark:bg-gray-500"
+                                  isSubActive
+                                    ? "bg-pink-500"
+                                    : "bg-gray-400 dark:bg-gray-500"
                                 )}
                               />
                               <div className="flex-1">
@@ -431,14 +457,23 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
                   onClick={() => setIsMobileOpen(false)}
                   title={isCollapsed ? item.title : undefined}
                 >
-                  <Icon size={20} className={isActive ? "text-white" : "text-gray-600 dark:text-gray-300"} />
+                  <Icon
+                    size={20}
+                    className={
+                      isActive
+                        ? "text-white"
+                        : "text-gray-600 dark:text-gray-300"
+                    }
+                  />
                   {!isCollapsed && (
                     <div className="flex-1">
                       <div>{item.title}</div>
                       <div
                         className={cn(
                           "text-xs",
-                          isActive ? "text-pink-100" : "text-gray-500 dark:text-gray-400"
+                          isActive
+                            ? "text-pink-100"
+                            : "text-gray-500 dark:text-gray-400"
                         )}
                       >
                         {item.description}
@@ -466,7 +501,12 @@ export function AdminSidebar({ className }: AdminSidebarProps) {
                   v1.0
                 </div>
               )}
-              <div className={cn("flex-shrink-0", isCollapsed && "w-full flex justify-center")}>
+              <div
+                className={cn(
+                  "flex-shrink-0",
+                  isCollapsed && "w-full flex justify-center"
+                )}
+              >
                 <ThemeToggle />
               </div>
             </div>

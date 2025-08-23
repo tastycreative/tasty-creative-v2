@@ -1,12 +1,24 @@
 // services/elevenlabs-implementation.js
+import { PrismaClient } from "@prisma/client";
+import CryptoJS from "crypto-js";
 
-// Pre-configured profiles WITHOUT API keys
-export const API_KEY_PROFILES = {
+const prisma = new PrismaClient();
+
+// Make sure to set this in your environment variables
+const ENCRYPTION_KEY =
+  process.env.ENCRYPTION_KEY || process.env.NEXTAUTH_SECRET;
+
+// Cache for voice models to reduce database queries
+let voiceModelsCache = null;
+let cacheTimestamp = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// Legacy hardcoded profiles (keep for backward compatibility)
+export const LEGACY_API_KEY_PROFILES = {
   account_1: {
     name: "OF Bri's voice",
     description: "Main account with professional voice access",
     voices: [
-      // Professional female voices
       {
         name: "OF Bri",
         voiceId: "XtrZA2v40BnLkNsO4MbN",
@@ -309,6 +321,329 @@ export const ELEVEN_LABS_MODELS = [
   },
 ];
 
+// Encryption functions
+function encryptApiKey(apiKey) {
+  if (!ENCRYPTION_KEY) {
+    throw new Error("ENCRYPTION_KEY not set in environment variables");
+  }
+  return CryptoJS.AES.encrypt(apiKey, ENCRYPTION_KEY).toString();
+}
+
+function decryptApiKey(encryptedApiKey) {
+  if (!ENCRYPTION_KEY) {
+    throw new Error("ENCRYPTION_KEY not set in environment variables");
+  }
+  const bytes = CryptoJS.AES.decrypt(encryptedApiKey, ENCRYPTION_KEY);
+  return bytes.toString(CryptoJS.enc.Utf8);
+}
+
+// Get all voice models from database
+export async function getAllVoiceModels(forceRefresh = false) {
+  const now = Date.now();
+
+  if (
+    !forceRefresh &&
+    voiceModelsCache &&
+    now - cacheTimestamp < CACHE_DURATION
+  ) {
+    return voiceModelsCache;
+  }
+
+  try {
+    const models = await prisma.voiceModel.findMany({
+      where: { isActive: true },
+      orderBy: { createdAt: "asc" },
+    });
+
+    voiceModelsCache = models;
+    cacheTimestamp = now;
+
+    return models;
+  } catch (error) {
+    console.error("Error fetching voice models from database:", error);
+    // Fallback to legacy profiles if database fails
+    return Object.entries(LEGACY_API_KEY_PROFILES).map(([key, profile]) => ({
+      id: key,
+      accountKey: key,
+      accountName: profile.name,
+      voiceName: profile.voices[0]?.name || "Unknown",
+      voiceId: profile.voices[0]?.voiceId || "",
+      category: profile.voices[0]?.category?.toUpperCase() || "PROFESSIONAL",
+      description: profile.description,
+      isActive: true,
+      apiKey: null, // Legacy profiles don't have stored API keys
+    }));
+  }
+}
+
+// Get API key for a profile (now supports both database and legacy)
+export async function getApiKey(profileKey) {
+  try {
+    // First try to get from database
+    const models = await getAllVoiceModels();
+    const model = models.find((m) => m.accountKey === profileKey);
+
+    if (model && model.apiKey) {
+      return decryptApiKey(model.apiKey);
+    }
+
+    // Fallback to environment variables for legacy accounts
+    const legacyEnvMap = {
+      account_1: process.env.ELEVENLABS_KEY_ACCOUNT_1,
+      account_2: process.env.ELEVENLABS_KEY_ACCOUNT_2,
+      account_3: process.env.ELEVENLABS_KEY_ACCOUNT_3,
+      account_4: process.env.ELEVENLABS_KEY_ACCOUNT_4,
+      account_5: process.env.ELEVENLABS_KEY_ACCOUNT_5,
+      account_6: process.env.ELEVENLABS_KEY_ACCOUNT_6,
+      account_7: process.env.ELEVENLABS_KEY_ACCOUNT_7,
+      account_8: process.env.ELEVENLABS_KEY_ACCOUNT_8,
+      account_9: process.env.ELEVENLABS_KEY_ACCOUNT_9,
+      account_10: process.env.ELEVENLABS_KEY_ACCOUNT_10,
+      account_11: process.env.ELEVENLABS_KEY_ACCOUNT_11,
+      account_12: process.env.ELEVENLABS_KEY_ACCOUNT_12,
+      account_13: process.env.ELEVENLABS_KEY_ACCOUNT_13,
+      account_14: process.env.ELEVENLABS_KEY_ACCOUNT_14,
+      account_15: process.env.ELEVENLABS_KEY_ACCOUNT_15,
+      account_16: process.env.ELEVENLABS_KEY_ACCOUNT_16,
+      account_17: process.env.ELEVENLABS_KEY_ACCOUNT_17,
+      account_18: process.env.ELEVENLABS_KEY_ACCOUNT_18,
+      account_19: process.env.ELEVENLABS_KEY_ACCOUNT_19,
+      account_20: process.env.ELEVENLABS_KEY_ACCOUNT_20,
+      account_21: process.env.ELEVENLABS_KEY_ACCOUNT_21,
+      account_22: process.env.ELEVENLABS_KEY_ACCOUNT_22,
+      account_23: process.env.ELEVENLABS_KEY_ACCOUNT_23,
+      account_24: process.env.ELEVENLABS_KEY_ACCOUNT_24,
+      account_25: process.env.ELEVENLABS_KEY_ACCOUNT_25,
+    };
+
+    return legacyEnvMap[profileKey] || null;
+  } catch (error) {
+    console.error("Error getting API key:", error);
+    return null;
+  }
+}
+
+// Get voices for a specific profile
+export async function getVoicesForProfile(profileKey) {
+  try {
+    const models = await getAllVoiceModels();
+    const model = models.find((m) => m.accountKey === profileKey);
+
+    if (model) {
+      return [
+        {
+          name: model.voiceName,
+          voiceId: model.voiceId,
+          category: model.category.toLowerCase(),
+        },
+      ];
+    }
+
+    // Fallback to legacy profiles
+    return LEGACY_API_KEY_PROFILES[profileKey]?.voices || [];
+  } catch (error) {
+    console.error("Error getting voices for profile:", error);
+    return LEGACY_API_KEY_PROFILES[profileKey]?.voices || [];
+  }
+}
+
+// Get all available API key profiles (combines database and legacy)
+export async function getAllApiKeyProfiles() {
+  try {
+    const models = await getAllVoiceModels();
+    const profiles = {};
+
+    // Add database models
+    models.forEach((model) => {
+      profiles[model.accountKey] = {
+        name: model.accountName,
+        description: model.description,
+        voices: [
+          {
+            name: model.voiceName,
+            voiceId: model.voiceId,
+            category: model.category.toLowerCase(),
+          },
+        ],
+      };
+    });
+
+    // Add legacy profiles that aren't in database
+    Object.entries(LEGACY_API_KEY_PROFILES).forEach(([key, profile]) => {
+      if (!profiles[key]) {
+        profiles[key] = profile;
+      }
+    });
+
+    return profiles;
+  } catch (error) {
+    console.error("Error getting all profiles:", error);
+    return LEGACY_API_KEY_PROFILES;
+  }
+}
+
+// Database management functions
+export async function addVoiceModel(modelData) {
+  try {
+    // Check if we're trying to migrate a legacy account or create a new one
+    let accountKey;
+
+    if (modelData.accountKey && modelData.accountKey.startsWith("account_")) {
+      // User wants to use a specific account key (like migrating legacy accounts)
+      accountKey = modelData.accountKey;
+
+      // Check if this account key already exists in database
+      const existingModel = await prisma.voiceModel.findFirst({
+        where: {
+          accountKey: accountKey,
+          isActive: true,
+        },
+      });
+
+      if (existingModel) {
+        return {
+          success: false,
+          error: `Account key ${accountKey} already exists in database. Use update instead.`,
+        };
+      }
+    } else {
+      // Generate next available account key
+      const existingModels = await prisma.voiceModel.findMany({
+        where: { isActive: true },
+      });
+
+      const accountNumbers = existingModels
+        .map((m) => parseInt(m.accountKey.replace("account_", "")))
+        .filter((n) => !isNaN(n));
+
+      // Only check legacy numbers if we're not migrating them
+      const legacyNumbers = Object.keys(LEGACY_API_KEY_PROFILES)
+        .map((k) => parseInt(k.replace("account_", "")))
+        .filter((n) => !isNaN(n));
+
+      const allNumbers = [...accountNumbers, ...legacyNumbers];
+      const nextNumber =
+        allNumbers.length > 0 ? Math.max(...allNumbers) + 1 : 1;
+      accountKey = `account_${nextNumber}`;
+    }
+
+    // Encrypt API key
+    const encryptedApiKey = encryptApiKey(modelData.apiKey);
+
+    // Create in database
+    const newModel = await prisma.voiceModel.create({
+      data: {
+        accountKey,
+        accountName: modelData.accountName,
+        voiceName: modelData.voiceName,
+        voiceId: modelData.voiceId,
+        apiKey: encryptedApiKey,
+        description:
+          modelData.description || "Backup account for high-volume usage",
+        category: modelData.category?.toUpperCase() || "PROFESSIONAL",
+      },
+    });
+
+    // Clear cache
+    voiceModelsCache = null;
+
+    return { success: true, model: newModel };
+  } catch (error) {
+    console.error("Error adding voice model:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateVoiceModel(id, updateData) {
+  try {
+    const data = { ...updateData };
+
+    // Convert category to uppercase for enum
+    if (data.category) {
+      data.category = data.category.toUpperCase();
+    }
+
+    // Encrypt API key if provided
+    if (data.apiKey) {
+      data.apiKey = encryptApiKey(data.apiKey);
+    }
+
+    const updatedModel = await prisma.voiceModel.update({
+      where: { id },
+      data,
+    });
+
+    // Clear cache
+    voiceModelsCache = null;
+
+    return { success: true, model: updatedModel };
+  } catch (error) {
+    console.error("Error updating voice model:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function deleteVoiceModel(id) {
+  try {
+    // Hard delete - actually remove the record from the database
+    await prisma.voiceModel.delete({
+      where: { id },
+    });
+
+    // Clear cache
+    voiceModelsCache = null;
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting voice model:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Function to migrate a legacy account to database
+export async function migrateLegacyAccount(legacyAccountKey, apiKey) {
+  try {
+    const legacyProfile = LEGACY_API_KEY_PROFILES[legacyAccountKey];
+    if (!legacyProfile) {
+      return {
+        success: false,
+        error: `Legacy account ${legacyAccountKey} not found`,
+      };
+    }
+
+    // Check if already migrated
+    const existingModel = await prisma.voiceModel.findFirst({
+      where: {
+        accountKey: legacyAccountKey,
+        isActive: true,
+      },
+    });
+
+    if (existingModel) {
+      return {
+        success: false,
+        error: `Account ${legacyAccountKey} already migrated to database`,
+      };
+    }
+
+    const voice = legacyProfile.voices[0];
+    const modelData = {
+      accountKey: legacyAccountKey,
+      accountName: legacyProfile.name,
+      voiceName: voice.name,
+      voiceId: voice.voiceId,
+      apiKey: apiKey,
+      description: legacyProfile.description,
+      category: voice.category,
+    };
+
+    return await addVoiceModel(modelData);
+  } catch (error) {
+    console.error("Error migrating legacy account:", error);
+    return { success: false, error: error.message };
+  }
+}
+
 // Cache for history audio URLs
 const audioUrlCache = new Map();
 
@@ -319,15 +654,17 @@ const voiceParametersCache = new Map();
 export function storeVoiceParameters(historyItemId, parameters) {
   voiceParametersCache.set(historyItemId, parameters);
 
-  // Also save to localStorage for persistence
-  try {
-    const allParams = JSON.parse(
-      localStorage.getItem("voiceParametersCache") || "{}"
-    );
-    allParams[historyItemId] = parameters;
-    localStorage.setItem("voiceParametersCache", JSON.stringify(allParams));
-  } catch (error) {
-    console.error("Error saving parameters to localStorage:", error);
+  // Also save to localStorage for persistence (with browser check)
+  if (typeof window !== "undefined") {
+    try {
+      const allParams = JSON.parse(
+        localStorage.getItem("voiceParametersCache") || "{}"
+      );
+      allParams[historyItemId] = parameters;
+      localStorage.setItem("voiceParametersCache", JSON.stringify(allParams));
+    } catch (error) {
+      console.error("Error saving parameters to localStorage:", error);
+    }
   }
 }
 
@@ -338,18 +675,20 @@ export function getVoiceParameters(historyItemId) {
     return voiceParametersCache.get(historyItemId);
   }
 
-  // Try from localStorage next
-  try {
-    const allParams = JSON.parse(
-      localStorage.getItem("voiceParametersCache") || "{}"
-    );
-    if (allParams[historyItemId]) {
-      // Also update in-memory cache
-      voiceParametersCache.set(historyItemId, allParams[historyItemId]);
-      return allParams[historyItemId];
+  // Try from localStorage next (with browser check)
+  if (typeof window !== "undefined") {
+    try {
+      const allParams = JSON.parse(
+        localStorage.getItem("voiceParametersCache") || "{}"
+      );
+      if (allParams[historyItemId]) {
+        // Also update in-memory cache
+        voiceParametersCache.set(historyItemId, allParams[historyItemId]);
+        return allParams[historyItemId];
+      }
+    } catch (error) {
+      console.error("Error retrieving parameters from localStorage:", error);
     }
-  } catch (error) {
-    console.error("Error retrieving parameters from localStorage:", error);
   }
 
   return null;
@@ -357,26 +696,18 @@ export function getVoiceParameters(historyItemId) {
 
 // Load parameters from localStorage on initialization
 export function initVoiceParametersCache() {
-  try {
-    const allParams = JSON.parse(
-      localStorage.getItem("voiceParametersCache") || "{}"
-    );
-    Object.entries(allParams).forEach(([historyItemId, parameters]) => {
-      voiceParametersCache.set(historyItemId, parameters);
-    });
-  } catch (error) {
-    console.error("Error loading parameters from localStorage:", error);
+  if (typeof window !== "undefined") {
+    try {
+      const allParams = JSON.parse(
+        localStorage.getItem("voiceParametersCache") || "{}"
+      );
+      Object.entries(allParams).forEach(([historyItemId, parameters]) => {
+        voiceParametersCache.set(historyItemId, parameters);
+      });
+    } catch (error) {
+      console.error("Error loading parameters from localStorage:", error);
+    }
   }
-}
-
-// Function to get the appropriate API key profile (no longer returns actual API key)
-export function getApiKey(profileKey) {
-  return API_KEY_PROFILES[profileKey] ? profileKey : "";
-}
-
-// Function to get voices for a specific API key profile
-export function getVoicesForProfile(profileKey) {
-  return API_KEY_PROFILES[profileKey]?.voices || [];
 }
 
 // Last fetched history items cache to prevent ElevenLabs rate limiting
@@ -549,9 +880,8 @@ export async function generateVoice(
     const audioUrl = URL.createObjectURL(audioBlob);
 
     // Find the voice details
-    const voice = getVoicesForProfile(apiKeyProfileKey).find(
-      (v) => v.voiceId === voiceId
-    );
+    const voice = await getVoicesForProfile(apiKeyProfileKey);
+    const voiceData = voice.find((v) => v.voiceId === voiceId);
 
     // Force refresh the history cache to ensure new item is picked up
     lastFetchedHistoryCache.timestamp = 0;
@@ -583,11 +913,14 @@ export async function generateVoice(
       }
     }, 1000); // Wait 1 second to ensure the history item is available
 
+    const profiles = await getAllApiKeyProfiles();
+    const profile = profiles[apiKeyProfileKey];
+
     return {
       audioUrl,
       audioBlob,
-      profile: API_KEY_PROFILES[apiKeyProfileKey].name,
-      voiceName: voice?.name || "Unknown Voice",
+      profile: profile?.name || "Unknown Profile",
+      voiceName: voiceData?.name || "Unknown Voice",
     };
   } catch (error) {
     console.error("Error generating voice:", error);
@@ -646,4 +979,12 @@ export function downloadAudio(audioBlob, filename) {
 // Helper function to clear audio URL cache
 export function clearAudioUrlCache() {
   audioUrlCache.clear();
+}
+
+// Legacy exports for backward compatibility
+export const API_KEY_PROFILES = LEGACY_API_KEY_PROFILES;
+
+// Function to get the appropriate API key profile (legacy compatibility)
+export function getApiKeyProfile(profileKey) {
+  return API_KEY_PROFILES[profileKey] ? profileKey : "";
 }
