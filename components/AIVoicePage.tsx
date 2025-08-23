@@ -822,9 +822,7 @@ const AIVoicePage = () => {
         setVoiceModels(models);
         // Set default selected profile if not set
         if (!selectedApiKeyProfile && models.length > 0) {
-          setSelectedApiKeyProfile(
-            models[0].accountKey || models[0].id
-          );
+          setSelectedApiKeyProfile(models[0].accountKey || models[0].id);
         }
       } catch (err) {
         console.error("Failed to fetch voice models", err);
@@ -980,13 +978,17 @@ const AIVoicePage = () => {
                 </div>
                 {voiceModels.length === 0 && (
                   <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/30 rounded-lg">
-                    <AlertTriangle size={16} className="text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+                    <AlertTriangle
+                      size={16}
+                      className="text-yellow-600 dark:text-yellow-400 flex-shrink-0"
+                    />
                     <div>
                       <p className="text-yellow-700 dark:text-yellow-300 text-sm font-medium">
                         No voice profiles available
                       </p>
                       <p className="text-yellow-600 dark:text-yellow-400 text-xs">
-                        Please sign in to access voice generation features, or contact an admin if you're already signed in.
+                        Please sign in to access voice generation features, or
+                        contact an admin if you're already signed in.
                       </p>
                     </div>
                   </div>
