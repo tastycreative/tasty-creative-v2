@@ -70,7 +70,7 @@ export const API_KEY_PROFILES = {
 // Client-side function to get voice models from API
 export async function getAllVoiceModels() {
   try {
-    const response = await fetch("/api/voice-models");
+    const response = await fetch("/api/voice-models/public");
     const data = await response.json();
 
     if (data.success) {

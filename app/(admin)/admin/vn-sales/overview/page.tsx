@@ -55,9 +55,7 @@ import {
   ArrowDownRight,
   Minus,
 } from "lucide-react";
-import {
-  getVoicesForProfile,
-} from "@/app/services/elevenlabs-implementation";
+import { getVoicesForProfile } from "@/app/services/elevenlabs-implementation";
 
 interface VoiceHistoryItem {
   history_item_id: string;
@@ -159,7 +157,7 @@ export default function VNSalesPage() {
     try {
       const response = await fetch("/api/voice-profiles");
       const data = await response.json();
-      
+
       if (response.ok && data.success) {
         setApiKeyProfiles(data.profiles);
       } else {
@@ -711,7 +709,9 @@ export default function VNSalesPage() {
           )}
           <AlertDescription
             className={
-              clearStatus.type === "success" ? "text-green-700 dark:text-green-300" : "text-red-700 dark:text-red-300"
+              clearStatus.type === "success"
+                ? "text-green-700 dark:text-green-300"
+                : "text-red-700 dark:text-red-300"
             }
           >
             {clearStatus.message}
@@ -730,7 +730,9 @@ export default function VNSalesPage() {
               <Mic className="h-6 w-6 text-pink-500" />
               <div className="flex items-center space-x-1">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-xs text-gray-600 dark:text-gray-400">Live Updates</span>
+                <span className="text-xs text-gray-600 dark:text-gray-400">
+                  Live Updates
+                </span>
               </div>
               {isCached && (
                 <div className="flex items-center space-x-1">
@@ -790,7 +792,12 @@ export default function VNSalesPage() {
               />
               {isLoadingStats ? "Refreshing..." : "Refresh"}
             </Button>
-            <Button onClick={exportData} variant="outline" size="sm" className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
+            <Button
+              onClick={exportData}
+              variant="outline"
+              size="sm"
+              className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
               <Download className="h-4 w-4 mr-2" />
               Export CSV
             </Button>
@@ -819,7 +826,10 @@ export default function VNSalesPage() {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {alerts.map((alert, index) => (
-              <Alert key={index} className="border-l-4 border-l-blue-500 dark:bg-gray-800 dark:border-gray-600">
+              <Alert
+                key={index}
+                className="border-l-4 border-l-blue-500 dark:bg-gray-800 dark:border-gray-600"
+              >
                 {getAlertIcon(alert.type)}
                 <div>
                   <AlertDescription className="dark:text-gray-300">
@@ -853,7 +863,9 @@ export default function VNSalesPage() {
                 </p>
                 <div className="flex items-center text-sm">
                   <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
-                  <span className="text-green-600 dark:text-green-400 font-medium">Real-time</span>
+                  <span className="text-green-600 dark:text-green-400 font-medium">
+                    Real-time
+                  </span>
                 </div>
               </div>
               <div className="bg-green-50 dark:bg-green-900/30 p-3 rounded-full group-hover:bg-green-100 dark:group-hover:bg-green-900/50 transition-colors">
@@ -1036,25 +1048,33 @@ export default function VNSalesPage() {
                 <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {insights.activeToday}
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Active Today</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Active Today
+                </div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                   {insights.highPerformers}
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">High Performers</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  High Performers
+                </div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-red-600 dark:text-red-400">
                   {insights.inactiveAccounts}
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Inactive Accounts</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Inactive Accounts
+                </div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                   {insights.averagePerAccount}
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">Avg per Account</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Avg per Account
+                </div>
               </div>
             </div>
             <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
@@ -1141,7 +1161,9 @@ export default function VNSalesPage() {
                           <span className="font-medium text-green-600 dark:text-green-400">
                             {account.generatedToday}
                           </span>
-                          <span className="text-xs text-gray-400 dark:text-gray-500">vs</span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500">
+                            vs
+                          </span>
                           <span className="font-medium text-gray-500 dark:text-gray-400">
                             {account.generatedYesterday}
                           </span>
@@ -1158,7 +1180,9 @@ export default function VNSalesPage() {
                       </div>
 
                       <div className="flex justify-between items-center">
-                        <span className="text-xs text-gray-600 dark:text-gray-400">Velocity:</span>
+                        <span className="text-xs text-gray-600 dark:text-gray-400">
+                          Velocity:
+                        </span>
                         <Badge
                           className={`text-xs ${getVelocityBadge(account.velocity)} dark:bg-opacity-20 dark:border-opacity-50`}
                         >
@@ -1185,7 +1209,9 @@ export default function VNSalesPage() {
                       <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
                         <div
                           className={`h-2 rounded-full transition-all duration-500 ${
-                            index === 0 ? "bg-indigo-500 dark:bg-indigo-400" : "bg-gray-400 dark:bg-gray-500"
+                            index === 0
+                              ? "bg-indigo-500 dark:bg-indigo-400"
+                              : "bg-gray-400 dark:bg-gray-500"
                           }`}
                           style={{
                             width:
@@ -1230,7 +1256,9 @@ export default function VNSalesPage() {
                   <div className="font-semibold text-gray-900 dark:text-gray-100">
                     {accountStats.accountStats.length}
                   </div>
-                  <div className="text-gray-500 dark:text-gray-400">Total Accounts</div>
+                  <div className="text-gray-500 dark:text-gray-400">
+                    Total Accounts
+                  </div>
                 </div>
                 <div className="text-center">
                   <div className="font-semibold text-green-600 dark:text-green-400">
@@ -1240,7 +1268,9 @@ export default function VNSalesPage() {
                       ).length
                     }
                   </div>
-                  <div className="text-gray-500 dark:text-gray-400">Active Today</div>
+                  <div className="text-gray-500 dark:text-gray-400">
+                    Active Today
+                  </div>
                 </div>
                 <div className="text-center">
                   <div className="font-semibold text-blue-600 dark:text-blue-400">
@@ -1250,7 +1280,9 @@ export default function VNSalesPage() {
                       ).length
                     }
                   </div>
-                  <div className="text-gray-500 dark:text-gray-400">High Velocity</div>
+                  <div className="text-gray-500 dark:text-gray-400">
+                    High Velocity
+                  </div>
                 </div>
                 <div className="text-center">
                   <div className="font-semibold text-red-600 dark:text-red-400">
@@ -1260,7 +1292,9 @@ export default function VNSalesPage() {
                       ).length
                     }
                   </div>
-                  <div className="text-gray-500 dark:text-gray-400">Need Attention</div>
+                  <div className="text-gray-500 dark:text-gray-400">
+                    Need Attention
+                  </div>
                 </div>
               </div>
               <div className="text-xs text-gray-400 dark:text-gray-500 text-center mt-2">
@@ -1301,23 +1335,33 @@ export default function VNSalesPage() {
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600">
                   {isLoadingProfiles ? (
-                    <SelectItem value="loading" disabled className="dark:text-gray-400">
+                    <SelectItem
+                      value="loading"
+                      disabled
+                      className="dark:text-gray-400"
+                    >
                       Loading profiles...
                     </SelectItem>
                   ) : Object.keys(apiKeyProfiles).length === 0 ? (
-                    <SelectItem value="no-profiles" disabled className="dark:text-gray-400">
+                    <SelectItem
+                      value="no-profiles"
+                      disabled
+                      className="dark:text-gray-400"
+                    >
                       No profiles available
                     </SelectItem>
                   ) : (
-                    Object.entries(apiKeyProfiles).map(([key, profile]: [string, any]) => (
-                      <SelectItem
-                        key={key}
-                        value={key}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-100"
-                      >
-                        {profile.name}
-                      </SelectItem>
-                    ))
+                    Object.entries(apiKeyProfiles).map(
+                      ([key, profile]: [string, any]) => (
+                        <SelectItem
+                          key={key}
+                          value={key}
+                          className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-100"
+                        >
+                          {profile.name}
+                        </SelectItem>
+                      )
+                    )
                   )}
                 </SelectContent>
               </Select>
@@ -1429,11 +1473,8 @@ export default function VNSalesPage() {
                       availableVoices.find((v) => v.voiceId === selectedVoice)
                         ?.name
                     }{" "}
-                    in{" "}
-                    {
-                      apiKeyProfiles[selectedApiProfile]?.name
-                    }
-                    . Generate some voice notes first.
+                    in {apiKeyProfiles[selectedApiProfile]?.name}. Generate some
+                    voice notes first.
                   </p>
                 )}
             </div>
@@ -1555,9 +1596,24 @@ export default function VNSalesPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="dark:bg-gray-800 dark:border-gray-600">
-                    <SelectItem value="date" className="dark:text-gray-100 dark:hover:bg-gray-700">Date</SelectItem>
-                    <SelectItem value="price" className="dark:text-gray-100 dark:hover:bg-gray-700">Price</SelectItem>
-                    <SelectItem value="model" className="dark:text-gray-100 dark:hover:bg-gray-700">Model</SelectItem>
+                    <SelectItem
+                      value="date"
+                      className="dark:text-gray-100 dark:hover:bg-gray-700"
+                    >
+                      Date
+                    </SelectItem>
+                    <SelectItem
+                      value="price"
+                      className="dark:text-gray-100 dark:hover:bg-gray-700"
+                    >
+                      Price
+                    </SelectItem>
+                    <SelectItem
+                      value="model"
+                      className="dark:text-gray-100 dark:hover:bg-gray-700"
+                    >
+                      Model
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 <Button

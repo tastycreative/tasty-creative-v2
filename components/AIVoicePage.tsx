@@ -11,6 +11,7 @@ import {
   DollarSign,
   CheckCircle,
   AlertCircle,
+  AlertTriangle,
   ArrowRight,
   ShoppingCart,
 } from "lucide-react";
@@ -54,6 +55,7 @@ import {
   getHistoryAudio,
   getVoiceParameters,
   getVoicesForProfile,
+  getAllVoiceModels,
 } from "@/app/services/elevenlabs-client";
 import { truncateText, formatDate } from "@/lib/utils";
 
@@ -816,16 +818,13 @@ const AIVoicePage = () => {
   useEffect(() => {
     const fetchVoiceModels = async () => {
       try {
-        const res = await fetch("/api/voice-models");
-        const data = await res.json();
-        if (data.success && Array.isArray(data.models)) {
-          setVoiceModels(data.models);
-          // Set default selected profile if not set
-          if (!selectedApiKeyProfile && data.models.length > 0) {
-            setSelectedApiKeyProfile(
-              data.models[0].accountKey || data.models[0].id
-            );
-          }
+        const models = await getAllVoiceModels();
+        setVoiceModels(models);
+        // Set default selected profile if not set
+        if (!selectedApiKeyProfile && models.length > 0) {
+          setSelectedApiKeyProfile(
+            models[0].accountKey || models[0].id
+          );
         }
       } catch (err) {
         console.error("Failed to fetch voice models", err);
@@ -979,6 +978,19 @@ const AIVoicePage = () => {
                     Refresh
                   </Button>
                 </div>
+                {voiceModels.length === 0 && (
+                  <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/30 rounded-lg">
+                    <AlertTriangle size={16} className="text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+                    <div>
+                      <p className="text-yellow-700 dark:text-yellow-300 text-sm font-medium">
+                        No voice profiles available
+                      </p>
+                      <p className="text-yellow-600 dark:text-yellow-400 text-xs">
+                        Please sign in to access voice generation features, or contact an admin if you're already signed in.
+                      </p>
+                    </div>
+                  </div>
+                )}
                 {apiKeyBalance && (
                   <div className="inline-flex items-center rounded-full px-4 py-2 text-sm font-semibold bg-pink-50 dark:bg-pink-500/20 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-500/30">
                     <span>API Connected</span>
