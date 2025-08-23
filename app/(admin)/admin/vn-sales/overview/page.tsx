@@ -56,7 +56,6 @@ import {
   Minus,
 } from "lucide-react";
 import {
-  API_KEY_PROFILES,
   getVoicesForProfile,
 } from "@/app/services/elevenlabs-implementation";
 
@@ -151,6 +150,29 @@ export default function VNSalesPage() {
   } | null>(null);
 
   const [availableVoices, setAvailableVoices] = useState<any[]>([]);
+  const [apiKeyProfiles, setApiKeyProfiles] = useState<any>({});
+  const [isLoadingProfiles, setIsLoadingProfiles] = useState(false);
+
+  // Load API key profiles from database via API
+  const loadProfiles = useCallback(async () => {
+    setIsLoadingProfiles(true);
+    try {
+      const response = await fetch("/api/voice-profiles");
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        setApiKeyProfiles(data.profiles);
+      } else {
+        console.error("Failed to load voice profiles:", data.error);
+        setApiKeyProfiles({});
+      }
+    } catch (error) {
+      console.error("Error loading API profiles:", error);
+      setApiKeyProfiles({});
+    } finally {
+      setIsLoadingProfiles(false);
+    }
+  }, []);
 
   // Enhanced loadStats function with caching and analytics
   const loadStats = useCallback(async (forceRefresh = false) => {
@@ -384,14 +406,21 @@ export default function VNSalesPage() {
   // Initialize and load data
   useEffect(() => {
     loadStats();
-  }, [loadStats]);
+    loadProfiles();
+  }, [loadStats, loadProfiles]);
 
   useEffect(() => {
     const loadVoices = async () => {
       if (selectedApiProfile) {
-        const profileVoices = getVoicesForProfile(selectedApiProfile);
-        setAvailableVoices(profileVoices);
-        setSelectedVoice(profileVoices[0]?.voiceId || "");
+        try {
+          const profileVoices = await getVoicesForProfile(selectedApiProfile);
+          setAvailableVoices(profileVoices);
+          setSelectedVoice(profileVoices[0]?.voiceId || "");
+        } catch (error) {
+          console.error("Error loading voices for profile:", error);
+          setAvailableVoices([]);
+          setSelectedVoice("");
+        }
       } else {
         setAvailableVoices([]);
         setSelectedVoice("");
@@ -1271,15 +1300,25 @@ export default function VNSalesPage() {
                   <SelectValue placeholder="Choose an API profile" />
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600">
-                  {Object.entries(API_KEY_PROFILES).map(([key, profile]) => (
-                    <SelectItem
-                      key={key}
-                      value={key}
-                      className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-100"
-                    >
-                      {profile.name}
+                  {isLoadingProfiles ? (
+                    <SelectItem value="loading" disabled className="dark:text-gray-400">
+                      Loading profiles...
                     </SelectItem>
-                  ))}
+                  ) : Object.keys(apiKeyProfiles).length === 0 ? (
+                    <SelectItem value="no-profiles" disabled className="dark:text-gray-400">
+                      No profiles available
+                    </SelectItem>
+                  ) : (
+                    Object.entries(apiKeyProfiles).map(([key, profile]: [string, any]) => (
+                      <SelectItem
+                        key={key}
+                        value={key}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-100"
+                      >
+                        {profile.name}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -1392,9 +1431,7 @@ export default function VNSalesPage() {
                     }{" "}
                     in{" "}
                     {
-                      API_KEY_PROFILES[
-                        selectedApiProfile as keyof typeof API_KEY_PROFILES
-                      ]?.name
+                      apiKeyProfiles[selectedApiProfile]?.name
                     }
                     . Generate some voice notes first.
                   </p>
