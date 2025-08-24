@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { ChevronDown, Search, X, Sparkles, Edit2, Check, X as XIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
+import { usePodStore } from "@/lib/stores/podStore";
 
 interface PricingItem {
   id: string;

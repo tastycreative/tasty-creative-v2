@@ -10,6 +10,7 @@ import {
   Sparkles,
   ExternalLink,
 } from "lucide-react";
+import { useTasks, usePricingPreview } from "@/lib/stores/podStore";
 
 // Simple Progress component
 const Progress = ({
@@ -100,12 +101,22 @@ interface WorkflowDashboardProps {
 }
 
 const WorkflowDashboard: React.FC<WorkflowDashboardProps> = ({
-  tasks = [],
+  tasks: propTasks = [],
   creators = [],
   onPricingGuideClick,
-  pricingPreview = [],
-  pricingRotationProgress = 0,
+  pricingPreview: propPricingPreview = [],
+  pricingRotationProgress: propPricingRotationProgress = 0,
 }) => {
+  // Use Zustand store data if available, otherwise use props (for backward compatibility)
+  const { tasks: storeTasks } = useTasks();
+  const { 
+    preview: storePricingPreview, 
+    progress: storePricingRotationProgress 
+  } = usePricingPreview();
+  
+  const tasks = storeTasks.length > 0 ? storeTasks : propTasks;
+  const pricingPreview = storePricingPreview.length > 0 ? storePricingPreview : propPricingPreview;
+  const pricingRotationProgress = storePricingRotationProgress > 0 ? storePricingRotationProgress : propPricingRotationProgress;
   const completedTasks = tasks.filter(
     (task) => task.status === "completed"
   ).length;

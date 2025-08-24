@@ -333,7 +333,7 @@ export async function POST(request: NextRequest) {
               range: `'${targetSheetName}'!C3`,
               valueInputOption: 'RAW',
               requestBody: {
-                values: [[targetSheetName]]
+                values: [["          "+targetSheetName.toLocaleUpperCase()]]
               }
             });
             console.log(`Updated cell C3 with sheet name: ${targetSheetName}`);
