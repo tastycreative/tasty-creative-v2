@@ -1229,12 +1229,12 @@ const PodComponent = () => {
                                 {openSheetGroups[creatorName] && (
                                   <div className="p-2 space-y-1">
                                     {sheets.map((link, index) => (
-                                      <button
+                                      <div
                                         key={index}
+                                        className="w-full p-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 rounded transition-colors group cursor-pointer"
                                         onClick={() =>
                                           handleSheetClick(link.name, link.url)
                                         }
-                                        className="w-full p-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 rounded transition-colors group"
                                       >
                                         <div className="flex items-start space-x-2">
                                           <div className="flex-shrink-0 mt-0.5">
@@ -1251,16 +1251,22 @@ const PodComponent = () => {
                                             </p>
                                             {link.url &&
                                               link.url.startsWith("http") && (
-                                                <div className="flex items-center mt-1 text-xs text-emerald-600 dark:text-emerald-400">
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    window.open(link.url, "_blank");
+                                                  }}
+                                                  className="flex items-center mt-1 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline transition-colors"
+                                                >
                                                   <ExternalLink className="h-2 w-2 mr-1 flex-shrink-0" />
-                                                  <span className="group-hover:underline truncate">
+                                                  <span className="truncate">
                                                     Open Sheet
                                                   </span>
-                                                </div>
+                                                </button>
                                               )}
                                           </div>
                                         </div>
-                                      </button>
+                                      </div>
                                     ))}
                                   </div>
                                 )}
@@ -1331,17 +1337,12 @@ const PodComponent = () => {
                                   ] && (
                                     <div className="p-2 space-y-1">
                                       {sheets.map((sheet) => (
-                                        <button
+                                        <div
                                           key={sheet.id}
-                                          onClick={() => {
-                                            if (
-                                              sheet.url &&
-                                              sheet.url.startsWith("http")
-                                            ) {
-                                              window.open(sheet.url, "_blank");
-                                            }
-                                          }}
-                                          className="w-full p-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 rounded transition-colors group"
+                                          className="w-full p-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 rounded transition-colors group cursor-pointer"
+                                          onClick={() =>
+                                            handleSheetClick(sheet.name, sheet.url)
+                                          }
                                         >
                                           <div className="flex items-start space-x-2">
                                             <div className="flex-shrink-0 mt-0.5">
@@ -1360,12 +1361,18 @@ const PodComponent = () => {
                                                 sheet.url.startsWith(
                                                   "http"
                                                 ) && (
-                                                  <div className="flex items-center mt-1 text-xs text-blue-600 dark:text-blue-400">
+                                                  <button
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      window.open(sheet.url, "_blank");
+                                                    }}
+                                                    className="flex items-center mt-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors"
+                                                  >
                                                     <ExternalLink className="h-2 w-2 mr-1 flex-shrink-0" />
-                                                    <span className="group-hover:underline truncate">
+                                                    <span className="truncate">
                                                       Open Sheet
                                                     </span>
-                                                  </div>
+                                                  </button>
                                                 )}
                                               {sheet.lastModified && (
                                                 <div className="flex items-center mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -1379,7 +1386,7 @@ const PodComponent = () => {
                                               )}
                                             </div>
                                           </div>
-                                        </button>
+                                        </div>
                                       ))}
                                     </div>
                                   )}

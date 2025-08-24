@@ -7,6 +7,7 @@ const BETTERFANS_TEMPLATE_ID = '1whNomJu69mIidOJk-9kExphJSWRG7ncMea75EtDlEJY';
 const BETTERFANS_TEMPLATE_GID = '193810044';
 const POD_TEMPLATE_ID = '1Bvz11KpPN1g4n0H67SJhTrx43OeHF_RDlUWi1zG2QAk';
 const POD_TEMPLATE_GID = '1071193551';
+const SHARED_FOLDER_ID = '1jV4H9nDmseNL8AdvokY8uAOM5am4YC_c';
 
 // Extract spreadsheet ID from URL
 function extractSpreadsheetId(url: string): string | null {
@@ -227,6 +228,7 @@ export async function POST(request: NextRequest) {
         fileId: templateId,
         requestBody: {
           name: newFileName,
+          parents: [SHARED_FOLDER_ID], // Place the file in the shared folder
         },
       });
 
