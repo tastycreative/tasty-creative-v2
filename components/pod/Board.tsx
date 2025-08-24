@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { Session } from 'next-auth';
 import { 
   MoreHorizontal, 
@@ -23,33 +23,10 @@ import {
 } from 'lucide-react';
 import { useSocketTasks } from '@/hooks/useSocketTasks';
 import UserDropdown from '@/components/UserDropdown';
+import { useBoardStore, useBoardTasks, useBoardFilters, useBoardTaskActions, type Task } from '@/lib/stores/boardStore';
 // import { UserSearchInput } from '@/components/UserSearchInput';
 
-// Task types based on Prisma schema
-interface Task {
-id: string;
-title: string;
-description: string | null;
-status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-priority: 'LOW' | 'MEDIUM' | 'HIGH';
-dueDate: string | null;
-teamId: string;
-teamName: string;
-assignedTo: string | null;
-createdById: string;
-createdAt: string;
-updatedAt: string;
-createdBy: {
-id: string;
-name: string | null;
-email: string | null;
-};
-assignedUser?: {
-id: string;
-name: string | null;
-email: string | null;
-} | null;
-}
+// Task types are now imported from the boardStore
 
 interface TeamOption {
 row: number;
@@ -103,40 +80,42 @@ const priorityConfig = {
   HIGH: { label: 'High', color: 'bg-red-100 text-red-700' }
 };
 
-// Skeleton loading component
-const TaskSkeleton = () => (
-  <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-3 animate-pulse">
-    {/* Header skeleton */}
-    <div className="flex items-start justify-between mb-2">
-      <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-3/4"></div>
-      <div className="h-3 w-3 bg-gray-300 dark:bg-gray-600 rounded"></div>
-    </div>
-    
-    {/* Description skeleton */}
-    <div className="space-y-1 mb-3">
-      <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-full"></div>
-      <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-2/3"></div>
-    </div>
-    
-    {/* Meta skeleton */}
-    <div className="flex items-center justify-between mb-3">
-      <div className="h-5 bg-gray-200 dark:bg-gray-600 rounded-full w-16"></div>
-      <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-12"></div>
-    </div>
-    
-    {/* Assignment skeleton */}
-    <div className="space-y-1">
-      <div className="flex items-center">
-        <div className="h-3 w-3 bg-gray-200 dark:bg-gray-600 rounded mr-1"></div>
-        <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-24"></div>
+// Skeleton loading component - Memoized to prevent unnecessary re-renders
+const TaskSkeleton = React.memo(() => (
+  <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+    <div className="animate-pulse">
+      {/* Header skeleton */}
+      <div className="flex items-start justify-between mb-2">
+        <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-3/4"></div>
+        <div className="h-3 w-3 bg-gray-300 dark:bg-gray-600 rounded"></div>
       </div>
-      <div className="flex items-center">
-        <div className="h-3 w-3 bg-gray-200 dark:bg-gray-600 rounded mr-1"></div>
-        <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-20"></div>
+      
+      {/* Description skeleton */}
+      <div className="space-y-1 mb-3">
+        <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-full"></div>
+        <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-2/3"></div>
+      </div>
+      
+      {/* Meta skeleton */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="h-5 bg-gray-200 dark:bg-gray-600 rounded-full w-16"></div>
+        <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-12"></div>
+      </div>
+      
+      {/* Assignment skeleton */}
+      <div className="space-y-1">
+        <div className="flex items-center">
+          <div className="h-3 w-3 bg-gray-200 dark:bg-gray-600 rounded mr-1"></div>
+          <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-24"></div>
+        </div>
+        <div className="flex items-center">
+          <div className="h-3 w-3 bg-gray-200 dark:bg-gray-600 rounded mr-1"></div>
+          <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-20"></div>
+        </div>
       </div>
     </div>
   </div>
-);
+));
 
 const ColumnHeaderSkeleton = () => (
   <div className="p-4 bg-gray-50 dark:bg-gray-700 animate-pulse">
@@ -152,263 +131,138 @@ const ColumnHeaderSkeleton = () => (
 );
 
 export default function Board({ teamId, teamName, session, availableTeams, onTeamChange, selectedRow }: BoardProps) {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [draggedTask, setDraggedTask] = useState<Task | null>(null);
-  const [showNewTaskForm, setShowNewTaskForm] = useState<string | null>(null);
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newTaskDescription, setNewTaskDescription] = useState('');
-  const [newTaskPriority, setNewTaskPriority] = useState<'LOW' | 'MEDIUM' | 'HIGH'>('MEDIUM');
-  const [newTaskAssignee, setNewTaskAssignee] = useState('');
-  const [isCreatingTask, setIsCreatingTask] = useState(false);
-  const [currentTeamId, setCurrentTeamId] = useState(teamId);
+  // Zustand store hooks
+  const { tasks, isLoading, error, currentTeamId, fetchTasks, setCurrentTeamId } = useBoardTasks();
+  const { 
+    searchTerm, priorityFilter, assigneeFilter, dueDateFilter, sortBy, sortOrder, showFilters,
+    setSearchTerm, setPriorityFilter, setAssigneeFilter, setDueDateFilter, setSortBy, setSortOrder, setShowFilters
+  } = useBoardFilters();
+  const { createTask, updateTaskStatus, updateTask, deleteTask } = useBoardTaskActions();
+  
+  // UI State from store
+  const draggedTask = useBoardStore(state => state.draggedTask);
+  const showNewTaskForm = useBoardStore(state => state.showNewTaskForm);
+  const showNewTaskModal = useBoardStore(state => state.showNewTaskModal);
+  const newTaskStatus = useBoardStore(state => state.newTaskStatus);
+  const newTaskData = useBoardStore(state => state.newTaskData);
+  const isCreatingTask = useBoardStore(state => state.isCreatingTask);
+  const selectedTask = useBoardStore(state => state.selectedTask);
+  const isEditingTask = useBoardStore(state => state.isEditingTask);
+  const editingTaskData = useBoardStore(state => state.editingTaskData);
+  
+  // UI State setters from store
+  const setDraggedTask = useBoardStore(state => state.setDraggedTask);
+  const setShowNewTaskForm = useBoardStore(state => state.setShowNewTaskForm);
+  const setShowNewTaskModal = useBoardStore(state => state.setShowNewTaskModal);
+  const setNewTaskStatus = useBoardStore(state => state.setNewTaskStatus);
+  const setNewTaskData = useBoardStore(state => state.setNewTaskData);
+  const setSelectedTask = useBoardStore(state => state.setSelectedTask);
+  const setIsEditingTask = useBoardStore(state => state.setIsEditingTask);
+  const setEditingTaskData = useBoardStore(state => state.setEditingTaskData);
 
-  // Filter, Search, and Sort state
-  const [searchTerm, setSearchTerm] = useState('');
-  const [priorityFilter, setPriorityFilter] = useState<'ALL' | 'LOW' | 'MEDIUM' | 'HIGH'>('ALL');
-  const [assigneeFilter, setAssigneeFilter] = useState<'ALL' | 'ASSIGNED' | 'UNASSIGNED' | 'MY_TASKS'>('ALL');
-  const [dueDateFilter, setDueDateFilter] = useState<'ALL' | 'OVERDUE' | 'TODAY' | 'WEEK'>('ALL');
-  const [sortBy, setSortBy] = useState<'createdAt' | 'updatedAt' | 'dueDate' | 'priority' | 'title'>('updatedAt');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [showFilters, setShowFilters] = useState(false);
+  // Local state for minimum skeleton display time
+  const [showMinimumSkeleton, setShowMinimumSkeleton] = useState(false);
 
-  // Task detail modal state
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [isEditingTask, setIsEditingTask] = useState(false);
-  const [editingTaskData, setEditingTaskData] = useState<Partial<Task>>({});
+  // Effect to ensure skeleton shows for minimum time
+  useEffect(() => {
+    if (isLoading && tasks.length === 0) {
+      setShowMinimumSkeleton(true);
+      // Ensure skeleton shows for at least 300ms
+      const timer = setTimeout(() => {
+        if (!isLoading || tasks.length > 0) {
+          setShowMinimumSkeleton(false);
+        }
+      }, 300);
+      return () => clearTimeout(timer);
+    } else {
+      // Only hide skeleton if we're not loading anymore
+      if (!isLoading) {
+        setShowMinimumSkeleton(false);
+      }
+    }
+  }, [isLoading, tasks.length]);
 
-  // New task modal state
-  const [showNewTaskModal, setShowNewTaskModal] = useState(false);
-  const [newTaskStatus, setNewTaskStatus] = useState<Task['status'] | null>(null);
-  const [newTaskData, setNewTaskData] = useState({
-    title: '',
-    description: '',
-    priority: 'MEDIUM' as Task['priority'],
-    assignedTo: '',
-    dueDate: ''
-  });
+  // Consolidated team initialization and data fetching
+  useEffect(() => {
+    if (teamId !== currentTeamId) {
+      setCurrentTeamId(teamId);
+    }
+    // Always fetch tasks when teamId changes, but use debouncing to prevent rapid calls
+    const timeoutId = setTimeout(() => {
+      fetchTasks(teamId);
+    }, 100);
 
-  // Real-time task updates
+    return () => clearTimeout(timeoutId);
+  }, [teamId, currentTeamId, setCurrentTeamId, fetchTasks]);
+
+  // Real-time task updates with debouncing to prevent rapid updates
   const { broadcastTaskUpdate } = useSocketTasks({
     teamId: currentTeamId,
-    onTaskUpdate: (update) => {
+    onTaskUpdate: useCallback((update) => {
       console.log('Board received task update:', update);
-      console.log('Current tasks before update:', tasks.length);
       
-      // Handle real-time task updates
-      if (update.type === 'TASK_UPDATED' && update.data) {
-        console.log('Updating task:', update.taskId, 'with data:', update.data);
-        setTasks(prevTasks => {
-          const updatedTasks = prevTasks.map(task => 
-            task.id === update.taskId 
-              ? { ...task, ...update.data }
-              : task
-          );
-          console.log('Tasks after update:', updatedTasks.length);
-          return updatedTasks;
-        });
-      } else if (update.type === 'TASK_CREATED' && update.data) {
-        console.log('Adding new task:', update.data);
-        setTasks(prevTasks => [...prevTasks, update.data]);
-      } else if (update.type === 'TASK_DELETED') {
-        console.log('Deleting task:', update.taskId);
-        setTasks(prevTasks => prevTasks.filter(task => task.id !== update.taskId));
-      }
-    }
+      // Debounce the fetch to prevent rapid loading states
+      const timeoutId = setTimeout(() => {
+        if (update.type === 'TASK_UPDATED' || update.type === 'TASK_CREATED' || update.type === 'TASK_DELETED') {
+          console.log('Refreshing tasks due to socket update:', update.type);
+          fetchTasks(currentTeamId, true);
+        }
+      }, 200);
+
+      return () => clearTimeout(timeoutId);
+    }, [currentTeamId, fetchTasks])
   });
 
-  const fetchTasks = useCallback(async (targetTeamId: string) => {
-    if (!targetTeamId) return;
-    
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const response = await fetch(`/api/tasks?teamId=${targetTeamId}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch tasks');
-      }
-
-      const result = await response.json();
-      
-      if (result.success && result.tasks) {
-        setTasks(result.tasks);
-      } else {
-        setError('Failed to load tasks');
-      }
-    } catch (error) {
-      console.error('Error fetching tasks:', error);
-      setError('Failed to load tasks');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  // fetchTasks is now provided by the useBoardTasks hook
 
   // Handle team change with immediate UI update
   const handleTeamChange = (newTeamRow: number) => {
     const newTeamId = `team-${newTeamRow}`;
     
-    // Immediate visual update
+    // Update store with new team ID (this will clear tasks and UI state)
     setCurrentTeamId(newTeamId);
-    setTasks([]); // Clear current tasks immediately
-    setError(null);
     setShowNewTaskForm(null); // Close any open forms
     
     // Update parent component
     onTeamChange(newTeamRow);
     
-    // Fetch new data in background
-    fetchTasks(newTeamId);
+    // Fetch new data will be handled by the useEffect above
   };
 
-  // Initial load and when teamId prop changes
-  useEffect(() => {
-    if (teamId !== currentTeamId) {
-      setCurrentTeamId(teamId);
-      fetchTasks(teamId);
-    }
-  }, [teamId, currentTeamId, fetchTasks]);
+  // updateTaskStatus is now provided by useBoardTaskActions hook and includes socket broadcasting
 
-  // Initial load
-  useEffect(() => {
-    fetchTasks(currentTeamId);
-  }, [fetchTasks, currentTeamId]);
-
-  const updateTaskStatus = async (taskId: string, newStatus: Task['status']) => {
-    // Find the task to get its current data
-    const currentTask = tasks.find(task => task.id === taskId);
-    if (!currentTask) return;
-
-    // Optimistic update - update UI immediately
-    const updatedTask = { ...currentTask, status: newStatus, updatedAt: new Date().toISOString() };
-    setTasks(prevTasks => 
-      prevTasks.map(task => 
-        task.id === taskId ? updatedTask : task
-      )
-    );
+  // Wrapper function to use store's createTask with socket broadcasting
+  const handleCreateTask = async (status: Task['status']) => {
+    if (!newTaskData.title.trim()) return;
 
     try {
-      const response = await fetch('/api/tasks', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id: taskId,
-          status: newStatus,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update task');
-      }
-
-      const result = await response.json();
+      // Use store's createTask function
+      await createTask(newTaskData, status);
       
-      if (result.success && result.task) {
-        // Broadcast the update to other users
-        await broadcastTaskUpdate({
-          type: 'TASK_UPDATED',
-          taskId: taskId,
-          data: result.task
-        });
-      } else {
-        throw new Error('Failed to update task');
-      }
-    } catch (error) {
-      console.error('Error updating task:', error);
-      setError('Failed to update task status');
-      // Revert optimistic update on error
-      fetchTasks(currentTeamId);
-    }
-  };
-
-  const createTask = async (status: Task['status']) => {
-    if (!newTaskTitle.trim()) return;
-
-    setIsCreatingTask(true);
-
-    try {
-      const response = await fetch('/api/tasks', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: newTaskTitle.trim(),
-          description: newTaskDescription.trim() || null,
-          priority: newTaskPriority,
-          assignedTo: newTaskAssignee.trim() || null,
-          teamId: currentTeamId,
-          teamName,
-          status,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create task');
-      }
-
-      const result = await response.json();
+      // Broadcast the new task to other users - the store handles the API call
+      // We'll fetch tasks to get the updated list which includes the new task
+      await fetchTasks(currentTeamId, true);
       
-      if (result.success && result.task) {
-        // Add the new task to local state
-        setTasks(prevTasks => [result.task, ...prevTasks]);
-        
-        // Broadcast the new task to other users
-        await broadcastTaskUpdate({
-          type: 'TASK_CREATED',
-          taskId: result.task.id,
-          data: result.task
-        });
-        
-        // Reset form
-        setNewTaskTitle('');
-        setNewTaskDescription('');
-        setNewTaskPriority('MEDIUM');
-        setNewTaskAssignee('');
-        setShowNewTaskForm(null);
-      } else {
-        throw new Error('Failed to create task');
-      }
     } catch (error) {
       console.error('Error creating task:', error);
-      setError('Failed to create task');
-    } finally {
-      setIsCreatingTask(false);
     }
   };
 
-  const deleteTask = async (taskId: string) => {
+  // Wrapper function to use store's deleteTask with socket broadcasting
+  const handleDeleteTask = async (taskId: string) => {
     if (!confirm('Are you sure you want to delete this task?')) return;
 
     try {
-      const response = await fetch(`/api/tasks?id=${taskId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete task');
-      }
-
-      const result = await response.json();
+      // Use store's deleteTask function
+      await deleteTask(taskId);
       
-      if (result.success) {
-        setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
-        
-        // Broadcast the task deletion to other users
-        await broadcastTaskUpdate({
-          type: 'TASK_DELETED',
-          taskId: taskId
-        });
-      } else {
-        throw new Error('Failed to delete task');
-      }
+      // Broadcast the task deletion to other users
+      await broadcastTaskUpdate({
+        type: 'TASK_DELETED',
+        taskId: taskId
+      });
     } catch (error) {
       console.error('Error deleting task:', error);
-      setError('Failed to delete task');
     }
   };
 
@@ -451,50 +305,26 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     if (!selectedTask) return;
 
     try {
-      const response = await fetch('/api/tasks', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id: selectedTask.id,
-          title: editingTaskData.title,
-          description: editingTaskData.description,
-          priority: editingTaskData.priority,
-          dueDate: editingTaskData.dueDate ? new Date(editingTaskData.dueDate).toISOString() : null,
-          assignedTo: editingTaskData.assignedTo || null,
-        }),
-      });
+      // Prepare update data
+      const updates = {
+        title: editingTaskData.title,
+        description: editingTaskData.description,
+        priority: editingTaskData.priority,
+        dueDate: editingTaskData.dueDate ? new Date(editingTaskData.dueDate).toISOString() : null,
+        assignedTo: editingTaskData.assignedTo || null,
+      };
 
-      if (!response.ok) {
-        throw new Error('Failed to update task');
-      }
-
-      const result = await response.json();
+      // Use store's updateTask function
+      await updateTask(selectedTask.id, updates);
       
-      if (result.success && result.task) {
-        // Update local state
-        setTasks(prevTasks => 
-          prevTasks.map(task => 
-            task.id === selectedTask.id ? result.task : task
-          )
-        );
-        
-        setSelectedTask(result.task);
-        setIsEditingTask(false);
-        
-        // Broadcast the update to other users
-        await broadcastTaskUpdate({
-          type: 'TASK_UPDATED',
-          taskId: selectedTask.id,
-          data: result.task
-        });
-      } else {
-        throw new Error('Failed to update task');
-      }
+      // Broadcast the update to other users
+      await broadcastTaskUpdate({
+        type: 'TASK_UPDATED',
+        taskId: selectedTask.id,
+        data: { ...selectedTask, ...updates }
+      });
     } catch (error) {
       console.error('Error updating task:', error);
-      setError('Failed to update task');
     }
   };
 
@@ -526,53 +356,18 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   const createTaskFromModal = async () => {
     if (!newTaskData.title.trim() || !newTaskStatus) return;
 
-    setIsCreatingTask(true);
-
     try {
-      const response = await fetch('/api/tasks', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: newTaskData.title.trim(),
-          description: newTaskData.description.trim() || null,
-          priority: newTaskData.priority,
-          assignedTo: newTaskData.assignedTo.trim() || null,
-          dueDate: newTaskData.dueDate ? new Date(newTaskData.dueDate).toISOString() : null,
-          teamId: currentTeamId,
-          teamName,
-          status: newTaskStatus,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create task');
-      }
-
-      const result = await response.json();
+      // Use store's createTask function
+      await createTask(newTaskData, newTaskStatus);
       
-      if (result.success && result.task) {
-        // Add the new task to local state
-        setTasks(prevTasks => [result.task, ...prevTasks]);
+      // Broadcast the new task to other users - the store handles the API call
+      // We'll fetch tasks to get the updated list which includes the new task
+      await fetchTasks(currentTeamId, true);
         
-        // Broadcast the new task to other users
-        await broadcastTaskUpdate({
-          type: 'TASK_CREATED',
-          taskId: result.task.id,
-          data: result.task
-        });
-        
-        // Close modal
-        closeNewTaskModal();
-      } else {
-        throw new Error('Failed to create task');
-      }
+      // Close modal
+      closeNewTaskModal();
     } catch (error) {
       console.error('Error creating task:', error);
-      setError('Failed to create task');
-    } finally {
-      setIsCreatingTask(false);
     }
   };
 
@@ -671,14 +466,20 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     // Add visual feedback to the drag element
     e.dataTransfer.effectAllowed = 'move';
     if (e.target instanceof HTMLElement) {
-      e.target.style.transform = 'rotate(5deg)';
+      e.target.style.transform = 'rotate(3deg) scale(1.05)';
+      e.target.style.zIndex = '50';
     }
   };
 
   const handleDragEnd = (e: React.DragEvent) => {
     if (e.target instanceof HTMLElement) {
       e.target.style.transform = '';
+      e.target.style.zIndex = '';
     }
+    // Add small delay before clearing dragged task to prevent flicker
+    setTimeout(() => {
+      setDraggedTask(null);
+    }, 100);
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -690,12 +491,11 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     e.preventDefault();
     
     if (!draggedTask || draggedTask.status === newStatus) {
-      setDraggedTask(null);
       return;
     }
 
+    // Provide immediate visual feedback before API call
     updateTaskStatus(draggedTask.id, newStatus);
-    setDraggedTask(null);
   };
 
   const getTasksForStatus = (status: Task['status']) => {
@@ -810,7 +610,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     }
   };
 
-  if (isLoading && tasks.length === 0) {
+  if (showMinimumSkeleton || (isLoading && tasks.length === 0)) {
     return (
       <div className="space-y-6">
         {/* Board Header with Team Selection - Mobile Responsive Loading */}
@@ -928,8 +728,8 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                 }`}
               >
                 <div className="space-y-3">
-                  {/* Skeleton Tasks */}
-                  {Array.from({ length: Math.floor(Math.random() * 3) + 1 }).map((_, taskIndex) => (
+                  {/* Skeleton Tasks - Fixed count for stable loading */}
+                  {Array.from({ length: 2 }).map((_, taskIndex) => (
                     <TaskSkeleton key={`${status}-skeleton-${taskIndex}`} />
                   ))}
                 </div>
@@ -1246,28 +1046,28 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                     <input
                       type="text"
                       placeholder="Task title..."
-                      value={newTaskTitle}
-                      onChange={(e) => setNewTaskTitle(e.target.value)}
+                      value={newTaskData.title}
+                      onChange={(e) => setNewTaskData({ title: e.target.value })}
                       className="w-full p-2 border border-gray-200 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500"
                       autoFocus
                     />
                     <textarea
                       placeholder="Description (optional)..."
-                      value={newTaskDescription}
-                      onChange={(e) => setNewTaskDescription(e.target.value)}
+                      value={newTaskData.description}
+                      onChange={(e) => setNewTaskData({ description: e.target.value })}
                       className="w-full p-2 mt-2 border border-gray-200 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500"
                       rows={2}
                     />
                     <UserDropdown
-                      value={newTaskAssignee}
-                      onChange={(email) => setNewTaskAssignee(email)}
+                      value={newTaskData.assignedTo}
+                      onChange={(email) => setNewTaskData({ assignedTo: email })}
                       placeholder="Search and select user..."
                       className=""
                     />
                     <div className="flex items-center justify-between mt-3">
                       <select
-                        value={newTaskPriority}
-                        onChange={(e) => setNewTaskPriority(e.target.value as 'LOW' | 'MEDIUM' | 'HIGH')}
+                        value={newTaskData.priority}
+                        onChange={(e) => setNewTaskData({ priority: e.target.value as 'LOW' | 'MEDIUM' | 'HIGH' })}
                         className="text-xs border border-gray-200 dark:border-gray-600 rounded-md px-2 py-1 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       >
                         <option value="LOW">Low Priority</option>
@@ -1283,8 +1083,8 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                           Cancel
                         </button>
                         <button
-                          onClick={() => createTask(status as Task['status'])}
-                          disabled={!newTaskTitle.trim() || isCreatingTask}
+                          onClick={() => handleCreateTask(status as Task['status'])}
+                          disabled={!newTaskData.title.trim() || isCreatingTask}
                           className="text-xs bg-pink-500 hover:bg-pink-600 text-white px-3 py-1 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isCreatingTask ? 'Creating...' : 'Create'}
@@ -1308,7 +1108,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
               return (
                 <div
                   key={status}
-                  className={`flex-shrink-0 w-80 p-4 border-r border-gray-200 dark:border-gray-600 last:border-r-0 transition-all duration-200 ${
+                  className={`flex-shrink-0 w-80 p-4 border-r border-gray-200 dark:border-gray-600 last:border-r-0 transition-colors duration-300 ${
                     draggedTask && draggedTask.status !== status 
                       ? 'bg-pink-50/30 dark:bg-pink-900/10' 
                       : ''
@@ -1345,9 +1145,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                         onDragStart={(e) => handleDragStart(e, task)}
                         onDragEnd={handleDragEnd}
                         onClick={() => openTaskDetail(task)}
-                        className={`bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 ${
+                        className={`bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow transition-transform duration-150 ${
                           canMoveTask(task) ? 'cursor-move hover:scale-[1.02]' : 'cursor-pointer'
-                        } ${draggedTask?.id === task.id ? 'opacity-50 scale-95' : ''} ${
+                        } ${draggedTask?.id === task.id ? 'opacity-50 scale-95 transition-opacity duration-100' : ''} ${
                           draggedTask && draggedTask.id !== task.id ? 'hover:bg-gray-100 dark:hover:bg-gray-700' : ''
                         } touch-manipulation`}
                       >
@@ -1412,7 +1212,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                     )}
 
                     {/* Loading skeletons for mobile */}
-                    {statusTasks.length === 0 && isLoading && (
+                    {statusTasks.length === 0 && (showMinimumSkeleton || isLoading) && (
                       <>
                         <TaskSkeleton />
                         <TaskSkeleton />
@@ -1442,7 +1242,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                 key={status}
                 className={`p-4 ${
                   index < 3 ? 'border-r-2 border-gray-200 dark:border-gray-600' : ''
-                } transition-all duration-200 ${
+                } transition-colors duration-300 ${
                   draggedTask && draggedTask.status !== status 
                     ? 'bg-pink-50/30 dark:bg-pink-900/10 border-pink-200 dark:border-pink-500' 
                     : ''
@@ -1459,9 +1259,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                       onDragStart={(e) => handleDragStart(e, task)}
                       onDragEnd={handleDragEnd}
                       onClick={() => openTaskDetail(task)}
-                      className={`bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-3 shadow-sm hover:shadow-md transition-all duration-200 ${
+                      className={`bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow transition-transform duration-150 ${
                         canMoveTask(task) ? 'cursor-move hover:scale-[1.02]' : 'cursor-pointer'
-                      } ${draggedTask?.id === task.id ? 'opacity-50 scale-95' : ''} ${
+                      } ${draggedTask?.id === task.id ? 'opacity-50 scale-95 transition-opacity duration-100' : ''} ${
                         draggedTask && draggedTask.id !== task.id ? 'hover:bg-gray-100 dark:hover:bg-gray-700' : ''
                       }`}
                     >
@@ -1475,7 +1275,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                deleteTask(task.id);
+                                handleDeleteTask(task.id);
                               }}
                               className="text-gray-400 hover:text-red-500 transition-colors"
                               title="Delete task"
@@ -1582,10 +1382,10 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                   )}
 
                   {/* Skeleton Loading State - Only shown when loading tasks for team switch */}
-                  {statusTasks.length === 0 && isLoading && (
+                  {statusTasks.length === 0 && (showMinimumSkeleton || isLoading) && (
                     <div className="space-y-3">
-                      {/* Show 1-2 skeleton tasks during team switch */}
-                      {Array.from({ length: Math.floor(Math.random() * 2) + 1 }).map((_, taskIndex) => (
+                      {/* Show consistent skeleton tasks during loading */}
+                      {Array.from({ length: 2 }).map((_, taskIndex) => (
                         <TaskSkeleton key={`loading-${status}-${taskIndex}`} />
                       ))}
                     </div>
