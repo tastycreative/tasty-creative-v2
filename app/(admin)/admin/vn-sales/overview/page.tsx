@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
 import {
   Loader2,
   CheckCircle,
@@ -49,11 +50,14 @@ import {
   Pause,
   Settings,
   Timer,
-  Flame,
-  TrendingUpIcon,
-  ArrowUpRight,
-  ArrowDownRight,
   Minus,
+  X,
+  ExternalLink,
+  MoreHorizontal,
+  Database,
+  Sparkles,
+  Brain,
+  Shield,
 } from "lucide-react";
 import { getVoicesForProfile } from "@/app/services/elevenlabs-implementation";
 
@@ -674,24 +678,50 @@ export default function VNSalesPage() {
   };
 
   return (
-    <div className="min-h-screen p-6 space-y-6 bg-gradient-to-br from-gray-50 via-white to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      {/* Custom styles */}
-      <style jsx global>{`
-        .line-clamp-2 {
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-        .line-clamp-3 {
-          display: -webkit-box;
-          -webkit-line-clamp: 3;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-      `}</style>
-
+    <div className="min-h-screen p-6 space-y-6 bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-gray-800">
       <ExternalSaleNotification />
+
+      {/* Enhanced Header Section */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 opacity-10 dark:opacity-20" />
+        <div className="relative backdrop-blur-sm bg-white/90 dark:bg-gray-800/90 rounded-xl p-6 border border-purple-200 dark:border-purple-700 shadow-lg">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg">
+                <BarChart3 className="h-6 w-6" />
+              </div>
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  VN Sales Overview
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400 mt-1">
+                  Real-time analytics and performance insights
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="flex gap-4">
+              <div className="text-center">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Total Sales
+                </p>
+                <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                  {recentSales.length}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Active Models
+                </p>
+                <p className="text-xl font-bold text-pink-600 dark:text-pink-400">
+                  {accountStats?.accountStats?.length || 0}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Status alerts */}
       {clearStatus && (
@@ -700,7 +730,7 @@ export default function VNSalesPage() {
             clearStatus.type === "success"
               ? "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300 dark:border-green-700"
               : "border-red-500 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 dark:border-red-700"
-          } mb-6`}
+          } mb-6 shadow-lg`}
         >
           {clearStatus.type === "success" ? (
             <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
@@ -720,102 +750,248 @@ export default function VNSalesPage() {
       )}
 
       {/* Enhanced Header */}
-      <div className="mb-8 p-6 bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-800 dark:to-gray-700 rounded-lg border dark:border-gray-600">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center space-x-3 mb-2">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-                VN Sales Tracker
-              </h1>
-              <Mic className="h-6 w-6 text-pink-500" />
-              <div className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-xs text-gray-600 dark:text-gray-400">
-                  Live Updates
-                </span>
-              </div>
-              {isCached && (
-                <div className="flex items-center space-x-1">
-                  <Timer className="h-3 w-3 text-blue-500" />
-                  <span className="text-xs text-blue-600 dark:text-blue-400">
-                    Cached ({cacheAge}s ago)
-                  </span>
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-pink-500/10 to-indigo-600/10 rounded-3xl" />
+        <Card className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border-0 shadow-2xl">
+          <CardContent className="p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-4">
+                <div className="relative">
+                  <div className="p-4 rounded-2xl bg-gradient-to-r from-pink-500 via-purple-600 to-indigo-600 text-white shadow-lg">
+                    <Mic className="h-8 w-8" />
+                  </div>
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full animate-pulse border-2 border-white" />
                 </div>
-              )}
-            </div>
-            <p className="text-gray-600 dark:text-gray-300">
-              Advanced analytics, real-time tracking, and intelligent insights
-            </p>
-            {lastRefresh && (
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Last updated: {lastRefresh.toLocaleTimeString()}
-              </p>
-            )}
-          </div>
-          <div className="flex gap-3 flex-wrap">
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setAutoRefresh(!autoRefresh)}
-                className={`${autoRefresh ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700" : "dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"}`}
-              >
-                {autoRefresh ? (
-                  <Pause className="h-4 w-4 mr-1" />
-                ) : (
-                  <Play className="h-4 w-4 mr-1" />
-                )}
-                Auto-refresh
-              </Button>
-              {autoRefresh && (
-                <select
-                  value={refreshInterval}
-                  onChange={(e) => setRefreshInterval(parseInt(e.target.value))}
-                  className="text-xs border rounded px-2 py-1 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                <div>
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-purple-800 to-pink-800 bg-clip-text text-transparent dark:from-gray-100 dark:via-purple-300 dark:to-pink-300">
+                    VN Sales Tracker
+                  </h1>
+                  <p className="text-gray-600 dark:text-gray-300 text-lg flex items-center gap-2 mt-2">
+                    <Brain className="h-5 w-5 text-purple-500" />
+                    Advanced analytics, real-time tracking, and intelligent
+                    insights
+                  </p>
+                  <div className="flex items-center gap-4 mt-3">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                      <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                        Live Updates
+                      </span>
+                    </div>
+                    {isCached && (
+                      <div className="flex items-center space-x-2">
+                        <Timer className="h-4 w-4 text-blue-500" />
+                        <span className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+                          Cached ({cacheAge}s ago)
+                        </span>
+                      </div>
+                    )}
+                    {lastRefresh && (
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        Last updated: {lastRefresh.toLocaleTimeString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Header Controls */}
+              <div className="flex items-center space-x-3">
+                <div className="flex items-center space-x-2">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Auto Refresh
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={autoRefresh}
+                      onChange={(e) => setAutoRefresh(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <div
+                      onClick={() => setAutoRefresh(!autoRefresh)}
+                      className={`w-11 h-6 rounded-full cursor-pointer transition-all duration-200 ${
+                        autoRefresh
+                          ? "bg-purple-500 shadow-lg"
+                          : "bg-gray-300 dark:bg-gray-600"
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-all duration-200 mt-0.5 ${
+                          autoRefresh ? "translate-x-5" : "translate-x-0.5"
+                        }`}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={() => loadStats(true)}
+                  disabled={isLoadingStats}
+                  variant="outline"
+                  size="sm"
+                  className="border-purple-200 hover:bg-purple-50 dark:border-purple-800 dark:hover:bg-purple-900/20"
                 >
-                  <option value={10}>10s</option>
-                  <option value={30}>30s</option>
-                  <option value={60}>1m</option>
-                  <option value={300}>5m</option>
-                </select>
+                  {isLoadingStats ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  <span className="ml-2 hidden sm:inline">Refresh</span>
+                </Button>
+
+                <Button
+                  onClick={exportData}
+                  variant="outline"
+                  size="sm"
+                  className="border-green-200 hover:bg-green-50 dark:border-green-800 dark:hover:bg-green-900/20"
+                >
+                  <Download className="h-4 w-4" />
+                  <span className="ml-2 hidden sm:inline">Export</span>
+                </Button>
+              </div>
+            </div>
+
+            {/* Quick Stats Bar */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-xl p-4 border border-blue-200 dark:border-blue-800/30">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                      Total Sales
+                    </p>
+                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                      ${vnStats?.totalSales?.toFixed(2) || "0.00"}
+                    </p>
+                  </div>
+                  <DollarSign className="h-8 w-8 text-blue-500" />
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 rounded-xl p-4 border border-green-200 dark:border-green-800/30">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-green-700 dark:text-green-300">
+                      Today
+                    </p>
+                    <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+                      {vnStats?.todaySales || 0}
+                    </p>
+                  </div>
+                  <TrendingUp className="h-8 w-8 text-green-500" />
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 rounded-xl p-4 border border-purple-200 dark:border-purple-800/30">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                      This Week
+                    </p>
+                    <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                      {vnStats?.weekSales || 0}
+                    </p>
+                  </div>
+                  <BarChart3 className="h-8 w-8 text-purple-500" />
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/30 dark:to-red-950/30 rounded-xl p-4 border border-orange-200 dark:border-orange-800/30">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-orange-700 dark:text-orange-300">
+                      Active Models
+                    </p>
+                    <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">
+                      {accountStats?.accountStats?.length || 0}
+                    </p>
+                  </div>
+                  <Database className="h-8 w-8 text-orange-500" />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Enhanced Controls Section */}
+      <Card className="mb-6 backdrop-blur-sm bg-white/90 dark:bg-gray-800/90 border-purple-200 dark:border-purple-700">
+        <CardContent className="p-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-4">
+              {lastRefresh && (
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Last updated: {lastRefresh.toLocaleTimeString()}
+                </p>
               )}
             </div>
-            <Button
-              onClick={() => loadStats(true)}
-              disabled={isLoadingStats}
-              variant="outline"
-              size="sm"
-              className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-            >
-              <RefreshCw
-                className={`h-4 w-4 mr-2 ${isLoadingStats ? "animate-spin" : ""}`}
-              />
-              {isLoadingStats ? "Refreshing..." : "Refresh"}
-            </Button>
-            <Button
-              onClick={exportData}
-              variant="outline"
-              size="sm"
-              className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export CSV
-            </Button>
-            {recentSales.length > 0 && (
+            <div className="flex gap-3 flex-wrap">
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAutoRefresh(!autoRefresh)}
+                  className={`${autoRefresh ? "bg-green-50 dark:bg-green-900/30 border-green-300 dark:border-green-700" : "dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"}`}
+                >
+                  {autoRefresh ? (
+                    <Pause className="h-4 w-4 mr-1" />
+                  ) : (
+                    <Play className="h-4 w-4 mr-1" />
+                  )}
+                  Auto-refresh
+                </Button>
+                {autoRefresh && (
+                  <select
+                    value={refreshInterval}
+                    onChange={(e) =>
+                      setRefreshInterval(parseInt(e.target.value))
+                    }
+                    className="text-xs border rounded px-2 py-1 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100"
+                  >
+                    <option value={10}>10s</option>
+                    <option value={30}>30s</option>
+                    <option value={60}>1m</option>
+                    <option value={300}>5m</option>
+                  </select>
+                )}
+              </div>
               <Button
-                onClick={() => setShowClearConfirmation(true)}
-                disabled={isClearingData}
+                onClick={() => loadStats(true)}
+                disabled={isLoadingStats}
                 variant="outline"
                 size="sm"
-                className="text-red-600 dark:text-red-400 border-red-200 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
               >
-                <AlertCircle className="h-4 w-4 mr-2" />
-                Clear Data
+                <RefreshCw
+                  className={`h-4 w-4 mr-2 ${isLoadingStats ? "animate-spin" : ""}`}
+                />
+                {isLoadingStats ? "Refreshing..." : "Refresh"}
               </Button>
-            )}
+              <Button
+                onClick={exportData}
+                variant="outline"
+                size="sm"
+                className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Export CSV
+              </Button>
+              {recentSales.length > 0 && (
+                <Button
+                  onClick={() => setShowClearConfirmation(true)}
+                  disabled={isClearingData}
+                  variant="outline"
+                  size="sm"
+                  className="text-red-600 dark:text-red-400 border-red-200 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                >
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                  Clear Data
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Alerts Section */}
       {alerts.length > 0 && (
@@ -1008,7 +1184,7 @@ export default function VNSalesPage() {
                   )}
                 </p>
                 <div className="flex items-center text-sm">
-                  <Flame className="h-3 w-3 text-red-500 mr-1" />
+                  <TrendingUp className="h-3 w-3 text-red-500 mr-1" />
                   <span className="text-red-600 dark:text-red-400 font-medium truncate">
                     {accountStats?.mostActiveToday?.accountName ||
                       "No activity"}

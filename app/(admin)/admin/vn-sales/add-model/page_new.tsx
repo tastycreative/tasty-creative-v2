@@ -45,6 +45,7 @@ import {
   EyeOff,
   ExternalLink,
   Database,
+  RefreshCw,
   Sparkles,
   TrendingUp,
 } from "lucide-react";
@@ -60,6 +61,7 @@ export default function AddVoiceModelPage() {
     apiKey: "",
     description: "Backup account for high-volume usage",
     category: "professional",
+    accountKey: "", // For legacy migration
   });
 
   const [currentStep, setCurrentStep] = useState(1);
@@ -68,6 +70,7 @@ export default function AddVoiceModelPage() {
   const [testingApiKey, setTestingApiKey] = useState(false);
   const [apiKeyValid, setApiKeyValid] = useState<boolean | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
+  const [isMigrationMode, setIsMigrationMode] = useState(false);
   const [existingModels, setExistingModels] = useState<any[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
 
@@ -167,8 +170,58 @@ export default function AddVoiceModelPage() {
     }
   };
 
+  const handleMigrationModeToggle = () => {
+    setIsMigrationMode(!isMigrationMode);
+    if (!isMigrationMode) {
+      // Entering migration mode - clear form
+      setFormData((prev) => ({
+        ...prev,
+        accountName: "",
+        voiceName: "",
+        voiceId: "",
+        accountKey: "",
+      }));
+    } else {
+      // Exiting migration mode - clear accountKey
+      setFormData((prev) => ({
+        ...prev,
+        accountKey: "",
+      }));
+    }
+    setErrors({});
+  };
+
   const handleLegacyAccountSelect = (accountKey: string) => {
-    // This function is no longer needed since migration is complete
+    // Legacy account profiles mapping
+    const legacyProfiles: Record<string, any> = {
+      account_1: {
+        name: "OF Bri's voice",
+        voiceName: "OF Bri",
+        voiceId: "XtrZA2v40BnLkNsO4MbN",
+      },
+      account_2: {
+        name: "OF Coco's voice",
+        voiceName: "OF Coco",
+        voiceId: "oT9QD0CuqG8lLK2X4bY3",
+      },
+      account_3: {
+        name: "OF Mel's voice",
+        voiceName: "OF Mel",
+        voiceId: "oPCTXWLNPjuUYQCRVrwA",
+      },
+      // Add more as needed...
+    };
+
+    const profile = legacyProfiles[accountKey];
+    if (profile) {
+      setFormData((prev) => ({
+        ...prev,
+        accountKey,
+        accountName: profile.name,
+        voiceName: profile.voiceName,
+        voiceId: profile.voiceId,
+      }));
+    }
   };
 
   const addVoiceModel = async () => {
@@ -222,8 +275,10 @@ export default function AddVoiceModelPage() {
       apiKey: "",
       description: "Backup account for high-volume usage",
       category: "professional",
+      accountKey: "",
     });
     setErrors({});
+    setIsMigrationMode(false);
   };
 
   // Load existing models on mount
@@ -406,6 +461,168 @@ export default function AddVoiceModelPage() {
                 </Alert>
               )}
 
+              {/* Enhanced Migration Mode Toggle */}
+              <div className="border-2 border-dashed border-blue-200 dark:border-blue-800 rounded-xl p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20">
+                <div className="flex items-center space-x-4 mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        id="migrationMode"
+                        checked={isMigrationMode}
+                        onChange={handleMigrationModeToggle}
+                        className="sr-only"
+                      />
+                      <div
+                        onClick={handleMigrationModeToggle}
+                        className={`w-12 h-6 rounded-full cursor-pointer transition-all duration-200 ${
+                          isMigrationMode
+                            ? "bg-blue-500 shadow-lg"
+                            : "bg-gray-300 dark:bg-gray-600"
+                        }`}
+                      >
+                        <div
+                          className={`w-5 h-5 bg-white rounded-full shadow-md transform transition-all duration-200 mt-0.5 ${
+                            isMigrationMode
+                              ? "translate-x-6"
+                              : "translate-x-0.5"
+                          }`}
+                        />
+                      </div>
+                    </div>
+                    <Label
+                      htmlFor="migrationMode"
+                      className="flex items-center gap-2 cursor-pointer font-semibold text-blue-800 dark:text-blue-300"
+                    >
+                      <Database className="h-5 w-5" />
+                      Migration Mode: Move legacy account to database
+                    </Label>
+                  </div>
+                </div>
+
+                {isMigrationMode && (
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3 p-4 bg-blue-100 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
+                      <div className="p-1 bg-blue-500 rounded-full">
+                        <RefreshCw className="h-4 w-4 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-blue-800 dark:text-blue-300 font-medium">
+                          Legacy Account Migration
+                        </p>
+                        <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
+                          This will migrate an existing legacy account
+                          (account_1, account_2, etc.) to the database for
+                          better management and security.
+                        </p>
+                      </div>
+                    </div>
+
+                    {existingModels.length > 0 && (
+                      <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
+                        <p className="text-green-800 dark:text-green-300 font-semibold mb-2 flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4" />
+                          Already Migrated Accounts:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {existingModels.map((model) => (
+                            <Badge
+                              key={model.id}
+                              variant="secondary"
+                              className="bg-green-100 text-green-800 border-green-300"
+                            >
+                              {model.accountKey}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Legacy Account Selection (only in migration mode) */}
+              {isMigrationMode && (
+                <div className="space-y-2">
+                  <Label htmlFor="legacyAccount">Select Legacy Account</Label>
+                  <Select
+                    value={formData.accountKey}
+                    onValueChange={handleLegacyAccountSelect}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a legacy account to migrate" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[
+                        {
+                          key: "account_1",
+                          name: "account_1 - OF Bri's voice",
+                        },
+                        {
+                          key: "account_2",
+                          name: "account_2 - OF Coco's voice",
+                        },
+                        {
+                          key: "account_3",
+                          name: "account_3 - OF Mel's voice",
+                        },
+                        {
+                          key: "account_4",
+                          name: "account_4 - OF Lala's voice",
+                        },
+                        {
+                          key: "account_5",
+                          name: "account_5 - OF Bronwin's voice",
+                        },
+                        {
+                          key: "account_6",
+                          name: "account_6 - OF Nicole's voice",
+                        },
+                        {
+                          key: "account_7",
+                          name: "account_7 - OF Sarah's voice",
+                        },
+                        {
+                          key: "account_8",
+                          name: "account_8 - OF Carter Cameron's voice",
+                        },
+                        {
+                          key: "account_9",
+                          name: "account_9 - OF Sinatra's voice",
+                        },
+                        {
+                          key: "account_10",
+                          name: "account_10 - OF Michelle G's voice",
+                        },
+                      ].map((account) => {
+                        const isAlreadyMigrated = existingModels.some(
+                          (model) => model.accountKey === account.key
+                        );
+                        return (
+                          <SelectItem
+                            key={account.key}
+                            value={account.key}
+                            disabled={isAlreadyMigrated}
+                          >
+                            {account.name}{" "}
+                            {isAlreadyMigrated && "(Already migrated)"}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  {formData.accountKey &&
+                    existingModels.some(
+                      (model) => model.accountKey === formData.accountKey
+                    ) && (
+                      <p className="text-sm text-amber-600">
+                        ⚠️ This account is already in the database. You can edit
+                        it from the Voice Gen Accounts page instead.
+                      </p>
+                    )}
+                </div>
+              )}
+
               {/* Form Fields */}
               <div className="grid gap-6">
                 {/* Account Name */}
@@ -425,6 +642,7 @@ export default function AddVoiceModelPage() {
                       handleInputChange("accountName", e.target.value)
                     }
                     className={`${errors.accountName ? "border-red-500 focus:ring-red-500" : "focus:ring-purple-500"} transition-all`}
+                    disabled={isMigrationMode && !formData.accountKey}
                   />
                   {errors.accountName && (
                     <p className="text-sm text-red-500 flex items-center gap-1">
@@ -451,6 +669,7 @@ export default function AddVoiceModelPage() {
                       handleInputChange("voiceName", e.target.value)
                     }
                     className={`${errors.voiceName ? "border-red-500 focus:ring-red-500" : "focus:ring-purple-500"} transition-all`}
+                    disabled={isMigrationMode && !formData.accountKey}
                   />
                   {errors.voiceName && (
                     <p className="text-sm text-red-500 flex items-center gap-1">
@@ -477,6 +696,7 @@ export default function AddVoiceModelPage() {
                       handleInputChange("voiceId", e.target.value)
                     }
                     className={`${errors.voiceId ? "border-red-500 focus:ring-red-500" : "focus:ring-purple-500"} transition-all font-mono`}
+                    disabled={isMigrationMode && !formData.accountKey}
                   />
                   {errors.voiceId && (
                     <p className="text-sm text-red-500 flex items-center gap-1">
@@ -486,7 +706,9 @@ export default function AddVoiceModelPage() {
                   )}
                   <p className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
                     <ExternalLink className="h-3 w-3" />
-                    Get this from your ElevenLabs dashboard
+                    {isMigrationMode
+                      ? "Auto-filled from legacy account"
+                      : "Get this from your ElevenLabs dashboard"}
                   </p>
                 </div>
 

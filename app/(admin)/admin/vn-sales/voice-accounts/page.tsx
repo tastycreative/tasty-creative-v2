@@ -50,6 +50,8 @@ import {
   Loader2,
   Eye,
   EyeOff,
+  Settings,
+  TrendingUp,
 } from "lucide-react";
 
 interface VoiceModel {
@@ -283,16 +285,97 @@ export default function VoiceAccountsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-pink-50 dark:from-gray-900 dark:to-gray-800 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-gray-800 p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
+        {/* Enhanced Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-            Voice Generation Accounts
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Manage your ElevenLabs voice generation accounts and configurations
-          </p>
+          <div className="flex items-center gap-4 mb-6">
+            <div className="p-3 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg">
+              <Mic className="h-8 w-8" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-purple-800 to-pink-800 bg-clip-text text-transparent dark:from-gray-100 dark:via-purple-300 dark:to-pink-300">
+                Voice Generation Accounts
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 text-lg">
+                Manage your ElevenLabs voice generation accounts and
+                configurations
+              </p>
+            </div>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-xl p-4 border border-purple-100 dark:border-purple-800/30">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                  <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Total Accounts
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    {voiceModels.length}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-xl p-4 border border-purple-100 dark:border-purple-800/30">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+                  <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Active
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    {voiceModels.filter((m) => m.isActive).length}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-xl p-4 border border-purple-100 dark:border-purple-800/30">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                  <Settings className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Categories
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    {new Set(voiceModels.map((m) => m.category)).size}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-xl p-4 border border-purple-100 dark:border-purple-800/30">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-orange-100 dark:bg-orange-900/30">
+                  <TrendingUp className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Recent
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    {
+                      voiceModels.filter(
+                        (m) =>
+                          new Date(m.createdAt) >
+                          new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+                      ).length
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Error Alert */}
@@ -320,137 +403,197 @@ export default function VoiceAccountsPage() {
         )}
 
         {/* Main Content */}
-        <Card className="shadow-lg border-pink-200 dark:border-pink-500/30">
-          <CardHeader className="bg-gradient-to-r from-pink-500 to-rose-500 text-white">
-            <CardTitle className="flex items-center gap-2">
-              <Mic className="h-5 w-5" />
+        <Card className="shadow-xl border-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+          <CardHeader className="bg-gradient-to-r from-pink-500 via-purple-600 to-indigo-600 text-white rounded-t-lg">
+            <CardTitle className="flex items-center gap-3 text-xl">
+              <div className="p-2 rounded-lg bg-white/20">
+                <Mic className="h-6 w-6" />
+              </div>
               Voice Models Database
             </CardTitle>
-            <CardDescription className="text-pink-100">
-              {voiceModels.length} voice models configured
+            <CardDescription className="text-pink-100 text-lg">
+              {voiceModels.length} voice model
+              {voiceModels.length !== 1 ? "s" : ""} configured
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             {voiceModels.length === 0 ? (
-              <div className="p-8 text-center">
-                <Mic className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                  No Voice Models Found
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-4">
-                  You haven't added any voice generation accounts yet.
-                </p>
+              <div className="p-12 text-center">
+                <div className="mb-6">
+                  <Mic className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-300 mb-2">
+                    No Voice Models Found
+                  </h3>
+                  <p className="text-gray-500 dark:text-gray-400">
+                    Get started by adding your first ElevenLabs voice model
+                  </p>
+                </div>
                 <Button
                   onClick={() =>
                     (window.location.href = "/admin/vn-sales/add-model")
                   }
-                  className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600"
+                  className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Add First Voice Model
+                  Add Your First Model
                 </Button>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Account Name</TableHead>
-                    <TableHead>Voice Name</TableHead>
-                    <TableHead>Voice ID</TableHead>
-                    <TableHead>API Key</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {voiceModels.map((model) => (
-                    <TableRow key={model.id}>
-                      <TableCell className="font-medium">
-                        {model.accountName}
-                      </TableCell>
-                      <TableCell>{model.voiceName}</TableCell>
-                      <TableCell>
-                        <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-sm">
-                          {model.voiceId}
-                        </code>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-sm">
-                            {showApiKey[model.id]
-                              ? model.apiKey
-                              : "***ENCRYPTED***"}
-                          </code>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleApiKeyVisibility(model.id)}
-                          >
-                            {showApiKey[model.id] ? (
-                              <EyeOff className="h-3 w-3" />
-                            ) : (
-                              <Eye className="h-3 w-3" />
-                            )}
-                          </Button>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={getCategoryBadgeVariant(model.category)}
-                        >
-                          {model.category}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={model.isActive ? "default" : "secondary"}
-                          className={
-                            model.isActive
-                              ? "bg-green-500 hover:bg-green-600"
-                              : ""
-                          }
-                        >
-                          {model.isActive ? (
-                            <>
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Active
-                            </>
-                          ) : (
-                            <>
-                              <Clock className="h-3 w-3 mr-1" />
-                              Inactive
-                            </>
-                          )}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-600 dark:text-gray-400">
-                        {formatDate(model.createdAt)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditModel(model)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => setDeleteConfirmModel(model)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent border-b-2 border-purple-100 dark:border-purple-800">
+                      <TableHead className="font-semibold text-gray-900 dark:text-gray-100">
+                        Account Name
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-900 dark:text-gray-100">
+                        Voice Name
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-900 dark:text-gray-100">
+                        Voice ID
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-900 dark:text-gray-100">
+                        API Key
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-900 dark:text-gray-100">
+                        Category
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-900 dark:text-gray-100">
+                        Status
+                      </TableHead>
+                      <TableHead className="font-semibold text-gray-900 dark:text-gray-100">
+                        Created
+                      </TableHead>
+                      <TableHead className="text-right font-semibold text-gray-900 dark:text-gray-100">
+                        Actions
+                      </TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {voiceModels.map((model, index) => (
+                      <TableRow
+                        key={model.id}
+                        className={`hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors border-b border-gray-100 dark:border-gray-700 ${
+                          index % 2 === 0
+                            ? "bg-white dark:bg-gray-800"
+                            : "bg-gray-50/50 dark:bg-gray-700/50"
+                        }`}
+                      >
+                        <TableCell className="font-semibold py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-pink-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                              {model.accountName.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900 dark:text-gray-100">
+                                {model.accountName}
+                              </p>
+                              <p className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-[200px]">
+                                {model.description}
+                              </p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <div className="flex items-center gap-2">
+                            <Mic className="h-4 w-4 text-purple-500" />
+                            <span className="font-medium">
+                              {model.voiceName}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <code className="bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-lg text-sm font-mono border">
+                            {model.voiceId}
+                          </code>
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <div className="flex items-center gap-2">
+                            <code className="bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-lg text-sm font-mono border">
+                              {showApiKey[model.id]
+                                ? model.apiKey
+                                : "•••••••••••••••"}
+                            </code>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleApiKeyVisibility(model.id)}
+                              className="h-8 w-8 p-0 hover:bg-gray-200 dark:hover:bg-gray-700"
+                            >
+                              {showApiKey[model.id] ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <Badge
+                            variant={getCategoryBadgeVariant(model.category)}
+                            className="px-3 py-1 text-xs font-medium"
+                          >
+                            {model.category}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <Badge
+                            variant={model.isActive ? "default" : "secondary"}
+                            className={`px-3 py-1 text-xs font-medium ${
+                              model.isActive
+                                ? "bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700"
+                                : "bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600"
+                            }`}
+                          >
+                            {model.isActive ? (
+                              <>
+                                <div className="w-2 h-2 bg-green-500 rounded-full mr-2" />
+                                Active
+                              </>
+                            ) : (
+                              <>
+                                <div className="w-2 h-2 bg-gray-400 rounded-full mr-2" />
+                                Inactive
+                              </>
+                            )}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-600 dark:text-gray-400 py-4">
+                          <div>
+                            <p className="font-medium">
+                              {formatDate(model.createdAt)}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Updated:{" "}
+                              {new Date(model.updatedAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right py-4">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditModel(model)}
+                              className="h-8 w-8 p-0 hover:bg-blue-100 dark:hover:bg-blue-900/20 text-blue-600 hover:text-blue-700"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20"
+                              onClick={() => setDeleteConfirmModel(model)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

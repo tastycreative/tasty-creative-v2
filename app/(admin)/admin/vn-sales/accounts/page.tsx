@@ -12,6 +12,7 @@ import {
   Filter,
   Trash2,
   MoreHorizontal,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -473,14 +474,20 @@ export default function VoiceGenAccountsPage() {
           {value}
         </div>
       ) : (
-        <span className="text-gray-400 dark:text-gray-500 text-xs">No password</span>
+        <span className="text-gray-400 dark:text-gray-500 text-xs">
+          No password
+        </span>
       );
     } else if (field === "voiceStatus") {
       const statusColors = {
-        ACTIVE: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700",
-        UPLOADING: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700",
-        PITCHED: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700",
-        DECLINED: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700",
+        ACTIVE:
+          "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-700",
+        UPLOADING:
+          "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-300 dark:border-yellow-700",
+        PITCHED:
+          "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700",
+        DECLINED:
+          "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700",
         NA: "bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600",
       };
       cellContent = (
@@ -492,8 +499,10 @@ export default function VoiceGenAccountsPage() {
       );
     } else if (field === "accountType") {
       const typeColors = {
-        GMAIL: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-        ELEVENLABS: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+        GMAIL:
+          "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+        ELEVENLABS:
+          "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
       };
       const displayName = value === "ELEVENLABS" ? "ElevenLabs" : value;
       cellContent = (
@@ -577,17 +586,40 @@ export default function VoiceGenAccountsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      {/* Header */}
+    <div className="p-6 space-y-6 min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-gray-800">
+      {/* Enhanced Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            Voice Gen Accounts
-          </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            Click on any cell to edit • Ctrl+Enter to save feedback • Use
-            checkboxes for bulk operations
-          </p>
+        <div className="flex items-center gap-4">
+          <div className="p-3 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-lg">
+            <User className="h-8 w-8" />
+          </div>
+          <div>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 via-purple-800 to-pink-800 bg-clip-text text-transparent dark:from-gray-100 dark:via-purple-300 dark:to-pink-300">
+              Voice Gen Accounts
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 text-lg">
+              Click on any cell to edit • Ctrl+Enter to save feedback • Use
+              checkboxes for bulk operations
+            </p>
+            <div className="flex items-center gap-4 mt-2">
+              <div className="flex items-center gap-2 text-sm">
+                <div className="w-2 h-2 bg-green-500 rounded-full" />
+                <span className="text-gray-600 dark:text-gray-400">
+                  {
+                    accountsData.filter((a) => a.voiceStatus === "ACTIVE")
+                      .length
+                  }{" "}
+                  Active
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                <span className="text-gray-600 dark:text-gray-400">
+                  {accountsData.length} Total
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
@@ -597,6 +629,7 @@ export default function VoiceGenAccountsPage() {
                 variant="destructive"
                 size="sm"
                 onClick={() => setShowDeleteConfirm("bulk")}
+                className="shadow-lg"
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete ({selectedRows.size})
@@ -604,40 +637,49 @@ export default function VoiceGenAccountsPage() {
               <div className="w-px h-6 bg-gray-300" />
             </>
           )}
-          <Button variant="outline" size="sm" onClick={exportData}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportData}
+            className="border-purple-200 hover:bg-purple-50 shadow-md"
+          >
             <Download className="h-4 w-4 mr-2" />
             Export CSV {selectedRows.size > 0 && `(${selectedRows.size})`}
           </Button>
-          <Button size="sm" onClick={addNewRow}>
+          <Button
+            size="sm"
+            onClick={addNewRow}
+            className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 shadow-lg"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Add Account
           </Button>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 p-4">
+      {/* Enhanced Filters */}
+      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl border border-purple-100 dark:border-purple-800/30 p-6 shadow-lg">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 h-4 w-4" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-purple-400 dark:text-purple-500 h-5 w-5" />
               <Input
                 placeholder="Search by name or email..."
                 value={searchTerm}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                   setSearchTerm(e.target.value)
                 }
-                className="pl-10 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400"
+                className="pl-11 focus:ring-purple-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400 h-11"
               />
               {searchTerm !== debouncedSearchTerm && (
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-500"></div>
                 </div>
               )}
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <select
               className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"
               value={statusFilter}
@@ -713,7 +755,9 @@ export default function VoiceGenAccountsPage() {
                 <tr
                   key={account.id}
                   className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                    index % 2 === 0 ? "bg-white dark:bg-gray-800" : "bg-gray-25 dark:bg-gray-750"
+                    index % 2 === 0
+                      ? "bg-white dark:bg-gray-800"
+                      : "bg-gray-25 dark:bg-gray-750"
                   } ${selectedRows.has(account.id) ? "bg-blue-50 dark:bg-blue-900/20" : ""}`}
                 >
                   <td className="px-2 py-2 border-b border-r border-gray-200 dark:border-gray-600">
