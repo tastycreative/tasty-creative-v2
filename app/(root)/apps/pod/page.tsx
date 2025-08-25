@@ -1,21 +1,14 @@
-import PodComponent from "@/components/PodComponent";
-import PermissionGoogle from "@/components/PermissionGoogle";
-import { Metadata } from "next";
-import React from "react";
+"use client";
 
-export const metadata: Metadata = {
-  title: "Scheduler POD",
-};
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
-const page = () => {
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <title>Scheduler POD | Tasty Creative</title>
-      <PermissionGoogle apiEndpoint="/api/models">
-        <PodComponent />
-      </PermissionGoogle>
-    </div>
-  );
-};
+export default function PodPage() {
+  const router = useRouter();
 
-export default page;
+  useEffect(() => {
+    router.replace("/apps/pod/dashboard");
+  }, [router]);
+
+  return null;
+}

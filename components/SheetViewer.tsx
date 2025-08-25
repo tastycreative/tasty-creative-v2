@@ -11,12 +11,14 @@ interface SheetViewerProps {
   sheetName: string;
   sheetUrl: string;
   onBack: () => void;
+  backText?: string;
 }
 
 const SheetViewer: React.FC<SheetViewerProps> = ({
   sheetName,
   sheetUrl,
   onBack,
+  backText = "Back",
 }) => {
   // Access the sheet store for caching and data management
   const clearCache = useSheetStore((state) => state.clearCache);
@@ -38,6 +40,7 @@ const SheetViewer: React.FC<SheetViewerProps> = ({
           sheetName={sheetName}
           sheetUrl={sheetUrl}
           onBack={onBack}
+          backText={backText}
         />
       );
     } else if (lowerSheetName.includes("creator")) {
@@ -46,6 +49,7 @@ const SheetViewer: React.FC<SheetViewerProps> = ({
           sheetName={sheetName}
           sheetUrl={sheetUrl}
           onBack={onBack}
+          backText={backText}
         />
       );
     } else if (lowerSheetName.includes("analyst")) {
@@ -54,6 +58,7 @@ const SheetViewer: React.FC<SheetViewerProps> = ({
           sheetName={sheetName}
           sheetUrl={sheetUrl}
           onBack={onBack}
+          backText={backText}
         />
       );
     } else {
@@ -62,6 +67,7 @@ const SheetViewer: React.FC<SheetViewerProps> = ({
           sheetName={sheetName}
           sheetUrl={sheetUrl}
           onBack={onBack}
+          backText={backText}
         />
       );
     }

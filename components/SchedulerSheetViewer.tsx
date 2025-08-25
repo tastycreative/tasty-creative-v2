@@ -14,12 +14,14 @@ interface SchedulerSheetViewerProps {
   sheetName: string;
   sheetUrl: string;
   onBack: () => void;
+  backText?: string;
 }
 
 const SchedulerSheetViewer: React.FC<SchedulerSheetViewerProps> = ({
   sheetName,
   sheetUrl,
   onBack,
+  backText = "Back",
 }) => {
   // Use the Zustand store for state management
   const { 
@@ -50,18 +52,20 @@ const SchedulerSheetViewer: React.FC<SchedulerSheetViewerProps> = ({
 
     try {
       await fetchSchedulerData(sheetUrl, forceRefresh);
-      
-      // Extract schedule code from currentSchedule if needed
-      if (schedulerData?.currentSchedule) {
-        const scheduleMatch = schedulerData.currentSchedule.match(/#(\w+)/);
-        if (scheduleMatch) {
-          setSelectedSchedule(scheduleMatch[1]); // Extract "1A" from "Schedule #1A"
-        }
-      }
     } catch (err) {
       console.error("Error fetching schedule data:", err);
     }
-  }, [sheetUrl, fetchSchedulerData, schedulerData?.currentSchedule, setSelectedSchedule]);
+  }, [sheetUrl, fetchSchedulerData]);
+
+  // Sync selectedSchedule with currentSchedule when data loads
+  useEffect(() => {
+    if (schedulerData?.currentSchedule && schedulerData.currentSchedule !== `Schedule #${selectedSchedule}`) {
+      const scheduleMatch = schedulerData.currentSchedule.match(/#(\w+)/);
+      if (scheduleMatch) {
+        setSelectedSchedule(scheduleMatch[1]); // Extract "1C" from "Schedule #1C"
+      }
+    }
+  }, [schedulerData?.currentSchedule, selectedSchedule, setSelectedSchedule]);
 
   const handleScheduleChange = async (newSchedule: string) => {
     setSelectedSchedule(newSchedule);
@@ -122,7 +126,7 @@ const SchedulerSheetViewer: React.FC<SchedulerSheetViewerProps> = ({
                     d="M10 19l-7-7m0 0l7-7m-7 7h18"
                   />
                 </svg>
-                <span>Back to Dashboard</span>
+                <span>{backText}</span>
               </button>
               <div className="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>
               <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
