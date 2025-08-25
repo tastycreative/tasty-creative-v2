@@ -1,21 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useEffect, useCallback } from "react";
+import { 
+  useSchedulerData, 
+  ScheduleDataItem, 
+  ScheduleCheckerItem, 
+  ScheduleCheckerData, 
+  FullScheduleSetupItem 
+} from "@/lib/stores/sheetStore";
 
-interface ScheduleDataItem {
-  type: string;
-  status: string;
-}
-
-interface ScheduleCheckerItem {
-  text: string;
-  checker: string;
-}
-
-interface ScheduleCheckerData {
-  massMessages: ScheduleCheckerItem[];
-  wallPosts: ScheduleCheckerItem[];
-}
 
 interface SchedulerSheetViewerProps {
   sheetName: string;
@@ -28,18 +21,18 @@ const SchedulerSheetViewer: React.FC<SchedulerSheetViewerProps> = ({
   sheetUrl,
   onBack,
 }) => {
-  const [scheduleData, setScheduleData] = useState<ScheduleDataItem[]>([]);
-  const [scheduleCheckerData, setScheduleCheckerData] =
-    useState<ScheduleCheckerData>({
-      massMessages: [],
-      wallPosts: [],
-    });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedSchedule, setSelectedSchedule] = useState<string>("1A");
-  const [currentSchedule, setCurrentSchedule] =
-    useState<string>("Schedule #1A");
-  const [isUpdating, setIsUpdating] = useState<boolean>(false);
+  // Use the Zustand store for state management
+  const { 
+    schedulerData, 
+    loading: isLoading, 
+    error, 
+    selectedSchedule,
+    isUpdating,
+    fetchSchedulerData, 
+    updateSchedule,
+    setSelectedSchedule,
+    clearCache
+  } = useSchedulerData();
 
   const handleOpenInNewTab = () => {
     if (sheetUrl && sheetUrl.startsWith("http")) {
@@ -47,106 +40,49 @@ const SchedulerSheetViewer: React.FC<SchedulerSheetViewerProps> = ({
     }
   };
 
-  const fetchScheduleData = useCallback(async () => {
+  const handleRefresh = () => {
+    clearCache(`scheduler-data-${sheetUrl}`);
+    fetchScheduleData(true);
+  };
+
+  const fetchScheduleData = useCallback(async (forceRefresh = false) => {
     if (!sheetUrl) return;
 
     try {
-      setIsLoading(true);
-      setError(null);
-
-      const response = await fetch("/api/pod/scheduler", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          sheetUrl: sheetUrl,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch schedule data");
-      }
-
-      const data = await response.json();
-      setScheduleData(data.schedulerData || []);
-      setScheduleCheckerData(
-        data.scheduleCheckerData || { massMessages: [], wallPosts: [] }
-      );
-
-      // Extract schedule code from currentSchedule (e.g., "Schedulle #1A" -> "1A")
-      if (data.currentSchedule) {
-        setCurrentSchedule(data.currentSchedule);
-        const scheduleMatch = data.currentSchedule.match(/#(\w+)/);
+      await fetchSchedulerData(sheetUrl, forceRefresh);
+      
+      // Extract schedule code from currentSchedule if needed
+      if (schedulerData?.currentSchedule) {
+        const scheduleMatch = schedulerData.currentSchedule.match(/#(\w+)/);
         if (scheduleMatch) {
-          setSelectedSchedule(scheduleMatch[1]); // Extract "1A" from "Schedulle #1A"
+          setSelectedSchedule(scheduleMatch[1]); // Extract "1A" from "Schedule #1A"
         }
       }
     } catch (err) {
       console.error("Error fetching schedule data:", err);
-      setError("Failed to load schedule data from spreadsheet");
-      // Fallback to static data if API fails
-      setScheduleData([
-        { type: "MM Status", status: "0/0" },
-        { type: "Renew On MM", status: "0/0" },
-        { type: "Wall Posts Status", status: "0/0" },
-        { type: "Renew On Post", status: "0/0" },
-        { type: "Story Posts Status", status: "0/0" },
-        { type: "VIP Sub MM Status", status: "0/0" },
-        { type: "New Sub Campaign Status", status: "0/0" },
-        { type: "Expired Sub Campaign Status", status: "0/0" },
-      ]);
-    } finally {
-      setIsLoading(false);
     }
-  }, [sheetUrl]);
+  }, [sheetUrl, fetchSchedulerData, schedulerData?.currentSchedule, setSelectedSchedule]);
 
   const handleScheduleChange = async (newSchedule: string) => {
-    setIsUpdating(true);
     setSelectedSchedule(newSchedule);
 
     try {
-      const response = await fetch("/api/pod/scheduler/update", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          sheetUrl: sheetUrl,
-          scheduleValue: newSchedule,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update schedule");
-      }
-
-      const data = await response.json();
-
-      // Update all data with the fresh values from the spreadsheet
-      setScheduleData(data.schedulerData || []);
-      setScheduleCheckerData(
-        data.scheduleCheckerData || { massMessages: [], wallPosts: [] }
-      );
-      setCurrentSchedule(data.currentSchedule || `Schedule #${newSchedule}`);
-
-      console.log("Schedule updated successfully:", data.message);
+      await updateSchedule(sheetUrl, newSchedule);
+      console.log("Schedule updated successfully");
     } catch (err) {
       console.error("Error updating schedule:", err);
-      setError("Failed to update schedule in spreadsheet");
-      // Revert to previous selection on error
-      const scheduleMatch = currentSchedule.match(/#(\w+)/);
-      if (scheduleMatch) {
-        setSelectedSchedule(scheduleMatch[1]);
-      }
-    } finally {
-      setIsUpdating(false);
+      // The store will handle reverting the state on error
     }
   };
 
   useEffect(() => {
-    fetchScheduleData();
-  }, [fetchScheduleData]);
+    // Clear previous sheet data when URL changes to prevent showing stale data
+    if (sheetUrl) {
+      // Clear the scheduler data state immediately when switching sheets
+      // This prevents showing cached data from the previous sheet
+      fetchScheduleData();
+    }
+  }, [sheetUrl, fetchScheduleData]);
 
   const getColorForIndex = (index: number) => {
     const colors = [
@@ -193,25 +129,48 @@ const SchedulerSheetViewer: React.FC<SchedulerSheetViewerProps> = ({
                 {sheetName}
               </h1>
             </div>
-            <button
-              onClick={handleOpenInNewTab}
-              className="flex items-center space-x-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
-            >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleRefresh}
+                disabled={isLoading}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-colors"
+                title="Refresh data"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                />
-              </svg>
-              <span>Open in New Tab</span>
-            </button>
+                <svg
+                  className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+                <span>Refresh</span>
+              </button>
+              <button
+                onClick={handleOpenInNewTab}
+                className="flex items-center space-x-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                  />
+                </svg>
+                <span>Open in New Tab</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -247,7 +206,7 @@ const SchedulerSheetViewer: React.FC<SchedulerSheetViewerProps> = ({
                 </div>
               )}
               <span className="text-sm text-gray-500 dark:text-gray-400">
-                Current: {currentSchedule}
+                Current: {schedulerData?.currentSchedule || 'Schedule #1A'}
               </span>
             </div>
           </div>
@@ -256,13 +215,80 @@ const SchedulerSheetViewer: React.FC<SchedulerSheetViewerProps> = ({
 
       {/* Content */}
       <div className="max-w-7xl mx-auto">
+        {/* View Full Schedule Setup */}
+        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">
+            View Full Schedule Setup
+          </h3>
+
+          {isLoading || !schedulerData ? (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div
+                  key={`schedule-setup-skeleton-${index}`}
+                  className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 animate-pulse"
+                >
+                  <div className="grid grid-cols-6 gap-4">
+                    <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded"></div>
+                    <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded"></div>
+                    <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded"></div>
+                    <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded"></div>
+                    <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded"></div>
+                    <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (schedulerData?.fullScheduleSetup || []).length === 0 ? (
+            <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-8 text-center">
+              <div className="text-gray-500 dark:text-gray-400 text-lg mb-2">
+                No schedule setup data available
+              </div>
+              <div className="text-gray-400 dark:text-gray-500 text-sm">
+                Schedule setup is fetching today's data
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {/* Header Row */}
+              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 font-semibold text-gray-900 dark:text-gray-100">
+                <div className="grid grid-cols-6 gap-4 text-sm">
+                  <div>MM Time (PST):</div>
+                  <div>Mass Message Type:</div>
+                  <div>Post(PST):</div>
+                  <div>Wall Post Type:</div>
+                  <div>Story Time (PST):</div>
+                  <div>Story Post Time:</div>
+                </div>
+              </div>
+              
+              {/* Data Rows */}
+              {(schedulerData?.fullScheduleSetup || []).map((item, index) => (
+                <div
+                  key={`schedule-setup-${index}`}
+                  className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                >
+                  <div className="grid grid-cols-6 gap-4 text-sm text-gray-700 dark:text-gray-300">
+                    <div className="font-medium">{item.mmTime || '""'}</div>
+                    <div className="font-medium">{item.massMessageType || '""'}</div>
+                    <div className="font-medium">{item.postTime || '""'}</div>
+                    <div className="font-medium">{item.wallPostType || '""'}</div>
+                    <div className="font-medium">{item.storyTime || '""'}</div>
+                    <div className="font-medium">{item.storyPostTime || '""'}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* Broad Schedule Overview */}
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6">
             Broad Schedule Overview
           </h3>
 
-          {isLoading ? (
+          {isLoading || !schedulerData ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {Array.from({ length: 8 }).map((_, index) => (
                 <div
@@ -297,33 +323,33 @@ const SchedulerSheetViewer: React.FC<SchedulerSheetViewerProps> = ({
                     d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                <span className="text-red-700 dark:text-red-300">{error}</span>
+                <span className="text-red-700 dark:text-red-300">{error?.message}</span>
               </div>
             </div>
-          ) : null}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {scheduleData.map((item, index) => {
-              const color = getColorForIndex(index);
-              return (
-                <div
-                  key={index}
-                  className={`bg-${color}-50 dark:bg-${color}-900/20 p-4 rounded-lg border border-${color}-200 dark:border-${color}-500/30`}
-                >
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {(schedulerData?.schedulerData || []).map((item, index) => {
+                const color = getColorForIndex(index);
+                return (
                   <div
-                    className={`text-sm font-medium text-${color}-700 dark:text-${color}-300 mb-1`}
+                    key={index}
+                    className={`bg-${color}-50 dark:bg-${color}-900/20 p-4 rounded-lg border border-${color}-200 dark:border-${color}-500/30`}
                   >
-                    {item.type}:
+                    <div
+                      className={`text-sm font-medium text-${color}-700 dark:text-${color}-300 mb-1`}
+                    >
+                      {item.type}:
+                    </div>
+                    <div
+                      className={`text-2xl font-bold text-${color}-900 dark:text-${color}-100`}
+                    >
+                      {item.status}
+                    </div>
                   </div>
-                  <div
-                    className={`text-2xl font-bold text-${color}-900 dark:text-${color}-100`}
-                  >
-                    {item.status}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Schedule Checker */}
@@ -339,7 +365,7 @@ const SchedulerSheetViewer: React.FC<SchedulerSheetViewerProps> = ({
                 Mass Messages
               </h4>
               <div className="space-y-3">
-                {isLoading
+                {isLoading || !schedulerData
                   ? // Loading skeleton for Mass Messages
                     Array.from({ length: 3 }).map((_, index) => (
                       <div
@@ -354,7 +380,7 @@ const SchedulerSheetViewer: React.FC<SchedulerSheetViewerProps> = ({
                         </div>
                       </div>
                     ))
-                  : scheduleCheckerData.massMessages.map((item, index) => (
+                  : (schedulerData?.scheduleCheckerData?.massMessages || []).map((item, index) => (
                       <div
                         key={`mass-${index}`}
                         className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-500/30"
@@ -385,7 +411,7 @@ const SchedulerSheetViewer: React.FC<SchedulerSheetViewerProps> = ({
                 Wall Posts
               </h4>
               <div className="space-y-3">
-                {isLoading
+                {isLoading || !schedulerData
                   ? // Loading skeleton for Wall Posts
                     Array.from({ length: 3 }).map((_, index) => (
                       <div
@@ -400,7 +426,7 @@ const SchedulerSheetViewer: React.FC<SchedulerSheetViewerProps> = ({
                         </div>
                       </div>
                     ))
-                  : scheduleCheckerData.wallPosts.map((item, index) => (
+                  : (schedulerData?.scheduleCheckerData?.wallPosts || []).map((item, index) => (
                       <div
                         key={`wall-${index}`}
                         className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-500/30"

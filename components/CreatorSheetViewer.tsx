@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useEffect, useCallback } from "react";
+import { useCreatorData, useSchedulerData } from "@/lib/stores/sheetStore";
 
 interface CreatorDataItem {
   text: string;
@@ -18,127 +19,70 @@ const CreatorSheetViewer: React.FC<CreatorSheetViewerProps> = ({
   sheetUrl,
   onBack,
 }) => {
-  const [massMessages, setMassMessages] = useState<CreatorDataItem[]>([]);
-  const [wallPosts, setWallPosts] = useState<CreatorDataItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [scheduleError, setScheduleError] = useState<string | null>(null);
-  const [selectedSchedule, setSelectedSchedule] = useState<string>("1A");
-  const [currentSchedule, setCurrentSchedule] = useState<string>("Schedule #1A");
-  const [isUpdating, setIsUpdating] = useState<boolean>(false);
+  // Use the Zustand store for state management
+  const { 
+    creatorData, 
+    loading: isLoading, 
+    error, 
+    fetchCreatorData: fetchCreatorDataFromStore 
+  } = useCreatorData();
+  
+  // For schedule management, we can still use the scheduler hooks
+  const { 
+    selectedSchedule,
+    isUpdating,
+    updateSchedule,
+    setSelectedSchedule,
+    clearCache: clearSchedulerCache
+  } = useSchedulerData();
 
-  const fetchCreatorData = useCallback(async () => {
+  const fetchCreatorDataWrapper = useCallback(async (forceRefresh = false) => {
     if (!sheetUrl) return;
 
     try {
-      setIsLoading(true);
-      setError(null);
-
-      const response = await fetch('/api/pod/creator', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sheetUrl: sheetUrl
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch creator data');
-      }
-
-      const data = await response.json();
-      setMassMessages(data.massMessages || []);
-      setWallPosts(data.wallPosts || []);
+      await fetchCreatorDataFromStore(sheetUrl, forceRefresh);
       
       // Extract schedule code from currentSchedule if provided
-      if (data.currentSchedule) {
-        setCurrentSchedule(data.currentSchedule);
-        const scheduleMatch = data.currentSchedule.match(/#(\w+)/);
+      if (creatorData?.currentSchedule) {
+        const scheduleMatch = creatorData.currentSchedule.match(/#(\w+)/);
         if (scheduleMatch) {
           setSelectedSchedule(scheduleMatch[1]); // Extract "1A" from "Schedule #1A"
         }
       }
-      
     } catch (err) {
       console.error('Error fetching creator data:', err);
-      setError('Failed to load creator data from spreadsheet');
-      // Fallback to empty arrays if API fails
-      setMassMessages([]);
-      setWallPosts([]);
-    } finally {
-      setIsLoading(false);
     }
-  }, [sheetUrl]);
+  }, [sheetUrl, fetchCreatorDataFromStore, creatorData?.currentSchedule, setSelectedSchedule]);
 
   const handleScheduleChange = async (newSchedule: string) => {
-    setIsUpdating(true);
     setSelectedSchedule(newSchedule);
-    setScheduleError(null); // Clear any previous schedule errors
 
     try {
-      const response = await fetch("/api/pod/scheduler/update", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          sheetUrl: sheetUrl,
-          scheduleValue: newSchedule,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.error || '';
-        
-        // Check for permission-related errors
-        const isPermissionError = response.status === 403 || 
-          errorMessage.toLowerCase().includes('permission') ||
-          errorMessage.includes('The caller does not have permission') ||
-          errorMessage.toLowerCase().includes('access denied') ||
-          errorMessage.toLowerCase().includes('forbidden');
-        
-        if (isPermissionError) {
-          throw new Error("You don't have permission to edit this spreadsheet");
-        } else if (response.status === 401) {
-          throw new Error("Authentication required. Please sign in again");
-        } else {
-          throw new Error(errorMessage || "Failed to update schedule");
-        }
-      }
-
-      const data = await response.json();
-      setCurrentSchedule(data.currentSchedule || `Schedule #${newSchedule}`);
-
+      await updateSchedule(sheetUrl, newSchedule);
+      console.log("Schedule updated successfully");
+      
       // Refresh creator data after schedule change
-      await fetchCreatorData();
-
-      console.log("Schedule updated successfully:", data.message);
+      setTimeout(() => fetchCreatorDataWrapper(true), 1000);
     } catch (err) {
       console.error("Error updating schedule:", err);
-      const errorMessage = err instanceof Error ? err.message : "Failed to update schedule in spreadsheet";
-      setScheduleError(errorMessage);
-      
-      // Revert to previous selection on error
-      const scheduleMatch = currentSchedule.match(/#(\w+)/);
-      if (scheduleMatch) {
-        setSelectedSchedule(scheduleMatch[1]);
-      }
-    } finally {
-      setIsUpdating(false);
+      // The store will handle reverting the state on error
     }
   };
 
   useEffect(() => {
-    fetchCreatorData();
-  }, [fetchCreatorData]);
+    fetchCreatorDataWrapper();
+  }, [fetchCreatorDataWrapper]);
 
   const handleOpenInNewTab = () => {
     if (sheetUrl && sheetUrl.startsWith("http")) {
       window.open(sheetUrl, "_blank");
     }
+  };
+
+  const handleRefresh = () => {
+    // Clear both creator and scheduler cache since this component uses both
+    clearSchedulerCache(`scheduler-data-${sheetUrl}`);
+    fetchCreatorDataWrapper(true);
   };
 
   return (
@@ -172,25 +116,48 @@ const CreatorSheetViewer: React.FC<CreatorSheetViewerProps> = ({
                 {sheetName}
               </h1>
             </div>
-            <button
-              onClick={handleOpenInNewTab}
-              className="flex items-center space-x-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
-            >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleRefresh}
+                disabled={isLoading}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg transition-colors"
+                title="Refresh data"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                />
-              </svg>
-              <span>Open in New Tab</span>
-            </button>
+                <svg
+                  className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+                <span>Refresh</span>
+              </button>
+              <button
+                onClick={handleOpenInNewTab}
+                className="flex items-center space-x-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors"
+              >
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                  />
+                </svg>
+                <span>Open in New Tab</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -226,46 +193,13 @@ const CreatorSheetViewer: React.FC<CreatorSheetViewerProps> = ({
                 </div>
               )}
               <span className="text-sm text-gray-500 dark:text-gray-400">
-                Current: {currentSchedule}
+                Current: {creatorData?.currentSchedule || 'Schedule #1A'}
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Error Display */}
-      {scheduleError && (
-        <div className="bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-500/30">
-          <div className="max-w-7xl mx-auto px-6 py-4">
-            <div className="flex items-center space-x-3">
-              <svg
-                className="h-5 w-5 text-red-500 flex-shrink-0"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <span className="text-red-700 dark:text-red-300 text-sm font-medium">
-                {scheduleError}
-              </span>
-              <button
-                onClick={() => setScheduleError(null)}
-                className="ml-auto text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Content */}
       <div className="max-w-7xl mx-auto">
@@ -284,7 +218,7 @@ const CreatorSheetViewer: React.FC<CreatorSheetViewerProps> = ({
                 Mass Messages
               </h4>
               <div className="space-y-3">
-                {isLoading ? (
+                {isLoading || !creatorData ? (
                   // Loading skeleton for Mass Messages
                   Array.from({ length: 5 }).map((_, index) => (
                     <div
@@ -300,10 +234,10 @@ const CreatorSheetViewer: React.FC<CreatorSheetViewerProps> = ({
                   ))
                 ) : error ? (
                   <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 rounded-lg p-4">
-                    <span className="text-red-700 dark:text-red-300 text-sm">{error}</span>
+                    <span className="text-red-700 dark:text-red-300 text-sm">{error?.message}</span>
                   </div>
                 ) : (
-                  massMessages.map((item, index) => (
+                  (creatorData?.massMessages || []).map((item, index) => (
                     <div
                       key={`mass-${index}`}
                       className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
@@ -348,7 +282,7 @@ const CreatorSheetViewer: React.FC<CreatorSheetViewerProps> = ({
                 Wall Posts
               </h4>
               <div className="space-y-3">
-                {isLoading ? (
+                {isLoading || !creatorData ? (
                   // Loading skeleton for Wall Posts
                   Array.from({ length: 5 }).map((_, index) => (
                     <div
@@ -364,10 +298,10 @@ const CreatorSheetViewer: React.FC<CreatorSheetViewerProps> = ({
                   ))
                 ) : error ? (
                   <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 rounded-lg p-4">
-                    <span className="text-red-700 dark:text-red-300 text-sm">{error}</span>
+                    <span className="text-red-700 dark:text-red-300 text-sm">{error?.message}</span>
                   </div>
                 ) : (
-                  wallPosts.map((item, index) => (
+                  (creatorData?.wallPosts || []).map((item, index) => (
                     <div
                       key={`wall-${index}`}
                       className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"

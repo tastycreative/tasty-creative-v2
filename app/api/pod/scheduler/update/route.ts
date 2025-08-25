@@ -74,10 +74,18 @@ export async function POST(request: NextRequest) {
       range: 'C6:I61',
     });
 
+    // Also fetch the full schedule setup data from M8:R range
+    const fullScheduleResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: 'M8:R',
+    });
+
     const values = response.data.values || [];
+    const fullScheduleValues = fullScheduleResponse.data.values || [];
     
     // Parse the updated data using the same logic as the main API
     const schedulerData = parseSchedulerData(values);
+    const fullScheduleSetup = parseFullScheduleSetup(fullScheduleValues);
     
     // Extract updated schedule name
     const scheduleRow = values[0] || [];
@@ -88,6 +96,7 @@ export async function POST(request: NextRequest) {
       message: 'Schedule updated successfully',
       schedulerData: schedulerData.scheduleData,
       scheduleCheckerData: schedulerData.scheduleCheckerData,
+      fullScheduleSetup: fullScheduleSetup,
       currentSchedule: updatedScheduleName
     });
 
@@ -253,4 +262,65 @@ function parseSchedulerData(values: string[][]): {
   console.log('Wall posts:', scheduleCheckerData.wallPosts.length);
 
   return { scheduleData, scheduleCheckerData };
+}
+
+function parseFullScheduleSetup(values: string[][]): Array<{
+  mmTime: string;
+  massMessageType: string;
+  postTime: string;
+  wallPostType: string;
+  storyTime: string;
+  storyPostTime: string;
+}> {
+  const fullScheduleSetup: Array<{
+    mmTime: string;
+    massMessageType: string;
+    postTime: string;
+    wallPostType: string;
+    storyTime: string;
+    storyPostTime: string;
+  }> = [];
+
+  console.log('Parsing full schedule setup data from M8:R range...');
+  console.log('Full schedule values:', values);
+
+  if (!values || values.length === 0) {
+    console.log('No full schedule setup data found');
+    return fullScheduleSetup;
+  }
+
+  // Process each row from M8:R range
+  // Expected columns: M (mmTime), N (massMessageType), O (postTime), P (wallPostType), Q (storyTime), R (storyPostTime)
+  for (let rowIndex = 0; rowIndex < values.length; rowIndex++) {
+    const row = values[rowIndex];
+    
+    // Skip empty rows
+    if (!row || row.every(cell => !cell || cell.trim() === '')) {
+      continue;
+    }
+
+    // Extract data from each column (M8:R corresponds to indices 0-5)
+    const mmTime = row[0] || '""';
+    const massMessageType = row[1] || '""';
+    const postTime = row[2] || '""';
+    const wallPostType = row[3] || '""';
+    const storyTime = row[4] || '""';
+    const storyPostTime = row[5] || '""';
+
+    // Add to the array if at least one field has meaningful data
+    if (mmTime !== '""' || massMessageType !== '""' || postTime !== '""' || 
+        wallPostType !== '""' || storyTime !== '""' || storyPostTime !== '""') {
+      fullScheduleSetup.push({
+        mmTime: mmTime.trim(),
+        massMessageType: massMessageType.trim(),
+        postTime: postTime.trim(),
+        wallPostType: wallPostType.trim(),
+        storyTime: storyTime.trim(),
+        storyPostTime: storyPostTime.trim()
+      });
+    }
+  }
+
+  console.log('Parsed full schedule setup:', fullScheduleSetup);
+  return fullScheduleSetup;
 }

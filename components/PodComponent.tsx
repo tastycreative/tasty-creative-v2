@@ -591,23 +591,40 @@ const PodComponent = () => {
 
                                 {openSheetGroups[creatorName] && (
                                   <div className="p-2 space-y-1">
-                                    {sheets.map((link, index) => (
+                                    {sheets.map((link, index) => {
+                                      const isActive = selectedSheet?.name === link.name && selectedSheet?.url === link.url && viewMode === "sheet";
+                                      return (
                                       <div
                                         key={index}
-                                        className="w-full p-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 rounded transition-colors group cursor-pointer"
+                                        className={`w-full p-2 text-left rounded transition-colors group cursor-pointer ${
+                                          isActive 
+                                            ? "bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-500/30" 
+                                            : "hover:bg-gray-50 dark:hover:bg-gray-700"
+                                        }`}
                                         onClick={() =>
                                           handleSheetClick(link.name, link.url)
                                         }
                                       >
                                         <div className="flex items-start space-x-2">
-                                          <div className="flex-shrink-0 mt-0.5">
-                                            <div className="h-6 w-6 rounded bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center">
+                                          <div className="flex-shrink-0 mt-0.5 relative">
+                                            <div className={`h-6 w-6 rounded flex items-center justify-center ${
+                                              isActive 
+                                                ? "bg-gradient-to-br from-emerald-600 to-green-700 ring-2 ring-emerald-300 dark:ring-emerald-400" 
+                                                : "bg-gradient-to-br from-emerald-500 to-green-600"
+                                            }`}>
                                               <FileSpreadsheet className="h-3 w-3 text-white" />
                                             </div>
+                                            {isActive && (
+                                              <div className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 bg-emerald-500 border border-white dark:border-gray-800 rounded-full"></div>
+                                            )}
                                           </div>
                                           <div className="flex-1 min-w-0">
                                             <p
-                                              className="text-xs font-medium text-gray-900 dark:text-gray-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors truncate"
+                                              className={`text-xs font-medium transition-colors truncate ${
+                                                isActive 
+                                                  ? "text-emerald-700 dark:text-emerald-300" 
+                                                  : "text-gray-900 dark:text-gray-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400"
+                                              }`}
                                               title={link.name}
                                             >
                                               {link.name}
@@ -630,7 +647,8 @@ const PodComponent = () => {
                                           </div>
                                         </div>
                                       </div>
-                                    ))}
+                                      );
+                                    })}
                                   </div>
                                 )}
                               </div>

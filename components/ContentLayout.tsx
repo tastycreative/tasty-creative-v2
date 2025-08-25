@@ -16,7 +16,7 @@ const ContentLayout = ({ children  }: { children: React.ReactNode}) => {
       {/* Desktop Main Content */}
       <div className={clsx(
         "hidden lg:flex flex-1 relative transition-all duration-300 min-w-0",
-        isCollapsed ? "ml-28" : "ml-78"
+        isCollapsed ? "ml-24" : "ml-74"
       )}>
         <div className="w-full h-full rounded-2xl backdrop-blur-sm shadow-xl border border-pink-100/50 dark:border-pink-500/30 overflow-hidden bg-white/60 dark:bg-gray-800/60 transition-colors">
           {/* Content */}
