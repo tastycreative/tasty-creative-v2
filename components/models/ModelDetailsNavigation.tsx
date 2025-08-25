@@ -47,7 +47,7 @@ export default function ModelDetailsNavigation() {
   };
 
   return (
-    <div className="flex border-b border-pink-200 bg-gradient-to-r from-gray-50 to-pink-50">
+    <div className="flex border-b border-pink-200 dark:border-gray-700 bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-800 dark:to-emerald-900/20">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isActive = getIsActive(tab.id);
@@ -60,7 +60,7 @@ export default function ModelDetailsNavigation() {
             className={`
               flex-1 sm:flex-initial px-6 py-4 flex items-center justify-center gap-2 
               font-medium transition-all relative group
-              ${isActive ? "text-gray-900" : "text-gray-600 hover:text-gray-900"}
+              ${isActive ? "text-gray-900 dark:text-gray-100" : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"}
             `}
           >
             <Icon

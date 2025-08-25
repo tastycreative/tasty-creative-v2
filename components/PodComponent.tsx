@@ -18,6 +18,7 @@ import SheetViewer from "./SheetViewer";
 import PodAdminDashboard from "./PodAdminDashboard";
 import Board from "./pod/Board";
 import PricingGuide from "./PricingGuide";
+
 import {
   TeamMemberSkeleton,
   CreatorSkeleton,
@@ -34,6 +35,7 @@ import {
   usePricingPreview 
 } from "@/lib/stores/podStore";
 import { usePricingRotation } from "@/lib/hooks/usePricingRotation";
+import CreatorDetailsView from "./pod/CreatorDetailsView";
 
 const PodComponent = () => {
   const { data: session } = useSession();
@@ -67,7 +69,8 @@ const PodComponent = () => {
     name: string;
     url: string;
   } | null>(null);
-  const [viewMode, setViewMode] = useState<"dashboard" | "sheet">("dashboard");
+  const [selectedCreator, setSelectedCreator] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"dashboard" | "sheet" | "creator">("dashboard");
 
   // Group sheet links by creator names
   const groupedSheetLinks = useMemo(() => {
@@ -133,13 +136,24 @@ const PodComponent = () => {
     return groups;
   }, [driveSheets, podData?.creators]);
 
-  // Handle URL parameters for Google Sheets - run after podData is loaded
+  // Handle URL parameters for Google Sheets and Creator - run after podData is loaded
   useEffect(() => {
     if (typeof window !== "undefined" && podData) {
       const urlParams = new URLSearchParams(window.location.search);
       const googleUrl = urlParams.get("googleUrl");
+      const creatorParam = urlParams.get("creator");
 
-      if (googleUrl) {
+      if (creatorParam) {
+        try {
+          const decodedCreatorName = decodeURIComponent(creatorParam);
+          console.log("Decoded Creator Name:", decodedCreatorName);
+          
+          setSelectedCreator(decodedCreatorName);
+          setViewMode("creator");
+        } catch (error) {
+          console.error("Error decoding creator parameter:", error);
+        }
+      } else if (googleUrl) {
         try {
           const decodedUrl = decodeURIComponent(googleUrl);
 
@@ -245,14 +259,27 @@ const PodComponent = () => {
     }
   };
 
+  const handleCreatorClick = (creatorName: string) => {
+    setSelectedCreator(creatorName);
+    setViewMode("creator");
+
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("creator", encodeURIComponent(creatorName));
+      window.history.pushState({}, "", url.toString());
+    }
+  };
+
   const handleBackToDashboard = () => {
     setViewMode("dashboard");
     setSelectedSheet(null);
+    setSelectedCreator(null);
     setActiveTab("dashboard");
 
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
       url.searchParams.delete("googleUrl");
+      url.searchParams.delete("creator");
       url.searchParams.set("tab", "dashboard");
       window.history.pushState({}, "", url.toString());
     }
@@ -263,9 +290,10 @@ const PodComponent = () => {
   ) => {
     setActiveTab(tab);
 
-    if (viewMode === "sheet") {
+    if (viewMode === "sheet" || viewMode === "creator") {
       setViewMode("dashboard");
       setSelectedSheet(null);
+      setSelectedCreator(null);
     }
 
     // Lazy load data for the selected tab
@@ -288,6 +316,7 @@ const PodComponent = () => {
       const url = new URL(window.location.href);
       url.searchParams.set("tab", tab);
       url.searchParams.delete("googleUrl");
+      url.searchParams.delete("creator");
       window.history.pushState({}, "", url.toString());
     }
   };
@@ -523,7 +552,8 @@ const PodComponent = () => {
                           podData.creators.map((creator) => (
                             <div
                               key={creator.id}
-                              className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200 border border-gray-100 dark:border-gray-800"
+                              className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200 border border-gray-100 dark:border-gray-800 cursor-pointer"
+                              onClick={() => handleCreatorClick(creator.name)}
                             >
                               <div className="flex items-center space-x-3">
                                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center text-white font-medium text-xs">
@@ -555,7 +585,7 @@ const PodComponent = () => {
                     </div>
 
                     {/* Sheet Links Accordion */}
-                    {podData?.creators && podData.creators.length > 0 && (
+                    {(isLoading || (podData?.creators && podData.creators.length > 0)) && (
                       <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800">
                         <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 flex items-center">
                           <div className="p-1 bg-gradient-to-br from-emerald-500/20 to-green-500/20 rounded-lg mr-2">
@@ -564,8 +594,23 @@ const PodComponent = () => {
                           Sheet Links
                         </h4>
                         <div className="space-y-2">
-                          {Object.entries(groupedSheetLinks).map(
-                            ([creatorName, sheets]) => (
+                          {isLoading ? (
+                            <div className="space-y-2">
+                              {Array.from({ length: 2 }).map((_, index) => (
+                                <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg">
+                                  <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                    <div className="flex items-center space-x-2">
+                                      <Skeleton className="h-3 w-3 rounded" />
+                                      <Skeleton className="h-4 w-20" />
+                                      <Skeleton className="h-5 w-6 rounded-full" />
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            Object.entries(groupedSheetLinks).map(
+                              ([creatorName, sheets]) => (
                               <div
                                 key={creatorName}
                                 className="border border-gray-200 dark:border-gray-700 rounded-lg"
@@ -653,13 +698,14 @@ const PodComponent = () => {
                                 )}
                               </div>
                             )
+                          )
                           )}
                         </div>
                       </div>
                     )}
 
                     {/* Sheet Integrations Accordion */}
-                    {(isDriveLoading ||
+                    {(isLoading || isDriveLoading ||
                       (podData?.creators && podData.creators.length > 0)) && (
                       <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800">
                         <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 flex items-center">
@@ -669,7 +715,21 @@ const PodComponent = () => {
                           Sheet Integrations
                         </h4>
 
-                        {isDriveLoading ? (
+                        {isLoading ? (
+                          <div className="space-y-2">
+                            {Array.from({ length: 2 }).map((_, index) => (
+                              <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg">
+                                <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                  <div className="flex items-center space-x-2">
+                                    <Skeleton className="h-3 w-3 rounded" />
+                                    <Skeleton className="h-4 w-20" />
+                                    <Skeleton className="h-5 w-6 rounded-full" />
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : isDriveLoading ? (
                           <div className="flex items-center text-sm text-blue-600 dark:text-blue-400">
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
                             Loading drive sheets...
@@ -883,6 +943,11 @@ const PodComponent = () => {
                 sheetName={selectedSheet.name}
                 sheetUrl={selectedSheet.url}
                 onBack={handleBackToDashboard}
+              />
+            ) : viewMode === "creator" && selectedCreator ? (
+              <CreatorDetailsView
+                // creatorName={selectedCreator}
+                // onBack={handleBackToDashboard}
               />
             ) : (
               <>

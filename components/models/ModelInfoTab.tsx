@@ -102,8 +102,8 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
           className="relative group"
         >
           <div className="absolute inset-0 bg-gradient-to-r from-pink-600/10 to-rose-600/10 rounded-2xl blur-xl group-hover:opacity-100 opacity-50 transition-all duration-300" />
-          <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl border border-pink-200 p-6 hover:border-pink-300 transition-all duration-300">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-3">
+          <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl border border-pink-200 dark:border-gray-700 p-6 hover:border-pink-300 dark:hover:border-gray-600 transition-all duration-300">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-3">
               <div className="p-2 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-xl">
                 <User className="w-5 h-5 text-pink-500" />
               </div>
@@ -112,14 +112,14 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
             <div className="space-y-5">
               {/* Status */}
               <div>
-                <label className="block text-sm text-gray-600 mb-3 font-medium">
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-3 font-medium">
                   Status
                 </label>
                 <span
                   className={`inline-flex px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm shadow-lg ${
                     model.status.toLowerCase() === "active"
-                      ? "bg-green-500/20 text-green-400 border border-green-500/30 shadow-green-500/20"
-                      : "bg-red-500/20 text-red-400 border border-red-500/30 shadow-red-500/20"
+                      ? "bg-green-500/20 text-green-400 dark:text-green-300 border border-green-500/30 shadow-green-500/20"
+                      : "bg-red-500/20 text-red-400 dark:text-red-300 border border-red-500/30 shadow-red-500/20"
                   }`}
                 >
                   <Activity className="w-4 h-4 mr-2" />
@@ -131,11 +131,11 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
 
               {/* Launch Date */}
               <div>
-                <label className="block text-sm text-gray-600 mb-3 font-medium flex items-center gap-2">
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-3 font-medium flex items-center gap-2">
                   <Calendar className="w-4 h-4 text-pink-500" />
                   Launch Date
                 </label>
-                <p className="text-gray-900 font-semibold bg-pink-50 px-4 py-2 rounded-lg inline-block border border-pink-200">
+                <p className="text-gray-900 dark:text-gray-100 font-semibold bg-pink-50 dark:bg-gray-700/50 px-4 py-2 rounded-lg inline-block border border-pink-200 dark:border-gray-700">
                   {new Date(model.launchDate).toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "long",
@@ -146,11 +146,11 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
 
               {/* Referrer */}
               <div>
-                <label className="block text-sm text-gray-600 mb-3 font-medium flex items-center gap-2">
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-3 font-medium flex items-center gap-2">
                   <User className="w-4 h-4 text-pink-500" />
                   Referrer Name
                 </label>
-                <p className="text-gray-900 font-semibold bg-pink-50 px-4 py-2 rounded-lg inline-block border border-pink-200">
+                <p className="text-gray-900 dark:text-gray-100 font-semibold bg-pink-50 dark:bg-gray-700/50 px-4 py-2 rounded-lg inline-block border border-pink-200 dark:border-gray-700">
                   {model.referrerName || "Not specified"}
                 </p>
               </div>
@@ -166,8 +166,8 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
           className="relative group"
         >
           <div className="absolute inset-0 bg-gradient-to-r from-rose-600/10 to-pink-600/10 rounded-2xl blur-xl group-hover:opacity-100 opacity-50 transition-all duration-300" />
-          <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl border border-pink-200 p-6 hover:border-pink-300 transition-all duration-300">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-3">
+          <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl border border-pink-200 dark:border-gray-700 p-6 hover:border-pink-300 dark:hover:border-gray-600 transition-all duration-300">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-3">
               <div className="p-2 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-xl">
                 <Tag className="w-5 h-5 text-pink-500" />
               </div>
@@ -176,17 +176,17 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
             <div className="space-y-5">
               {/* Personality Type */}
               <div>
-                <label className="block text-sm text-gray-600 mb-3 font-medium">
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-3 font-medium">
                   Personality Type
                 </label>
-                <p className="text-gray-900 font-semibold bg-gradient-to-r from-pink-500/10 to-rose-500/10 px-4 py-2 rounded-lg inline-block border border-pink-200">
+                <p className="text-gray-900 dark:text-gray-100 font-semibold bg-gradient-to-r from-pink-500/10 to-rose-500/10 px-4 py-2 rounded-lg inline-block border border-pink-200 dark:border-gray-700">
                   {model.personalityType}
                 </p>
               </div>
 
               {/* Common Terms */}
               <div>
-                <label className="block text-sm text-gray-600 mb-3 font-medium">
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-3 font-medium">
                   Common Terms
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -196,7 +196,7 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.3 + index * 0.05 }}
-                      className="px-3 py-1.5 bg-gradient-to-r from-pink-500/20 to-rose-500/20 text-pink-700 rounded-full text-sm font-medium border border-pink-200 hover:border-pink-300 transition-all cursor-default"
+                      className="px-3 py-1.5 bg-gradient-to-r from-pink-500/20 to-rose-500/20 text-pink-700 dark:text-pink-300 rounded-full text-sm font-medium border border-pink-200 dark:border-gray-700 hover:border-pink-300 dark:hover:border-gray-600 transition-all cursor-default"
                     >
                       {term}
                     </motion.span>
@@ -206,7 +206,7 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
 
               {/* Common Emojis */}
               <div>
-                <label className="block text-sm text-gray-600 mb-3 font-medium flex items-center gap-2">
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-3 font-medium flex items-center gap-2">
                   <Smile className="w-4 h-4 text-pink-500" />
                   Common Emojis
                 </label>
@@ -217,7 +217,7 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: 0.4 + index * 0.1 }}
-                      className="bg-pink-50 p-2 rounded-lg hover:bg-pink-100 transition-all cursor-default border border-pink-200"
+                      className="bg-pink-50 dark:bg-gray-700/50 p-2 rounded-lg hover:bg-pink-100 dark:hover:bg-gray-600/50 transition-all cursor-default border border-pink-200 dark:border-gray-700"
                     >
                       {emoji}
                     </motion.span>
@@ -237,8 +237,8 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
         className="relative group"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-pink-600/5 to-rose-600/5 rounded-2xl blur-2xl group-hover:opacity-100 opacity-50 transition-all duration-300" />
-        <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl border border-pink-200 p-6 hover:border-pink-300 transition-all duration-300">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-3">
+        <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl border border-pink-200 dark:border-gray-700 p-6 hover:border-pink-300 dark:hover:border-gray-600 transition-all duration-300">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-3">
             <div className="p-2 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-xl">
               <Link className="w-5 h-5 text-pink-500" />
             </div>
@@ -255,7 +255,7 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
                   transition={{ delay: 0.4 + index * 0.1 }}
                   className="group/social"
                 >
-                  <label className="block text-sm text-gray-600 mb-3 font-medium flex items-center gap-2">
+                  <label className="block text-sm text-gray-600 dark:text-gray-400 mb-3 font-medium flex items-center gap-2">
                     <Icon className={`w-4 h-4 ${social.textColor}`} />
                     {social.platform}
                   </label>
@@ -269,7 +269,7 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
                       <div
                         className={`absolute inset-0 bg-gradient-to-r ${social.color} rounded-lg blur-lg opacity-0 group-hover/link:opacity-30 transition-all duration-300`}
                       />
-                      <div className="relative bg-pink-50 px-4 py-2.5 rounded-lg border border-pink-200 group-hover/link:border-pink-300 transition-all duration-300 flex items-center gap-2">
+                      <div className="relative bg-pink-50 dark:bg-gray-700/50 px-4 py-2.5 rounded-lg border border-pink-200 dark:border-gray-700 group-hover/link:border-pink-300 transition-all duration-300 flex items-center gap-2">
                         <Icon className={`w-4 h-4 ${social.textColor}`} />
                         <span
                           className={`${social.textColor} ${social.hoverColor} transition-colors font-medium`}
@@ -279,7 +279,7 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
                       </div>
                     </a>
                   ) : (
-                    <div className="bg-pink-50 px-4 py-2.5 rounded-lg border border-pink-200 text-gray-500">
+                    <div className="bg-pink-50 dark:bg-gray-700/50 px-4 py-2.5 rounded-lg border border-pink-200 dark:border-gray-700 text-gray-500 dark:text-gray-400">
                       Not provided
                     </div>
                   )}
@@ -300,8 +300,8 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
           className="relative group"
         >
           <div className="absolute inset-0 bg-gradient-to-r from-pink-600/10 to-rose-600/10 rounded-2xl blur-xl group-hover:opacity-100 opacity-50 transition-all duration-300" />
-          <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl border border-pink-200 p-6 hover:border-pink-300 transition-all duration-300">
-            <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-3">
+          <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl border border-pink-200 dark:border-gray-700 p-6 hover:border-pink-300 dark:hover:border-gray-600 transition-all duration-300">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-3">
               <div className="p-2 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-xl">
                 <Users className="w-5 h-5 text-pink-500" />
               </div>
@@ -319,7 +319,7 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
                     <Sparkles className="w-4 h-4 text-pink-500 animate-spin" />
                   </div>
                 ) : (
-                  <div className="bg-pink-50 px-4 py-2 rounded-lg border border-pink-200 font-medium text-gray-900">
+                  <div className="bg-pink-50 dark:bg-gray-700/50 px-4 py-2 rounded-lg border border-pink-200 dark:border-gray-700 font-medium text-gray-900 dark:text-gray-100">
                     {client[0]?.chattingManagers || "Not assigned"}
                   </div>
                 )}
@@ -337,8 +337,8 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
             className="relative group"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-pink-600/10 to-rose-600/10 rounded-2xl blur-xl group-hover:opacity-100 opacity-50 transition-all duration-300" />
-            <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl border border-pink-200 p-6 hover:border-pink-300 transition-all duration-300">
-              <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-3">
+            <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl border border-pink-200 dark:border-gray-700 p-6 hover:border-pink-300 dark:hover:border-gray-600 transition-all duration-300">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-3">
                 <div className="p-2 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-xl">
                   <TrendingUp className="w-5 h-5 text-pink-500" />
                 </div>
@@ -378,13 +378,13 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.7 + index * 0.05 }}
-                      className="flex justify-between items-center p-3 bg-pink-50 rounded-lg hover:bg-pink-100 transition-all border border-pink-200"
+                      className="flex justify-between items-center p-3 bg-pink-50 dark:bg-gray-700/50 rounded-lg hover:bg-pink-100 dark:hover:bg-gray-600/50 transition-all border border-pink-200 dark:border-gray-700"
                     >
-                      <span className="text-gray-600 flex items-center gap-2">
+                      <span className="text-gray-600 dark:text-gray-400 flex items-center gap-2">
                         <Icon className={`w-4 h-4 ${stat.color}`} />
                         {stat.label}
                       </span>
-                      <span className="text-gray-900 font-bold text-lg">
+                      <span className="text-gray-900 dark:text-gray-100 font-bold text-lg">
                         {stat.value}
                       </span>
                     </motion.div>
@@ -405,7 +405,7 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
         >
           <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 to-rose-600/10 rounded-2xl blur-xl" />
           <div className="relative bg-red-500/10 border border-red-500/20 rounded-2xl p-6 text-center">
-            <p className="text-red-400">{error}</p>
+            <p className="text-red-400 dark:text-red-300">{error}</p>
           </div>
         </motion.div>
       )}
