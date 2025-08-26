@@ -80,7 +80,6 @@ export async function GET() {
     const creators = clientNames.map((clientName, clientIndex) => ({
       id: `creator-${clientIndex}`,
       name: clientName.trim(),
-      specialty: 'Content Creator',
       rowNumber: clientIndex + 2, // Row number in the actual sheet (accounting for header row)
     }));
 

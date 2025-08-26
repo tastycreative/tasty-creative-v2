@@ -414,12 +414,11 @@ export async function POST(request: NextRequest) {
           return {
             id: rowNumber.toString(),
             name: trimmedName,
-            specialty: index === 0 ? "$15,000" : "$18,500",
             rowNumber: rowNumber
           };
         })
         .filter(
-          (creator: { id: string; name: string; specialty: string; rowNumber: number }) =>
+          (creator: { id: string; name: string; rowNumber: number }) =>
             creator.name !== ""
         );
 

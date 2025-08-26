@@ -14,7 +14,6 @@ export interface TeamMember {
 export interface Creator {
   id: string;
   name: string;
-  specialty: string;
   earnings?: string;
   rowNumber?: number;
 }

@@ -21,7 +21,6 @@ interface PricingGroup {
 interface Creator {
   id: string;
   name: string;
-  specialty: string;
   rowNumber?: number; // Add row number for efficient updates
 }
 

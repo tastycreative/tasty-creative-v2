@@ -13,7 +13,6 @@ interface TeamMember {
 interface Creator {
   id: string;
   name: string;
-  specialty: string;
   earnings?: string;
 }
 
@@ -189,7 +188,7 @@ const PodSidebar: React.FC<PodSidebarProps> = ({
                           {creator.name}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {creator.specialty}
+                          Content Creator
                         </p>
                       </div>
                     </div>

@@ -45,7 +45,6 @@ interface TeamMember {
 interface Creator {
   id: string;
   name: string;
-  specialty: string;
   earnings?: string;
 }
 

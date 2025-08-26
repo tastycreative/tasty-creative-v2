@@ -15,51 +15,22 @@ import {
   DollarSign,
   Clock,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { motion } from "framer-motion";
+import { useClientData } from "@/lib/stores/creatorStore";
 
 interface ModelInfoTabProps {
   model: ModelDetails;
 }
 
 export default function ModelInfoTab({ model }: ModelInfoTabProps) {
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [client, setClient] = useState<any[]>([]);
+  const { clientData, loading, error, fetchClientData } = useClientData();
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await fetch(
-          `/api/google/cmsheets?clientName=${model.name}`
-        );
-
-        if (response.status === 401) {
-          setError("You need to authenticate first");
-          setLoading(false);
-          return;
-        }
-
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status}`);
-        }
-
-        const data = await response.json();
-        setClient(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to fetch data");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (model.name) {
-      setLoading(true);
-      fetchData();
-    } else {
-      setClient([]);
+      fetchClientData(model.name);
     }
-  }, [model.name]);
+  }, [model.name, fetchClientData]);
 
   const socialLinks = [
     {
@@ -320,7 +291,7 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
                   </div>
                 ) : (
                   <div className="bg-pink-50 dark:bg-gray-700/50 px-4 py-2 rounded-lg border border-pink-200 dark:border-gray-700 font-medium text-gray-900 dark:text-gray-100">
-                    {client[0]?.chattingManagers || "Not assigned"}
+                    {clientData?.chattingManagers || "Not assigned"}
                   </div>
                 )}
               </div>
@@ -405,7 +376,7 @@ export default function ModelInfoTab({ model }: ModelInfoTabProps) {
         >
           <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 to-rose-600/10 rounded-2xl blur-xl" />
           <div className="relative bg-red-500/10 border border-red-500/20 rounded-2xl p-6 text-center">
-            <p className="text-red-400 dark:text-red-300">{error}</p>
+            <p className="text-red-400 dark:text-red-300">{error.message}</p>
           </div>
         </motion.div>
       )}

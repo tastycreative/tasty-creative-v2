@@ -81,7 +81,6 @@ interface Task {
 interface Creator {
   id: string;
   name: string;
-  specialty: string;
   rowNumber?: number;
 }
 
