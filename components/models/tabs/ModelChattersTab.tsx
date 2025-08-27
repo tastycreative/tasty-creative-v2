@@ -106,9 +106,9 @@ export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
       case "busy":
         return { color: "bg-yellow-500", glow: "shadow-yellow-500/50", text: "text-yellow-400", bg: "bg-yellow-500/20" };
       case "offline":
-        return { color: "bg-gray-500", glow: "shadow-gray-500/50", text: "text-gray-600", bg: "bg-gray-100" };
+        return { color: "bg-gray-500", glow: "shadow-gray-500/50", text: "text-gray-600 dark:text-gray-400", bg: "bg-gray-100 dark:bg-gray-700/50" };
       default:
-        return { color: "bg-gray-500", glow: "shadow-gray-500/50", text: "text-gray-600", bg: "bg-gray-100" };
+        return { color: "bg-gray-500", glow: "shadow-gray-500/50", text: "text-gray-600 dark:text-gray-400", bg: "bg-gray-100 dark:bg-gray-700/50" };
     }
   };
 
@@ -131,12 +131,12 @@ export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
         className="relative"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 to-pink-600/10 rounded-2xl blur-xl" />
-        <div className="relative bg-red-50 border border-red-200 rounded-2xl p-8 text-center">
+        <div className="relative bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 rounded-2xl p-8 text-center">
           <MessageSquare className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600 mb-4">Error loading chatters: {error}</p>
+          <p className="text-red-600 dark:text-red-400 mb-4">Error loading chatters: {error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="px-6 py-3 bg-red-100 hover:bg-red-200 text-red-600 rounded-xl font-medium transition-all"
+            className="px-6 py-3 bg-red-100 dark:bg-red-500/20 hover:bg-red-200 dark:hover:bg-red-500/30 text-red-600 dark:text-red-400 rounded-xl font-medium transition-all"
           >
             Retry
           </button>
@@ -153,17 +153,17 @@ export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
         >
-          <h3 className="text-2xl font-semibold text-gray-900 flex items-center gap-3">
+          <h3 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-3">
             <div className="p-2 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-xl">
               <MessageSquare className="w-5 h-5 text-pink-500" />
             </div>
             Assigned Chatters
           </h3>
-          <p className="text-gray-600 text-sm mt-1">
+          <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
             {chatters.length} chatters managing this model
           </p>
           {chattingManagers && (
-            <p className="text-gray-500 text-xs mt-1 flex items-center gap-1">
+            <p className="text-gray-500 dark:text-gray-400 text-xs mt-1 flex items-center gap-1">
               <User className="w-3 h-3" />
               Manager: {chattingManagers}
             </p>
@@ -188,13 +188,13 @@ export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
         className="relative group"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-pink-600/10 to-rose-600/10 rounded-2xl blur-xl opacity-0 group-focus-within:opacity-100 transition-all duration-300" />
-        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-600 w-5 h-5 z-10" />
+        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-600 dark:text-gray-400 w-5 h-5 z-10" />
         <input
           type="text"
           placeholder="Search chatters..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="relative w-full pl-12 pr-4 py-3.5 bg-white/80 backdrop-blur-sm rounded-2xl border border-pink-200 focus:border-pink-500 focus:outline-none focus:ring-2 focus:ring-pink-500/20 transition-all text-gray-900 placeholder-gray-500"
+          className="relative w-full pl-12 pr-4 py-3.5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl border border-pink-200 dark:border-gray-600 focus:border-pink-500 focus:outline-none focus:ring-2 focus:ring-pink-500/20 transition-all text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
         />
       </motion.div>
 
@@ -240,14 +240,14 @@ export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
               className="relative group"
             >
               <div className={`absolute inset-0 bg-gradient-to-r ${stat.gradient} rounded-2xl blur-xl opacity-20 group-hover:opacity-30 transition-all duration-300`} />
-              <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl border border-pink-200 p-5 hover:border-pink-300 transition-all duration-300">
+              <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl border border-pink-200 dark:border-gray-600 p-5 hover:border-pink-300 dark:hover:border-gray-500 transition-all duration-300">
                 <div className="flex items-center gap-4">
                   <div className={`p-3 bg-gradient-to-br ${stat.gradient} bg-opacity-20 rounded-xl`}>
                     <Icon className={`w-6 h-6 text-${stat.color}-400`} />
                   </div>
                   <div>
-                    <p className="text-gray-600 text-sm">{stat.label}</p>
-                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm">{stat.label}</p>
+                    <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stat.value}</p>
                   </div>
                 </div>
               </div>
@@ -266,11 +266,11 @@ export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
             className="relative"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-pink-600/10 to-rose-600/10 rounded-3xl blur-2xl" />
-            <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl border border-pink-200 p-16 text-center">
+            <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl border border-pink-200 dark:border-gray-600 p-16 text-center">
               <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-full flex items-center justify-center">
                 <User className="w-10 h-10 text-pink-500" />
               </div>
-              <p className="text-gray-600 text-lg">
+              <p className="text-gray-600 dark:text-gray-400 text-lg">
                 {chatters.length === 0
                   ? "No chatters assigned to this model"
                   : "No chatters found"}
@@ -302,7 +302,7 @@ export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
                   <div className="absolute inset-0 bg-gradient-to-r from-pink-600/5 to-rose-600/5 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-all duration-300" />
                   
                   {/* Card */}
-                  <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl border border-pink-200 p-6 hover:border-pink-300 transition-all duration-300">
+                  <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl border border-pink-200 dark:border-gray-600 p-6 hover:border-pink-300 dark:hover:border-gray-500 transition-all duration-300">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         {/* Avatar */}
@@ -316,18 +316,18 @@ export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
                                 .slice(0, 2)}
                             </span>
                           </div>
-                          <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full ${statusConfig.color} border-2 border-white ${statusConfig.glow} shadow-lg`} />
+                          <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full ${statusConfig.color} border-2 border-white dark:border-gray-800 ${statusConfig.glow} shadow-lg`} />
                         </div>
                         
                         {/* Info */}
                         <div>
-                          <h4 className="text-gray-900 font-semibold text-lg flex items-center gap-3">
+                          <h4 className="text-gray-900 dark:text-gray-100 font-semibold text-lg flex items-center gap-3">
                             {chatter.name}
                             <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusConfig.bg} ${statusConfig.text} backdrop-blur-sm`}>
                               {chatter.status}
                             </span>
                           </h4>
-                          <p className="text-gray-600 text-sm mt-1 flex items-center gap-3">
+                          <p className="text-gray-600 dark:text-gray-400 text-sm mt-1 flex items-center gap-3">
                             <span className="flex items-center gap-1">
                               <Clock className="w-3 h-3" />
                               Assigned {new Date(chatter.assignedDate).toLocaleDateString()}
@@ -338,8 +338,8 @@ export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
                         </div>
                       </div>
                       
-                      <button className="p-2.5 hover:bg-pink-100 rounded-xl transition-all opacity-0 group-hover:opacity-100">
-                        <MoreVertical className="w-5 h-5 text-gray-600" />
+                      <button className="p-2.5 hover:bg-pink-100 dark:hover:bg-gray-700 rounded-xl transition-all opacity-0 group-hover:opacity-100">
+                        <MoreVertical className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                       </button>
                     </div>
                     
@@ -353,28 +353,28 @@ export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
                       ].map((stat) => {
                         const Icon = stat.icon;
                         return (
-                          <div key={stat.label} className="bg-pink-50 rounded-xl p-3">
-                            <div className="flex items-center gap-2 text-gray-600 text-xs mb-1">
+                          <div key={stat.label} className="bg-pink-50 dark:bg-gray-700/50 rounded-xl p-3">
+                            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400 text-xs mb-1">
                               <Icon className="w-3 h-3" />
                               {stat.label}
                             </div>
-                            <p className="text-gray-900 font-semibold">{stat.value}</p>
+                            <p className="text-gray-900 dark:text-gray-100 font-semibold">{stat.value}</p>
                           </div>
                         );
                       })}
                     </div>
                     
                     {/* Performance Chart */}
-                    <div className="mt-6 pt-6 border-t border-pink-200">
+                    <div className="mt-6 pt-6 border-t border-pink-200 dark:border-gray-600">
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm text-gray-600">Performance Score</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-400">Performance Score</span>
                         <div className="flex items-center gap-2">
                           <TrendingUp className="w-4 h-4 text-green-400" />
                           <span className="text-sm text-green-400">+12%</span>
                         </div>
                       </div>
                       <div className="relative">
-                        <div className="w-full bg-pink-100 rounded-full h-2 overflow-hidden">
+                        <div className="w-full bg-pink-100 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
                           <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${(chatter.revenue / 15000) * 100}%` }}
@@ -402,7 +402,7 @@ export default function ModelChattersTab({ modelName }: ModelChattersTabProps) {
           transition={{ delay: 0.5 }}
           className="text-center"
         >
-          <button className="px-8 py-3 bg-white/80 hover:bg-pink-50 text-gray-600 hover:text-gray-900 rounded-xl font-medium transition-all border border-pink-200 hover:border-pink-300">
+          <button className="px-8 py-3 bg-white/80 dark:bg-gray-800/80 hover:bg-pink-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-xl font-medium transition-all border border-pink-200 dark:border-gray-600 hover:border-pink-300 dark:hover:border-gray-500">
             Load More Chatters
           </button>
         </motion.div>

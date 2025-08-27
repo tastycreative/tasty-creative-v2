@@ -38,7 +38,7 @@ export function ForumPostItem({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
-      className="bg-white rounded-xl border border-pink-200 hover:border-pink-300 transition-all shadow-sm"
+      className="bg-white dark:bg-gray-800 rounded-xl border border-pink-200 dark:border-gray-600 hover:border-pink-300 dark:hover:border-gray-500 transition-all shadow-sm"
     >
       <div className="p-6">
         <div className="flex gap-4">
@@ -48,13 +48,13 @@ export function ForumPostItem({
               onClick={() => onVote(post, "up")}
               className={`p-2 rounded-full transition-all ${
                 userVotes[post.id] === "up"
-                  ? "bg-pink-100 text-pink-600"
-                  : "text-gray-400 hover:text-pink-600 hover:bg-pink-100"
+                  ? "bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400"
+                  : "text-gray-400 dark:text-gray-500 hover:text-pink-600 dark:hover:text-pink-400 hover:bg-pink-100 dark:hover:bg-pink-900/20"
               }`}
             >
               <ArrowUp className="w-5 h-5" />
             </button>
-            <span className="text-lg font-bold text-gray-900">
+            <span className="text-lg font-bold text-gray-900 dark:text-gray-100">
               {(() => {
                 const scores = getDisplayScores(post.id, post.upvotes, post.downvotes);
                 return scores.upvotes - scores.downvotes;
@@ -64,8 +64,8 @@ export function ForumPostItem({
               onClick={() => onVote(post, "down")}
               className={`p-2 rounded-full transition-all ${
                 userVotes[post.id] === "down"
-                  ? "bg-rose-100 text-rose-600"
-                  : "text-gray-400 hover:text-rose-600 hover:bg-rose-100"
+                  ? "bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400"
+                  : "text-gray-400 dark:text-gray-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/20"
               }`}
             >
               <ArrowDown className="w-5 h-5" />
@@ -82,18 +82,18 @@ export function ForumPostItem({
               <span
                 className={`px-2 py-0.5 rounded-full text-xs ${
                   getCategoryColor(post.category) === "green"
-                    ? "bg-green-100 text-green-700"
+                    ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
                     : getCategoryColor(post.category) === "blue"
-                      ? "bg-blue-100 text-blue-700"
+                      ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400"
                       : getCategoryColor(post.category) === "purple"
-                        ? "bg-pink-100 text-pink-700"
+                        ? "bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400"
                         : getCategoryColor(post.category) === "red"
-                          ? "bg-red-100 text-red-700"
+                          ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400"
                           : getCategoryColor(post.category) === "orange"
-                            ? "bg-orange-100 text-orange-700"
+                            ? "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400"
                             : getCategoryColor(post.category) === "emerald"
-                              ? "bg-emerald-100 text-emerald-700"
-                              : "bg-gray-100 text-gray-700"
+                              ? "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+                              : "bg-gray-100 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300"
                 }`}
               >
                 {post.category}
@@ -101,19 +101,19 @@ export function ForumPostItem({
               {/* Model badge for model-specific posts */}
               {post.modelName && (
                 <>
-                  <span className="text-gray-600 text-sm">•</span>
-                  <span className="px-2 py-0.5 rounded-full text-xs bg-pink-100 text-pink-700 border border-pink-300">
+                  <span className="text-gray-600 dark:text-gray-400 text-sm">•</span>
+                  <span className="px-2 py-0.5 rounded-full text-xs bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400 border border-pink-300 dark:border-pink-600">
                     👤 {post.modelName}
                   </span>
                 </>
               )}
-              <span className="text-gray-600 text-sm">•</span>
-              <span className="text-gray-600 text-sm">
+              <span className="text-gray-600 dark:text-gray-400 text-sm">•</span>
+              <span className="text-gray-600 dark:text-gray-400 text-sm">
                 {post.timestamp}
               </span>
               {post.awards && post.awards > 0 && (
                 <>
-                  <span className="text-gray-600 text-sm">•</span>
+                  <span className="text-gray-600 dark:text-gray-400 text-sm">•</span>
                   <div className="flex items-center gap-1">
                     <Award className="w-3 h-3 text-yellow-400" />
                     <span className="text-xs text-yellow-400">{post.awards}</span>
@@ -125,13 +125,13 @@ export function ForumPostItem({
             {/* Title */}
             <h3
               onClick={() => onOpenComments(post)}
-              className="text-xl font-semibold text-gray-900 mb-3 hover:text-pink-600 cursor-pointer transition-colors"
+              className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-3 hover:text-pink-600 dark:hover:text-pink-400 cursor-pointer transition-colors"
             >
               {post.title}
             </h3>
 
             {/* Content preview */}
-            <p className="text-gray-600 mb-4 line-clamp-3">
+            <p className="text-gray-600 dark:text-gray-400 mb-4 line-clamp-3">
               {post.content}
             </p>
 
@@ -143,7 +143,7 @@ export function ForumPostItem({
                     {post.avatar}
                   </span>
                 </div>
-                <span className="text-gray-600">
+                <span className="text-gray-600 dark:text-gray-400">
                   u/{post.author}
                 </span>
               </div>
@@ -151,18 +151,18 @@ export function ForumPostItem({
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => onOpenComments(post)}
-                  className="flex items-center gap-1 px-3 py-1 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-pink-50 transition-all"
+                  className="flex items-center gap-1 px-3 py-1 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-pink-50 dark:hover:bg-gray-700 transition-all"
                 >
                   <MessageSquare className="w-4 h-4" />
                   <span className="text-sm">{post.comments.length}</span>
                 </button>
-                <button className="p-1 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-pink-50 transition-all">
+                <button className="p-1 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-pink-50 dark:hover:bg-gray-700 transition-all">
                   <Share className="w-4 h-4" />
                 </button>
-                <button className="p-1 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-pink-50 transition-all">
+                <button className="p-1 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-pink-50 dark:hover:bg-gray-700 transition-all">
                   <Bookmark className="w-4 h-4" />
                 </button>
-                <button className="p-1 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-pink-50 transition-all">
+                <button className="p-1 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-pink-50 dark:hover:bg-gray-700 transition-all">
                   <MoreHorizontal className="w-4 h-4" />
                 </button>
               </div>

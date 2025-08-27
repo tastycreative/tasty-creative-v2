@@ -31,7 +31,7 @@ export function ForumPostsList({
     return (
       <div className="text-center py-12">
         <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-pink-500" />
-        <p className="text-gray-600">Loading posts...</p>
+        <p className="text-gray-600 dark:text-gray-400">Loading posts...</p>
       </div>
     );
   }
@@ -39,11 +39,11 @@ export function ForumPostsList({
   if (posts.length === 0) {
     return (
       <div className="text-center py-12">
-        <MessageSquare className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+        <MessageSquare className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+        <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
           No posts yet
         </h3>
-        <p className="text-gray-600 mb-4">
+        <p className="text-gray-600 dark:text-gray-400 mb-4">
           {emptyStateMessage}
         </p>
         <button

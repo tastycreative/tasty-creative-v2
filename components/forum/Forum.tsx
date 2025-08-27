@@ -288,7 +288,7 @@ export function Forum({
       <div className="min-h-screen p-4 flex items-center justify-center">
         <div className="text-center">
           <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-pink-500" />
-          <p className="text-gray-600">Loading forum...</p>
+          <p className="text-gray-600 dark:text-gray-400">Loading forum...</p>
         </div>
       </div>
     );
@@ -301,19 +301,19 @@ export function Forum({
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">
+              <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                 {title}
               </h1>
-              <p className="text-gray-600 text-lg">
+              <p className="text-gray-600 dark:text-gray-400 text-lg">
                 {subtitle}
               </p>
               {/* Username Status */}
               {hasUsername && currentUser ? (
-                <p className="text-sm text-green-600 mt-1">
+                <p className="text-sm text-green-600 dark:text-green-400 mt-1">
                   ✓ Logged in as {currentUser.username}
                 </p>
               ) : (
-                <p className="text-sm text-orange-600 mt-1">
+                <p className="text-sm text-orange-600 dark:text-orange-400 mt-1">
                   ⚠ Please create a username to participate in the forum
                 </p>
               )}
@@ -333,8 +333,8 @@ export function Forum({
 
           {/* Error Display */}
           {(postsError || actionError || usernameError) && (
-            <div className="mt-4 p-4 bg-red-100 border border-red-300 rounded-lg">
-              <p className="text-red-700">
+            <div className="mt-4 p-4 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-500/30 rounded-lg">
+              <p className="text-red-700 dark:text-red-400">
                 {postsError || actionError || usernameError}
               </p>
             </div>
@@ -376,11 +376,11 @@ export function Forum({
           <div className={showSidebar ? "xl:col-span-3" : "col-span-1"}>
             {/* Forum Context */}
             {getCurrentForum().type === "model" && (
-              <div className="bg-gradient-to-r from-pink-100 to-rose-100 border border-pink-300 rounded-xl p-4 mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <div className="bg-gradient-to-r from-pink-100 to-rose-100 dark:from-gray-800 dark:to-gray-700 border border-pink-300 dark:border-gray-600 rounded-xl p-4 mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                   👤 {getCurrentForum().name} Forum
                 </h3>
-                <p className="text-gray-600 text-sm">
+                <p className="text-gray-600 dark:text-gray-400 text-sm">
                   Discussions specific to {getCurrentForum().name}. Share tips,
                   experiences, and connect with other {getCurrentForum().name} users.
                 </p>

@@ -37,7 +37,7 @@ export function ForumControls({
         <div className="relative">
           <button
             onClick={onToggleModelDropdown}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100/80 border border-gray-200 rounded-lg text-gray-800 hover:bg-gray-200/80 transition-all"
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100/80 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 hover:bg-gray-200/80 dark:hover:bg-gray-700/80 transition-all"
           >
             <span className="font-medium">
               {selectedModel === "All Forums"
@@ -50,16 +50,16 @@ export function ForumControls({
           </button>
 
           {showModelDropdown && (
-            <div className="absolute top-full left-0 mt-2 w-64 bg-gray-100/95 border border-gray-200 rounded-lg shadow-xl z-50 max-h-64 overflow-y-auto backdrop-blur-sm">
+            <div className="absolute top-full left-0 mt-2 w-64 bg-gray-100/95 dark:bg-gray-800/95 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl z-50 max-h-64 overflow-y-auto backdrop-blur-sm">
               {/* All Forums Option */}
               <button
                 onClick={() => {
                   onModelChange("All Forums");
                   onToggleModelDropdown();
                 }}
-                className={`w-full text-left px-4 py-2 text-gray-900 hover:bg-pink-50 transition-colors first:rounded-t-lg ${
+                className={`w-full text-left px-4 py-2 text-gray-900 dark:text-gray-100 hover:bg-pink-50 dark:hover:bg-gray-700 transition-colors first:rounded-t-lg ${
                   selectedModel === "All Forums"
-                    ? "bg-pink-100 text-pink-700"
+                    ? "bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400"
                     : ""
                 }`}
               >
@@ -73,9 +73,9 @@ export function ForumControls({
                     onModelChange(model.name);
                     onToggleModelDropdown();
                   }}
-                  className={`w-full text-left px-4 py-2 text-gray-900 hover:bg-pink-50 transition-colors last:rounded-b-lg ${
+                  className={`w-full text-left px-4 py-2 text-gray-900 dark:text-gray-100 hover:bg-pink-50 dark:hover:bg-gray-700 transition-colors last:rounded-b-lg ${
                     selectedModel === model.name
-                      ? "bg-pink-100 text-pink-700"
+                      ? "bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400"
                       : ""
                   }`}
                 >
@@ -91,13 +91,13 @@ export function ForumControls({
 
       {/* Search */}
       <div className="relative flex-1 max-w-md">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search posts..."
-          className="w-full pl-10 pr-4 py-2 bg-gray-100/80 border border-gray-200 rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none focus:border-purple-500"
+          className="w-full pl-10 pr-4 py-2 bg-gray-100/80 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-purple-500 dark:focus:border-purple-400"
         />
       </div>
 

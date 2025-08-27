@@ -15,8 +15,8 @@ export function ForumSortOptions({ sortBy, onSortChange }: ForumSortOptionsProps
   ] as const;
 
   return (
-    <div className="bg-white rounded-xl border border-pink-200 p-6 shadow-sm">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-pink-200 dark:border-gray-600 p-6 shadow-sm">
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
         Sort By
       </h3>
       <div className="space-y-2">
@@ -28,8 +28,8 @@ export function ForumSortOptions({ sortBy, onSortChange }: ForumSortOptionsProps
               onClick={() => onSortChange(sort.id)}
               className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
                 sortBy === sort.id
-                  ? "bg-pink-100 text-pink-700 border border-pink-300"
-                  : "bg-white text-gray-600 hover:bg-pink-50 border border-pink-200"
+                  ? "bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-400 border border-pink-300 dark:border-pink-600"
+                  : "bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-pink-50 dark:hover:bg-gray-600 border border-pink-200 dark:border-gray-600"
               }`}
             >
               <Icon className="w-4 h-4" />
