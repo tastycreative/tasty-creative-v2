@@ -4,6 +4,7 @@ import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
 import { Role } from "@prisma/client"
 import { revalidatePath } from "next/cache"
+import { sendRoleElevationEmail } from "@/lib/email"
 
 export async function updateUserRole(userId: string, newRole: Role) {
   // Check if the current user is an admin
@@ -24,6 +25,24 @@ export async function updateUserRole(userId: string, newRole: Role) {
   }
 
   try {
+    // Get current user data before update
+    const currentUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+      },
+    })
+
+    if (!currentUser) {
+      throw new Error("User not found")
+    }
+
+    // Check if this is an elevation from GUEST to any other role
+    const isElevation = currentUser.role === "GUEST" && newRole !== "GUEST"
+
     // Update the user's role in the database
     const updatedUser = await prisma.user.update({
       where: { id: userId },
@@ -35,6 +54,22 @@ export async function updateUserRole(userId: string, newRole: Role) {
         role: true,
       }
     })
+
+    // Send email notification for role elevation (from GUEST to any other role)
+    if (isElevation && currentUser.email && currentUser.name) {
+      try {
+        await sendRoleElevationEmail({
+          to: currentUser.email,
+          userName: currentUser.name,
+          oldRole: currentUser.role,
+          newRole: newRole,
+        })
+        console.log(`Role elevation email sent to ${currentUser.email} for role change from ${currentUser.role} to ${newRole}`)
+      } catch (emailError) {
+        console.error("Failed to send role elevation email:", emailError)
+        // Don't fail the role update if email sending fails
+      }
+    }
 
     // Revalidate the admin users page to show updated data
     revalidatePath("/admin/users")
