@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { EmailVerificationBanner } from "@/components/email-verification-banner";
+
 import ContentLayout from "@/components/ContentLayout";
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -44,7 +44,7 @@ export default async function RootLayout({
 
         {/* Content */}
         <div className="relative z-10">
-          <EmailVerificationBanner />
+       
           <ContentLayout>{children}</ContentLayout>
         </div>
       </div>
