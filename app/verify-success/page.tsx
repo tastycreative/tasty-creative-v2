@@ -2,20 +2,25 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { signOut } from "next-auth/react"
+import { useSession } from "next-auth/react"
 
 export default function VerifySuccessPage() {
   const router = useRouter()
-  const [countdown, setCountdown] = useState(5)
+  const [countdown, setCountdown] = useState(3)
+  const { update } = useSession()
 
   useEffect(() => {
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer)
-          // Sign out and redirect
-          signOut({ redirect: false }).then(() => {
-            router.push("/sign-in?verified=true")
+          // Update session to refresh emailVerified status
+          update().then(() => {
+            router.push("/dashboard")
+          }).catch((error) => {
+            console.error("Failed to update session:", error)
+            // Fallback - still redirect to dashboard
+            router.push("/dashboard")
           })
         }
         return prev - 1
@@ -23,7 +28,7 @@ export default function VerifySuccessPage() {
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [router])
+  }, [router, update])
 
   return (
     <div className="min-h-screen flex items-center justify-center">
@@ -49,26 +54,27 @@ export default function VerifySuccessPage() {
         </h2>
         
         <p className="text-gray-600 dark:text-gray-400 mb-6">
-          Your email has been verified. To apply the changes to your current session, 
-          we need to sign you out.
+          Your email has been verified successfully! You now have access to all features.
         </p>
         
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
-          <p className="text-sm text-blue-800 dark:text-blue-300">
-            You will be automatically signed out and redirected to the sign-in page in{" "}
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-6">
+          <p className="text-sm text-green-800 dark:text-green-300">
+            You will be automatically redirected to the dashboard in{" "}
             <span className="font-bold">{countdown}</span> seconds.
           </p>
         </div>
         
         <button
           onClick={() => {
-            signOut({ redirect: false }).then(() => {
-              router.push("/sign-in?verified=true")
+            update().then(() => {
+              router.push("/dashboard")
+            }).catch(() => {
+              router.push("/dashboard")
             })
           }}
           className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
         >
-          Sign Out Now
+          Go to Dashboard Now
         </button>
       </div>
     </div>

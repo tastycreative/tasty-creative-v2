@@ -125,7 +125,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       else if (new URL(url).origin === baseUrl) return url;
       return baseUrl;
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger }) {
       if (user) {
         token.id = user.id;
         token.email = user.email;
@@ -133,6 +133,33 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.picture = user.image;
         token.role = user.role || "GUEST";
         token.emailVerified = user.emailVerified;
+      }
+      
+      // Refresh user data from database when session is updated
+      if (trigger === "update" && token.id) {
+        try {
+          const freshUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              image: true,
+              role: true,
+              emailVerified: true,
+            },
+          });
+          
+          if (freshUser) {
+            token.name = freshUser.name;
+            token.email = freshUser.email;
+            token.picture = freshUser.image;
+            token.role = freshUser.role || "GUEST";
+            token.emailVerified = freshUser.emailVerified;
+          }
+        } catch (error) {
+          console.error("Error refreshing user data in JWT:", error);
+        }
       }
       // Add Google OAuth tokens to the JWT
       if (account && account.provider === "google") {

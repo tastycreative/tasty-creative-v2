@@ -8,6 +8,7 @@ export async function GET(request: Request) {
 
   if (!token) {
     redirect("/sign-in?error=missing-token");
+    return;
   }
 
   try {
@@ -17,18 +18,22 @@ export async function GET(request: Request) {
     const session = await auth();
 
     if (session) {
-      // User is logged in - they need to refresh their session
+      // User is logged in - send to verify success to refresh session
       if (result.alreadyVerified) {
         redirect("/dashboard?message=already-verified");
+        return;
       } else {
         redirect("/verify-success");
+        return;
       }
     } else {
       // User is not logged in - send to sign in
       if (result.alreadyVerified) {
         redirect("/sign-in?message=already-verified");
+        return;
       } else {
         redirect("/sign-in?verified=true");
+        return;
       }
     }
   } catch (error) {
@@ -39,8 +44,10 @@ export async function GET(request: Request) {
     const session = await auth();
     if (session) {
       redirect(`/dashboard?error=${encodeURIComponent(errorMessage)}`);
+      return;
     } else {
       redirect(`/sign-in?error=${encodeURIComponent(errorMessage)}`);
+      return;
     }
   }
 }
