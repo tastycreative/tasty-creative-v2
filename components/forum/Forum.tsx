@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 import { 
   useForumPosts, 
   useForumCategories, 
@@ -46,6 +48,11 @@ export function Forum({
   showSidebar = true,
   allowModelSwitching = true,
 }: ForumProps) {
+  // URL parameters and routing
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const postIdParam = searchParams?.get('postId');
+
   // Username management
   const { 
     user: currentUser, 
@@ -133,6 +140,21 @@ export function Forum({
     refetch: refetchPosts 
   } = useForumPosts(postsOptions);
 
+  // Handle post ID from URL parameters (must be after posts are defined)
+  useEffect(() => {
+    if (postIdParam && posts.length > 0) {
+      const targetPost = posts.find(post => post.id === postIdParam);
+      if (targetPost) {
+        setSelectedPost(targetPost);
+        setShowCommentsModal(true);
+      }
+    } else if (!postIdParam) {
+      // Close modal if no postId in URL
+      setShowCommentsModal(false);
+      setSelectedPost(null);
+    }
+  }, [postIdParam, posts]);
+
   const { 
     stats, 
     loading: statsLoading,
@@ -217,13 +239,96 @@ export function Forum({
       );
       refetchPosts();
       refetchStats();
+
+      // Send notification email to post owner (if not commenting on own post)
+      try {
+        // Get current URL and preserve the current path with postId parameter
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set('postId', selectedPost.id);
+        const postUrl = currentUrl.toString();
+        
+        const response = await fetch('/api/forum/notify-comment', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            postId: selectedPost.id,
+            commentContent: content,
+            postUrl: postUrl,
+          }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Comment notification result:', result.message);
+          
+          // Show success toast if notification was actually sent
+          if (result.success && result.message.includes('sent successfully')) {
+            toast.success('Comment posted!', {
+              description: 'The post owner has been notified about your comment.',
+            });
+          }
+        } else {
+          console.error('Failed to send comment notification');
+        }
+      } catch (error) {
+        console.error('Error sending comment notification:', error);
+        // Don't fail the comment creation if notification fails
+      }
+
       return comment;
     }
   };
 
   const openCommentsModal = (post: FrontendForumPost) => {
-    setSelectedPost(post);
-    setShowCommentsModal(true);
+    // Only update URL - let the useEffect handle opening the modal
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('postId', post.id);
+    window.history.pushState({}, '', currentUrl.toString());
+  };
+
+  const closeCommentsModal = () => {
+    // Only update URL - let the useEffect handle closing the modal
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.delete('postId');
+    window.history.pushState({}, '', currentUrl.toString());
+  };
+
+  const handleSharePost = async (post: FrontendForumPost) => {
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('postId', post.id);
+    const shareUrl = currentUrl.toString();
+    
+    try {
+      if (navigator.share) {
+        // Use native share API if available (mobile devices)
+        await navigator.share({
+          title: post.title,
+          text: `Check out this post: ${post.title}`,
+          url: shareUrl,
+        });
+        toast.success('Post shared successfully!');
+      } else {
+        // Fallback to clipboard
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success('Post URL copied to clipboard!', {
+          description: 'Share this link with others to let them view this specific post.',
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing post:', error);
+      // Fallback - just copy to clipboard
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success('Post URL copied to clipboard!');
+      } catch (clipboardError) {
+        console.error('Error copying to clipboard:', clipboardError);
+        toast.error('Unable to copy link', {
+          description: `Please copy this link manually: ${shareUrl}`,
+        });
+      }
+    }
   };
 
   const handleCategoryChange = (category: string) => {
@@ -393,6 +498,7 @@ export function Forum({
               userVotes={userVotes}
               onVote={onVote}
               onOpenComments={openCommentsModal}
+              onSharePost={handleSharePost}
               onCreateFirstPost={() => checkUsernameBeforeAction(() => setShowCreateModal(true))}
               getDisplayScores={getDisplayScores}
               getCategoryColor={getCategoryColor}
@@ -414,10 +520,11 @@ export function Forum({
 
         <CommentsModal
           isOpen={showCommentsModal}
-          onClose={() => setShowCommentsModal(false)}
+          onClose={closeCommentsModal}
           post={selectedPost}
           currentUser={currentUser}
           onAddComment={handleAddComment}
+          onSharePost={handleSharePost}
           loading={actionLoading}
           onUsernameRequired={() => setShowUsernameModal(true)}
         />

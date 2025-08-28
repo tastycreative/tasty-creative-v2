@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, MessageSquare } from "lucide-react";
+import { X, Send, MessageSquare, Share } from "lucide-react";
 import { FrontendForumPost, FrontendForumComment } from "../../lib/forum-api";
 
 interface CommentsModalProps {
@@ -11,6 +12,7 @@ interface CommentsModalProps {
   post: FrontendForumPost | null;
   currentUser: { username: string | null } | null;
   onAddComment: (content: string) => Promise<FrontendForumComment | undefined>;
+  onSharePost?: (post: FrontendForumPost) => void;
   loading: boolean;
   onUsernameRequired: () => void;
 }
@@ -21,10 +23,47 @@ export function CommentsModal({
   post,
   currentUser,
   onAddComment,
+  onSharePost,
   loading,
   onUsernameRequired,
 }: CommentsModalProps) {
   const [newComment, setNewComment] = useState("");
+  const [mounted, setMounted] = useState(false);
+  const [portalContainer, setPortalContainer] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    // Create or get a unique portal container
+    let container = document.getElementById('comments-modal-portal');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'comments-modal-portal';
+      document.body.appendChild(container);
+    }
+    setPortalContainer(container);
+    
+    return () => {
+      setMounted(false);
+      // Clean up the container when component unmounts
+      const existingContainer = document.getElementById('comments-modal-portal');
+      if (existingContainer && existingContainer.children.length === 0) {
+        document.body.removeChild(existingContainer);
+      }
+    };
+  }, []);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
 
   const handleAddComment = async () => {
     if (!currentUser?.username) {
@@ -40,35 +79,48 @@ export function CommentsModal({
     }
   };
 
-  if (!post) return null;
+  if (!post || !mounted || !portalContainer) return null;
 
-  return (
+  const modalContent = (
     <AnimatePresence>
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] p-4"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               onClose();
             }
           }}
         >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-gray-100/95 dark:bg-gray-800/95 rounded-xl border border-gray-200 dark:border-gray-600 p-6 w-full max-w-4xl max-h-[80vh] overflow-y-auto relative backdrop-blur-sm"
-          >
+          <div className="flex items-center justify-center min-h-full overflow-y-auto py-8">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-gray-100/95 dark:bg-gray-800/95 rounded-xl border border-gray-200 dark:border-gray-600 p-6 w-full max-w-4xl max-h-[80vh] overflow-y-auto relative backdrop-blur-sm"
+            >
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200">
                 Comments
               </h3>
-              <button
-                onClick={onClose}
-                className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-200/80 dark:hover:bg-gray-700 transition-all"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                {onSharePost && (
+                  <button
+                    onClick={() => onSharePost(post)}
+                    className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-200/80 dark:hover:bg-gray-700 transition-all"
+                    title="Share post"
+                  >
+                    <Share className="w-5 h-5" />
+                  </button>
+                )}
+                <button
+                  onClick={onClose}
+                  className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-200/80 dark:hover:bg-gray-700 transition-all"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Original Post */}
@@ -129,7 +181,10 @@ export function CommentsModal({
 
             {/* Comments List */}
             <div className="space-y-4">
-              {post.comments.map((comment) => (
+              {post.comments
+                .slice()
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .map((comment) => (
                 <div
                   key={comment.id}
                   className="bg-gray-100/80 dark:bg-gray-700/50 rounded-lg p-4"
@@ -165,9 +220,12 @@ export function CommentsModal({
                 </div>
               )}
             </div>
-          </motion.div>
+            </motion.div>
+          </div>
         </div>
       )}
     </AnimatePresence>
   );
+
+  return createPortal(modalContent, portalContainer);
 }

@@ -324,6 +324,7 @@ export interface FrontendForumComment {
   upvotes: number;
   downvotes: number;
   timestamp: string;
+  createdAt: string;
   replies?: FrontendForumComment[];
 }
 
@@ -371,6 +372,7 @@ export const transformers = {
     upvotes: backendComment.upvotes,
     downvotes: backendComment.downvotes,
     timestamp: transformers.formatTimestamp(backendComment.createdAt),
+    createdAt: backendComment.createdAt,
     replies: backendComment.replies?.map(transformers.commentToFrontend) || [],
   }),
 

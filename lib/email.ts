@@ -218,6 +218,164 @@ You received this email because someone submitted your form "${formTitle}".
 }
 
 // Optional: Send a confirmation email to the submitter
+export async function sendCommentNotificationEmail({
+  to,
+  postOwnerName,
+  commenterName,
+  postTitle,
+  commentContent,
+  postUrl,
+}: {
+  to: string;
+  postOwnerName: string;
+  commenterName: string;
+  postTitle: string;
+  commentContent: string;
+  postUrl: string;
+}) {
+  // Truncate comment if it's too long for email
+  const truncatedComment = commentContent.length > 200 
+    ? commentContent.substring(0, 200) + "..." 
+    : commentContent;
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject: `New comment on your post: ${postTitle} - Tasty Creative`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>New Comment Notification</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f9fafb;">
+          <div style="background-color: #f9fafb; padding: 40px 20px;">
+            <!-- Main Container -->
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);">
+              
+              <!-- Header -->
+              <div style="background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%); padding: 48px 40px; text-align: center; border-bottom: 1px solid #fce7f3;">
+                <svg
+                  style="margin: 0 auto 16px; height: 48px; width: 48px; color: #ec4899;"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                  />
+                </svg>
+                <h1 style="margin: 0 0 8px 0; font-size: 32px; font-weight: 800; color: #111827; letter-spacing: -0.5px;">
+                  New Comment!
+                </h1>
+                <p style="margin: 0; font-size: 16px; color: #6b7280;">
+                  Someone commented on your post at <span style="font-weight: 600; color: #ec4899;">Tasty Creative</span>
+                </p>
+              </div>
+              
+              <!-- Body Content -->
+              <div style="padding: 48px 40px;">
+                <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #374151;">
+                  Hello <strong>${postOwnerName}</strong>,
+                </p>
+                <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #374151;">
+                  <strong>${commenterName}</strong> just left a comment on your post!
+                </p>
+                
+                <!-- Post Title -->
+                <div style="background-color: #f9fafb; padding: 24px; border-radius: 8px; margin: 32px 0;">
+                  <p style="margin: 0 0 8px 0; font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                    Your Post
+                  </p>
+                  <h3 style="margin: 0; font-size: 18px; color: #111827; font-weight: 600; line-height: 24px;">
+                    ${postTitle}
+                  </h3>
+                </div>
+                
+                <!-- Comment Content -->
+                <div style="background-color: #fef7ff; border: 1px solid #f3e8ff; border-radius: 8px; padding: 24px; margin: 32px 0;">
+                  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                      <span style="color: white; font-size: 12px; font-weight: bold; line-height: 1; text-align: center;">
+                        ${commenterName.substring(0, 2).toUpperCase()}
+                      </span>
+                    </div>
+                    <span style="font-size: 14px; color: #6b7280; font-weight: 600;">
+                      ${commenterName} commented:
+                    </span>
+                  </div>
+                  <p style="margin: 0; font-size: 14px; color: #374151; line-height: 20px; font-style: italic;">
+                    "${truncatedComment}"
+                  </p>
+                </div>
+                
+                <!-- CTA Button -->
+                <div style="text-align: center; margin: 32px 0;">
+                  <a href="${postUrl}" style="display: inline-block; padding: 14px 32px; background-color: #000000; color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; transition: all 0.3s ease;">
+                    View Comment & Reply
+                  </a>
+                </div>
+                
+                <!-- Divider -->
+                <div style="margin: 40px 0; border-top: 1px solid #e5e7eb;"></div>
+                
+                <!-- Additional Information -->
+                <div style="background-color: #f9fafb; padding: 24px; border-radius: 8px; margin-bottom: 24px;">
+                  <p style="margin: 0 0 12px 0; font-size: 14px; color: #6b7280;">
+                    <strong>Stay engaged!</strong>
+                  </p>
+                  <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 20px;">
+                    Click the button above to view the full comment and join the conversation. You can reply directly to keep the discussion going!
+                  </p>
+                </div>
+                
+                <!-- Footer text -->
+                <p style="margin: 0 0 12px 0; font-size: 14px; color: #6b7280; line-height: 20px;">
+                  You're receiving this notification because someone commented on your post. You can manage your notification preferences in your account settings.
+                </p>
+                
+                <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 20px;">
+                  <strong>Note:</strong> This is an automated notification from the Tasty Creative forum system.
+                </p>
+              </div>
+              
+              <!-- Footer -->
+              <div style="background-color: #f9fafb; padding: 32px 40px; text-align: center; border-top: 1px solid #e5e7eb;">
+                <p style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #111827;">
+                  Tasty Creative
+                </p>
+                <p style="margin: 0; font-size: 14px; color: #6b7280;">
+                  Creating amazing content experiences
+                </p>
+                
+                <!-- Social links placeholder -->
+                <div style="margin-top: 20px;">
+                  <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+                    © ${new Date().getFullYear()} Tasty Creative. All rights reserved.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Email footer -->
+            <div style="text-align: center; margin-top: 32px;">
+              <p style="margin: 0; font-size: 12px; color: #9ca3af; line-height: 18px;">
+                This email was sent to ${to}<br>
+                You received this notification because someone commented on your forum post.
+              </p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+  });
+}
+
 export async function sendRoleElevationEmail({
   to,
   userName,
@@ -258,7 +416,7 @@ export async function sendRoleElevationEmail({
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Role Elevation</title>
+          <title>Role Elevation Notification</title>
         </head>
         <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f9fafb;">
           <div style="background-color: #f9fafb; padding: 40px 20px;">
@@ -266,45 +424,54 @@ export async function sendRoleElevationEmail({
             <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);">
               
               <!-- Header -->
-              <div style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); padding: 48px 40px; text-align: center; border-bottom: 1px solid #bfdbfe;">
-                <div style="background-color: #3b82f6; width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 24px; display: flex; align-items: center; justify-content: center;">
-                  <svg style="width: 32px; height: 32px; color: white;" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                  </svg>
-                </div>
+              <div style="background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%); padding: 48px 40px; text-align: center; border-bottom: 1px solid #fce7f3;">
+                <svg
+                  className="mx-auto h-12 w-12 text-pink-600"
+                  style="margin: 0 auto 16px; height: 48px; width: 48px; color: #ec4899;"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
                 <h1 style="margin: 0 0 8px 0; font-size: 32px; font-weight: 800; color: #111827; letter-spacing: -0.5px;">
                   Congratulations!
                 </h1>
-                <p style="margin: 0; font-size: 18px; color: #374151; font-weight: 500;">
-                  Your role has been elevated
+                <p style="margin: 0; font-size: 16px; color: #6b7280;">
+                  Your role has been elevated on <span style="font-weight: 600; color: #ec4899;">Tasty Creative</span>
                 </p>
               </div>
               
               <!-- Body Content -->
               <div style="padding: 48px 40px;">
-                <p style="margin: 0 0 24px 0; font-size: 18px; line-height: 28px; color: #111827; font-weight: 600;">
-                  Hello ${userName},
+                <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #374151;">
+                  Hello <strong>${userName}</strong>,
+                </p>
+                <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #374151;">
+                  Great news! Your account permissions have been updated, and you now have enhanced access to our platform.
                 </p>
                 
-                <p style="margin: 0 0 32px 0; font-size: 16px; line-height: 24px; color: #374151;">
-                  Great news! Your account role on <strong style="color: #ec4899;">Tasty Creative</strong> has been updated.
-                </p>
-                
-                <!-- Role Change Card -->
-                <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1px solid #0284c7; border-radius: 12px; padding: 32px; margin: 32px 0; text-align: center;">
-                  <div style="display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap;">
-                    <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 20px;">
-                      <p style="margin: 0; font-size: 14px; color: #991b1b; font-weight: 600;">Previous Role</p>
-                      <p style="margin: 4px 0 0 0; font-size: 16px; color: #dc2626; font-weight: 700;">${oldRoleDisplay}</p>
-                    </div>
-                    
-                    <svg style="width: 24px; height: 24px; color: #0284c7;" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
-                    </svg>
-                    
-                    <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 20px;">
-                      <p style="margin: 0; font-size: 14px; color: #166534; font-weight: 600;">New Role</p>
-                      <p style="margin: 4px 0 0 0; font-size: 16px; color: #16a34a; font-weight: 700;">${newRoleDisplay}</p>
+                <!-- Role Change Section -->
+                <div style="background-color: #f9fafb; padding: 24px; border-radius: 8px; margin: 32px 0;">
+                  <div style="text-align: center;">
+                    <p style="margin: 0 0 16px 0; font-size: 14px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                      Role Update
+                    </p>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap;">
+                      <div style="background-color: #fee2e2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 20px; min-width: 100px;">
+                        <p style="margin: 0 0 4px 0; font-size: 12px; color: #991b1b; font-weight: 600;">Previous</p>
+                        <p style="margin: 0; font-size: 16px; color: #dc2626; font-weight: 700;">${oldRoleDisplay}</p>
+                      </div>
+                      <div style="color: #6b7280;">→</div>
+                      <div style="background-color: #d1fae5; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 20px; min-width: 100px;">
+                        <p style="margin: 0 0 4px 0; font-size: 12px; color: #166534; font-weight: 600;">New Role</p>
+                        <p style="margin: 0; font-size: 16px; color: #16a34a; font-weight: 700;">${newRoleDisplay}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -315,7 +482,7 @@ export async function sendRoleElevationEmail({
                 
                 <!-- CTA Button -->
                 <div style="text-align: center; margin: 32px 0;">
-                  <a href="${process.env.NEXTAUTH_URL}/dashboard" style="display: inline-block; padding: 14px 32px; background-color: #000000; color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600;">
+                  <a href="${process.env.NEXTAUTH_URL}/dashboard" style="display: inline-block; padding: 14px 32px; background-color: #000000; color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; transition: all 0.3s ease;">
                     Access Your Account
                   </a>
                 </div>
@@ -323,18 +490,23 @@ export async function sendRoleElevationEmail({
                 <!-- Divider -->
                 <div style="margin: 40px 0; border-top: 1px solid #e5e7eb;"></div>
                 
-                <!-- Additional Info -->
+                <!-- Additional Information -->
                 <div style="background-color: #f9fafb; padding: 24px; border-radius: 8px; margin-bottom: 24px;">
                   <p style="margin: 0 0 12px 0; font-size: 14px; color: #6b7280;">
                     <strong>What's next?</strong>
                   </p>
                   <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 20px;">
-                    Log in to your account to explore your new permissions and features. If you have any questions about your new role, feel free to contact our support team.
+                    Log in to your account to start exploring your new permissions and features. Your session will automatically update to reflect these changes.
                   </p>
                 </div>
                 
+                <!-- Footer text -->
+                <p style="margin: 0 0 12px 0; font-size: 14px; color: #6b7280; line-height: 20px;">
+                  This role change was made by an administrator. If you have any questions or believe this was done in error, please contact our support team immediately.
+                </p>
+                
                 <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 20px;">
-                  This change was made by an administrator. If you believe this was done in error, please contact support immediately.
+                  <strong>Note:</strong> If you're currently logged in, your session will automatically refresh to apply these new permissions.
                 </p>
               </div>
               
@@ -347,6 +519,7 @@ export async function sendRoleElevationEmail({
                   Creating amazing content experiences
                 </p>
                 
+                <!-- Social links placeholder -->
                 <div style="margin-top: 20px;">
                   <p style="margin: 0; font-size: 12px; color: #9ca3af;">
                     © ${new Date().getFullYear()} Tasty Creative. All rights reserved.

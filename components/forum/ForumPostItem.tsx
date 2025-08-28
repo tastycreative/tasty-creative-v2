@@ -19,6 +19,7 @@ interface ForumPostItemProps {
   userVotes: Record<string, "up" | "down" | null>;
   onVote: (post: FrontendForumPost, voteType: "up" | "down") => void;
   onOpenComments: (post: FrontendForumPost) => void;
+  onSharePost?: (post: FrontendForumPost) => void;
   getDisplayScores: (postId: string, upvotes: number, downvotes: number) => { upvotes: number; downvotes: number };
   getCategoryColor: (category: string) => string;
 }
@@ -29,6 +30,7 @@ export function ForumPostItem({
   userVotes,
   onVote,
   onOpenComments,
+  onSharePost,
   getDisplayScores,
   getCategoryColor,
 }: ForumPostItemProps) {
@@ -45,7 +47,10 @@ export function ForumPostItem({
           {/* Vote section */}
           <div className="flex flex-col items-center gap-1 min-w-[40px]">
             <button
-              onClick={() => onVote(post, "up")}
+              onClick={(e) => {
+                e.stopPropagation();
+                onVote(post, "up");
+              }}
               className={`p-2 rounded-full transition-all ${
                 userVotes[post.id] === "up"
                   ? "bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400"
@@ -61,7 +66,10 @@ export function ForumPostItem({
               })()}
             </span>
             <button
-              onClick={() => onVote(post, "down")}
+              onClick={(e) => {
+                e.stopPropagation();
+                onVote(post, "down");
+              }}
               className={`p-2 rounded-full transition-all ${
                 userVotes[post.id] === "down"
                   ? "bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400"
@@ -150,19 +158,35 @@ export function ForumPostItem({
 
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => onOpenComments(post)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenComments(post);
+                  }}
                   className="flex items-center gap-1 px-3 py-1 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-pink-50 dark:hover:bg-gray-700 transition-all"
                 >
                   <MessageSquare className="w-4 h-4" />
                   <span className="text-sm">{post.comments.length}</span>
                 </button>
-                <button className="p-1 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-pink-50 dark:hover:bg-gray-700 transition-all">
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSharePost?.(post);
+                  }}
+                  className="p-1 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-pink-50 dark:hover:bg-gray-700 transition-all"
+                  title="Share post"
+                >
                   <Share className="w-4 h-4" />
                 </button>
-                <button className="p-1 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-pink-50 dark:hover:bg-gray-700 transition-all">
+                <button 
+                  onClick={(e) => e.stopPropagation()}
+                  className="p-1 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-pink-50 dark:hover:bg-gray-700 transition-all"
+                >
                   <Bookmark className="w-4 h-4" />
                 </button>
-                <button className="p-1 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-pink-50 dark:hover:bg-gray-700 transition-all">
+                <button 
+                  onClick={(e) => e.stopPropagation()}
+                  className="p-1 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-pink-50 dark:hover:bg-gray-700 transition-all"
+                >
                   <MoreHorizontal className="w-4 h-4" />
                 </button>
               </div>

@@ -10,6 +10,7 @@ interface ForumPostsListProps {
   userVotes: Record<string, "up" | "down" | null>;
   onVote: (post: FrontendForumPost, voteType: "up" | "down") => void;
   onOpenComments: (post: FrontendForumPost) => void;
+  onSharePost?: (post: FrontendForumPost) => void;
   onCreateFirstPost: () => void;
   getDisplayScores: (postId: string, upvotes: number, downvotes: number) => { upvotes: number; downvotes: number };
   getCategoryColor: (category: string) => string;
@@ -22,6 +23,7 @@ export function ForumPostsList({
   userVotes,
   onVote,
   onOpenComments,
+  onSharePost,
   onCreateFirstPost,
   getDisplayScores,
   getCategoryColor,
@@ -66,6 +68,7 @@ export function ForumPostsList({
           userVotes={userVotes}
           onVote={onVote}
           onOpenComments={onOpenComments}
+          onSharePost={onSharePost}
           getDisplayScores={getDisplayScores}
           getCategoryColor={getCategoryColor}
         />
