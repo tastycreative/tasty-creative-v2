@@ -284,7 +284,7 @@ export const appPages = [
     path: "/apps/pod",
     icon: FileSpreadsheet,
     color: "from-emerald-500 to-teal-500",
-    description: "Print on Demand Data Transfer",
+    description: "Scheduler POD Team",
   },
   {
     id: 12,
