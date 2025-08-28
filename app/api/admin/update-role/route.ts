@@ -60,7 +60,16 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({ success: true, user: updatedUser })
+    return NextResponse.json({ 
+      success: true, 
+      user: updatedUser,
+      roleChangeNotification: isElevation ? {
+        userId: currentUser.id,
+        oldRole: currentUser.role,
+        newRole: role,
+        timestamp: Date.now()
+      } : null
+    })
   } catch (error) {
     console.error("Error updating user role:", error)
     return NextResponse.json({ error: "Failed to update role" }, { status: 500 })

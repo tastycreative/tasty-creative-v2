@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { updateUserRole } from "@/app/actions/admin";
 import { Edit2, Save, X } from "lucide-react";
+import { notifyRoleChange } from "@/lib/session-sync";
 
 type Role = "GUEST" | "USER" | "MODERATOR" | "ADMIN" | "SWD";
 
@@ -25,9 +26,13 @@ export function UserRoleForm({
   const handleSubmit = () => {
     startTransition(async () => {
       try {
-        await updateUserRole(userId, selectedRole);
+        const result = await updateUserRole(userId, selectedRole);
         setIsEditing(false);
-        // Optionally show a success toast here
+        
+        // If there's a role change notification, broadcast it
+        if (result.roleChangeNotification) {
+          notifyRoleChange(result.roleChangeNotification);
+        }
       } catch (error) {
         console.error("Failed to update role:", error);
         // Optionally show an error toast here

@@ -74,7 +74,16 @@ export async function updateUserRole(userId: string, newRole: Role) {
     // Revalidate the admin users page to show updated data
     revalidatePath("/admin/users")
 
-    return { success: true, user: updatedUser }
+    return { 
+      success: true, 
+      user: updatedUser,
+      roleChangeNotification: {
+        userId: currentUser.id,
+        oldRole: currentUser.role,
+        newRole: newRole,
+        timestamp: Date.now()
+      }
+    }
   } catch (error) {
     console.error("Failed to update user role:", error)
     throw new Error("Failed to update user role")
