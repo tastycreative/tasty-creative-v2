@@ -2,6 +2,7 @@
 
 import { useSession } from "next-auth/react"
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { resendVerificationEmail } from "@/app/actions/auth"
 import { commonDomainTypos } from "@/lib/lib"
 
@@ -17,13 +18,16 @@ function detectEmailTypo(email: string): string | null {
 
 export function EmailVerificationBanner() {
   const { data: session, update } = useSession()
+  const searchParams = useSearchParams()
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState("")
   const [isVerified, setIsVerified] = useState(false)
 
-  // Check if email is verified from session or local state
-  const emailVerified = isVerified || session?.user?.emailVerified
+  // Check if email is verified from multiple sources
+  const urlVerified = searchParams?.get('emailVerified')
+  const localStorageVerified = typeof window !== 'undefined' ? localStorage.getItem('emailVerifiedAt') : null
+  const emailVerified = isVerified || session?.user?.emailVerified || !!urlVerified || !!localStorageVerified
 
   const refreshUserData = async () => {
     try {
@@ -48,9 +52,30 @@ export function EmailVerificationBanner() {
   }
 
   useEffect(() => {
+    // Check if we just came back from verification
+    const checkRecentVerification = () => {
+      if (typeof window !== 'undefined') {
+        const verifiedAt = localStorage.getItem('emailVerifiedAt')
+        const urlParam = searchParams?.get('emailVerified')
+        
+        if (verifiedAt || urlParam) {
+          const timestamp = verifiedAt ? parseInt(verifiedAt) : parseInt(urlParam || '0')
+          const fiveMinutesAgo = Date.now() - (5 * 60 * 1000)
+          
+          // If verification happened in the last 5 minutes, mark as verified
+          if (timestamp > fiveMinutesAgo) {
+            setIsVerified(true)
+            refreshUserData()
+          }
+        }
+      }
+    }
+
+    checkRecentVerification()
+
     // Listen for cross-tab email verification notifications
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'emailVerified') {
+      if (e.key === 'emailVerified' || e.key === 'emailVerifiedAt') {
         refreshUserData()
       }
     }
@@ -81,7 +106,7 @@ export function EmailVerificationBanner() {
         channel.close()
       }
     }
-  }, [update])
+  }, [searchParams, update])
 
   // Only show if user is logged in but not verified
   if (!session?.user || emailVerified) {

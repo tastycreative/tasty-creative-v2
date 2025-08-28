@@ -6,17 +6,26 @@ import { useSession } from "next-auth/react"
 
 export default function VerifySuccessPage() {
   const router = useRouter()
-  const [countdown, setCountdown] = useState(3)
-  const { update } = useSession()
+  const [countdown, setCountdown] = useState(5)
+  const [sessionUpdated, setSessionUpdated] = useState(false)
+  const { update, data: session } = useSession()
 
   useEffect(() => {
     // Immediately update session and notify other tabs
     const updateSessionAndNotify = async () => {
       try {
-        // Try to update the session
+        console.log("Updating session after email verification...")
+        
+        // Multiple attempts to ensure session is updated
         await update()
         
-        // Also call our refresh endpoint for good measure
+        // Wait a bit and try again
+        setTimeout(async () => {
+          await update()
+          setSessionUpdated(true)
+        }, 500)
+        
+        // Also call our refresh endpoint
         await fetch('/api/auth/refresh-session', {
           method: 'POST',
           headers: {
@@ -27,6 +36,7 @@ export default function VerifySuccessPage() {
         // Notify all other tabs about email verification
         if (typeof window !== 'undefined') {
           localStorage.setItem('emailVerified', Date.now().toString())
+          localStorage.setItem('emailVerifiedAt', Date.now().toString())
           window.postMessage({ type: 'EMAIL_VERIFIED' }, window.location.origin)
           
           // Broadcast to all tabs
@@ -36,6 +46,7 @@ export default function VerifySuccessPage() {
         }
       } catch (error) {
         console.error("Failed to update session:", error)
+        setSessionUpdated(true) // Continue anyway
       }
     }
 
@@ -45,7 +56,8 @@ export default function VerifySuccessPage() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer)
-          router.push("/dashboard")
+          // Add verification timestamp to URL for banner to check
+          router.push("/dashboard?emailVerified=" + Date.now())
         }
         return prev - 1
       })
