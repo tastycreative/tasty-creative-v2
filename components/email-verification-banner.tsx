@@ -1,7 +1,7 @@
 "use client"
 
 import { useSession } from "next-auth/react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { resendVerificationEmail } from "@/app/actions/auth"
 import { commonDomainTypos } from "@/lib/lib"
 
@@ -16,10 +16,47 @@ function detectEmailTypo(email: string): string | null {
 }
 
 export function EmailVerificationBanner() {
-  const { data: session } = useSession()
+  const { data: session, update } = useSession()
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState("")
+
+  useEffect(() => {
+    // Listen for cross-tab email verification notifications
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'emailVerified') {
+        // Update session when email is verified in another tab
+        update()
+      }
+    }
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'EMAIL_VERIFIED') {
+        update()
+      }
+    }
+
+    const handleBroadcast = (event: MessageEvent) => {
+      if (event.data?.type === 'EMAIL_VERIFIED') {
+        update()
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', handleStorageChange)
+      window.addEventListener('message', handleMessage)
+      
+      const channel = new BroadcastChannel('auth')
+      channel.addEventListener('message', handleBroadcast)
+
+      return () => {
+        window.removeEventListener('storage', handleStorageChange)
+        window.removeEventListener('message', handleMessage)
+        channel.removeEventListener('message', handleBroadcast)
+        channel.close()
+      }
+    }
+  }, [update])
 
   // Only show if user is logged in but not verified
   if (!session?.user || session.user.emailVerified) {
@@ -80,7 +117,7 @@ export function EmailVerificationBanner() {
               <button
                 onClick={handleResend}
                 disabled={sending}
-                className="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-800/30 hover:bg-yellow-200 dark:hover:bg-yellow-800/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 dark:focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap w-full lg:w-auto justify-center lg:justify-center"
+                className="flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-yellow-700 dark:text-yellow-300 bg-yellow-100 dark:bg-yellow-800/30 hover:bg-yellow-200 dark:hover:bg-yellow-800/50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 dark:focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap w-full lg:w-auto"
               >
                 {sending ? "Sending..." : "Resend verification email"}
               </button>

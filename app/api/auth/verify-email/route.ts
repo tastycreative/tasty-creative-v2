@@ -1,5 +1,5 @@
 import { verifyEmail } from "@/app/actions/auth";
-import { redirect } from "next/navigation";
+import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 
 export async function GET(request: Request) {
@@ -7,8 +7,7 @@ export async function GET(request: Request) {
   const token = searchParams.get("token");
 
   if (!token) {
-    redirect("/sign-in?error=missing-token");
-    return;
+    return NextResponse.redirect(new URL("/sign-in?error=missing-token", request.url));
   }
 
   try {
@@ -20,20 +19,16 @@ export async function GET(request: Request) {
     if (session) {
       // User is logged in - send to verify success to refresh session
       if (result.alreadyVerified) {
-        redirect("/dashboard?message=already-verified");
-        return;
+        return NextResponse.redirect(new URL("/dashboard?message=already-verified", request.url));
       } else {
-        redirect("/verify-success");
-        return;
+        return NextResponse.redirect(new URL("/verify-success", request.url));
       }
     } else {
       // User is not logged in - send to sign in
       if (result.alreadyVerified) {
-        redirect("/sign-in?message=already-verified");
-        return;
+        return NextResponse.redirect(new URL("/sign-in?message=already-verified", request.url));
       } else {
-        redirect("/sign-in?verified=true");
-        return;
+        return NextResponse.redirect(new URL("/sign-in?verified=true", request.url));
       }
     }
   } catch (error) {
@@ -43,11 +38,9 @@ export async function GET(request: Request) {
     // Check if user is logged in
     const session = await auth();
     if (session) {
-      redirect(`/dashboard?error=${encodeURIComponent(errorMessage)}`);
-      return;
+      return NextResponse.redirect(new URL(`/dashboard?error=${encodeURIComponent(errorMessage)}`, request.url));
     } else {
-      redirect(`/sign-in?error=${encodeURIComponent(errorMessage)}`);
-      return;
+      return NextResponse.redirect(new URL(`/sign-in?error=${encodeURIComponent(errorMessage)}`, request.url));
     }
   }
 }

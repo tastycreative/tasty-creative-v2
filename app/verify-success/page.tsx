@@ -10,18 +10,33 @@ export default function VerifySuccessPage() {
   const { update } = useSession()
 
   useEffect(() => {
+    // Immediately update session and notify other tabs
+    const updateSessionAndNotify = async () => {
+      try {
+        await update() // Update the current session
+        
+        // Notify all other tabs about email verification
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('emailVerified', Date.now().toString())
+          window.postMessage({ type: 'EMAIL_VERIFIED' }, window.location.origin)
+          
+          // Broadcast to all tabs
+          const channel = new BroadcastChannel('auth')
+          channel.postMessage({ type: 'EMAIL_VERIFIED' })
+          channel.close()
+        }
+      } catch (error) {
+        console.error("Failed to update session:", error)
+      }
+    }
+
+    updateSessionAndNotify()
+
     const timer = setInterval(() => {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer)
-          // Update session to refresh emailVerified status
-          update().then(() => {
-            router.push("/dashboard")
-          }).catch((error) => {
-            console.error("Failed to update session:", error)
-            // Fallback - still redirect to dashboard
-            router.push("/dashboard")
-          })
+          router.push("/dashboard")
         }
         return prev - 1
       })
