@@ -215,7 +215,7 @@ const PodSidebar: React.FC<PodSidebarProps> = ({
                 <Calendar className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
               </div>
               <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 tracking-tight">
-                Scheduler POD
+                POD Hub
               </h3>
             </div>
           </div>
