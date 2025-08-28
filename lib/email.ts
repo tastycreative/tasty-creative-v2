@@ -218,6 +218,157 @@ You received this email because someone submitted your form "${formTitle}".
 }
 
 // Optional: Send a confirmation email to the submitter
+export async function sendRoleElevationEmail({
+  to,
+  userName,
+  oldRole,
+  newRole,
+}: {
+  to: string;
+  userName: string;
+  oldRole: string;
+  newRole: string;
+}) {
+  const roleDisplayNames: Record<string, string> = {
+    GUEST: "Guest",
+    USER: "User",
+    MODERATOR: "Moderator", 
+    ADMIN: "Administrator",
+    SWD: "SWD Team Member"
+  }
+
+  const roleDescriptions: Record<string, string> = {
+    USER: "You now have access to all basic features and can fully participate in the platform.",
+    MODERATOR: "You can now help moderate content and assist other users on the platform.",
+    ADMIN: "You now have administrative privileges to manage users and platform settings.",
+    SWD: "You now have access to SWD-specific tools and content management features."
+  }
+
+  const oldRoleDisplay = roleDisplayNames[oldRole] || oldRole
+  const newRoleDisplay = roleDisplayNames[newRole] || newRole
+  const roleDescription = roleDescriptions[newRole] || "You now have elevated access to additional features."
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject: `Your role has been elevated to ${newRoleDisplay} - Tasty Creative`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Role Elevation</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f9fafb;">
+          <div style="background-color: #f9fafb; padding: 40px 20px;">
+            <!-- Main Container -->
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);">
+              
+              <!-- Header -->
+              <div style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); padding: 48px 40px; text-align: center; border-bottom: 1px solid #bfdbfe;">
+                <div style="background-color: #3b82f6; width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 24px; display: flex; align-items: center; justify-content: center;">
+                  <svg style="width: 32px; height: 32px; color: white;" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                  </svg>
+                </div>
+                <h1 style="margin: 0 0 8px 0; font-size: 32px; font-weight: 800; color: #111827; letter-spacing: -0.5px;">
+                  Congratulations!
+                </h1>
+                <p style="margin: 0; font-size: 18px; color: #374151; font-weight: 500;">
+                  Your role has been elevated
+                </p>
+              </div>
+              
+              <!-- Body Content -->
+              <div style="padding: 48px 40px;">
+                <p style="margin: 0 0 24px 0; font-size: 18px; line-height: 28px; color: #111827; font-weight: 600;">
+                  Hello ${userName},
+                </p>
+                
+                <p style="margin: 0 0 32px 0; font-size: 16px; line-height: 24px; color: #374151;">
+                  Great news! Your account role on <strong style="color: #ec4899;">Tasty Creative</strong> has been updated.
+                </p>
+                
+                <!-- Role Change Card -->
+                <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1px solid #0284c7; border-radius: 12px; padding: 32px; margin: 32px 0; text-align: center;">
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap;">
+                    <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 20px;">
+                      <p style="margin: 0; font-size: 14px; color: #991b1b; font-weight: 600;">Previous Role</p>
+                      <p style="margin: 4px 0 0 0; font-size: 16px; color: #dc2626; font-weight: 700;">${oldRoleDisplay}</p>
+                    </div>
+                    
+                    <svg style="width: 24px; height: 24px; color: #0284c7;" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
+                    </svg>
+                    
+                    <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 12px 20px;">
+                      <p style="margin: 0; font-size: 14px; color: #166534; font-weight: 600;">New Role</p>
+                      <p style="margin: 4px 0 0 0; font-size: 16px; color: #16a34a; font-weight: 700;">${newRoleDisplay}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #374151;">
+                  ${roleDescription}
+                </p>
+                
+                <!-- CTA Button -->
+                <div style="text-align: center; margin: 32px 0;">
+                  <a href="${process.env.NEXTAUTH_URL}/dashboard" style="display: inline-block; padding: 14px 32px; background-color: #000000; color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600;">
+                    Access Your Account
+                  </a>
+                </div>
+                
+                <!-- Divider -->
+                <div style="margin: 40px 0; border-top: 1px solid #e5e7eb;"></div>
+                
+                <!-- Additional Info -->
+                <div style="background-color: #f9fafb; padding: 24px; border-radius: 8px; margin-bottom: 24px;">
+                  <p style="margin: 0 0 12px 0; font-size: 14px; color: #6b7280;">
+                    <strong>What's next?</strong>
+                  </p>
+                  <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 20px;">
+                    Log in to your account to explore your new permissions and features. If you have any questions about your new role, feel free to contact our support team.
+                  </p>
+                </div>
+                
+                <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 20px;">
+                  This change was made by an administrator. If you believe this was done in error, please contact support immediately.
+                </p>
+              </div>
+              
+              <!-- Footer -->
+              <div style="background-color: #f9fafb; padding: 32px 40px; text-align: center; border-top: 1px solid #e5e7eb;">
+                <p style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #111827;">
+                  Tasty Creative
+                </p>
+                <p style="margin: 0; font-size: 14px; color: #6b7280;">
+                  Creating amazing content experiences
+                </p>
+                
+                <div style="margin-top: 20px;">
+                  <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+                    © ${new Date().getFullYear()} Tasty Creative. All rights reserved.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Email footer -->
+            <div style="text-align: center; margin-top: 32px;">
+              <p style="margin: 0; font-size: 12px; color: #9ca3af; line-height: 18px;">
+                This email was sent to ${to}<br>
+                You received this notification because your account role was updated.
+              </p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+  });
+}
+
 export async function sendSubmissionConfirmationEmail({
   to,
   formTitle,
