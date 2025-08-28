@@ -13,7 +13,16 @@ export default function VerifySuccessPage() {
     // Immediately update session and notify other tabs
     const updateSessionAndNotify = async () => {
       try {
-        await update() // Update the current session
+        // Try to update the session
+        await update()
+        
+        // Also call our refresh endpoint for good measure
+        await fetch('/api/auth/refresh-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
         
         // Notify all other tabs about email verification
         if (typeof window !== 'undefined') {

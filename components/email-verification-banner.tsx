@@ -20,25 +20,50 @@ export function EmailVerificationBanner() {
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [error, setError] = useState("")
+  const [isVerified, setIsVerified] = useState(false)
+
+  // Check if email is verified from session or local state
+  const emailVerified = isVerified || session?.user?.emailVerified
+
+  const refreshUserData = async () => {
+    try {
+      const response = await fetch('/api/auth/refresh-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        if (data.user?.emailVerified) {
+          setIsVerified(true)
+          // Also try to update the session
+          await update()
+        }
+      }
+    } catch (error) {
+      console.error('Failed to refresh user data:', error)
+    }
+  }
 
   useEffect(() => {
     // Listen for cross-tab email verification notifications
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'emailVerified') {
-        // Update session when email is verified in another tab
-        update()
+        refreshUserData()
       }
     }
 
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'EMAIL_VERIFIED') {
-        update()
+        refreshUserData()
       }
     }
 
     const handleBroadcast = (event: MessageEvent) => {
       if (event.data?.type === 'EMAIL_VERIFIED') {
-        update()
+        refreshUserData()
       }
     }
 
@@ -59,7 +84,7 @@ export function EmailVerificationBanner() {
   }, [update])
 
   // Only show if user is logged in but not verified
-  if (!session?.user || session.user.emailVerified) {
+  if (!session?.user || emailVerified) {
     return null
   }
 
