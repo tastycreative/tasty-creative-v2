@@ -16,10 +16,10 @@ const ContentLayout = ({ children  }: { children: React.ReactNode}) => {
 
       {/* Desktop Main Content */}
       <div className={clsx(
-        "hidden lg:flex flex-1 relative transition-all duration-300 min-w-0",
+        "hidden lg:flex flex-1 relative transition-all duration-300 min-w-0 flex-col",
         isCollapsed ? "ml-24" : "ml-74"
       )}>
-           <EmailVerificationBanner />
+        <EmailVerificationBanner />
         <div className="w-full h-full rounded-2xl backdrop-blur-sm shadow-xl border border-pink-100/50 dark:border-pink-500/30 overflow-hidden bg-white/60 dark:bg-gray-800/60 transition-colors">
           {/* Content */}
           <ProtectedFeature>
@@ -29,10 +29,10 @@ const ContentLayout = ({ children  }: { children: React.ReactNode}) => {
       </div>
 
       {/* Mobile/Tablet Main Content */}
-      <div className="lg:hidden flex-1 w-full pt-16">
+      <div className="lg:hidden flex-1 w-full pt-16 flex flex-col">
+        <EmailVerificationBanner />
         <div className="h-full rounded-2xl backdrop-blur-sm shadow-xl border border-pink-100/50 dark:border-pink-500/30 overflow-hidden bg-white/60 dark:bg-gray-800/60 transition-colors">
           {/* Content */}
-             <EmailVerificationBanner />
           <ProtectedFeature>
             <div className="relative h-full p-4 sm:p-6">{children}</div>
           </ProtectedFeature>
