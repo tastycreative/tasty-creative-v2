@@ -1,12 +1,14 @@
 "use client"
 
-import { useSession } from "next-auth/react"
+import { useSession, signOut, signIn } from "next-auth/react"
 import { useEffect } from "react"
 import { setupRoleChangeListener, type RoleChangeNotification } from "@/lib/session-sync"
 import { toast } from "sonner"
+import { useRouter } from "next/navigation"
 
 export function SessionMonitor() {
   const { data: session, update } = useSession()
+  const router = useRouter()
 
   useEffect(() => {
     if (!session?.user?.id) return
@@ -27,20 +29,77 @@ export function SessionMonitor() {
         // Wait a moment for the toast to show
         setTimeout(async () => {
           try {
-            // Update the session to get fresh data from the database
-            await update()
-            console.log('Session refreshed after role change')
+            console.log('Attempting to force refresh session...')
             
-            // Show confirmation
-            setTimeout(() => {
-              toast.success(
-                "Session updated successfully!", 
-                {
-                  description: "You can now access your new permissions.",
-                  duration: 3000,
-                }
-              )
-            }, 500)
+            // First try our force refresh endpoint
+            const response = await fetch('/api/auth/force-refresh', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' }
+            })
+            
+            if (response.ok) {
+              const data = await response.json()
+              console.log('Force refresh response:', data)
+              
+              if (data.roleChanged) {
+                // Role has changed, we need to force a complete session refresh
+                console.log('Role change detected, forcing session refresh...')
+                
+                // Try to update the session first
+                await update()
+                
+                // Wait a bit then check if the session actually updated
+                setTimeout(async () => {
+                  const currentSession = await fetch('/api/auth/session').then(r => r.json())
+                  console.log('Current session after update:', currentSession?.user?.role)
+                  
+                  if (currentSession?.user?.role === notification.oldRole) {
+                    // Session didn't update, we need to force a sign out and back in
+                    console.log('Session update failed, forcing re-authentication...')
+                    toast.info(
+                      "Refreshing your session...", 
+                      {
+                        description: "Please wait while we update your permissions.",
+                        duration: 3000,
+                      }
+                    )
+                    
+                    // Store current page to redirect back
+                    const currentPath = window.location.pathname
+                    localStorage.setItem('redirectAfterAuth', currentPath)
+                    
+                    // Force re-authentication
+                    await signOut({ redirect: false })
+                    await signIn(undefined, { callbackUrl: currentPath })
+                  } else {
+                    // Session updated successfully
+                    toast.success(
+                      "Session updated successfully!", 
+                      {
+                        description: "You can now access your new permissions.",
+                        duration: 3000,
+                      }
+                    )
+                    // Force a page refresh to ensure all components see the new role
+                    setTimeout(() => {
+                      window.location.reload()
+                    }, 1000)
+                  }
+                }, 2000)
+              } else {
+                // No role change detected, just update normally
+                await update()
+                toast.success(
+                  "Session updated successfully!", 
+                  {
+                    description: "You can now access your new permissions.",
+                    duration: 3000,
+                  }
+                )
+              }
+            } else {
+              throw new Error('Force refresh failed')
+            }
           } catch (error) {
             console.error('Failed to refresh session:', error)
             toast.error(
@@ -59,8 +118,36 @@ export function SessionMonitor() {
 
     const cleanup = setupRoleChangeListener(session.user.id, handleRoleChange)
     
-    return cleanup
-  }, [session?.user?.id, update])
+    // Also set up a periodic check for role changes (every 30 seconds)
+    const intervalCheck = setInterval(async () => {
+      try {
+        const response = await fetch('/api/auth/force-refresh', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        })
+        
+        if (response.ok) {
+          const data = await response.json()
+          if (data.roleChanged) {
+            console.log('Periodic check detected role change')
+            handleRoleChange({
+              userId: session.user.id,
+              oldRole: session.user.role as string,
+              newRole: data.user.role,
+              timestamp: Date.now()
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Periodic role check failed:', error)
+      }
+    }, 30000) // Check every 30 seconds
+    
+    return () => {
+      cleanup()
+      clearInterval(intervalCheck)
+    }
+  }, [session?.user?.id, session?.user?.role, update, router])
 
   // This component doesn't render anything visible
   return null

@@ -135,8 +135,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.emailVerified = user.emailVerified;
       }
       
-      // Refresh user data from database when session is updated
-      if (trigger === "update" && token.id) {
+      // Always refresh user data from database when session is updated OR when token is being refreshed
+      if ((trigger === "update" || trigger === "signIn") && token.id) {
         try {
           const freshUser = await prisma.user.findUnique({
             where: { id: token.id as string },
@@ -151,11 +151,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           });
           
           if (freshUser) {
-            token.name = freshUser.name;
-            token.email = freshUser.email;
-            token.picture = freshUser.image;
-            token.role = freshUser.role || "GUEST";
-            token.emailVerified = freshUser.emailVerified;
+            // Only update if there are actual changes to prevent unnecessary token updates
+            const hasChanges = 
+              token.name !== freshUser.name ||
+              token.email !== freshUser.email ||
+              token.picture !== freshUser.image ||
+              token.role !== freshUser.role ||
+              token.emailVerified !== freshUser.emailVerified;
+
+            if (hasChanges) {
+              console.log(`JWT: Refreshing token for user ${freshUser.id}, role: ${token.role} -> ${freshUser.role}`);
+              token.name = freshUser.name;
+              token.email = freshUser.email;
+              token.picture = freshUser.image;
+              token.role = freshUser.role || "GUEST";
+              token.emailVerified = freshUser.emailVerified;
+            }
           }
         } catch (error) {
           console.error("Error refreshing user data in JWT:", error);
