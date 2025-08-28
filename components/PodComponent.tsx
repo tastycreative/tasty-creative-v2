@@ -50,6 +50,7 @@ const PodComponent = () => {
     toggleSheetGroup,
     clearCache 
   } = usePodStore();
+
   
   const { podData, loading: isLoading, error, fetchPodData } = usePodData();
   const { teams: availableTeams, loading: isLoadingTeams, fetchAvailableTeams } = useAvailableTeams();
@@ -200,32 +201,36 @@ const PodComponent = () => {
     initializeComponent();
   }, [fetchAvailableTeams, setActiveTab]);
 
-  // Fetch dashboard-specific data when dashboard tab becomes active or team changes
+  // Fetch pod data when team changes (for all tabs) or when dashboard tab becomes active
   useEffect(() => {
-    if (activeTab === "dashboard") {
-      fetchPodData(selectedRow);
+    if (selectedRow !== null) {
+      fetchPodData(selectedRow, true); // Force refresh when team changes
     }
-  }, [activeTab, selectedRow, fetchPodData]);
+  }, [selectedRow, fetchPodData]);
 
-  // Fetch drive sheets only when sheets tab is active and we have creator data
+
+  // Also fetch when dashboard tab becomes active (if no data yet)
   useEffect(() => {
-    if (
-      activeTab === "dashboard" &&
-      podData?.creators &&
-      podData.creators.length > 0
-    ) {
+    if (activeTab === "dashboard" && !podData && selectedRow !== null) {
+      fetchPodData(selectedRow, false); // Use cache for tab switching
+    }
+  }, [activeTab, podData, selectedRow, fetchPodData]);
+
+  // Fetch drive sheets when we have creator data (for any tab that might need it)
+  useEffect(() => {
+    if (podData?.creators && podData.creators.length > 0) {
       const creatorNames = podData.creators.map(creator => creator.name);
-      fetchDriveSheets(creatorNames);
+      fetchDriveSheets(creatorNames, true); // Force refresh when creators change (team change)
     }
-  }, [activeTab, podData?.creators, fetchDriveSheets]);
+  }, [podData?.creators, fetchDriveSheets]);
 
-  // Fetch tasks when selectedRow changes or when dashboard tab is active
+  // Fetch tasks when selectedRow changes (needed for dashboard and board)
   useEffect(() => {
-    if (activeTab === "dashboard" && selectedRow) {
+    if (selectedRow) {
       const teamId = `team-${selectedRow}`;
-      fetchTasks(teamId);
+      fetchTasks(teamId, true); // Force refresh when team changes
     }
-  }, [activeTab, selectedRow, fetchTasks]);
+  }, [selectedRow, fetchTasks]);
 
   // Fetch pricing preview only when podData is fully loaded with creators
   useEffect(() => {
@@ -298,10 +303,10 @@ const PodComponent = () => {
 
     // Lazy load data for the selected tab
     if (tab === "dashboard" && !podData) {
-      fetchPodData(selectedRow);
+      fetchPodData(selectedRow, false); // Use cache for tab switching
     } else if (tab === "sheets") {
       if (!podData) {
-        fetchPodData(selectedRow);
+        fetchPodData(selectedRow, false); // Use cache for tab switching
       } else if (
         podData.creators &&
         podData.creators.length > 0 &&

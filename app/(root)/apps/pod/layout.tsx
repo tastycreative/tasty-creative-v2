@@ -176,24 +176,20 @@ export default function PodLayout({ children }: PodLayoutProps) {
     initializeComponent();
   }, [fetchAvailableTeams]);
 
-  // Fetch pod data when dashboard tab becomes active or team changes
+  // Fetch pod data when team changes (for all tabs)
   useEffect(() => {
-    if (activeTab === "dashboard") {
-      fetchPodData(selectedRow);
+    if (selectedRow !== null) {
+      fetchPodData(selectedRow, true); // Force refresh when team changes
     }
-  }, [activeTab, selectedRow, fetchPodData]);
+  }, [selectedRow, fetchPodData]);
 
-  // Fetch drive sheets when we have creator data
+  // Fetch drive sheets when we have creator data (for any tab that might need it)
   useEffect(() => {
-    if (
-      activeTab === "dashboard" &&
-      podData?.creators &&
-      podData.creators.length > 0
-    ) {
+    if (podData?.creators && podData.creators.length > 0) {
       const creatorNames = podData.creators.map(creator => creator.name);
-      fetchDriveSheets(creatorNames);
+      fetchDriveSheets(creatorNames, true); // Force refresh when creators change
     }
-  }, [activeTab, podData?.creators, fetchDriveSheets]);
+  }, [podData?.creators, fetchDriveSheets]);
 
   const handleSheetClick = (sheetName: string, sheetUrl: string) => {
     setSelectedSheet({ name: sheetName, url: sheetUrl });
