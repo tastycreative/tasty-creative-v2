@@ -39,7 +39,7 @@ import GifMaker from "@/components/GifMaker";
 import LiveFlyer from "@/components/LiveFlyer";
 import VIPFlyer from "@/components/VIPFlyer";
 import TwitterAdsPage from "@/components/TwitterAdsPage";
-import { VideoEditor } from "@/components/video-editor/VideoEditor";
+import GifMaker3 from "@/components/gif-maker-3/GifMaker3";
 
 interface ModelAppsTabProps {
   modelName: string;
@@ -60,16 +60,16 @@ const ModelAppsTab: React.FC<ModelAppsTabProps> = ({ modelName }) => {
   const router = useRouter();
   const pathname = usePathname();
   
-  const activeApp = searchParams?.get('tab') || null;
+  const activeApp = searchParams?.get('app') || null;
 
   const setActiveApp = (appId: string | null) => {
     const params = new URLSearchParams(searchParams?.toString() || '');
     
     if (appId) {
-      params.set('tab', appId);
+      params.set('app', appId);
     } else {
-      // Only remove the 'tab' parameter, keep all other parameters
-      params.delete('tab');
+      // Only remove the 'app' parameter, keep all other parameters
+      params.delete('app');
     }
     
     const newUrl = params.toString() ? `${pathname}?${params.toString()}` : pathname || '';
@@ -103,7 +103,7 @@ const ModelAppsTab: React.FC<ModelAppsTabProps> = ({ modelName }) => {
       icon: Image,
       color: "from-yellow-500 to-orange-500",
       category: "generate",
-      component: VideoEditor,
+      component: GifMaker3,
     },
     {
       id: "live",

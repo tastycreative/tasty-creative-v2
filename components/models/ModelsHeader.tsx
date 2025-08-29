@@ -9,6 +9,8 @@ interface ModelsHeaderProps {
   totalModels: number;
   activeModels: number;
   isLoading?: boolean;
+  title?: string;
+  subtitle?: string;
 }
 
 export default function ModelsHeader({
@@ -19,6 +21,8 @@ export default function ModelsHeader({
   totalModels,
   activeModels,
   isLoading,
+  title = "Models Management",
+  subtitle = "Manage your OnlyFans models and their content",
 }: ModelsHeaderProps) {
   return (
     <div className="space-y-6 mb-8">
@@ -29,11 +33,11 @@ export default function ModelsHeader({
             <div className="p-3 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-2xl backdrop-blur-sm border border-pink-500/20">
               <Users className="w-8 h-8 text-pink-500" />
             </div>
-            Models Management
+            {title}
           </h1>
           <p className="text-gray-400 mt-2 flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-pink-500" />
-            Manage your OnlyFans models and their content
+            {subtitle}
           </p>
         </div>
       </div>
@@ -43,22 +47,22 @@ export default function ModelsHeader({
         <div className="animate-in slide-in-from-bottom duration-500 delay-100">
           <div className="relative group">
             <div className="absolute inset-0 bg-gradient-to-r from-pink-600/20 to-rose-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300 opacity-50 group-hover:opacity-70" />
-            <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl border border-pink-200 p-6 hover:border-pink-300 transition-all duration-300">
+            <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl border border-pink-200 dark:border-gray-700 p-6 hover:border-pink-300 dark:hover:border-gray-600 transition-all duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm font-medium">
+                  <p className="text-gray-600 dark:text-gray-300 text-sm font-medium">
                     Total Models
                   </p>
-                  <p className="text-3xl font-bold text-gray-900 mt-1 tabular-nums">
+                  <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mt-1 tabular-nums">
                     {isLoading ? (
-                      <span className="inline-block w-16 h-8 bg-pink-100 rounded animate-pulse" />
+                      <span className="inline-block w-16 h-8 bg-pink-100 dark:bg-gray-700 rounded animate-pulse" />
                     ) : (
                       totalModels
                     )}
                   </p>
                 </div>
-                <div className="p-3 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-xl">
-                  <Users className="w-6 h-6 text-pink-500" />
+                <div className="p-3 bg-gradient-to-br from-pink-500/20 to-rose-500/20 dark:from-pink-400/20 dark:to-rose-400/20 rounded-xl">
+                  <Users className="w-6 h-6 text-pink-500 dark:text-pink-400" />
                 </div>
               </div>
             </div>
@@ -68,21 +72,21 @@ export default function ModelsHeader({
         <div className="animate-in slide-in-from-bottom duration-500 delay-200">
           <div className="relative group">
             <div className="absolute inset-0 bg-gradient-to-r from-green-600/20 to-emerald-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300 opacity-50 group-hover:opacity-70" />
-            <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl border border-green-200 p-6 hover:border-green-300 transition-all duration-300">
+            <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl border border-green-200 dark:border-gray-700 p-6 hover:border-green-300 dark:hover:border-gray-600 transition-all duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm font-medium">
+                  <p className="text-gray-600 dark:text-gray-300 text-sm font-medium">
                     Active Models
                   </p>
-                  <p className="text-3xl font-bold text-gray-900 mt-1 tabular-nums">
+                  <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mt-1 tabular-nums">
                     {isLoading ? (
-                      <span className="inline-block w-16 h-8 bg-green-100 rounded animate-pulse" />
+                      <span className="inline-block w-16 h-8 bg-green-100 dark:bg-gray-700 rounded animate-pulse" />
                     ) : (
                       activeModels
                     )}
                   </p>
                 </div>
-                <div className="p-3 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl">
+                <div className="p-3 bg-gradient-to-br from-green-500/20 to-emerald-500/20 dark:from-green-400/20 dark:to-emerald-400/20 rounded-xl">
                   <UserCheck className="w-6 h-6 text-green-400" />
                 </div>
               </div>
@@ -93,21 +97,21 @@ export default function ModelsHeader({
         <div className="animate-in slide-in-from-bottom duration-500 delay-300">
           <div className="relative group">
             <div className="absolute inset-0 bg-gradient-to-r from-red-600/20 to-pink-600/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300 opacity-50 group-hover:opacity-70" />
-            <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl border border-red-200 p-6 hover:border-red-300 transition-all duration-300">
+            <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl border border-red-200 dark:border-gray-700 p-6 hover:border-red-300 dark:hover:border-gray-600 transition-all duration-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-gray-600 text-sm font-medium">
+                  <p className="text-gray-600 dark:text-gray-300 text-sm font-medium">
                     Dropped Models
                   </p>
-                  <p className="text-3xl font-bold text-gray-900 mt-1 tabular-nums">
+                  <p className="text-3xl font-bold text-gray-900 dark:text-gray-100 mt-1 tabular-nums">
                     {isLoading ? (
-                      <span className="inline-block w-16 h-8 bg-red-100 rounded animate-pulse" />
+                      <span className="inline-block w-16 h-8 bg-red-100 dark:bg-gray-700 rounded animate-pulse" />
                     ) : (
                       totalModels - activeModels
                     )}
                   </p>
                 </div>
-                <div className="p-3 bg-gradient-to-br from-red-500/20 to-pink-500/20 rounded-xl">
+                <div className="p-3 bg-gradient-to-br from-red-500/20 to-pink-500/20 dark:from-red-400/20 dark:to-pink-400/20 rounded-xl">
                   <UserX className="w-6 h-6 text-red-400" />
                 </div>
               </div>
@@ -119,14 +123,14 @@ export default function ModelsHeader({
       {/* Search and Filters */}
       <div className="flex flex-col sm:flex-row gap-4 animate-in slide-in-from-bottom duration-500 delay-400">
         <div className="flex-1 relative group">
-          <div className="absolute inset-0 bg-gradient-to-r from-pink-600/10 to-rose-600/10 rounded-2xl blur-xl group-focus-within:blur-2xl transition-all duration-300 opacity-0 group-focus-within:opacity-100" />
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5 z-10" />
+          <div className="absolute inset-0 bg-gradient-to-r from-pink-600/10 to-rose-600/10 dark:from-pink-400/10 dark:to-rose-400/10 rounded-2xl blur-xl group-focus-within:blur-2xl transition-all duration-300 opacity-0 group-focus-within:opacity-100" />
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 w-5 h-5 z-10" />
           <input
             type="text"
             placeholder="Search models by name..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="relative w-full pl-12 pr-4 py-3.5 bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-300 focus:border-pink-500 focus:outline-none focus:ring-2 focus:ring-pink-500/20 transition-all text-gray-900 placeholder-gray-500"
+            className="relative w-full pl-12 pr-4 py-3.5 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl border border-gray-300 dark:border-gray-600 focus:border-pink-500 dark:focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-500/20 dark:focus:ring-pink-400/20 transition-all text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
           />
         </div>
         
@@ -136,7 +140,7 @@ export default function ModelsHeader({
             className={`px-6 py-3.5 rounded-2xl font-medium transition-all duration-300 ${
               statusFilter === "all"
                 ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg shadow-pink-500/25"
-                : "bg-white/80 text-gray-700 hover:bg-gray-50 border border-gray-300"
+                : "bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
             }`}
           >
             All
@@ -146,7 +150,7 @@ export default function ModelsHeader({
             className={`px-6 py-3.5 rounded-2xl font-medium transition-all duration-300 ${
               statusFilter === "active"
                 ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-500/25"
-                : "bg-white/80 text-gray-700 hover:bg-gray-50 border border-gray-300"
+                : "bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
             }`}
           >
             Active
@@ -156,7 +160,7 @@ export default function ModelsHeader({
             className={`px-6 py-3.5 rounded-2xl font-medium transition-all duration-300 ${
               statusFilter === "dropped"
                 ? "bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg shadow-red-500/25"
-                : "bg-white/80 text-gray-700 hover:bg-gray-50 border border-gray-300"
+                : "bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600"
             }`}
           >
             Dropped

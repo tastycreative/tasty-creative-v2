@@ -5,7 +5,7 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { ArrowLeft, Info, Image, MessageSquare, Zap, Users, Images } from "lucide-react";
 import { usePodData } from "@/lib/stores/podStore";
 import { useCreatorComplete } from "@/lib/stores/creatorStore";
-import ModelInfoTab from "@/components/models/ModelInfoTab";
+import ModelPodInfoTab from "@/components/models/ModelPodInfoTab";
 import ModelAssetsTab from "@/components/models/ModelAssetTabs";
 import ModelChattersTab from "@/components/models/tabs/ModelChattersTab";
 import dynamic from "next/dynamic";
@@ -18,7 +18,7 @@ const ModelContentGalleryTab = dynamic(
   { ssr: false }
 );
 
-function CreatorImage({ creator, model }: { creator: any; model: ModelDetails | null }) {
+function CreatorImage({ creator, model }: { creator: any; model?: ModelDetails | null }) {
   const [imageError, setImageError] = useState(false);
 
   // If we have model data with an ID, try to show the profile image
@@ -117,7 +117,7 @@ function CreatorNavigation({ creatorName }: { creatorName: string }) {
   ];
 
   const handleTabClick = (tabId: string) => {
-    const params = new URLSearchParams(searchParams);
+    const params = new URLSearchParams(searchParams?.toString() || "");
     params.set("tab", tabId);
     router.push(`?${params.toString()}`);
   };
@@ -152,7 +152,7 @@ function CreatorNavigation({ creatorName }: { creatorName: string }) {
   );
 }
 
-function CreatorTabContent({ tab, model, fallbackModel, creatorName }: { tab: string; model: ModelDetails | null; fallbackModel: ModelDetails | null; creatorName: string }) {
+function CreatorTabContent({ tab, creatorName }: { tab: string; creatorName: string }) {
   // Use creator name for tabs, capitalizing first letter like in model pages
   const displayName = creatorName ? creatorName.charAt(0).toUpperCase() + creatorName.slice(1) : "";
 
@@ -160,11 +160,7 @@ function CreatorTabContent({ tab, model, fallbackModel, creatorName }: { tab: st
     case "information":
       return (
         <div>
-          {model ? (
-            <ModelInfoTab model={model} />
-          ) : fallbackModel ? (
-            <ModelInfoTab model={fallbackModel} />
-          ) : null}
+          <ModelPodInfoTab creatorName={creatorName} />
         </div>
       );
     case "assets":
@@ -180,11 +176,7 @@ function CreatorTabContent({ tab, model, fallbackModel, creatorName }: { tab: st
     default:
       return (
         <div>
-          {model ? (
-            <ModelInfoTab model={model} />
-          ) : fallbackModel ? (
-            <ModelInfoTab model={fallbackModel} />
-          ) : null}
+          <ModelPodInfoTab creatorName={creatorName} />
         </div>
       );
   }
@@ -198,7 +190,7 @@ export default function CreatorPage() {
   const currentTab = searchParams?.get("tab") || "information";
   const { podData } = usePodData();
   
-  const { creator, model, clientData, loading, fetchAllData, reset } = useCreatorComplete();
+  const { creator, model, loading, fetchAllData, reset } = useCreatorComplete();
 
   // Memoize the fallback model to prevent unnecessary re-renders
   const fallbackModel = useMemo(() => {
@@ -310,9 +302,7 @@ export default function CreatorPage() {
         {/* Content */}
         <div className="p-4 sm:p-6 bg-white/50 dark:bg-gray-800/50">
           <CreatorTabContent 
-            tab={currentTab} 
-            model={model} 
-            fallbackModel={fallbackModel}
+            tab={currentTab}
             creatorName={creatorName || ""} 
           />
         </div>

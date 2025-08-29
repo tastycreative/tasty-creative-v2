@@ -74,9 +74,9 @@ export default function ModelCard({ model, index, onClick }: ModelCardProps) {
       `} />
       
       {/* Card */}
-      <div className="relative bg-white/80 backdrop-blur-xl rounded-2xl border border-pink-200 overflow-hidden hover:border-pink-300 transition-all duration-300">
+      <div className="relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl border border-pink-200 dark:border-gray-700 overflow-hidden hover:border-pink-300 dark:hover:border-gray-600 transition-all duration-300">
         {/* Header with Image and Status */}
-        <div className="relative h-48 bg-gradient-to-br from-pink-600/20 via-rose-600/10 to-pink-600/20 overflow-hidden">
+        <div className="relative h-48 bg-gradient-to-br from-pink-600/20 via-rose-600/10 to-pink-600/20 dark:from-pink-400/20 dark:via-rose-400/10 dark:to-pink-400/20 overflow-hidden">
           {/* Animated gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent opacity-60" />
           
@@ -116,12 +116,12 @@ export default function ModelCard({ model, index, onClick }: ModelCardProps) {
         <div className="p-4 space-y-4">
           {/* Launch Date and Referrer */}
           <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-2 text-gray-600">
-              <Calendar className="w-4 h-4 text-pink-500" />
+            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+              <Calendar className="w-4 h-4 text-pink-500 dark:text-pink-400" />
               <span>{model.launchDate}</span>
             </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <User className="w-4 h-4 text-pink-500" />
+            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+              <User className="w-4 h-4 text-pink-500 dark:text-pink-400" />
               <span className="truncate max-w-[100px]">
                 {model.referrerName || "-"}
               </span>
@@ -131,21 +131,21 @@ export default function ModelCard({ model, index, onClick }: ModelCardProps) {
           {/* Stats with better styling */}
           {model.stats && (
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-gradient-to-br from-pink-500/10 to-rose-500/10 backdrop-blur-sm rounded-xl p-3 border border-pink-500/20">
+              <div className="bg-gradient-to-br from-pink-500/10 to-rose-500/10 dark:from-pink-400/10 dark:to-rose-400/10 backdrop-blur-sm rounded-xl p-3 border border-pink-500/20 dark:border-pink-400/20">
                 <div className="flex items-center gap-2 mb-1">
-                  <TrendingUp className="w-3 h-3 text-pink-500" />
-                  <p className="text-xs text-gray-600">Monthly</p>
+                  <TrendingUp className="w-3 h-3 text-pink-500 dark:text-pink-400" />
+                  <p className="text-xs text-gray-600 dark:text-gray-300">Monthly</p>
                 </div>
-                <p className="text-sm font-bold text-gray-900">
+                <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
                   ${model.stats.monthlyRevenue.toLocaleString()}
                 </p>
               </div>
-              <div className="bg-gradient-to-br from-rose-500/10 to-pink-500/10 backdrop-blur-sm rounded-xl p-3 border border-rose-500/20">
+              <div className="bg-gradient-to-br from-rose-500/10 to-pink-500/10 dark:from-rose-400/10 dark:to-pink-400/10 backdrop-blur-sm rounded-xl p-3 border border-rose-500/20 dark:border-rose-400/20">
                 <div className="flex items-center gap-2 mb-1">
-                  <Users className="w-3 h-3 text-pink-500" />
-                  <p className="text-xs text-gray-600">Subs</p>
+                  <Users className="w-3 h-3 text-pink-500 dark:text-pink-400" />
+                  <p className="text-xs text-gray-600 dark:text-gray-300">Subs</p>
                 </div>
-                <p className="text-sm font-bold text-gray-900">
+                <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
                   {model.stats.subscribers.toLocaleString()}
                 </p>
               </div>
@@ -153,7 +153,7 @@ export default function ModelCard({ model, index, onClick }: ModelCardProps) {
           )}
 
           {/* Social Links */}
-          <div className="flex items-center justify-between pt-3 border-t border-gray-300">
+          <div className="flex items-center justify-between pt-3 border-t border-gray-300 dark:border-gray-600">
             <div className="flex gap-2">
               {model.instagram && (
                 <a
@@ -161,9 +161,9 @@ export default function ModelCard({ model, index, onClick }: ModelCardProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="p-2.5 bg-gray-100 hover:bg-pink-500/20 rounded-xl transition-all duration-300 group/social"
+                  className="p-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-pink-500/20 dark:hover:bg-pink-500/20 rounded-xl transition-all duration-300 group/social"
                 >
-                  <Instagram className="w-4 h-4 text-pink-500 group-hover/social:scale-110 transition-transform" />
+                  <Instagram className="w-4 h-4 text-pink-500 dark:text-pink-400 group-hover/social:scale-110 transition-transform" />
                 </a>
               )}
               {model.twitter && (
@@ -172,7 +172,7 @@ export default function ModelCard({ model, index, onClick }: ModelCardProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="p-2.5 bg-gray-100 hover:bg-blue-500/20 rounded-xl transition-all duration-300 group/social"
+                  className="p-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-blue-500/20 dark:hover:bg-blue-500/20 rounded-xl transition-all duration-300 group/social"
                 >
                   <Twitter className="w-4 h-4 text-blue-400 group-hover/social:scale-110 transition-transform" />
                 </a>
@@ -184,12 +184,12 @@ export default function ModelCard({ model, index, onClick }: ModelCardProps) {
                 // Handle menu click
               }}
               className={`
-                p-2.5 bg-gray-100 hover:bg-pink-500/20 rounded-xl 
+                p-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-pink-500/20 dark:hover:bg-pink-500/20 rounded-xl 
                 transition-all duration-300
                 ${isHovered ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2'}
               `}
             >
-              <MoreVertical className="w-4 h-4 text-gray-400" />
+              <MoreVertical className="w-4 h-4 text-gray-400 dark:text-gray-500" />
             </button>
           </div>
         </div>
