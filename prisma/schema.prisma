@@ -124,11 +124,11 @@ model VoiceGenAccount {
 
 model VoiceModel {
   id          String             @id @default(cuid())
-  accountKey  String             @unique // e.g., "account_26"
-  accountName String             // e.g., "OF Jessica's voice"
-  voiceName   String             // e.g., "OF Jessica"
-  voiceId     String             @unique // ElevenLabs voice ID
-  apiKey      String             // Encrypted API key
+  accountKey  String             @unique
+  accountName String
+  voiceName   String
+  voiceId     String             @unique
+  apiKey      String
   description String?            @default("Backup account for high-volume usage")
   category    VoiceModelCategory @default(PROFESSIONAL)
   isActive    Boolean            @default(true)
@@ -160,6 +160,67 @@ model Task {
   @@index([teamId])
   @@index([createdById])
   @@index([status])
+}
+
+model ClientModel {
+  id                    String           @id @default(cuid())
+  clientName            String           @unique
+  status                String
+  percentTaken          String?
+  guaranteed            String?
+  launchDate            String?
+  referrer              String?
+  name                  String?
+  profilePicture        String?
+  personalityType       String?
+  commonTerms           String?
+  commonEmojis          String?
+  restrictedTermsEmojis String?
+  notes                 String?
+  generalNotes          String?
+  mainInstagram         String?
+  mainTwitter           String?
+  mainTiktok            String?
+  profileLink           String?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  contentDetails        ContentDetails[]
+}
+
+model ContentDetails {
+  id                         String      @id @default(cuid())
+  twitterNudity              String?
+  openToLivestreams          String?
+  onlyFansWallLimitations    String?
+  flyerCensorshipLimitations String?
+  boobContent                String?
+  pussyContent               String?
+  soloSquirtContent          String?
+  soloFingerContent          String?
+  soloDildoContent           String?
+  soloVibratorContent        String?
+  joiContent                 String?
+  bgContent                  String?
+  bjHandjobContent           String?
+  bggContent                 String?
+  bbgContent                 String?
+  orgyContent                String?
+  ggContent                  String?
+  analContent                String?
+  livestreamContent          String?
+  customVideoPricing         String?
+  customCallPricing          String?
+  bundleContent5_10          String?
+  bundleContent10_15         String?
+  bundleContent15_20         String?
+  bundleContent20_25         String?
+  bundleContent25_30         String?
+  bundleContent30Plus        String?
+  contentOptionsForGames     String?
+  createdAt                  DateTime    @default(now())
+  updatedAt                  DateTime    @updatedAt
+  clientModelName            String
+  clientModel                ClientModel @relation(fields: [clientModelName], references: [clientName], onDelete: Cascade)
 }
 
 enum Role {
