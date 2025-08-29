@@ -128,70 +128,73 @@ const GalleryTestPage = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <Button 
-                onClick={() => testEndpoint('/api/gallery/debug')}
-                disabled={loading === '/api/gallery/debug'}
+                onClick={() => testEndpoint('/api/debug-tables')}
+                disabled={loading === '/api/debug-tables'}
                 className="w-full bg-yellow-600 hover:bg-yellow-700"
               >
-                {loading === '/api/gallery/debug' ? 'Testing...' : '🔍 Debug Spreadsheet'}
+                {loading === '/api/debug-tables' ? 'Testing...' : '🔍 Debug Supabase Tables'}
               </Button>
 
               <Button 
-                onClick={() => testEndpoint('/api/library/search')}
-                disabled={loading === '/api/library/search'}
+                onClick={() => testEndpoint('/api/test-supabase')}
+                disabled={loading === '/api/test-supabase'}
                 className="w-full"
               >
-                {loading === '/api/library/search' ? 'Testing...' : 'Test Library Search'}
+                {loading === '/api/test-supabase' ? 'Testing...' : 'Test Supabase Connection'}
               </Button>
 
               <Button 
-                onClick={() => testEndpoint('/api/gallery')}
-                disabled={loading === '/api/gallery'}
+                onClick={() => testEndpoint('/api/gallery-db?mode=all')}
+                disabled={loading === '/api/gallery-db?mode=all'}
                 className="w-full bg-green-600 hover:bg-green-700"
               >
-                {loading === '/api/gallery' ? 'Testing...' : 'Get All Gallery Items'}
+                {loading === '/api/gallery-db?mode=all' ? 'Testing...' : 'Get All Gallery Items (DB)'}
               </Button>
 
               <Button 
-                onClick={() => testEndpoint('/api/gallery?type=favorites')}
-                disabled={loading === '/api/gallery?type=favorites'}
+                onClick={() => testEndpoint('/api/gallery-db?mode=all&type=favorites')}
+                disabled={loading === '/api/gallery-db?mode=all&type=favorites'}
                 className="w-full"
                 variant="secondary"
               >
-                {loading === '/api/gallery?type=favorites' ? 'Testing...' : 'Get Favorites Only'}
+                {loading === '/api/gallery-db?mode=all&type=favorites' ? 'Testing...' : 'Get Favorites Only (DB)'}
               </Button>
 
               <Button 
-                onClick={() => testEndpoint('/api/gallery?type=releases')}
-                disabled={loading === '/api/gallery?type=releases'}
+                onClick={() => testEndpoint('/api/gallery-db?mode=all&type=releases')}
+                disabled={loading === '/api/gallery-db?mode=all&type=releases'}
                 className="w-full"
                 variant="secondary"
               >
-                {loading === '/api/gallery?type=releases' ? 'Testing...' : 'Get Releases Only'}
+                {loading === '/api/gallery-db?mode=all&type=releases' ? 'Testing...' : 'Get Releases Only (DB)'}
               </Button>
 
               <Button 
-                onClick={() => testEndpoint('/api/gallery/add', 'POST', {
-                  sheetRowIds: ['row_2', 'row_3'],
-                  contentType: 'FAVORITE'
+                onClick={() => testEndpoint('/api/favorites-db', 'POST', {
+                  itemId: 'row_2',
+                  tableName: 'gs_dakota_free',
+                  title: 'Test Item',
+                  action: 'add'
                 })}
-                disabled={loading === '/api/gallery/add'}
+                disabled={loading === '/api/favorites-db'}
                 className="w-full"
                 variant="outline"
               >
-                {loading === '/api/gallery/add' ? 'Testing...' : 'Test Add to Favorites'}
+                {loading === '/api/favorites-db' ? 'Testing...' : 'Test Add to Favorites (DB)'}
               </Button>
 
               <Button 
-                onClick={() => testEndpoint('/api/gallery/usage', 'POST', {
-                  sheetRowId: 'row_2',
-                  actionType: 'COPY_CAPTION',
-                  contentType: 'favorites'
+                onClick={() => testEndpoint('/api/releases-db', 'POST', {
+                  itemId: 'row_2',
+                  tableName: 'gs_dakota_free',
+                  title: 'Test Item',
+                  action: 'add'
                 })}
-                disabled={loading === '/api/gallery/usage'}
+                disabled={loading === '/api/releases-db'}
                 className="w-full"
                 variant="outline"
               >
-                {loading === '/api/gallery/usage' ? 'Testing...' : 'Test Usage Tracking'}
+                {loading === '/api/releases-db' ? 'Testing...' : 'Test Add to Releases (DB)'}
               </Button>
             </CardContent>
           </Card>
@@ -245,7 +248,7 @@ const GalleryTestPage = () => {
                 <label className="block text-sm font-medium mb-2">Endpoint</label>
                 <Input
                   id="manual-endpoint"
-                  placeholder="/api/gallery"
+                  placeholder="/api/gallery-db"
                   className="bg-gray-700 border-gray-600 text-white"
                 />
               </div>
