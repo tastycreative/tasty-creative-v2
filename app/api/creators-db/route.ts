@@ -69,7 +69,7 @@ export async function GET(request: Request) {
       };
     }));
 
-    // Create pricing groups from content details
+    // Create comprehensive pricing groups from ALL content details columns
     const pricingGroups = [
       {
         id: 'content-pricing',
@@ -88,54 +88,74 @@ export async function GET(request: Request) {
       },
       {
         id: 'content-types',
-        groupName: 'Available Content Types',
+        groupName: 'Content Types & Availability',
         items: [
+          { id: 'twitter-nudity', name: 'Twitter Nudity', description: 'Twitter content permissions' },
+          { id: 'livestreams', name: 'Livestreams', description: 'Live streaming availability' },
+          { id: 'wall-limitations', name: 'Wall Limitations', description: 'OnlyFans wall restrictions' },
+          { id: 'censorship-limitations', name: 'Censorship Limitations', description: 'Flyer censorship rules' },
           { id: 'boob-content', name: 'Boob Content', description: 'Topless content availability' },
           { id: 'pussy-content', name: 'Pussy Content', description: 'Explicit content availability' },
-          { id: 'solo-content', name: 'Solo Content', description: 'Various solo content types' },
-          { id: 'bg-content', name: 'BG Content', description: 'Boy/Girl content' },
-          { id: 'anal-content', name: 'Anal Content', description: 'Anal content availability' },
+          { id: 'solo-squirt', name: 'Solo Squirt', description: 'Solo squirting content' },
+          { id: 'solo-finger', name: 'Solo Finger', description: 'Solo fingering content' },
+          { id: 'solo-dildo', name: 'Solo Dildo', description: 'Solo dildo content' },
+          { id: 'solo-vibrator', name: 'Solo Vibrator', description: 'Solo vibrator content' },
           { id: 'joi-content', name: 'JOI Content', description: 'Jerk Off Instructions' },
-          { id: 'livestream-content', name: 'Livestream', description: 'Live streaming availability' }
+          { id: 'bg-content', name: 'BG Content', description: 'Boy/Girl content' },
+          { id: 'bj-handjob', name: 'BJ/Handjob', description: 'Blowjob and handjob content' },
+          { id: 'bgg-content', name: 'BGG Content', description: 'Boy/Girl/Girl content' },
+          { id: 'bbg-content', name: 'BBG Content', description: 'Boy/Boy/Girl content' },
+          { id: 'orgy-content', name: 'Orgy Content', description: 'Group content' },
+          { id: 'gg-content', name: 'GG Content', description: 'Girl/Girl content' },
+          { id: 'anal-content', name: 'Anal Content', description: 'Anal content availability' },
+          { id: 'livestream-content', name: 'Livestream Content', description: 'Live streaming content' },
+          { id: 'content-options-games', name: 'Content for Games', description: 'Gaming content options' }
         ],
         pricing: {}
       }
     ];
 
-    // Populate pricing data for each creator
+    // Populate pricing data for each creator - include ALL content details columns
     clientModels.forEach((model: any) => {
       const creatorName = model.clientName;
       const content = model.contentDetails[0];
       
-      if (content) {
-        // Content Pricing group
-        (pricingGroups[0].pricing as any)[creatorName] = {
-          'Custom Video': content.customVideoPricing || '',
-          'Custom Call': content.customCallPricing || '',
-          '$5-10 Bundle': content.bundleContent5_10 || '',
-          '$10-15 Bundle': content.bundleContent10_15 || '',
-          '$15-20 Bundle': content.bundleContent15_20 || '',
-          '$20-25 Bundle': content.bundleContent20_25 || '',
-          '$25-30 Bundle': content.bundleContent25_30 || '',
-          '$30+ Bundle': content.bundleContent30Plus || ''
-        };
+      // Always create pricing entries, even if content is null/empty
+      // Content Pricing group
+      (pricingGroups[0].pricing as any)[creatorName] = {
+        'Custom Video': content?.customVideoPricing || '',
+        'Custom Call': content?.customCallPricing || '',
+        '$5-10 Bundle': content?.bundleContent5_10 || '',
+        '$10-15 Bundle': content?.bundleContent10_15 || '',
+        '$15-20 Bundle': content?.bundleContent15_20 || '',
+        '$20-25 Bundle': content?.bundleContent20_25 || '',
+        '$25-30 Bundle': content?.bundleContent25_30 || '',
+        '$30+ Bundle': content?.bundleContent30Plus || ''
+      };
 
-        // Content Types group
-        (pricingGroups[1].pricing as any)[creatorName] = {
-          'Boob Content': content.boobContent || '',
-          'Pussy Content': content.pussyContent || '',
-          'Solo Content': [
-            content.soloSquirtContent,
-            content.soloFingerContent,
-            content.soloDildoContent,
-            content.soloVibratorContent
-          ].filter(Boolean).join(', ') || '',
-          'BG Content': content.bgContent || '',
-          'Anal Content': content.analContent || '',
-          'JOI Content': content.joiContent || '',
-          'Livestream': content.livestreamContent || ''
-        };
-      }
+      // Content Types & Availability group - include ALL fields
+      (pricingGroups[1].pricing as any)[creatorName] = {
+        'Twitter Nudity': content?.twitterNudity || '',
+        'Livestreams': content?.openToLivestreams || '',
+        'Wall Limitations': content?.onlyFansWallLimitations || '',
+        'Censorship Limitations': content?.flyerCensorshipLimitations || '',
+        'Boob Content': content?.boobContent || '',
+        'Pussy Content': content?.pussyContent || '',
+        'Solo Squirt': content?.soloSquirtContent || '',
+        'Solo Finger': content?.soloFingerContent || '',
+        'Solo Dildo': content?.soloDildoContent || '',
+        'Solo Vibrator': content?.soloVibratorContent || '',
+        'JOI Content': content?.joiContent || '',
+        'BG Content': content?.bgContent || '',
+        'BJ/Handjob': content?.bjHandjobContent || '',
+        'BGG Content': content?.bggContent || '',
+        'BBG Content': content?.bbgContent || '',
+        'Orgy Content': content?.orgyContent || '',
+        'GG Content': content?.ggContent || '',
+        'Anal Content': content?.analContent || '',
+        'Livestream Content': content?.livestreamContent || '',
+        'Content for Games': content?.contentOptionsForGames || ''
+      };
     });
 
     return NextResponse.json({

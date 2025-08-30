@@ -23,7 +23,6 @@ export default function DashboardPage() {
   const { tasks, loading: isTasksLoading, fetchTasks } = useTasks();
   const { 
     preview: pricingPreview, 
-    loading: isPricingPreviewLoading,
     fetchPricingPreview
   } = usePricingPreview();
   
@@ -44,16 +43,18 @@ export default function DashboardPage() {
       podData?.creators &&
       podData.creators.length > 0 &&
       !isLoading &&
-      podData.lastUpdated &&
-      !isPricingPreviewLoading
+      podData.lastUpdated
     ) {
+      console.log('🎯 Dashboard triggering fetchPricingPreview with:', {
+        creatorsCount: podData.creators.length,
+        creators: podData.creators.map(c => c.name)
+      });
       fetchPricingPreview(podData.creators);
     }
   }, [
     podData?.creators,
     podData?.lastUpdated,
     isLoading,
-    isPricingPreviewLoading,
     fetchPricingPreview,
   ]);
 

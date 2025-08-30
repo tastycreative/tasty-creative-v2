@@ -529,17 +529,13 @@ export const usePodStore = create<PodStore>()(
         },
         
         fetchPricingPreview: async (creators, forceRefresh = false) => {
-          if (!creators || creators.length === 0) {
-            set((state) => ({
-              ...state,
-              pricingPreview: [],
-              allPricingData: [],
-              loading: { ...state.loading, pricingPreview: false }
-            }));
-            return;
-          }
+          // Always fetch data, even if no creators assigned
+          const creatorsToUse = creators && creators.length > 0 ? creators : [
+            { id: 'default-1', name: 'Creator 1', rowNumber: 1 },
+            { id: 'default-2', name: 'Creator 2', rowNumber: 2 }
+          ];
           
-          const cacheKey = `pricing-preview-${creators.map(c => c.name).sort().join('-')}`;
+          const cacheKey = `pricing-preview-${creatorsToUse.map(c => c.name).sort().join('-')}`;
           
           if (!forceRefresh) {
             const cached = get().getCachedData<{ preview: PricingItem[]; all: PricingItem[] }>(cacheKey);
@@ -560,7 +556,13 @@ export const usePodStore = create<PodStore>()(
           }));
           
           try {
-            const result = await apiCall<{ pricingData: any[] }>('/api/pricing-data');
+            console.log('🎯 Fetching pricing data from Prisma DB via /api/creators-db');
+            const result = await apiCall<{ creators: any[], pricingData: any[] }>('/api/creators-db');
+            console.log('📊 Prisma DB response received:', {
+              creatorsCount: result.creators?.length || 0,
+              pricingGroupsCount: result.pricingData?.length || 0,
+              pricingGroups: result.pricingData?.map(g => ({ id: g.id, name: g.groupName, itemCount: g.items?.length }))
+            });
             
             if (result.pricingData && Array.isArray(result.pricingData)) {
               const allItems: string[] = [];
@@ -576,7 +578,7 @@ export const usePodStore = create<PodStore>()(
               
               const allCombinations: PricingItem[] = [];
               allItems.forEach((itemName) => {
-                creators.forEach((creator) => {
+                creatorsToUse.forEach((creator) => {
                   let actualPrice = "—";
                   result.pricingData.forEach((group: any) => {
                     if (
@@ -585,17 +587,18 @@ export const usePodStore = create<PodStore>()(
                       group.pricing[creator.name][itemName]
                     ) {
                       const price = group.pricing[creator.name][itemName];
-                      if (price && price !== "—" && price.trim()) {
+                      if (price && price !== "—" && price !== "" && price.trim()) {
                         actualPrice = price;
                       }
                     }
                   });
                   
+                  // Add all items, even those without pricing (show as "—")
                   allCombinations.push({
                     name: itemName,
-                    price: actualPrice,
+                    price: actualPrice, // Will be "—" if no price found
                     creator: creator.name,
-                    totalCombinations: allCombinations.length,
+                    totalCombinations: 0, // Will be set later
                   });
                 });
               });
@@ -608,7 +611,7 @@ export const usePodStore = create<PodStore>()(
               
               const itemsToShow = Math.min(
                 allCombinations.length,
-                creators.length >= 3 ? 5 : creators.length * 2
+                creatorsToUse.length >= 3 ? 5 : creatorsToUse.length * 2
               );
               const shuffledItems = [...allCombinations]
                 .sort(() => 0.5 - Math.random())
@@ -631,15 +634,15 @@ export const usePodStore = create<PodStore>()(
               throw new Error('Invalid pricing data format');
             }
           } catch (error) {
-            // Fallback to common items
+            // Fallback to database-based items matching ContentDetails structure
             const commonItems = [
-              "Solo Content", "Boy Girl", "Custom Content", "Video Call",
-              "Sexting", "Live Show", "Photos", "Videos", "Audio", "Messages"
+              "Custom Video", "Custom Call", "$5-10 Bundle", "$10-15 Bundle", 
+              "$15-20 Bundle", "$20-25 Bundle", "Boob Content", "Solo Content"
             ];
             
             const fallbackCombinations: PricingItem[] = [];
             commonItems.forEach((itemName) => {
-              creators.forEach((creator) => {
+              creatorsToUse.forEach((creator) => {
                 fallbackCombinations.push({
                   name: itemName,
                   price: "—",
@@ -656,7 +659,7 @@ export const usePodStore = create<PodStore>()(
             
             const itemsToShow = Math.min(
               fallbackCombinations.length,
-              creators.length >= 3 ? 5 : creators.length * 2
+              creatorsToUse.length >= 3 ? 5 : creatorsToUse.length * 2
             );
             const shuffledItems = [...fallbackCombinations]
               .sort(() => 0.5 - Math.random())
@@ -703,6 +706,12 @@ export const usePodStore = create<PodStore>()(
           
         rotatePricingPreview: () =>
           set((state) => {
+            console.log('🔄 rotatePricingPreview called:', {
+              allPricingDataLength: state.allPricingData.length,
+              podDataCreatorsLength: state.podData?.creators?.length,
+              currentPreviewLength: state.pricingPreview.length
+            });
+
             if (state.allPricingData.length > 0 && state.podData?.creators) {
               const itemsToShow = Math.min(
                 state.allPricingData.length,
@@ -711,12 +720,20 @@ export const usePodStore = create<PodStore>()(
               const shuffledItems = [...state.allPricingData]
                 .sort(() => 0.5 - Math.random())
                 .slice(0, itemsToShow);
+              
+              console.log('✅ Rotating to new items:', {
+                itemsToShow,
+                shuffledItemsLength: shuffledItems.length,
+                newItems: shuffledItems.map(item => ({ name: item.name, creator: item.creator, price: item.price }))
+              });
+
               return {
                 ...state,
-                pricingPreview: shuffledItems,
-                pricingRotationProgress: 0
+                pricingPreview: shuffledItems
+                // Don't reset progress here - let the hook handle it
               };
             }
+            console.log('❌ Rotation conditions not met in store');
             return state;
           }),
         

@@ -31,7 +31,7 @@ export default function ModelPodInfoTab({ creatorName }: ModelPodInfoTabProps) {
     creators: dbCreators,
     pricingData: dbPricingData,
     loading: loadingCreators,
-  } = useCreatorsDB(creatorName);
+  } = useCreatorsDB(creatorName, podData?.creators);
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(
     {}

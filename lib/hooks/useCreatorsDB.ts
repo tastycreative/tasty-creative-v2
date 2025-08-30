@@ -69,7 +69,7 @@ interface CreatorsData {
   pricingData: PricingGroup[];
 }
 
-export const useCreatorsDB = (creatorName?: string) => {
+export const useCreatorsDB = (creatorName?: string, assignedCreators?: any[]) => {
   const [data, setData] = useState<CreatorsData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,7 +101,7 @@ export const useCreatorsDB = (creatorName?: string) => {
 
   useEffect(() => {
     fetchCreators(creatorName);
-  }, [creatorName]);
+  }, [creatorName, assignedCreators]);
 
   return {
     data,

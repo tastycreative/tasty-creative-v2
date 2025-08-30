@@ -388,99 +388,77 @@ const WorkflowDashboard: React.FC<WorkflowDashboardProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            {pricingPreview.length > 0 ? (
-              <div className="space-y-4">
-                {/* Mini Pricing Table */}
-                <div className="bg-white dark:bg-gray-800  rounded-lg overflow-hidden">
-                  {/* Table Header */}
-                  <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
-                    <div className="text-sm font-semibold text-gray-900 dark:text-white text-left">
-                      Content Item
-                    </div>
-                    <div className="text-sm font-semibold text-gray-900 dark:text-white text-right">
-                      Price
-                    </div>
+            <div className="space-y-4">
+              {/* Mini Pricing Table */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden">
+                {/* Table Header */}
+                <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700">
+                  <div className="text-sm font-semibold text-gray-900 dark:text-white text-left">
+                    Content Item
                   </div>
+                  <div className="text-sm font-semibold text-gray-900 dark:text-white text-right">
+                    Price
+                  </div>
+                </div>
 
-                  {/* Table Body */}
-                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {pricingPreview.slice(0, 4).map((item, index) => (
-                      <div
-                        key={index}
-                        className="grid grid-cols-2 gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors"
-                      >
-                        <div className="text-left">
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            {item.name}
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            {item.creator}
-                          </div>
+                {/* Table Body */}
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {(pricingPreview || []).slice(0, 4).map((item, index) => (
+                    <div
+                      key={index}
+                      className="grid grid-cols-2 gap-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors"
+                    >
+                      <div className="text-left">
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {item.name}
                         </div>
-                        <div className="text-right">
-                          <div className="text-lg font-light text-gray-700 dark:text-gray-300 tabular-nums">
-                            {item.price}
-                          </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {item.creator}
                         </div>
                       </div>
-                    ))}
+                      <div className="text-right">
+                        <div className="text-lg font-light text-gray-700 dark:text-gray-300 tabular-nums">
+                          {item.price}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="px-4">
+                <Progress value={pricingRotationProgress} className="h-1" subtle />
+              </div>
+
+              {/* Summary */}
+              {pricingPreview && pricingPreview.length > 0 && (
+                <div className="text-center py-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">
+                    {pricingPreview[0]?.totalCombinations ||
+                      pricingPreview.length}{" "}
+                    Total Contents
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Showing {Math.min(pricingPreview.length, 4)} of{" "}
+                    {pricingPreview[0]?.totalCombinations ||
+                      pricingPreview.length}{" "}
+                    pricing options
                   </div>
                 </div>
+              )}
 
-                {/* Progress Bar */}
-                <div className="px-4">
-                  <Progress value={pricingRotationProgress} className="h-1" subtle />
-                </div>
-
-                {/* Summary */}
-                {pricingPreview.length > 0 && (
-                  <div className="text-center py-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      {pricingPreview[0]?.totalCombinations ||
-                        pricingPreview.length}{" "}
-                      Total Contents
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      Showing {Math.min(pricingPreview.length, 4)} of{" "}
-                      {pricingPreview[0]?.totalCombinations ||
-                        pricingPreview.length}{" "}
-                      pricing options
-                    </div>
-                  </div>
-                )}
-
-                {/* View All Button */}
-                {onPricingGuideClick && (
-                  <button
-                    onClick={onPricingGuideClick}
-                    className="w-full mt-4 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white rounded-lg transition-all duration-200 shadow-md hover:shadow-lg text-sm font-medium flex items-center justify-center space-x-2"
-                  >
-                    <span>View Full Pricing Guide</span>
-                    <ExternalLink className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg w-fit mx-auto mb-4">
-                  <Sparkles className="h-6 w-6 text-white" />
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                  No pricing data available
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                  Assign creators to your team to see pricing information
-                </p>
-                {onPricingGuideClick && (
-                  <button
-                    onClick={onPricingGuideClick}
-                    className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white rounded-lg transition-all duration-200 shadow-md hover:shadow-lg text-sm font-medium"
-                  >
-                    Browse Full Pricing Guide
-                  </button>
-                )}
-              </div>
-            )}
+              {/* View All Button */}
+              {onPricingGuideClick && (
+                <button
+                  onClick={onPricingGuideClick}
+                  className="w-full mt-4 px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white rounded-lg transition-all duration-200 shadow-md hover:shadow-lg text-sm font-medium flex items-center justify-center space-x-2"
+                >
+                  <span>View Full Pricing Guide</span>
+                  <ExternalLink className="h-4 w-4" />
+                </button>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
