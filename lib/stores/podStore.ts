@@ -14,7 +14,7 @@ export interface TeamMember {
 export interface Creator {
   id: string;
   name: string;
-  earnings?: string;
+  guaranteed?: string;
   rowNumber?: number;
 }
 
@@ -310,29 +310,9 @@ export const usePodStore = create<PodStore>()(
             });
             
             if (result.success && result.data) {
-              // Fetch creator earnings
-              if (result.data.creators && result.data.creators.length > 0) {
-                try {
-                  const creatorNames = result.data.creators.map((creator) => creator.name);
-                  const earningsResult = await apiCall<{ success: boolean; earnings: Record<string, string> }>('/api/pod/earnings', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                      spreadsheetUrl: "https://docs.google.com/spreadsheets/d/1uF-zuML1HgP5b95pbJycVQZj_0Nl1mgkTshOe3lUCSs/edit?gid=591071681#gid=591071681",
-                      creatorNames,
-                    }),
-                  });
-                  
-                  if (earningsResult.success && earningsResult.earnings) {
-                    result.data.creators = result.data.creators.map((creator) => ({
-                      ...creator,
-                      earnings: earningsResult.earnings[creator.name] || "$0",
-                    }));
-                  }
-                } catch (earningsError) {
-                  console.warn('Failed to fetch earnings data:', earningsError);
-                  // Continue without earnings data
-                }
-              }
+              // Note: Creator guaranteed data now comes from database via ModelPodInfoTab
+              // This POD store is primarily used for team/sheet management
+              // Individual creator guaranteed amounts are handled by useCreatorsDB hook
               
               // Cache and set data
               get().setCachedData(cacheKey, result.data, CACHE_DURATIONS.POD_DATA);

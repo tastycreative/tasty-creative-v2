@@ -223,6 +223,40 @@ model ContentDetails {
   clientModel                ClientModel @relation(fields: [clientModelName], references: [clientName], onDelete: Cascade)
 }
 
+model ClientModelDetails {
+  id                    String   @id @default(cuid())
+  full_name             String?
+  age                   String?
+  birthday              String?
+  height                String?
+  weight                String?
+  clothing_size         String?
+  ethnicity             String?
+  birthplace            String?
+  current_city          String?
+  timezone              String?
+  background            String?
+  favorite_colors       String?
+  interests             String?
+  personality           String?
+  amazon_wishlist       String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  clothing_items        String?
+  content_offered       String?
+  custom_min_price      String?
+  favorite_emojis       String?
+  keywords              String?
+  limitations           String?
+  oftv_channel_interest String?
+  tone_language         String?
+  video_call_min_price  String?
+  client_name           String?
+  mm_restrictions       String?
+  verbiage_restrictions String?
+  wall_restrictions     String?
+}
+
 enum Role {
   USER
   ADMIN
