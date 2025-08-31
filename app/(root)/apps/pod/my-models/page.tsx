@@ -58,13 +58,12 @@ export default function MyModelsPage() {
               // Fetch pod data for each team row
               await fetchPodData(team.row);
               
-              // Get the pod data for this team
-              const teamPodResponse = await fetch("/api/pod/fetch", {
+              // Get the pod data for this team using database API
+              const teamPodResponse = await fetch("/api/pod/fetch-db", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  spreadsheetUrl: "https://docs.google.com/spreadsheets/d/1sTp3x6SA4yKkYEwPUIDPNzAPiu0RnaV1009NXZ7PkZM/edit?gid=0#gid=0",
-                  rowNumber: team.row,
+                  rowId: team.row,
                 }),
               });
               

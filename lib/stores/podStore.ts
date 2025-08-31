@@ -301,11 +301,11 @@ export const usePodStore = create<PodStore>()(
           }));
           
           try {
-            const result = await apiCall<{ success: boolean; data: PodData }>('/api/pod/fetch', {
+            // Use new database API endpoint
+            const result = await apiCall<{ success: boolean; data: PodData }>('/api/pod/fetch-db', {
               method: 'POST',
               body: JSON.stringify({
-                spreadsheetUrl: "https://docs.google.com/spreadsheets/d/1sTp3x6SA4yKkYEwPUIDPNzAPiu0RnaV1009NXZ7PkZM/edit?gid=0#gid=0",
-                rowNumber: row,
+                rowId: row,
               }),
             });
             
@@ -323,12 +323,12 @@ export const usePodStore = create<PodStore>()(
                 loading: { ...state.loading, podData: false }
               }));
             } else {
-              throw new Error(result.error || 'Failed to fetch pod data');
+              throw new Error(result.error || 'Failed to fetch pod data from database');
             }
           } catch (error) {
             const apiError: APIError = {
-              message: error instanceof Error ? error.message : 'Failed to fetch pod data',
-              code: 'POD_DATA_FETCH_ERROR',
+              message: error instanceof Error ? error.message : 'Failed to fetch pod data from database',
+              code: 'POD_DATA_DB_FETCH_ERROR',
               timestamp: Date.now(),
             };
             
@@ -360,25 +360,26 @@ export const usePodStore = create<PodStore>()(
           }));
           
           try {
-            const result = await apiCall<{ success: boolean; teams: TeamOption[] }>('/api/pod/teams', {
-              method: 'POST',
-              body: JSON.stringify({
-                spreadsheetUrl: "https://docs.google.com/spreadsheets/d/1sTp3x6SA4yKkYEwPUIDPNzAPiu0RnaV1009NXZ7PkZM/edit?gid=0#gid=0",
-                startRow: 8,
-                endRow: 20,
-              }),
-            });
+            // Use new database API endpoint
+            const result = await apiCall<{ success: boolean; teams: any[] }>('/api/pod/teams-db');
             
             if (result.success && result.teams) {
-              get().setCachedData(cacheKey, result.teams, CACHE_DURATIONS.AVAILABLE_TEAMS);
+              // Transform to TeamOption format
+              const teamOptions: TeamOption[] = result.teams.map(team => ({
+                row: team.row,
+                name: team.name,
+                label: team.label
+              }));
+              
+              get().setCachedData(cacheKey, teamOptions, CACHE_DURATIONS.AVAILABLE_TEAMS);
               
               set((state) => ({
                 ...state,
-                availableTeams: result.teams,
+                availableTeams: teamOptions,
                 loading: { ...state.loading, availableTeams: false }
               }));
             } else {
-              throw new Error('Failed to fetch teams');
+              throw new Error('Failed to fetch teams from database');
             }
           } catch (error) {
             // Fallback to basic team options
@@ -394,8 +395,8 @@ export const usePodStore = create<PodStore>()(
               errors: { 
                 ...state.errors, 
                 availableTeams: {
-                  message: error instanceof Error ? error.message : 'Failed to fetch teams',
-                  code: 'TEAMS_FETCH_ERROR',
+                  message: error instanceof Error ? error.message : 'Failed to fetch teams from database',
+                  code: 'TEAMS_DB_FETCH_ERROR',
                   timestamp: Date.now(),
                 }
               },
