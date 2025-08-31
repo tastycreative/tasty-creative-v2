@@ -167,7 +167,9 @@ export async function GET(request: NextRequest) {
     
 
     // Try to get from cache first (skip cache for favorites to ensure fresh data)
-    const skipCache = type === 'favorites'
+    // Also skip cache if explicitly requested via query param
+    const forceRefresh = searchParams.get('forceRefresh') === 'true'
+    const skipCache = type === 'favorites' || forceRefresh
     const cachedData = skipCache ? null : memoryCache.get<any>(cacheKey)
     if (cachedData) {
       const endTime = performance.now()
@@ -215,12 +217,12 @@ export async function GET(request: NextRequest) {
       
       
       // Create lookup sets for performance
-      const favoritesSet = new Set(
-        favorites.map(fav => `${fav.item_id}_${fav.table_name}`)
-      )
+      const favoriteKeys = favorites.map(fav => `${fav.item_id}_${fav.table_name}`);
+      const favoritesSet = new Set(favoriteKeys);
       const releasesSet = new Set(
         releases.map(rel => `${rel.item_id}_${rel.table_name}`)
       )
+      
       
       // Fetch data from each table in parallel
       const tablePromises = allTables.map(async (table) => {
@@ -278,8 +280,23 @@ export async function GET(request: NextRequest) {
             return 0
           }
 
-          const itemId = row.id || row.raw_row_index || `${table}_row_${index}`
-          const lookupKey = `${itemId}_${table}`
+          // Use table name prefix to ensure unique IDs across merged tables
+          const rawId = row.id || row.raw_row_index || `row_${index}`
+          const itemId = `${table}_${rawId}` // Unique ID format: tableName_rowId
+          
+          // Try multiple possible lookup keys to handle ID inconsistencies
+          // Including both old format (for backward compatibility) and new format
+          const possibleLookupKeys = [
+            `${itemId}_${table}`, // New format: tableName_rowId_tableName
+            `${rawId}_${table}`, // Old format: rowId_tableName (for existing favorites)
+            `${row.id}_${table}`,
+            `${row.raw_row_index}_${table}`,
+            `${table}_row_${index}_${table}`
+          ].filter(Boolean) // Remove any undefined/null entries
+          
+          const isFavorite = possibleLookupKeys.some(key => favoritesSet.has(key))
+          const isRelease = possibleLookupKeys.some(key => releasesSet.has(key))
+          
           
           
           return {
@@ -298,9 +315,9 @@ export async function GET(request: NextRequest) {
             previewUrl: row["content_preview_url"] || row["content_preview"] || '',
             contentType: "LIBRARY" as const,
             notes: row["notes"] || '',
-            isFavorite: favoritesSet.has(lookupKey),
-            isRelease: releasesSet.has(lookupKey),
-            isPTR: releasesSet.has(lookupKey),
+            isFavorite: isFavorite,
+            isRelease: isRelease,
+            isPTR: isRelease,
             creatorName: row["creator_name"] || getCreatorNameFromTable(table),
             tableName: table,
             // Additional fields from actual data
@@ -502,12 +519,12 @@ export async function GET(request: NextRequest) {
       const releases = releasesResult.data || []
       
       // Create lookup sets for performance
-      const favoritesSet = new Set(
-        favorites.map(fav => `${fav.item_id}_${fav.table_name}`)
-      )
+      const favoriteKeys = favorites.map(fav => `${fav.item_id}_${fav.table_name}`);
+      const favoritesSet = new Set(favoriteKeys);
       const releasesSet = new Set(
         releases.map(rel => `${rel.item_id}_${rel.table_name}`)
       )
+      
 
       // Fetch data from single table
       let items: DynamicTableRow[] = []
@@ -568,8 +585,25 @@ export async function GET(request: NextRequest) {
         return 0
       }
 
+      // Use table name prefix to ensure unique IDs (consistent with multi-table mode)
+      const rawId = row.id || row.raw_row_index || `row_${index}`
+      const itemId = `${tableName}_${rawId}` // Unique ID format: tableName_rowId
+      
+      // Try multiple possible lookup keys to handle ID inconsistencies
+      // Including both old format (for backward compatibility) and new format
+      const possibleLookupKeys = [
+        `${itemId}_${tableName}`, // New format: tableName_rowId_tableName
+        `${rawId}_${tableName}`, // Old format: rowId_tableName (for existing favorites)
+        `${row.id}_${tableName}`,
+        `${row.raw_row_index}_${tableName}`,
+        `row_${index}_${tableName}`
+      ].filter(Boolean) // Remove any undefined/null entries
+      
+      const isFavorite = possibleLookupKeys.some(key => favoritesSet.has(key))
+      const isRelease = possibleLookupKeys.some(key => releasesSet.has(key))
+      
       return {
-        id: row.id || row.raw_row_index || `row_${index}`,
+        id: itemId,
         sheetRowId: row.raw_row_index || (row.id || `row_${index}`),
         title: row["content_style"] || row["message_type"] || `Item ${index + 1}`,
         captionText: row["caption"] || '',
@@ -584,9 +618,9 @@ export async function GET(request: NextRequest) {
         previewUrl: row["content_preview_url"] || row["content_preview"] || '',
         contentType: "LIBRARY" as const,
         notes: row["notes"] || '',
-        isFavorite: favoritesSet.has(`${row.id || row.raw_row_index}_${tableName}`),
-        isRelease: releasesSet.has(`${row.id || row.raw_row_index}_${tableName}`),
-        isPTR: releasesSet.has(`${row.id || row.raw_row_index}_${tableName}`),
+        isFavorite: isFavorite,
+        isRelease: isRelease,
+        isPTR: isRelease,
         creatorName: row["creator_name"] || getCreatorNameFromTable(tableName),
         tableName: tableName,
         // Additional fields from actual data

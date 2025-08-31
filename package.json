@@ -40,6 +40,8 @@
     "@react-email/components": "^0.0.41",
     "@remotion/player": "^4.0.332",
     "@supabase/supabase-js": "^2.56.0",
+    "@tanstack/react-query": "^5.85.6",
+    "@tanstack/react-query-devtools": "^5.85.6",
     "@tensorflow-models/body-pix": "^2.2.1",
     "@tensorflow/tfjs": "^4.22.0",
     "@types/socket.io": "^3.0.2",
