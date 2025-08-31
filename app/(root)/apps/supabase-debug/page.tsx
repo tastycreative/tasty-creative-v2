@@ -101,7 +101,7 @@ export default function SupabaseDebugPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2 text-sm">
-            <div>Supabase Anon Key: {process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? '✅ Set' : '❌ Not set'}</div>
+            <div>Supabase Anon Key: ❓ Server-side only (cannot check from client)</div>
             <div>Note: Service Role Key is server-side only and won't show here</div>
           </div>
         </CardContent>
