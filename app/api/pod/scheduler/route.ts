@@ -10,32 +10,48 @@ function extractSpreadsheetId(url: string): string | null {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    // Try different authentication methods
+    let sheets;
+    
+    // First, try with API key for public spreadsheets
+    if (process.env.AUTH_API_KEY) {
+      console.log("Trying API key authentication for scheduler data");
+      try {
+        sheets = google.sheets({ 
+          version: 'v4', 
+          auth: process.env.AUTH_API_KEY 
+        });
+      } catch (apiKeyError) {
+        console.log("API key setup failed:", apiKeyError.message);
+        sheets = null;
+      }
     }
+    
+    // If API key failed or not available, try session-based authentication
+    if (!sheets) {
+      const session = await auth();
+      
+      if (!session || !session.user || !session.accessToken) {
+        return NextResponse.json({ 
+          error: "Authentication not available - need user login or valid API key" 
+        }, { status: 401 });
+      }
 
-    if (!session.accessToken) {
-      return NextResponse.json(
-        { error: "Not authenticated. No access token." },
-        { status: 401 }
+      console.log("Using session-based authentication for scheduler data");
+      const oauth2Client = new google.auth.OAuth2(
+        process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID,
+        process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET,
+        process.env.GOOGLE_REDIRECT_URI
       );
+
+      oauth2Client.setCredentials({
+        access_token: session.accessToken,
+        refresh_token: session.refreshToken,
+        expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
+      });
+      
+      sheets = google.sheets({ version: 'v4', auth: oauth2Client });
     }
-
-    const oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
-    );
-
-    oauth2Client.setCredentials({
-      access_token: session.accessToken,
-      refresh_token: session.refreshToken,
-      expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
-    });
-
-    const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
 
     const { sheetUrl } = await request.json();
 
@@ -48,39 +64,103 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid Google Sheets URL' }, { status: 400 });
     }
 
-    // Fetch data from C6:I range to get the scheduler data
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: 'C6:I61', // Extended range to ensure we get all data
-    });
+    try {
+      // Fetch data from C6:I range to get the scheduler data
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: 'C6:I61', // Extended range to ensure we get all data
+      });
 
-    // Fetch data from M8:R range to get the full schedule setup
-    const fullScheduleResponse = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: 'M8:R', // Range for full schedule setup data
-    });
+      // Fetch data from M8:R range to get the full schedule setup
+      const fullScheduleResponse = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: 'M8:R', // Range for full schedule setup data
+      });
 
-    const values = response.data.values || [];
-    const fullScheduleValues = fullScheduleResponse.data.values || [];
-    console.log('Raw data from C6:I61:', values);
-    console.log('Raw data from M8:R:', fullScheduleValues);
+      const values = response.data.values || [];
+      const fullScheduleValues = fullScheduleResponse.data.values || [];
+      console.log('Raw data from C6:I61:', values);
+      console.log('Raw data from M8:R:', fullScheduleValues);
 
-    // Parse the scheduler data structure
-    const schedulerData = parseSchedulerData(values);
-    
-    // Parse the full schedule setup data
-    const fullScheduleSetup = parseFullScheduleSetup(fullScheduleValues);
+      // Parse the scheduler data structure
+      const schedulerData = parseSchedulerData(values);
+      
+      // Parse the full schedule setup data
+      const fullScheduleSetup = parseFullScheduleSetup(fullScheduleValues);
 
-    // Extract schedule name from the first row (C6:I61 where first row is at index 0)
-    const scheduleRow = values[0] || [];
-    const scheduleName = scheduleRow[5] || 'Schedule #1A'; // Column H (index 5) contains "Schedulle #1A"
-    
-    return NextResponse.json({ 
-      schedulerData: schedulerData.scheduleData,
-      scheduleCheckerData: schedulerData.scheduleCheckerData,
-      fullScheduleSetup: fullScheduleSetup,
-      currentSchedule: scheduleName
-    });
+      // Extract schedule name from the first row (C6:I61 where first row is at index 0)
+      const scheduleRow = values[0] || [];
+      const scheduleName = scheduleRow[5] || 'Schedule #1A'; // Column H (index 5) contains "Schedulle #1A"
+      
+      console.log(`Successfully fetched scheduler data`);
+      return NextResponse.json({ 
+        schedulerData: schedulerData.scheduleData,
+        scheduleCheckerData: schedulerData.scheduleCheckerData,
+        fullScheduleSetup: fullScheduleSetup,
+        currentSchedule: scheduleName
+      });
+
+    } catch (sheetsError) {
+      console.error('Error fetching scheduler data from Google Sheets:', sheetsError);
+      
+      // If API key failed and we haven't tried OAuth yet, try OAuth
+      if (process.env.AUTH_API_KEY && !sheets.auth.credentials) {
+        console.log("API key authentication failed for scheduler, trying OAuth...");
+        
+        try {
+          const session = await auth();
+          
+          if (session && session.user && session.accessToken) {
+            const oauth2Client = new google.auth.OAuth2(
+              process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID,
+              process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET,
+              process.env.GOOGLE_REDIRECT_URI
+            );
+
+            oauth2Client.setCredentials({
+              access_token: session.accessToken,
+              refresh_token: session.refreshToken,
+              expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
+            });
+            
+            const oauthSheets = google.sheets({ version: 'v4', auth: oauth2Client });
+            
+            const oauthResponse = await oauthSheets.spreadsheets.values.get({
+              spreadsheetId,
+              range: 'C6:I61',
+            });
+
+            const oauthFullScheduleResponse = await oauthSheets.spreadsheets.values.get({
+              spreadsheetId,
+              range: 'M8:R',
+            });
+
+            const values = oauthResponse.data.values || [];
+            const fullScheduleValues = oauthFullScheduleResponse.data.values || [];
+
+            const schedulerData = parseSchedulerData(values);
+            const fullScheduleSetup = parseFullScheduleSetup(fullScheduleValues);
+            const scheduleRow = values[0] || [];
+            const scheduleName = scheduleRow[5] || 'Schedule #1A';
+
+            console.log(`OAuth fallback successful for scheduler data`);
+            return NextResponse.json({ 
+              schedulerData: schedulerData.scheduleData,
+              scheduleCheckerData: schedulerData.scheduleCheckerData,
+              fullScheduleSetup: fullScheduleSetup,
+              currentSchedule: scheduleName
+            });
+          }
+        } catch (oauthError) {
+          console.error('OAuth fallback also failed for scheduler:', oauthError);
+        }
+      }
+      
+      return NextResponse.json(
+        { error: 'Failed to access Google Sheets. Please check permissions.' },
+        { status: 403 }
+      );
+    }
 
   } catch (error) {
     console.error('Error fetching scheduler data:', error);

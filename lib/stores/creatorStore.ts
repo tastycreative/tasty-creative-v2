@@ -294,14 +294,37 @@ export const useCreatorStore = create<CreatorStore>()(
           }));
           
           try {
-            const result = await apiCall<{ models: any[] }>("/api/models?all=true");
+            const result = await apiCall<{ models: any[] }>("/api/models-db?all=true");
             
-            // Transform and find the model
-            const { transformRawModel } = await import('@/lib/utils');
-            const transformed = result.models.map(transformRawModel);
-            const foundModel = transformed.find(
-              (m: ModelDetails) => m.name === decodeURIComponent(modelName)
-            );
+            // Find the model (models are already properly formatted from database)
+            const models = result.models;
+            
+            // Use fuzzy matching like in my-models page
+            const decodedModelName = decodeURIComponent(modelName);
+            const foundModel = models.find((m: ModelDetails) => {
+              const modelNameLower = m.name.toLowerCase();
+              const creatorNameLower = decodedModelName.toLowerCase();
+              
+              // Try exact match first
+              if (modelNameLower === creatorNameLower) {
+                return true;
+              }
+              
+              // Then try if model name contains creator name or vice versa
+              if (modelNameLower.includes(creatorNameLower) || creatorNameLower.includes(modelNameLower)) {
+                return true;
+              }
+              
+              // Try word boundary matching
+              const creatorWords = creatorNameLower.split(/\s+/);
+              const modelWords = modelNameLower.split(/\s+/);
+              
+              return creatorWords.some(creatorWord => 
+                modelWords.some(modelWord => 
+                  modelWord.includes(creatorWord) || creatorWord.includes(modelWord)
+                )
+              );
+            });
             
             if (foundModel) {
               // Cache and set data

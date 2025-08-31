@@ -8,6 +8,23 @@ import { X, Maximize2 } from "lucide-react";
 import ModelAssetsTab from "./ModelAssetTabs";
 import ModelDetailsTabs from "./ModelDetailsTab";
 import ModelInfoTab from "./ModelInfoTab";
+
+// Helper function to get the appropriate image URL
+const getImageUrl = (model: ModelDetails): string => {
+  const imageUrl = model.profileImage || model.profile;
+  
+  if (!imageUrl) {
+    return '/placeholder-image.jpg';
+  }
+  
+  // Check if it's a Google Drive URL that needs proxying
+  if (imageUrl.includes('drive.google.com')) {
+    return `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+  }
+  
+  // Return the URL as-is for other image sources
+  return imageUrl;
+};
 import ModelChattersTab from "./tabs/ModelChattersTab";
 import ModelAppsTab from "./tabs/ModelAppsTab";
 
@@ -32,7 +49,7 @@ function ModelImage({ model }: { model: ModelDetails }) {
       >
         <div className="w-16 h-16 rounded-full bg-gradient-to-r from-pink-400 to-rose-500 p-0.5 flex items-center justify-center">
           <img
-            src={`/api/image-proxy?id=${model.id}`}
+            src={getImageUrl(model)}
             alt={model.name}
             className="w-full h-full object-cover rounded-full"
             onError={() => setImageError(true)}
@@ -79,7 +96,7 @@ function ModelImage({ model }: { model: ModelDetails }) {
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
-              src={`/api/image-proxy?id=${model.id}`}
+              src={getImageUrl(model)}
               alt={model.name}
               className="w-screen h-screen object-contain"
               onClick={(e) => e.stopPropagation()}

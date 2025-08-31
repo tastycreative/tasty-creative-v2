@@ -12,36 +12,81 @@ export async function GET(req: NextRequest) {
     try {
       console.log("Fetching external image:", imageUrl);
 
-      // Special handling for Google Drive thumbnail URLs
-      if (imageUrl.includes("drive.google.com/thumbnail")) {
-        const urlObj = new URL(imageUrl);
-        const driveId = urlObj.searchParams.get("id");
+      // Special handling for Google Drive URLs (both thumbnail and sharing URLs)
+      if (imageUrl.includes("drive.google.com")) {
+        let driveId = null;
+        
+        // Handle thumbnail URLs
+        if (imageUrl.includes("drive.google.com/thumbnail")) {
+          const urlObj = new URL(imageUrl);
+          driveId = urlObj.searchParams.get("id");
+        }
+        // Handle sharing URLs like /file/d/FILE_ID/view
+        else if (imageUrl.includes("drive.google.com/file/d/")) {
+          const match = imageUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+          if (match) {
+            driveId = match[1];
+          }
+        }
+        // Handle uc URLs like /uc?export=view&id=FILE_ID
+        else if (imageUrl.includes("drive.google.com/uc")) {
+          const urlObj = new URL(imageUrl);
+          driveId = urlObj.searchParams.get("id");
+        }
+        
         if (driveId) {
           console.log(
-            "Detected Google Drive thumbnail, using authenticated access for ID:",
+            "Detected Google Drive file, using authenticated access for ID:",
             driveId
           );
-          // Redirect to the authenticated drive endpoint
-          const session = await auth();
-          if (!session || !session.user || !session.accessToken) {
-            return new Response("Not authenticated", { status: 401 });
+          
+          // Try different authentication methods
+          let drive;
+          
+          // First, try with API key for public files
+          if (process.env.AUTH_API_KEY) {
+            console.log("Trying API key authentication");
+            try {
+              drive = google.drive({ 
+                version: "v3", 
+                auth: process.env.AUTH_API_KEY 
+              });
+              
+              // Test if we can access the file with API key
+              const testRes = await drive.files.get({
+                fileId: driveId,
+                fields: 'id,name,permissions'
+              });
+              
+              console.log("API key authentication successful");
+            } catch (apiKeyError) {
+              console.log("API key authentication failed, trying session auth:", apiKeyError.message);
+              drive = null;
+            }
           }
+          
+          // If API key failed, try session-based authentication
+          if (!drive) {
+            const session = await auth();
+            if (!session || !session.user || !session.accessToken) {
+              return new Response("Authentication not available - need user login", { status: 401 });
+            }
 
-          const oauth2Client = new google.auth.OAuth2(
-            process.env.GOOGLE_CLIENT_ID,
-            process.env.GOOGLE_CLIENT_SECRET,
-            process.env.GOOGLE_REDIRECT_URI
-          );
+            console.log("Using session-based authentication");
+            const oauth2Client = new google.auth.OAuth2(
+              process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID,
+              process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET,
+              process.env.GOOGLE_REDIRECT_URI
+            );
 
-          oauth2Client.setCredentials({
-            access_token: session.accessToken,
-            refresh_token: session.refreshToken,
-            expiry_date: session.expiresAt
-              ? session.expiresAt * 1000
-              : undefined,
-          });
-
-          const drive = google.drive({ version: "v3", auth: oauth2Client });
+            oauth2Client.setCredentials({
+              access_token: session.accessToken,
+              refresh_token: session.refreshToken,
+              expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
+            });
+            
+            drive = google.drive({ version: "v3", auth: oauth2Client });
+          }
 
           const fileRes = await drive.files.get(
             {

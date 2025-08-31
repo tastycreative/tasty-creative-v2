@@ -13,9 +13,7 @@ import {
   RefreshCw,
   FileSpreadsheet,
   ChevronDown,
-  Link as LinkIcon,
 } from "lucide-react";
-import PermissionGoogle from "@/components/PermissionGoogle";
 import {
   TeamMemberSkeleton,
   CreatorSkeleton,
@@ -29,17 +27,18 @@ const SheetViewer = dynamic(() => import("@/components/SheetViewer"), {
     <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6">
       <div className="flex items-center space-x-3">
         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600"></div>
-        <span className="text-gray-700 dark:text-gray-300">Loading sheet viewer...</span>
+        <span className="text-gray-700 dark:text-gray-300">
+          Loading sheet viewer...
+        </span>
       </div>
     </div>
   ),
   ssr: false,
 });
-import { 
-  usePodStore, 
-  usePodData, 
-  useAvailableTeams, 
-  useDriveSheets,
+import {
+  usePodStore,
+  usePodData,
+  useAvailableTeams,
 } from "@/lib/stores/podStore";
 
 interface PodLayoutProps {
@@ -50,31 +49,37 @@ export default function PodLayout({ children }: PodLayoutProps) {
   const { data: session } = useSession();
   const pathname = usePathname();
   const router = useRouter();
-  
+
   // Zustand store hooks
-  const { 
-    selectedRow, 
+  const {
+    selectedRow,
     openSheetGroups,
-    setSelectedRow, 
+    setSelectedRow,
     toggleSheetGroup,
-    clearCache 
+    clearCache,
   } = usePodStore();
-  
+
   const { podData, loading: isLoading, error, fetchPodData } = usePodData();
-  const { teams: availableTeams, loading: isLoadingTeams, fetchAvailableTeams } = useAvailableTeams();
-  const { sheets: driveSheets, loading: isDriveLoading, error: driveError, fetchDriveSheets } = useDriveSheets();
-  
+  const {
+    teams: availableTeams,
+    loading: isLoadingTeams,
+    fetchAvailableTeams,
+  } = useAvailableTeams();
+
   // Local component state for UI
   const [selectedSheet, setSelectedSheet] = useState<{
     name: string;
     url: string;
   } | null>(null);
-  const [selectedCreator, setSelectedCreator] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"dashboard" | "sheet" | "creator">("dashboard");
+  const [viewMode, setViewMode] = useState<"dashboard" | "sheet" | "creator">(
+    "dashboard"
+  );
 
   // Get current tab from pathname
   const getCurrentTab = () => {
-    if (pathname === "/apps/pod" || pathname === "/apps/pod/dashboard") return "dashboard";
+    if (!pathname) return "dashboard";
+    if (pathname === "/apps/pod" || pathname === "/apps/pod/dashboard")
+      return "dashboard";
     if (pathname.includes("/apps/pod/sheets")) return "sheets";
     if (pathname.includes("/apps/pod/board")) return "board";
     if (pathname.includes("/apps/pod/admin")) return "admin";
@@ -92,7 +97,7 @@ export default function PodLayout({ children }: PodLayoutProps) {
 
     const groups: Record<
       string,
-      Array<{ name: string; url: string; cellGroup?: string }>
+      Array<{ name: string; url: string; cellGroup?: string; id?: string }>
     > = {};
     podData.creators.forEach((creator) => {
       groups[creator.name] = [];
@@ -111,44 +116,17 @@ export default function PodLayout({ children }: PodLayoutProps) {
           }
         }
 
-        groups[assignedCreator].push(link);
+        groups[assignedCreator].push({
+          ...link,
+          id:
+            link.id ||
+            `link-${assignedCreator}-${groups[assignedCreator].length}`,
+        });
       });
     }
 
     return groups;
   }, [podData?.sheetLinks, podData?.creators]);
-
-  // Group drive sheets by creator names
-  const groupedDriveSheets = useMemo(() => {
-    if (!podData?.creators) return {};
-
-    const groups: Record<
-      string,
-      Array<{ id: string; name: string; url: string; lastModified: string }>
-    > = {};
-    podData.creators.forEach((creator) => {
-      groups[creator.name] = [];
-    });
-
-    groups["Others"] = [];
-
-    if (driveSheets && driveSheets.length > 0) {
-      driveSheets.forEach((sheet) => {
-        let assignedCreator = "Others";
-
-        for (const creator of podData.creators || []) {
-          if (sheet.name.toLowerCase().includes(creator.name.toLowerCase())) {
-            assignedCreator = creator.name;
-            break;
-          }
-        }
-
-        groups[assignedCreator].push(sheet);
-      });
-    }
-
-    return groups;
-  }, [driveSheets, podData?.creators]);
 
   // Handle URL parameters for Google Sheets on page load
   useEffect(() => {
@@ -185,18 +163,10 @@ export default function PodLayout({ children }: PodLayoutProps) {
     }
   }, [selectedRow, fetchPodData]);
 
-  // Fetch drive sheets when we have creator data (for any tab that might need it)
-  useEffect(() => {
-    if (podData?.creators && podData.creators.length > 0) {
-      const creatorNames = podData.creators.map(creator => creator.name);
-      fetchDriveSheets(creatorNames, true); // Force refresh when creators change
-    }
-  }, [podData?.creators, fetchDriveSheets]);
-
   const handleSheetClick = (sheetName: string, sheetUrl: string) => {
     setSelectedSheet({ name: sheetName, url: sheetUrl });
     setViewMode("sheet");
-    
+
     // Update URL without navigation for better UX and back button support
     const url = new URL(window.location.href);
     url.searchParams.set("googleUrl", encodeURIComponent(sheetUrl));
@@ -205,15 +175,13 @@ export default function PodLayout({ children }: PodLayoutProps) {
   };
 
   const handleCreatorClick = (creatorName: string) => {
-    setSelectedCreator(creatorName);
     router.push(`/apps/pod/creator?creator=${encodeURIComponent(creatorName)}`);
   };
 
   const handleBackToDashboard = () => {
     setViewMode("dashboard");
     setSelectedSheet(null);
-    setSelectedCreator(null);
-    
+
     // Clean up URL parameters
     const url = new URL(window.location.href);
     url.searchParams.delete("googleUrl");
@@ -234,112 +202,108 @@ export default function PodLayout({ children }: PodLayoutProps) {
 
   // Remove this function as we'll use Link components for better prefetching
 
-  const handleSpreadsheetCreated = () => {
-    if (podData?.creators && podData.creators.length > 0) {
-      const creatorNames = podData.creators.map(creator => creator.name);
-      fetchDriveSheets(creatorNames, true);
-    }
-  };
-
   return (
-    <PermissionGoogle apiEndpoint="/api/models">
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 sm:p-6">
-        <div className="mx-auto max-w-7xl">
-          {/* Header */}
-          <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-gradient-to-r from-pink-50/50 to-rose-50/50 dark:from-pink-900/20 dark:to-rose-900/20 rounded-lg border border-pink-200 dark:border-pink-500/30">
-            <div className="text-center">
-              <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 dark:from-pink-400 dark:to-rose-400 bg-clip-text text-transparent mb-2">
-                POD Management Dashboard
-              </h1>
-              <p className="text-gray-600 dark:text-gray-300 text-base sm:text-lg">
-                Manage your team, track workflow progress, and sync with Google Spreadsheets
-              </p>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 sm:p-6">
+      <div className="mx-auto max-w-7xl">
+        {/* Header */}
+        <div className="mb-6 sm:mb-8 p-4 sm:p-6 bg-gradient-to-r from-pink-50/50 to-rose-50/50 dark:from-pink-900/20 dark:to-rose-900/20 rounded-lg border border-pink-200 dark:border-pink-500/30">
+          <div className="text-center">
+            <h1 className="text-2xl sm:text-4xl font-bold bg-gradient-to-r from-pink-600 to-rose-600 dark:from-pink-400 dark:to-rose-400 bg-clip-text text-transparent mb-2">
+              POD Management Dashboard
+            </h1>
+            <p className="text-gray-600 dark:text-gray-300 text-base sm:text-lg">
+              Manage your team, track workflow progress, and sync with Google
+              Spreadsheets
+            </p>
+          </div>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="border-b border-pink-200 dark:border-pink-500/30">
+          <nav className="flex overflow-x-auto scrollbar-hide">
+            <div className="flex space-x-2 sm:space-x-8 min-w-max px-2 sm:px-0">
+              <Link
+                href="/apps/pod/dashboard"
+                prefetch={true}
+                className={`py-3 sm:py-4 px-3 sm:px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                  activeTab === "dashboard"
+                    ? "border-pink-500 text-pink-600 dark:text-pink-400"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                }`}
+              >
+                Dashboard
+              </Link>
+              <Link
+                href="/apps/pod/sheets"
+                prefetch={true}
+                className={`py-3 sm:py-4 px-3 sm:px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                  activeTab === "sheets"
+                    ? "border-pink-500 text-pink-600 dark:text-pink-400"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                }`}
+              >
+                <span className="sm:hidden">Sheets</span>
+                <span className="hidden sm:inline">Sheets Integration</span>
+              </Link>
+              <Link
+                href="/apps/pod/board"
+                prefetch={true}
+                className={`py-3 sm:py-4 px-3 sm:px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                  activeTab === "board"
+                    ? "border-pink-500 text-pink-600 dark:text-pink-400"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                }`}
+              >
+                Board
+              </Link>
+              <Link
+                href="/apps/pod/pricing"
+                prefetch={true}
+                className={`py-3 sm:py-4 px-3 sm:px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                  activeTab === "pricing"
+                    ? "border-pink-500 text-pink-600 dark:text-pink-400"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                }`}
+              >
+                <span className="sm:hidden">Pricing</span>
+                <span className="hidden sm:inline">Pricing Guide</span>
+              </Link>
+              <Link
+                href="/apps/pod/my-models"
+                prefetch={true}
+                className={`py-3 sm:py-4 px-3 sm:px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                  activeTab === "my-models"
+                    ? "border-pink-500 text-pink-600 dark:text-pink-400"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                }`}
+              >
+                <span className="sm:hidden">Models</span>
+                <span className="hidden sm:inline">My Models</span>
+              </Link>
+              {session?.user?.role === "ADMIN" && (
+                <Link
+                  href="/apps/pod/admin"
+                  prefetch={true}
+                  className={`py-3 sm:py-4 px-3 sm:px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                    activeTab === "admin"
+                      ? "border-pink-500 text-pink-600 dark:text-pink-400"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                  }`}
+                >
+                  Admin
+                </Link>
+              )}
             </div>
-          </div>
+          </nav>
+        </div>
 
-          {/* Tab Navigation */}
-          <div className="border-b border-pink-200 dark:border-pink-500/30">
-            <nav className="flex overflow-x-auto scrollbar-hide">
-              <div className="flex space-x-2 sm:space-x-8 min-w-max px-2 sm:px-0">
-                <Link
-                  href="/apps/pod/dashboard"
-                  prefetch={true}
-                  className={`py-3 sm:py-4 px-3 sm:px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
-                    activeTab === "dashboard"
-                      ? "border-pink-500 text-pink-600 dark:text-pink-400"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-                  }`}
-                >
-                  Dashboard
-                </Link>
-                <Link
-                  href="/apps/pod/sheets"
-                  prefetch={true}
-                  className={`py-3 sm:py-4 px-3 sm:px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
-                    activeTab === "sheets"
-                      ? "border-pink-500 text-pink-600 dark:text-pink-400"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-                  }`}
-                >
-                  <span className="sm:hidden">Sheets</span>
-                  <span className="hidden sm:inline">Sheets Integration</span>
-                </Link>
-                <Link
-                  href="/apps/pod/board"
-                  prefetch={true}
-                  className={`py-3 sm:py-4 px-3 sm:px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
-                    activeTab === "board"
-                      ? "border-pink-500 text-pink-600 dark:text-pink-400"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-                  }`}
-                >
-                  Board
-                </Link>
-                <Link
-                  href="/apps/pod/pricing"
-                  prefetch={true}
-                  className={`py-3 sm:py-4 px-3 sm:px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
-                    activeTab === "pricing"
-                      ? "border-pink-500 text-pink-600 dark:text-pink-400"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-                  }`}
-                >
-                  <span className="sm:hidden">Pricing</span>
-                  <span className="hidden sm:inline">Pricing Guide</span>
-                </Link>
-                <Link
-                  href="/apps/pod/my-models"
-                  prefetch={true}
-                  className={`py-3 sm:py-4 px-3 sm:px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
-                    activeTab === "my-models"
-                      ? "border-pink-500 text-pink-600 dark:text-pink-400"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-                  }`}
-                >
-                  <span className="sm:hidden">Models</span>
-                  <span className="hidden sm:inline">My Models</span>
-                </Link>
-                {session?.user?.role === "ADMIN" && (
-                  <Link
-                    href="/apps/pod/admin"
-                    prefetch={true}
-                    className={`py-3 sm:py-4 px-3 sm:px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
-                      activeTab === "admin"
-                        ? "border-pink-500 text-pink-600 dark:text-pink-400"
-                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-                    }`}
-                  >
-                    Admin
-                  </Link>
-                )}
-              </div>
-            </nav>
-          </div>
-
-          {/* Main Dashboard Layout */}
-          <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
-            {/* Sidebar - Hidden when admin, board, creator, or my-models tab is active */}
-            {activeTab !== "admin" && activeTab !== "board" && activeTab !== "creator" && activeTab !== "my-models" && (
+        {/* Main Dashboard Layout */}
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
+          {/* Sidebar - Hidden when admin, board, creator, or my-models tab is active */}
+          {activeTab !== "admin" &&
+            activeTab !== "board" &&
+            activeTab !== "creator" &&
+            activeTab !== "my-models" && (
               <div className="lg:w-80 w-full">
                 {podData ? (
                   <div className="w-full space-y-6">
@@ -497,11 +461,6 @@ export default function PodLayout({ children }: PodLayoutProps) {
                                     {creator.name}
                                   </span>
                                 </div>
-                                {creator.earnings && (
-                                  <span className="text-xs px-2 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-full font-medium">
-                                    {creator.earnings}
-                                  </span>
-                                )}
                               </div>
                             ))
                           ) : (
@@ -516,7 +475,8 @@ export default function PodLayout({ children }: PodLayoutProps) {
                       </div>
 
                       {/* Sheet Links Accordion */}
-                      {(isLoading || (podData?.creators && podData.creators.length > 0)) && (
+                      {(isLoading ||
+                        (podData?.creators && podData.creators.length > 0)) && (
                         <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800">
                           <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 flex items-center">
                             <div className="p-1 bg-gradient-to-br from-emerald-500/20 to-green-500/20 rounded-lg mr-2">
@@ -528,7 +488,10 @@ export default function PodLayout({ children }: PodLayoutProps) {
                             {isLoading ? (
                               <div className="space-y-2">
                                 {Array.from({ length: 2 }).map((_, index) => (
-                                  <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg">
+                                  <div
+                                    key={index}
+                                    className="border border-gray-200 dark:border-gray-700 rounded-lg"
+                                  >
                                     <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
                                       <div className="flex items-center space-x-2">
                                         <Skeleton className="h-3 w-3 rounded" />
@@ -542,214 +505,114 @@ export default function PodLayout({ children }: PodLayoutProps) {
                             ) : (
                               Object.entries(groupedSheetLinks).map(
                                 ([creatorName, sheets]) => (
-                                <div
-                                  key={creatorName}
-                                  className="border border-gray-200 dark:border-gray-700 rounded-lg"
-                                >
-                                  <button
-                                    onClick={() => toggleSheetGroup(creatorName)}
-                                    className="w-full px-3 py-2 flex items-center justify-between bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded-lg"
-                                  >
-                                    <div className="flex items-center space-x-2">
-                                      <div
-                                        className={`transition-all duration-300 ${openSheetGroups[creatorName] ? "rotate-180" : ""}`}
-                                      >
-                                        <ChevronDown className="h-3 w-3 text-gray-400 dark:text-gray-500" />
-                                      </div>
-                                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        {creatorName}
-                                      </span>
-                                      <span className="text-xs px-2 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full">
-                                        {sheets.length}
-                                      </span>
-                                    </div>
-                                  </button>
-
-                                  {openSheetGroups[creatorName] && (
-                                    <div className="p-2 space-y-1">
-                                      {sheets.map((link, index) => {
-                                        const isActive = selectedSheet?.name === link.name && selectedSheet?.url === link.url && viewMode === "sheet";
-                                        return (
-                                        <div
-                                          key={index}
-                                          className={`w-full p-2 text-left rounded transition-colors group cursor-pointer ${
-                                            isActive 
-                                              ? "bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-500/30" 
-                                              : "hover:bg-gray-50 dark:hover:bg-gray-700"
-                                          }`}
-                                          onClick={() =>
-                                            handleSheetClick(link.name, link.url)
-                                          }
-                                        >
-                                          <div className="flex items-start space-x-2">
-                                            <div className="flex-shrink-0 mt-0.5 relative">
-                                              <div className={`h-6 w-6 rounded flex items-center justify-center ${
-                                                isActive 
-                                                  ? "bg-gradient-to-br from-emerald-600 to-green-700 ring-2 ring-emerald-300 dark:ring-emerald-400" 
-                                                  : "bg-gradient-to-br from-emerald-500 to-green-600"
-                                              }`}>
-                                                <FileSpreadsheet className="h-3 w-3 text-white" />
-                                              </div>
-                                              {isActive && (
-                                                <div className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 bg-emerald-500 border border-white dark:border-gray-800 rounded-full"></div>
-                                              )}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                              <p
-                                                className={`text-xs font-medium transition-colors truncate ${
-                                                  isActive 
-                                                    ? "text-emerald-700 dark:text-emerald-300" 
-                                                    : "text-gray-900 dark:text-gray-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400"
-                                                }`}
-                                                title={link.name}
-                                              >
-                                                {link.name}
-                                              </p>
-                                              {link.url &&
-                                                link.url.startsWith("http") && (
-                                                  <button
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      window.open(link.url, "_blank");
-                                                    }}
-                                                    className="flex items-center mt-1 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline transition-colors"
-                                                  >
-                                                    <ExternalLink className="h-2 w-2 mr-1 flex-shrink-0" />
-                                                    <span className="truncate">
-                                                      Open Sheet
-                                                    </span>
-                                                  </button>
-                                                )}
-                                            </div>
-                                          </div>
-                                        </div>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
-                                </div>
-                              )
-                            )
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Sheet Integrations Accordion */}
-                      {(isLoading || isDriveLoading ||
-                        (podData?.creators && podData.creators.length > 0)) && (
-                        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800">
-                          <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 flex items-center">
-                            <div className="p-1 bg-gradient-to-br from-blue-500/20 to-indigo-500/20 rounded-lg mr-2">
-                              <LinkIcon className="h-3 w-3 text-blue-600 dark:text-blue-400" />
-                            </div>
-                            Sheet Integrations
-                            <ExternalLink className="h-3 w-3 text-gray-400 dark:text-gray-500 ml-1 flex-shrink-0" />
-                          </h4>
-
-                          {isLoading ? (
-                            <div className="space-y-2">
-                              {Array.from({ length: 2 }).map((_, index) => (
-                                <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg">
-                                  <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                                    <div className="flex items-center space-x-2">
-                                      <Skeleton className="h-3 w-3 rounded" />
-                                      <Skeleton className="h-4 w-20" />
-                                      <Skeleton className="h-5 w-6 rounded-full" />
-                                    </div>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          ) : isDriveLoading ? (
-                            <div className="flex items-center text-sm text-blue-600 dark:text-blue-400">
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                              Loading drive sheets...
-                            </div>
-                          ) : driveError ? (
-                            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 rounded-lg p-3">
-                              <p className="text-xs text-red-700 dark:text-red-300">
-                                {driveError}
-                              </p>
-                            </div>
-                          ) : (
-                            <div className="space-y-2">
-                              {Object.entries(groupedDriveSheets).map(
-                                ([creatorName, sheets]) => (
                                   <div
                                     key={creatorName}
                                     className="border border-gray-200 dark:border-gray-700 rounded-lg"
                                   >
                                     <button
                                       onClick={() =>
-                                        toggleSheetGroup(
-                                          `integration-${creatorName}`
-                                        )
+                                        toggleSheetGroup(creatorName)
                                       }
                                       className="w-full px-3 py-2 flex items-center justify-between bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded-lg"
                                     >
                                       <div className="flex items-center space-x-2">
                                         <div
-                                          className={`transition-all duration-300 ${openSheetGroups[`integration-${creatorName}`] ? "rotate-180" : ""}`}
+                                          className={`transition-all duration-300 ${openSheetGroups[creatorName] ? "rotate-180" : ""}`}
                                         >
                                           <ChevronDown className="h-3 w-3 text-gray-400 dark:text-gray-500" />
                                         </div>
                                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                           {creatorName}
                                         </span>
-                                        <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full">
+                                        <span className="text-xs px-2 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full">
                                           {sheets.length}
                                         </span>
                                       </div>
                                     </button>
 
-                                    {openSheetGroups[
-                                      `integration-${creatorName}`
-                                    ] && (
+                                    {openSheetGroups[creatorName] && (
                                       <div className="p-2 space-y-1">
-                                        {sheets.map((sheet) => (
-                                          <div
-                                            key={sheet.id}
-                                            className="w-full p-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 rounded transition-colors group cursor-pointer"
-                                            onClick={() => window.open(sheet.url, "_blank")}
-                                          >
-                                            <div className="flex items-start space-x-2">
-                                              <div className="flex-shrink-0 mt-0.5">
-                                                <div className="h-6 w-6 rounded bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
-                                                  <FileSpreadsheet className="h-3 w-3 text-white" />
-                                                </div>
-                                              </div>
-                                              <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-1">
-                                                  <p
-                                                    className="text-xs font-medium text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate"
-                                                    title={sheet.name}
+                                        {sheets.map((link, index) => {
+                                          const isActive =
+                                            selectedSheet?.name === link.name &&
+                                            selectedSheet?.url === link.url &&
+                                            viewMode === "sheet";
+                                          return (
+                                            <div
+                                              key={
+                                                link.id ||
+                                                `link-${creatorName}-${index}`
+                                              }
+                                              className={`w-full p-2 text-left rounded transition-colors group cursor-pointer ${
+                                                isActive
+                                                  ? "bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-500/30"
+                                                  : "hover:bg-gray-50 dark:hover:bg-gray-700"
+                                              }`}
+                                              onClick={() =>
+                                                handleSheetClick(
+                                                  link.name,
+                                                  link.url
+                                                )
+                                              }
+                                            >
+                                              <div className="flex items-start space-x-2">
+                                                <div className="flex-shrink-0 mt-0.5 relative">
+                                                  <div
+                                                    className={`h-6 w-6 rounded flex items-center justify-center ${
+                                                      isActive
+                                                        ? "bg-gradient-to-br from-emerald-600 to-green-700 ring-2 ring-emerald-300 dark:ring-emerald-400"
+                                                        : "bg-gradient-to-br from-emerald-500 to-green-600"
+                                                    }`}
                                                   >
-                                                    {sheet.name}
-                                                  </p>
-                                                  <ExternalLink className="h-2.5 w-2.5 text-gray-400 dark:text-gray-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors flex-shrink-0" />
-                                                </div>
-                                                {sheet.lastModified && (
-                                                  <div className="flex items-center mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                                    <Calendar className="h-2 w-2 mr-1 flex-shrink-0" />
-                                                    <span className="truncate">
-                                                      {new Date(
-                                                        sheet.lastModified
-                                                      ).toLocaleDateString()}
-                                                    </span>
+                                                    <FileSpreadsheet className="h-3 w-3 text-white" />
                                                   </div>
-                                                )}
+                                                  {isActive && (
+                                                    <div className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 bg-emerald-500 border border-white dark:border-gray-800 rounded-full"></div>
+                                                  )}
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                  <p
+                                                    className={`text-xs font-medium transition-colors truncate ${
+                                                      isActive
+                                                        ? "text-emerald-700 dark:text-emerald-300"
+                                                        : "text-gray-900 dark:text-gray-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400"
+                                                    }`}
+                                                    title={link.name}
+                                                  >
+                                                    {link.name}
+                                                  </p>
+                                                  {link.url &&
+                                                    link.url.startsWith(
+                                                      "http"
+                                                    ) && (
+                                                      <button
+                                                        onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          window.open(
+                                                            link.url,
+                                                            "_blank"
+                                                          );
+                                                        }}
+                                                        className="flex items-center mt-1 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline transition-colors"
+                                                      >
+                                                        <ExternalLink className="h-2 w-2 mr-1 flex-shrink-0" />
+                                                        <span className="truncate">
+                                                          Open Sheet
+                                                        </span>
+                                                      </button>
+                                                    )}
+                                                </div>
                                               </div>
                                             </div>
-                                          </div>
-                                        ))}
+                                          );
+                                        })}
                                       </div>
                                     )}
                                   </div>
                                 )
-                              )}
-                            </div>
-                          )}
+                              )
+                            )}
+                          </div>
                         </div>
                       )}
 
@@ -758,7 +621,10 @@ export default function PodLayout({ children }: PodLayoutProps) {
                         <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800">
                           <button
                             onClick={() =>
-                              window.open(podData?.schedulerSpreadsheetUrl, "_blank")
+                              window.open(
+                                podData?.schedulerSpreadsheetUrl,
+                                "_blank"
+                              )
                             }
                             className="flex items-center justify-center w-full px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] text-sm font-medium"
                           >
@@ -850,33 +716,36 @@ export default function PodLayout({ children }: PodLayoutProps) {
               </div>
             )}
 
-            {/* Main Content */}
-            <div
-              className={`${activeTab === "admin" || activeTab === "board" || activeTab === "creator" || activeTab === "my-models" ? "w-full" : "flex-1"} space-y-6`}
-            >
-              {viewMode === "sheet" && selectedSheet ? (
-                <Suspense fallback={
+          {/* Main Content */}
+          <div
+            className={`${activeTab === "admin" || activeTab === "board" || activeTab === "creator" || activeTab === "my-models" ? "w-full" : "flex-1"} space-y-6`}
+          >
+            {viewMode === "sheet" && selectedSheet ? (
+              <Suspense
+                fallback={
                   <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6">
                     <div className="flex items-center space-x-3">
                       <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600"></div>
-                      <span className="text-gray-700 dark:text-gray-300">Loading sheet viewer...</span>
+                      <span className="text-gray-700 dark:text-gray-300">
+                        Loading sheet viewer...
+                      </span>
                     </div>
                   </div>
-                }>
-                  <SheetViewer
-                    sheetName={selectedSheet.name}
-                    sheetUrl={selectedSheet.url}
-                    onBack={handleBackToDashboard}
-                    backText={getBackText()}
-                  />
-                </Suspense>
-              ) : (
-                children
-              )}
-            </div>
+                }
+              >
+                <SheetViewer
+                  sheetName={selectedSheet.name}
+                  sheetUrl={selectedSheet.url}
+                  onBack={handleBackToDashboard}
+                  backText={getBackText()}
+                />
+              </Suspense>
+            ) : (
+              children
+            )}
           </div>
         </div>
       </div>
-    </PermissionGoogle>
+    </div>
   );
 }

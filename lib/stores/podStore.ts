@@ -29,7 +29,7 @@ export interface PodData {
   teamMembers: TeamMember[];
   creators: Creator[];
   schedulerSpreadsheetUrl?: string;
-  sheetLinks?: Array<{ name: string; url: string; cellGroup?: string }>;
+  sheetLinks?: Array<{ name: string; url: string; cellGroup?: string; id?: string }>;
   rowNumber: number;
   lastUpdated: string;
 }

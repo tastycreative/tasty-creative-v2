@@ -5,6 +5,23 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { ArrowLeft, Info, Image, MessageSquare, Zap, Users, Images } from "lucide-react";
 import { usePodData } from "@/lib/stores/podStore";
 import { useCreatorComplete } from "@/lib/stores/creatorStore";
+
+// Helper function to get the appropriate image URL
+const getImageUrl = (model: any): string => {
+  const imageUrl = model?.profileImage;
+  
+  if (!imageUrl) {
+    return '/placeholder-image.jpg';
+  }
+  
+  // Check if it's a Google Drive URL that needs proxying
+  if (imageUrl.includes('drive.google.com')) {
+    return `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+  }
+  
+  // Return the URL as-is for other image sources
+  return imageUrl;
+};
 import ModelPodInfoTab from "@/components/models/ModelPodInfoTab";
 import ModelAssetsTab from "@/components/models/ModelAssetTabs";
 import ModelChattersTab from "@/components/models/tabs/ModelChattersTab";
@@ -21,12 +38,22 @@ const ModelContentGalleryTab = dynamic(
 function CreatorImage({ creator, model }: { creator: any; model?: ModelDetails | null }) {
   const [imageError, setImageError] = useState(false);
 
-  // If we have model data with an ID, try to show the profile image
-  if (model && model.id && !imageError) {
+  // Debug logging
+  console.log("CreatorImage Debug:", {
+    creatorName: creator?.name,
+    hasModel: !!model,
+    modelId: model?.id,
+    modelName: model?.name,
+    profileImage: model?.profileImage,
+    imageError
+  });
+
+  // If we have model data with a profile image, try to show it
+  if (model && model.profileImage && !imageError) {
     return (
       <div className="w-20 h-20 rounded-full bg-gradient-to-r from-emerald-500 to-green-500 p-0.5 flex items-center justify-center">
         <img
-          src={`/api/image-proxy?id=${model.id}`}
+          src={getImageUrl(model)}
           alt={creator?.name || "Creator"}
           className="w-full h-full object-cover rounded-full"
           onError={() => setImageError(true)}
@@ -191,32 +218,6 @@ export default function CreatorPage() {
   const { podData } = usePodData();
   
   const { creator, model, loading, fetchAllData, reset } = useCreatorComplete();
-
-  // Memoize the fallback model to prevent unnecessary re-renders
-  const fallbackModel = useMemo(() => {
-    if (!creator) return null;
-    
-    return {
-      id: creator.id || "unknown",
-      name: creator.name,
-      status: "active" as const,
-      launchDate: "2024-01-01T00:00:00.000Z", // Fixed date to prevent re-renders
-      referrerName: "Not specified",
-      personalityType: "Content Creator",
-      commonTerms: ["content", "creator", "social"],
-      commonEmojis: ["💫", "✨", "🎯"],
-      instagram: "",
-      twitter: "",
-      tiktok: "",
-      chattingManagers: [],
-      stats: {
-        totalRevenue: 0,
-        monthlyRevenue: 0,
-        subscribers: 0,
-        avgResponseTime: "N/A"
-      }
-    };
-  }, [creator]);
 
   // Get contextual back text based on current page
   const getBackText = () => {

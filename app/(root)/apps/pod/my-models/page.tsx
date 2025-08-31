@@ -5,9 +5,11 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import ModelsList from "@/components/models/ModelList";
 import ModelsHeader from "@/components/models/ModelsHeader";
-import PermissionGoogle from "@/components/PermissionGoogle";
-import { transformRawModel } from "@/lib/utils";
-import { usePodData, useAvailableTeams, usePodStore } from "@/lib/stores/podStore";
+import {
+  usePodData,
+  useAvailableTeams,
+  usePodStore,
+} from "@/lib/stores/podStore";
 
 export default function MyModelsPage() {
   const { data: session } = useSession();
@@ -15,24 +17,29 @@ export default function MyModelsPage() {
   const { podData } = usePodData();
   const { teams, fetchAvailableTeams } = useAvailableTeams();
   const { fetchPodData } = usePodStore();
-  
+
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<ModelStatus | "all">("all");
-  const [isLoadingModels, setLoadingModels] = useState(false);
+  const [isLoadingModels, setLoadingModels] = useState(true); // Start as loading
+  const [isLoadingAssignments, setIsLoadingAssignments] = useState(true); // Start as loading
   const [allModels, setAllModels] = useState<ModelDetails[]>([]);
-  const [userAssignedCreators, setUserAssignedCreators] = useState<string[]>([]);
+  const [userAssignedCreators, setUserAssignedCreators] = useState<string[]>(
+    []
+  );
+  
+  // Combined loading state - true if either models or assignments are loading
+  const isLoading = isLoadingModels || isLoadingAssignments;
 
-  // Fetch all models
+  // Fetch all models from database
   useEffect(() => {
     const fetchModels = async () => {
       setLoadingModels(true);
       try {
-        const res = await fetch("/api/models?all=true");
-        const { models: rawModels } = await res.json();
-        const transformed = rawModels.map(transformRawModel);
-        setAllModels(transformed);
+        const res = await fetch("/api/models-db?all=true");
+        const { models } = await res.json();
+        setAllModels(models);
       } catch (error) {
-        console.error("Error fetching models:", error);
+        console.error("Error fetching models from database:", error);
       } finally {
         setLoadingModels(false);
       }
@@ -45,19 +52,20 @@ export default function MyModelsPage() {
     const fetchUserAssignments = async () => {
       if (!session?.user?.email) return;
 
+      setIsLoadingAssignments(true);
       try {
         // First fetch available teams
         await fetchAvailableTeams();
-        
+
         // Then check each team for user membership and collect assigned creators
         const allUserCreators: string[] = [];
-        
+
         if (teams && teams.length > 0) {
           for (const team of teams) {
             try {
               // Fetch pod data for each team row
               await fetchPodData(team.row);
-              
+
               // Get the pod data for this team using database API
               const teamPodResponse = await fetch("/api/pod/fetch-db", {
                 method: "POST",
@@ -66,15 +74,17 @@ export default function MyModelsPage() {
                   rowId: team.row,
                 }),
               });
-              
+
               if (teamPodResponse.ok) {
                 const { data: teamData } = await teamPodResponse.json();
-                
+
                 // Check if user is a member of this team
                 const isUserInTeam = teamData?.teamMembers?.some(
-                  (member: any) => member.email?.toLowerCase() === session.user.email?.toLowerCase()
+                  (member: any) =>
+                    member.email?.toLowerCase() ===
+                    session.user.email?.toLowerCase()
                 );
-                
+
                 // If user is in this team, add all creators from this team
                 if (isUserInTeam && teamData?.creators) {
                   teamData.creators.forEach((creator: any) => {
@@ -85,26 +95,40 @@ export default function MyModelsPage() {
                 }
               }
             } catch (error) {
-              console.error(`Error fetching data for team row ${team.row}:`, error);
+              console.error(
+                `Error fetching data for team row ${team.row}:`,
+                error
+              );
             }
           }
         }
-        
-        console.log("🎯 User assigned creators across all teams:", allUserCreators);
+
+        console.log(
+          "🎯 User assigned creators across all teams:",
+          allUserCreators
+        );
         setUserAssignedCreators(allUserCreators);
-        
       } catch (error) {
         console.error("Error fetching user assignments:", error);
+      } finally {
+        setIsLoadingAssignments(false);
       }
     };
 
-    if (session?.user?.email && teams.length === 0) {
-      // Fetch teams first if they haven't been loaded
-      fetchAvailableTeams();
-    } else if (session?.user?.email && teams.length > 0) {
-      fetchUserAssignments();
+    if (session?.user?.email) {
+      if (teams.length === 0) {
+        // Fetch teams first if they haven't been loaded
+        setIsLoadingAssignments(true);
+        fetchAvailableTeams();
+      } else {
+        // Teams are loaded, fetch user assignments
+        fetchUserAssignments();
+      }
+    } else if (session === null) {
+      // No session, stop loading assignments
+      setIsLoadingAssignments(false);
     }
-  }, [session?.user?.email, teams, fetchAvailableTeams, fetchPodData]);
+  }, [session, teams, fetchAvailableTeams, fetchPodData]);
 
   // Filter models based on user permissions
   const accessibleModels = useMemo(() => {
@@ -112,11 +136,11 @@ export default function MyModelsPage() {
       sessionUser: session?.user,
       userAssignedCreators,
       allModelsCount: allModels.length,
-      allModelNames: allModels.map(m => m.name)
+      allModelNames: allModels.map((m) => m.name),
     });
 
     if (!session?.user) return [];
-    
+
     // If user is admin, show all models
     if (session.user.role === "ADMIN") {
       console.log("🔑 Admin user - showing all models");
@@ -125,6 +149,11 @@ export default function MyModelsPage() {
 
     // For non-admin users, check models against all assigned creators across teams
     if (userAssignedCreators.length === 0) {
+      // If assignments are still loading, don't show empty state yet
+      if (isLoadingAssignments) {
+        console.log("⏳ Still loading user assignments...");
+        return [];
+      }
       console.log("❌ No assigned creators found for user");
       return [];
     }
@@ -139,48 +168,57 @@ export default function MyModelsPage() {
     console.log("👥 User assigned creators:", userAssignedCreators);
 
     // Show models for ALL creators assigned to the user across all teams
-    const filtered = allModels.filter(model => {
+    const filtered = allModels.filter((model) => {
       const modelName = model.name.toLowerCase();
-      
+
       // Check if model name matches any of the user's assigned creators
-      const matches = userAssignedCreators.some(creatorName => {
+      const matches = userAssignedCreators.some((creatorName) => {
         const lowerCreatorName = creatorName.toLowerCase();
-        
+
         // More precise matching - check for exact matches or word boundaries
         const modelWords = modelName.split(/[\s\-_]+/);
         const creatorWords = lowerCreatorName.split(/[\s\-_]+/);
-        
+
         // Check if any creator word exactly matches any model word
-        const exactMatch = creatorWords.some(creatorWord => 
-          modelWords.some(modelWord => 
-            modelWord === creatorWord && creatorWord.length >= 3 // Minimum 3 characters to avoid false positives
+        const exactMatch = creatorWords.some((creatorWord) =>
+          modelWords.some(
+            (modelWord) => modelWord === creatorWord && creatorWord.length >= 3 // Minimum 3 characters to avoid false positives
           )
         );
-        
+
         // Also check for exact full name matches
-        const fullMatch = modelName === lowerCreatorName || 
-                         modelName.includes(` ${lowerCreatorName} `) || 
-                         modelName.startsWith(`${lowerCreatorName} `) || 
-                         modelName.endsWith(` ${lowerCreatorName}`) ||
-                         lowerCreatorName.includes(` ${modelName} `) || 
-                         lowerCreatorName.startsWith(`${modelName} `) || 
-                         lowerCreatorName.endsWith(` ${modelName}`);
-        
+        const fullMatch =
+          modelName === lowerCreatorName ||
+          modelName.includes(` ${lowerCreatorName} `) ||
+          modelName.startsWith(`${lowerCreatorName} `) ||
+          modelName.endsWith(` ${lowerCreatorName}`) ||
+          lowerCreatorName.includes(` ${modelName} `) ||
+          lowerCreatorName.startsWith(`${modelName} `) ||
+          lowerCreatorName.endsWith(` ${modelName}`);
+
         const match = exactMatch || fullMatch;
-        
+
         if (match) {
-          console.log("✅ Model match found:", { modelName, creatorName: lowerCreatorName, exactMatch, fullMatch });
+          console.log("✅ Model match found:", {
+            modelName,
+            creatorName: lowerCreatorName,
+            exactMatch,
+            fullMatch,
+          });
         }
-        
+
         return match;
       });
-      
+
       return matches;
     });
 
-    console.log("🎯 Final filtered models:", filtered.map(m => m.name));
+    console.log(
+      "🎯 Final filtered models:",
+      filtered.map((m) => m.name)
+    );
     return filtered;
-  }, [allModels, session, userAssignedCreators]);
+  }, [allModels, session, userAssignedCreators, isLoadingAssignments]);
 
   // Apply search and status filters
   const filteredModels = useMemo(() => {
@@ -188,22 +226,22 @@ export default function MyModelsPage() {
       if (!model.name || typeof model.name !== "string") {
         return false;
       }
-      
+
       const matchesSearch =
         searchQuery.trim() === "" ||
         model.name
           .toLowerCase()
           .trim()
           .includes(searchQuery.toLowerCase().trim());
-      
+
       if (!model.status || typeof model.status !== "string") {
         return statusFilter === "all";
       }
-      
+
       const matchesStatus =
         statusFilter === "all" ||
         model.status.toLowerCase().trim() === statusFilter.toLowerCase().trim();
-      
+
       return matchesSearch && matchesStatus;
     });
   }, [accessibleModels, searchQuery, statusFilter]);
@@ -217,7 +255,9 @@ export default function MyModelsPage() {
   if (!session) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-pink-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 w-full max-w-7xl mx-auto p-4 lg:p-6 flex items-center justify-center">
-        <div className="text-gray-600 dark:text-gray-400">Please log in to view your models.</div>
+        <div className="text-gray-600 dark:text-gray-400">
+          Please log in to view your models.
+        </div>
       </div>
     );
   }
@@ -231,24 +271,23 @@ export default function MyModelsPage() {
         setStatusFilter={setStatusFilter}
         totalModels={accessibleModels.length}
         activeModels={
-          accessibleModels.filter((m) => m.status.toLowerCase() === "active").length
+          accessibleModels.filter((m) => m.status.toLowerCase() === "active")
+            .length
         }
-        isLoading={isLoadingModels}
+        isLoading={isLoading}
         title="My Models"
         subtitle={
-          session.user.role === "ADMIN" 
+          session.user.role === "ADMIN"
             ? "All models in the system"
             : `Models assigned to you across all teams (${userAssignedCreators.length} creators)`
         }
       />
-      <PermissionGoogle apiEndpoint="/api/models">
-        <ModelsList
-          key={`${searchQuery}-${statusFilter}-${filteredModels.length}`}
-          models={filteredModels}
-          onModelClick={handleModelClick}
-          isLoading={isLoadingModels}
-        />
-      </PermissionGoogle>
+      <ModelsList
+        key={`${searchQuery}-${statusFilter}-${filteredModels.length}`}
+        models={filteredModels}
+        onModelClick={handleModelClick}
+        isLoading={isLoading}
+      />
     </div>
   );
 }

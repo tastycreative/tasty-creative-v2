@@ -7,6 +7,23 @@ import ModelDetailsNavigation from "@/components/models/ModelDetailsNavigation";
 import PermissionGoogle from "@/components/PermissionGoogle";
 import { transformRawModel } from "@/lib/utils";
 
+// Helper function to get the appropriate image URL
+const getImageUrl = (model: any): string => {
+  const imageUrl = model?.profileImage || model?.profile;
+  
+  if (!imageUrl) {
+    return '/placeholder-image.jpg';
+  }
+  
+  // Check if it's a Google Drive URL that needs proxying
+  if (imageUrl.includes('drive.google.com')) {
+    return `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+  }
+  
+  // Return the URL as-is for other image sources
+  return imageUrl;
+};
+
 interface ModelAppLayoutProps {
   children: ReactNode;
 }
@@ -29,7 +46,7 @@ function ModelImage({ model }: { model: ModelDetails }) {
   return (
     <div className="w-20 h-20 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 p-0.5 flex items-center justify-center">
       <img
-        src={`/api/image-proxy?id=${model.id}`}
+        src={getImageUrl(model)}
         alt={model.name}
         className="w-full h-full object-cover rounded-full"
         onError={() => setImageError(true)}

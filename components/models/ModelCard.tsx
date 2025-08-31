@@ -2,6 +2,23 @@
 import { useState } from "react";
 import { Calendar, User, Instagram, Twitter, MoreVertical, TrendingUp, Users } from "lucide-react";
 
+// Helper function to get the appropriate image URL
+const getImageUrl = (model: ModelDetails): string => {
+  const imageUrl = model.profileImage || model.profile;
+  
+  if (!imageUrl) {
+    return '/placeholder-image.jpg';
+  }
+  
+  // Check if it's a Google Drive URL that needs proxying
+  if (imageUrl.includes('drive.google.com')) {
+    return `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+  }
+  
+  // Return the URL as-is for other image sources
+  return imageUrl;
+};
+
 function ImageWithFallback({ model }: { model: ModelDetails }) {
   const [imageError, setImageError] = useState(false);
   const [backgroundError, setBackgroundError] = useState(false);
@@ -25,7 +42,7 @@ function ImageWithFallback({ model }: { model: ModelDetails }) {
         <div
           className="absolute inset-0 bg-cover bg-center blur-2xl opacity-40 scale-110"
           style={{
-            backgroundImage: `url(/api/image-proxy?id=${model.id})`,
+            backgroundImage: `url(${getImageUrl(model)})`,
           }}
           onError={() => setBackgroundError(true)}
         />
@@ -33,7 +50,7 @@ function ImageWithFallback({ model }: { model: ModelDetails }) {
       {/* Circular image container */}
       <div className="relative w-24 h-24 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 p-1 flex items-center justify-center z-10 shadow-2xl shadow-pink-500/25">
         <img
-          src={`/api/image-proxy?id=${model.id}`}
+          src={getImageUrl(model)}
           alt={model.name}
           className="w-full h-full object-cover rounded-full"
           loading="lazy"

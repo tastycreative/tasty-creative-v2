@@ -13,28 +13,48 @@ function extractSpreadsheetId(url: string): string | null {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.accessToken) {
-      return NextResponse.json(
-        { error: "Not authenticated. No access token." },
-        { status: 401 }
-      );
+    // Try different authentication methods
+    let sheets;
+    
+    // First, try with API key for public spreadsheets
+    if (process.env.AUTH_API_KEY) {
+      console.log("Trying API key authentication for scheduler update");
+      try {
+        sheets = google.sheets({ 
+          version: 'v4', 
+          auth: process.env.AUTH_API_KEY 
+        });
+      } catch (apiKeyError) {
+        console.log("API key setup failed:", apiKeyError.message);
+        sheets = null;
+      }
     }
+    
+    // If API key failed or not available, try session-based authentication
+    if (!sheets) {
+      const session = await auth();
+      
+      if (!session || !session.user || !session.accessToken) {
+        return NextResponse.json({ 
+          error: "Authentication not available - need user login or valid API key" 
+        }, { status: 401 });
+      }
 
-    const oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
-    );
+      console.log("Using session-based authentication for scheduler update");
+      const oauth2Client = new google.auth.OAuth2(
+        process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID,
+        process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET,
+        process.env.GOOGLE_REDIRECT_URI
+      );
 
-    oauth2Client.setCredentials({
-      access_token: session.accessToken,
-      refresh_token: session.refreshToken,
-      expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
-    });
-
-    const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
+      oauth2Client.setCredentials({
+        access_token: session.accessToken,
+        refresh_token: session.refreshToken,
+        expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
+      });
+      
+      sheets = google.sheets({ version: 'v4', auth: oauth2Client });
+    }
 
     const { sheetUrl, scheduleValue } = await request.json();
 
@@ -53,52 +73,128 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Format the schedule value
-    const formattedScheduleValue = `Schedule #${scheduleValue}`;
-    
-    // Update the schedule value in cell H6 (column H, row 6)
-    await sheets.spreadsheets.values.update({
-      spreadsheetId,
-      range: 'H6', // This corresponds to the schedule cell in the first row of our C6:I61 range
-      valueInputOption: 'RAW',
-      requestBody: {
-        values: [[formattedScheduleValue]]
+    try {
+      // Format the schedule value
+      const formattedScheduleValue = `Schedule #${scheduleValue}`;
+      
+      // Update the schedule value in cell H6 (column H, row 6)
+      await sheets.spreadsheets.values.update({
+        spreadsheetId,
+        range: 'H6', // This corresponds to the schedule cell in the first row of our C6:I61 range
+        valueInputOption: 'RAW',
+        requestBody: {
+          values: [[formattedScheduleValue]]
+        }
+      });
+
+      console.log(`Updated schedule to: ${formattedScheduleValue}`);
+
+      // Now fetch the updated data to return
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: 'C6:I61',
+      });
+
+      // Also fetch the full schedule setup data from M8:R range
+      const fullScheduleResponse = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: 'M8:R',
+      });
+
+      const values = response.data.values || [];
+      const fullScheduleValues = fullScheduleResponse.data.values || [];
+      
+      // Parse the updated data using the same logic as the main API
+      const schedulerData = parseSchedulerData(values);
+      const fullScheduleSetup = parseFullScheduleSetup(fullScheduleValues);
+      
+      // Extract updated schedule name
+      const scheduleRow = values[0] || [];
+      const updatedScheduleName = scheduleRow[5] || formattedScheduleValue; // Column H (index 5)
+
+      console.log(`Successfully updated scheduler data`);
+      return NextResponse.json({
+        success: true,
+        message: 'Schedule updated successfully',
+        schedulerData: schedulerData.scheduleData,
+        scheduleCheckerData: schedulerData.scheduleCheckerData,
+        fullScheduleSetup: fullScheduleSetup,
+        currentSchedule: updatedScheduleName
+      });
+
+    } catch (sheetsError) {
+      console.error('Error updating scheduler data in Google Sheets:', sheetsError);
+      
+      // If API key failed and we haven't tried OAuth yet, try OAuth
+      if (process.env.AUTH_API_KEY && !sheets.auth.credentials) {
+        console.log("API key authentication failed for scheduler update, trying OAuth...");
+        
+        try {
+          const session = await auth();
+          
+          if (session && session.user && session.accessToken) {
+            const oauth2Client = new google.auth.OAuth2(
+              process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID,
+              process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET,
+              process.env.GOOGLE_REDIRECT_URI
+            );
+
+            oauth2Client.setCredentials({
+              access_token: session.accessToken,
+              refresh_token: session.refreshToken,
+              expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
+            });
+            
+            const oauthSheets = google.sheets({ version: 'v4', auth: oauth2Client });
+            
+            // Update the schedule value
+            await oauthSheets.spreadsheets.values.update({
+              spreadsheetId,
+              range: 'H6',
+              valueInputOption: 'RAW',
+              requestBody: {
+                values: [[formattedScheduleValue]]
+              }
+            });
+
+            // Fetch updated data
+            const oauthResponse = await oauthSheets.spreadsheets.values.get({
+              spreadsheetId,
+              range: 'C6:I61',
+            });
+
+            const oauthFullScheduleResponse = await oauthSheets.spreadsheets.values.get({
+              spreadsheetId,
+              range: 'M8:R',
+            });
+
+            const values = oauthResponse.data.values || [];
+            const fullScheduleValues = oauthFullScheduleResponse.data.values || [];
+            const schedulerData = parseSchedulerData(values);
+            const fullScheduleSetup = parseFullScheduleSetup(fullScheduleValues);
+            const scheduleRow = values[0] || [];
+            const updatedScheduleName = scheduleRow[5] || formattedScheduleValue;
+
+            console.log(`OAuth fallback successful for scheduler update`);
+            return NextResponse.json({
+              success: true,
+              message: 'Schedule updated successfully',
+              schedulerData: schedulerData.scheduleData,
+              scheduleCheckerData: schedulerData.scheduleCheckerData,
+              fullScheduleSetup: fullScheduleSetup,
+              currentSchedule: updatedScheduleName
+            });
+          }
+        } catch (oauthError) {
+          console.error('OAuth fallback also failed for scheduler update:', oauthError);
+        }
       }
-    });
-
-    console.log(`Updated schedule to: ${formattedScheduleValue}`);
-
-    // Now fetch the updated data to return
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: 'C6:I61',
-    });
-
-    // Also fetch the full schedule setup data from M8:R range
-    const fullScheduleResponse = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: 'M8:R',
-    });
-
-    const values = response.data.values || [];
-    const fullScheduleValues = fullScheduleResponse.data.values || [];
-    
-    // Parse the updated data using the same logic as the main API
-    const schedulerData = parseSchedulerData(values);
-    const fullScheduleSetup = parseFullScheduleSetup(fullScheduleValues);
-    
-    // Extract updated schedule name
-    const scheduleRow = values[0] || [];
-    const updatedScheduleName = scheduleRow[5] || formattedScheduleValue; // Column H (index 5)
-
-    return NextResponse.json({
-      success: true,
-      message: 'Schedule updated successfully',
-      schedulerData: schedulerData.scheduleData,
-      scheduleCheckerData: schedulerData.scheduleCheckerData,
-      fullScheduleSetup: fullScheduleSetup,
-      currentSchedule: updatedScheduleName
-    });
+      
+      return NextResponse.json(
+        { success: false, error: 'Failed to access Google Sheets. Please check permissions.' },
+        { status: 403 }
+      );
+    }
 
   } catch (error) {
     console.error('Error updating schedule:', error);

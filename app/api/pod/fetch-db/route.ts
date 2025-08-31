@@ -79,10 +79,11 @@ export async function POST(request: NextRequest) {
       })
       .filter((creator) => creator.name !== '');
 
-    // Transform sheet data
+    // Transform sheet data from PodTeamSheets relation
     const sheetLinks = podTeam.podTeamSheets.map(sheet => ({
       name: sheet.spreadsheet_name || 'Unnamed Sheet',
-      url: sheet.sheet_link || ''
+      url: sheet.sheet_link || '',
+      id: sheet.id
     }));
 
     // Return the parsed data in the same format as the Google Sheets API

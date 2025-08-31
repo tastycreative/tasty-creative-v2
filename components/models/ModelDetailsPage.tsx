@@ -4,6 +4,23 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import ModelDetailsTabs from "@/components/models/ModelDetailsTab";
 import ModelInfoTab from "@/components/models/ModelInfoTab";
+
+// Helper function to get the appropriate image URL
+const getImageUrl = (model: any): string => {
+  const imageUrl = model?.profileImage || model?.profile;
+  
+  if (!imageUrl) {
+    return '/placeholder-image.jpg';
+  }
+  
+  // Check if it's a Google Drive URL that needs proxying
+  if (imageUrl.includes('drive.google.com')) {
+    return `/api/image-proxy?url=${encodeURIComponent(imageUrl)}`;
+  }
+  
+  // Return the URL as-is for other image sources
+  return imageUrl;
+};
 import ModelAssetsTab from "@/components/models/ModelAssetTabs";
 import ModelChattersTab from "@/components/models/tabs/ModelChattersTab";
 import ModelAppsTab from "@/components/models/tabs/ModelAppsTab";
@@ -31,7 +48,7 @@ function ModelImage({ model }: { model: ModelDetails }) {
       <div className="absolute inset-0 bg-gradient-to-r from-pink-300/40 to-rose-400/40 blur-2xl" />
       <div className="relative w-24 h-24 rounded-full bg-gradient-to-r from-pink-400 to-rose-500 p-0.5 flex items-center justify-center shadow-2xl shadow-pink-400/25">
         <img
-          src={`/api/image-proxy?id=${model.id}`}
+          src={getImageUrl(model)}
           alt={model.name}
           className="w-full h-full object-cover rounded-full"
           onError={() => setImageError(true)}

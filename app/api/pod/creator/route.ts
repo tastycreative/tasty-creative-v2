@@ -10,28 +10,48 @@ function extractSpreadsheetId(url: string): string | null {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-
-    if (!session?.accessToken) {
-      return NextResponse.json(
-        { error: "Not authenticated. No access token." },
-        { status: 401 }
-      );
+    // Try different authentication methods
+    let sheets;
+    
+    // First, try with API key for public spreadsheets
+    if (process.env.AUTH_API_KEY) {
+      console.log("Trying API key authentication for creator data");
+      try {
+        sheets = google.sheets({ 
+          version: 'v4', 
+          auth: process.env.AUTH_API_KEY 
+        });
+      } catch (apiKeyError) {
+        console.log("API key setup failed:", apiKeyError.message);
+        sheets = null;
+      }
     }
+    
+    // If API key failed or not available, try session-based authentication
+    if (!sheets) {
+      const session = await auth();
+      
+      if (!session || !session.user || !session.accessToken) {
+        return NextResponse.json({ 
+          error: "Authentication not available - need user login or valid API key" 
+        }, { status: 401 });
+      }
 
-    const oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
-    );
+      console.log("Using session-based authentication for creator data");
+      const oauth2Client = new google.auth.OAuth2(
+        process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID,
+        process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET,
+        process.env.GOOGLE_REDIRECT_URI
+      );
 
-    oauth2Client.setCredentials({
-      access_token: session.accessToken,
-      refresh_token: session.refreshToken,
-      expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
-    });
-
-    const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
+      oauth2Client.setCredentials({
+        access_token: session.accessToken,
+        refresh_token: session.refreshToken,
+        expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
+      });
+      
+      sheets = google.sheets({ version: 'v4', auth: oauth2Client });
+    }
 
     const { sheetUrl } = await request.json();
 
@@ -44,22 +64,73 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid Google Sheets URL' }, { status: 400 });
     }
 
-    // Fetch data from C6:I50 range
-    const response = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: 'C6:I50',
-    });
+    try {
+      // Fetch data from C6:I50 range
+      const response = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: 'C6:I50',
+      });
 
-    const values = response.data.values || [];
-    console.log('Raw data from C6:I50:', values);
+      const values = response.data.values || [];
+      console.log('Raw data from C6:I50:', values);
 
-    // Parse the creator data structure
-    const creatorData = parseCreatorData(values);
+      // Parse the creator data structure
+      const creatorData = parseCreatorData(values);
 
-    return NextResponse.json({
-      massMessages: creatorData.massMessages,
-      wallPosts: creatorData.wallPosts
-    });
+      console.log(`Successfully fetched creator data`);
+      return NextResponse.json({
+        massMessages: creatorData.massMessages,
+        wallPosts: creatorData.wallPosts
+      });
+
+    } catch (sheetsError) {
+      console.error('Error fetching creator data from Google Sheets:', sheetsError);
+      
+      // If API key failed and we haven't tried OAuth yet, try OAuth
+      if (process.env.AUTH_API_KEY && !sheets.auth.credentials) {
+        console.log("API key authentication failed for creator, trying OAuth...");
+        
+        try {
+          const session = await auth();
+          
+          if (session && session.user && session.accessToken) {
+            const oauth2Client = new google.auth.OAuth2(
+              process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID,
+              process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET,
+              process.env.GOOGLE_REDIRECT_URI
+            );
+
+            oauth2Client.setCredentials({
+              access_token: session.accessToken,
+              refresh_token: session.refreshToken,
+              expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
+            });
+            
+            const oauthSheets = google.sheets({ version: 'v4', auth: oauth2Client });
+            const oauthResponse = await oauthSheets.spreadsheets.values.get({
+              spreadsheetId,
+              range: 'C6:I50',
+            });
+
+            const values = oauthResponse.data.values || [];
+            const creatorData = parseCreatorData(values);
+
+            console.log(`OAuth fallback successful for creator data`);
+            return NextResponse.json({
+              massMessages: creatorData.massMessages,
+              wallPosts: creatorData.wallPosts
+            });
+          }
+        } catch (oauthError) {
+          console.error('OAuth fallback also failed for creator:', oauthError);
+        }
+      }
+      
+      return NextResponse.json(
+        { error: 'Failed to access Google Sheets. Please check permissions.' },
+        { status: 403 }
+      );
+    }
 
   } catch (error) {
     console.error('Error fetching creator data:', error);
