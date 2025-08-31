@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 
 // Note: You need to replace [YOUR-PASSWORD] in .env with your actual Supabase password
 const supabaseUrl = 'https://zmfwpbokcpzflztcetaw.supabase.co'
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || '' // Add this to your .env
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '' // Uses the client-exposed version
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '' // Add this to your .env for admin operations
 
 // Create Supabase client with service role for admin operations (bypasses RLS)

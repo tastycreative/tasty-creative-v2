@@ -207,8 +207,9 @@ export async function GET(request: NextRequest) {
       
       
       // Fetch favorites and releases data in parallel with table data
+      // Using shared 'current-user' for collaborative favorites/releases
       const [favoritesResult, releasesResult] = await Promise.all([
-        getUserFavorites('current-user'), // TODO: Get actual user ID from session
+        getUserFavorites('current-user'),
         getReleases()
       ])
       
@@ -510,8 +511,9 @@ export async function GET(request: NextRequest) {
       }
 
       // Fetch favorites and releases data in parallel
+      // Using shared 'current-user' for collaborative favorites/releases
       const [favoritesResult, releasesResult] = await Promise.all([
-        getUserFavorites('current-user'), // TODO: Get actual user ID from session
+        getUserFavorites('current-user'),
         getReleases()
       ])
       
