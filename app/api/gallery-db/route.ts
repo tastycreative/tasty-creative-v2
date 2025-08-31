@@ -441,8 +441,8 @@ export async function GET(request: NextRequest) {
           endIndex: Math.min(limit, filteredItems.length)
         },
         breakdown: {
-          favorites: filteredItems.filter(item => item.isFavorite).length,
-          releases: filteredItems.filter(item => item.isRelease).length,
+          favorites: favoritesResult.data?.length || 0, // Use actual database count
+          releases: releasesResult.data?.length || 0, // Use actual database count
           library: allItems.length
         },
         categories: categoryBreakdown,
@@ -719,8 +719,8 @@ export async function GET(request: NextRequest) {
         endIndex: Math.min(limit, filteredItems.length)
       },
       breakdown: {
-        favorites: filteredItems.filter(item => item.isFavorite).length,
-        releases: filteredItems.filter(item => item.isRelease).length,
+        favorites: favoritesResult.data?.length || 0, // Use actual database count
+        releases: releasesResult.data?.length || 0, // Use actual database count
         library: transformedItems.length
       },
       categories: categoryBreakdown,
