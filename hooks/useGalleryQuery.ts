@@ -30,7 +30,9 @@ export function useGalleryData() {
     queryKey: QUERY_KEYS.gallery,
     queryFn: fetchGalleryData,
     staleTime: 0, // Always refetch for fresh data
-    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    gcTime: 1 * 60 * 1000, // Keep in cache for 1 minute only
+    refetchOnMount: true, // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when window regains focus
   });
 }
 
