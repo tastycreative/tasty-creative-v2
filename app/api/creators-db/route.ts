@@ -69,47 +69,50 @@ export async function GET(request: Request) {
       };
     }));
 
-    // Create comprehensive pricing groups from ALL content details columns
+    // Create pricing groups matching the correct Google Sheets structure
     const pricingGroups = [
       {
-        id: 'content-pricing',
-        groupName: 'Content Pricing',
+        id: 'content-price-ranges',
+        groupName: 'Content Price Ranges',
         items: [
-          { id: 'custom-video', name: 'Custom Video', description: 'Personalized video content' },
-          { id: 'custom-call', name: 'Custom Call', description: 'Private video/voice calls' },
-          { id: 'bundle-5-10', name: '$5-10 Bundle', description: 'Content bundle $5-10 range' },
-          { id: 'bundle-10-15', name: '$10-15 Bundle', description: 'Content bundle $10-15 range' },
-          { id: 'bundle-15-20', name: '$15-20 Bundle', description: 'Content bundle $15-20 range' },
-          { id: 'bundle-20-25', name: '$20-25 Bundle', description: 'Content bundle $20-25 range' },
-          { id: 'bundle-25-30', name: '$25-30 Bundle', description: 'Content bundle $25-30 range' },
-          { id: 'bundle-30-plus', name: '$30+ Bundle', description: 'Premium content bundle' }
-        ],
-        pricing: {}
-      },
-      {
-        id: 'content-types',
-        groupName: 'Content Types & Availability',
-        items: [
-          { id: 'twitter-nudity', name: 'Twitter Nudity', description: 'Twitter content permissions' },
-          { id: 'livestreams', name: 'Livestreams', description: 'Live streaming availability' },
-          { id: 'wall-limitations', name: 'Wall Limitations', description: 'OnlyFans wall restrictions' },
-          { id: 'censorship-limitations', name: 'Censorship Limitations', description: 'Flyer censorship rules' },
           { id: 'boob-content', name: 'Boob Content', description: 'Topless content availability' },
           { id: 'pussy-content', name: 'Pussy Content', description: 'Explicit content availability' },
-          { id: 'solo-squirt', name: 'Solo Squirt', description: 'Solo squirting content' },
-          { id: 'solo-finger', name: 'Solo Finger', description: 'Solo fingering content' },
-          { id: 'solo-dildo', name: 'Solo Dildo', description: 'Solo dildo content' },
-          { id: 'solo-vibrator', name: 'Solo Vibrator', description: 'Solo vibrator content' },
+          { id: 'solo-squirt', name: 'Solo Squirt Content', description: 'Solo squirting content' },
+          { id: 'solo-finger', name: 'Solo Finger Content', description: 'Solo fingering content' },
+          { id: 'solo-dildo', name: 'Solo Dildo Content', description: 'Solo dildo content' },
+          { id: 'solo-vibrator', name: 'Solo Vibrator Content', description: 'Solo vibrator content' },
           { id: 'joi-content', name: 'JOI Content', description: 'Jerk Off Instructions' },
           { id: 'bg-content', name: 'BG Content', description: 'Boy/Girl content' },
-          { id: 'bj-handjob', name: 'BJ/Handjob', description: 'Blowjob and handjob content' },
+          { id: 'bj-handjob', name: 'BJ/Handjob Content', description: 'Blowjob and handjob content' },
           { id: 'bgg-content', name: 'BGG Content', description: 'Boy/Girl/Girl content' },
           { id: 'bbg-content', name: 'BBG Content', description: 'Boy/Boy/Girl content' },
           { id: 'orgy-content', name: 'Orgy Content', description: 'Group content' },
           { id: 'gg-content', name: 'GG Content', description: 'Girl/Girl content' },
           { id: 'anal-content', name: 'Anal Content', description: 'Anal content availability' },
-          { id: 'livestream-content', name: 'Livestream Content', description: 'Live streaming content' },
-          { id: 'content-options-games', name: 'Content for Games', description: 'Gaming content options' }
+          { id: 'livestream-content', name: 'Livestream Content', description: 'Live streaming content' }
+        ],
+        pricing: {}
+      },
+      {
+        id: 'custom-content',
+        groupName: 'Custom Content',
+        items: [
+          { id: 'custom-video', name: 'Custom Video Pricing', description: 'Personalized video content pricing' },
+          { id: 'custom-call', name: 'Custom Call Pricing', description: 'Private video/voice calls pricing' }
+        ],
+        pricing: {}
+      },
+      {
+        id: 'bundle-contents',
+        groupName: 'Bundle Contents',
+        items: [
+          { id: 'bundle-5-10', name: '$5-10 Bundle Content', description: 'Content bundle $5-10 range' },
+          { id: 'bundle-10-15', name: '$10-15 Bundle Content', description: 'Content bundle $10-15 range' },
+          { id: 'bundle-15-20', name: '$15-20 Bundle Content', description: 'Content bundle $15-20 range' },
+          { id: 'bundle-20-25', name: '$20-25 Bundle Content', description: 'Content bundle $20-25 range' },
+          { id: 'bundle-25-30', name: '$25-30 Bundle Content', description: 'Content bundle $25-30 range' },
+          { id: 'bundle-30-plus', name: '$30+ Bundle Content', description: 'Premium content bundle' },
+          { id: 'content-options-games', name: 'Content Options For Games', description: 'Gaming content options' }
         ],
         pricing: {}
       }
@@ -121,40 +124,41 @@ export async function GET(request: Request) {
       const content = model.contentDetails[0];
       
       // Always create pricing entries, even if content is null/empty
-      // Content Pricing group
+      
+      // Content Price Ranges group (Group 1)
       (pricingGroups[0].pricing as any)[creatorName] = {
-        'Custom Video': content?.customVideoPricing || '',
-        'Custom Call': content?.customCallPricing || '',
-        '$5-10 Bundle': content?.bundleContent5_10 || '',
-        '$10-15 Bundle': content?.bundleContent10_15 || '',
-        '$15-20 Bundle': content?.bundleContent15_20 || '',
-        '$20-25 Bundle': content?.bundleContent20_25 || '',
-        '$25-30 Bundle': content?.bundleContent25_30 || '',
-        '$30+ Bundle': content?.bundleContent30Plus || ''
-      };
-
-      // Content Types & Availability group - include ALL fields
-      (pricingGroups[1].pricing as any)[creatorName] = {
-        'Twitter Nudity': content?.twitterNudity || '',
-        'Livestreams': content?.openToLivestreams || '',
-        'Wall Limitations': content?.onlyFansWallLimitations || '',
-        'Censorship Limitations': content?.flyerCensorshipLimitations || '',
         'Boob Content': content?.boobContent || '',
         'Pussy Content': content?.pussyContent || '',
-        'Solo Squirt': content?.soloSquirtContent || '',
-        'Solo Finger': content?.soloFingerContent || '',
-        'Solo Dildo': content?.soloDildoContent || '',
-        'Solo Vibrator': content?.soloVibratorContent || '',
+        'Solo Squirt Content': content?.soloSquirtContent || '',
+        'Solo Finger Content': content?.soloFingerContent || '',
+        'Solo Dildo Content': content?.soloDildoContent || '',
+        'Solo Vibrator Content': content?.soloVibratorContent || '',
         'JOI Content': content?.joiContent || '',
         'BG Content': content?.bgContent || '',
-        'BJ/Handjob': content?.bjHandjobContent || '',
+        'BJ/Handjob Content': content?.bjHandjobContent || '',
         'BGG Content': content?.bggContent || '',
         'BBG Content': content?.bbgContent || '',
         'Orgy Content': content?.orgyContent || '',
         'GG Content': content?.ggContent || '',
         'Anal Content': content?.analContent || '',
-        'Livestream Content': content?.livestreamContent || '',
-        'Content for Games': content?.contentOptionsForGames || ''
+        'Livestream Content': content?.livestreamContent || ''
+      };
+
+      // Custom Content group (Group 2)
+      (pricingGroups[1].pricing as any)[creatorName] = {
+        'Custom Video Pricing': content?.customVideoPricing || '',
+        'Custom Call Pricing': content?.customCallPricing || ''
+      };
+
+      // Bundle Contents group (Group 3)
+      (pricingGroups[2].pricing as any)[creatorName] = {
+        '$5-10 Bundle Content': content?.bundleContent5_10 || '',
+        '$10-15 Bundle Content': content?.bundleContent10_15 || '',
+        '$15-20 Bundle Content': content?.bundleContent15_20 || '',
+        '$20-25 Bundle Content': content?.bundleContent20_25 || '',
+        '$25-30 Bundle Content': content?.bundleContent25_30 || '',
+        '$30+ Bundle Content': content?.bundleContent30Plus || '',
+        'Content Options For Games': content?.contentOptionsForGames || ''
       };
     });
 

@@ -7,17 +7,20 @@ import ModelsList from "@/components/models/ModelList";
 import ModelsHeader from "@/components/models/ModelsHeader";
 import PermissionGoogle from "@/components/PermissionGoogle";
 import { transformRawModel } from "@/lib/utils";
-import { usePodData } from "@/lib/stores/podStore";
+import { usePodData, useAvailableTeams, usePodStore } from "@/lib/stores/podStore";
 
 export default function MyModelsPage() {
   const { data: session } = useSession();
   const router = useRouter();
   const { podData } = usePodData();
+  const { teams, fetchAvailableTeams } = useAvailableTeams();
+  const { fetchPodData } = usePodStore();
   
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<ModelStatus | "all">("all");
   const [isLoadingModels, setLoadingModels] = useState(false);
   const [allModels, setAllModels] = useState<ModelDetails[]>([]);
+  const [userAssignedCreators, setUserAssignedCreators] = useState<string[]>([]);
 
   // Fetch all models
   useEffect(() => {
@@ -37,15 +40,78 @@ export default function MyModelsPage() {
     fetchModels();
   }, []);
 
+  // Fetch user assignments across all teams
+  useEffect(() => {
+    const fetchUserAssignments = async () => {
+      if (!session?.user?.email) return;
+
+      try {
+        // First fetch available teams
+        await fetchAvailableTeams();
+        
+        // Then check each team for user membership and collect assigned creators
+        const allUserCreators: string[] = [];
+        
+        if (teams && teams.length > 0) {
+          for (const team of teams) {
+            try {
+              // Fetch pod data for each team row
+              await fetchPodData(team.row);
+              
+              // Get the pod data for this team
+              const teamPodResponse = await fetch("/api/pod/fetch", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  spreadsheetUrl: "https://docs.google.com/spreadsheets/d/1sTp3x6SA4yKkYEwPUIDPNzAPiu0RnaV1009NXZ7PkZM/edit?gid=0#gid=0",
+                  rowNumber: team.row,
+                }),
+              });
+              
+              if (teamPodResponse.ok) {
+                const { data: teamData } = await teamPodResponse.json();
+                
+                // Check if user is a member of this team
+                const isUserInTeam = teamData?.teamMembers?.some(
+                  (member: any) => member.email?.toLowerCase() === session.user.email?.toLowerCase()
+                );
+                
+                // If user is in this team, add all creators from this team
+                if (isUserInTeam && teamData?.creators) {
+                  teamData.creators.forEach((creator: any) => {
+                    if (!allUserCreators.includes(creator.name)) {
+                      allUserCreators.push(creator.name);
+                    }
+                  });
+                }
+              }
+            } catch (error) {
+              console.error(`Error fetching data for team row ${team.row}:`, error);
+            }
+          }
+        }
+        
+        console.log("🎯 User assigned creators across all teams:", allUserCreators);
+        setUserAssignedCreators(allUserCreators);
+        
+      } catch (error) {
+        console.error("Error fetching user assignments:", error);
+      }
+    };
+
+    if (session?.user?.email && teams.length === 0) {
+      // Fetch teams first if they haven't been loaded
+      fetchAvailableTeams();
+    } else if (session?.user?.email && teams.length > 0) {
+      fetchUserAssignments();
+    }
+  }, [session?.user?.email, teams, fetchAvailableTeams, fetchPodData]);
+
   // Filter models based on user permissions
   const accessibleModels = useMemo(() => {
     console.log("🔍 My Models Debug:", {
       sessionUser: session?.user,
-      podData: podData ? {
-        teamName: podData.teamName,
-        teamMembers: podData.teamMembers,
-        creators: podData.creators
-      } : null,
+      userAssignedCreators,
       allModelsCount: allModels.length,
       allModelNames: allModels.map(m => m.name)
     });
@@ -58,9 +124,9 @@ export default function MyModelsPage() {
       return allModels;
     }
 
-    // For non-admin users, we need to check team membership and creator assignments
-    if (!podData?.creators || !podData?.teamMembers) {
-      console.log("❌ No pod data or creators/team members");
+    // For non-admin users, check models against all assigned creators across teams
+    if (userAssignedCreators.length === 0) {
+      console.log("❌ No assigned creators found for user");
       return [];
     }
 
@@ -71,31 +137,19 @@ export default function MyModelsPage() {
       return [];
     }
 
-    // Check if user is in the current team members
-    const isTeamMember = podData.teamMembers.some(member => 
-      member.email?.toLowerCase() === userEmail.toLowerCase()
-    );
+    console.log("👥 User assigned creators:", userAssignedCreators);
 
-    console.log("👥 Team membership check:", {
-      userEmail,
-      isTeamMember,
-      teamMembers: podData.teamMembers.map(m => ({ name: m.name, email: m.email }))
-    });
-
-    // If user is not a team member, return empty array
-    if (!isTeamMember) return [];
-
-    // If user is a team member, show models for ALL creators assigned to this team
+    // Show models for ALL creators assigned to the user across all teams
     const filtered = allModels.filter(model => {
       const modelName = model.name.toLowerCase();
       
-      // Check if model name matches any of the team's assigned creators
-      const matches = podData.creators.some(creator => {
-        const creatorName = creator.name.toLowerCase();
+      // Check if model name matches any of the user's assigned creators
+      const matches = userAssignedCreators.some(creatorName => {
+        const lowerCreatorName = creatorName.toLowerCase();
         
         // More precise matching - check for exact matches or word boundaries
         const modelWords = modelName.split(/[\s\-_]+/);
-        const creatorWords = creatorName.split(/[\s\-_]+/);
+        const creatorWords = lowerCreatorName.split(/[\s\-_]+/);
         
         // Check if any creator word exactly matches any model word
         const exactMatch = creatorWords.some(creatorWord => 
@@ -105,18 +159,18 @@ export default function MyModelsPage() {
         );
         
         // Also check for exact full name matches
-        const fullMatch = modelName === creatorName || 
-                         modelName.includes(` ${creatorName} `) || 
-                         modelName.startsWith(`${creatorName} `) || 
-                         modelName.endsWith(` ${creatorName}`) ||
-                         creatorName.includes(` ${modelName} `) || 
-                         creatorName.startsWith(`${modelName} `) || 
-                         creatorName.endsWith(` ${modelName}`);
+        const fullMatch = modelName === lowerCreatorName || 
+                         modelName.includes(` ${lowerCreatorName} `) || 
+                         modelName.startsWith(`${lowerCreatorName} `) || 
+                         modelName.endsWith(` ${lowerCreatorName}`) ||
+                         lowerCreatorName.includes(` ${modelName} `) || 
+                         lowerCreatorName.startsWith(`${modelName} `) || 
+                         lowerCreatorName.endsWith(` ${modelName}`);
         
         const match = exactMatch || fullMatch;
         
         if (match) {
-          console.log("✅ Model match found:", { modelName, creatorName, exactMatch, fullMatch });
+          console.log("✅ Model match found:", { modelName, creatorName: lowerCreatorName, exactMatch, fullMatch });
         }
         
         return match;
@@ -127,7 +181,7 @@ export default function MyModelsPage() {
 
     console.log("🎯 Final filtered models:", filtered.map(m => m.name));
     return filtered;
-  }, [allModels, session, podData]);
+  }, [allModels, session, userAssignedCreators]);
 
   // Apply search and status filters
   const filteredModels = useMemo(() => {
@@ -185,7 +239,7 @@ export default function MyModelsPage() {
         subtitle={
           session.user.role === "ADMIN" 
             ? "All models in the system"
-            : "Models assigned to you or your team"
+            : `Models assigned to you across all teams (${userAssignedCreators.length} creators)`
         }
       />
       <PermissionGoogle apiEndpoint="/api/models">

@@ -242,37 +242,44 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
   
   const isAdmin = session?.user?.role === 'ADMIN';
 
-  // Fetch data from Google Sheets only if assigned creators are available
+  // Fetch data from Prisma DB only if assigned creators are available
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       setError(null);
       try {
-        // Fetch both pricing data and creator data from our API route with retry
-        const response = await fetchWithRetry("/api/pricing-data");
+        // Fetch both pricing data and creator data from Prisma DB via creators-db API
+        console.log('🎯 PricingGuide fetching from Prisma DB via /api/creators-db');
+        const response = await fetchWithRetry("/api/creators-db");
 
         if (!response.ok) {
-          throw new Error("Failed to fetch pricing data");
+          throw new Error("Failed to fetch pricing data from database");
         }
 
-        const { pricingData: sheetPricingData, creators: sheetCreatorData } =
+        const { pricingData: dbPricingData, creators: dbCreatorData } =
           await response.json();
 
-        console.log("Fetched pricing data:", sheetPricingData);
-        console.log("Fetched creators:", sheetCreatorData);
+        console.log("📊 Fetched pricing data from Prisma DB:", dbPricingData);
+        console.log("👥 Fetched creators from Prisma DB:", dbCreatorData);
 
-        if (sheetPricingData && sheetPricingData.length > 0) {
-          setPricingData(sheetPricingData);
-          console.log("Set pricing data:", sheetPricingData);
+        if (dbPricingData && dbPricingData.length > 0) {
+          setPricingData(dbPricingData);
+          console.log("✅ Set pricing data from database:", dbPricingData);
         }
 
-        if (sheetCreatorData && sheetCreatorData.length > 0) {
-          setDisplayCreators(sheetCreatorData);
-          console.log("Set display creators:", sheetCreatorData);
+        if (dbCreatorData && dbCreatorData.length > 0) {
+          // Convert database creators to match expected format
+          const formattedCreators = dbCreatorData.map((creator: any, index: number) => ({
+            id: creator.id,
+            name: creator.name,
+            rowNumber: index + 1 // Add row numbers for consistency
+          }));
+          setDisplayCreators(formattedCreators);
+          console.log("✅ Set display creators from database:", formattedCreators);
         }
       } catch (err) {
-        console.error("Failed to fetch data from Google Sheets:", err);
-        setError("Failed to load pricing data from Google Sheets.");
+        console.error("❌ Failed to fetch data from Prisma database:", err);
+        setError("Failed to load pricing data from database.");
       } finally {
         setLoading(false);
       }
@@ -283,10 +290,8 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
       setDisplayCreators(creators);
       loadData();
     } else {
-      // If no assigned creators, clear data and stop loading
-      setPricingData([]);
-      setDisplayCreators([]);
-      setLoading(false);
+      // If no assigned creators, still load all data from database to show available creators
+      loadData();
     }
   }, [creators]);
 
@@ -377,6 +382,17 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
       .filter(Boolean) as PricingGroup[];
   }, [searchQuery, pricingData]);
 
+  // Debug logging after all variables are declared
+  useEffect(() => {
+    console.log("🔍 PricingGuide render state:", {
+      loading,
+      availableCreatorsLength: availableCreators.length,
+      pricingDataLength: pricingData.length,
+      filteredPricingDataLength: filteredPricingData.length,
+      searchQuery,
+    });
+  }, [loading, availableCreators.length, pricingData.length, filteredPricingData.length, searchQuery]);
+
   const toggleGroup = (groupId: string) => {
     setOpenGroups((prev) => ({
       ...prev,
@@ -426,7 +442,13 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
     try {
       setUpdateStatus(null);
       
-      const response = await fetch('/api/pricing-update', {
+      console.log('💾 Updating price in Prisma DB:', {
+        creatorName: editingCell.creatorName,
+        itemName: editingCell.itemName,
+        newPrice: editingCell.newValue
+      });
+      
+      const response = await fetch('/api/creators-db/update-pricing', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -434,14 +456,17 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
         body: JSON.stringify({
           creatorName: editingCell.creatorName,
           itemName: editingCell.itemName,
-          newPrice: editingCell.newValue,
-          creatorRowNumber: editingCell.creatorRowNumber
+          newPrice: editingCell.newValue
         })
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update price');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update price in database');
       }
+
+      const result = await response.json();
+      console.log('✅ Price updated in database:', result);
 
       // Update local state
       setPricingData(prevData => 
@@ -457,15 +482,15 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
         }))
       );
 
-      setUpdateStatus({ type: 'success', message: 'Price updated successfully!' });
+      setUpdateStatus({ type: 'success', message: 'Price updated in database successfully!' });
       setEditingCell(null);
       
       // Clear success message after 3 seconds
       setTimeout(() => setUpdateStatus(null), 3000);
       
     } catch (error) {
-      console.error('Error updating price:', error);
-      setUpdateStatus({ type: 'error', message: 'Failed to update price. Please try again.' });
+      console.error('❌ Error updating price in database:', error);
+      setUpdateStatus({ type: 'error', message: 'Failed to update price in database. Please try again.' });
       
       // Clear error message after 5 seconds
       setTimeout(() => setUpdateStatus(null), 5000);
@@ -580,14 +605,7 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
             )}
           </div>
 
-          {/* Debug info */}
-          {console.log("Render state:", {
-            loading,
-            availableCreators: availableCreators.length,
-            pricingData: pricingData.length,
-            filteredPricingData: filteredPricingData.length,
-            searchQuery,
-          })}
+          {/* Debug info - moved to useEffect to avoid rendering issues */}
 
           {/* Accordion Rows */}
           {loading ? (
@@ -701,8 +719,7 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
         {/* Footer Note */}
         <div className="mt-6 text-center">
           <p className="text-xs text-gray-500 dark:text-gray-500">
-            Prices shown are based on Client Basic Information and Notes on
-            Google Sheets final pricing
+            Prices shown are based on ContentDetails stored in the database
           </p>
         </div>
       </div>

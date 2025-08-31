@@ -257,6 +257,27 @@ model ClientModelDetails {
   wall_restrictions     String?
 }
 
+model PodTeam {
+  id                           String          @id @default(cuid())
+  row_id                       String          @unique
+  pod_name                     String
+  link_to_team_sheet           String?
+  team_members                 String?
+  creators_assigned            String?
+  current_week_schedule_status String?
+  issues_notes                 String?
+  last_updated                 DateTime        @updatedAt
+  podTeamSheets                PodTeamSheets[] @relation("PodTeamToSheets")
+}
+
+model PodTeamSheets {
+  id               String  @id @default(cuid())
+  row_id           String
+  sheet_link       String? @unique
+  spreadsheet_name String?
+  podTeam          PodTeam @relation("PodTeamToSheets", fields: [row_id], references: [row_id], onDelete: Cascade)
+}
+
 enum Role {
   USER
   ADMIN
