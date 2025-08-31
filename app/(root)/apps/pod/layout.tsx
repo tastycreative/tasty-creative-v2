@@ -158,10 +158,22 @@ export default function PodLayout({ children }: PodLayoutProps) {
 
   // Fetch pod data when team changes (for all tabs)
   useEffect(() => {
-    if (selectedRow !== null) {
+    // Only fetch data if:
+    // 1. selectedRow is valid
+    // 2. teams have been loaded (to avoid race conditions during hydration)
+    console.log(`🔍 Layout useEffect triggered:`, {
+      selectedRow,
+      availableTeamsLength: availableTeams.length,
+      pathname,
+      willFetch: selectedRow !== null && selectedRow !== 0 && availableTeams.length > 0
+    });
+    
+    if (selectedRow !== null && selectedRow !== 0 && availableTeams.length > 0) {
+      console.log(`🔄 Fetching data for team ${selectedRow} (teams loaded: ${availableTeams.length})`);
       fetchPodData(selectedRow, true); // Force refresh when team changes
     }
-  }, [selectedRow, fetchPodData]);
+  }, [selectedRow, fetchPodData, availableTeams.length]);
+
 
   const handleSheetClick = (sheetName: string, sheetUrl: string) => {
     setSelectedSheet({ name: sheetName, url: sheetUrl });

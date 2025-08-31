@@ -203,8 +203,8 @@ export const usePodStore = create<PodStore>()(
   devtools(
     persist(
       (set, get) => ({
-        // Initial state
-        selectedRow: 8,
+        // Initial state - will be overridden by persisted value
+        selectedRow: 8, // Default fallback if no persisted value exists
         activeTab: 'dashboard',
         
         podData: null,
@@ -236,8 +236,10 @@ export const usePodStore = create<PodStore>()(
         openSheetGroups: {},
         
         // Actions
-        setSelectedRow: (row) =>
-          set({ selectedRow: row }),
+        setSelectedRow: (row) => {
+          console.log(`🔄 setSelectedRow called:`, { oldRow: get().selectedRow, newRow: row });
+          set({ selectedRow: row });
+        },
           
         setActiveTab: (tab) =>
           set({ activeTab: tab }),
@@ -282,6 +284,7 @@ export const usePodStore = create<PodStore>()(
         
         // Data fetching methods
         fetchPodData: async (rowNumber, forceRefresh = false) => {
+          console.log(`📊 fetchPodData called:`, { requestedRowNumber: rowNumber, currentSelectedRow: get().selectedRow, forceRefresh });
           const row = rowNumber ?? get().selectedRow;
           const cacheKey = `pod-data-${row}`;
           
@@ -557,8 +560,10 @@ export const usePodStore = create<PodStore>()(
           }));
           
           try {
-            console.log('🎯 Fetching pricing data from Prisma DB via /api/creators-db');
-            const result = await apiCall<{ creators: any[], pricingData: any[] }>('/api/creators-db');
+            // Only fetch data for the creators assigned to this team
+            const creatorNames = creatorsToUse.map(c => c.name).join(',');
+            console.log('🎯 Fetching pricing data from Prisma DB for creators:', creatorNames);
+            const result = await apiCall<{ creators: any[], pricingData: any[] }>(`/api/creators-db?creators=${encodeURIComponent(creatorNames)}`);
             console.log('📊 Prisma DB response received:', {
               creatorsCount: result.creators?.length || 0,
               pricingGroupsCount: result.pricingData?.length || 0,
@@ -756,7 +761,7 @@ export const usePodStore = create<PodStore>()(
               pricingPreview: null,
             }
           })),
-      })),
+      }),
       {
         name: 'pod-store',
         storage: createJSONStorage(() => localStorage),
@@ -774,6 +779,7 @@ export const usePodStore = create<PodStore>()(
       name: 'pod-store',
     }
   )
+);
 
 
 // Utility hooks for easier access to specific state slices

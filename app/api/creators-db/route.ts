@@ -10,12 +10,34 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    // Get query parameters for specific creator
+    // Get query parameters
     const { searchParams } = new URL(request.url);
     const creatorName = searchParams.get('creatorName');
+    const creatorsParam = searchParams.get('creators');
+    
+    // If creators list is provided, only fetch those specific creators
+    let whereCondition: any = {};
+    if (creatorsParam) {
+      const creatorNames = creatorsParam.split(',').map(name => name.trim());
+      whereCondition = {
+        clientName: {
+          in: creatorNames,
+          mode: 'insensitive'
+        }
+      };
+      console.log('🎯 Filtering to specific creators:', creatorNames);
+    } else if (creatorName) {
+      whereCondition = {
+        clientName: {
+          equals: creatorName,
+          mode: 'insensitive'
+        }
+      };
+    }
 
-    // Fetch all client models with their content details
+    // Fetch client models with filtering
     const clientModels = await prisma.clientModel.findMany({
+      where: whereCondition,
       include: {
         contentDetails: true
       },
@@ -23,6 +45,8 @@ export async function GET(request: Request) {
         clientName: 'asc'
       }
     });
+    
+    console.log(`📊 Fetched ${clientModels.length} creators from database`);
 
     // Transform the data to match the expected format for POD
     const creators = await Promise.all(clientModels.map(async (model: any) => {
