@@ -5,7 +5,7 @@ import { updateUserRole } from "@/app/actions/admin";
 import { Edit2, Save, X } from "lucide-react";
 import { notifyRoleChange } from "@/lib/session-sync";
 
-type Role = "GUEST" | "USER" | "MODERATOR" | "ADMIN" | "SWD";
+type Role = "GUEST" | "USER" | "MODERATOR" | "ADMIN" | "SWD" | "POD";
 
 interface UserRoleFormProps {
   userId: string;
@@ -28,7 +28,7 @@ export function UserRoleForm({
       try {
         const result = await updateUserRole(userId, selectedRole);
         setIsEditing(false);
-        
+
         // If there's a role change notification, broadcast it
         if (result.roleChangeNotification) {
           notifyRoleChange(result.roleChangeNotification);
@@ -66,6 +66,7 @@ export function UserRoleForm({
       >
         <option value="GUEST">Guest</option>
         <option value="USER">User</option>
+        <option value="POD">POD</option>
         <option value="SWD">SWD (Script Writing Department)</option>
         <option value="MODERATOR">Moderator</option>
         <option value="ADMIN">Admin</option>

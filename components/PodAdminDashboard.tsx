@@ -165,9 +165,6 @@ const PodAdminDashboard = () => {
   const [creatorsSuccess, setCreatorsSuccess] = useState<string | null>(null);
   const [availableCreators, setAvailableCreators] = useState<string[]>([]);
 
-  // Constants for API calls
-  const DEFAULT_SPREADSHEET_URL =
-    "https://docs.google.com/spreadsheets/d/1sTp3x6SA4yKkYEwPUIDPNzAPiu0RnaV1009NXZ7PkZM/edit?gid=0#gid=0";
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -238,43 +235,48 @@ const PodAdminDashboard = () => {
   // API Functions
   const fetchAvailableTeams = async () => {
     try {
-      const response = await fetch("/api/pod/teams", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
-          startRow: 8,
-          endRow: 20,
-        }),
-      });
+      // Use the new database API instead of Google Sheets
+      const response = await fetch("/api/pod/teams-db");
 
       if (!response.ok) {
         throw new Error(`Failed to fetch teams: ${response.statusText}`);
       }
 
       const result = await response.json();
+      console.log('🔄 Database teams response:', result);
+      console.log('🔍 Raw team_members data:', result.teams?.map((t: any) => ({ 
+        name: t.name, 
+        team_members: t.team_members,
+        creators_assigned: t.creators_assigned 
+      })));
 
       if (result.success && result.teams) {
         const apiTeams: Team[] = await Promise.all(
-          result.teams.map(async (apiTeam: any) => {
-            const teamData = await fetchTeamData(apiTeam.row);
-            const teamId = `team-${apiTeam.row}`;
+          result.teams.map(async (dbTeam: any) => {
+            const teamId = `team-${dbTeam.row}`;
             const dbTasks = await fetchTasksFromDB(teamId);
+
+            // Use the already-parsed members and creators from the API response
+            const teamMembers = dbTeam.members || [];
+            const teamCreators = dbTeam.creators?.map((creator: any) => creator.name) || [];
+
             return {
               id: teamId,
-              name: apiTeam.name,
-              description:
-                teamData?.description || `Team from row ${apiTeam.row}`,
-              members: apiTeam.members || [], // Use members from API response
-              tasks: dbTasks.length > 0 ? dbTasks : teamData?.tasks || [],
-              sheetUrl: apiTeam.sheetUrl || teamData?.sheetUrl,
-              rowNumber: apiTeam.row,
-              creators: apiTeam.creators || [], // Add creators from API response
+              name: dbTeam.name,
+              description: dbTeam.label || `Team from database row ${dbTeam.row}`,
+              members: teamMembers,
+              tasks: dbTasks,
+              sheetUrl: dbTeam.sheetUrl || "",
+              rowNumber: dbTeam.row,
+              creators: teamCreators,
             };
           })
         );
+        console.log('📊 Parsed teams with members:', apiTeams.map(t => ({ 
+          name: t.name, 
+          memberCount: t.members.length, 
+          members: t.members 
+        })));
         setTeams(apiTeams);
         return apiTeams;
       }
@@ -287,14 +289,14 @@ const PodAdminDashboard = () => {
 
   const fetchTeamData = async (rowNumber: number, retryCount = 0) => {
     try {
-      const response = await fetch("/api/pod/fetch", {
+      // Use the new database API instead of Google Sheets
+      const response = await fetch("/api/pod/fetch-db", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
-          rowNumber: rowNumber,
+          rowId: rowNumber,
         }),
       });
 
@@ -473,36 +475,33 @@ const PodAdminDashboard = () => {
         )
       );
 
-      // Update Google Sheets with new member list
+      // Update database with new member list
       try {
-        const rowNumber = parseInt(teamId.replace("team-", ""));
-        if (!isNaN(rowNumber)) {
-          const response = await fetch("/api/pod/update-team-members", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
-              rowNumber: rowNumber,
-              members: updatedMembers,
-            }),
-          });
+        const rowId = teamId.replace("team-", "");
+        const response = await fetch("/api/pod/update-team-members-db", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            rowId: rowId,
+            members: updatedMembers,
+          }),
+        });
 
-          if (!response.ok) {
-            const errorData = await response.json();
-            console.error("Failed to update Google Sheets:", errorData.error);
-            // Don't revert local state for now, just log the error
-            alert(
-              `Member added locally, but failed to sync with Google Sheets: ${errorData.error}`
-            );
-          } else {
-            console.log("Successfully synced team members with Google Sheets");
-          }
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("Failed to update database:", errorData.error);
+          // Don't revert local state for now, just log the error
+          alert(
+            `Member added locally, but failed to sync with database: ${errorData.error}`
+          );
+        } else {
+          console.log("Successfully synced team members with database");
         }
       } catch (syncError) {
-        console.error("Error syncing with Google Sheets:", syncError);
-        alert("Member added locally, but failed to sync with Google Sheets");
+        console.error("Error syncing with database:", syncError);
+        alert("Member added locally, but failed to sync with database");
       }
 
       setShowAddMemberForm(null);
@@ -551,35 +550,32 @@ const PodAdminDashboard = () => {
         )
       );
 
-      // Update Google Sheets with new member list
+      // Update database with new member list
       try {
-        const rowNumber = parseInt(teamId.replace("team-", ""));
-        if (!isNaN(rowNumber)) {
-          const response = await fetch("/api/pod/update-team-members", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
-              rowNumber: rowNumber,
-              members: updatedMembers,
-            }),
-          });
+        const rowId = teamId.replace("team-", "");
+        const response = await fetch("/api/pod/update-team-members-db", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            rowId: rowId,
+            members: updatedMembers,
+          }),
+        });
 
-          if (!response.ok) {
-            const errorData = await response.json();
-            console.error("Failed to update Google Sheets:", errorData.error);
-            alert(
-              `Members added locally, but failed to sync with Google Sheets: ${errorData.error}`
-            );
-          } else {
-            console.log("Successfully synced team members with Google Sheets");
-          }
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("Failed to update database:", errorData.error);
+          alert(
+            `Members added locally, but failed to sync with database: ${errorData.error}`
+          );
+        } else {
+          console.log("Successfully synced team members with database");
         }
       } catch (syncError) {
-        console.error("Error syncing with Google Sheets:", syncError);
-        alert("Members added locally, but failed to sync with Google Sheets");
+        console.error("Error syncing with database:", syncError);
+        alert("Members added locally, but failed to sync with database");
       }
 
       setShowAddMemberForm(null);
@@ -603,36 +599,33 @@ const PodAdminDashboard = () => {
         )
       );
 
-      // Update Google Sheets with new member list
+      // Update database with new member list
       try {
-        const rowNumber = parseInt(teamId.replace("team-", ""));
-        if (!isNaN(rowNumber)) {
-          const response = await fetch("/api/pod/update-team-members", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
-              rowNumber: rowNumber,
-              members: updatedMembers,
-            }),
-          });
+        const rowId = teamId.replace("team-", "");
+        const response = await fetch("/api/pod/update-team-members-db", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            rowId: rowId,
+            members: updatedMembers,
+          }),
+        });
 
-          if (!response.ok) {
-            const errorData = await response.json();
-            console.error("Failed to update Google Sheets:", errorData.error);
-            // Don't revert local state for now, just log the error
-            alert(
-              `Member removed locally, but failed to sync with Google Sheets: ${errorData.error}`
-            );
-          } else {
-            console.log("Successfully synced team members with Google Sheets");
-          }
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("Failed to update database:", errorData.error);
+          // Don't revert local state for now, just log the error
+          alert(
+            `Member removed locally, but failed to sync with database: ${errorData.error}`
+          );
+        } else {
+          console.log("Successfully synced team members with database");
         }
       } catch (syncError) {
-        console.error("Error syncing with Google Sheets:", syncError);
-        alert("Member removed locally, but failed to sync with Google Sheets");
+        console.error("Error syncing with database:", syncError);
+        alert("Member removed locally, but failed to sync with database");
       }
     } catch (error) {
       console.error("Error removing member:", error);
@@ -660,36 +653,33 @@ const PodAdminDashboard = () => {
         )
       );
 
-      // Update Google Sheets with new member list
+      // Update database with new member list
       try {
-        const rowNumber = parseInt(teamId.replace("team-", ""));
-        if (!isNaN(rowNumber)) {
-          const response = await fetch("/api/pod/update-team-members", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
-              rowNumber: rowNumber,
-              members: updatedMembers,
-            }),
-          });
+        const rowId = teamId.replace("team-", "");
+        const response = await fetch("/api/pod/update-team-members-db", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            rowId: rowId,
+            members: updatedMembers,
+          }),
+        });
 
-          if (!response.ok) {
-            const errorData = await response.json();
-            console.error("Failed to update Google Sheets:", errorData.error);
-            alert(
-              `Member role updated locally, but failed to sync with Google Sheets: ${errorData.error}`
-            );
-          } else {
-            console.log("Successfully synced team members with Google Sheets");
-          }
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("Failed to update database:", errorData.error);
+          alert(
+            `Member role updated locally, but failed to sync with database: ${errorData.error}`
+          );
+        } else {
+          console.log("Successfully synced team members with database");
         }
       } catch (syncError) {
-        console.error("Error syncing with Google Sheets:", syncError);
+        console.error("Error syncing with database:", syncError);
         alert(
-          "Member role updated locally, but failed to sync with Google Sheets"
+          "Member role updated locally, but failed to sync with database"
         );
       }
 
@@ -741,15 +731,15 @@ const PodAdminDashboard = () => {
         throw new Error("Invalid team ID format");
       }
 
-      // Call the API to update the Google Sheet with new creators
-      const response = await fetch("/api/pod/update-team", {
+      // Call the API to update the database with new creators
+      const rowId = teamId.replace("team-", "");
+      const response = await fetch("/api/pod/update-team-db", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
-          rowNumber: rowNumber,
+          rowId: rowId,
           newCreators: newCreators,
         }),
       });
@@ -1010,15 +1000,15 @@ const PodAdminDashboard = () => {
         throw new Error("Invalid team ID format");
       }
 
-      // Call the API to update the Google Sheet
-      const response = await fetch("/api/pod/update-team", {
+      // Call the API to update the database
+      const rowId = teamId.replace("team-", "");
+      const response = await fetch("/api/pod/update-team-db", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
-          rowNumber: rowNumber,
+          rowId: rowId,
           newTeamName: newName.trim(),
         }),
       });
@@ -1063,7 +1053,6 @@ const PodAdminDashboard = () => {
   const handleAddTeam = async (data: {
     teamName: string;
     sheetUrl: string;
-    spreadsheetUrl: string;
     creators: string[];
     members?: { userId: string; role: string }[];
   }) => {
@@ -1077,14 +1066,13 @@ const PodAdminDashboard = () => {
       // Find the next available row (start from row 8 as per API default)
       const nextRow = Math.max(8, Math.max(...currentRows, 0) + 1);
 
-      // Call the API to add the team to Google Sheets
-      const response = await fetch("/api/pod/add-team", {
+      // Call the API to add the team to database
+      const response = await fetch("/api/pod/add-team-db", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          spreadsheetUrl: data.spreadsheetUrl,
           teamName: data.teamName.trim(),
           sheetUrl: data.sheetUrl.trim(),
           rowNumber: nextRow,
@@ -1127,23 +1115,22 @@ const PodAdminDashboard = () => {
       // Add team to local state
       setTeams((prev) => [...prev, newTeam]);
 
-      // If members were added, update Google Sheets with member list
+      // If members were added, update database with member list
       if (initialMembers.length > 0) {
         try {
-          await fetch("/api/pod/update-team-members", {
+          await fetch("/api/pod/update-team-members-db", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              spreadsheetUrl: data.spreadsheetUrl,
-              rowNumber: nextRow,
-              members: initialMembers.map((member) => `${member.email} - ${member.role}`).join(", "),
+              rowId: nextRow.toString(),
+              members: initialMembers,
             }),
           });
         } catch (memberError) {
           console.error(
-            "Error updating team members in Google Sheets:",
+            "Error updating team members in database:",
             memberError
           );
           // Don't throw here as the team was successfully created
@@ -1179,15 +1166,15 @@ const PodAdminDashboard = () => {
         throw new Error("Invalid team ID format");
       }
 
-      // Call the API to update the Google Sheet
-      const response = await fetch("/api/pod/update-team", {
+      // Call the API to update the database
+      const rowId = teamId.replace("team-", "");
+      const response = await fetch("/api/pod/update-team-db", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
-          rowNumber: rowNumber,
+          rowId: rowId,
           newSheetUrl: newUrl.trim(),
         }),
       });
@@ -1242,6 +1229,7 @@ const PodAdminDashboard = () => {
           (acc, team) => acc + team.members.length,
           0
         );
+        console.log('📈 Stats calculation - Total members:', totalMembers, 'from teams:', fetchedTeams.length);
 
         setStats({
           totalUsers: 0, // Will be updated when users are fetched
@@ -3126,7 +3114,6 @@ const PodAdminDashboard = () => {
         isOpen={showAddTeamForm}
         onClose={() => setShowAddTeamForm(false)}
         onSubmit={handleAddTeam}
-        defaultSpreadsheetUrl={DEFAULT_SPREADSHEET_URL}
         podUsers={users}
       />
 
@@ -3334,7 +3321,6 @@ const AddTeamForm = ({
   isOpen,
   onClose,
   onSubmit,
-  defaultSpreadsheetUrl,
   podUsers,
 }: {
   isOpen: boolean;
@@ -3342,17 +3328,14 @@ const AddTeamForm = ({
   onSubmit: (data: {
     teamName: string;
     sheetUrl: string;
-    spreadsheetUrl: string;
     creators: string[];
     members?: { userId: string; role: string }[];
   }) => void;
-  defaultSpreadsheetUrl: string;
   podUsers: SystemUser[];
 }) => {
   const [formData, setFormData] = useState({
     teamName: "",
     sheetUrl: "",
-    spreadsheetUrl: defaultSpreadsheetUrl,
   });
   const [selectedCreators, setSelectedCreators] = useState<string[]>([]);
   const [availableCreators, setAvailableCreators] = useState<string[]>([]);
@@ -3466,7 +3449,6 @@ const AddTeamForm = ({
       setFormData({
         teamName: "",
         sheetUrl: "",
-        spreadsheetUrl: defaultSpreadsheetUrl,
       });
       setSelectedCreators([]);
       setSelectedMembers([]);
