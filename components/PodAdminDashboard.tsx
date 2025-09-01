@@ -165,6 +165,9 @@ const PodAdminDashboard = () => {
   const [creatorsSuccess, setCreatorsSuccess] = useState<string | null>(null);
   const [availableCreators, setAvailableCreators] = useState<string[]>([]);
 
+  // Constants for Google Sheets sync
+  const DEFAULT_SPREADSHEET_URL =
+    "https://docs.google.com/spreadsheets/d/1sTp3x6SA4yKkYEwPUIDPNzAPiu0RnaV1009NXZ7PkZM/edit?gid=0#gid=0";
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -475,10 +478,13 @@ const PodAdminDashboard = () => {
         )
       );
 
-      // Update database with new member list
-      try {
-        const rowId = teamId.replace("team-", "");
-        const response = await fetch("/api/pod/update-team-members-db", {
+      // Update database and Google Sheets simultaneously
+      const rowId = teamId.replace("team-", "");
+      const rowNumber = parseInt(rowId);
+      
+      const promises = [
+        // Database update (primary)
+        fetch("/api/pod/update-team-members-db", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -487,21 +493,44 @@ const PodAdminDashboard = () => {
             rowId: rowId,
             members: updatedMembers,
           }),
-        });
+        }),
+        // Google Sheets update (secondary)
+        !isNaN(rowNumber) ? fetch("/api/pod/update-team-members", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
+            rowNumber: rowNumber,
+            members: updatedMembers,
+          }),
+        }) : Promise.resolve(null)
+      ];
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error("Failed to update database:", errorData.error);
-          // Don't revert local state for now, just log the error
-          alert(
-            `Member added locally, but failed to sync with database: ${errorData.error}`
-          );
-        } else {
-          console.log("Successfully synced team members with database");
-        }
-      } catch (syncError) {
-        console.error("Error syncing with database:", syncError);
+      const [dbResponse, sheetsResponse] = await Promise.allSettled(promises);
+
+      // Check database result (critical)
+      if (dbResponse.status === "rejected") {
         alert("Member added locally, but failed to sync with database");
+        console.error("Error syncing with database:", dbResponse.reason);
+      } else if (dbResponse.value && !dbResponse.value.ok) {
+        const errorData = await dbResponse.value.json();
+        alert(`Member added locally, but failed to sync with database: ${errorData.error}`);
+      } else {
+        console.log("Successfully synced team members with database");
+      }
+
+      // Check Google Sheets result (non-critical)
+      if (sheetsResponse.status === "rejected") {
+        console.error("Error syncing with Google Sheets:", sheetsResponse.reason);
+        console.warn("Database updated but Google Sheets sync failed");
+      } else if (sheetsResponse.value && !sheetsResponse.value.ok) {
+        const errorData = await sheetsResponse.value.json();
+        console.error("Failed to update Google Sheets:", errorData.error);
+        console.warn("Database updated but Google Sheets sync failed");
+      } else if (sheetsResponse.value) {
+        console.log("Successfully synced team members with Google Sheets");
       }
 
       setShowAddMemberForm(null);
@@ -550,10 +579,13 @@ const PodAdminDashboard = () => {
         )
       );
 
-      // Update database with new member list
+      // Update both database and Google Sheets
+      const rowId = teamId.replace("team-", "");
+      const rowNumber = parseInt(rowId);
+      
+      // Update database
       try {
-        const rowId = teamId.replace("team-", "");
-        const response = await fetch("/api/pod/update-team-members-db", {
+        const dbResponse = await fetch("/api/pod/update-team-members-db", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -564,18 +596,44 @@ const PodAdminDashboard = () => {
           }),
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
+        if (!dbResponse.ok) {
+          const errorData = await dbResponse.json();
           console.error("Failed to update database:", errorData.error);
-          alert(
-            `Members added locally, but failed to sync with database: ${errorData.error}`
-          );
+          alert(`Members added locally, but failed to sync with database: ${errorData.error}`);
         } else {
           console.log("Successfully synced team members with database");
         }
-      } catch (syncError) {
-        console.error("Error syncing with database:", syncError);
+      } catch (dbError) {
+        console.error("Error syncing with database:", dbError);
         alert("Members added locally, but failed to sync with database");
+      }
+
+      // Update Google Sheets
+      if (!isNaN(rowNumber)) {
+        try {
+          const sheetsResponse = await fetch("/api/pod/update-team-members", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
+              rowNumber: rowNumber,
+              members: updatedMembers,
+            }),
+          });
+
+          if (!sheetsResponse.ok) {
+            const errorData = await sheetsResponse.json();
+            console.error("Failed to update Google Sheets:", errorData.error);
+            console.warn("Database updated but Google Sheets sync failed");
+          } else {
+            console.log("Successfully synced team members with Google Sheets");
+          }
+        } catch (sheetsError) {
+          console.error("Error syncing with Google Sheets:", sheetsError);
+          console.warn("Database updated but Google Sheets sync failed");
+        }
       }
 
       setShowAddMemberForm(null);
@@ -599,10 +657,13 @@ const PodAdminDashboard = () => {
         )
       );
 
-      // Update database with new member list
+      // Update both database and Google Sheets
+      const rowId = teamId.replace("team-", "");
+      const rowNumber = parseInt(rowId);
+      
+      // Update database
       try {
-        const rowId = teamId.replace("team-", "");
-        const response = await fetch("/api/pod/update-team-members-db", {
+        const dbResponse = await fetch("/api/pod/update-team-members-db", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -613,19 +674,44 @@ const PodAdminDashboard = () => {
           }),
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
+        if (!dbResponse.ok) {
+          const errorData = await dbResponse.json();
           console.error("Failed to update database:", errorData.error);
-          // Don't revert local state for now, just log the error
-          alert(
-            `Member removed locally, but failed to sync with database: ${errorData.error}`
-          );
+          alert(`Member removed locally, but failed to sync with database: ${errorData.error}`);
         } else {
           console.log("Successfully synced team members with database");
         }
-      } catch (syncError) {
-        console.error("Error syncing with database:", syncError);
+      } catch (dbError) {
+        console.error("Error syncing with database:", dbError);
         alert("Member removed locally, but failed to sync with database");
+      }
+
+      // Update Google Sheets
+      if (!isNaN(rowNumber)) {
+        try {
+          const sheetsResponse = await fetch("/api/pod/update-team-members", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
+              rowNumber: rowNumber,
+              members: updatedMembers,
+            }),
+          });
+
+          if (!sheetsResponse.ok) {
+            const errorData = await sheetsResponse.json();
+            console.error("Failed to update Google Sheets:", errorData.error);
+            console.warn("Database updated but Google Sheets sync failed");
+          } else {
+            console.log("Successfully synced team members with Google Sheets");
+          }
+        } catch (sheetsError) {
+          console.error("Error syncing with Google Sheets:", sheetsError);
+          console.warn("Database updated but Google Sheets sync failed");
+        }
       }
     } catch (error) {
       console.error("Error removing member:", error);
@@ -653,10 +739,13 @@ const PodAdminDashboard = () => {
         )
       );
 
-      // Update database with new member list
+      // Update both database and Google Sheets
+      const rowId = teamId.replace("team-", "");
+      const rowNumber = parseInt(rowId);
+      
+      // Update database
       try {
-        const rowId = teamId.replace("team-", "");
-        const response = await fetch("/api/pod/update-team-members-db", {
+        const dbResponse = await fetch("/api/pod/update-team-members-db", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -667,20 +756,44 @@ const PodAdminDashboard = () => {
           }),
         });
 
-        if (!response.ok) {
-          const errorData = await response.json();
+        if (!dbResponse.ok) {
+          const errorData = await dbResponse.json();
           console.error("Failed to update database:", errorData.error);
-          alert(
-            `Member role updated locally, but failed to sync with database: ${errorData.error}`
-          );
+          alert(`Member role updated locally, but failed to sync with database: ${errorData.error}`);
         } else {
           console.log("Successfully synced team members with database");
         }
-      } catch (syncError) {
-        console.error("Error syncing with database:", syncError);
-        alert(
-          "Member role updated locally, but failed to sync with database"
-        );
+      } catch (dbError) {
+        console.error("Error syncing with database:", dbError);
+        alert("Member role updated locally, but failed to sync with database");
+      }
+
+      // Update Google Sheets
+      if (!isNaN(rowNumber)) {
+        try {
+          const sheetsResponse = await fetch("/api/pod/update-team-members", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
+              rowNumber: rowNumber,
+              members: updatedMembers,
+            }),
+          });
+
+          if (!sheetsResponse.ok) {
+            const errorData = await sheetsResponse.json();
+            console.error("Failed to update Google Sheets:", errorData.error);
+            console.warn("Database updated but Google Sheets sync failed");
+          } else {
+            console.log("Successfully synced team members with Google Sheets");
+          }
+        } catch (sheetsError) {
+          console.error("Error syncing with Google Sheets:", sheetsError);
+          console.warn("Database updated but Google Sheets sync failed");
+        }
       }
 
       setEditingMember(null);
@@ -995,30 +1108,63 @@ const PodAdminDashboard = () => {
     setUpdatingTeamName(teamId);
     try {
       // Extract row number from team ID (format: "team-{rowNumber}")
-      const rowNumber = parseInt(teamId.replace("team-", ""));
+      const rowId = teamId.replace("team-", "");
+      const rowNumber = parseInt(rowId);
       if (isNaN(rowNumber)) {
         throw new Error("Invalid team ID format");
       }
 
-      // Call the API to update the database
-      const rowId = teamId.replace("team-", "");
-      const response = await fetch("/api/pod/update-team-db", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          rowId: rowId,
-          newTeamName: newName.trim(),
+      // Update database and Google Sheets simultaneously
+      const promises = [
+        // Database update (primary)
+        fetch("/api/pod/update-team-db", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            rowId: rowId,
+            newTeamName: newName.trim(),
+          }),
         }),
-      });
+        // Google Sheets update (secondary)
+        !isNaN(rowNumber) ? fetch("/api/pod/update-team", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
+            rowNumber: rowNumber,
+            newTeamName: newName.trim(),
+          }),
+        }) : Promise.resolve(null)
+      ];
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update team name");
+      const [dbResponse, sheetsResponse] = await Promise.allSettled(promises);
+
+      // Check database result (critical)
+      if (dbResponse.status === "rejected") {
+        throw new Error("Failed to update team name in database");
+      }
+      if (dbResponse.value && !dbResponse.value.ok) {
+        const errorData = await dbResponse.value.json();
+        throw new Error(errorData.error || "Failed to update team name in database");
       }
 
-      const result = await response.json();
+      console.log("Successfully updated team name in database");
+
+      // Check Google Sheets result (non-critical)
+      if (sheetsResponse.status === "rejected") {
+        console.error("Error syncing with Google Sheets:", sheetsResponse.reason);
+        console.warn("Database updated but Google Sheets sync failed");
+      } else if (sheetsResponse.value && !sheetsResponse.value.ok) {
+        const errorData = await sheetsResponse.value.json();
+        console.error("Failed to update Google Sheets:", errorData.error);
+        console.warn("Database updated but Google Sheets sync failed");
+      } else if (sheetsResponse.value) {
+        console.log("Successfully synced team name with Google Sheets");
+      }
 
       // Update team in local state
       setTeams((prev) =>
@@ -1161,30 +1307,63 @@ const PodAdminDashboard = () => {
     setUpdatingSheetUrl(teamId);
     try {
       // Extract row number from team ID (format: "team-{rowNumber}")
-      const rowNumber = parseInt(teamId.replace("team-", ""));
+      const rowId = teamId.replace("team-", "");
+      const rowNumber = parseInt(rowId);
       if (isNaN(rowNumber)) {
         throw new Error("Invalid team ID format");
       }
 
-      // Call the API to update the database
-      const rowId = teamId.replace("team-", "");
-      const response = await fetch("/api/pod/update-team-db", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          rowId: rowId,
-          newSheetUrl: newUrl.trim(),
+      // Update database and Google Sheets simultaneously
+      const promises = [
+        // Database update (primary)
+        fetch("/api/pod/update-team-db", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            rowId: rowId,
+            newSheetUrl: newUrl.trim(),
+          }),
         }),
-      });
+        // Google Sheets update (secondary)
+        !isNaN(rowNumber) ? fetch("/api/pod/update-team", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
+            rowNumber: rowNumber,
+            newSheetUrl: newUrl.trim(),
+          }),
+        }) : Promise.resolve(null)
+      ];
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update sheet URL");
+      const [dbResponse, sheetsResponse] = await Promise.allSettled(promises);
+
+      // Check database result (critical)
+      if (dbResponse.status === "rejected") {
+        throw new Error("Failed to update sheet URL in database");
+      }
+      if (dbResponse.value && !dbResponse.value.ok) {
+        const errorData = await dbResponse.value.json();
+        throw new Error(errorData.error || "Failed to update sheet URL in database");
       }
 
-      const result = await response.json();
+      console.log("Successfully updated sheet URL in database");
+
+      // Check Google Sheets result (non-critical)
+      if (sheetsResponse.status === "rejected") {
+        console.error("Error syncing with Google Sheets:", sheetsResponse.reason);
+        console.warn("Database updated but Google Sheets sync failed");
+      } else if (sheetsResponse.value && !sheetsResponse.value.ok) {
+        const errorData = await sheetsResponse.value.json();
+        console.error("Failed to update Google Sheets:", errorData.error);
+        console.warn("Database updated but Google Sheets sync failed");
+      } else if (sheetsResponse.value) {
+        console.log("Successfully synced sheet URL with Google Sheets");
+      }
 
       // Update team in local state
       setTeams((prev) =>
