@@ -144,7 +144,10 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   const showNewTaskForm = useBoardStore(state => state.showNewTaskForm);
   const showNewTaskModal = useBoardStore(state => state.showNewTaskModal);
   const newTaskStatus = useBoardStore(state => state.newTaskStatus);
-  const newTaskData = useBoardStore(state => state.newTaskData);
+  const newTaskData = useBoardStore(state => {
+    console.log('newTaskData selector called, current value:', state.newTaskData);
+    return state.newTaskData;
+  });
   const isCreatingTask = useBoardStore(state => state.isCreatingTask);
   const selectedTask = useBoardStore(state => state.selectedTask);
   const isEditingTask = useBoardStore(state => state.isEditingTask);
@@ -155,7 +158,10 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   const setShowNewTaskForm = useBoardStore(state => state.setShowNewTaskForm);
   const setShowNewTaskModal = useBoardStore(state => state.setShowNewTaskModal);
   const setNewTaskStatus = useBoardStore(state => state.setNewTaskStatus);
-  const setNewTaskData = useBoardStore(state => state.setNewTaskData);
+  const setNewTaskData = useBoardStore(state => {
+    console.log('setNewTaskData function retrieved from store');
+    return state.setNewTaskData;
+  });
   const setSelectedTask = useBoardStore(state => state.setSelectedTask);
   const setIsEditingTask = useBoardStore(state => state.setIsEditingTask);
   const setEditingTaskData = useBoardStore(state => state.setEditingTaskData);
@@ -330,15 +336,15 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   // New task modal functions
   const openNewTaskModal = (status: string) => {
-    setNewTaskStatus(status as Task['status']);
-    setNewTaskData({
-      title: '',
-      description: '',
-      priority: 'MEDIUM',
-      assignedTo: '',
-      dueDate: ''
+    console.log('Opening new task modal, current state:', { 
+      status, 
+      newTaskData,
+      showNewTaskModal 
     });
+    setNewTaskStatus(status as Task['status']);
+    // Don't reset newTaskData - preserve any existing input
     setShowNewTaskModal(true);
+    console.log('After setting modal state');
   };
 
   const closeNewTaskModal = () => {
@@ -1815,6 +1821,10 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       )}
 
       {/* New Task Modal - Mobile Responsive */}
+      {(() => {
+        console.log('Modal render check:', { showNewTaskModal, newTaskStatus, newTaskData });
+        return null;
+      })()}
       {showNewTaskModal && newTaskStatus && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center p-2 sm:p-4 z-50 overflow-y-auto">
           <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-xl shadow-2xl w-full max-w-2xl border border-white/20 dark:border-gray-700/50 my-4 sm:my-8">
@@ -1853,7 +1863,10 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                   <input
                     type="text"
                     value={newTaskData.title}
-                    onChange={(e) => setNewTaskData(prev => ({ ...prev, title: e.target.value }))}
+                    onChange={(e) => {
+                      console.log('Modal title onChange:', e.target.value, 'Current newTaskData:', newTaskData);
+                      setNewTaskData({ title: e.target.value });
+                    }}
                     placeholder="Enter task title..."
                     className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
                     autoFocus
@@ -1867,7 +1880,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                   </label>
                   <textarea
                     value={newTaskData.description}
-                    onChange={(e) => setNewTaskData(prev => ({ ...prev, description: e.target.value }))}
+                    onChange={(e) => setNewTaskData({ description: e.target.value })}
                     rows={3}
                     placeholder="Add a description..."
                     className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all resize-none"
@@ -1882,7 +1895,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                     </label>
                     <select
                       value={newTaskData.priority}
-                      onChange={(e) => setNewTaskData(prev => ({ ...prev, priority: e.target.value as Task['priority'] }))}
+                      onChange={(e) => setNewTaskData({ priority: e.target.value as Task['priority'] })}
                       className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
                     >
                       <option value="LOW">🟢 Low</option>
@@ -1903,11 +1916,11 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                         checked={!!newTaskData.dueDate}
                         onChange={(e) => {
                           if (!e.target.checked) {
-                            setNewTaskData(prev => ({ ...prev, dueDate: '' }));
+                            setNewTaskData({ dueDate: '' });
                           } else {
                             // Set to today's date as default when enabled
                             const today = new Date().toISOString().split('T')[0];
-                            setNewTaskData(prev => ({ ...prev, dueDate: today }));
+                            setNewTaskData({ dueDate: today });
                           }
                         }}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
@@ -1920,7 +1933,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                       <input
                         type="date"
                         value={newTaskData.dueDate}
-                        onChange={(e) => setNewTaskData(prev => ({ ...prev, dueDate: e.target.value }))}
+                        onChange={(e) => setNewTaskData({ dueDate: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
                       />
                     ) : (
@@ -1938,7 +1951,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                   </label>
                   <UserDropdown
                     value={newTaskData.assignedTo}
-                    onChange={(email) => setNewTaskData(prev => ({ ...prev, assignedTo: email }))}
+                    onChange={(email) => setNewTaskData({ assignedTo: email })}
                     placeholder="Search and select user..."
                     className=""
                   />

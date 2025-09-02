@@ -158,7 +158,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const { id, status, assignedTo, priority } = await request.json();
+    const { id, status, assignedTo, priority, title, description, dueDate } = await request.json();
 
     if (!id) {
       return NextResponse.json(
@@ -167,10 +167,15 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const updateData: any = {};
+    const updateData: any = {
+      updatedBy: session.user.email // Always set updatedBy to current user's email
+    };
     if (status !== undefined) updateData.status = status;
     if (assignedTo !== undefined) updateData.assignedTo = assignedTo;
     if (priority !== undefined) updateData.priority = priority;
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+    if (dueDate !== undefined) updateData.dueDate = dueDate ? new Date(dueDate) : null;
 
     const updatedTask = await prisma.task.update({
       where: { id },

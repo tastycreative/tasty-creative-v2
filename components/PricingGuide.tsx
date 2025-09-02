@@ -22,6 +22,7 @@ interface Creator {
   id: string;
   name: string;
   rowNumber?: number; // Add row number for efficient updates
+  row_id?: string; // Add row_id from ClientModel
 }
 
 interface PricingGuideProps {
@@ -34,6 +35,7 @@ interface EditingState {
   originalValue: string;
   newValue: string;
   creatorRowNumber?: number; // Add row number for efficient updates
+  creatorRowId?: string; // Add row_id from ClientModel
 }
 
 // Retry helper function for API calls
@@ -82,7 +84,7 @@ const PricingAccordionRow: React.FC<{
   onToggle: () => void;
   isAdmin: boolean;
   editingCell: EditingState | null;
-  onEditStart: (creatorName: string, itemName: string, currentValue: string, creatorRowNumber?: number) => void;
+  onEditStart: (creatorName: string, itemName: string, currentValue: string, creatorRowNumber?: number, creatorRowId?: string) => void;
   onEditSave: () => void;
   onEditCancel: () => void;
   onEditValueChange: (value: string) => void;
@@ -180,7 +182,7 @@ const PricingAccordionRow: React.FC<{
                         {isAdmin && !isEditing ? (
                           <div className="group/price relative">
                             <div className="text-lg font-light text-gray-700 dark:text-gray-300 tabular-nums group-hover/price:bg-gray-50 dark:group-hover/price:bg-gray-700 px-2 py-1 rounded cursor-pointer"
-                                 onClick={() => onEditStart(creator.name, item.name, currentValue, creator.rowNumber)}>
+                                 onClick={() => onEditStart(creator.name, item.name, currentValue, creator.rowNumber, creator.row_id)}>
                               {currentValue}
                             </div>
                             <Edit2 className="absolute -top-1 -right-1 h-3 w-3 text-gray-400 opacity-0 group-hover/price:opacity-100 transition-opacity" />
@@ -416,13 +418,14 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
     setSearchQuery("");
   };
 
-  const handleEditStart = (creatorName: string, itemName: string, currentValue: string, creatorRowNumber?: number) => {
+  const handleEditStart = (creatorName: string, itemName: string, currentValue: string, creatorRowNumber?: number, creatorRowId?: string) => {
     setEditingCell({
       creatorName,
       itemName,
       originalValue: currentValue,
       newValue: currentValue === '—' ? '' : currentValue,
-      creatorRowNumber
+      creatorRowNumber,
+      creatorRowId
     });
   };
 
@@ -456,7 +459,8 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
         body: JSON.stringify({
           creatorName: editingCell.creatorName,
           itemName: editingCell.itemName,
-          newPrice: editingCell.newValue
+          newPrice: editingCell.newValue,
+          rowId: editingCell.creatorRowId
         })
       });
 

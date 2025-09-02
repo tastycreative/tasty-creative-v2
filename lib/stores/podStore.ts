@@ -16,6 +16,7 @@ export interface Creator {
   name: string;
   guaranteed?: string;
   rowNumber?: number;
+  row_id?: string; // Add row_id from ClientModel
 }
 
 export interface TeamOption {

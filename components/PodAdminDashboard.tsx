@@ -806,27 +806,33 @@ const PodAdminDashboard = () => {
   // Creator management functions
   const fetchAvailableCreators = async () => {
     try {
-      const response = await fetch("/api/models");
+      const response = await fetch("/api/creators-db");
       const data = await response.json();
+      
+      console.log('Full API response (main):', data);
+      console.log('data.creators type:', typeof data.creators);
+      console.log('Is creators array:', Array.isArray(data.creators));
 
-      if (Array.isArray(data.models)) {
-        // Extract creator names from models data
-        const creatorNames = data.models
-          .map(
-            (model: any) =>
-              model.name?.split(/[-_\s]/)[0]?.trim() || model.name?.trim()
-          )
+      if (Array.isArray(data.creators)) {
+        console.log('Raw creators data from API:', data.creators);
+        
+        // Extract creator names from database
+        const creatorNames = data.creators
+          .map((creator: any) => creator.name?.trim())
           .filter(
             (name: string, index: number, array: string[]) =>
               name && name.length > 0 && array.indexOf(name) === index
           )
           .sort();
+          
+        console.log('Processed creator names:', creatorNames);
         setAvailableCreators(creatorNames);
       } else {
         console.error(
-          "Failed to fetch creators from models:",
-          data.error || "No models array in response"
+          "Failed to fetch creators from database:",
+          data.error || "No creators array in response"
         );
+        console.error("Actual response data:", data);
         setAvailableCreators([]);
       }
     } catch (error) {
@@ -3572,31 +3578,37 @@ const AddTeamForm = ({
     );
   };
 
-  // Fetch all available creators from API (using models endpoint)
+  // Fetch all available creators from API (using database endpoint)
   const fetchAvailableCreators = async () => {
     setIsLoadingCreators(true);
     try {
-      const response = await fetch("/api/models");
+      const response = await fetch("/api/creators-db");
       const data = await response.json();
+      
+      console.log('Full API response:', data);
+      console.log('data.creators type:', typeof data.creators);
+      console.log('Is creators array:', Array.isArray(data.creators));
 
-      if (Array.isArray(data.models)) {
-        // Extract creator names from models data
-        const creatorNames = data.models
-          .map(
-            (model: any) =>
-              model.name?.split(/[-_\s]/)[0]?.trim() || model.name?.trim()
-          )
+      if (Array.isArray(data.creators)) {
+        console.log('Raw creators data from API (modal):', data.creators);
+        
+        // Extract creator names from database
+        const creatorNames = data.creators
+          .map((creator: any) => creator.name?.trim())
           .filter(
             (name: string, index: number, array: string[]) =>
               name && name.length > 0 && array.indexOf(name) === index
           )
           .sort();
+          
+        console.log('Processed creator names (modal):', creatorNames);
         setAvailableCreators(creatorNames);
       } else {
         console.error(
-          "Failed to fetch creators from models:",
-          data.error || "No models array in response"
+          "Failed to fetch creators from database:",
+          data.error || "No creators array in response"
         );
+        console.error("Actual response data:", data);
         setAvailableCreators([]);
       }
     } catch (error) {

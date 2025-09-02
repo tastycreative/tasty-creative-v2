@@ -2,6 +2,61 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
 
+// Helper function to update Google Sheets via n8n webhook
+async function updateGoogleSheet(itemName: string, newPrice: string, rowId: string | null, creatorName: string) {
+  try {
+    const GOOGLE_DRIVE_SHEET_MODEL_NAMES = process.env.GOOGLE_DRIVE_SHEET_MODEL_NAMES;
+    
+    if (!GOOGLE_DRIVE_SHEET_MODEL_NAMES) {
+      console.log('⚠️ GOOGLE_DRIVE_SHEET_MODEL_NAMES not configured, skipping Google Sheets update');
+      return;
+    }
+    
+    console.log('🔍 Google Sheets webhook update attempt:', {
+      creatorName: creatorName,
+      itemName: itemName,
+      newPrice: newPrice,
+      rowId: rowId
+    });
+    
+    if (!rowId) {
+      console.log('⚠️ No row_id found in ClientModel, cannot update Google Sheet');
+      return;
+    }
+
+    // Send data to n8n webhook
+    const webhookUrl = 'http://n8n.tastycreative.xyz/webhook/1f9c704a-f940-4a02-95aa-20164df19c25';
+    const webhookData = {
+      spreadsheetId: GOOGLE_DRIVE_SHEET_MODEL_NAMES,
+      creatorName: creatorName,
+      itemName: itemName,
+      newPrice: newPrice,
+      rowId: rowId,
+      range: `${itemName}${rowId}`,
+      timestamp: new Date().toISOString()
+    };
+
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(webhookData)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Webhook request failed: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log(`✅ Updated Google Sheet via webhook - Range: ${itemName}${rowId}, Value: ${newPrice}`, result);
+    
+  } catch (error) {
+    console.error('❌ Error updating Google Sheet via webhook:', error);
+    // Don't throw - we want the database update to succeed even if Google Sheets fails
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const session = await auth();
@@ -15,7 +70,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Not authorized - admin access required" }, { status: 403 });
     }
 
-    const { creatorName, itemName, newPrice } = await request.json();
+    const { creatorName, itemName, newPrice, rowId } = await request.json();
 
     if (!creatorName || !itemName) {
       return NextResponse.json({ error: "Creator name and item name are required" }, { status: 400 });
@@ -42,6 +97,11 @@ export async function POST(request: Request) {
     }
 
     console.log('✅ Found creator:', clientModel.clientName);
+    console.log('📍 Using rowId from request:', rowId);
+    console.log('📍 ClientModel row_id:', clientModel.row_id);
+    
+    // Use the row_id from the request (which comes from ClientModel via zustand)
+    const actualRowId = rowId || clientModel.row_id;
 
     // Get or create content details
     let contentDetails = clientModel.contentDetails[0];
@@ -100,7 +160,7 @@ export async function POST(request: Request) {
     console.log(`🔄 Updating field ${dbFieldName} to "${newPrice}"`);
 
     // Update the content details with the new price
-    const updatedContentDetails = await prisma.contentDetails.update({
+    await prisma.contentDetails.update({
       where: {
         id: contentDetails.id
       },
@@ -110,6 +170,9 @@ export async function POST(request: Request) {
     });
 
     console.log('✅ Successfully updated pricing in database');
+
+    // Also update Google Sheets using ClientModel's row_id
+    await updateGoogleSheet(itemName, newPrice, actualRowId, creatorName);
 
     return NextResponse.json({
       success: true,

@@ -17,6 +17,7 @@ export interface Task {
   createdById: string;
   createdAt: string;
   updatedAt: string;
+  updatedBy: string | null; // Email of the user who last updated the task
   createdBy: {
     id: string;
     name: string | null;
@@ -583,10 +584,17 @@ export const useBoardStore = create<BoardStore>()(
         setShowNewTaskForm: (status) => set({ showNewTaskForm: status }),
         setShowNewTaskModal: (show) => set({ showNewTaskModal: show }),
         setNewTaskStatus: (status) => set({ newTaskStatus: status }),
-        setNewTaskData: (data) => set((state) => ({
-          ...state,
-          newTaskData: { ...state.newTaskData, ...data }
-        })),
+        setNewTaskData: (data) => {
+          console.log('setNewTaskData called with:', data);
+          set((state) => {
+            const newData = { ...state.newTaskData, ...data };
+            console.log('Current newTaskData:', state.newTaskData, 'New data:', newData);
+            return {
+              ...state,
+              newTaskData: newData
+            };
+          });
+        },
         setSelectedTask: (task) => set({ selectedTask: task }),
         setIsEditingTask: (editing) => set({ isEditingTask: editing }),
         setEditingTaskData: (data) => set((state) => ({

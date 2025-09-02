@@ -88,6 +88,7 @@ export async function GET(request: Request) {
         restrictedTermsEmojis: model.restrictedTermsEmojis,
         notes: model.notes,
         generalNotes: model.generalNotes,
+        row_id: model.row_id, // Add row_id from ClientModel
         contentDetails: model.contentDetails[0], // Assuming one content detail per model
         modelDetails: modelDetails // Add the client model details
       };

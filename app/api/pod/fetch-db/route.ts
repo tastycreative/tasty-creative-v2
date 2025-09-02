@@ -64,20 +64,46 @@ export async function POST(request: NextRequest) {
       })
       .filter((member) => member.name !== '');
 
-    // Parse creators from comma-separated string  
+    // Parse creators from comma-separated string and fetch their ClientModel data
     const creatorsString = podTeam.creators_assigned || '';
-    const creators = creatorsString
+    const creatorNames = creatorsString
       .split(',')
-      .map((name: string, index: number) => {
-        const trimmedName = name.trim();
-        
-        return {
-          id: `${podTeam.id}-creator-${index}`,
-          name: trimmedName,
-          rowNumber: parseInt(podTeam.row_id) // Use row_id as rowNumber
-        };
-      })
-      .filter((creator) => creator.name !== '');
+      .map(name => name.trim())
+      .filter(name => name !== '');
+    
+    // Fetch ClientModel data for each assigned creator to get their row_id
+    const clientModels = await prisma.clientModel.findMany({
+      where: {
+        clientName: {
+          in: creatorNames,
+          mode: 'insensitive'
+        }
+      },
+      select: {
+        id: true,
+        clientName: true,
+        row_id: true,
+        guaranteed: true
+      }
+    });
+    
+    console.log(`📊 Found ${clientModels.length} ClientModel records for assigned creators:`, 
+                clientModels.map(c => ({ name: c.clientName, row_id: c.row_id })));
+    
+    // Create creators array with ClientModel data
+    const creators = creatorNames.map((name, index) => {
+      const clientModel = clientModels.find(cm => 
+        cm.clientName.toLowerCase() === name.toLowerCase()
+      );
+      
+      return {
+        id: clientModel?.id || `${podTeam.id}-creator-${index}`,
+        name: name,
+        rowNumber: parseInt(podTeam.row_id), // PodTeam row_id as rowNumber
+        row_id: clientModel?.row_id || null, // ClientModel row_id for pricing updates
+        guaranteed: clientModel?.guaranteed || null
+      };
+    });
 
     // Transform sheet data from PodTeamSheets relation
     const sheetLinks = podTeam.podTeamSheets.map(sheet => ({
