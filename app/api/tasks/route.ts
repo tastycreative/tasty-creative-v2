@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const { title, description, priority, assignedTo, dueDate, teamId, teamName, status } = await request.json();
+    const { title, description, priority, assignedTo, dueDate, teamId, teamName, status, attachments } = await request.json();
 
     if (!title || !teamId || !teamName) {
       return NextResponse.json(
@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
         status: status || 'NOT_STARTED',
         assignedTo: assignedTo || null,
         dueDate: dueDate ? new Date(dueDate) : null,
+        attachments: attachments || null,
         teamId,
         teamName,
         createdById: session.user.id,
@@ -158,7 +159,9 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const { id, status, assignedTo, priority, title, description, dueDate } = await request.json();
+    const { id, status, assignedTo, priority, title, description, dueDate, attachments } = await request.json();
+
+    console.log('PUT /api/tasks - Request data:', { id, status, assignedTo, priority, title, description, dueDate, attachments });
 
     if (!id) {
       return NextResponse.json(
@@ -176,6 +179,9 @@ export async function PUT(request: NextRequest) {
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
     if (dueDate !== undefined) updateData.dueDate = dueDate ? new Date(dueDate) : null;
+    if (attachments !== undefined) updateData.attachments = attachments;
+
+    console.log('PUT /api/tasks - Update data being sent to Prisma:', updateData);
 
     const updatedTask = await prisma.task.update({
       where: { id },

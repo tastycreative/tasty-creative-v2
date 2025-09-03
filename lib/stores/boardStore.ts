@@ -3,6 +3,17 @@
 import { create } from 'zustand';
 import { devtools, persist, createJSONStorage } from 'zustand/middleware';
 
+// Attachment types
+export interface TaskAttachment {
+  id: string;
+  name: string;
+  url: string;
+  s3Key?: string; // S3 key for deletion
+  size: number;
+  type: string; // mime type
+  uploadedAt: string;
+}
+
 // Task types based on Prisma schema
 export interface Task {
   id: string;
@@ -14,6 +25,7 @@ export interface Task {
   teamId: string;
   teamName: string;
   assignedTo: string | null;
+  attachments: TaskAttachment[] | null;
   createdById: string;
   createdAt: string;
   updatedAt: string;
@@ -58,6 +70,7 @@ export interface NewTaskData {
   priority: Task['priority'];
   assignedTo: string;
   dueDate: string;
+  attachments: TaskAttachment[];
 }
 
 export interface BoardStore {
@@ -208,7 +221,8 @@ export const useBoardStore = create<BoardStore>()(
           description: '',
           priority: 'MEDIUM',
           assignedTo: '',
-          dueDate: ''
+          dueDate: '',
+          attachments: []
         },
         isCreatingTask: false,
         
@@ -384,7 +398,8 @@ export const useBoardStore = create<BoardStore>()(
                   description: '',
                   priority: 'MEDIUM',
                   assignedTo: '',
-                  dueDate: ''
+                  dueDate: '',
+                  attachments: []
                 }
               }));
               
@@ -500,14 +515,17 @@ export const useBoardStore = create<BoardStore>()(
             
             if (result.success && result.task) {
               // Update with server response
+              const isAttachmentOnlyUpdate = Object.keys(updates).length === 1 && 'attachments' in updates;
+              
               set((state) => ({
                 ...state,
                 tasks: state.tasks.map(task => 
                   task.id === taskId ? result.task : task
                 ),
                 selectedTask: result.task,
-                isEditingTask: false,
-                editingTaskData: {}
+                // Don't close edit mode if it's just an attachment update
+                isEditingTask: isAttachmentOnlyUpdate ? state.isEditingTask : false,
+                editingTaskData: isAttachmentOnlyUpdate ? { ...state.editingTaskData, attachments: result.task.attachments } : {}
               }));
               
               // Invalidate cache

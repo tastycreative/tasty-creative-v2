@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import { useSocketTasks } from '@/hooks/useSocketTasks';
 import UserDropdown from '@/components/UserDropdown';
+import FileUpload from '@/components/ui/FileUpload';
+import AttachmentViewer from '@/components/ui/AttachmentViewer';
 import { useBoardStore, useBoardTasks, useBoardFilters, useBoardTaskActions, type Task } from '@/lib/stores/boardStore';
 // import { UserSearchInput } from '@/components/UserSearchInput';
 
@@ -280,7 +282,8 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       description: task.description || '',
       priority: task.priority,
       dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
-      assignedTo: task.assignedTo || ''
+      assignedTo: task.assignedTo || '',
+      attachments: task.attachments || []
     });
   };
 
@@ -302,8 +305,31 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         description: selectedTask.description || '',
         priority: selectedTask.priority,
         dueDate: selectedTask.dueDate ? selectedTask.dueDate.split('T')[0] : '',
-        assignedTo: selectedTask.assignedTo || ''
+        assignedTo: selectedTask.assignedTo || '',
+        attachments: selectedTask.attachments || []
       });
+    }
+  };
+
+  // Function to auto-save attachments immediately
+  const autoSaveAttachments = async (newAttachments: any[]) => {
+    if (!selectedTask) return;
+
+    console.log('Auto-saving attachments:', newAttachments);
+    console.log('Selected task ID:', selectedTask.id);
+
+    try {
+      await updateTask(selectedTask.id, { attachments: newAttachments });
+      
+      // Update the selectedTask to reflect the new attachments
+      setSelectedTask({
+        ...selectedTask,
+        attachments: newAttachments
+      });
+      
+      console.log('Successfully auto-saved attachments');
+    } catch (error) {
+      console.error('Error auto-saving attachments:', error);
     }
   };
 
@@ -318,6 +344,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         priority: editingTaskData.priority,
         dueDate: editingTaskData.dueDate ? new Date(editingTaskData.dueDate).toISOString() : null,
         assignedTo: editingTaskData.assignedTo || null,
+        attachments: editingTaskData.attachments || [],
       };
 
       // Use store's updateTask function
@@ -1171,6 +1198,18 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                           </p>
                         )}
                         
+                        {/* Attachment Count */}
+                        {task.attachments && task.attachments.length > 0 && (
+                          <div className="flex items-center gap-1 mb-3">
+                            <svg className="w-3 h-3 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                            </svg>
+                            <span className="text-xs text-gray-600 dark:text-gray-400">
+                              {task.attachments.length} attachment{task.attachments.length !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        )}
+                        
                         <div className="flex items-center justify-between mb-3">
                           <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${priorityConfig[task.priority].color}`}>
                             {priorityConfig[task.priority].label}
@@ -1304,6 +1343,18 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                           {task.description}
                         </p>
                       )}
+                      
+                      {/* Attachment Count */}
+                      {task.attachments && task.attachments.length > 0 && (
+                        <div className="flex items-center gap-1 mb-3">
+                          <svg className="w-3 h-3 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                          </svg>
+                          <span className="text-xs text-gray-600 dark:text-gray-400">
+                            {task.attachments.length} attachment{task.attachments.length !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      )}
 
                       {/* Task Meta */}
                       <div className="flex items-center justify-between">
@@ -1430,7 +1481,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                     <input
                       type="text"
                       value={editingTaskData.title || ''}
-                      onChange={(e) => setEditingTaskData(prev => ({ ...prev, title: e.target.value }))}
+                      onChange={(e) => setEditingTaskData({ title: e.target.value })}
                       className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 bg-transparent border-none outline-none focus:ring-0 p-0 w-full"
                       placeholder="Task title..."
                     />
@@ -1501,10 +1552,29 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                       </label>
                       <textarea
                         value={editingTaskData.description || ''}
-                        onChange={(e) => setEditingTaskData(prev => ({ ...prev, description: e.target.value }))}
+                        onChange={(e) => setEditingTaskData({ description: e.target.value })}
                         rows={4}
                         placeholder="Add a description..."
                         className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all resize-none"
+                      />
+                    </div>
+
+                    {/* Attachments */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                        Attachments
+                      </label>
+                      <FileUpload
+                        attachments={editingTaskData.attachments || []}
+                        onAttachmentsChange={(attachments) => {
+                          console.log('FileUpload onAttachmentsChange called with:', attachments);
+                          setEditingTaskData({ attachments });
+                          // Auto-save attachments immediately
+                          autoSaveAttachments(attachments);
+                        }}
+                        maxFiles={5}
+                        maxFileSize={10}
+                        className="mb-2"
                       />
                     </div>
 
@@ -1516,7 +1586,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                         </label>
                         <select
                           value={editingTaskData.priority || 'MEDIUM'}
-                          onChange={(e) => setEditingTaskData(prev => ({ ...prev, priority: e.target.value as Task['priority'] }))}
+                          onChange={(e) => setEditingTaskData({ priority: e.target.value as Task['priority'] })}
                           className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
                         >
                           <option value="LOW">🟢 Low</option>
@@ -1537,11 +1607,11 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                             checked={!!editingTaskData.dueDate}
                             onChange={(e) => {
                               if (!e.target.checked) {
-                                setEditingTaskData(prev => ({ ...prev, dueDate: '' }));
+                                setEditingTaskData({ dueDate: '' });
                               } else {
                                 // Set to today's date as default when enabled
                                 const today = new Date().toISOString().split('T')[0];
-                                setEditingTaskData(prev => ({ ...prev, dueDate: today }));
+                                setEditingTaskData({ dueDate: today });
                               }
                             }}
                             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
@@ -1554,7 +1624,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                           <input
                             type="date"
                             value={editingTaskData.dueDate || ''}
-                            onChange={(e) => setEditingTaskData(prev => ({ ...prev, dueDate: e.target.value }))}
+                            onChange={(e) => setEditingTaskData({ dueDate: e.target.value })}
                             className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
                           />
                         ) : (
@@ -1572,7 +1642,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                       </label>
                       <UserDropdown
                         value={editingTaskData.assignedTo || ''}
-                        onChange={(email) => setEditingTaskData(prev => ({ ...prev, assignedTo: email }))}
+                        onChange={(email) => setEditingTaskData({ assignedTo: email })}
                         placeholder="Search and select user..."
                         className=""
                       />
@@ -1594,6 +1664,24 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                       ) : (
                         <p className="text-gray-400 dark:text-gray-500 italic">
                           No description provided
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Attachments */}
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">
+                        Attachments
+                      </h4>
+                      {selectedTask.attachments && selectedTask.attachments.length > 0 ? (
+                        <AttachmentViewer
+                          attachments={selectedTask.attachments}
+                          showTitle={false}
+                          compact={false}
+                        />
+                      ) : (
+                        <p className="text-gray-400 dark:text-gray-500 italic">
+                          No attachments
                         </p>
                       )}
                     </div>
@@ -1884,6 +1972,20 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                     rows={3}
                     placeholder="Add a description..."
                     className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all resize-none"
+                  />
+                </div>
+
+                {/* Attachments */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                    Attachments
+                  </label>
+                  <FileUpload
+                    attachments={newTaskData.attachments}
+                    onAttachmentsChange={(attachments) => setNewTaskData({ attachments })}
+                    maxFiles={5}
+                    maxFileSize={10}
+                    className="mb-2"
                   />
                 </div>
 
