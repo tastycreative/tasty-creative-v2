@@ -85,6 +85,7 @@ export default function PodLayout({ children }: PodLayoutProps) {
     if (pathname.includes("/apps/pod/admin")) return "admin";
     if (pathname.includes("/apps/pod/pricing")) return "pricing";
     if (pathname.includes("/apps/pod/my-models")) return "my-models";
+    if (pathname.includes("/apps/pod/otp-ptr")) return "otp-ptr";
     if (pathname.includes("/apps/pod/creator")) return "creator";
     return "dashboard";
   };
@@ -209,6 +210,7 @@ export default function PodLayout({ children }: PodLayoutProps) {
     if (activeTab === "board") return "Back to Board";
     if (activeTab === "pricing") return "Back to Pricing";
     if (activeTab === "admin") return "Back to Admin";
+    if (activeTab === "otp-ptr") return "Back to OTP-PTR";
     return "Back";
   };
 
@@ -292,6 +294,17 @@ export default function PodLayout({ children }: PodLayoutProps) {
                 <span className="sm:hidden">Models</span>
                 <span className="hidden sm:inline">My Models</span>
               </Link>
+              <Link
+                href="/apps/pod/otp-ptr"
+                prefetch={true}
+                className={`py-3 sm:py-4 px-3 sm:px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                  activeTab === "otp-ptr"
+                    ? "border-pink-500 text-pink-600 dark:text-pink-400"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                }`}
+              >
+                OTP-PTR
+              </Link>
               {session?.user?.role === "ADMIN" && (
                 <Link
                   href="/apps/pod/admin"
@@ -311,11 +324,12 @@ export default function PodLayout({ children }: PodLayoutProps) {
 
         {/* Main Dashboard Layout */}
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
-          {/* Sidebar - Hidden when admin, board, creator, or my-models tab is active */}
+          {/* Sidebar - Hidden when admin, board, creator, my-models, or otp-ptr tab is active */}
           {activeTab !== "admin" &&
             activeTab !== "board" &&
             activeTab !== "creator" &&
-            activeTab !== "my-models" && (
+            activeTab !== "my-models" &&
+            activeTab !== "otp-ptr" && (
               <div className="lg:w-80 w-full">
                 {podData ? (
                   <div className="w-full space-y-6">
@@ -730,7 +744,7 @@ export default function PodLayout({ children }: PodLayoutProps) {
 
           {/* Main Content */}
           <div
-            className={`${activeTab === "admin" || activeTab === "board" || activeTab === "creator" || activeTab === "my-models" ? "w-full" : "flex-1"} space-y-6`}
+            className={`${activeTab === "admin" || activeTab === "board" || activeTab === "creator" || activeTab === "my-models" || activeTab === "otp-ptr" ? "w-full" : "flex-1"} space-y-6`}
           >
             {viewMode === "sheet" && selectedSheet ? (
               <Suspense

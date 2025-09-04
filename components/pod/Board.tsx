@@ -30,6 +30,27 @@ import { useBoardStore, useBoardTasks, useBoardFilters, useBoardTaskActions, typ
 
 // Task types are now imported from the boardStore
 
+// Utility function to make links clickable
+const linkifyText = (text: string) => {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return text.split(urlRegex).map((part, index) => {
+    if (urlRegex.test(part)) {
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline transition-colors"
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+};
+
 interface TeamOption {
 row: number;
 name: string;
@@ -79,7 +100,8 @@ const statusConfig = {
 const priorityConfig = {
   LOW: { label: 'Low', color: 'bg-gray-100 text-gray-700' },
   MEDIUM: { label: 'Medium', color: 'bg-yellow-100 text-yellow-700' },
-  HIGH: { label: 'High', color: 'bg-red-100 text-red-700' }
+  HIGH: { label: 'High', color: 'bg-red-100 text-red-700' },
+  URGENT: { label: 'Urgent', color: 'bg-red-500 text-white' }
 };
 
 // Skeleton loading component - Memoized to prevent unnecessary re-renders
@@ -605,7 +627,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           comparison = a.title.localeCompare(b.title);
           break;
         case 'priority':
-          const priorityOrder = { 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
+          const priorityOrder = { 'URGENT': 4, 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
           comparison = priorityOrder[a.priority] - priorityOrder[b.priority];
           break;
         case 'dueDate':
@@ -959,6 +981,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                   className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm"
                 >
                   <option value="ALL">All Priorities</option>
+                  <option value="URGENT">Urgent Priority</option>
                   <option value="HIGH">High Priority</option>
                   <option value="MEDIUM">Medium Priority</option>
                   <option value="LOW">Low Priority</option>
@@ -1106,6 +1129,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                         <option value="LOW">Low Priority</option>
                         <option value="MEDIUM">Medium Priority</option>
                         <option value="HIGH">High Priority</option>
+                        <option value="URGENT">Urgent Priority</option>
                       </select>
                       <div className="flex space-x-2">
                         <button
@@ -1592,6 +1616,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                           <option value="LOW">🟢 Low</option>
                           <option value="MEDIUM">🟡 Medium</option>
                           <option value="HIGH">🔴 High</option>
+                          <option value="URGENT">🚨 Urgent</option>
                         </select>
                       </div>
 
@@ -1658,7 +1683,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                       {selectedTask.description ? (
                         <div className="prose prose-sm dark:prose-invert max-w-none">
                           <p className="text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap">
-                            {selectedTask.description}
+                            {linkifyText(selectedTask.description)}
                           </p>
                         </div>
                       ) : (
@@ -2003,6 +2028,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                       <option value="LOW">🟢 Low</option>
                       <option value="MEDIUM">🟡 Medium</option>
                       <option value="HIGH">🔴 High</option>
+                      <option value="URGENT">🚨 Urgent</option>
                     </select>
                   </div>
 

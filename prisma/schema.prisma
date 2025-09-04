@@ -20,6 +20,7 @@ model User {
   lastAccessedAt     DateTime?           @default(now())
   username           String?             @unique
   accounts           Account[]
+  contentSubmissions ContentSubmission[] @relation("ContentSubmissionCreator")
   pageViews          PageView[]
   sessions           Session[]
   createdTasks       Task[]              @relation("TaskCreator")
@@ -143,25 +144,55 @@ model VoiceModel {
 }
 
 model Task {
-  id          String       @id @default(cuid())
-  title       String
-  description String?
-  status      TaskStatus   @default(NOT_STARTED)
-  priority    TaskPriority @default(MEDIUM)
-  dueDate     DateTime?
-  teamId      String
-  teamName    String
-  assignedTo  String?
-  createdById String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  updatedBy   String?
-  attachments Json?
-  createdBy   User         @relation("TaskCreator", fields: [createdById], references: [id])
+  id                  String             @id @default(cuid())
+  title               String
+  description         String?
+  status              TaskStatus         @default(NOT_STARTED)
+  priority            TaskPriority       @default(MEDIUM)
+  dueDate             DateTime?
+  teamId              String
+  teamName            String
+  assignedTo          String?
+  createdById         String
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  updatedBy           String?
+  attachments         Json?
+  assignedToTeam      Boolean            @default(false)
+  contentSubmissionId String?            @unique
+  contentSubmission   ContentSubmission? @relation(fields: [contentSubmissionId], references: [id])
+  createdBy           User               @relation("TaskCreator", fields: [createdById], references: [id])
 
   @@index([teamId])
   @@index([createdById])
   @@index([status])
+  @@index([contentSubmissionId])
+  @@index([assignedToTeam])
+}
+
+model ContentSubmission {
+  id                    String             @id @default(cuid())
+  submissionType        SubmissionType
+  modelName             String
+  priority              SubmissionPriority
+  driveLink             String
+  contentDescription    String
+  screenshotAttachments Json?
+  status                SubmissionStatus   @default(PENDING)
+  createdById           String
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+  processedAt           DateTime?
+  notes                 String?
+  createdBy             User               @relation("ContentSubmissionCreator", fields: [createdById], references: [id])
+  task                  Task?
+
+  @@index([submissionType])
+  @@index([status])
+  @@index([priority])
+  @@index([createdById])
+  @@index([createdAt])
+  @@index([modelName])
 }
 
 model ClientModel {
@@ -320,4 +351,25 @@ enum TaskPriority {
   LOW
   MEDIUM
   HIGH
+  URGENT
+}
+
+enum SubmissionType {
+  OTP
+  PTR
+}
+
+enum SubmissionPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum SubmissionStatus {
+  PENDING
+  PROCESSING
+  TASK_CREATED
+  COMPLETED
+  CANCELLED
 }

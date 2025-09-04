@@ -20,7 +20,7 @@ export interface Task {
   title: string;
   description: string | null;
   status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
-  priority: 'LOW' | 'MEDIUM' | 'HIGH';
+  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
   dueDate: string | null;
   teamId: string;
   teamName: string;
@@ -57,7 +57,7 @@ export interface APIError {
 }
 
 // Filter and sort types
-export type PriorityFilter = 'ALL' | 'LOW' | 'MEDIUM' | 'HIGH';
+export type PriorityFilter = 'ALL' | 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 export type AssigneeFilter = 'ALL' | 'ASSIGNED' | 'UNASSIGNED' | 'MY_TASKS';
 export type DueDateFilter = 'ALL' | 'OVERDUE' | 'TODAY' | 'WEEK';
 export type SortField = 'createdAt' | 'updatedAt' | 'dueDate' | 'priority' | 'title';

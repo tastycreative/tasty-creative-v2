@@ -1,7 +1,9 @@
 "use client";
 
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { TaskAttachment } from '@/lib/stores/boardStore';
-import { Download, File, Image, ExternalLink } from 'lucide-react';
+import { Download, File, Image, ExternalLink, X, ZoomIn } from 'lucide-react';
 
 interface AttachmentViewerProps {
   attachments: TaskAttachment[];
@@ -16,6 +18,32 @@ export default function AttachmentViewer({
   compact = false,
   className = ''
 }: AttachmentViewerProps) {
+  const [fullscreenImage, setFullscreenImage] = useState<TaskAttachment | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Handle Escape key to close fullscreen
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && fullscreenImage) {
+        handleCloseFullscreen();
+      }
+    };
+
+    if (fullscreenImage) {
+      document.addEventListener('keydown', handleKeyDown);
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [fullscreenImage]);
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -38,7 +66,15 @@ export default function AttachmentViewer({
   };
 
   const handleView = (attachment: TaskAttachment) => {
-    window.open(attachment.url, '_blank');
+    if (isImage(attachment.type)) {
+      setFullscreenImage(attachment);
+    } else {
+      window.open(attachment.url, '_blank');
+    }
+  };
+
+  const handleCloseFullscreen = () => {
+    setFullscreenImage(null);
   };
 
   if (attachments.length === 0) {
@@ -98,9 +134,9 @@ export default function AttachmentViewer({
                 <button
                   onClick={() => handleView(attachment)}
                   className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
-                  title="View image"
+                  title="View full screen"
                 >
-                  <ExternalLink className="w-4 h-4" />
+                  <ZoomIn className="w-4 h-4" />
                 </button>
               )}
               <button
@@ -114,6 +150,67 @@ export default function AttachmentViewer({
           </div>
         ))}
       </div>
+
+      {/* Fullscreen Image Modal - Using Portal */}
+      {fullscreenImage && mounted && createPortal(
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center p-4"
+          style={{ zIndex: 9999 }}
+          onClick={handleCloseFullscreen}
+        >
+          <div 
+            className="relative w-full h-full max-w-[95vw] max-h-[95vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 bg-black bg-opacity-70 text-white">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-medium truncate">{fullscreenImage.name}</h3>
+                <p className="text-sm opacity-80">{formatFileSize(fullscreenImage.size)}</p>
+              </div>
+              <button
+                onClick={handleCloseFullscreen}
+                className="p-2 hover:bg-white hover:bg-opacity-20 rounded-full transition-colors ml-4 flex-shrink-0"
+                title="Close (ESC)"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Image Container */}
+            <div className="flex-1 flex items-center justify-center p-4">
+              <img
+                src={fullscreenImage.url}
+                alt={fullscreenImage.name}
+                className="max-w-full max-h-full object-contain"
+                style={{ 
+                  maxHeight: 'calc(100vh - 120px)',
+                  maxWidth: '100%'
+                }}
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="absolute bottom-6 right-6 flex gap-3">
+              <button
+                onClick={() => handleDownload(fullscreenImage)}
+                className="p-3 bg-black bg-opacity-80 text-white hover:bg-opacity-100 rounded-full transition-all shadow-lg"
+                title="Download"
+              >
+                <Download className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => window.open(fullscreenImage.url, '_blank')}
+                className="p-3 bg-black bg-opacity-80 text-white hover:bg-opacity-100 rounded-full transition-all shadow-lg"
+                title="Open in new tab"
+              >
+                <ExternalLink className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
