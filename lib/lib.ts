@@ -20,6 +20,7 @@ export const TIMEZONES = [
   { name: "MST" },
   { name: "CST" },
   { name: "EST" },
+  { name: "AEST" },
 ];
 export const POSITIONS = ["LEFT", "RIGHT", "BOTTOM"];
 
