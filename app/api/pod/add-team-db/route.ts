@@ -7,20 +7,22 @@ export async function POST(request: NextRequest) {
   try {
     const { teamName, sheetUrl, rowNumber, creators } = await request.json();
 
-    if (!teamName || !sheetUrl || !rowNumber) {
+    if (!teamName || !rowNumber) {
       return NextResponse.json(
-        { error: 'Team name, sheet URL, and row number are required' },
+        { error: 'Team name and row number are required' },
         { status: 400 }
       );
     }
 
-    // Validate Google Sheets URL format for the team sheet
-    const isValidGoogleSheetsUrl = /^https:\/\/docs\.google\.com\/spreadsheets\/d\/[a-zA-Z0-9-_]+/.test(sheetUrl);
-    if (!isValidGoogleSheetsUrl) {
-      return NextResponse.json(
-        { error: 'Invalid Google Sheets URL format for team sheet' },
-        { status: 400 }
-      );
+    // Validate Google Sheets URL format for the team sheet (only if provided)
+    if (sheetUrl && sheetUrl.trim() !== '') {
+      const isValidGoogleSheetsUrl = /^https:\/\/docs\.google\.com\/spreadsheets\/d\/[a-zA-Z0-9-_]+/.test(sheetUrl);
+      if (!isValidGoogleSheetsUrl) {
+        return NextResponse.json(
+          { error: 'Invalid Google Sheets URL format for team sheet' },
+          { status: 400 }
+        );
+      }
     }
 
     // Create the new team in the database
@@ -30,7 +32,7 @@ export async function POST(request: NextRequest) {
       data: {
         row_id: rowNumber.toString(),
         pod_name: teamName.trim(),
-        link_to_team_sheet: sheetUrl.trim(),
+        link_to_team_sheet: sheetUrl ? sheetUrl.trim() : null,
         team_members: '', // Initialize empty members
         creators_assigned: creatorsString,
         current_week_schedule_status: null,
@@ -45,7 +47,7 @@ export async function POST(request: NextRequest) {
       message: 'Team added successfully',
       data: {
         teamName: teamName.trim(),
-        sheetUrl: sheetUrl.trim(),
+        sheetUrl: sheetUrl ? sheetUrl.trim() : null,
         rowNumber,
         creators: creatorsString,
         team: newTeam

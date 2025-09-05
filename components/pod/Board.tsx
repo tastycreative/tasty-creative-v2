@@ -19,13 +19,15 @@ import {
   Filter,
   SortAsc,
   SortDesc,
+  Settings,
   X
 } from 'lucide-react';
 import { useSocketTasks } from '@/hooks/useSocketTasks';
 import UserDropdown from '@/components/UserDropdown';
 import FileUpload from '@/components/ui/FileUpload';
 import AttachmentViewer from '@/components/ui/AttachmentViewer';
-import { useBoardStore, useBoardTasks, useBoardFilters, useBoardTaskActions, type Task } from '@/lib/stores/boardStore';
+import { useBoardStore, useBoardTasks, useBoardFilters, useBoardTaskActions, useBoardColumns, type Task, type BoardColumn } from '@/lib/stores/boardStore';
+import ColumnSettings from './ColumnSettings';
 // import { UserSearchInput } from '@/components/UserSearchInput';
 
 // Task types are now imported from the boardStore
@@ -162,6 +164,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     setSearchTerm, setPriorityFilter, setAssigneeFilter, setDueDateFilter, setSortBy, setSortOrder, setShowFilters
   } = useBoardFilters();
   const { createTask, updateTaskStatus, updateTask, deleteTask } = useBoardTaskActions();
+  const { 
+    columns, isLoadingColumns, showColumnSettings, fetchColumns, setShowColumnSettings 
+  } = useBoardColumns();
   
   // UI State from store
   const draggedTask = useBoardStore(state => state.draggedTask);
@@ -217,13 +222,39 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     if (teamId !== currentTeamId) {
       setCurrentTeamId(teamId);
     }
-    // Always fetch tasks when teamId changes, but use debouncing to prevent rapid calls
+    // Always fetch tasks and columns when teamId changes, but use debouncing to prevent rapid calls
     const timeoutId = setTimeout(() => {
       fetchTasks(teamId);
+      fetchColumns(teamId);
     }, 100);
 
     return () => clearTimeout(timeoutId);
-  }, [teamId, currentTeamId, setCurrentTeamId, fetchTasks]);
+  }, [teamId, currentTeamId, setCurrentTeamId, fetchTasks, fetchColumns]);
+
+  // Synchronize scroll between header and body on desktop
+  useEffect(() => {
+    const headerScroll = document.getElementById('desktop-header-scroll');
+    const bodyScroll = document.getElementById('desktop-body-scroll');
+    
+    if (!headerScroll || !bodyScroll) return;
+
+    const syncScroll = (source: Element, target: Element) => {
+      return () => {
+        target.scrollLeft = source.scrollLeft;
+      };
+    };
+
+    const headerToBody = syncScroll(headerScroll, bodyScroll);
+    const bodyToHeader = syncScroll(bodyScroll, headerScroll);
+
+    headerScroll.addEventListener('scroll', headerToBody);
+    bodyScroll.addEventListener('scroll', bodyToHeader);
+
+    return () => {
+      headerScroll.removeEventListener('scroll', headerToBody);
+      bodyScroll.removeEventListener('scroll', bodyToHeader);
+    };
+  }, [columns]); // Re-run when columns change
 
   // Real-time task updates with debouncing to prevent rapid updates
   const { broadcastTaskUpdate } = useSocketTasks({
@@ -557,6 +588,53 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     return filteredAndSortedTasks.filter(task => task.status === status);
   };
 
+  // Helper function to convert columns to statusConfig format
+  const getColumnConfig = () => {
+    if (columns.length === 0) {
+      // Return default config while columns are loading
+      console.log('Using default statusConfig, columns.length:', columns.length);
+      return Object.entries(statusConfig);
+    }
+    
+    console.log('Using dynamic columns:', columns.length, columns);
+    return columns.map(column => [
+      column.status,
+      {
+        label: column.label,
+        icon: getIconForStatus(column.status),
+        color: `text-gray-700 dark:text-gray-300`,
+        headerColor: 'bg-gray-50 dark:bg-gray-700',
+        buttonColor: `hover:bg-gray-700`
+      }
+    ] as [string, any]);
+  };
+
+  // Helper function to get appropriate icon for status
+  const getIconForStatus = (status: string) => {
+    switch (status) {
+      case 'NOT_STARTED': return Clock;
+      case 'IN_PROGRESS': return Play;
+      case 'COMPLETED': return CheckCircle2;
+      case 'CANCELLED': return XCircle;
+      default: return Clock; // Default icon for custom statuses
+    }
+  };
+
+  // Helper function to get grid classes and styles based on column count
+  const getGridClasses = () => {
+    const columnCount = columns.length || 4;
+    // Always use a fixed grid template for consistent column widths
+    return 'grid-cols-none';
+  };
+
+  const getGridStyles = () => {
+    const columnCount = columns.length || 4;
+    // Each column is 300px wide (equivalent to about 1/4 of a 1200px container)
+    return {
+      gridTemplateColumns: `repeat(${columnCount}, minmax(300px, 1fr))`
+    };
+  };
+
   // Filter and sort functions
   const filterTasks = (tasksToFilter: Task[]) => {
     return tasksToFilter.filter(task => {
@@ -739,9 +817,14 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
         {/* Board with Skeleton Content - Only task content is skeleton */}
         <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden">
-          {/* Column Headers - Always visible with real data */}
-          <div className="grid grid-cols-4 border-b-2 border-gray-200 dark:border-gray-600">
-            {Object.entries(statusConfig).map(([status, config], index) => {
+          {/* Horizontal scroll container */}
+          <div className="overflow-x-auto">
+            {/* Column Headers - Always visible with real data */}
+            <div 
+              className={`grid ${getGridClasses()} border-b-2 border-gray-200 dark:border-gray-600`}
+              style={getGridStyles()}
+            >
+            {getColumnConfig().map(([status, config], index) => {
               const IconComponent = config.icon;
               return (
                 <div
@@ -773,13 +856,16 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
             })}
           </div>
 
-          {/* Column Content - Only this part shows skeleton loading */}
-          <div className="grid grid-cols-4 min-h-[600px]">
-            {Object.entries(statusConfig).map(([status, config], index) => (
+            {/* Column Content - Only this part shows skeleton loading */}
+            <div 
+              className={`grid ${getGridClasses()} min-h-[600px]`}
+              style={getGridStyles()}
+            >
+            {getColumnConfig().map(([status, config], index) => (
               <div
                 key={status}
                 className={`p-4 ${
-                  index < 3 ? 'border-r-2 border-gray-200 dark:border-gray-600' : ''
+                  index < (columns.length || 4) - 1 ? 'border-r-2 border-gray-200 dark:border-gray-600' : ''
                 }`}
               >
                 <div className="space-y-3">
@@ -790,6 +876,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                 </div>
               </div>
             ))}
+          </div>
           </div>
         </div>
       </div>
@@ -949,6 +1036,16 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                 </span>
               )}
             </button>
+
+            {/* Column Settings Button */}
+            <button
+              onClick={() => setShowColumnSettings(true)}
+              className="flex items-center space-x-1 px-3 py-2 border rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-purple-500 border-gray-200 text-gray-700 bg-white dark:border-gray-600 dark:text-gray-300 dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+            >
+              <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline">Columns</span>
+            </button>
+
             {(searchTerm || priorityFilter !== 'ALL' || assigneeFilter !== 'ALL' || dueDateFilter !== 'ALL') && (
               <button
                 onClick={() => {
@@ -1031,7 +1128,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-500/30 rounded-lg p-4">
           <div className="flex items-center">
             <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-            <p className="text-red-700 dark:text-red-400">{error}</p>
+            <p className="text-red-700 dark:text-red-400">{error.message}</p>
           </div>
         </div>
       )}
@@ -1041,7 +1138,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         {/* Mobile Column Navigation - Only visible on mobile */}
         <div className="md:hidden border-b border-gray-200 dark:border-gray-600">
           <div className="flex overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-            {Object.entries(statusConfig).map(([status, config]) => {
+            {getColumnConfig().map(([status, config]) => {
               const statusTasks = getTasksForStatus(status as Task['status']);
               const IconComponent = config.icon;
               return (
@@ -1064,9 +1161,14 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           </div>
         </div>
 
-        {/* Desktop Column Headers - Hidden on mobile */}
-        <div className="hidden md:grid md:grid-cols-4 border-b-2 border-gray-200 dark:border-gray-600">
-          {Object.entries(statusConfig).map(([status, config], index) => {
+        {/* Desktop: Single Scroll Container - Hidden on mobile */}
+        <div className="hidden md:block overflow-x-auto">
+          {/* Desktop Column Headers */}
+          <div 
+            className={`grid ${getGridClasses()} border-b-2 border-gray-200 dark:border-gray-600`}
+            style={getGridStyles()}
+          >
+          {getColumnConfig().map(([status, config], index) => {
             const statusTasks = getTasksForStatus(status as Task['status']);
             const IconComponent = config.icon;
 
@@ -1074,7 +1176,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
               <div
                 key={status}
                 className={`p-4 ${config.headerColor} dark:bg-gray-700 ${
-                  index < 3 ? 'border-r-2 border-gray-200 dark:border-gray-600' : ''
+                  index < (columns.length || 4) - 1 ? 'border-r-2 border-gray-200 dark:border-gray-600' : ''
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -1153,13 +1255,14 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
               </div>
             );
           })}
+          </div>
         </div>
 
-        {/* Mobile: Horizontal Scrolling Columns, Desktop: Grid Layout */}
+        {/* Mobile: Horizontal Scrolling Columns */}
         <div className="md:hidden">
           {/* Mobile Horizontal Scrolling Layout */}
           <div className="flex overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 min-h-[600px]">
-            {Object.entries(statusConfig).map(([status, config], index) => {
+            {getColumnConfig().map(([status, config]) => {
               const statusTasks = getTasksForStatus(status as Task['status']);
 
               return (
@@ -1300,17 +1403,21 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
             })}
           </div>
         </div>
-
-        {/* Desktop Grid Layout */}
-        <div className="hidden md:grid md:grid-cols-4 min-h-[600px]">
-          {Object.entries(statusConfig).map(([status, config], index) => {
+        
+        {/* Desktop Grid Body - Hidden on mobile */}
+        <div className="hidden md:block overflow-x-auto" id="desktop-body-scroll">
+          <div 
+            className={`grid ${getGridClasses()} min-h-[600px]`}
+            style={getGridStyles()}
+          >
+          {getColumnConfig().map(([status, config], index) => {
             const statusTasks = getTasksForStatus(status as Task['status']);
 
             return (
               <div
                 key={status}
                 className={`p-4 ${
-                  index < 3 ? 'border-r-2 border-gray-200 dark:border-gray-600' : ''
+                  index < (columns.length || 4) - 1 ? 'border-r-2 border-gray-200 dark:border-gray-600' : ''
                 } transition-colors duration-300 ${
                   draggedTask && draggedTask.status !== status 
                     ? 'bg-pink-50/30 dark:bg-pink-900/10 border-pink-200 dark:border-pink-500' 
@@ -1484,6 +1591,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
               </div>
             );
           })}
+          </div>
         </div>
       </div>
 
@@ -1761,7 +1869,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                         onChange={(e) => updateTaskStatusInModal(e.target.value as Task['status'])}
                         className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                       >
-                        {Object.entries(statusConfig).map(([status, config]) => (
+                        {getColumnConfig().map(([status, config]) => (
                           <option key={status} value={status}>
                             {config.label}
                           </option>
@@ -1769,11 +1877,16 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
                       </select>
                     ) : (
                       <div className="flex items-center space-x-3 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                        {React.createElement(statusConfig[selectedTask.status].icon, { 
-                          className: "h-4 w-4 text-gray-500" 
-                        })}
+                        {(() => {
+                          const columnConfig = getColumnConfig().find(([status]) => status === selectedTask.status);
+                          const IconComponent = columnConfig ? columnConfig[1].icon : Clock;
+                          return <IconComponent className="h-4 w-4 text-gray-500" />;
+                        })()}
                         <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {statusConfig[selectedTask.status].label}
+                          {(() => {
+                            const columnConfig = getColumnConfig().find(([status]) => status === selectedTask.status);
+                            return columnConfig ? columnConfig[1].label : selectedTask.status;
+                          })()}
                         </span>
                       </div>
                     )}
@@ -2117,6 +2230,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           </div>
         </div>
       )}
+
+      {/* Column Settings Modal */}
+      <ColumnSettings currentTeamId={currentTeamId} />
     </div>
   );
 }

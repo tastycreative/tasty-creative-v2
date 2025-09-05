@@ -3628,7 +3628,7 @@ const AddTeamForm = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.teamName.trim() || !formData.sheetUrl.trim()) return;
+    if (!formData.teamName.trim()) return;
 
     setIsSubmitting(true);
     try {
@@ -3661,8 +3661,7 @@ const AddTeamForm = ({
 
   const isFormValid =
     formData.teamName.trim() &&
-    formData.sheetUrl.trim() &&
-    isValidUrl(formData.sheetUrl);
+    (formData.sheetUrl.trim() === "" || isValidUrl(formData.sheetUrl));
 
   if (!isOpen) return null;
 
@@ -3704,14 +3703,13 @@ const AddTeamForm = ({
                 }
                 placeholder="Enter team name"
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
-                required
               />
             </div>
 
             {/* Google Sheet URL */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                Google Sheet URL
+                Google Sheet URL (Optional)
               </label>
               <input
                 type="url"
@@ -3721,11 +3719,11 @@ const AddTeamForm = ({
                 }
                 placeholder="https://docs.google.com/spreadsheets/d/..."
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
-                required
+                
               />
               {formData.sheetUrl && !isValidUrl(formData.sheetUrl) && (
                 <p className="text-sm text-red-600 dark:text-red-400 mt-2">
-                  Please enter a valid Google Sheets URL
+                  Please enter a valid Google Sheets URL (or leave empty)
                 </p>
               )}
             </div>
@@ -3737,13 +3735,13 @@ const AddTeamForm = ({
               <span className="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center text-purple-600 dark:text-purple-400 text-sm font-bold mr-3">
                 2
               </span>
-              Assign Creators
+              Assign Creators (Optional)
             </h4>
 
             <div>
               <div className="flex items-center justify-between mb-4">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Assign Creators (Max {MAX_CREATORS})
+                  Assign Creators (Optional - Max {MAX_CREATORS})
                 </label>
                 <div className="flex items-center space-x-3">
                   <div className="text-xs text-gray-500 dark:text-gray-400">

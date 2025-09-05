@@ -73,6 +73,56 @@ export interface NewTaskData {
   attachments: TaskAttachment[];
 }
 
+// Board Column Configuration
+export interface BoardColumn {
+  id: string;
+  teamId: string;
+  label: string;
+  status: string;
+  position: number;
+  color: string;
+  isDefault: boolean;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Default column configurations
+export const DEFAULT_COLUMNS: Omit<BoardColumn, 'id' | 'teamId' | 'createdAt' | 'updatedAt'>[] = [
+  {
+    label: 'Not Started',
+    status: 'NOT_STARTED',
+    position: 0,
+    color: '#6B7280',
+    isDefault: true,
+    isActive: true,
+  },
+  {
+    label: 'In Progress', 
+    status: 'IN_PROGRESS',
+    position: 1,
+    color: '#3B82F6',
+    isDefault: true,
+    isActive: true,
+  },
+  {
+    label: 'Completed',
+    status: 'COMPLETED', 
+    position: 2,
+    color: '#10B981',
+    isDefault: true,
+    isActive: true,
+  },
+  {
+    label: 'Cancelled',
+    status: 'CANCELLED',
+    position: 3, 
+    color: '#EF4444',
+    isDefault: true,
+    isActive: true,
+  },
+];
+
 export interface BoardStore {
   // State
   tasks: Task[];
@@ -138,6 +188,20 @@ export interface BoardStore {
   setSortBy: (field: SortField) => void;
   setSortOrder: (order: SortOrder) => void;
   setShowFilters: (show: boolean) => void;
+  
+  // Column Configuration State
+  columns: BoardColumn[];
+  isLoadingColumns: boolean;
+  showColumnSettings: boolean;
+  
+  // Actions - Column Management
+  fetchColumns: (teamId: string, forceRefresh?: boolean) => Promise<void>;
+  createColumn: (column: Omit<BoardColumn, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateColumn: (columnId: string, updates: Partial<BoardColumn>) => Promise<void>;
+  deleteColumn: (columnId: string) => Promise<void>;
+  reorderColumns: (columns: BoardColumn[]) => Promise<void>;
+  resetToDefaultColumns: (teamId: string) => Promise<void>;
+  setShowColumnSettings: (show: boolean) => void;
   
   // Actions - Error Handling
   setError: (error: APIError | null) => void;
@@ -242,6 +306,11 @@ export const useBoardStore = create<BoardStore>()(
         sortBy: 'updatedAt',
         sortOrder: 'desc',
         showFilters: false,
+        
+        // Column Configuration State
+        columns: [],
+        isLoadingColumns: false,
+        showColumnSettings: false,
         
         // Cache management
         getCachedData: <T>(key: string): T | null => {
@@ -630,6 +699,197 @@ export const useBoardStore = create<BoardStore>()(
         setSortOrder: (order) => set({ sortOrder: order }),
         setShowFilters: (show) => set({ showFilters: show }),
         
+        // Column Management Actions
+        fetchColumns: async (teamId: string, forceRefresh = false) => {
+          const cacheKey = `columns-${teamId}`;
+          const cached = get().getCachedData<BoardColumn[]>(cacheKey);
+          
+          if (!forceRefresh && cached) {
+            set({ columns: cached, isLoadingColumns: false });
+            return;
+          }
+
+          set({ isLoadingColumns: true });
+          try {
+            const response = await apiCall<{ success: boolean; columns: BoardColumn[] }>(
+              `/api/board-columns?teamId=${encodeURIComponent(teamId)}`
+            );
+
+            if (response.success) {
+              set({ columns: response.columns, isLoadingColumns: false });
+              get().setCachedData(cacheKey, response.columns);
+            }
+          } catch (error) {
+            console.error('Failed to fetch columns:', error);
+            set({ 
+              error: { 
+                message: 'Failed to load board columns', 
+                code: 'FETCH_COLUMNS_ERROR', 
+                timestamp: Date.now() 
+              },
+              isLoadingColumns: false 
+            });
+          }
+        },
+
+        createColumn: async (column) => {
+          try {
+            const response = await apiCall<{ success: boolean; column: BoardColumn }>(
+              '/api/board-columns',
+              {
+                method: 'POST',
+                body: JSON.stringify(column),
+              }
+            );
+
+            if (response.success) {
+              // Add the new column to the state
+              set((state) => ({
+                columns: [...state.columns, response.column].sort((a, b) => a.position - b.position)
+              }));
+              
+              // Clear cache to force refresh
+              get().clearCache(`columns-${column.teamId}`);
+            }
+          } catch (error) {
+            console.error('Failed to create column:', error);
+            set({ 
+              error: { 
+                message: 'Failed to create column', 
+                code: 'CREATE_COLUMN_ERROR', 
+                timestamp: Date.now() 
+              }
+            });
+          }
+        },
+
+        updateColumn: async (columnId: string, updates) => {
+          try {
+            const response = await apiCall<{ success: boolean; column: BoardColumn }>(
+              '/api/board-columns',
+              {
+                method: 'PUT',
+                body: JSON.stringify({ id: columnId, ...updates }),
+              }
+            );
+
+            if (response.success) {
+              // Update the column in state
+              set((state) => ({
+                columns: state.columns.map(col => 
+                  col.id === columnId ? response.column : col
+                ).sort((a, b) => a.position - b.position)
+              }));
+              
+              // Clear cache to force refresh
+              const column = get().columns.find(c => c.id === columnId);
+              if (column) {
+                get().clearCache(`columns-${column.teamId}`);
+              }
+            }
+          } catch (error) {
+            console.error('Failed to update column:', error);
+            set({ 
+              error: { 
+                message: 'Failed to update column', 
+                code: 'UPDATE_COLUMN_ERROR', 
+                timestamp: Date.now() 
+              }
+            });
+          }
+        },
+
+        deleteColumn: async (columnId: string) => {
+          try {
+            const response = await apiCall<{ success: boolean }>(
+              `/api/board-columns?id=${encodeURIComponent(columnId)}`,
+              { method: 'DELETE' }
+            );
+
+            if (response.success) {
+              // Remove the column from state
+              const column = get().columns.find(c => c.id === columnId);
+              set((state) => ({
+                columns: state.columns.filter(col => col.id !== columnId)
+              }));
+              
+              // Clear cache to force refresh
+              if (column) {
+                get().clearCache(`columns-${column.teamId}`);
+              }
+            }
+          } catch (error) {
+            console.error('Failed to delete column:', error);
+            set({ 
+              error: { 
+                message: 'Failed to delete column', 
+                code: 'DELETE_COLUMN_ERROR', 
+                timestamp: Date.now() 
+              }
+            });
+          }
+        },
+
+        reorderColumns: async (columns) => {
+          const teamId = columns[0]?.teamId;
+          if (!teamId) return;
+
+          try {
+            const response = await apiCall<{ success: boolean; columns: BoardColumn[] }>(
+              '/api/board-columns/reorder',
+              {
+                method: 'POST',
+                body: JSON.stringify({
+                  teamId,
+                  columnIds: columns.map(c => c.id)
+                }),
+              }
+            );
+
+            if (response.success) {
+              set({ columns: response.columns });
+              get().clearCache(`columns-${teamId}`);
+            }
+          } catch (error) {
+            console.error('Failed to reorder columns:', error);
+            set({ 
+              error: { 
+                message: 'Failed to reorder columns', 
+                code: 'REORDER_COLUMNS_ERROR', 
+                timestamp: Date.now() 
+              }
+            });
+          }
+        },
+
+        resetToDefaultColumns: async (teamId: string) => {
+          try {
+            const response = await apiCall<{ success: boolean; columns: BoardColumn[] }>(
+              '/api/board-columns/reset',
+              {
+                method: 'POST',
+                body: JSON.stringify({ teamId }),
+              }
+            );
+
+            if (response.success) {
+              set({ columns: response.columns });
+              get().clearCache(`columns-${teamId}`);
+            }
+          } catch (error) {
+            console.error('Failed to reset columns:', error);
+            set({ 
+              error: { 
+                message: 'Failed to reset columns', 
+                code: 'RESET_COLUMNS_ERROR', 
+                timestamp: Date.now() 
+              }
+            });
+          }
+        },
+
+        setShowColumnSettings: (show) => set({ showColumnSettings: show }),
+        
         // Error Handling Actions
         setError: (error) => set({ error }),
         clearError: () => set({ error: null }),
@@ -711,4 +971,31 @@ export const useBoardTaskActions = () => {
   const clearCache = useBoardStore((state) => state.clearCache);
   
   return { createTask, updateTaskStatus, updateTask, deleteTask, clearCache };
+};
+
+export const useBoardColumns = () => {
+  const columns = useBoardStore((state) => state.columns);
+  const isLoadingColumns = useBoardStore((state) => state.isLoadingColumns);
+  const showColumnSettings = useBoardStore((state) => state.showColumnSettings);
+  
+  const fetchColumns = useBoardStore((state) => state.fetchColumns);
+  const createColumn = useBoardStore((state) => state.createColumn);
+  const updateColumn = useBoardStore((state) => state.updateColumn);
+  const deleteColumn = useBoardStore((state) => state.deleteColumn);
+  const reorderColumns = useBoardStore((state) => state.reorderColumns);
+  const resetToDefaultColumns = useBoardStore((state) => state.resetToDefaultColumns);
+  const setShowColumnSettings = useBoardStore((state) => state.setShowColumnSettings);
+  
+  return {
+    columns,
+    isLoadingColumns,
+    showColumnSettings,
+    fetchColumns,
+    createColumn,
+    updateColumn,
+    deleteColumn,
+    reorderColumns,
+    resetToDefaultColumns,
+    setShowColumnSettings,
+  };
 };
