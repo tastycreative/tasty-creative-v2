@@ -60,8 +60,9 @@ export async function POST(request: NextRequest) {
     const submissionType = data.submissionType.toUpperCase() as 'OTP' | 'PTR';
 
     // Create the content submission
-    const submission = await prisma.contentSubmission.create({
+    const submission = await prisma.ContentSubmission.create({
       data: {
+        id: `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         submissionType: submissionType,
         modelName: data.modelName,
         priority: submissionPriority as any,
@@ -70,16 +71,17 @@ export async function POST(request: NextRequest) {
         screenshotAttachments: data.screenshotAttachments || [],
         status: 'PENDING',
         createdById: session.user.id!,
+        updatedAt: new Date(),
       }
     });
 
     console.log('✅ Content submission created:', submission.id);
 
-    // Find "Team 4 sample update" team from database
+    // Find "otp-ptr" team from database
     const targetTeam = await prisma.podTeam.findFirst({
       where: {
         pod_name: {
-          contains: "Team 4 sample update",
+          contains: "OTP-PTR",
           mode: 'insensitive'
         }
       }

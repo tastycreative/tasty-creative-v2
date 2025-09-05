@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     const submissions = await prisma.contentSubmission.findMany({
       where,
       include: {
-        task: {
+        Task: {
           select: {
             id: true,
             title: true,
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
             createdAt: true
           }
         },
-        createdBy: {
+        User: {
           select: {
             id: true,
             name: true,

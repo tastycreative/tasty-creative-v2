@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { TaskAttachment } from '@/lib/stores/boardStore';
-import { Download, File, Image, ExternalLink, X, ZoomIn } from 'lucide-react';
+import { Download, File, Image, ExternalLink, X, ZoomIn, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface AttachmentViewerProps {
   attachments: TaskAttachment[];
@@ -18,32 +18,38 @@ export default function AttachmentViewer({
   compact = false,
   className = ''
 }: AttachmentViewerProps) {
-  const [fullscreenImage, setFullscreenImage] = useState<TaskAttachment | null>(null);
+  const [fullscreenAttachments, setFullscreenAttachments] = useState<TaskAttachment[] | null>(null);
+  const [currentAttachmentIndex, setCurrentAttachmentIndex] = useState(0);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Handle Escape key to close fullscreen
+  // Handle fullscreen modal keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && fullscreenImage) {
+      if (!fullscreenAttachments) return;
+
+      if (e.key === "Escape") {
         handleCloseFullscreen();
+      } else if (e.key === "ArrowLeft") {
+        navigateAttachment("prev");
+      } else if (e.key === "ArrowRight") {
+        navigateAttachment("next");
       }
     };
 
-    if (fullscreenImage) {
-      document.addEventListener('keydown', handleKeyDown);
-      // Prevent body scroll when modal is open
-      document.body.style.overflow = 'hidden';
+    if (fullscreenAttachments) {
+      document.addEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "hidden";
     }
 
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = '';
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
     };
-  }, [fullscreenImage]);
+  }, [fullscreenAttachments, currentAttachmentIndex]);
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -65,16 +71,44 @@ export default function AttachmentViewer({
     document.body.removeChild(link);
   };
 
+  const handleAttachmentClick = (
+    attachments: TaskAttachment[],
+    startIndex: number = 0
+  ) => {
+    const imageAttachments = attachments.filter(att => isImage(att.type));
+    if (imageAttachments.length > 0) {
+      setFullscreenAttachments(imageAttachments);
+      setCurrentAttachmentIndex(startIndex);
+    }
+  };
+
   const handleView = (attachment: TaskAttachment) => {
     if (isImage(attachment.type)) {
-      setFullscreenImage(attachment);
+      const imageAttachments = attachments.filter(att => isImage(att.type));
+      const startIndex = imageAttachments.findIndex(att => att.url === attachment.url);
+      handleAttachmentClick(imageAttachments, Math.max(0, startIndex));
     } else {
       window.open(attachment.url, '_blank');
     }
   };
 
   const handleCloseFullscreen = () => {
-    setFullscreenImage(null);
+    setFullscreenAttachments(null);
+    setCurrentAttachmentIndex(0);
+  };
+
+  const navigateAttachment = (direction: "prev" | "next") => {
+    if (!fullscreenAttachments) return;
+
+    if (direction === "prev") {
+      setCurrentAttachmentIndex((prev) =>
+        prev > 0 ? prev - 1 : fullscreenAttachments.length - 1
+      );
+    } else {
+      setCurrentAttachmentIndex((prev) =>
+        prev < fullscreenAttachments.length - 1 ? prev + 1 : 0
+      );
+    }
   };
 
   if (attachments.length === 0) {
@@ -151,66 +185,139 @@ export default function AttachmentViewer({
         ))}
       </div>
 
-      {/* Fullscreen Image Modal - Using Portal */}
-      {fullscreenImage && mounted && createPortal(
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center p-4"
-          style={{ zIndex: 9999 }}
-          onClick={handleCloseFullscreen}
-        >
-          <div 
-            className="relative w-full h-full max-w-[95vw] max-h-[95vh] flex flex-col"
-            onClick={(e) => e.stopPropagation()}
+      {/* Fullscreen Attachment Modal */}
+      {fullscreenAttachments &&
+        fullscreenAttachments.length > 0 &&
+        mounted &&
+        createPortal(
+          <div
+            className="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center p-4"
+            style={{ zIndex: 9999 }}
+            onClick={handleCloseFullscreen}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 bg-black bg-opacity-70 text-white">
-              <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-medium truncate">{fullscreenImage.name}</h3>
-                <p className="text-sm opacity-80">{formatFileSize(fullscreenImage.size)}</p>
+            <div
+              className="relative w-full h-full max-w-[95vw] max-h-[95vh] flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 bg-black bg-opacity-70 text-white">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-lg font-medium truncate">
+                    {fullscreenAttachments[currentAttachmentIndex].name}
+                  </h3>
+                  <div className="flex items-center gap-4 mt-1">
+                    <p className="text-sm opacity-80">
+                      {formatFileSize(
+                        fullscreenAttachments[currentAttachmentIndex].size
+                      )}
+                    </p>
+                    {fullscreenAttachments.length > 1 && (
+                      <p className="text-sm opacity-80">
+                        {currentAttachmentIndex + 1} of{" "}
+                        {fullscreenAttachments.length}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={handleCloseFullscreen}
+                  className="p-2 hover:bg-white hover:bg-opacity-20 rounded-full transition-colors ml-4 flex-shrink-0"
+                  title="Close (ESC)"
+                >
+                  <X className="w-6 h-6" />
+                </button>
               </div>
-              <button
-                onClick={handleCloseFullscreen}
-                className="p-2 hover:bg-white hover:bg-opacity-20 rounded-full transition-colors ml-4 flex-shrink-0"
-                title="Close (ESC)"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
 
-            {/* Image Container */}
-            <div className="flex-1 flex items-center justify-center p-4">
-              <img
-                src={fullscreenImage.url}
-                alt={fullscreenImage.name}
-                className="max-w-full max-h-full object-contain"
-                style={{ 
-                  maxHeight: 'calc(100vh - 120px)',
-                  maxWidth: '100%'
-                }}
-              />
-            </div>
+              {/* Image Container */}
+              <div className="flex-1 flex items-center justify-center p-4 relative">
+                <div className="flex items-center justify-center w-full h-full">
+                  <img
+                    src={fullscreenAttachments[currentAttachmentIndex].url}
+                    alt={fullscreenAttachments[currentAttachmentIndex].name}
+                    className="max-w-full max-h-full object-contain"
+                    style={{
+                      maxHeight: "calc(100vh - 120px)",
+                      maxWidth: "calc(100vw - 32px)",
+                    }}
+                  />
+                </div>
 
-            {/* Actions */}
-            <div className="absolute bottom-6 right-6 flex gap-3">
-              <button
-                onClick={() => handleDownload(fullscreenImage)}
-                className="p-3 bg-black bg-opacity-80 text-white hover:bg-opacity-100 rounded-full transition-all shadow-lg"
-                title="Download"
-              >
-                <Download className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => window.open(fullscreenImage.url, '_blank')}
-                className="p-3 bg-black bg-opacity-80 text-white hover:bg-opacity-100 rounded-full transition-all shadow-lg"
-                title="Open in new tab"
-              >
-                <ExternalLink className="w-5 h-5" />
-              </button>
+                {/* Navigation Arrows */}
+                {fullscreenAttachments.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => navigateAttachment("prev")}
+                      className="absolute left-6 top-1/2 -translate-y-1/2 p-3 bg-black bg-opacity-60 hover:bg-opacity-80 text-white rounded-full transition-all shadow-lg"
+                      title="Previous (←)"
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+                    <button
+                      onClick={() => navigateAttachment("next")}
+                      className="absolute right-6 top-1/2 -translate-y-1/2 p-3 bg-black bg-opacity-60 hover:bg-opacity-80 text-white rounded-full transition-all shadow-lg"
+                      title="Next (→)"
+                    >
+                      <ChevronRight className="w-6 h-6" />
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="absolute bottom-6 right-6 flex gap-3">
+                <button
+                  onClick={() =>
+                    handleDownload(
+                      fullscreenAttachments[currentAttachmentIndex]
+                    )
+                  }
+                  className="p-3 bg-black bg-opacity-80 text-white hover:bg-opacity-100 rounded-full transition-all shadow-lg"
+                  title="Download"
+                >
+                  <Download className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() =>
+                    window.open(
+                      fullscreenAttachments[currentAttachmentIndex].url,
+                      "_blank"
+                    )
+                  }
+                  className="p-3 bg-black bg-opacity-80 text-white hover:bg-opacity-100 rounded-full transition-all shadow-lg"
+                  title="Open in new tab"
+                >
+                  <ExternalLink className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Thumbnail Strip for Multiple Images */}
+              {fullscreenAttachments.length > 1 && (
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 bg-black bg-opacity-70 p-3 rounded-full">
+                  {fullscreenAttachments.map(
+                    (attachment: TaskAttachment, index: number) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentAttachmentIndex(index)}
+                        className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-all hover:scale-110 ${
+                          index === currentAttachmentIndex
+                            ? "border-white shadow-lg"
+                            : "border-gray-500 opacity-70 hover:opacity-100"
+                        }`}
+                      >
+                        <img
+                          src={attachment.url}
+                          alt={attachment.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    )
+                  )}
+                </div>
+              )}
             </div>
-          </div>
-        </div>,
-        document.body
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
