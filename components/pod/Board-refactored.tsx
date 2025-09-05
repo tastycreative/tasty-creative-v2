@@ -1,19 +1,26 @@
-'use client';
+"use client";
 
-import React, { useEffect, useCallback, useState, useMemo } from 'react';
-import { Session } from 'next-auth';
-import { 
-  AlertCircle
-} from 'lucide-react';
-import { useSocketTasks } from '@/hooks/useSocketTasks';
-import { useBoardStore, useBoardTasks, useBoardFilters, useBoardTaskActions, useBoardColumns, type Task, type BoardColumn, type NewTaskData } from '@/lib/stores/boardStore';
-import ColumnSettings from './ColumnSettings';
-import BoardHeader from './BoardHeader';
-import BoardFilters from './BoardFilters';
-import BoardSkeleton from './BoardSkeleton';
-import BoardGrid from './BoardGrid';
-import TaskDetailModal from './TaskDetailModal';
-import NewTaskModal from './NewTaskModal';
+import React, { useEffect, useCallback, useState } from "react";
+import { Session } from "next-auth";
+import { Clock, CheckCircle2, XCircle, Play, AlertCircle } from "lucide-react";
+import { useSocketTasks } from "@/hooks/useSocketTasks";
+import {
+  useBoardStore,
+  useBoardTasks,
+  useBoardFilters,
+  useBoardTaskActions,
+  useBoardColumns,
+  type Task,
+  type BoardColumn,
+  type NewTaskData,
+} from "@/lib/stores/boardStore";
+import ColumnSettings from "./ColumnSettings";
+import BoardHeader from "./BoardHeader";
+import BoardFilters from "./BoardFilters";
+import BoardSkeleton from "./BoardSkeleton";
+import BoardGrid from "./BoardGrid";
+import TaskDetailModal from "./TaskDetailModal";
+import NewTaskModal from "./NewTaskModal";
 
 // Utility function to make links clickable
 const linkifyText = (text: string) => {
@@ -53,63 +60,100 @@ interface BoardProps {
 
 const statusConfig = {
   NOT_STARTED: {
-    label: 'Not Started',
-    color: 'bg-gray-100 text-gray-700 border-gray-200',
-    headerColor: 'bg-gray-50 border-gray-200',
-    buttonColor: 'bg-gray-600 hover:bg-gray-700'
+    label: "Not Started",
+    icon: Clock,
+    color: "bg-gray-100 text-gray-700 border-gray-200",
+    headerColor: "bg-gray-50 border-gray-200",
+    buttonColor: "bg-gray-600 hover:bg-gray-700",
   },
   IN_PROGRESS: {
-    label: 'In Progress',
-    color: 'bg-blue-100 text-blue-700 border-blue-200',
-    headerColor: 'bg-blue-50 border-blue-200',
-    buttonColor: 'bg-blue-600 hover:bg-blue-700'
+    label: "In Progress",
+    icon: Play,
+    color: "bg-blue-100 text-blue-700 border-blue-200",
+    headerColor: "bg-blue-50 border-blue-200",
+    buttonColor: "bg-blue-600 hover:bg-blue-700",
   },
   COMPLETED: {
-    label: 'Completed',
-    color: 'bg-green-100 text-green-700 border-green-200',
-    headerColor: 'bg-green-50 border-green-200',
-    buttonColor: 'bg-green-600 hover:bg-green-700'
+    label: "Completed",
+    icon: CheckCircle2,
+    color: "bg-green-100 text-green-700 border-green-200",
+    headerColor: "bg-green-50 border-green-200",
+    buttonColor: "bg-green-600 hover:bg-green-700",
   },
   CANCELLED: {
-    label: 'Cancelled',
-    color: 'bg-red-100 text-red-700 border-red-200',
-    headerColor: 'bg-red-50 border-red-200',
-    buttonColor: 'bg-red-600 hover:bg-red-700'
-  }
+    label: "Cancelled",
+    icon: XCircle,
+    color: "bg-red-100 text-red-700 border-red-200",
+    headerColor: "bg-red-50 border-red-200",
+    buttonColor: "bg-red-600 hover:bg-red-700",
+  },
 };
 
-export default function Board({ teamId, teamName, session, availableTeams, onTeamChange, selectedRow }: BoardProps) {
+export default function Board({
+  teamId,
+  teamName,
+  session,
+  availableTeams,
+  onTeamChange,
+  selectedRow,
+}: BoardProps) {
   // Zustand store hooks
-  const { tasks, isLoading, error, currentTeamId, fetchTasks, setCurrentTeamId } = useBoardTasks();
-  const { 
-    searchTerm, priorityFilter, assigneeFilter, dueDateFilter, sortBy, sortOrder, showFilters,
-    setSearchTerm, setPriorityFilter, setAssigneeFilter, setDueDateFilter, setSortBy, setSortOrder, setShowFilters
+  const {
+    tasks,
+    isLoading,
+    error,
+    currentTeamId,
+    fetchTasks,
+    setCurrentTeamId,
+  } = useBoardTasks();
+  const {
+    searchTerm,
+    priorityFilter,
+    assigneeFilter,
+    dueDateFilter,
+    sortBy,
+    sortOrder,
+    showFilters,
+    setSearchTerm,
+    setPriorityFilter,
+    setAssigneeFilter,
+    setDueDateFilter,
+    setSortBy,
+    setSortOrder,
+    setShowFilters,
   } = useBoardFilters();
-  const { createTask, updateTaskStatus, updateTask, deleteTask } = useBoardTaskActions();
-  const { 
-    columns, isLoadingColumns, showColumnSettings, fetchColumns, setShowColumnSettings 
+  const { createTask, updateTaskStatus, updateTask, deleteTask } =
+    useBoardTaskActions();
+  const {
+    columns,
+    isLoadingColumns,
+    showColumnSettings,
+    fetchColumns,
+    setShowColumnSettings,
   } = useBoardColumns();
-  
+
   // UI State from store
-  const draggedTask = useBoardStore(state => state.draggedTask);
-  const showNewTaskForm = useBoardStore(state => state.showNewTaskForm);
-  const showNewTaskModal = useBoardStore(state => state.showNewTaskModal);
-  const newTaskStatus = useBoardStore(state => state.newTaskStatus);
-  const newTaskData = useBoardStore(state => state.newTaskData);
-  const isCreatingTask = useBoardStore(state => state.isCreatingTask);
-  const selectedTask = useBoardStore(state => state.selectedTask);
-  const isEditingTask = useBoardStore(state => state.isEditingTask);
-  const editingTaskData = useBoardStore(state => state.editingTaskData);
-  
+  const draggedTask = useBoardStore((state) => state.draggedTask);
+  const showNewTaskForm = useBoardStore((state) => state.showNewTaskForm);
+  const showNewTaskModal = useBoardStore((state) => state.showNewTaskModal);
+  const newTaskStatus = useBoardStore((state) => state.newTaskStatus);
+  const newTaskData = useBoardStore((state) => state.newTaskData);
+  const isCreatingTask = useBoardStore((state) => state.isCreatingTask);
+  const selectedTask = useBoardStore((state) => state.selectedTask);
+  const isEditingTask = useBoardStore((state) => state.isEditingTask);
+  const editingTaskData = useBoardStore((state) => state.editingTaskData);
+
   // UI State setters from store
-  const setDraggedTask = useBoardStore(state => state.setDraggedTask);
-  const setShowNewTaskForm = useBoardStore(state => state.setShowNewTaskForm);
-  const setShowNewTaskModal = useBoardStore(state => state.setShowNewTaskModal);
-  const setNewTaskStatus = useBoardStore(state => state.setNewTaskStatus);
-  const setNewTaskData = useBoardStore(state => state.setNewTaskData);
-  const setSelectedTask = useBoardStore(state => state.setSelectedTask);
-  const setIsEditingTask = useBoardStore(state => state.setIsEditingTask);
-  const setEditingTaskData = useBoardStore(state => state.setEditingTaskData);
+  const setDraggedTask = useBoardStore((state) => state.setDraggedTask);
+  const setShowNewTaskForm = useBoardStore((state) => state.setShowNewTaskForm);
+  const setShowNewTaskModal = useBoardStore(
+    (state) => state.setShowNewTaskModal
+  );
+  const setNewTaskStatus = useBoardStore((state) => state.setNewTaskStatus);
+  const setNewTaskData = useBoardStore((state) => state.setNewTaskData);
+  const setSelectedTask = useBoardStore((state) => state.setSelectedTask);
+  const setIsEditingTask = useBoardStore((state) => state.setIsEditingTask);
+  const setEditingTaskData = useBoardStore((state) => state.setEditingTaskData);
 
   // Local state for minimum skeleton display time
   const [showMinimumSkeleton, setShowMinimumSkeleton] = useState(false);
@@ -146,9 +190,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   // Synchronize scroll between header and body on desktop
   useEffect(() => {
-    const headerScroll = document.getElementById('desktop-header-scroll');
-    const bodyScroll = document.getElementById('desktop-body-scroll');
-    
+    const headerScroll = document.getElementById("desktop-header-scroll");
+    const bodyScroll = document.getElementById("desktop-body-scroll");
+
     if (!headerScroll || !bodyScroll) return;
 
     const syncScroll = (source: Element, target: Element) => {
@@ -160,27 +204,34 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     const headerToBody = syncScroll(headerScroll, bodyScroll);
     const bodyToHeader = syncScroll(bodyScroll, headerScroll);
 
-    headerScroll.addEventListener('scroll', headerToBody);
-    bodyScroll.addEventListener('scroll', bodyToHeader);
+    headerScroll.addEventListener("scroll", headerToBody);
+    bodyScroll.addEventListener("scroll", bodyToHeader);
 
     return () => {
-      headerScroll.removeEventListener('scroll', headerToBody);
-      bodyScroll.removeEventListener('scroll', bodyToHeader);
+      headerScroll.removeEventListener("scroll", headerToBody);
+      bodyScroll.removeEventListener("scroll", bodyToHeader);
     };
   }, [columns]);
 
   // Real-time task updates with debouncing
   const { broadcastTaskUpdate } = useSocketTasks({
     teamId: currentTeamId,
-    onTaskUpdate: useCallback((update) => {
-      const timeoutId = setTimeout(() => {
-        if (update.type === 'TASK_UPDATED' || update.type === 'TASK_CREATED' || update.type === 'TASK_DELETED') {
-          fetchTasks(currentTeamId, true);
-        }
-      }, 200);
+    onTaskUpdate: useCallback(
+      (update) => {
+        const timeoutId = setTimeout(() => {
+          if (
+            update.type === "TASK_UPDATED" ||
+            update.type === "TASK_CREATED" ||
+            update.type === "TASK_DELETED"
+          ) {
+            fetchTasks(currentTeamId, true);
+          }
+        }, 200);
 
-      return () => clearTimeout(timeoutId);
-    }, [currentTeamId, fetchTasks])
+        return () => clearTimeout(timeoutId);
+      },
+      [currentTeamId, fetchTasks]
+    ),
   });
 
   // Handle team change with immediate UI update
@@ -192,28 +243,28 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   };
 
   // Task management functions
-  const handleCreateTask = async (status: Task['status']) => {
+  const handleCreateTask = async (status: Task["status"]) => {
     if (!newTaskData.title.trim()) return;
 
     try {
       await createTask(newTaskData, status);
       await fetchTasks(currentTeamId, true);
     } catch (error) {
-      console.error('Error creating task:', error);
+      console.error("Error creating task:", error);
     }
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    if (!confirm('Are you sure you want to delete this task?')) return;
+    if (!confirm("Are you sure you want to delete this task?")) return;
 
     try {
       await deleteTask(taskId);
       await broadcastTaskUpdate({
-        type: 'TASK_DELETED',
-        taskId: taskId
+        type: "TASK_DELETED",
+        taskId: taskId,
       });
     } catch (error) {
-      console.error('Error deleting task:', error);
+      console.error("Error deleting task:", error);
     }
   };
 
@@ -222,11 +273,11 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     setSelectedTask(task);
     setEditingTaskData({
       title: task.title,
-      description: task.description || '',
+      description: task.description || "",
       priority: task.priority,
-      dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
-      assignedTo: task.assignedTo || '',
-      attachments: task.attachments || []
+      dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
+      assignedTo: task.assignedTo || "",
+      attachments: task.attachments || [],
     });
   };
 
@@ -245,11 +296,11 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     if (selectedTask) {
       setEditingTaskData({
         title: selectedTask.title,
-        description: selectedTask.description || '',
+        description: selectedTask.description || "",
         priority: selectedTask.priority,
-        dueDate: selectedTask.dueDate ? selectedTask.dueDate.split('T')[0] : '',
-        assignedTo: selectedTask.assignedTo || '',
-        attachments: selectedTask.attachments || []
+        dueDate: selectedTask.dueDate ? selectedTask.dueDate.split("T")[0] : "",
+        assignedTo: selectedTask.assignedTo || "",
+        attachments: selectedTask.attachments || [],
       });
     }
   };
@@ -261,10 +312,10 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       await updateTask(selectedTask.id, { attachments: newAttachments });
       setSelectedTask({
         ...selectedTask,
-        attachments: newAttachments
+        attachments: newAttachments,
       });
     } catch (error) {
-      console.error('Error auto-saving attachments:', error);
+      console.error("Error auto-saving attachments:", error);
     }
   };
 
@@ -276,25 +327,27 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         title: editingTaskData.title,
         description: editingTaskData.description,
         priority: editingTaskData.priority,
-        dueDate: editingTaskData.dueDate ? new Date(editingTaskData.dueDate).toISOString() : null,
+        dueDate: editingTaskData.dueDate
+          ? new Date(editingTaskData.dueDate).toISOString()
+          : null,
         assignedTo: editingTaskData.assignedTo || null,
         attachments: editingTaskData.attachments || [],
       };
 
       await updateTask(selectedTask.id, updates);
       await broadcastTaskUpdate({
-        type: 'TASK_UPDATED',
+        type: "TASK_UPDATED",
         taskId: selectedTask.id,
-        data: { ...selectedTask, ...updates }
+        data: { ...selectedTask, ...updates },
       });
     } catch (error) {
-      console.error('Error updating task:', error);
+      console.error("Error updating task:", error);
     }
   };
 
   // New task modal functions
   const openNewTaskModal = (status: string) => {
-    setNewTaskStatus(status as Task['status']);
+    setNewTaskStatus(status as Task["status"]);
     setShowNewTaskModal(true);
   };
 
@@ -302,11 +355,11 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     setShowNewTaskModal(false);
     setNewTaskStatus(null);
     setNewTaskData({
-      title: '',
-      description: '',
-      priority: 'MEDIUM',
-      assignedTo: '',
-      dueDate: ''
+      title: "",
+      description: "",
+      priority: "MEDIUM",
+      assignedTo: "",
+      dueDate: "",
     });
   };
 
@@ -318,55 +371,59 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       await fetchTasks(currentTeamId, true);
       closeNewTaskModal();
     } catch (error) {
-      console.error('Error creating task:', error);
+      console.error("Error creating task:", error);
     }
   };
 
   // Permission functions
   const canMoveTask = (task: Task) => {
     if (!session?.user) return false;
-    
-    if (session.user.role === 'ADMIN') return true;
+
+    if (session.user.role === "ADMIN") return true;
     if (task.createdById === session.user.id) return true;
-    
-    if (task.assignedTo === session.user.id || 
-        task.assignedTo === session.user.email ||
-        task.assignedUser?.id === session.user.id ||
-        task.assignedUser?.email === session.user.email) {
+
+    if (
+      task.assignedTo === session.user.id ||
+      task.assignedTo === session.user.email ||
+      task.assignedUser?.id === session.user.id ||
+      task.assignedUser?.email === session.user.email
+    ) {
       return true;
     }
-    
+
     return false;
   };
 
   const canEditTask = (task: Task) => {
     if (!session?.user) return false;
-    
-    if (session.user.role === 'ADMIN') return true;
-    
-    if (task.assignedTo === session.user.id || 
-        task.assignedTo === session.user.email ||
-        task.assignedUser?.id === session.user.id ||
-        task.assignedUser?.email === session.user.email) {
+
+    if (session.user.role === "ADMIN") return true;
+
+    if (
+      task.assignedTo === session.user.id ||
+      task.assignedTo === session.user.email ||
+      task.assignedUser?.id === session.user.id ||
+      task.assignedUser?.email === session.user.email
+    ) {
       return true;
     }
-    
+
     return false;
   };
 
-  const updateTaskStatusInModal = async (newStatus: Task['status']) => {
+  const updateTaskStatusInModal = async (newStatus: Task["status"]) => {
     if (!selectedTask) return;
 
     try {
       await updateTaskStatus(selectedTask.id, newStatus);
       setSelectedTask({ ...selectedTask, status: newStatus });
       await broadcastTaskUpdate({
-        type: 'TASK_UPDATED',
+        type: "TASK_UPDATED",
         taskId: selectedTask.id,
-        data: { ...selectedTask, status: newStatus }
+        data: { ...selectedTask, status: newStatus },
       });
     } catch (error) {
-      console.error('Error updating task status:', error);
+      console.error("Error updating task status:", error);
     }
   };
 
@@ -377,17 +434,17 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       return;
     }
     setDraggedTask(task);
-    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.effectAllowed = "move";
     if (e.target instanceof HTMLElement) {
-      e.target.style.transform = 'rotate(3deg) scale(1.05)';
-      e.target.style.zIndex = '50';
+      e.target.style.transform = "rotate(3deg) scale(1.05)";
+      e.target.style.zIndex = "50";
     }
   };
 
   const handleDragEnd = (e: React.DragEvent) => {
     if (e.target instanceof HTMLElement) {
-      e.target.style.transform = '';
-      e.target.style.zIndex = '';
+      e.target.style.transform = "";
+      e.target.style.zIndex = "";
     }
     setTimeout(() => {
       setDraggedTask(null);
@@ -396,12 +453,12 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    e.dataTransfer.dropEffect = "move";
   };
 
-  const handleDrop = (e: React.DragEvent, newStatus: Task['status']) => {
+  const handleDrop = (e: React.DragEvent, newStatus: Task["status"]) => {
     e.preventDefault();
-    
+
     if (!draggedTask || draggedTask.status === newStatus) {
       return;
     }
@@ -409,77 +466,93 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     updateTaskStatus(draggedTask.id, newStatus);
   };
 
-  const getTasksForStatus = (status: Task['status']) => {
-    return filteredAndSortedTasks.filter(task => task.status === status);
+  const getTasksForStatus = (status: Task["status"]) => {
+    return filteredAndSortedTasks.filter((task) => task.status === status);
   };
 
   // Helper function to convert columns to statusConfig format
-  const getColumnConfig = useMemo(() => {
-    const columnConfig = () => {
-      if (columns.length === 0) {
-        console.log('Using default statusConfig, columns.length:', columns.length);
-        return Object.entries(statusConfig);
-      }
-      
-      console.log('Using dynamic columns:', columns.length, columns.map(c => ({ label: c.label, position: c.position })));
-      return columns
-        .sort((a, b) => a.position - b.position) // Ensure correct order
-        .map(column => [
+  const getColumnConfig = () => {
+    if (columns.length === 0) {
+      return Object.entries(statusConfig);
+    }
+
+    return columns.map(
+      (column) =>
+        [
           column.status,
           {
             label: column.label,
+            icon: getIconForStatus(column.status),
             color: `text-gray-700 dark:text-gray-300`,
-            headerColor: 'bg-gray-50 dark:bg-gray-700',
-            buttonColor: `hover:bg-gray-700`
-          }
-        ] as [string, any]);
-    };
-    return columnConfig;
-  }, [columns]); // Dependency array ensures this updates when columns change
+            headerColor: "bg-gray-50 dark:bg-gray-700",
+            buttonColor: `hover:bg-gray-700`,
+          },
+        ] as [string, any]
+    );
+  };
+
+  // Helper function to get appropriate icon for status
+  const getIconForStatus = (status: string) => {
+    switch (status) {
+      case "NOT_STARTED":
+        return Clock;
+      case "IN_PROGRESS":
+        return Play;
+      case "COMPLETED":
+        return CheckCircle2;
+      case "CANCELLED":
+        return XCircle;
+      default:
+        return Clock;
+    }
+  };
 
   // Helper function to get grid classes and styles based on column count
   const getGridClasses = () => {
-    return 'grid-cols-none';
+    return "grid-cols-none";
   };
 
   const getGridStyles = () => {
     const columnCount = columns.length || 4;
     return {
-      gridTemplateColumns: `repeat(${columnCount}, minmax(300px, 1fr))`
+      gridTemplateColumns: `repeat(${columnCount}, minmax(300px, 1fr))`,
     };
   };
 
   // Filter and sort functions
   const filterTasks = (tasksToFilter: Task[]) => {
-    return tasksToFilter.filter(task => {
+    return tasksToFilter.filter((task) => {
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
-        const matchesSearch = 
+        const matchesSearch =
           task.title.toLowerCase().includes(searchLower) ||
           task.description?.toLowerCase().includes(searchLower) ||
           task.assignedUser?.name?.toLowerCase().includes(searchLower) ||
           task.assignedUser?.email?.toLowerCase().includes(searchLower) ||
           task.createdBy.name?.toLowerCase().includes(searchLower) ||
           task.createdBy.email?.toLowerCase().includes(searchLower);
-        
+
         if (!matchesSearch) return false;
       }
 
-      if (priorityFilter !== 'ALL' && task.priority !== priorityFilter) {
+      if (priorityFilter !== "ALL" && task.priority !== priorityFilter) {
         return false;
       }
 
-      if (assigneeFilter === 'ASSIGNED' && !task.assignedTo) {
+      if (assigneeFilter === "ASSIGNED" && !task.assignedTo) {
         return false;
       }
-      if (assigneeFilter === 'UNASSIGNED' && task.assignedTo) {
+      if (assigneeFilter === "UNASSIGNED" && task.assignedTo) {
         return false;
       }
-      if (assigneeFilter === 'MY_TASKS' && task.assignedTo !== session?.user?.email) {
+      if (
+        assigneeFilter === "MY_TASKS" &&
+        task.assignedTo !== session?.user?.email
+      ) {
         return false;
       }
 
-      if (dueDateFilter !== 'ALL' && task.dueDate) {
+      if (dueDateFilter !== "ALL" && task.dueDate) {
         const dueDate = new Date(task.dueDate);
         const today = new Date();
         const tomorrow = new Date(today);
@@ -488,17 +561,17 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         weekFromNow.setDate(today.getDate() + 7);
 
         switch (dueDateFilter) {
-          case 'OVERDUE':
+          case "OVERDUE":
             if (dueDate >= today) return false;
             break;
-          case 'TODAY':
+          case "TODAY":
             if (dueDate.toDateString() !== today.toDateString()) return false;
             break;
-          case 'WEEK':
+          case "WEEK":
             if (dueDate > weekFromNow) return false;
             break;
         }
-      } else if (dueDateFilter !== 'ALL' && !task.dueDate) {
+      } else if (dueDateFilter !== "ALL" && !task.dueDate) {
         return false;
       }
 
@@ -511,29 +584,33 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       let comparison = 0;
 
       switch (sortBy) {
-        case 'title':
+        case "title":
           comparison = a.title.localeCompare(b.title);
           break;
-        case 'priority':
-          const priorityOrder = { 'URGENT': 4, 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
+        case "priority":
+          const priorityOrder = { URGENT: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
           comparison = priorityOrder[a.priority] - priorityOrder[b.priority];
           break;
-        case 'dueDate':
+        case "dueDate":
           if (!a.dueDate && !b.dueDate) comparison = 0;
           else if (!a.dueDate) comparison = 1;
           else if (!b.dueDate) comparison = -1;
-          else comparison = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+          else
+            comparison =
+              new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
           break;
-        case 'createdAt':
-          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case "createdAt":
+          comparison =
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
           break;
-        case 'updatedAt':
+        case "updatedAt":
         default:
-          comparison = new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+          comparison =
+            new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
           break;
       }
 
-      return sortOrder === 'asc' ? comparison : -comparison;
+      return sortOrder === "asc" ? comparison : -comparison;
     });
   };
 
@@ -541,12 +618,12 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return null;
-    
+
     try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
+      return new Date(dateString).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
       });
     } catch {
       return null;
@@ -637,6 +714,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         getTasksForStatus={getTasksForStatus}
         getGridClasses={getGridClasses}
         getGridStyles={getGridStyles}
+        getIconForStatus={getIconForStatus}
       />
 
       {/* Task Detail Modal */}
@@ -664,7 +742,6 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         newTaskStatus={newTaskStatus}
         newTaskData={newTaskData}
         isCreatingTask={isCreatingTask}
-        columns={columns}
         onClose={closeNewTaskModal}
         onSetNewTaskData={setNewTaskData}
         onCreateTask={createTaskFromModal}

@@ -834,6 +834,9 @@ export const useBoardStore = create<BoardStore>()(
           const teamId = columns[0]?.teamId;
           if (!teamId) return;
 
+          // Optimistic update - immediately update local state
+          set({ columns: columns.sort((a, b) => a.position - b.position) });
+
           try {
             const response = await apiCall<{ success: boolean; columns: BoardColumn[] }>(
               '/api/board-columns/reorder',
@@ -847,11 +850,18 @@ export const useBoardStore = create<BoardStore>()(
             );
 
             if (response.success) {
+              // Update with server response to ensure consistency
               set({ columns: response.columns });
               get().clearCache(`columns-${teamId}`);
+            } else {
+              // If server update failed, revert to original order
+              // We could fetch fresh data here as a fallback
+              console.error('Server reorder failed, consider reverting or refetching');
             }
           } catch (error) {
             console.error('Failed to reorder columns:', error);
+            // In case of error, we could revert the optimistic update
+            // For now, we'll let the user try again or the data will sync on next fetch
             set({ 
               error: { 
                 message: 'Failed to reorder columns', 

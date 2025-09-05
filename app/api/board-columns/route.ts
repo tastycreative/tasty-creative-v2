@@ -144,8 +144,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const newColumn = await prisma.boardColumn.create({
+    const newColumn = await prisma.BoardColumn.create({
       data: {
+        id: `col_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         teamId,
         label,
         status,
@@ -153,6 +154,7 @@ export async function POST(request: NextRequest) {
         color: color || '#6B7280',
         isDefault: false,
         isActive: true,
+        updatedAt: new Date(),
       }
     });
 
@@ -182,7 +184,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Column ID is required" }, { status: 400 });
     }
 
-    const updatedColumn = await prisma.boardColumn.update({
+    const updatedColumn = await prisma.BoardColumn.update({
       where: { id },
       data: updates
     });

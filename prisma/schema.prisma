@@ -20,6 +20,7 @@ model User {
   lastAccessedAt     DateTime?           @default(now())
   username           String?             @unique
   accounts           Account[]
+  ContentSubmission  ContentSubmission[]
   pageViews          PageView[]
   sessions           Session[]
   createdTasks       Task[]              @relation("TaskCreator")
@@ -143,23 +144,30 @@ model VoiceModel {
 }
 
 model Task {
-  id          String       @id @default(cuid())
-  title       String
-  description String?
-  status      TaskStatus   @default(NOT_STARTED)
-  priority    TaskPriority @default(MEDIUM)
-  dueDate     DateTime?
-  teamId      String
-  teamName    String
-  assignedTo  String?
-  createdById String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  createdBy   User         @relation("TaskCreator", fields: [createdById], references: [id])
+  id                  String             @id @default(cuid())
+  title               String
+  description         String?
+  status              TaskStatus         @default(NOT_STARTED)
+  priority            TaskPriority       @default(MEDIUM)
+  dueDate             DateTime?
+  teamId              String
+  teamName            String
+  assignedTo          String?
+  createdById         String
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  updatedBy           String?
+  attachments         Json?
+  assignedToTeam      Boolean            @default(false)
+  contentSubmissionId String?            @unique
+  ContentSubmission   ContentSubmission? @relation(fields: [contentSubmissionId], references: [id])
+  createdBy           User               @relation("TaskCreator", fields: [createdById], references: [id])
 
   @@index([teamId])
   @@index([createdById])
   @@index([status])
+  @@index([assignedToTeam])
+  @@index([contentSubmissionId])
 }
 
 model ClientModel {
@@ -184,6 +192,7 @@ model ClientModel {
   profileLink           String?
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
+  row_id                String?
   contentDetails        ContentDetails[]
 }
 
@@ -278,6 +287,49 @@ model PodTeamSheets {
   podTeam          PodTeam @relation("PodTeamToSheets", fields: [row_id], references: [row_id], onDelete: Cascade)
 }
 
+model BoardColumn {
+  id        String   @id
+  teamId    String
+  label     String
+  status    String
+  position  Int
+  color     String   @default("#6B7280")
+  isDefault Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+
+  @@unique([teamId, position])
+  @@unique([teamId, status])
+  @@index([position])
+  @@index([teamId])
+}
+
+model ContentSubmission {
+  id                    String             @id
+  submissionType        SubmissionType
+  modelName             String
+  priority              SubmissionPriority
+  driveLink             String
+  contentDescription    String
+  screenshotAttachments Json?
+  status                SubmissionStatus   @default(PENDING)
+  createdById           String
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime
+  processedAt           DateTime?
+  notes                 String?
+  User                  User               @relation(fields: [createdById], references: [id])
+  Task                  Task?
+
+  @@index([createdAt])
+  @@index([createdById])
+  @@index([modelName])
+  @@index([priority])
+  @@index([status])
+  @@index([submissionType])
+}
+
 enum Role {
   USER
   ADMIN
@@ -317,4 +369,25 @@ enum TaskPriority {
   LOW
   MEDIUM
   HIGH
+  URGENT
+}
+
+enum SubmissionPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum SubmissionStatus {
+  PENDING
+  PROCESSING
+  TASK_CREATED
+  COMPLETED
+  CANCELLED
+}
+
+enum SubmissionType {
+  OTP
+  PTR
 }

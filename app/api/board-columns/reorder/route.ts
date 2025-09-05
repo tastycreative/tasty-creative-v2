@@ -20,35 +20,49 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate that all columnIds exist and belong to this team
+    const existingColumns = await prisma.boardColumn.findMany({
+      where: { 
+        teamId,
+        isActive: true,
+        id: { in: columnIds }
+      },
+      select: { id: true }
+    });
+
+    if (existingColumns.length !== columnIds.length) {
+      return NextResponse.json(
+        { error: "Some column IDs are invalid or don't belong to this team" },
+        { status: 400 }
+      );
+    }
+
     // Use transaction to avoid unique constraint violations
     const updatedColumns = await prisma.$transaction(async (tx) => {
-      // First, get all columns for this team
-      const existingColumns = await tx.boardColumn.findMany({
-        where: { teamId },
-        orderBy: { position: 'asc' }
-      });
-
-      // Set each column to a unique negative position temporarily
-      for (let i = 0; i < existingColumns.length; i++) {
-        await tx.boardColumn.update({
-          where: { id: existingColumns[i].id },
+      // Step 1: Set all columns to temporary negative positions to avoid conflicts
+      for (let i = 0; i < columnIds.length; i++) {
+        await tx.BoardColumn.update({
+          where: { 
+            id: columnIds[i],
+            teamId, // Security check
+          },
           data: { position: -(i + 1000) } // Use large negative numbers to avoid conflicts
         });
       }
 
-      // Then update positions according to the new order
+      // Step 2: Set columns to their final positions
       for (let i = 0; i < columnIds.length; i++) {
-        await tx.boardColumn.update({
+        await tx.BoardColumn.update({
           where: { 
             id: columnIds[i],
-            teamId,
+            teamId, // Security check
           },
           data: { position: i }
         });
       }
 
       // Fetch updated columns
-      return await tx.boardColumn.findMany({
+      return await tx.BoardColumn.findMany({
         where: {
           teamId,
           isActive: true,

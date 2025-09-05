@@ -60,10 +60,12 @@ const ColumnSettings = React.memo<ColumnSettingsProps>(({ currentTeamId }) => {
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [localColumns, setLocalColumns] = useState<BoardColumn[]>([]);
 
-  // Keep local columns in sync with store
+  // Keep local columns in sync with store (only when not dragging)
   React.useEffect(() => {
-    setLocalColumns(columns);
-  }, [columns]);
+    if (!draggedColumn) {
+      setLocalColumns(columns);
+    }
+  }, [columns, draggedColumn]);
 
   // Load columns when component mounts or team changes (only if not already loaded)
   React.useEffect(() => {
@@ -131,17 +133,6 @@ const ColumnSettings = React.memo<ColumnSettingsProps>(({ currentTeamId }) => {
     if (!draggedColumn || draggedColumn.id === targetColumn.id) return;
     
     setDragOverColumn(targetColumn.id);
-    
-    // Optimistic reordering for visual feedback
-    const reorderedColumns = [...localColumns];
-    const draggedIndex = reorderedColumns.findIndex(c => c.id === draggedColumn.id);
-    const targetIndex = reorderedColumns.findIndex(c => c.id === targetColumn.id);
-    
-    if (draggedIndex !== -1 && targetIndex !== -1) {
-      const [removed] = reorderedColumns.splice(draggedIndex, 1);
-      reorderedColumns.splice(targetIndex, 0, removed);
-      setLocalColumns(reorderedColumns);
-    }
   };
 
   const handleDragLeave = () => {
@@ -155,14 +146,25 @@ const ColumnSettings = React.memo<ColumnSettingsProps>(({ currentTeamId }) => {
       return;
     }
 
-    const reorderedColumns = [...localColumns];
-    const updatedColumns = reorderedColumns.map((col, index) => ({
-      ...col,
-      position: index
-    }));
+    // Create reordered array based on current columns from store
+    const sourceColumns = [...columns];
+    const draggedIndex = sourceColumns.findIndex(c => c.id === draggedColumn.id);
+    const targetIndex = sourceColumns.findIndex(c => c.id === targetColumn.id);
+    
+    if (draggedIndex !== -1 && targetIndex !== -1) {
+      // Remove dragged item and insert at target position
+      const [removed] = sourceColumns.splice(draggedIndex, 1);
+      sourceColumns.splice(targetIndex, 0, removed);
+      
+      // Update positions
+      const updatedColumns = sourceColumns.map((col, index) => ({
+        ...col,
+        position: index
+      }));
 
-    // Update the store immediately
-    await reorderColumns(updatedColumns);
+      // Store will handle optimistic updates
+      await reorderColumns(updatedColumns);
+    }
     
     setDraggedColumn(null);
     setDragOverColumn(null);
