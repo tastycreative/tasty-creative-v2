@@ -10,6 +10,7 @@ export default function AppsLayout({
   const pathname = usePathname();
   const router = useRouter();
   const isSubPage = pathname !== "/apps";
+  const isPodNewRoute = pathname?.startsWith('/apps/pod-new');
 
   // Handle back navigation with animation
   const handleBack = () => {
@@ -25,8 +26,8 @@ export default function AppsLayout({
       <div className="fixed bottom-10 left-10 w-96 h-96 bg-rose-300/15 dark:bg-rose-600/10 rounded-full blur-3xl -z-40"></div>
       <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-200/10 dark:bg-pink-700/8 rounded-full blur-3xl -z-40"></div>
 
-      {/* Back Button - Only show on sub-pages */}
-      {isSubPage && (
+      {/* Back Button - Only show on sub-pages but not pod-new routes */}
+      {isSubPage && !isPodNewRoute && (
         <button
           //initial={{ opacity: 0, x: -20 }}
           //animate={{ opacity: 1, x: 0 }}
@@ -55,7 +56,7 @@ export default function AppsLayout({
         </div>
 
         {/* Children Content */}
-        <div className={`relative z-10 h-full ${isSubPage ? "pt-12" : ""}`}>
+        <div className={`relative z-10 h-full ${isSubPage && !isPodNewRoute ? "pt-12" : ""}`}>
           {children}
         </div>
       </div>

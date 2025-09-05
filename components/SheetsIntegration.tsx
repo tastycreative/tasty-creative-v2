@@ -138,13 +138,13 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
   };
 
   return (
-    <Card className="border border-pink-200 dark:border-pink-500/30 shadow-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm relative group overflow-hidden">
+    <Card className="bg-slate-900/70 border border-white/10 shadow-sm relative group overflow-hidden">
       {/* Animated background effect */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 dark:via-pink-900/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-500/10 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
 
-      <CardHeader className="bg-gradient-to-r from-pink-50/50 to-rose-50/50 dark:from-pink-900/30 dark:to-rose-900/30 border-b border-pink-200 dark:border-pink-500/30 relative">
-        <CardTitle className="text-gray-900 dark:text-gray-100 font-bold flex items-center text-xl">
-          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center mr-3">
+      <CardHeader className="bg-gradient-to-r from-purple-500/10 to-fuchsia-500/10 border-b border-white/10 relative">
+        <CardTitle className="text-white font-bold flex items-center text-xl">
+          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-purple-500 to-fuchsia-600 flex items-center justify-center mr-3">
             <FileSpreadsheet className="h-4 w-4 text-white" />
           </div>
           Google Sheets Integration
@@ -155,10 +155,8 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
       <div className="px-8 py-6 bg-gradient-to-r from-purple-50/50 to-indigo-50/50 dark:from-purple-900/20 dark:to-indigo-900/20 border-b border-purple-200 dark:border-purple-500/30">
         <div className="flex items-center justify-center space-x-4">
           {/* From Type */}
-          <div className="px-4 py-3 bg-white dark:bg-gray-700 border-2 border-purple-300 dark:border-purple-600 rounded-lg min-w-[180px] text-center">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {fromType}
-            </span>
+          <div className="px-4 py-3 bg-slate-800/70 border-2 border-purple-500/50 rounded-lg min-w-[180px] text-center">
+            <span className="text-sm font-medium text-white">{fromType}</span>
           </div>
 
           {/* Swap Icon */}
@@ -174,10 +172,8 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
           </button>
 
           {/* To Type */}
-          <div className="px-4 py-3 bg-white dark:bg-gray-700 border-2 border-purple-300 dark:border-purple-600 rounded-lg min-w-[180px] text-center">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              {toType}
-            </span>
+          <div className="px-4 py-3 bg-slate-800/70 border-2 border-purple-500/50 rounded-lg min-w-[180px] text-center">
+            <span className="text-sm font-medium text-white">{toType}</span>
           </div>
         </div>
 
@@ -196,9 +192,9 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
           <div className="space-y-3">
             <label
               htmlFor="spreadsheet-url"
-              className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center"
+              className="text-sm font-semibold text-white flex items-center"
             >
-              <div className="h-2 w-2 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 mr-2"></div>
+              <div className="h-2 w-2 rounded-full bg-gradient-to-r from-purple-500 to-fuchsia-500 mr-2"></div>
               Source Spreadsheet URL
             </label>
             <Input
@@ -207,10 +203,10 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
               value={spreadsheetUrl}
               onChange={(e) => setSpreadsheetUrl(e.target.value)}
               placeholder="https://docs.google.com/spreadsheets/d/your-spreadsheet-id/edit?gid=123456#gid=123456"
-              className="w-full h-12 text-base border-2 border-gray-200 dark:border-gray-600 focus:border-pink-500 dark:focus:border-pink-400 transition-colors duration-300 rounded-lg bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 text-gray-900 dark:text-gray-100"
+              className="w-full h-12 text-base border-2 border-white/20 focus:border-purple-500 transition-colors duration-300 rounded-lg bg-slate-800/50 focus:bg-slate-800/70 text-white"
               disabled={isLoading}
             />
-            <p className="text-sm text-gray-500 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/30 p-3 rounded-lg border border-blue-200 dark:border-blue-700">
+            <p className="text-sm text-gray-300 bg-blue-500/10 p-3 rounded-lg border border-blue-500/30">
               <strong>💡 Tip:</strong> Enter the Google Sheets URL to sync all
               Schedule #1 sheets with real-time updates!
             </p>
@@ -222,14 +218,14 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
               <div
                 className={`flex items-center space-x-3 p-4 rounded-lg border-2 transition-all duration-300 ${
                   isValidGoogleSheetsUrl(spreadsheetUrl)
-                    ? "bg-green-50 dark:bg-green-900/30 border-green-500 dark:border-green-400"
-                    : "bg-red-50 dark:bg-red-900/30 border-red-500 dark:border-red-400"
+                    ? "bg-green-500/10 border-green-500/50"
+                    : "bg-red-500/10 border-red-500/50"
                 }`}
               >
                 {isValidGoogleSheetsUrl(spreadsheetUrl) ? (
                   <>
-                    <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                    <span className="text-green-700 dark:text-green-300 font-medium">
+                    <CheckCircle className="h-5 w-5 text-green-400 flex-shrink-0" />
+                    <span className="text-green-300 font-medium">
                       Valid Google Sheets URL ✨
                     </span>
                   </>
@@ -250,10 +246,10 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
             <div
               className={`p-6 rounded-xl border-2 transition-all duration-500 ${
                 status.type === "success"
-                  ? "bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border-green-300 dark:border-green-600 shadow-lg shadow-green-100 dark:shadow-green-900/20"
+                  ? "bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/50 shadow-lg shadow-green-900/20"
                   : status.type === "error"
-                    ? "bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/30 dark:to-pink-900/30 border-red-300 dark:border-red-600 shadow-lg shadow-red-100 dark:shadow-red-900/20"
-                    : "bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-blue-300 dark:border-blue-600 shadow-lg shadow-blue-100 dark:shadow-blue-900/20"
+                    ? "bg-gradient-to-r from-red-500/10 to-pink-500/10 border-red-500/50 shadow-lg shadow-red-900/20"
+                    : "bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border-blue-500/50 shadow-lg shadow-blue-900/20"
               }`}
             >
               <div className="flex items-start space-x-4">
@@ -276,10 +272,10 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
                   <p
                     className={`text-sm font-medium ${
                       status.type === "success"
-                        ? "text-green-800 dark:text-green-200"
+                        ? "text-green-200"
                         : status.type === "error"
-                          ? "text-red-800 dark:text-red-200"
-                          : "text-blue-800 dark:text-blue-200"
+                          ? "text-red-200"
+                          : "text-blue-200"
                     }`}
                   >
                     {status.message}
@@ -291,21 +287,21 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
 
           {/* Success URL Display */}
           {newSpreadsheetUrl && status?.type === "success" && (
-            <div className="space-y-4 p-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 rounded-xl border-2 border-green-300 dark:border-green-600 shadow-lg">
+            <div className="space-y-4 p-6 bg-gradient-to-r from-green-500/10 to-emerald-500/10 rounded-xl border-2 border-green-500/50 shadow-lg">
               <div className="flex items-center space-x-3">
                 <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
                   <FileSpreadsheet className="h-5 w-5 text-white" />
                 </div>
-                <h3 className="text-xl font-bold text-green-800 dark:text-green-200">
+                <h3 className="text-xl font-bold text-green-200">
                   🎉 Sync Spreadsheet Created!
                 </h3>
               </div>
               <div className="space-y-3">
-                <div className="flex items-center space-x-3 p-3 bg-white dark:bg-gray-700 rounded-lg border border-green-300 dark:border-green-600 shadow-sm">
+                <div className="flex items-center space-x-3 p-3 bg-slate-800/50 rounded-lg border border-green-500/50 shadow-sm">
                   <Input
                     value={newSpreadsheetUrl}
                     readOnly
-                    className="flex-1 text-sm bg-transparent border-none focus:ring-0 text-blue-600 dark:text-blue-400 font-mono"
+                    className="flex-1 text-sm bg-transparent border-none focus:ring-0 text-blue-400 font-mono"
                   />
                   <Button
                     type="button"
@@ -314,7 +310,7 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
                     onClick={() =>
                       navigator.clipboard.writeText(newSpreadsheetUrl)
                     }
-                    className="shrink-0 border-green-400 dark:border-green-500 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-800"
+                    className="shrink-0 border-green-500 text-green-300 hover:bg-green-800/30"
                   >
                     <Copy className="h-4 w-4 mr-1" />
                     Copy
@@ -338,7 +334,7 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
                       setNewSpreadsheetUrl(null);
                       setStatus(null);
                     }}
-                    className="border-green-400 dark:border-green-500 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-800"
+                    className="border-green-500 text-green-300 hover:bg-green-800/30"
                   >
                     Process Another
                   </Button>
@@ -351,7 +347,7 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
           <Button
             type="submit"
             size="lg"
-            className="w-full h-14 text-lg bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            className="w-full h-14 text-lg bg-gradient-to-r from-purple-500 to-fuchsia-600 hover:from-purple-600 hover:to-fuchsia-700 text-white border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             disabled={
               isLoading ||
               !spreadsheetUrl ||
@@ -372,27 +368,25 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
         </form>
 
         {/* Info Section */}
-        <div className="mt-8 p-6 bg-gradient-to-r from-pink-50/50 to-rose-50/50 dark:from-pink-900/30 dark:to-rose-900/30 rounded-xl border border-pink-200 dark:border-pink-500/30 shadow-sm">
-          <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center text-lg">
+        <div className="mt-8 p-6 bg-gradient-to-r from-purple-500/10 to-fuchsia-500/10 rounded-xl border border-white/10 shadow-sm">
+          <h3 className="font-bold text-white mb-4 flex items-center text-lg">
             <div className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mr-3">
               <span className="text-white text-xs">?</span>
             </div>
             How it works:
           </h3>
-          <div className="space-y-4 text-sm text-gray-600 dark:text-gray-300">
+          <div className="space-y-4 text-sm text-gray-300">
             <p className="flex items-center">
-              <span className="text-pink-500 dark:text-pink-400 mr-2">•</span>{" "}
-              Automatically detects all Schedule #1 sheets in your spreadsheet
+              <span className="text-purple-400 mr-2">•</span> Automatically
+              detects all Schedule #1 sheets in your spreadsheet
             </p>
             <p className="flex items-center">
-              <span className="text-pink-500 dark:text-pink-400 mr-2">•</span>{" "}
-              Creates a copy of the destination template for each sheet
+              <span className="text-purple-400 mr-2">•</span> Creates a copy of
+              the destination template for each sheet
             </p>
             <p className="flex items-center">
-              <span className="text-purple-500 dark:text-purple-400 mr-2">
-                •
-              </span>{" "}
-              Maps columns with intelligent data transformation
+              <span className="text-fuchsia-400 mr-2">•</span> Maps columns with
+              intelligent data transformation
             </p>
           </div>
         </div>

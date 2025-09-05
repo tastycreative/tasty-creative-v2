@@ -282,7 +282,7 @@ export const appPages = [
   {
     id: 11,
     name: "POD Hub",
-    path: "/apps/pod",
+    path: "/apps/pod-new",
     icon: FileSpreadsheet,
     color: "from-emerald-500 to-teal-500",
     description: "Scheduler POD Team",

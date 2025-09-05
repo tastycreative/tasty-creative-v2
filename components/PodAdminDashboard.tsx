@@ -114,7 +114,7 @@ const PodAdminDashboard = () => {
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState<
     "all" | "POD" | "USER" | "GUEST"
->("all");
+  >("all");
   const [filterStatus, setFilterStatus] = useState<
     "all" | "active" | "completed"
   >("all");
@@ -246,12 +246,15 @@ const PodAdminDashboard = () => {
       }
 
       const result = await response.json();
-      console.log('🔄 Database teams response:', result);
-      console.log('🔍 Raw team_members data:', result.teams?.map((t: any) => ({ 
-        name: t.name, 
-        team_members: t.team_members,
-        creators_assigned: t.creators_assigned 
-      })));
+      console.log("🔄 Database teams response:", result);
+      console.log(
+        "🔍 Raw team_members data:",
+        result.teams?.map((t: any) => ({
+          name: t.name,
+          team_members: t.team_members,
+          creators_assigned: t.creators_assigned,
+        }))
+      );
 
       if (result.success && result.teams) {
         const apiTeams: Team[] = await Promise.all(
@@ -261,12 +264,14 @@ const PodAdminDashboard = () => {
 
             // Use the already-parsed members and creators from the API response
             const teamMembers = dbTeam.members || [];
-            const teamCreators = dbTeam.creators?.map((creator: any) => creator.name) || [];
+            const teamCreators =
+              dbTeam.creators?.map((creator: any) => creator.name) || [];
 
             return {
               id: teamId,
               name: dbTeam.name,
-              description: dbTeam.label || `Team from database row ${dbTeam.row}`,
+              description:
+                dbTeam.label || `Team from database row ${dbTeam.row}`,
               members: teamMembers,
               tasks: dbTasks,
               sheetUrl: dbTeam.sheetUrl || "",
@@ -275,11 +280,14 @@ const PodAdminDashboard = () => {
             };
           })
         );
-        console.log('📊 Parsed teams with members:', apiTeams.map(t => ({ 
-          name: t.name, 
-          memberCount: t.members.length, 
-          members: t.members 
-        })));
+        console.log(
+          "📊 Parsed teams with members:",
+          apiTeams.map((t) => ({
+            name: t.name,
+            memberCount: t.members.length,
+            members: t.members,
+          }))
+        );
         setTeams(apiTeams);
         return apiTeams;
       }
@@ -481,7 +489,7 @@ const PodAdminDashboard = () => {
       // Update database and Google Sheets simultaneously
       const rowId = teamId.replace("team-", "");
       const rowNumber = parseInt(rowId);
-      
+
       const promises = [
         // Database update (primary)
         fetch("/api/pod/update-team-members-db", {
@@ -495,17 +503,19 @@ const PodAdminDashboard = () => {
           }),
         }),
         // Google Sheets update (secondary)
-        !isNaN(rowNumber) ? fetch("/api/pod/update-team-members", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
-            rowNumber: rowNumber,
-            members: updatedMembers,
-          }),
-        }) : Promise.resolve(null)
+        !isNaN(rowNumber)
+          ? fetch("/api/pod/update-team-members", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
+                rowNumber: rowNumber,
+                members: updatedMembers,
+              }),
+            })
+          : Promise.resolve(null),
       ];
 
       const [dbResponse, sheetsResponse] = await Promise.allSettled(promises);
@@ -516,14 +526,19 @@ const PodAdminDashboard = () => {
         console.error("Error syncing with database:", dbResponse.reason);
       } else if (dbResponse.value && !dbResponse.value.ok) {
         const errorData = await dbResponse.value.json();
-        alert(`Member added locally, but failed to sync with database: ${errorData.error}`);
+        alert(
+          `Member added locally, but failed to sync with database: ${errorData.error}`
+        );
       } else {
         console.log("Successfully synced team members with database");
       }
 
       // Check Google Sheets result (non-critical)
       if (sheetsResponse.status === "rejected") {
-        console.error("Error syncing with Google Sheets:", sheetsResponse.reason);
+        console.error(
+          "Error syncing with Google Sheets:",
+          sheetsResponse.reason
+        );
         console.warn("Database updated but Google Sheets sync failed");
       } else if (sheetsResponse.value && !sheetsResponse.value.ok) {
         const errorData = await sheetsResponse.value.json();
@@ -582,7 +597,7 @@ const PodAdminDashboard = () => {
       // Update both database and Google Sheets
       const rowId = teamId.replace("team-", "");
       const rowNumber = parseInt(rowId);
-      
+
       // Update database
       try {
         const dbResponse = await fetch("/api/pod/update-team-members-db", {
@@ -599,7 +614,9 @@ const PodAdminDashboard = () => {
         if (!dbResponse.ok) {
           const errorData = await dbResponse.json();
           console.error("Failed to update database:", errorData.error);
-          alert(`Members added locally, but failed to sync with database: ${errorData.error}`);
+          alert(
+            `Members added locally, but failed to sync with database: ${errorData.error}`
+          );
         } else {
           console.log("Successfully synced team members with database");
         }
@@ -660,7 +677,7 @@ const PodAdminDashboard = () => {
       // Update both database and Google Sheets
       const rowId = teamId.replace("team-", "");
       const rowNumber = parseInt(rowId);
-      
+
       // Update database
       try {
         const dbResponse = await fetch("/api/pod/update-team-members-db", {
@@ -677,7 +694,9 @@ const PodAdminDashboard = () => {
         if (!dbResponse.ok) {
           const errorData = await dbResponse.json();
           console.error("Failed to update database:", errorData.error);
-          alert(`Member removed locally, but failed to sync with database: ${errorData.error}`);
+          alert(
+            `Member removed locally, but failed to sync with database: ${errorData.error}`
+          );
         } else {
           console.log("Successfully synced team members with database");
         }
@@ -742,7 +761,7 @@ const PodAdminDashboard = () => {
       // Update both database and Google Sheets
       const rowId = teamId.replace("team-", "");
       const rowNumber = parseInt(rowId);
-      
+
       // Update database
       try {
         const dbResponse = await fetch("/api/pod/update-team-members-db", {
@@ -759,7 +778,9 @@ const PodAdminDashboard = () => {
         if (!dbResponse.ok) {
           const errorData = await dbResponse.json();
           console.error("Failed to update database:", errorData.error);
-          alert(`Member role updated locally, but failed to sync with database: ${errorData.error}`);
+          alert(
+            `Member role updated locally, but failed to sync with database: ${errorData.error}`
+          );
         } else {
           console.log("Successfully synced team members with database");
         }
@@ -808,14 +829,14 @@ const PodAdminDashboard = () => {
     try {
       const response = await fetch("/api/creators-db");
       const data = await response.json();
-      
-      console.log('Full API response (main):', data);
-      console.log('data.creators type:', typeof data.creators);
-      console.log('Is creators array:', Array.isArray(data.creators));
+
+      console.log("Full API response (main):", data);
+      console.log("data.creators type:", typeof data.creators);
+      console.log("Is creators array:", Array.isArray(data.creators));
 
       if (Array.isArray(data.creators)) {
-        console.log('Raw creators data from API:', data.creators);
-        
+        console.log("Raw creators data from API:", data.creators);
+
         // Extract creator names from database
         const creatorNames = data.creators
           .map((creator: any) => creator.name?.trim())
@@ -824,8 +845,8 @@ const PodAdminDashboard = () => {
               name && name.length > 0 && array.indexOf(name) === index
           )
           .sort();
-          
-        console.log('Processed creator names:', creatorNames);
+
+        console.log("Processed creator names:", creatorNames);
         setAvailableCreators(creatorNames);
       } else {
         console.error(
@@ -1134,17 +1155,19 @@ const PodAdminDashboard = () => {
           }),
         }),
         // Google Sheets update (secondary)
-        !isNaN(rowNumber) ? fetch("/api/pod/update-team", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
-            rowNumber: rowNumber,
-            newTeamName: newName.trim(),
-          }),
-        }) : Promise.resolve(null)
+        !isNaN(rowNumber)
+          ? fetch("/api/pod/update-team", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
+                rowNumber: rowNumber,
+                newTeamName: newName.trim(),
+              }),
+            })
+          : Promise.resolve(null),
       ];
 
       const [dbResponse, sheetsResponse] = await Promise.allSettled(promises);
@@ -1155,14 +1178,19 @@ const PodAdminDashboard = () => {
       }
       if (dbResponse.value && !dbResponse.value.ok) {
         const errorData = await dbResponse.value.json();
-        throw new Error(errorData.error || "Failed to update team name in database");
+        throw new Error(
+          errorData.error || "Failed to update team name in database"
+        );
       }
 
       console.log("Successfully updated team name in database");
 
       // Check Google Sheets result (non-critical)
       if (sheetsResponse.status === "rejected") {
-        console.error("Error syncing with Google Sheets:", sheetsResponse.reason);
+        console.error(
+          "Error syncing with Google Sheets:",
+          sheetsResponse.reason
+        );
         console.warn("Database updated but Google Sheets sync failed");
       } else if (sheetsResponse.value && !sheetsResponse.value.ok) {
         const errorData = await sheetsResponse.value.json();
@@ -1276,8 +1304,11 @@ const PodAdminDashboard = () => {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              rowId: nextRow.toString(),
-              members: initialMembers,
+              spreadsheetUrl: data.spreadsheetUrl,
+              rowNumber: nextRow,
+              members: initialMembers
+                .map((member) => `${member.email} - ${member.role}`)
+                .join(", "),
             }),
           });
         } catch (memberError) {
@@ -1333,17 +1364,19 @@ const PodAdminDashboard = () => {
           }),
         }),
         // Google Sheets update (secondary)
-        !isNaN(rowNumber) ? fetch("/api/pod/update-team", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
-            rowNumber: rowNumber,
-            newSheetUrl: newUrl.trim(),
-          }),
-        }) : Promise.resolve(null)
+        !isNaN(rowNumber)
+          ? fetch("/api/pod/update-team", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
+                rowNumber: rowNumber,
+                newSheetUrl: newUrl.trim(),
+              }),
+            })
+          : Promise.resolve(null),
       ];
 
       const [dbResponse, sheetsResponse] = await Promise.allSettled(promises);
@@ -1354,14 +1387,19 @@ const PodAdminDashboard = () => {
       }
       if (dbResponse.value && !dbResponse.value.ok) {
         const errorData = await dbResponse.value.json();
-        throw new Error(errorData.error || "Failed to update sheet URL in database");
+        throw new Error(
+          errorData.error || "Failed to update sheet URL in database"
+        );
       }
 
       console.log("Successfully updated sheet URL in database");
 
       // Check Google Sheets result (non-critical)
       if (sheetsResponse.status === "rejected") {
-        console.error("Error syncing with Google Sheets:", sheetsResponse.reason);
+        console.error(
+          "Error syncing with Google Sheets:",
+          sheetsResponse.reason
+        );
         console.warn("Database updated but Google Sheets sync failed");
       } else if (sheetsResponse.value && !sheetsResponse.value.ok) {
         const errorData = await sheetsResponse.value.json();
@@ -1414,7 +1452,12 @@ const PodAdminDashboard = () => {
           (acc, team) => acc + team.members.length,
           0
         );
-        console.log('📈 Stats calculation - Total members:', totalMembers, 'from teams:', fetchedTeams.length);
+        console.log(
+          "📈 Stats calculation - Total members:",
+          totalMembers,
+          "from teams:",
+          fetchedTeams.length
+        );
 
         setStats({
           totalUsers: 0, // Will be updated when users are fetched
@@ -2398,7 +2441,9 @@ const PodAdminDashboard = () => {
                                     {member.name}
                                   </h4>
                                   <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                                    {member.email ? `${member.email} - ${member.role}` : member.role}
+                                    {member.email
+                                      ? `${member.email} - ${member.role}`
+                                      : member.role}
                                   </p>
                                 </div>
                               </div>
@@ -2568,13 +2613,16 @@ const PodAdminDashboard = () => {
                         <div className="min-w-0 flex-1">
                           <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 truncate">
                             <span className="sm:hidden">{team.name}</span>
-                            <span className="hidden sm:inline">{team.name} - Team Tasks</span>
+                            <span className="hidden sm:inline">
+                              {team.name} - Team Tasks
+                            </span>
                           </h3>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {team.tasks.length} {team.tasks.length === 1 ? 'task' : 'tasks'}
+                            {team.tasks.length}{" "}
+                            {team.tasks.length === 1 ? "task" : "tasks"}
                           </p>
                         </div>
-                        
+
                         {/* Close button for mobile */}
                         <button
                           onClick={() => setShowTasksModal(null)}
@@ -2852,7 +2900,9 @@ const PodAdminDashboard = () => {
                                           In Progress
                                         </option>
                                         <option value="on-hold">On Hold</option>
-                                        <option value="completed">Completed</option>
+                                        <option value="completed">
+                                          Completed
+                                        </option>
                                       </select>
                                     </div>
 
@@ -2862,7 +2912,7 @@ const PodAdminDashboard = () => {
                                         <h4 className="font-semibold text-gray-900 dark:text-gray-100 text-sm sm:text-base leading-tight">
                                           {task.title}
                                         </h4>
-                                        
+
                                         {/* Task Priority Badge */}
                                         <div
                                           className={`px-2 py-1 rounded text-xs font-medium flex-shrink-0 ${
@@ -2876,7 +2926,7 @@ const PodAdminDashboard = () => {
                                           {task.priority}
                                         </div>
                                       </div>
-                                      
+
                                       {task.description && (
                                         <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
                                           {task.description}
@@ -3584,14 +3634,14 @@ const AddTeamForm = ({
     try {
       const response = await fetch("/api/creators-db");
       const data = await response.json();
-      
-      console.log('Full API response:', data);
-      console.log('data.creators type:', typeof data.creators);
-      console.log('Is creators array:', Array.isArray(data.creators));
+
+      console.log("Full API response:", data);
+      console.log("data.creators type:", typeof data.creators);
+      console.log("Is creators array:", Array.isArray(data.creators));
 
       if (Array.isArray(data.creators)) {
-        console.log('Raw creators data from API (modal):', data.creators);
-        
+        console.log("Raw creators data from API (modal):", data.creators);
+
         // Extract creator names from database
         const creatorNames = data.creators
           .map((creator: any) => creator.name?.trim())
@@ -3600,8 +3650,8 @@ const AddTeamForm = ({
               name && name.length > 0 && array.indexOf(name) === index
           )
           .sort();
-          
-        console.log('Processed creator names (modal):', creatorNames);
+
+        console.log("Processed creator names (modal):", creatorNames);
         setAvailableCreators(creatorNames);
       } else {
         console.error(
@@ -3719,7 +3769,6 @@ const AddTeamForm = ({
                 }
                 placeholder="https://docs.google.com/spreadsheets/d/..."
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
-                
               />
               {formData.sheetUrl && !isValidUrl(formData.sheetUrl) && (
                 <p className="text-sm text-red-600 dark:text-red-400 mt-2">
@@ -3966,7 +4015,9 @@ const AddTeamForm = ({
                           key={member.userId}
                           className="inline-flex items-center px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-sm rounded-full"
                         >
-                          {user?.email ? `${user.email} - ${member.role}` : `${user?.name || "Unknown"} - ${member.role}`}
+                          {user?.email
+                            ? `${user.email} - ${member.role}`
+                            : `${user?.name || "Unknown"} - ${member.role}`}
                           <button
                             type="button"
                             onClick={() => handleMemberRemove(member.userId)}
@@ -4317,7 +4368,9 @@ const AddMemberForm = ({
                           {user.name || "No Name"}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                          {user.email ? `${user.email} - ${userRole}` : userRole}
+                          {user.email
+                            ? `${user.email} - ${userRole}`
+                            : userRole}
                         </div>
                       </div>
 

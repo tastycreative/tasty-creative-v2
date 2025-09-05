@@ -26,52 +26,64 @@ import {
   WorkflowDashboardSkeleton,
   Skeleton,
 } from "./ui/skeleton";
-import { 
-  usePodStore, 
-  usePodData, 
-  useAvailableTeams, 
-  useTasks, 
+import {
+  usePodStore,
+  usePodData,
+  useAvailableTeams,
+  useTasks,
   useDriveSheets,
-  usePricingPreview 
+  usePricingPreview,
 } from "@/lib/stores/podStore";
 import { usePricingRotation } from "@/lib/hooks/usePricingRotation";
 import CreatorDetailsView from "./pod/CreatorDetailsView";
 
 const PodComponent = () => {
   const { data: session } = useSession();
-  
+
   // Zustand store hooks
-  const { 
-    selectedRow, 
-    activeTab, 
+  const {
+    selectedRow,
+    activeTab,
     openSheetGroups,
-    setSelectedRow, 
+    setSelectedRow,
     setActiveTab,
     toggleSheetGroup,
-    clearCache 
+    clearCache,
   } = usePodStore();
 
-  
   const { podData, loading: isLoading, error, fetchPodData } = usePodData();
-  const { teams: availableTeams, loading: isLoadingTeams, fetchAvailableTeams } = useAvailableTeams();
+  const {
+    teams: availableTeams,
+    loading: isLoadingTeams,
+    fetchAvailableTeams,
+  } = useAvailableTeams();
   const { tasks, loading: isTasksLoading, fetchTasks } = useTasks();
-  const { sheets: driveSheets, loading: isDriveLoading, error: driveError, fetchDriveSheets } = useDriveSheets();
-  const { 
-    preview: pricingPreview, 
+  const {
+    sheets: driveSheets,
+    loading: isDriveLoading,
+    error: driveError,
+    fetchDriveSheets,
+  } = useDriveSheets();
+  const {
+    preview: pricingPreview,
     loading: isPricingPreviewLoading,
-    fetchPricingPreview
+    fetchPricingPreview,
   } = usePricingPreview();
-  
+
   // Use the pricing rotation hook
-  const { pricingRotationProgress } = usePricingRotation(podData?.creators || []);
-  
+  const { pricingRotationProgress } = usePricingRotation(
+    podData?.creators || []
+  );
+
   // Local component state for UI
   const [selectedSheet, setSelectedSheet] = useState<{
     name: string;
     url: string;
   } | null>(null);
   const [selectedCreator, setSelectedCreator] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"dashboard" | "sheet" | "creator">("dashboard");
+  const [viewMode, setViewMode] = useState<"dashboard" | "sheet" | "creator">(
+    "dashboard"
+  );
 
   // Group sheet links by creator names
   const groupedSheetLinks = useMemo(() => {
@@ -148,7 +160,7 @@ const PodComponent = () => {
         try {
           const decodedCreatorName = decodeURIComponent(creatorParam);
           console.log("Decoded Creator Name:", decodedCreatorName);
-          
+
           setSelectedCreator(decodedCreatorName);
           setViewMode("creator");
         } catch (error) {
@@ -208,7 +220,6 @@ const PodComponent = () => {
     }
   }, [selectedRow, fetchPodData]);
 
-
   // Also fetch when dashboard tab becomes active (if no data yet)
   useEffect(() => {
     if (activeTab === "dashboard" && !podData && selectedRow !== null) {
@@ -219,7 +230,7 @@ const PodComponent = () => {
   // Fetch drive sheets when we have creator data (for any tab that might need it)
   useEffect(() => {
     if (podData?.creators && podData.creators.length > 0) {
-      const creatorNames = podData.creators.map(creator => creator.name);
+      const creatorNames = podData.creators.map((creator) => creator.name);
       fetchDriveSheets(creatorNames, true); // Force refresh when creators change (team change)
     }
   }, [podData?.creators, fetchDriveSheets]);
@@ -312,7 +323,7 @@ const PodComponent = () => {
         podData.creators.length > 0 &&
         driveSheets.length === 0
       ) {
-        const creatorNames = podData.creators.map(creator => creator.name);
+        const creatorNames = podData.creators.map((creator) => creator.name);
         fetchDriveSheets(creatorNames);
       }
     }
@@ -328,7 +339,7 @@ const PodComponent = () => {
 
   const handleSpreadsheetCreated = (url: string) => {
     if (podData?.creators && podData.creators.length > 0) {
-      const creatorNames = podData.creators.map(creator => creator.name);
+      const creatorNames = podData.creators.map((creator) => creator.name);
       fetchDriveSheets(creatorNames, true);
     }
   };
@@ -343,7 +354,8 @@ const PodComponent = () => {
               POD Management Dashboard
             </h1>
             <p className="text-gray-600 dark:text-gray-300 text-base sm:text-lg">
-              Manage your team, track workflow progress, and sync with Google Spreadsheets
+              Manage your team, track workflow progress, and sync with Google
+              Spreadsheets
             </p>
           </div>
         </div>
@@ -590,7 +602,8 @@ const PodComponent = () => {
                     </div>
 
                     {/* Sheet Links Accordion */}
-                    {(isLoading || (podData?.creators && podData.creators.length > 0)) && (
+                    {(isLoading ||
+                      (podData?.creators && podData.creators.length > 0)) && (
                       <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800">
                         <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 flex items-center">
                           <div className="p-1 bg-gradient-to-br from-emerald-500/20 to-green-500/20 rounded-lg mr-2">
@@ -602,7 +615,10 @@ const PodComponent = () => {
                           {isLoading ? (
                             <div className="space-y-2">
                               {Array.from({ length: 2 }).map((_, index) => (
-                                <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg">
+                                <div
+                                  key={index}
+                                  className="border border-gray-200 dark:border-gray-700 rounded-lg"
+                                >
                                   <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
                                     <div className="flex items-center space-x-2">
                                       <Skeleton className="h-3 w-3 rounded" />
@@ -616,101 +632,117 @@ const PodComponent = () => {
                           ) : (
                             Object.entries(groupedSheetLinks).map(
                               ([creatorName, sheets]) => (
-                              <div
-                                key={creatorName}
-                                className="border border-gray-200 dark:border-gray-700 rounded-lg"
-                              >
-                                <button
-                                  onClick={() => toggleSheetGroup(creatorName)}
-                                  className="w-full px-3 py-2 flex items-center justify-between bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded-lg"
+                                <div
+                                  key={creatorName}
+                                  className="border border-gray-200 dark:border-gray-700 rounded-lg"
                                 >
-                                  <div className="flex items-center space-x-2">
-                                    <div
-                                      className={`transition-all duration-300 ${openSheetGroups[creatorName] ? "rotate-180" : ""}`}
-                                    >
-                                      <ChevronDown className="h-3 w-3 text-gray-400 dark:text-gray-500" />
-                                    </div>
-                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                      {creatorName}
-                                    </span>
-                                    <span className="text-xs px-2 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full">
-                                      {sheets.length}
-                                    </span>
-                                  </div>
-                                </button>
-
-                                {openSheetGroups[creatorName] && (
-                                  <div className="p-2 space-y-1">
-                                    {sheets.map((link, index) => {
-                                      const isActive = selectedSheet?.name === link.name && selectedSheet?.url === link.url && viewMode === "sheet";
-                                      return (
+                                  <button
+                                    onClick={() =>
+                                      toggleSheetGroup(creatorName)
+                                    }
+                                    className="w-full px-3 py-2 flex items-center justify-between bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded-lg"
+                                  >
+                                    <div className="flex items-center space-x-2">
                                       <div
-                                        key={index}
-                                        className={`w-full p-2 text-left rounded transition-colors group cursor-pointer ${
-                                          isActive 
-                                            ? "bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-500/30" 
-                                            : "hover:bg-gray-50 dark:hover:bg-gray-700"
-                                        }`}
-                                        onClick={() =>
-                                          handleSheetClick(link.name, link.url)
-                                        }
+                                        className={`transition-all duration-300 ${openSheetGroups[creatorName] ? "rotate-180" : ""}`}
                                       >
-                                        <div className="flex items-start space-x-2">
-                                          <div className="flex-shrink-0 mt-0.5 relative">
-                                            <div className={`h-6 w-6 rounded flex items-center justify-center ${
-                                              isActive 
-                                                ? "bg-gradient-to-br from-emerald-600 to-green-700 ring-2 ring-emerald-300 dark:ring-emerald-400" 
-                                                : "bg-gradient-to-br from-emerald-500 to-green-600"
-                                            }`}>
-                                              <FileSpreadsheet className="h-3 w-3 text-white" />
-                                            </div>
-                                            {isActive && (
-                                              <div className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 bg-emerald-500 border border-white dark:border-gray-800 rounded-full"></div>
-                                            )}
-                                          </div>
-                                          <div className="flex-1 min-w-0">
-                                            <p
-                                              className={`text-xs font-medium transition-colors truncate ${
-                                                isActive 
-                                                  ? "text-emerald-700 dark:text-emerald-300" 
-                                                  : "text-gray-900 dark:text-gray-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400"
-                                              }`}
-                                              title={link.name}
-                                            >
-                                              {link.name}
-                                            </p>
-                                            {link.url &&
-                                              link.url.startsWith("http") && (
-                                                <button
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    window.open(link.url, "_blank");
-                                                  }}
-                                                  className="flex items-center mt-1 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline transition-colors"
-                                                >
-                                                  <ExternalLink className="h-2 w-2 mr-1 flex-shrink-0" />
-                                                  <span className="truncate">
-                                                    Open Sheet
-                                                  </span>
-                                                </button>
-                                              )}
-                                          </div>
-                                        </div>
+                                        <ChevronDown className="h-3 w-3 text-gray-400 dark:text-gray-500" />
                                       </div>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                              </div>
+                                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        {creatorName}
+                                      </span>
+                                      <span className="text-xs px-2 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full">
+                                        {sheets.length}
+                                      </span>
+                                    </div>
+                                  </button>
+
+                                  {openSheetGroups[creatorName] && (
+                                    <div className="p-2 space-y-1">
+                                      {sheets.map((link, index) => {
+                                        const isActive =
+                                          selectedSheet?.name === link.name &&
+                                          selectedSheet?.url === link.url &&
+                                          viewMode === "sheet";
+                                        return (
+                                          <div
+                                            key={index}
+                                            className={`w-full p-2 text-left rounded transition-colors group cursor-pointer ${
+                                              isActive
+                                                ? "bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-500/30"
+                                                : "hover:bg-gray-50 dark:hover:bg-gray-700"
+                                            }`}
+                                            onClick={() =>
+                                              handleSheetClick(
+                                                link.name,
+                                                link.url
+                                              )
+                                            }
+                                          >
+                                            <div className="flex items-start space-x-2">
+                                              <div className="flex-shrink-0 mt-0.5 relative">
+                                                <div
+                                                  className={`h-6 w-6 rounded flex items-center justify-center ${
+                                                    isActive
+                                                      ? "bg-gradient-to-br from-emerald-600 to-green-700 ring-2 ring-emerald-300 dark:ring-emerald-400"
+                                                      : "bg-gradient-to-br from-emerald-500 to-green-600"
+                                                  }`}
+                                                >
+                                                  <FileSpreadsheet className="h-3 w-3 text-white" />
+                                                </div>
+                                                {isActive && (
+                                                  <div className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 bg-emerald-500 border border-white dark:border-gray-800 rounded-full"></div>
+                                                )}
+                                              </div>
+                                              <div className="flex-1 min-w-0">
+                                                <p
+                                                  className={`text-xs font-medium transition-colors truncate ${
+                                                    isActive
+                                                      ? "text-emerald-700 dark:text-emerald-300"
+                                                      : "text-gray-900 dark:text-gray-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400"
+                                                  }`}
+                                                  title={link.name}
+                                                >
+                                                  {link.name}
+                                                </p>
+                                                {link.url &&
+                                                  link.url.startsWith(
+                                                    "http"
+                                                  ) && (
+                                                    <button
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        window.open(
+                                                          link.url,
+                                                          "_blank"
+                                                        );
+                                                      }}
+                                                      className="flex items-center mt-1 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline transition-colors"
+                                                    >
+                                                      <ExternalLink className="h-2 w-2 mr-1 flex-shrink-0" />
+                                                      <span className="truncate">
+                                                        Open Sheet
+                                                      </span>
+                                                    </button>
+                                                  )}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              )
                             )
-                          )
                           )}
                         </div>
                       </div>
                     )}
 
                     {/* Sheet Integrations Accordion */}
-                    {(isLoading || isDriveLoading ||
+                    {(isLoading ||
+                      isDriveLoading ||
                       (podData?.creators && podData.creators.length > 0)) && (
                       <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800">
                         <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 flex items-center">
@@ -723,7 +755,10 @@ const PodComponent = () => {
                         {isLoading ? (
                           <div className="space-y-2">
                             {Array.from({ length: 2 }).map((_, index) => (
-                              <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg">
+                              <div
+                                key={index}
+                                className="border border-gray-200 dark:border-gray-700 rounded-lg"
+                              >
                                 <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
                                   <div className="flex items-center space-x-2">
                                     <Skeleton className="h-3 w-3 rounded" />
@@ -787,7 +822,10 @@ const PodComponent = () => {
                                           key={sheet.id}
                                           className="w-full p-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 rounded transition-colors group cursor-pointer"
                                           onClick={() =>
-                                            handleSheetClick(sheet.name, sheet.url)
+                                            handleSheetClick(
+                                              sheet.name,
+                                              sheet.url
+                                            )
                                           }
                                         >
                                           <div className="flex items-start space-x-2">
@@ -804,11 +842,16 @@ const PodComponent = () => {
                                                 {sheet.name}
                                               </p>
                                               {sheet.url &&
-                                                sheet.url.startsWith("http") && (
+                                                sheet.url.startsWith(
+                                                  "http"
+                                                ) && (
                                                   <button
                                                     onClick={(e) => {
                                                       e.stopPropagation();
-                                                      window.open(sheet.url, "_blank");
+                                                      window.open(
+                                                        sheet.url,
+                                                        "_blank"
+                                                      );
                                                     }}
                                                     className="flex items-center mt-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors"
                                                   >
@@ -847,7 +890,10 @@ const PodComponent = () => {
                       <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800">
                         <button
                           onClick={() =>
-                            window.open(podData?.schedulerSpreadsheetUrl, "_blank")
+                            window.open(
+                              podData?.schedulerSpreadsheetUrl,
+                              "_blank"
+                            )
                           }
                           className="flex items-center justify-center w-full px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] text-sm font-medium"
                         >
@@ -951,8 +997,8 @@ const PodComponent = () => {
               />
             ) : viewMode === "creator" && selectedCreator ? (
               <CreatorDetailsView
-                // creatorName={selectedCreator}
-                // onBack={handleBackToDashboard}
+              // creatorName={selectedCreator}
+              // onBack={handleBackToDashboard}
               />
             ) : (
               <>
@@ -1001,7 +1047,9 @@ const PodComponent = () => {
                             podData?.creators &&
                             podData.creators.length > 0
                           ) {
-                            const creatorNames = podData.creators.map(creator => creator.name);
+                            const creatorNames = podData.creators.map(
+                              (creator) => creator.name
+                            );
                             fetchDriveSheets(creatorNames, true);
                           }
                         }}

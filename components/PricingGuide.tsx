@@ -1,7 +1,15 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
-import { ChevronDown, Search, X, Sparkles, Edit2, Check, X as XIcon } from "lucide-react";
+import {
+  ChevronDown,
+  Search,
+  X,
+  Sparkles,
+  Edit2,
+  Check,
+  X as XIcon,
+} from "lucide-react";
 import { useSession } from "next-auth/react";
 import { usePodStore } from "@/lib/stores/podStore";
 
@@ -84,21 +92,26 @@ const PricingAccordionRow: React.FC<{
   onToggle: () => void;
   isAdmin: boolean;
   editingCell: EditingState | null;
-  onEditStart: (creatorName: string, itemName: string, currentValue: string, creatorRowNumber?: number, creatorRowId?: string) => void;
+  onEditStart: (
+    creatorName: string,
+    itemName: string,
+    currentValue: string,
+    creatorRowNumber?: number
+  ) => void;
   onEditSave: () => void;
   onEditCancel: () => void;
   onEditValueChange: (value: string) => void;
-}> = ({ 
-  group, 
-  creators, 
-  isOpen, 
-  onToggle, 
-  isAdmin, 
-  editingCell, 
-  onEditStart, 
-  onEditSave, 
-  onEditCancel, 
-  onEditValueChange 
+}> = ({
+  group,
+  creators,
+  isOpen,
+  onToggle,
+  isAdmin,
+  editingCell,
+  onEditStart,
+  onEditSave,
+  onEditCancel,
+  onEditValueChange,
 }) => {
   return (
     <div className="group">
@@ -120,13 +133,13 @@ const PricingAccordionRow: React.FC<{
             <div
               className={`transition-all duration-300 ${isOpen ? "rotate-180" : ""}`}
             >
-              <ChevronDown className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+              <ChevronDown className="h-4 w-4 text-gray-400" />
             </div>
             <div className="text-left">
-              <h3 className="font-medium text-gray-900 dark:text-gray-50 tracking-tight">
+              <h3 className="font-medium text-white tracking-tight">
                 {group.groupName}
               </h3>
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
+              <p className="text-xs text-gray-400 mt-0.5">
                 {group.items.length} contents
               </p>
             </div>
@@ -145,11 +158,11 @@ const PricingAccordionRow: React.FC<{
         }`}
       >
         <div className="px-6 pb-6">
-          <div className="border-l-2 border-gray-100 dark:border-gray-800 ml-2 pl-10">
+          <div className="border-l-2 border-white/10 ml-2 pl-10">
             {group.items.map((item, index) => (
               <div
                 key={item.id}
-                className={`py-4 ${index !== 0 ? "border-t border-gray-100 dark:border-gray-800" : ""}`}
+                className={`py-4 ${index !== 0 ? "border-t border-white/10" : ""}`}
               >
                 {/* Item Info and Pricing */}
                 <div
@@ -162,27 +175,38 @@ const PricingAccordionRow: React.FC<{
                   }}
                 >
                   <div>
-                    <h4 className="font-medium text-gray-800 dark:text-gray-200 text-sm">
+                    <h4 className="font-medium text-white text-sm">
                       {item.name}
                     </h4>
                     {item.description && (
-                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                      <p className="text-xs text-gray-400 mt-1">
                         {item.description}
                       </p>
                     )}
                   </div>
                   {creators.map((creator) => {
-                    const currentValue = group.pricing[creator.name]?.[item.name] || "—";
-                    const isEditing = editingCell && 
-                      editingCell.creatorName === creator.name && 
+                    const currentValue =
+                      group.pricing[creator.name]?.[item.name] || "—";
+                    const isEditing =
+                      editingCell &&
+                      editingCell.creatorName === creator.name &&
                       editingCell.itemName === item.name;
-                    
+
                     return (
                       <div key={creator.id} className="text-right">
                         {isAdmin && !isEditing ? (
                           <div className="group/price relative">
-                            <div className="text-lg font-light text-gray-700 dark:text-gray-300 tabular-nums group-hover/price:bg-gray-50 dark:group-hover/price:bg-gray-700 px-2 py-1 rounded cursor-pointer"
-                                 onClick={() => onEditStart(creator.name, item.name, currentValue, creator.rowNumber, creator.row_id)}>
+                            <div
+                              className="text-lg font-light text-gray-300 tabular-nums group-hover/price:bg-white/10 px-2 py-1 rounded cursor-pointer"
+                              onClick={() =>
+                                onEditStart(
+                                  creator.name,
+                                  item.name,
+                                  currentValue,
+                                  creator.rowNumber
+                                )
+                              }
+                            >
                               {currentValue}
                             </div>
                             <Edit2 className="absolute -top-1 -right-1 h-3 w-3 text-gray-400 opacity-0 group-hover/price:opacity-100 transition-opacity" />
@@ -192,21 +216,23 @@ const PricingAccordionRow: React.FC<{
                             <input
                               type="text"
                               value={editingCell.newValue}
-                              onChange={(e) => onEditValueChange(e.target.value)}
-                              className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                              onChange={(e) =>
+                                onEditValueChange(e.target.value)
+                              }
+                              className="w-20 px-2 py-1 text-sm border border-white/20 rounded bg-slate-800/50 text-white"
                               autoFocus
                               onKeyDown={(e) => {
-                                if (e.key === 'Enter') onEditSave();
-                                if (e.key === 'Escape') onEditCancel();
+                                if (e.key === "Enter") onEditSave();
+                                if (e.key === "Escape") onEditCancel();
                               }}
                             />
-                            <button 
+                            <button
                               onClick={onEditSave}
                               className="p-1 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
                             >
                               <Check className="h-3 w-3" />
                             </button>
-                            <button 
+                            <button
                               onClick={onEditCancel}
                               className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                             >
@@ -214,7 +240,7 @@ const PricingAccordionRow: React.FC<{
                             </button>
                           </div>
                         ) : (
-                          <div className="text-lg font-light text-gray-700 dark:text-gray-300 tabular-nums">
+                          <div className="text-lg font-light text-gray-300 tabular-nums">
                             {currentValue}
                           </div>
                         )}
@@ -240,9 +266,12 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingCell, setEditingCell] = useState<EditingState | null>(null);
-  const [updateStatus, setUpdateStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  
-  const isAdmin = session?.user?.role === 'ADMIN';
+  const [updateStatus, setUpdateStatus] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+
+  const isAdmin = session?.user?.role === "ADMIN";
 
   // Fetch data from Prisma DB only if assigned creators are available
   useEffect(() => {
@@ -251,7 +280,9 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
       setError(null);
       try {
         // Fetch both pricing data and creator data from Prisma DB via creators-db API
-        console.log('🎯 PricingGuide fetching from Prisma DB via /api/creators-db');
+        console.log(
+          "🎯 PricingGuide fetching from Prisma DB via /api/creators-db"
+        );
         const response = await fetchWithRetry("/api/creators-db");
 
         if (!response.ok) {
@@ -271,13 +302,18 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
 
         if (dbCreatorData && dbCreatorData.length > 0) {
           // Convert database creators to match expected format
-          const formattedCreators = dbCreatorData.map((creator: any, index: number) => ({
-            id: creator.id,
-            name: creator.name,
-            rowNumber: index + 1 // Add row numbers for consistency
-          }));
+          const formattedCreators = dbCreatorData.map(
+            (creator: any, index: number) => ({
+              id: creator.id,
+              name: creator.name,
+              rowNumber: index + 1, // Add row numbers for consistency
+            })
+          );
           setDisplayCreators(formattedCreators);
-          console.log("✅ Set display creators from database:", formattedCreators);
+          console.log(
+            "✅ Set display creators from database:",
+            formattedCreators
+          );
         }
       } catch (err) {
         console.error("❌ Failed to fetch data from Prisma database:", err);
@@ -308,22 +344,24 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
     // If creators prop is provided (from PodComponent), merge with displayCreators to get row numbers
     if (creators.length > 0) {
       console.log("Using creators prop:", creators);
-      
+
       // Create a map of displayCreators by name to get their row numbers
       const displayCreatorMap = new Map();
-      displayCreators.forEach(creator => {
+      displayCreators.forEach((creator) => {
         displayCreatorMap.set(creator.name.toLowerCase(), creator);
       });
-      
+
       // Merge prop creators with displayCreators to get row numbers
-      const mergedCreators = creators.map(creator => {
-        const displayCreator = displayCreatorMap.get(creator.name.toLowerCase());
+      const mergedCreators = creators.map((creator) => {
+        const displayCreator = displayCreatorMap.get(
+          creator.name.toLowerCase()
+        );
         return {
           ...creator,
-          rowNumber: displayCreator?.rowNumber || creator.rowNumber
+          rowNumber: displayCreator?.rowNumber || creator.rowNumber,
         };
       });
-      
+
       console.log("Merged creators with row numbers:", mergedCreators);
       return mergedCreators.slice(0, 3);
     }
@@ -393,7 +431,13 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
       filteredPricingDataLength: filteredPricingData.length,
       searchQuery,
     });
-  }, [loading, availableCreators.length, pricingData.length, filteredPricingData.length, searchQuery]);
+  }, [
+    loading,
+    availableCreators.length,
+    pricingData.length,
+    filteredPricingData.length,
+    searchQuery,
+  ]);
 
   const toggleGroup = (groupId: string) => {
     setOpenGroups((prev) => ({
@@ -418,14 +462,18 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
     setSearchQuery("");
   };
 
-  const handleEditStart = (creatorName: string, itemName: string, currentValue: string, creatorRowNumber?: number, creatorRowId?: string) => {
+  const handleEditStart = (
+    creatorName: string,
+    itemName: string,
+    currentValue: string,
+    creatorRowNumber?: number
+  ) => {
     setEditingCell({
       creatorName,
       itemName,
       originalValue: currentValue,
-      newValue: currentValue === '—' ? '' : currentValue,
+      newValue: currentValue === "—" ? "" : currentValue,
       creatorRowNumber,
-      creatorRowId
     });
   };
 
@@ -444,58 +492,64 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
 
     try {
       setUpdateStatus(null);
-      
-      console.log('💾 Updating price in Prisma DB:', {
+
+      console.log("💾 Updating price in Prisma DB:", {
         creatorName: editingCell.creatorName,
         itemName: editingCell.itemName,
-        newPrice: editingCell.newValue
+        newPrice: editingCell.newValue,
       });
-      
-      const response = await fetch('/api/creators-db/update-pricing', {
-        method: 'POST',
+
+      const response = await fetch("/api/creators-db/update-pricing", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           creatorName: editingCell.creatorName,
           itemName: editingCell.itemName,
           newPrice: editingCell.newValue,
-          rowId: editingCell.creatorRowId
-        })
+        }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update price in database');
+        throw new Error(
+          errorData.error || "Failed to update price in database"
+        );
       }
 
       const result = await response.json();
-      console.log('✅ Price updated in database:', result);
+      console.log("✅ Price updated in database:", result);
 
       // Update local state
-      setPricingData(prevData => 
-        prevData.map(group => ({
+      setPricingData((prevData) =>
+        prevData.map((group) => ({
           ...group,
           pricing: {
             ...group.pricing,
             [editingCell.creatorName]: {
               ...group.pricing[editingCell.creatorName],
-              [editingCell.itemName]: editingCell.newValue || '—'
-            }
-          }
+              [editingCell.itemName]: editingCell.newValue || "—",
+            },
+          },
         }))
       );
 
-      setUpdateStatus({ type: 'success', message: 'Price updated in database successfully!' });
+      setUpdateStatus({
+        type: "success",
+        message: "Price updated in database successfully!",
+      });
       setEditingCell(null);
-      
+
       // Clear success message after 3 seconds
       setTimeout(() => setUpdateStatus(null), 3000);
-      
     } catch (error) {
-      console.error('❌ Error updating price in database:', error);
-      setUpdateStatus({ type: 'error', message: 'Failed to update price in database. Please try again.' });
-      
+      console.error("❌ Error updating price in database:", error);
+      setUpdateStatus({
+        type: "error",
+        message: "Failed to update price in database. Please try again.",
+      });
+
       // Clear error message after 5 seconds
       setTimeout(() => setUpdateStatus(null), 5000);
     }
@@ -505,34 +559,39 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
     <div className="space-y-6">
       <div className="max-w-5xl mx-auto">
         {/* Main Content Card */}
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div className="bg-slate-900/70 backdrop-blur-sm rounded-2xl shadow-xl border border-white/10 overflow-hidden">
           {/* Header */}
-          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+          <div className="p-6 border-b border-white/10">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg">
+                <div className="p-2 bg-gradient-to-r from-purple-500 to-fuchsia-600 rounded-lg">
                   <Sparkles className="h-5 w-5 text-white" />
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Pricing Guide {isAdmin && <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full ml-2">Admin</span>}
+                  <h3 className="text-lg font-semibold text-white">
+                    Pricing Guide{" "}
+                    {isAdmin && (
+                      <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full ml-2">
+                        Admin
+                      </span>
+                    )}
                   </h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-sm text-gray-300">
                     Transparent pricing for all creative contents
                     {loading && " (Loading latest data...)"}
                     {isAdmin && " • Click prices to edit"}
                   </p>
                   {error && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                      {error}
-                    </p>
+                    <p className="text-xs text-amber-400 mt-1">{error}</p>
                   )}
                   {updateStatus && (
-                    <p className={`text-xs mt-1 ${
-                      updateStatus.type === 'success' 
-                        ? 'text-green-600 dark:text-green-400' 
-                        : 'text-red-600 dark:text-red-400'
-                    }`}>
+                    <p
+                      className={`text-xs mt-1 ${
+                        updateStatus.type === "success"
+                          ? "text-green-400"
+                          : "text-red-400"
+                      }`}
+                    >
                       {updateStatus.message}
                     </p>
                   )}
@@ -541,7 +600,7 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
 
               <button
                 onClick={toggleAllGroups}
-                className="md:hidden text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium transition-colors"
+                className="md:hidden text-xs text-purple-400 hover:text-purple-300 font-medium transition-colors"
               >
                 {Object.values(openGroups).every((isOpen) => isOpen)
                   ? "Collapse"
@@ -552,7 +611,7 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
           </div>
 
           {/* Creator Headers & Search - All screens */}
-          <div className="px-6 py-4 bg-gray-50/50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-800">
+          <div className="px-6 py-4 bg-purple-500/10 border-b border-white/10">
             <div
               className={`grid grid-cols-1 gap-4 items-end`}
               style={{
@@ -570,12 +629,12 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
                   placeholder="Search contents..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-11 pr-11 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500/50 transition-all duration-200"
+                  className="w-full pl-11 pr-11 py-3 bg-slate-800/50 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500/50 transition-all duration-200"
                 />
                 {searchQuery && (
                   <button
                     onClick={clearSearch}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300 transition-colors"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -587,7 +646,7 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
                   Array.from({ length: 3 }, (_, i) => (
                     <div key={i} className="text-right min-w-[120px]">
                       <div className="animate-pulse">
-                        <div className="h-4 w-16 bg-gray-300 dark:bg-gray-600 rounded ml-auto"></div>
+                        <div className="h-4 w-16 bg-gray-600 rounded ml-auto"></div>
                       </div>
                     </div>
                   ))
@@ -601,7 +660,7 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
             </div>
             {/* Search results count (all screens, below search) */}
             {searchQuery && (
-              <div className="mt-2 text-sm text-gray-500 dark:text-gray-500">
+              <div className="mt-2 text-sm text-gray-400">
                 {filteredPricingData.length === 0
                   ? "No results found"
                   : `${filteredPricingData.reduce((total, group) => total + group.items.length, 0)} results`}
@@ -626,10 +685,10 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
                       }}
                     >
                       <div className="flex items-center space-x-4">
-                        <div className="h-4 w-4 bg-gray-300 dark:bg-gray-600 rounded"></div>
+                        <div className="h-4 w-4 bg-gray-600 rounded"></div>
                         <div className="space-y-2">
-                          <div className="h-5 w-32 bg-gray-300 dark:bg-gray-600 rounded"></div>
-                          <div className="h-3 w-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                          <div className="h-5 w-32 bg-gray-600 rounded"></div>
+                          <div className="h-3 w-20 bg-gray-700 rounded"></div>
                         </div>
                       </div>
                       <div className="hidden md:block"></div>

@@ -1253,7 +1253,10 @@ const PodComponent = () => {
                                                 <button
                                                   onClick={(e) => {
                                                     e.stopPropagation();
-                                                    window.open(link.url, "_blank");
+                                                    window.open(
+                                                      link.url,
+                                                      "_blank"
+                                                    );
                                                   }}
                                                   className="flex items-center mt-1 text-xs text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:underline transition-colors"
                                                 >
@@ -1340,7 +1343,10 @@ const PodComponent = () => {
                                           key={sheet.id}
                                           className="w-full p-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 rounded transition-colors group cursor-pointer"
                                           onClick={() =>
-                                            handleSheetClick(sheet.name, sheet.url)
+                                            handleSheetClick(
+                                              sheet.name,
+                                              sheet.url
+                                            )
                                           }
                                         >
                                           <div className="flex items-start space-x-2">
@@ -1363,7 +1369,10 @@ const PodComponent = () => {
                                                   <button
                                                     onClick={(e) => {
                                                       e.stopPropagation();
-                                                      window.open(sheet.url, "_blank");
+                                                      window.open(
+                                                        sheet.url,
+                                                        "_blank"
+                                                      );
                                                     }}
                                                     className="flex items-center mt-1 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors"
                                                   >
@@ -1557,7 +1566,9 @@ const PodComponent = () => {
                             podData?.creators &&
                             podData.creators.length > 0
                           ) {
-                            const creatorNames = podData.creators.map(creator => creator.name);
+                            const creatorNames = podData.creators.map(
+                              (creator) => creator.name
+                            );
                             fetchDriveSheets(creatorNames, true);
                           }
                         }}
