@@ -965,7 +965,7 @@ export const useBoardStore = create<BoardStore>()(
             ]);
             
             if (activitiesResponse.success) {
-              const activities = (activitiesResponse.activities || []).reverse(); // Oldest first
+              const activities = (activitiesResponse.activities || []).reverse(); // Oldest first (left side), but we'll scroll to right
               
               // Cache the data
               get().setCachedData(cacheKey, activities, CACHE_DURATIONS.ACTIVITIES);

@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
     if (columns.length === 0) {
       const defaultColumns = [
         {
+          id: `col_default_not_started_${Date.now()}`,
           teamId,
           label: 'Not Started',
           status: 'NOT_STARTED',
@@ -39,8 +40,10 @@ export async function GET(request: NextRequest) {
           color: '#6B7280',
           isDefault: true,
           isActive: true,
+          updatedAt: new Date(),
         },
         {
+          id: `col_default_in_progress_${Date.now() + 1}`,
           teamId,
           label: 'In Progress',
           status: 'IN_PROGRESS',
@@ -48,8 +51,10 @@ export async function GET(request: NextRequest) {
           color: '#3B82F6',
           isDefault: true,
           isActive: true,
+          updatedAt: new Date(),
         },
         {
+          id: `col_default_completed_${Date.now() + 2}`,
           teamId,
           label: 'Completed',
           status: 'COMPLETED',
@@ -57,8 +62,10 @@ export async function GET(request: NextRequest) {
           color: '#10B981',
           isDefault: true,
           isActive: true,
+          updatedAt: new Date(),
         },
         {
+          id: `col_default_cancelled_${Date.now() + 3}`,
           teamId,
           label: 'Cancelled',
           status: 'CANCELLED',
@@ -66,6 +73,7 @@ export async function GET(request: NextRequest) {
           color: '#EF4444',
           isDefault: true,
           isActive: true,
+          updatedAt: new Date(),
         },
       ];
 
