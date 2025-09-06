@@ -1,12 +1,13 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Session } from "next-auth";
 import { X, Edit3, Calendar, Clock } from "lucide-react";
 import { Task } from "@/lib/stores/boardStore";
 import UserDropdown from "@/components/UserDropdown";
 import FileUpload from "@/components/ui/FileUpload";
 import AttachmentViewer from "@/components/ui/AttachmentViewer";
+import TaskCardHistory from "./TaskCardHistory";
 
 // Utility function to make links clickable
 const linkifyText = (text: string) => {
@@ -91,6 +92,7 @@ export default function TaskDetailModal({
   onAutoSaveAttachments,
   getColumnConfig,
 }: TaskDetailModalProps) {
+  const [showHistory, setShowHistory] = useState(false);
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center p-2 sm:p-4 z-50 overflow-y-auto">
       <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-xl shadow-2xl w-full max-w-4xl border border-white/20 dark:border-gray-700/50 my-4 sm:my-8">
@@ -100,11 +102,12 @@ export default function TaskDetailModal({
             <div className="flex-1 min-w-0">
               <div className="flex items-center space-x-3 mb-2">
                 <div
-                  className={`w-2 h-2 rounded-full ${statusConfig[selectedTask.status].color.split(" ")[0]}`}
+                  className={`w-2 h-2 rounded-full ${statusConfig[selectedTask.status]?.color?.split(" ")[0] || "bg-gray-500"}`}
                 ></div>
                 <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">
                   {selectedTask.teamName} •{" "}
-                  {statusConfig[selectedTask.status].label}
+                  {statusConfig[selectedTask.status]?.label ||
+                    selectedTask.status}
                 </span>
               </div>
               {isEditingTask ? (
@@ -127,6 +130,17 @@ export default function TaskDetailModal({
             <div className="flex items-center space-x-2 sm:space-x-3 ml-2 sm:ml-6 flex-shrink-0">
               {!isEditingTask ? (
                 <>
+                  <button
+                    onClick={() => setShowHistory(!showHistory)}
+                    className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
+                      showHistory
+                        ? "text-purple-600 dark:text-purple-400 bg-purple-100/50 dark:bg-purple-900/20 hover:bg-purple-200/50 dark:hover:bg-purple-900/30"
+                        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100/50 dark:hover:bg-gray-700/50"
+                    }`}
+                  >
+                    <Clock className="h-4 w-4" />
+                    <span className="hidden sm:inline">History</span>
+                  </button>
                   {canEditTask(selectedTask) && (
                     <button
                       onClick={onStartEditing}
@@ -170,6 +184,12 @@ export default function TaskDetailModal({
             </div>
           </div>
         </div>
+         {/* Task History - Shows when toggled */}
+                {showHistory && (
+                  <div>
+                    <TaskCardHistory taskId={selectedTask.id} teamId={selectedTask.teamId} isModal={true} />
+                  </div>
+                )}
 
         {/* Modal Content - Mobile Responsive */}
         <div className="flex flex-col lg:flex-row">
@@ -330,45 +350,6 @@ export default function TaskDetailModal({
                       No attachments
                     </p>
                   )}
-                </div>
-
-                {/* Activity Section */}
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">
-                    Activity
-                  </h4>
-                  <div className="space-y-3">
-                    <div className="flex items-start space-x-3 p-3 bg-gray-50/50 dark:bg-gray-800/30 rounded-lg">
-                      <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center">
-                        <span className="text-white text-xs font-medium">
-                          {selectedTask.createdBy.name?.charAt(0) ||
-                            selectedTask.createdBy.email?.charAt(0) ||
-                            "U"}
-                        </span>
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          <span className="font-medium text-gray-900 dark:text-gray-100">
-                            {selectedTask.createdBy.name ||
-                              selectedTask.createdBy.email}
-                          </span>{" "}
-                          created this task
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                          {new Date(selectedTask.createdAt).toLocaleDateString(
-                            "en-US",
-                            {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}

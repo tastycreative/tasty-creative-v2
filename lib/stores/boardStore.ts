@@ -19,7 +19,7 @@ export interface Task {
   id: string;
   title: string;
   description: string | null;
-  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  status: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
   dueDate: string | null;
   teamId: string;
@@ -85,6 +85,23 @@ export interface BoardColumn {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+// Task Activity types
+export interface TaskActivity {
+  id: string;
+  actionType: string;
+  fieldName?: string;
+  oldValue?: string;
+  newValue?: string;
+  description?: string;
+  createdAt: string;
+  user: {
+    id: string;
+    name?: string;
+    email: string;
+    image?: string;
+  };
 }
 
 // Default column configurations
@@ -194,6 +211,11 @@ export interface BoardStore {
   isLoadingColumns: boolean;
   showColumnSettings: boolean;
   
+  // Task Activity History State
+  taskActivities: Record<string, TaskActivity[]>; // key: taskId
+  isLoadingActivities: Record<string, boolean>; // key: taskId
+  activityError: Record<string, APIError | null>; // key: taskId
+  
   // Actions - Column Management
   fetchColumns: (teamId: string, forceRefresh?: boolean) => Promise<void>;
   createColumn: (column: Omit<BoardColumn, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
@@ -203,6 +225,10 @@ export interface BoardStore {
   resetToDefaultColumns: (teamId: string) => Promise<void>;
   setShowColumnSettings: (show: boolean) => void;
   
+  // Actions - Task Activity History
+  fetchTaskActivities: (taskId: string, teamId: string, forceRefresh?: boolean) => Promise<void>;
+  clearTaskActivities: (taskId?: string) => void;
+  
   // Actions - Error Handling
   setError: (error: APIError | null) => void;
   clearError: () => void;
@@ -211,6 +237,7 @@ export interface BoardStore {
 // Cache durations (in milliseconds)
 const CACHE_DURATIONS = {
   TASKS: 2 * 60 * 1000, // 2 minutes (active updates)
+  ACTIVITIES: 5 * 60 * 1000, // 5 minutes (less frequent changes)
 };
 
 // API helper with retry logic
@@ -311,6 +338,11 @@ export const useBoardStore = create<BoardStore>()(
         columns: [],
         isLoadingColumns: false,
         showColumnSettings: false,
+        
+        // Task Activity History State
+        taskActivities: {},
+        isLoadingActivities: {},
+        activityError: {},
         
         // Cache management
         getCachedData: <T>(key: string): T | null => {
@@ -900,6 +932,113 @@ export const useBoardStore = create<BoardStore>()(
 
         setShowColumnSettings: (show) => set({ showColumnSettings: show }),
         
+        // Task Activity History Actions
+        fetchTaskActivities: async (taskId: string, teamId: string, forceRefresh = false) => {
+          if (!taskId || !teamId) return;
+          
+          const cacheKey = `activities-${taskId}`;
+          
+          // Check cache first unless force refresh
+          if (!forceRefresh) {
+            const cached = get().getCachedData<TaskActivity[]>(cacheKey);
+            if (cached) {
+              set((state) => ({
+                taskActivities: { ...state.taskActivities, [taskId]: cached },
+                isLoadingActivities: { ...state.isLoadingActivities, [taskId]: false },
+                activityError: { ...state.activityError, [taskId]: null }
+              }));
+              return;
+            }
+          }
+          
+          // Set loading state
+          set((state) => ({
+            isLoadingActivities: { ...state.isLoadingActivities, [taskId]: true },
+            activityError: { ...state.activityError, [taskId]: null }
+          }));
+          
+          try {
+            // Fetch both activities and columns in parallel
+            const [activitiesResponse, columnsResponse] = await Promise.all([
+              apiCall<{ success: boolean; activities: TaskActivity[] }>(`/api/tasks/${taskId}/activity`),
+              apiCall<{ success: boolean; columns: BoardColumn[] }>(`/api/board-columns?teamId=${teamId}`)
+            ]);
+            
+            if (activitiesResponse.success) {
+              const activities = (activitiesResponse.activities || []).reverse(); // Oldest first
+              
+              // Cache the data
+              get().setCachedData(cacheKey, activities, CACHE_DURATIONS.ACTIVITIES);
+              
+              // Update state
+              set((state) => ({
+                taskActivities: { ...state.taskActivities, [taskId]: activities },
+                isLoadingActivities: { ...state.isLoadingActivities, [taskId]: false },
+                activityError: { ...state.activityError, [taskId]: null }
+              }));
+              
+              // Update columns cache if successful
+              if (columnsResponse.success && columnsResponse.columns) {
+                const columnsCacheKey = `columns-${teamId}`;
+                get().setCachedData(columnsCacheKey, columnsResponse.columns);
+                set({ columns: columnsResponse.columns });
+              }
+            } else {
+              throw new Error('Failed to fetch activity history');
+            }
+          } catch (error) {
+            const apiError: APIError = {
+              message: error instanceof Error ? error.message : 'Failed to load activity history',
+              code: 'ACTIVITIES_FETCH_ERROR',
+              timestamp: Date.now(),
+            };
+            
+            set((state) => ({
+              activityError: { ...state.activityError, [taskId]: apiError },
+              isLoadingActivities: { ...state.isLoadingActivities, [taskId]: false }
+            }));
+          }
+        },
+        
+        clearTaskActivities: (taskId?: string) => {
+          if (taskId) {
+            // Clear specific task activities
+            set((state) => {
+              const newTaskActivities = { ...state.taskActivities };
+              const newIsLoadingActivities = { ...state.isLoadingActivities };
+              const newActivityError = { ...state.activityError };
+              
+              delete newTaskActivities[taskId];
+              delete newIsLoadingActivities[taskId];
+              delete newActivityError[taskId];
+              
+              return {
+                taskActivities: newTaskActivities,
+                isLoadingActivities: newIsLoadingActivities,
+                activityError: newActivityError
+              };
+            });
+            
+            // Clear from cache
+            get().clearCache(`activities-${taskId}`);
+          } else {
+            // Clear all task activities
+            set({
+              taskActivities: {},
+              isLoadingActivities: {},
+              activityError: {}
+            });
+            
+            // Clear all activity caches
+            const cache = get().cache;
+            Object.keys(cache).forEach(key => {
+              if (key.startsWith('activities-')) {
+                get().clearCache(key);
+              }
+            });
+          }
+        },
+        
         // Error Handling Actions
         setError: (error) => set({ error }),
         clearError: () => set({ error: null }),
@@ -1007,5 +1146,24 @@ export const useBoardColumns = () => {
     reorderColumns,
     resetToDefaultColumns,
     setShowColumnSettings,
+  };
+};
+
+export const useTaskActivities = (taskId: string) => {
+  const taskActivities = useBoardStore((state) => state.taskActivities[taskId]);
+  const isLoadingActivities = useBoardStore((state) => state.isLoadingActivities[taskId]);
+  const activityError = useBoardStore((state) => state.activityError[taskId]);
+  const columns = useBoardStore((state) => state.columns);
+  
+  const fetchTaskActivities = useBoardStore((state) => state.fetchTaskActivities);
+  const clearTaskActivities = useBoardStore((state) => state.clearTaskActivities);
+  
+  return {
+    activities: taskActivities || [],
+    isLoading: isLoadingActivities || false,
+    error: activityError || null,
+    columns,
+    fetchTaskActivities,
+    clearTaskActivities,
   };
 };

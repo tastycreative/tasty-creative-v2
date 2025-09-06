@@ -24,6 +24,10 @@ export interface ContentSubmission {
   updatedAt: string;
   processedAt?: string;
   notes?: string;
+  // PTR-specific fields
+  releaseDate?: string;
+  releaseTime?: string;
+  minimumPrice?: string;
   createdBy: {
     id: string;
     name: string | null;
@@ -43,6 +47,9 @@ export interface SubmissionFormData {
   priority: SubmissionPriority | '';
   driveLink: string;
   contentDescription: string;
+  releaseDate: string;
+  releaseTime: string;
+  minimumPrice: string;
 }
 
 export interface SubmissionFilters {
@@ -119,7 +126,10 @@ const initialFormData: SubmissionFormData = {
   modelName: '',
   priority: '',
   driveLink: '',
-  contentDescription: ''
+  contentDescription: '',
+  releaseDate: '',
+  releaseTime: '',
+  minimumPrice: ''
 };
 
 const initialFilters: SubmissionFilters = {
@@ -190,7 +200,12 @@ export const useContentSubmissionStore = create<ContentSubmissionStore>()(
               priority: state.formData.priority,
               driveLink: state.formData.driveLink,
               contentDescription: state.formData.contentDescription,
-              screenshotAttachments: state.attachments
+              screenshotAttachments: state.attachments,
+              ...(state.submissionType === 'ptr' && {
+                releaseDate: state.formData.releaseDate,
+                releaseTime: state.formData.releaseTime,
+                minimumPrice: state.formData.minimumPrice
+              })
             };
 
             const response = await fetch('/api/content-submissions', {
@@ -325,13 +340,24 @@ export const useContentSubmissionStore = create<ContentSubmissionStore>()(
 
         // Computed
         isFormValid: () => {
-          const { formData } = get();
-          return !!(
+          const { formData, submissionType } = get();
+          const baseValid = !!(
             formData.modelName &&
             formData.priority &&
             formData.driveLink &&
             formData.contentDescription
           );
+          
+          // Additional validation for PTR submissions
+          if (submissionType === 'ptr') {
+            return baseValid && !!(
+              formData.releaseDate &&
+              formData.releaseTime &&
+              formData.minimumPrice
+            );
+          }
+          
+          return baseValid;
         }
       }),
       {

@@ -416,12 +416,17 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   // Helper function to convert columns to statusConfig format
   const getColumnConfig = useMemo(() => {
     const columnConfig = () => {
+      // If columns are still loading, return empty array to prevent using wrong status values
+      if (isLoadingColumns) {
+        return [];
+      }
+      
       if (columns.length === 0) {
+        // Only use default config if explicitly no columns are configured
         console.log('Using default statusConfig, columns.length:', columns.length);
         return Object.entries(statusConfig);
       }
       
-      console.log('Using dynamic columns:', columns.length, columns.map(c => ({ label: c.label, position: c.position })));
       return columns
         .sort((a, b) => a.position - b.position) // Ensure correct order
         .map(column => [
@@ -435,7 +440,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         ] as [string, any]);
     };
     return columnConfig;
-  }, [columns]); // Dependency array ensures this updates when columns change
+  }, [columns, isLoadingColumns]); // Dependency array ensures this updates when columns change
 
   // Helper function to get grid classes and styles based on column count
   const getGridClasses = () => {
@@ -553,7 +558,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     }
   };
 
-  if (showMinimumSkeleton || (isLoading && tasks.length === 0)) {
+  if (showMinimumSkeleton || (isLoading && tasks.length === 0) || isLoadingColumns) {
     return (
       <BoardSkeleton
         teamName={teamName}

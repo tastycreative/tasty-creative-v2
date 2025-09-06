@@ -21,6 +21,9 @@ interface SubmissionData {
   driveLink: string;
   contentDescription: string;
   screenshotAttachments?: any[];
+  releaseDate?: string;
+  releaseTime?: string;
+  minimumPrice?: string;
 }
 
 export async function POST(request: NextRequest) {
@@ -72,6 +75,12 @@ export async function POST(request: NextRequest) {
         status: 'PENDING',
         createdById: session.user.id!,
         updatedAt: new Date(),
+        // PTR-specific fields (only included if submissionType is PTR)
+        ...(submissionType === 'PTR' && {
+          releaseDate: data.releaseDate,
+          releaseTime: data.releaseTime,
+          minimumPrice: data.minimumPrice,
+        }),
       }
     });
 
@@ -116,11 +125,21 @@ export async function POST(request: NextRequest) {
 
     const taskPriority = taskPriorityMap[submissionPriority as keyof typeof taskPriorityMap];
 
+    // Build task description with PTR-specific details
+    let taskDescription = `Content submission for ${data.modelName}\n\n${data.contentDescription}\n\nGoogle Drive: ${data.driveLink}`;
+    
+    if (submissionType === 'PTR' && data.releaseDate && data.releaseTime && data.minimumPrice) {
+      taskDescription += `\n\n--- PTR Details ---`;
+      taskDescription += `\nRelease Date: ${data.releaseDate}`;
+      taskDescription += `\nRelease Time: ${data.releaseTime}`;
+      taskDescription += `\nMinimum Price: $${data.minimumPrice}`;
+    }
+
     // Create the task automatically
     const task = await prisma.task.create({
       data: {
         title: `${submissionType} Content - ${data.modelName}`,
-        description: `Content submission for ${data.modelName}\n\n${data.contentDescription}\n\nGoogle Drive: ${data.driveLink}`,
+        description: taskDescription,
         status: 'NOT_STARTED',
         priority: taskPriority as any,
         teamId: `team-${assignedTeam?.row_id || "4"}`,

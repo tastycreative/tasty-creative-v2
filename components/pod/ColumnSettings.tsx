@@ -77,10 +77,24 @@ const ColumnSettings = React.memo<ColumnSettingsProps>(({ currentTeamId }) => {
   const handleSaveEdit = async () => {
     if (!editingColumn) return;
     
-    await updateColumn(editingColumn.id, {
+    // Find the original column to see if the label changed significantly
+    const originalColumn = columns.find(c => c.id === editingColumn.id);
+    if (!originalColumn) return;
+    
+    let updateData: any = {
       label: editingColumn.label,
       color: editingColumn.color,
-    });
+    };
+    
+    // If the label changed significantly, generate a new status
+    if (originalColumn.label !== editingColumn.label) {
+      // Create a status based on the label (remove spaces, convert to uppercase, add prefix)
+      const newStatus = `CUSTOM_${editingColumn.label.toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z_]/g, '')}_${Date.now()}`;
+      updateData.status = newStatus;
+      
+    }
+    
+    await updateColumn(editingColumn.id, updateData);
     setEditingColumn(null);
   };
 

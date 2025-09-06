@@ -8,22 +8,23 @@ datasource db {
 }
 
 model User {
-  id                 String              @id @default(cuid())
-  email              String              @unique
+  id                 String                @id @default(cuid())
+  email              String                @unique
   emailVerified      DateTime?
   name               String?
   image              String?
-  role               Role                @default(GUEST)
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
+  role               Role                  @default(GUEST)
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
   password           String?
-  lastAccessedAt     DateTime?           @default(now())
-  username           String?             @unique
+  lastAccessedAt     DateTime?             @default(now())
+  username           String?               @unique
   accounts           Account[]
   ContentSubmission  ContentSubmission[]
   pageViews          PageView[]
   sessions           Session[]
-  createdTasks       Task[]              @relation("TaskCreator")
+  createdTasks       Task[]                @relation("TaskCreator")
+  taskActivities     TaskActivityHistory[] @relation("TaskActivityUser")
   verificationTokens VerificationToken[]
 }
 
@@ -144,30 +145,50 @@ model VoiceModel {
 }
 
 model Task {
-  id                  String             @id @default(cuid())
+  id                  String                @id @default(cuid())
   title               String
   description         String?
-  status              TaskStatus         @default(NOT_STARTED)
-  priority            TaskPriority       @default(MEDIUM)
+  priority            TaskPriority          @default(MEDIUM)
   dueDate             DateTime?
   teamId              String
   teamName            String
   assignedTo          String?
   createdById         String
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
   updatedBy           String?
   attachments         Json?
-  assignedToTeam      Boolean            @default(false)
-  contentSubmissionId String?            @unique
-  ContentSubmission   ContentSubmission? @relation(fields: [contentSubmissionId], references: [id])
-  createdBy           User               @relation("TaskCreator", fields: [createdById], references: [id])
+  assignedToTeam      Boolean               @default(false)
+  contentSubmissionId String?               @unique
+  status              String                @default("NOT_STARTED")
+  ContentSubmission   ContentSubmission?    @relation(fields: [contentSubmissionId], references: [id])
+  createdBy           User                  @relation("TaskCreator", fields: [createdById], references: [id])
+  activityHistory     TaskActivityHistory[]
 
   @@index([teamId])
   @@index([createdById])
   @@index([status])
   @@index([assignedToTeam])
   @@index([contentSubmissionId])
+}
+
+model TaskActivityHistory {
+  id          String           @id @default(cuid())
+  taskId      String
+  userId      String
+  actionType  TaskActivityType
+  fieldName   String?
+  oldValue    String?
+  newValue    String?
+  description String?
+  createdAt   DateTime         @default(now())
+  task        Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user        User             @relation("TaskActivityUser", fields: [userId], references: [id])
+
+  @@index([taskId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([actionType])
 }
 
 model ClientModel {
@@ -319,6 +340,9 @@ model ContentSubmission {
   updatedAt             DateTime
   processedAt           DateTime?
   notes                 String?
+  minimumPrice          String?
+  releaseDate           String?
+  releaseTime           String?
   User                  User               @relation(fields: [createdById], references: [id])
   Task                  Task?
 
@@ -370,6 +394,20 @@ enum TaskPriority {
   MEDIUM
   HIGH
   URGENT
+}
+
+enum TaskActivityType {
+  CREATED
+  UPDATED
+  STATUS_CHANGED
+  PRIORITY_CHANGED
+  ASSIGNED
+  UNASSIGNED
+  DUE_DATE_CHANGED
+  ATTACHMENT_ADDED
+  ATTACHMENT_REMOVED
+  COMMENT_ADDED
+  DELETED
 }
 
 enum SubmissionPriority {

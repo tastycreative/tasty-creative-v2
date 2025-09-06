@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const newColumn = await prisma.BoardColumn.create({
+    const newColumn = await prisma.boardColumn.create({
       data: {
         id: `col_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         teamId,
@@ -184,7 +184,29 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Column ID is required" }, { status: 400 });
     }
 
-    const updatedColumn = await prisma.BoardColumn.update({
+    // If we're updating the status, we need to update all tasks that use the old status
+    if (updates.status) {
+      // Get the current column to find the old status
+      const currentColumn = await prisma.boardColumn.findUnique({
+        where: { id },
+        select: { status: true, teamId: true }
+      });
+
+      if (currentColumn && currentColumn.status !== updates.status) {
+        // Update all tasks that have the old status to use the new status
+        await prisma.task.updateMany({
+          where: {
+            status: currentColumn.status,
+            teamId: currentColumn.teamId,
+          },
+          data: {
+            status: updates.status,
+          },
+        });
+      }
+    }
+
+    const updatedColumn = await prisma.boardColumn.update({
       where: { id },
       data: updates
     });

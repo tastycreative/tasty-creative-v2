@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { PrismaClient } from '@prisma/client';
+import { trackTaskChanges, createTaskActivity } from '@/lib/taskActivityHelper';
 
 const prisma = new PrismaClient();
 
@@ -43,6 +44,14 @@ export async function POST(request: NextRequest) {
           },
         },
       },
+    });
+
+    // Create activity history for task creation
+    await createTaskActivity({
+      taskId: task.id,
+      userId: session.user.id,
+      actionType: 'CREATED',
+      description: `${session.user.name || session.user.email} created this task`
     });
 
     // Fetch assigned user information
@@ -170,6 +179,29 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // Fetch the current task data before updating
+    const currentTask = await prisma.task.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        status: true,
+        priority: true,
+        assignedTo: true,
+        dueDate: true,
+        attachments: true,
+        teamId: true,
+      },
+    });
+
+    if (!currentTask) {
+      return NextResponse.json(
+        { error: 'Task not found' },
+        { status: 404 }
+      );
+    }
+
     const updateData: any = {
       updatedBy: session.user.email // Always set updatedBy to current user's email
     };
@@ -196,6 +228,16 @@ export async function PUT(request: NextRequest) {
         },
       },
     });
+
+    // Track changes and create activity history
+    await trackTaskChanges(
+      id,
+      session.user.id,
+      session.user.name || session.user.email || 'Unknown User',
+      currentTask,
+      { status, assignedTo, priority, title, description, dueDate, attachments },
+      currentTask.teamId
+    );
 
     // Fetch assigned user information if assignedTo was updated
     let assignedUser = null;
@@ -246,6 +288,14 @@ export async function DELETE(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Create deletion activity before deleting the task
+    await createTaskActivity({
+      taskId,
+      userId: session.user.id,
+      actionType: 'DELETED',
+      description: `${session.user.name || session.user.email} deleted this task`
+    });
 
     await prisma.task.delete({
       where: { id: taskId },

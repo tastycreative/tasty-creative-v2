@@ -31,6 +31,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  Calendar,
+  DollarSign,
 } from "lucide-react";
 
 export default function OtpPtrPage() {
@@ -513,6 +515,85 @@ export default function OtpPtrPage() {
                         </div>
                       </div>
                     </div>
+
+                    {/* PTR-Specific Fields */}
+                    {submissionType === 'ptr' && (
+                      <>
+                        {/* Release Date and Time */}
+                        <div className="group">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-rose-500 via-pink-500 to-fuchsia-500 flex items-center justify-center shadow-lg">
+                              <Calendar className="h-4 w-4 text-white" />
+                            </div>
+                            <div>
+                              <label className="text-base font-semibold text-gray-900 dark:text-white block">
+                                Release Date & Time
+                              </label>
+                              <p className="text-gray-600 dark:text-gray-400 mt-0.5 text-xs">
+                                When should this content be released?
+                              </p>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            {/* Release Date */}
+                            <div className="relative">
+                              <input
+                                type="date"
+                                value={formData.releaseDate}
+                                onChange={(e) =>
+                                  updateFormData("releaseDate", e.target.value)
+                                }
+                                className="w-full h-12 px-4 text-sm bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-rose-500 dark:focus:border-rose-400 focus:ring-2 focus:ring-rose-500/20 hover:border-rose-400 dark:hover:border-rose-500 hover:shadow-md transition-all duration-300"
+                              />
+                            </div>
+                            {/* Release Time */}
+                            <div className="relative">
+                              <input
+                                type="time"
+                                value={formData.releaseTime}
+                                onChange={(e) =>
+                                  updateFormData("releaseTime", e.target.value)
+                                }
+                                className="w-full h-12 px-4 text-sm bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-rose-500 dark:focus:border-rose-400 focus:ring-2 focus:ring-rose-500/20 hover:border-rose-400 dark:hover:border-rose-500 hover:shadow-md transition-all duration-300"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Minimum Price */}
+                        <div className="group">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-green-500 via-emerald-500 to-teal-500 flex items-center justify-center shadow-lg">
+                              <DollarSign className="h-4 w-4 text-white" />
+                            </div>
+                            <div>
+                              <label className="text-base font-semibold text-gray-900 dark:text-white block">
+                                Minimum Price
+                              </label>
+                              <p className="text-gray-600 dark:text-gray-400 mt-0.5 text-xs">
+                                Set the minimum price for this content
+                              </p>
+                            </div>
+                          </div>
+                          <div className="relative">
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-green-500 font-medium">
+                              $
+                            </div>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={formData.minimumPrice}
+                              onChange={(e) =>
+                                updateFormData("minimumPrice", e.target.value)
+                              }
+                              placeholder="50.00"
+                              className="w-full h-12 pl-8 pr-4 text-sm bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-green-500 dark:focus:border-green-400 focus:ring-2 focus:ring-green-500/20 hover:border-green-400 dark:hover:border-green-500 hover:shadow-md transition-all duration-300 placeholder:text-gray-500 dark:placeholder:text-gray-400"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* Right Column - Screenshots */}
@@ -738,6 +819,23 @@ export default function OtpPtrPage() {
                             <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
                               {submission.contentDescription}
                             </p>
+                            {submission.submissionType.toUpperCase() === "PTR" && 
+                             (submission.releaseDate || submission.minimumPrice) && (
+                              <div className="flex items-center gap-3 mt-1 text-xs">
+                                {submission.releaseDate && submission.releaseTime && (
+                                  <span className="text-purple-600 dark:text-purple-400 flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    {submission.releaseDate} at {submission.releaseTime}
+                                  </span>
+                                )}
+                                {submission.minimumPrice && (
+                                  <span className="text-green-600 dark:text-green-400 flex items-center gap-1">
+                                    <DollarSign className="h-3 w-3" />
+                                    ${submission.minimumPrice}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                             {submission.task && (
                               <p className="text-xs text-green-600 dark:text-green-400 mt-1 flex items-center gap-1">
                                 <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
