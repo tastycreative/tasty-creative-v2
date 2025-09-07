@@ -22,8 +22,7 @@ export interface Task {
   status: string;
   priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
   dueDate: string | null;
-  teamId: string;
-  teamName: string;
+  podTeamId: string | null;
   assignedTo: string | null;
   attachments: TaskAttachment[] | null;
   createdById: string;

@@ -15,9 +15,9 @@ export async function POST(request: NextRequest) {
 
     const { title, description, priority, assignedTo, dueDate, teamId, teamName, status, attachments } = await request.json();
 
-    if (!title || !teamId || !teamName) {
+    if (!title || !teamId) {
       return NextResponse.json(
-        { error: 'Title, teamId, and teamName are required' },
+        { error: 'Title and teamId are required' },
         { status: 400 }
       );
     }
@@ -31,10 +31,9 @@ export async function POST(request: NextRequest) {
         assignedTo: assignedTo || null,
         dueDate: dueDate ? new Date(dueDate) : null,
         attachments: attachments || null,
-        teamId,
-        teamName,
+        podTeamId: teamId, // Use podTeamId instead of teamId
         createdById: session.user.id,
-      },
+      } as any,
       include: {
         createdBy: {
           select: {
@@ -106,8 +105,8 @@ export async function GET(request: NextRequest) {
 
     const tasks = await prisma.task.findMany({
       where: {
-        teamId,
-      },
+        podTeamId: teamId,
+      } as any,
       include: {
         createdBy: {
           select: {
@@ -190,9 +189,8 @@ export async function PUT(request: NextRequest) {
         priority: true,
         assignedTo: true,
         dueDate: true,
-        attachments: true,
-        teamId: true,
-      },
+        podTeamId: true,
+      } as any,
     });
 
     if (!currentTask) {
@@ -236,7 +234,7 @@ export async function PUT(request: NextRequest) {
       session.user.name || session.user.email || 'Unknown User',
       currentTask,
       { status, assignedTo, priority, title, description, dueDate, attachments },
-      currentTask.teamId
+      (currentTask as any).podTeamId
     );
 
     // Fetch assigned user information if assignedTo was updated

@@ -62,8 +62,32 @@ export async function POST(request: NextRequest) {
     const submissionPriority = priorityMap[data.priority as keyof typeof priorityMap];
     const submissionType = data.submissionType.toUpperCase() as 'OTP' | 'PTR';
 
-    // Create the content submission
-    const submission = await prisma.ContentSubmission.create({
+    // First, verify the OTP-PTR team exists before creating the submission
+    const allTeams = await prisma.podTeam.findMany();
+    console.log('🔍 Available teams:', allTeams.map(t => ({ id: t.id, name: (t as any).name || (t as any).pod_name })));
+    const otpPtrTeam = allTeams.find(team => (team as any).name === 'OTP-PTR');
+
+    if (!otpPtrTeam) {
+      console.error('❌ OTP-PTR team not found in database');
+      return NextResponse.json(
+        { error: 'OTP-PTR team not found in database' },
+        { status: 500 }
+      );
+    }
+
+    console.log('✅ Found OTP-PTR team:', otpPtrTeam.id, (otpPtrTeam as any).name);
+
+    // Get the first column status for the OTP-PTR team
+    const firstColumn = await (prisma as any).boardColumn.findFirst({
+      where: { teamId: otpPtrTeam.id },
+      orderBy: { position: 'asc' }
+    });
+
+    const initialStatus = firstColumn?.status || 'NOT_STARTED';
+    console.log('📋 Using initial status for task:', initialStatus);
+
+    // Create content submission record
+    const submission = await (prisma as any).contentSubmission.create({
       data: {
         id: `sub_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         submissionType: submissionType,
@@ -85,35 +109,6 @@ export async function POST(request: NextRequest) {
     });
 
     console.log('✅ Content submission created:', submission.id);
-
-    // Find "otp-ptr" team from database
-    const targetTeam = await prisma.podTeam.findFirst({
-      where: {
-        pod_name: {
-          contains: "OTP-PTR",
-          mode: 'insensitive'
-        }
-      }
-    });
-
-    // If team not found, use a default team (row 4 or first available)
-    const fallbackTeam = await prisma.podTeam.findFirst({
-      where: {
-        OR: [
-          { row_id: "4" },
-          { row_id: "1" } // Ultimate fallback
-        ]
-      },
-      orderBy: {
-        row_id: 'asc'
-      }
-    });
-
-    const assignedTeam = targetTeam || fallbackTeam;
-
-    if (!assignedTeam) {
-      console.warn('⚠️ No team found, creating task without team assignment');
-    }
 
     // Convert submission priority to task priority
     const taskPriorityMap = {
@@ -140,36 +135,64 @@ export async function POST(request: NextRequest) {
       data: {
         title: `${submissionType} Content - ${data.modelName}`,
         description: taskDescription,
-        status: 'NOT_STARTED',
+        status: initialStatus,
         priority: taskPriority as any,
-        teamId: `team-${assignedTeam?.row_id || "4"}`,
-        teamName: assignedTeam?.pod_name || "Team 4 sample update",
-        assignedToTeam: true, // Assigned to entire team
+        podTeamId: otpPtrTeam.id, // Use the OTP-PTR team ID
+        assignedTo: null, // Individual assignment (null means assigned to team)
         createdById: session.user.id!,
         contentSubmissionId: submission.id,
         attachments: data.screenshotAttachments || [],
       }
+    } as any);
+
+    console.log('📋 Task created:', task.id, 'for team:', (otpPtrTeam as any).name);
+
+    // Create task activity history for automatic task creation
+    await (prisma as any).taskActivityHistory.create({
+      data: {
+        taskId: task.id,
+        userId: session.user.id!,
+        actionType: 'CREATED',
+        description: `Task automatically created from ${submissionType} content submission`,
+        fieldName: null,
+        oldValue: null,
+        newValue: 'Task created'
+      }
     });
 
-    console.log('📋 Task created:', task.id, 'for team:', task.teamName);
+    console.log('📝 Task activity history created for task:', task.id);
+    await (prisma as any).taskActivityHistory.create({
+      data: {
+        taskId: task.id,
+        userId: session.user.id!,
+        actionType: 'CREATED',
+        description: `Task automatically created from ${submissionType} content submission: ${data.modelName}`,
+        fieldName: null,
+        oldValue: null,
+        newValue: 'Task created'
+      }
+    });
+
+    console.log('📝 Task activity history created for task:', task.id);
 
     // Update submission status
-    await prisma.contentSubmission.update({
+    const updatedSubmission = await (prisma as any).contentSubmission.update({
       where: { id: submission.id },
       data: { 
         status: 'TASK_CREATED',
-        processedAt: new Date()
+        processedAt: new Date(),
+        updatedAt: new Date()
       }
     });
 
     // Send email notifications to team members
-    if (assignedTeam?.team_members) {
+    if ((otpPtrTeam as any).team_members) {
       try {
-        const teamMembers = assignedTeam.team_members
+        const teamMembers = (otpPtrTeam as any).team_members
           .split(',')
-          .map(member => member.trim())
-          .filter(member => member.includes('@'))
-          .map(member => {
+          .map((member: string) => member.trim())
+          .filter((member: string) => member.includes('@'))
+          .map((member: string) => {
             // Extract email if format is "email - role"
             return member.includes(' - ') ? member.split(' - ')[0] : member;
           });
@@ -178,7 +201,7 @@ export async function POST(request: NextRequest) {
 
         if (teamMembers.length > 0) {
           const emailResults = await Promise.allSettled(
-            teamMembers.map(async (email) => {
+            teamMembers.map(async (email: string) => {
               return transporter.sendMail({
                 from: process.env.SMTP_FROM || 'Tasty Creative <noreply@tastycreative.com>',
                 to: email,

@@ -25,15 +25,15 @@ export async function GET(request: NextRequest, { params }: CommentsParams) {
     // Verify the task exists and user has access to it
     const task = await prisma.task.findUnique({
       where: { id: taskId },
-      select: { id: true, teamId: true }
-    });
+      select: { id: true, podTeamId: true }
+    } as any);
 
     if (!task) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
     // Fetch comments with user information
-    const comments = await prisma.taskComment.findMany({
+    const comments = await (prisma as any).taskComment.findMany({
       where: { taskId },
       include: {
         user: {
@@ -81,9 +81,9 @@ export async function POST(request: NextRequest, { params }: CommentsParams) {
     }
 
     // Verify the task exists
-    const task = await prisma.task.findUnique({
+    const task = await (prisma as any).task.findUnique({
       where: { id: taskId },
-      select: { id: true, teamId: true }
+      select: { id: true, podTeamId: true }
     });
 
     if (!task) {
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest, { params }: CommentsParams) {
     }
 
     // Create comment
-    const comment = await prisma.taskComment.create({
+    const comment = await (prisma as any).taskComment.create({
       data: {
         taskId,
         userId: session.user.id,

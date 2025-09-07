@@ -154,8 +154,6 @@ model Task {
   description         String?
   priority            TaskPriority          @default(MEDIUM)
   dueDate             DateTime?
-  teamId              String
-  teamName            String
   assignedTo          String?
   createdById         String
   createdAt           DateTime              @default(now())
@@ -165,12 +163,14 @@ model Task {
   assignedToTeam      Boolean               @default(false)
   contentSubmissionId String?               @unique
   status              String                @default("NOT_STARTED")
+  podTeamId           String?
   ContentSubmission   ContentSubmission?    @relation(fields: [contentSubmissionId], references: [id])
   createdBy           User                  @relation("TaskCreator", fields: [createdById], references: [id])
+  podTeam             PodTeam?              @relation(fields: [podTeamId], references: [id])
   activityHistory     TaskActivityHistory[]
   comments            TaskComment[]
 
-  @@index([teamId])
+  @@index([podTeamId])
   @@index([createdById])
   @@index([status])
   @@index([assignedToTeam])
@@ -319,14 +319,16 @@ model PodTeam {
   createdById     String?
   description     String?
   isActive        Boolean?                  @default(true)
-  name            String?
+  name            String                    @unique
   updatedAt       DateTime?                 @updatedAt
   createdBy       User?                     @relation("PodTeamCreator", fields: [createdById], references: [id])
   assignedClients PodTeamClientAssignment[]
   members         PodTeamMember[]
+  tasks           Task[]
 
   @@index([createdById])
   @@index([isActive])
+  @@index([name])
 }
 
 model PodTeamMember {

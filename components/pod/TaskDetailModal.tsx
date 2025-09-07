@@ -104,11 +104,11 @@ export default function TaskDetailModal({
             <div className="flex-1 min-w-0">
               <div className="flex items-center space-x-3 mb-2">
                 <div
-                  className={`w-2 h-2 rounded-full ${statusConfig[selectedTask.status]?.color?.split(" ")[0] || "bg-gray-500"}`}
+                  className={`w-2 h-2 rounded-full ${(statusConfig as any)[selectedTask.status]?.color?.split(" ")[0] || "bg-gray-500"}`}
                 ></div>
                 <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">
-                  {selectedTask.teamName} •{" "}
-                  {statusConfig[selectedTask.status]?.label ||
+                  Task •{" "}
+                  {(statusConfig as any)[selectedTask.status]?.label ||
                     selectedTask.status}
                 </span>
               </div>
@@ -187,11 +187,11 @@ export default function TaskDetailModal({
           </div>
         </div>
         {/* Task History - Shows when toggled */}
-        {showHistory && (
+        {showHistory && selectedTask.podTeamId && (
           <div>
             <TaskCardHistory
               taskId={selectedTask.id}
-              teamId={selectedTask.teamId}
+              teamId={selectedTask.podTeamId}
               isModal={true}
             />
           </div>

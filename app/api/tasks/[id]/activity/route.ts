@@ -23,9 +23,9 @@ export async function GET(request: NextRequest, { params }: ActivityHistoryParam
     }
 
     // Verify the task exists and user has access to it
-    const task = await prisma.task.findUnique({
+    const task = await (prisma as any).task.findUnique({
       where: { id: taskId },
-      select: { id: true, teamId: true }
+      select: { id: true, podTeamId: true }
     });
 
     if (!task) {
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest, { params }: ActivityHistoryParam
     }
 
     // Fetch activity history with user information
-    const activities = await prisma.taskActivityHistory.findMany({
+    const activities = await (prisma as any).taskActivityHistory.findMany({
       where: { taskId },
       include: {
         user: {
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest, { params }: ActivityHistoryPara
     };
 
     // Create activity history entry
-    const activity = await prisma.taskActivityHistory.create({
+    const activity = await (prisma as any).taskActivityHistory.create({
       data: {
         taskId,
         userId: session.user.id,

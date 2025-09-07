@@ -14,6 +14,7 @@ import {
 import FileUpload from "@/components/ui/FileUpload";
 import { TaskAttachment } from "@/lib/stores/boardStore";
 import { useContentSubmissionStore } from "@/lib/stores/contentSubmissionStore";
+import ModelsDropdownList from "@/components/ModelsDropdownList";
 import {
   Upload,
   Zap,
@@ -316,48 +317,14 @@ export default function OtpPtrPage() {
                             </p>
                           </div>
                         </div>
-                        <Select
+                        <ModelsDropdownList
                           value={formData.modelName}
                           onValueChange={(value) =>
                             updateFormData("modelName", value)
                           }
-                        >
-                          <SelectTrigger className="h-12 w-full text-sm bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:border-pink-400 dark:hover:border-pink-500 hover:shadow-md transition-all duration-300 focus:border-pink-500 dark:focus:border-pink-400 focus:ring-2 focus:ring-pink-500/20">
-                            <SelectValue placeholder="Choose your model..." />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-lg border shadow-lg bg-white dark:bg-gray-900">
-                            <SelectItem
-                              value="alanna"
-                              className="text-sm py-2.5"
-                            >
-                              Alanna
-                            </SelectItem>
-                            <SelectItem
-                              value="sarah"
-                              className="text-sm py-2.5"
-                            >
-                              Sarah
-                            </SelectItem>
-                            <SelectItem
-                              value="jessica"
-                              className="text-sm py-2.5"
-                            >
-                              Jessica
-                            </SelectItem>
-                            <SelectItem
-                              value="model4"
-                              className="text-sm py-2.5"
-                            >
-                              Model 4
-                            </SelectItem>
-                            <SelectItem
-                              value="model5"
-                              className="text-sm py-2.5"
-                            >
-                              Model 5
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
+                          placeholder="Choose your model..."
+                          className="h-12 w-full text-sm bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:border-pink-400 dark:hover:border-pink-500 hover:shadow-md transition-all duration-300 focus:border-pink-500 dark:focus:border-pink-400 focus:ring-2 focus:ring-pink-500/20"
+                        />
                       </div>
 
                       {/* Priority */}
