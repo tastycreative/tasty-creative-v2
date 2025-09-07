@@ -63,15 +63,15 @@ export default function MyModelsPage() {
         if (teams && teams.length > 0) {
           for (const team of teams) {
             try {
-              // Fetch pod data for each team row
-              await fetchPodData(team.row);
+              // Fetch pod data for each team ID
+              await fetchPodData(team.id);
 
               // Get the pod data for this team using database API
               const teamPodResponse = await fetch("/api/pod/fetch-db", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  rowId: team.row,
+                  rowId: team.id, // Now using team ID instead of row
                 }),
               });
 
@@ -96,7 +96,7 @@ export default function MyModelsPage() {
               }
             } catch (error) {
               console.error(
-                `Error fetching data for team row ${team.row}:`,
+                `Error fetching data for team ${team.id}:`,
                 error
               );
             }

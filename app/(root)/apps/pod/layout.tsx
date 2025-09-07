@@ -8,7 +8,6 @@ import Link from "next/link";
 import {
   Users,
   UserPlus,
-  Calendar,
   ExternalLink,
   RefreshCw,
   FileSpreadsheet,
@@ -52,9 +51,9 @@ export default function PodLayout({ children }: PodLayoutProps) {
 
   // Zustand store hooks
   const {
-    selectedRow,
+    selectedTeamId,
     openSheetGroups,
-    setSelectedRow,
+    setSelectedTeamId,
     toggleSheetGroup,
     clearCache,
   } = usePodStore();
@@ -157,23 +156,31 @@ export default function PodLayout({ children }: PodLayoutProps) {
     initializeComponent();
   }, [fetchAvailableTeams]);
 
+  // Auto-select first team if none is selected
+  useEffect(() => {
+    if (!selectedTeamId && availableTeams.length > 0 && !isLoadingTeams) {
+      console.log(`🎯 Auto-selecting first team: ${availableTeams[0].name} (${availableTeams[0].id})`);
+      setSelectedTeamId(availableTeams[0].id);
+    }
+  }, [selectedTeamId, availableTeams, isLoadingTeams, setSelectedTeamId]);
+
   // Fetch pod data when team changes (for all tabs)
   useEffect(() => {
     // Only fetch data if:
-    // 1. selectedRow is valid
+    // 1. selectedTeamId is valid
     // 2. teams have been loaded (to avoid race conditions during hydration)
     console.log(`🔍 Layout useEffect triggered:`, {
-      selectedRow,
+      selectedTeamId,
       availableTeamsLength: availableTeams.length,
       pathname,
-      willFetch: selectedRow !== null && selectedRow !== 0 && availableTeams.length > 0
+      willFetch: selectedTeamId !== null && availableTeams.length > 0
     });
     
-    if (selectedRow !== null && selectedRow !== 0 && availableTeams.length > 0) {
-      console.log(`🔄 Fetching data for team ${selectedRow} (teams loaded: ${availableTeams.length})`);
-      fetchPodData(selectedRow, true); // Force refresh when team changes
+    if (selectedTeamId !== null && availableTeams.length > 0) {
+      console.log(`🔄 Fetching data for team ${selectedTeamId} (teams loaded: ${availableTeams.length})`);
+      fetchPodData(selectedTeamId, true); // Force refresh when team changes
     }
-  }, [selectedRow, fetchPodData, availableTeams.length]);
+  }, [selectedTeamId, fetchPodData, availableTeams.length]);
 
 
   const handleSheetClick = (sheetName: string, sheetUrl: string) => {
@@ -348,10 +355,12 @@ export default function PodLayout({ children }: PodLayoutProps) {
                           </div>
                           <button
                             onClick={() => {
-                              clearCache(`pod-data-${selectedRow}`);
-                              fetchPodData(selectedRow, true);
+                              if (selectedTeamId) {
+                                clearCache(`pod-data-${selectedTeamId}`);
+                                fetchPodData(selectedTeamId, true);
+                              }
                             }}
-                            disabled={isLoading}
+                            disabled={isLoading || !selectedTeamId}
                             className="p-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl transition-all duration-200 disabled:opacity-50 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
                             title="Refresh team data"
                           >
@@ -372,22 +381,22 @@ export default function PodLayout({ children }: PodLayoutProps) {
                               Switch Team:
                             </label>
                             <select
-                              value={selectedRow || ""}
+                              value={selectedTeamId || ""}
                               onChange={(e) => {
-                                const newRow = parseInt(e.target.value);
-                                setSelectedRow(newRow);
+                                const newTeamId = e.target.value;
+                                setSelectedTeamId(newTeamId);
                               }}
                               disabled={isLoading || isLoadingTeams}
                               className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500/50 transition-all duration-200 disabled:opacity-50"
                             >
                               {availableTeams.length > 0 ? (
                                 availableTeams.map((team) => (
-                                  <option key={team.row} value={team.row}>
+                                  <option key={team.id} value={team.id}>
                                     {team.name}
                                   </option>
                                 ))
                               ) : (
-                                <option value={selectedRow || ""}>
+                                <option value="">
                                   Loading teams...
                                 </option>
                               )}
@@ -642,24 +651,7 @@ export default function PodLayout({ children }: PodLayoutProps) {
                         </div>
                       )}
 
-                      {/* Scheduler Link */}
-                      {podData?.schedulerSpreadsheetUrl && (
-                        <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800">
-                          <button
-                            onClick={() =>
-                              window.open(
-                                podData?.schedulerSpreadsheetUrl,
-                                "_blank"
-                              )
-                            }
-                            className="flex items-center justify-center w-full px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] text-sm font-medium"
-                          >
-                            <Calendar className="h-4 w-4 mr-2" />
-                            Open Scheduler
-                            <ExternalLink className="h-3 w-3 ml-2" />
-                          </button>
-                        </div>
-                      )}
+                      {/* Note: Scheduler link removed from new schema - can be added back if needed */}
                     </div>
                   </div>
                 ) : error?.message ? (
@@ -668,8 +660,10 @@ export default function PodLayout({ children }: PodLayoutProps) {
                       <p>{error.message}</p>
                       <button
                         onClick={() => {
-                          clearCache(`pod-data-${selectedRow}`);
-                          fetchPodData(selectedRow, true);
+                          if (selectedTeamId) {
+                            clearCache(`pod-data-${selectedTeamId}`);
+                            fetchPodData(selectedTeamId, true);
+                          }
                         }}
                         className="mt-2 px-3 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded text-sm hover:bg-red-200 dark:hover:bg-red-900/50"
                       >

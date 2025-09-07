@@ -8,25 +8,28 @@ datasource db {
 }
 
 model User {
-  id                 String                @id @default(cuid())
-  email              String                @unique
-  emailVerified      DateTime?
-  name               String?
-  image              String?
-  role               Role                  @default(GUEST)
-  createdAt          DateTime              @default(now())
-  updatedAt          DateTime              @updatedAt
-  password           String?
-  lastAccessedAt     DateTime?             @default(now())
-  username           String?               @unique
-  accounts           Account[]
-  ContentSubmission  ContentSubmission[]
-  pageViews          PageView[]
-  sessions           Session[]
-  createdTasks       Task[]                @relation("TaskCreator")
-  taskActivities     TaskActivityHistory[] @relation("TaskActivityUser")
-  taskComments       TaskComment[]         @relation("TaskCommentUser")
-  verificationTokens VerificationToken[]
+  id                   String                    @id @default(cuid())
+  email                String                    @unique
+  emailVerified        DateTime?
+  name                 String?
+  image                String?
+  role                 Role                      @default(GUEST)
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+  password             String?
+  lastAccessedAt       DateTime?                 @default(now())
+  username             String?                   @unique
+  accounts             Account[]
+  ContentSubmission    ContentSubmission[]
+  pageViews            PageView[]
+  createdPodTeams      PodTeam[]                 @relation("PodTeamCreator")
+  podClientAssignments PodTeamClientAssignment[] @relation("PodClientAssignedBy")
+  podTeamMemberships   PodTeamMember[]           @relation("PodTeamMemberUser")
+  sessions             Session[]
+  createdTasks         Task[]                    @relation("TaskCreator")
+  taskActivities       TaskActivityHistory[]     @relation("TaskActivityUser")
+  taskComments         TaskComment[]             @relation("TaskCommentUser")
+  verificationTokens   VerificationToken[]
 }
 
 model Account {
@@ -209,8 +212,8 @@ model TaskComment {
 }
 
 model ClientModel {
-  id                    String           @id @default(cuid())
-  clientName            String           @unique
+  id                    String                    @id @default(cuid())
+  clientName            String                    @unique
   status                String
   percentTaken          String?
   guaranteed            String?
@@ -228,10 +231,16 @@ model ClientModel {
   mainTwitter           String?
   mainTiktok            String?
   profileLink           String?
-  createdAt             DateTime         @default(now())
-  updatedAt             DateTime         @updatedAt
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
   row_id                String?
+  sheetLink             String?
+  spreadsheetName       String?
   contentDetails        ContentDetails[]
+  podTeamAssignments    PodTeamClientAssignment[]
+
+  @@index([clientName])
+  @@index([status])
 }
 
 model ContentDetails {
@@ -305,24 +314,51 @@ model ClientModelDetails {
 }
 
 model PodTeam {
-  id                           String          @id @default(cuid())
-  row_id                       String          @unique
-  pod_name                     String
-  link_to_team_sheet           String?
-  team_members                 String?
-  creators_assigned            String?
-  current_week_schedule_status String?
-  issues_notes                 String?
-  last_updated                 DateTime        @updatedAt
-  podTeamSheets                PodTeamSheets[] @relation("PodTeamToSheets")
+  id              String                    @id @default(cuid())
+  createdAt       DateTime                  @default(now())
+  createdById     String?
+  description     String?
+  isActive        Boolean?                  @default(true)
+  name            String?
+  updatedAt       DateTime?                 @updatedAt
+  createdBy       User?                     @relation("PodTeamCreator", fields: [createdById], references: [id])
+  assignedClients PodTeamClientAssignment[]
+  members         PodTeamMember[]
+
+  @@index([createdById])
+  @@index([isActive])
 }
 
-model PodTeamSheets {
-  id               String  @id @default(cuid())
-  row_id           String
-  sheet_link       String? @unique
-  spreadsheet_name String?
-  podTeam          PodTeam @relation("PodTeamToSheets", fields: [row_id], references: [row_id], onDelete: Cascade)
+model PodTeamMember {
+  id        String        @id @default(cuid())
+  podTeamId String
+  userId    String
+  role      PodMemberRole @default(MEMBER)
+  joinedAt  DateTime      @default(now())
+  podTeam   PodTeam       @relation(fields: [podTeamId], references: [id], onDelete: Cascade)
+  user      User          @relation("PodTeamMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([podTeamId, userId])
+  @@index([podTeamId])
+  @@index([userId])
+}
+
+model PodTeamClientAssignment {
+  id            String      @id @default(cuid())
+  podTeamId     String
+  clientModelId String
+  assignedAt    DateTime    @default(now())
+  assignedById  String
+  isActive      Boolean     @default(true)
+  notes         String?
+  assignedBy    User        @relation("PodClientAssignedBy", fields: [assignedById], references: [id])
+  clientModel   ClientModel @relation(fields: [clientModelId], references: [id], onDelete: Cascade)
+  podTeam       PodTeam     @relation(fields: [podTeamId], references: [id], onDelete: Cascade)
+
+  @@unique([podTeamId, clientModelId])
+  @@index([podTeamId])
+  @@index([clientModelId])
+  @@index([assignedById])
 }
 
 model BoardColumn {
@@ -445,4 +481,10 @@ enum SubmissionStatus {
 enum SubmissionType {
   OTP
   PTR
+}
+
+enum PodMemberRole {
+  LEADER
+  MEMBER
+  ADMIN
 }

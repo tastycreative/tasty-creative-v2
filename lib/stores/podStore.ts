@@ -3,36 +3,61 @@
 import { create } from 'zustand';
 import { devtools, persist, createJSONStorage } from 'zustand/middleware';
 
-// Types
+// Types aligned with new Prisma schema
 export interface TeamMember {
   id: string;
   name: string;
-  role: string;
-  email?: string;
+  email: string;
+  role: 'LEADER' | 'MEMBER' | 'ADMIN';
+  joinedAt: string;
+  userId: string;
+  image?: string;
 }
 
 export interface Creator {
   id: string;
-  name: string;
+  name: string; // clientName from ClientModel
   guaranteed?: string;
   rowNumber?: number;
-  row_id?: string; // Add row_id from ClientModel
+  row_id?: string;
+  assignedAt: string;
+  assignedBy: {
+    id: string;
+    name?: string;
+    email: string;
+  };
+  isActive: boolean;
+  notes?: string;
 }
 
 export interface TeamOption {
-  row: number;
+  id: string; // Use actual ID instead of row number
   name: string;
-  label: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: string;
 }
 
 export interface PodData {
+  id: string;
   teamName: string;
+  description?: string;
   teamMembers: TeamMember[];
   creators: Creator[];
-  schedulerSpreadsheetUrl?: string;
-  sheetLinks?: Array<{ name: string; url: string; cellGroup?: string; id?: string }>;
-  rowNumber: number;
+  sheetLinks?: Array<{ 
+    name: string; 
+    url: string; 
+    id: string;
+    clientName: string;
+  }>;
+  isActive: boolean;
+  createdAt: string;
   lastUpdated: string;
+  createdBy: {
+    id: string;
+    name?: string;
+    email: string;
+  };
 }
 
 export interface DriveSheet {
@@ -84,7 +109,7 @@ export interface LoadingStates {
 
 export interface PodStore {
   // State
-  selectedRow: number;
+  selectedTeamId: string | null;
   activeTab: 'dashboard' | 'sheets' | 'board' | 'admin' | 'pricing';
   
   // Data
@@ -115,11 +140,11 @@ export interface PodStore {
   openSheetGroups: Record<string, boolean>;
   
   // Actions
-  setSelectedRow: (row: number) => void;
+  setSelectedTeamId: (teamId: string | null) => void;
   setActiveTab: (tab: 'dashboard' | 'sheets' | 'board' | 'admin' | 'pricing') => void;
   
   // Data fetching with caching
-  fetchPodData: (rowNumber?: number, forceRefresh?: boolean) => Promise<void>;
+  fetchPodData: (teamId?: string, forceRefresh?: boolean) => Promise<void>;
   fetchAvailableTeams: (forceRefresh?: boolean) => Promise<void>;
   fetchTasks: (teamId: string, forceRefresh?: boolean) => Promise<void>;
   fetchDriveSheets: (creatorNames: string[], forceRefresh?: boolean) => Promise<void>;
@@ -205,7 +230,7 @@ export const usePodStore = create<PodStore>()(
     persist(
       (set, get) => ({
         // Initial state - will be overridden by persisted value
-        selectedRow: 8, // Default fallback if no persisted value exists
+        selectedTeamId: null, // Default fallback if no persisted value exists
         activeTab: 'dashboard',
         
         podData: null,
@@ -237,9 +262,9 @@ export const usePodStore = create<PodStore>()(
         openSheetGroups: {},
         
         // Actions
-        setSelectedRow: (row) => {
-          console.log(`🔄 setSelectedRow called:`, { oldRow: get().selectedRow, newRow: row });
-          set({ selectedRow: row });
+        setSelectedTeamId: (teamId) => {
+          console.log(`🔄 setSelectedTeamId called:`, { oldTeamId: get().selectedTeamId, newTeamId: teamId });
+          set({ selectedTeamId: teamId });
         },
           
         setActiveTab: (tab) =>
@@ -284,10 +309,16 @@ export const usePodStore = create<PodStore>()(
         },
         
         // Data fetching methods
-        fetchPodData: async (rowNumber, forceRefresh = false) => {
-          console.log(`📊 fetchPodData called:`, { requestedRowNumber: rowNumber, currentSelectedRow: get().selectedRow, forceRefresh });
-          const row = rowNumber ?? get().selectedRow;
-          const cacheKey = `pod-data-${row}`;
+        fetchPodData: async (teamId, forceRefresh = false) => {
+          console.log(`📊 fetchPodData called:`, { requestedTeamId: teamId, currentSelectedTeamId: get().selectedTeamId, forceRefresh });
+          const currentTeamId = teamId ?? get().selectedTeamId;
+          
+          if (!currentTeamId) {
+            console.log('🚫 No team ID available for fetching pod data');
+            return;
+          }
+          
+          const cacheKey = `pod-data-${currentTeamId}`;
           
           // Check cache first unless force refresh
           if (!forceRefresh) {
@@ -309,15 +340,11 @@ export const usePodStore = create<PodStore>()(
             const result = await apiCall<{ success: boolean; data: PodData }>('/api/pod/fetch-db', {
               method: 'POST',
               body: JSON.stringify({
-                rowId: row,
+                rowId: currentTeamId, // The API still expects 'rowId' but now it's the actual team ID
               }),
             });
             
             if (result.success && result.data) {
-              // Note: Creator guaranteed data now comes from database via ModelPodInfoTab
-              // This POD store is primarily used for team/sheet management
-              // Individual creator guaranteed amounts are handled by useCreatorsDB hook
-              
               // Cache and set data
               get().setCachedData(cacheKey, result.data, CACHE_DURATIONS.POD_DATA);
               
@@ -365,14 +392,16 @@ export const usePodStore = create<PodStore>()(
           
           try {
             // Use new database API endpoint
-            const result = await apiCall<{ success: boolean; teams: any[] }>('/api/pod/teams-db');
+            const result = await apiCall<{ success: boolean; teams: any[] }>('/api/pod/teams');
             
             if (result.success && result.teams) {
-              // Transform to TeamOption format
+              // Transform to new TeamOption format
               const teamOptions: TeamOption[] = result.teams.map(team => ({
-                row: team.row,
+                id: team.id,
                 name: team.name,
-                label: team.label
+                description: team.description,
+                isActive: team.isActive,
+                createdAt: team.createdAt
               }));
               
               get().setCachedData(cacheKey, teamOptions, CACHE_DURATIONS.AVAILABLE_TEAMS);
@@ -386,16 +415,11 @@ export const usePodStore = create<PodStore>()(
               throw new Error('Failed to fetch teams from database');
             }
           } catch (error) {
-            // Fallback to basic team options
-            const fallbackTeams = [
-              { row: 8, name: "Team 8", label: "Team 8" },
-              { row: 9, name: "Team 9", label: "Team 9" },
-              { row: 10, name: "Team 10", label: "Team 10" },
-            ];
+            console.error('Error fetching teams:', error);
             
             set((state) => ({
               ...state,
-              availableTeams: fallbackTeams,
+              availableTeams: [],
               errors: { 
                 ...state.errors, 
                 availableTeams: {

@@ -4,7 +4,7 @@ import React, { Suspense } from "react";
 import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
 
-// Dynamic import for better performance
+// Dynamic import for better performance  
 const PodAdminDashboard = dynamic(() => import("@/components/PodAdminDashboard"), {
   loading: () => (
     <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6">

@@ -22,10 +22,49 @@ export async function POST(request: NextRequest) {
     // Fetch specific pod team from database
     const podTeam = await prisma.podTeam.findUnique({
       where: {
-        row_id: rowId.toString()
+        id: rowId.toString() // Using ID directly now instead of row_id
       },
       include: {
-        podTeamSheets: true
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true
+              }
+            }
+          }
+        },
+        assignedClients: {
+          include: {
+            clientModel: {
+              select: {
+                id: true,
+                clientName: true,
+                row_id: true,
+                guaranteed: true,
+                sheetLink: true,
+                spreadsheetName: true
+              }
+            },
+            assignedBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true
+              }
+            }
+          }
+        },
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
       }
     });
 
@@ -36,95 +75,54 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse team members from comma-separated string
-    const membersString = podTeam.team_members || '';
-    const teamMembers = membersString
-      .split(',')
-      .map((memberStr: string, index: number) => {
-        const trimmed = memberStr.trim();
-        
-        // Check if the member string contains " - " to separate email and role
-        if (trimmed.includes(' - ')) {
-          const [email, role] = trimmed.split(' - ');
-          return {
-            id: `${podTeam.id}-${index}`,
-            name: email.split('@')[0] || email, // Use part before @ as name
-            email: email.trim(),
-            role: role.trim(),
-          };
-        } else {
-          // Fallback for format without roles
-          return {
-            id: `${podTeam.id}-${index}`,
-            name: trimmed,
-            email: trimmed.includes('@') ? trimmed : '',
-            role: index === 0 ? 'Team Lead' : index === 1 ? 'Designer' : 'Developer',
-          };
-        }
-      })
-      .filter((member) => member.name !== '');
-
-    // Parse creators from comma-separated string and fetch their ClientModel data
-    const creatorsString = podTeam.creators_assigned || '';
-    const creatorNames = creatorsString
-      .split(',')
-      .map(name => name.trim())
-      .filter(name => name !== '');
-    
-    // Fetch ClientModel data for each assigned creator to get their row_id
-    const clientModels = await prisma.clientModel.findMany({
-      where: {
-        clientName: {
-          in: creatorNames,
-          mode: 'insensitive'
-        }
-      },
-      select: {
-        id: true,
-        clientName: true,
-        row_id: true,
-        guaranteed: true
-      }
-    });
-    
-    console.log(`📊 Found ${clientModels.length} ClientModel records for assigned creators:`, 
-                clientModels.map(c => ({ name: c.clientName, row_id: c.row_id })));
-    
-    // Create creators array with ClientModel data
-    const creators = creatorNames.map((name, index) => {
-      const clientModel = clientModels.find(cm => 
-        cm.clientName.toLowerCase() === name.toLowerCase()
-      );
-      
-      return {
-        id: clientModel?.id || `${podTeam.id}-creator-${index}`,
-        name: name,
-        rowNumber: parseInt(podTeam.row_id), // PodTeam row_id as rowNumber
-        row_id: clientModel?.row_id || null, // ClientModel row_id for pricing updates
-        guaranteed: clientModel?.guaranteed || null
-      };
-    });
-
-    // Transform sheet data from PodTeamSheets relation
-    const sheetLinks = podTeam.podTeamSheets.map(sheet => ({
-      name: sheet.spreadsheet_name || 'Unnamed Sheet',
-      url: sheet.sheet_link || '',
-      id: sheet.id
+    // Transform team members from relational data
+    const teamMembers = podTeam.members.map((member) => ({
+      id: member.id,
+      name: member.user.name || member.user.email?.split('@')[0] || 'Unknown',
+      email: member.user.email || '',
+      role: member.role,
+      joinedAt: member.joinedAt.toISOString(),
+      userId: member.user.id,
+      image: member.user.image
     }));
 
-    // Return the parsed data in the same format as the Google Sheets API
+    // Transform assigned creators from relational data
+    const creators = podTeam.assignedClients.map((assignment) => ({
+      id: assignment.clientModel.id,
+      name: assignment.clientModel.clientName,
+      rowNumber: assignment.clientModel.row_id ? parseInt(assignment.clientModel.row_id) : null,
+      row_id: assignment.clientModel.row_id,
+      guaranteed: assignment.clientModel.guaranteed,
+      assignedAt: assignment.assignedAt.toISOString(),
+      assignedBy: assignment.assignedBy,
+      isActive: assignment.isActive,
+      notes: assignment.notes
+    }));
+
+    // Transform sheet links from ClientModel data
+    const sheetLinks = podTeam.assignedClients
+      .filter(assignment => assignment.clientModel.sheetLink)
+      .map(assignment => ({
+        name: assignment.clientModel.spreadsheetName || assignment.clientModel.clientName,
+        url: assignment.clientModel.sheetLink || '',
+        id: assignment.clientModel.id,
+        clientName: assignment.clientModel.clientName
+      }));
+
+    // Return the parsed data with the new relational structure
     return NextResponse.json({
       success: true,
       data: {
-        teamName: podTeam.pod_name,
+        id: podTeam.id,
+        teamName: podTeam.name,
+        description: podTeam.description,
         teamMembers,
         creators,
-        schedulerSpreadsheetUrl: podTeam.link_to_team_sheet || '',
         sheetLinks,
-        rowNumber: parseInt(podTeam.row_id),
-        lastUpdated: podTeam.last_updated.toISOString(),
-        status: podTeam.current_week_schedule_status || '',
-        notes: podTeam.issues_notes || ''
+        isActive: podTeam.isActive,
+        createdAt: podTeam.createdAt.toISOString(),
+        lastUpdated: podTeam.updatedAt.toISOString(),
+        createdBy: podTeam.createdBy
       },
     });
 

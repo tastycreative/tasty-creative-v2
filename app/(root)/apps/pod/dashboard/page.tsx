@@ -18,7 +18,7 @@ const WorkflowDashboard = dynamic(() => import("@/components/WorkflowDashboard")
 });
 
 export default function DashboardPage() {
-  const { selectedRow } = usePodStore();
+  const { selectedTeamId } = usePodStore();
   const { podData, loading: isLoading } = usePodData();
   const { tasks, loading: isTasksLoading, fetchTasks } = useTasks();
   const { 
@@ -29,13 +29,12 @@ export default function DashboardPage() {
   // Use the pricing rotation hook
   const { pricingRotationProgress } = usePricingRotation(podData?.creators || []);
 
-  // Fetch tasks when selectedRow changes
+  // Fetch tasks when selectedTeamId changes
   useEffect(() => {
-    if (selectedRow) {
-      const teamId = `team-${selectedRow}`;
-      fetchTasks(teamId);
+    if (selectedTeamId) {
+      fetchTasks(selectedTeamId);
     }
-  }, [selectedRow, fetchTasks]);
+  }, [selectedTeamId, fetchTasks]);
 
   // Fetch pricing preview only when podData is fully loaded with creators
   useEffect(() => {

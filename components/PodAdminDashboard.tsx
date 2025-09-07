@@ -25,8 +25,6 @@ import {
   Shield,
   UserCheck,
   User,
-  ExternalLink,
-  Link,
   Edit2,
   UserMinus,
   Check,
@@ -48,6 +46,7 @@ interface TeamMember {
   name: string;
   role: string;
   email?: string;
+  image?: string;
 }
 
 interface Task {
@@ -129,10 +128,6 @@ const PodAdminDashboard = () => {
   const [editingTeamNameValue, setEditingTeamNameValue] = useState("");
   const [updatingTeamName, setUpdatingTeamName] = useState<string | null>(null);
   const [teamNameSuccess, setTeamNameSuccess] = useState<string | null>(null);
-  const [editingSheetUrl, setEditingSheetUrl] = useState<string | null>(null);
-  const [editingSheetUrlValue, setEditingSheetUrlValue] = useState("");
-  const [updatingSheetUrl, setUpdatingSheetUrl] = useState<string | null>(null);
-  const [sheetUrlSuccess, setSheetUrlSuccess] = useState<string | null>(null);
   const [showTeamMenu, setShowTeamMenu] = useState<string | null>(null);
   const [showMembersModal, setShowMembersModal] = useState<string | null>(null);
   const [showTasksModal, setShowTasksModal] = useState<string | null>(null);
@@ -165,9 +160,6 @@ const PodAdminDashboard = () => {
   const [creatorsSuccess, setCreatorsSuccess] = useState<string | null>(null);
   const [availableCreators, setAvailableCreators] = useState<string[]>([]);
 
-  // Constants for Google Sheets sync
-  const DEFAULT_SPREADSHEET_URL =
-    "https://docs.google.com/spreadsheets/d/1sTp3x6SA4yKkYEwPUIDPNzAPiu0RnaV1009NXZ7PkZM/edit?gid=0#gid=0";
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -238,49 +230,69 @@ const PodAdminDashboard = () => {
   // API Functions
   const fetchAvailableTeams = async () => {
     try {
-      // Use the new database API instead of Google Sheets
-      const response = await fetch("/api/pod/teams-db");
+      // Use the new teams API that works with relational schema
+      const response = await fetch("/api/pod/teams");
 
       if (!response.ok) {
         throw new Error(`Failed to fetch teams: ${response.statusText}`);
       }
 
       const result = await response.json();
-      console.log('🔄 Database teams response:', result);
-      console.log('🔍 Raw team_members data:', result.teams?.map((t: any) => ({ 
-        name: t.name, 
-        team_members: t.team_members,
-        creators_assigned: t.creators_assigned 
-      })));
+      console.log('🔄 New schema teams response:', result);
 
       if (result.success && result.teams) {
         const apiTeams: Team[] = await Promise.all(
           result.teams.map(async (dbTeam: any) => {
-            const teamId = `team-${dbTeam.row}`;
+            const teamId = dbTeam.id; // Use actual team ID instead of row-based ID
             const dbTasks = await fetchTasksFromDB(teamId);
 
-            // Use the already-parsed members and creators from the API response
-            const teamMembers = dbTeam.members || [];
-            const teamCreators = dbTeam.creators?.map((creator: any) => creator.name) || [];
+            // Fetch detailed team data including members and clients
+            const detailedTeamResponse = await fetch("/api/pod/fetch-db", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ rowId: teamId }),
+            });
+
+            let teamMembers: TeamMember[] = [];
+            let teamCreators: string[] = [];
+            let sheetUrl = "";
+
+            if (detailedTeamResponse.ok) {
+              const detailedData = await detailedTeamResponse.json();
+              if (detailedData.success && detailedData.data) {
+                teamMembers = detailedData.data.teamMembers || [];
+                teamCreators = detailedData.data.creators?.map((c: any) => c.name) || [];
+                sheetUrl = detailedData.data.sheetLinks?.[0]?.url || "";
+              }
+            }
 
             return {
               id: teamId,
               name: dbTeam.name,
-              description: dbTeam.label || `Team from database row ${dbTeam.row}`,
+              description: dbTeam.description || `Team: ${dbTeam.name}`,
               members: teamMembers,
               tasks: dbTasks,
-              sheetUrl: dbTeam.sheetUrl || "",
-              rowNumber: dbTeam.row,
+              sheetUrl,
+              rowNumber: 0, // No longer using row numbers
               creators: teamCreators,
             };
           })
         );
-        console.log('📊 Parsed teams with members:', apiTeams.map(t => ({ 
+        
+        console.log('📊 Parsed teams with new schema:', apiTeams.map(t => ({ 
+          id: t.id,
           name: t.name, 
           memberCount: t.members.length, 
-          members: t.members 
+          creators: t.creators
         })));
+        
         setTeams(apiTeams);
+        setStats({
+          totalUsers: users.length,
+          totalTeams: apiTeams.length,
+          totalCreators: [...new Set(apiTeams.flatMap(t => t.creators))].length,
+          systemStatus: "healthy",
+        });
         return apiTeams;
       }
       return [];
@@ -292,7 +304,6 @@ const PodAdminDashboard = () => {
 
   const fetchTeamData = async (rowNumber: number, retryCount = 0) => {
     try {
-      // Use the new database API instead of Google Sheets
       const response = await fetch("/api/pod/fetch-db", {
         method: "POST",
         headers: {
@@ -453,19 +464,37 @@ const PodAdminDashboard = () => {
   // Member management functions
   const addMemberToTeam = async (
     teamId: string,
-    data: { userId: string; role: string }
+    data: { userId: string; role: string; userEmail?: string; userName?: string }
   ) => {
     try {
       const team = teams.find((t) => t.id === teamId);
       if (!team) return;
 
-      const user = podUsers.find((u) => u.id === data.userId);
-      if (!user) return;
+      // Try to find user by email first (more reliable), then by ID
+      let user = podUsers.find((u) => u.email === data.userEmail);
+      if (!user) {
+        user = podUsers.find((u) => u.id === data.userId);
+        console.warn('User not found by email, falling back to ID lookup:', { 
+          searchEmail: data.userEmail, 
+          foundUser: user ? { id: user.id, email: user.email, name: user.name } : null 
+        });
+      } else {
+        console.log('User found by email:', { 
+          searchEmail: data.userEmail, 
+          foundUser: { id: user.id, email: user.email, name: user.name } 
+        });
+      }
+      
+      if (!user || !user.email) {
+        console.error('User not found or missing email:', { userId: data.userId, userEmail: data.userEmail });
+        alert(`Error: Could not find user with email ${data.userEmail} or ID ${data.userId}`);
+        return;
+      }
 
       const newMember = {
         id: user.id,
-        name: user.name || "Unknown User",
-        email: user.email || "",
+        name: user.name || data.userName || "Unknown User",
+        email: user.email,
         role: data.role as any, // Use the provided role instead of user.role
       };
 
@@ -478,10 +507,7 @@ const PodAdminDashboard = () => {
         )
       );
 
-      // Update database and Google Sheets simultaneously
-      const rowId = teamId.replace("team-", "");
-      const rowNumber = parseInt(rowId);
-      
+      // Update database
       const promises = [
         // Database update (primary)
         fetch("/api/pod/update-team-members-db", {
@@ -490,25 +516,13 @@ const PodAdminDashboard = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            rowId: rowId,
+            teamId: teamId,
             members: updatedMembers,
           }),
         }),
-        // Google Sheets update (secondary)
-        !isNaN(rowNumber) ? fetch("/api/pod/update-team-members", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
-            rowNumber: rowNumber,
-            members: updatedMembers,
-          }),
-        }) : Promise.resolve(null)
       ];
 
-      const [dbResponse, sheetsResponse] = await Promise.allSettled(promises);
+      const [dbResponse] = await Promise.allSettled(promises);
 
       // Check database result (critical)
       if (dbResponse.status === "rejected") {
@@ -521,17 +535,6 @@ const PodAdminDashboard = () => {
         console.log("Successfully synced team members with database");
       }
 
-      // Check Google Sheets result (non-critical)
-      if (sheetsResponse.status === "rejected") {
-        console.error("Error syncing with Google Sheets:", sheetsResponse.reason);
-        console.warn("Database updated but Google Sheets sync failed");
-      } else if (sheetsResponse.value && !sheetsResponse.value.ok) {
-        const errorData = await sheetsResponse.value.json();
-        console.error("Failed to update Google Sheets:", errorData.error);
-        console.warn("Database updated but Google Sheets sync failed");
-      } else if (sheetsResponse.value) {
-        console.log("Successfully synced team members with Google Sheets");
-      }
 
       setShowAddMemberForm(null);
     } catch (error) {
@@ -543,34 +546,66 @@ const PodAdminDashboard = () => {
   // Add multiple members to team at once
   const addMultipleMembersToTeam = async (
     teamId: string,
-    users: { userId: string; role: string }[]
+    users: { userId: string; role: string; userEmail?: string; userName?: string }[]
   ) => {
+    console.log('🔍 addMultipleMembersToTeam - Received data:', { teamId, users });
+    console.log('🔍 addMultipleMembersToTeam - Current podUsers:', podUsers.map(u => ({ id: u.id, email: u.email, name: u.name })));
+    
     try {
       const team = teams.find((t) => t.id === teamId);
       if (!team) return;
 
       const newMembers = users
         .map((userData) => {
-          const user = podUsers.find((u) => u.id === userData.userId);
-          if (!user) return null;
+          console.log('🔍 Processing user data:', userData);
+          
+          // Try to find user by email first (more reliable), then by ID
+          let user = podUsers.find((u) => u.email === userData.userEmail);
+          if (!user) {
+            user = podUsers.find((u) => u.id === userData.userId);
+            console.warn('User not found by email, falling back to ID lookup:', { 
+              searchEmail: userData.userEmail, 
+              searchId: userData.userId,
+              foundUser: user ? { id: user.id, email: user.email, name: user.name } : null 
+            });
+          } else {
+            console.log('User found by email:', { 
+              searchEmail: userData.userEmail, 
+              foundUser: { id: user.id, email: user.email, name: user.name } 
+            });
+          }
+          
+          if (!user || !user.email) {
+            console.error('User not found or missing email:', { userId: userData.userId, userEmail: userData.userEmail });
+            return null;
+          }
 
-          return {
+          const newMember = {
             id: user.id,
-            name: user.name || "Unknown User",
-            email: user.email || "",
+            name: user.name || userData.userName || "Unknown User",
+            email: user.email,
             role: userData.role as any,
           };
+          
+          console.log('🔍 Created new member object:', newMember);
+          return newMember;
         })
         .filter(
           (member): member is NonNullable<typeof member> => member !== null
         ); // Type guard to remove nulls
 
+      console.log('🔍 addMultipleMembersToTeam - Final newMembers:', newMembers);
+
       if (newMembers.length === 0) {
-        alert("No valid users found to add");
+        alert("No valid users found to add. Users must have email addresses.");
         return;
       }
 
+      console.log('🔍 addMultipleMembersToTeam - Team before update:', team.members.map(m => ({ id: m.id, email: m.email, name: m.name })));
+
       const updatedMembers = [...team.members, ...newMembers];
+
+      console.log('🔍 addMultipleMembersToTeam - Updated members to send to API:', updatedMembers.map(m => ({ id: m.id, email: m.email, name: m.name })));
 
       // Update team in local state first
       setTeams(
@@ -579,10 +614,6 @@ const PodAdminDashboard = () => {
         )
       );
 
-      // Update both database and Google Sheets
-      const rowId = teamId.replace("team-", "");
-      const rowNumber = parseInt(rowId);
-      
       // Update database
       try {
         const dbResponse = await fetch("/api/pod/update-team-members-db", {
@@ -591,9 +622,14 @@ const PodAdminDashboard = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            rowId: rowId,
+            teamId: teamId,
             members: updatedMembers,
           }),
+        });
+
+        console.log('🔍 addMultipleMembersToTeam - API request sent:', {
+          teamId,
+          members: updatedMembers.map(m => ({ id: m.id, email: m.email, name: m.name }))
         });
 
         if (!dbResponse.ok) {
@@ -608,33 +644,6 @@ const PodAdminDashboard = () => {
         alert("Members added locally, but failed to sync with database");
       }
 
-      // Update Google Sheets
-      if (!isNaN(rowNumber)) {
-        try {
-          const sheetsResponse = await fetch("/api/pod/update-team-members", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
-              rowNumber: rowNumber,
-              members: updatedMembers,
-            }),
-          });
-
-          if (!sheetsResponse.ok) {
-            const errorData = await sheetsResponse.json();
-            console.error("Failed to update Google Sheets:", errorData.error);
-            console.warn("Database updated but Google Sheets sync failed");
-          } else {
-            console.log("Successfully synced team members with Google Sheets");
-          }
-        } catch (sheetsError) {
-          console.error("Error syncing with Google Sheets:", sheetsError);
-          console.warn("Database updated but Google Sheets sync failed");
-        }
-      }
 
       setShowAddMemberForm(null);
     } catch (error) {
@@ -657,10 +666,6 @@ const PodAdminDashboard = () => {
         )
       );
 
-      // Update both database and Google Sheets
-      const rowId = teamId.replace("team-", "");
-      const rowNumber = parseInt(rowId);
-      
       // Update database
       try {
         const dbResponse = await fetch("/api/pod/update-team-members-db", {
@@ -669,7 +674,7 @@ const PodAdminDashboard = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            rowId: rowId,
+            teamId: teamId,
             members: updatedMembers,
           }),
         });
@@ -686,33 +691,6 @@ const PodAdminDashboard = () => {
         alert("Member removed locally, but failed to sync with database");
       }
 
-      // Update Google Sheets
-      if (!isNaN(rowNumber)) {
-        try {
-          const sheetsResponse = await fetch("/api/pod/update-team-members", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
-              rowNumber: rowNumber,
-              members: updatedMembers,
-            }),
-          });
-
-          if (!sheetsResponse.ok) {
-            const errorData = await sheetsResponse.json();
-            console.error("Failed to update Google Sheets:", errorData.error);
-            console.warn("Database updated but Google Sheets sync failed");
-          } else {
-            console.log("Successfully synced team members with Google Sheets");
-          }
-        } catch (sheetsError) {
-          console.error("Error syncing with Google Sheets:", sheetsError);
-          console.warn("Database updated but Google Sheets sync failed");
-        }
-      }
     } catch (error) {
       console.error("Error removing member:", error);
       alert("Failed to remove member from team");
@@ -739,10 +717,6 @@ const PodAdminDashboard = () => {
         )
       );
 
-      // Update both database and Google Sheets
-      const rowId = teamId.replace("team-", "");
-      const rowNumber = parseInt(rowId);
-      
       // Update database
       try {
         const dbResponse = await fetch("/api/pod/update-team-members-db", {
@@ -751,7 +725,7 @@ const PodAdminDashboard = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            rowId: rowId,
+            teamId: teamId,
             members: updatedMembers,
           }),
         });
@@ -768,33 +742,6 @@ const PodAdminDashboard = () => {
         alert("Member role updated locally, but failed to sync with database");
       }
 
-      // Update Google Sheets
-      if (!isNaN(rowNumber)) {
-        try {
-          const sheetsResponse = await fetch("/api/pod/update-team-members", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
-              rowNumber: rowNumber,
-              members: updatedMembers,
-            }),
-          });
-
-          if (!sheetsResponse.ok) {
-            const errorData = await sheetsResponse.json();
-            console.error("Failed to update Google Sheets:", errorData.error);
-            console.warn("Database updated but Google Sheets sync failed");
-          } else {
-            console.log("Successfully synced team members with Google Sheets");
-          }
-        } catch (sheetsError) {
-          console.error("Error syncing with Google Sheets:", sheetsError);
-          console.warn("Database updated but Google Sheets sync failed");
-        }
-      }
 
       setEditingMember(null);
     } catch (error) {
@@ -844,22 +791,16 @@ const PodAdminDashboard = () => {
   const updateTeamCreators = async (teamId: string, newCreators: string[]) => {
     setUpdatingCreators(teamId);
     try {
-      // Extract row number from team ID (format: "team-{rowNumber}")
-      const rowNumber = parseInt(teamId.replace("team-", ""));
-      if (isNaN(rowNumber)) {
-        throw new Error("Invalid team ID format");
-      }
 
       // Call the API to update the database with new creators
-      const rowId = teamId.replace("team-", "");
-      const response = await fetch("/api/pod/update-team-db", {
+      const response = await fetch("/api/pod/update-team-creators", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          rowId: rowId,
-          newCreators: newCreators,
+          teamId: teamId,
+          creatorNames: newCreators,
         }),
       });
 
@@ -1113,14 +1054,7 @@ const PodAdminDashboard = () => {
 
     setUpdatingTeamName(teamId);
     try {
-      // Extract row number from team ID (format: "team-{rowNumber}")
-      const rowId = teamId.replace("team-", "");
-      const rowNumber = parseInt(rowId);
-      if (isNaN(rowNumber)) {
-        throw new Error("Invalid team ID format");
-      }
-
-      // Update database and Google Sheets simultaneously
+      // Update database
       const promises = [
         // Database update (primary)
         fetch("/api/pod/update-team-db", {
@@ -1129,25 +1063,13 @@ const PodAdminDashboard = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            rowId: rowId,
+            teamId: teamId,
             newTeamName: newName.trim(),
           }),
         }),
-        // Google Sheets update (secondary)
-        !isNaN(rowNumber) ? fetch("/api/pod/update-team", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
-            rowNumber: rowNumber,
-            newTeamName: newName.trim(),
-          }),
-        }) : Promise.resolve(null)
       ];
 
-      const [dbResponse, sheetsResponse] = await Promise.allSettled(promises);
+      const [dbResponse] = await Promise.allSettled(promises);
 
       // Check database result (critical)
       if (dbResponse.status === "rejected") {
@@ -1160,17 +1082,6 @@ const PodAdminDashboard = () => {
 
       console.log("Successfully updated team name in database");
 
-      // Check Google Sheets result (non-critical)
-      if (sheetsResponse.status === "rejected") {
-        console.error("Error syncing with Google Sheets:", sheetsResponse.reason);
-        console.warn("Database updated but Google Sheets sync failed");
-      } else if (sheetsResponse.value && !sheetsResponse.value.ok) {
-        const errorData = await sheetsResponse.value.json();
-        console.error("Failed to update Google Sheets:", errorData.error);
-        console.warn("Database updated but Google Sheets sync failed");
-      } else if (sheetsResponse.value) {
-        console.log("Successfully synced team name with Google Sheets");
-      }
 
       // Update team in local state
       setTeams((prev) =>
@@ -1204,31 +1115,19 @@ const PodAdminDashboard = () => {
   // Add Team function
   const handleAddTeam = async (data: {
     teamName: string;
-    sheetUrl: string;
     creators: string[];
     members?: { userId: string; role: string }[];
   }) => {
     try {
-      // First, find the next available row by checking existing teams
-      const currentRows = teams.map((team) => {
-        const rowMatch = team.id.match(/team-(\d+)/);
-        return rowMatch ? parseInt(rowMatch[1]) : 0;
-      });
-
-      // Find the next available row (start from row 8 as per API default)
-      const nextRow = Math.max(8, Math.max(...currentRows, 0) + 1);
-
-      // Call the API to add the team to database
-      const response = await fetch("/api/pod/add-team-db", {
+      // Call the new teams API to create a team using relational schema
+      const response = await fetch("/api/pod/teams", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          teamName: data.teamName.trim(),
-          sheetUrl: data.sheetUrl.trim(),
-          rowNumber: nextRow,
-          creators: data.creators, // Add creators to the API call
+          name: data.teamName.trim(),
+          description: `Team created via admin dashboard`,
         }),
       });
 
@@ -1237,57 +1136,72 @@ const PodAdminDashboard = () => {
         throw new Error(errorData.error || "Failed to add team");
       }
 
-      // Create new team object with initial members if provided
-      const initialMembers = data.members
-        ? (data.members
-            .map((memberData) => {
-              const user = users.find((u) => u.id === memberData.userId);
-              return user
-                ? {
-                    id: user.id,
-                    name: user.name || "Unknown User",
-                    email: user.email || "",
-                    role: memberData.role as any,
-                  }
-                : null;
-            })
-            .filter(Boolean) as TeamMember[])
-        : [];
+      const result = await response.json();
+      if (!result.success || !result.team) {
+        throw new Error("Failed to create team");
+      }
 
-      const newTeam: Team = {
-        id: `team-${nextRow}`,
-        name: data.teamName.trim(),
-        members: initialMembers,
-        tasks: [],
-        sheetUrl: data.sheetUrl.trim(),
-        rowNumber: nextRow,
-        creators: data.creators, // Add creators to the new team
-      };
+      const createdTeam = result.team;
 
-      // Add team to local state
-      setTeams((prev) => [...prev, newTeam]);
-
-      // If members were added, update database with member list
-      if (initialMembers.length > 0) {
+      // Assign creators to the team if any were selected
+      if (data.creators && data.creators.length > 0) {
         try {
-          await fetch("/api/pod/update-team-members-db", {
+          const assignResponse = await fetch("/api/pod/assign-creators", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              rowId: nextRow.toString(),
-              members: initialMembers,
+              teamId: createdTeam.id,
+              creatorNames: data.creators,
             }),
           });
-        } catch (memberError) {
-          console.error(
-            "Error updating team members in database:",
-            memberError
-          );
-          // Don't throw here as the team was successfully created
+
+          if (!assignResponse.ok) {
+            const assignError = await assignResponse.json();
+            console.warn("Failed to assign creators:", assignError.error);
+            // Don't throw error here, just log it as team was created successfully
+          } else {
+            const assignResult = await assignResponse.json();
+            console.log(`Successfully assigned ${assignResult.assignments?.length || 0} creators to team`);
+          }
+        } catch (assignError) {
+          console.warn("Error assigning creators to team:", assignError);
+          // Don't throw error here, team was created successfully
         }
       }
+
+      // If members were provided, add them to the team
+      const initialMembers: TeamMember[] = [];
+      if (data.members && data.members.length > 0) {
+        // TODO: Add API endpoints for adding members to teams in relational schema
+        // For now, create the member objects for display
+        for (const memberData of data.members) {
+          const user = users.find((u) => u.id === memberData.userId);
+          if (user) {
+            initialMembers.push({
+              id: user.id,
+              name: user.name || "Unknown User",
+              email: user.email || "",
+              role: memberData.role,
+            });
+          }
+        }
+      }
+
+      // Create new team object for local state
+      const newTeam: Team = {
+        id: createdTeam.id, // Use actual team ID from database
+        name: createdTeam.name,
+        description: createdTeam.description,
+        members: initialMembers,
+        tasks: [],
+        rowNumber: 0, // No longer using row numbers
+        creators: data.creators,
+      };
+
+      // Add team to local state
+      setTeams((prev) => [...prev, newTeam]);
 
       // Update stats
       setStats((prev) => ({
@@ -1295,112 +1209,29 @@ const PodAdminDashboard = () => {
         totalTeams: prev.totalTeams + 1,
       }));
 
+      // Refresh teams list to show updated data with creators
+      const refreshedTeams = await fetchAvailableTeams();
+      setStats((prev) => ({
+        ...prev,
+        totalTeams: refreshedTeams.length,
+        totalCreators: [...new Set(refreshedTeams.flatMap(t => t.creators))].length,
+      }));
+
       // Show success message
-      alert("Team added successfully!");
+      setSuccessMessage(`Team "${data.teamName}" created successfully!`);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(null), 3000);
+      
     } catch (err) {
       console.error("Error adding team:", err);
       const errorMessage =
         err instanceof Error ? err.message : "Failed to add team";
-      alert(`Error: ${errorMessage}`);
+      setError(errorMessage);
       throw err; // Re-throw to handle in form
     }
   };
 
-  // Sheet URL update function
-  const updateSheetUrl = async (teamId: string, newUrl: string) => {
-    if (!newUrl.trim()) return;
-
-    setUpdatingSheetUrl(teamId);
-    try {
-      // Extract row number from team ID (format: "team-{rowNumber}")
-      const rowId = teamId.replace("team-", "");
-      const rowNumber = parseInt(rowId);
-      if (isNaN(rowNumber)) {
-        throw new Error("Invalid team ID format");
-      }
-
-      // Update database and Google Sheets simultaneously
-      const promises = [
-        // Database update (primary)
-        fetch("/api/pod/update-team-db", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            rowId: rowId,
-            newSheetUrl: newUrl.trim(),
-          }),
-        }),
-        // Google Sheets update (secondary)
-        !isNaN(rowNumber) ? fetch("/api/pod/update-team", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            spreadsheetUrl: DEFAULT_SPREADSHEET_URL,
-            rowNumber: rowNumber,
-            newSheetUrl: newUrl.trim(),
-          }),
-        }) : Promise.resolve(null)
-      ];
-
-      const [dbResponse, sheetsResponse] = await Promise.allSettled(promises);
-
-      // Check database result (critical)
-      if (dbResponse.status === "rejected") {
-        throw new Error("Failed to update sheet URL in database");
-      }
-      if (dbResponse.value && !dbResponse.value.ok) {
-        const errorData = await dbResponse.value.json();
-        throw new Error(errorData.error || "Failed to update sheet URL in database");
-      }
-
-      console.log("Successfully updated sheet URL in database");
-
-      // Check Google Sheets result (non-critical)
-      if (sheetsResponse.status === "rejected") {
-        console.error("Error syncing with Google Sheets:", sheetsResponse.reason);
-        console.warn("Database updated but Google Sheets sync failed");
-      } else if (sheetsResponse.value && !sheetsResponse.value.ok) {
-        const errorData = await sheetsResponse.value.json();
-        console.error("Failed to update Google Sheets:", errorData.error);
-        console.warn("Database updated but Google Sheets sync failed");
-      } else if (sheetsResponse.value) {
-        console.log("Successfully synced sheet URL with Google Sheets");
-      }
-
-      // Update team in local state
-      setTeams((prev) =>
-        prev.map((team) =>
-          team.id === teamId ? { ...team, sheetUrl: newUrl.trim() } : team
-        )
-      );
-
-      setSheetUrlSuccess(teamId);
-      setTimeout(() => setSheetUrlSuccess(null), 3000);
-    } catch (err) {
-      console.error("Error updating sheet URL:", err);
-      // Revert local state on error
-      setTeams((prev) =>
-        prev.map((team) =>
-          team.id === teamId
-            ? { ...team, sheetUrl: editingSheetUrlValue }
-            : team
-        )
-      );
-
-      // Show error to user
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to update sheet URL";
-      alert(`Error: ${errorMessage}`);
-    } finally {
-      setUpdatingSheetUrl(null);
-      setEditingSheetUrl(null);
-      setEditingSheetUrlValue("");
-    }
-  };
 
   // Load initial data
   useEffect(() => {
@@ -1430,7 +1261,7 @@ const PodAdminDashboard = () => {
         await fetchAvailableCreators();
       } catch (err) {
         console.error("Error fetching admin data:", err);
-        setError("Failed to load admin data from Google Sheets");
+        setError("Failed to load admin data");
         setTeams([]);
         setStats({
           totalUsers: 0,
@@ -1816,135 +1647,6 @@ const PodAdminDashboard = () => {
                           </p>
                         )}
 
-                        {/* Sheet URL Section */}
-                        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
-                          {editingSheetUrl === team.id ? (
-                            <div className="space-y-3">
-                              <div className="flex items-center space-x-2">
-                                <div className="w-4 h-4 bg-green-600 rounded-sm flex items-center justify-center">
-                                  <svg
-                                    viewBox="0 0 24 24"
-                                    className="w-3 h-3 text-white fill-current"
-                                  >
-                                    <path d="M3 3v18h18V3H3zm16 16H5V5h14v14zM8 12h2v2H8v-2zm0-3h2v2H8V9zm3 3h2v2h-2v-2zm0-3h2v2h-2V9zm3 3h2v2h-2v-2zm0-3h2v2h-2V9z" />
-                                  </svg>
-                                </div>
-                                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                  Google Sheet URL:
-                                </label>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <input
-                                  type="url"
-                                  value={editingSheetUrlValue}
-                                  onChange={(e) =>
-                                    setEditingSheetUrlValue(e.target.value)
-                                  }
-                                  className="text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 flex-1"
-                                  placeholder="https://docs.google.com/spreadsheets/d/..."
-                                  onKeyPress={(e) => {
-                                    if (e.key === "Enter") {
-                                      updateSheetUrl(
-                                        team.id,
-                                        editingSheetUrlValue
-                                      );
-                                    } else if (e.key === "Escape") {
-                                      setEditingSheetUrl(null);
-                                      setEditingSheetUrlValue("");
-                                    }
-                                  }}
-                                />
-                                <button
-                                  onClick={() =>
-                                    updateSheetUrl(
-                                      team.id,
-                                      editingSheetUrlValue
-                                    )
-                                  }
-                                  disabled={updatingSheetUrl === team.id}
-                                  className="p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg disabled:opacity-50 transition-colors"
-                                >
-                                  {updatingSheetUrl === team.id ? (
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
-                                  ) : (
-                                    <Save className="h-4 w-4" />
-                                  )}
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    setEditingSheetUrl(null);
-                                    setEditingSheetUrlValue("");
-                                  }}
-                                  className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                                >
-                                  <X className="h-4 w-4" />
-                                </button>
-                              </div>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                Paste the full Google Sheets URL to create a
-                                smart chip link
-                              </p>
-                            </div>
-                          ) : (
-                            <div className="flex items-center space-x-2">
-                              <Link className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                Google Sheet:
-                              </span>
-                              {team.sheetUrl ? (
-                                <a
-                                  href={team.sheetUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center space-x-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-500/30 rounded-full hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors group"
-                                >
-                                  {/* Google Sheets Icon */}
-                                  <div className="w-4 h-4 bg-green-600 rounded-sm flex items-center justify-center">
-                                    <svg
-                                      viewBox="0 0 24 24"
-                                      className="w-3 h-3 text-white fill-current"
-                                    >
-                                      <path d="M3 3v18h18V3H3zm16 16H5V5h14v14zM8 12h2v2H8v-2zm0-3h2v2H8V9zm3 3h2v2h-2v-2zm0-3h2v2h-2V9zm3 3h2v2h-2v-2zm0-3h2v2h-2V9z" />
-                                    </svg>
-                                  </div>
-                                  <span className="text-xs font-medium text-green-700 dark:text-green-300">
-                                    Team Sheet
-                                  </span>
-                                  <ExternalLink className="h-3 w-3 text-green-600 dark:text-green-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                </a>
-                              ) : (
-                                <div className="inline-flex items-center space-x-2 px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full">
-                                  <div className="w-4 h-4 bg-gray-400 rounded-sm flex items-center justify-center">
-                                    <svg
-                                      viewBox="0 0 24 24"
-                                      className="w-3 h-3 text-white fill-current"
-                                    >
-                                      <path d="M3 3v18h18V3H3zm16 16H5V5h14v14zM8 12h2v2H8v-2zm0-3h2v2H8V9zm3 3h2v2h-2v-2zm0-3h2v2h-2V9zm3 3h2v2h-2v-2zm0-3h2v2h-2V9z" />
-                                    </svg>
-                                  </div>
-                                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                                    No sheet linked
-                                  </span>
-                                </div>
-                              )}
-                              <button
-                                onClick={() => {
-                                  setEditingSheetUrl(team.id);
-                                  setEditingSheetUrlValue(team.sheetUrl || "");
-                                }}
-                                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                                title="Edit sheet URL"
-                              >
-                                <Edit className="h-3 w-3" />
-                              </button>
-                              {sheetUrlSuccess === team.id && (
-                                <span className="text-green-600 dark:text-green-400 text-xs animate-pulse">
-                                  ✓ Updated
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
 
                         {/* Creators Section */}
                         <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
@@ -2108,19 +1810,6 @@ const PodAdminDashboard = () => {
                           <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-10">
                             <button
                               onClick={() => {
-                                if (team.sheetUrl) {
-                                  window.open(team.sheetUrl, "_blank");
-                                }
-                                setShowTeamMenu(null);
-                              }}
-                              disabled={!team.sheetUrl}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                              <span>Open Sheet</span>
-                            </button>
-                            <button
-                              onClick={() => {
                                 setEditingTeamName(team.id);
                                 setEditingTeamNameValue(team.name);
                                 setShowTeamMenu(null);
@@ -2129,17 +1818,6 @@ const PodAdminDashboard = () => {
                             >
                               <Edit className="h-4 w-4" />
                               <span>Edit Team Name</span>
-                            </button>
-                            <button
-                              onClick={() => {
-                                setEditingSheetUrl(team.id);
-                                setEditingSheetUrlValue(team.sheetUrl || "");
-                                setShowTeamMenu(null);
-                              }}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-2"
-                            >
-                              <Link className="h-4 w-4" />
-                              <span>Edit Sheet URL</span>
                             </button>
                             <button
                               onClick={() => {
@@ -2261,16 +1939,22 @@ const PodAdminDashboard = () => {
                     <div className="flex items-center justify-between">
                       <div className="flex -space-x-2">
                         {team.members.slice(0, 3).map((member) => (
-                          <div
-                            key={member.id}
-                            className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-medium border-2 border-white dark:border-gray-800"
-                            title={member.name}
-                          >
-                            {member.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")
-                              .slice(0, 2)}
+                          <div key={member.id} className="relative group">
+                            {member.image ? (
+                              <img
+                                src={`/api/image-proxy?url=${encodeURIComponent(member.image)}`}
+                                alt={member.name || ""}
+                                title={member.name || ""}
+                                className="w-8 h-8 rounded-full object-cover border-2 border-white dark:border-gray-800 shadow-sm"
+                              />
+                            ) : (
+                              <div 
+                                className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 flex items-center justify-center text-white font-semibold text-sm border-2 border-white dark:border-gray-800 shadow-sm"
+                                title={member.name || ""}
+                              >
+                                {(member.name || member.email || "U").charAt(0).toUpperCase()}
+                              </div>
+                            )}
                           </div>
                         ))}
                         {team.members.length > 3 && (
@@ -2353,9 +2037,10 @@ const PodAdminDashboard = () => {
                         <div className="flex items-center space-x-3 flex-shrink-0">
                           {/* Add Member Button */}
                           <button
-                            onClick={() => {
+                            onClick={async () => {
                               setShowAddMemberForm(team.id);
-                              if (!podUsers.length) fetchUsers();
+                              // Always refresh user list to ensure we have latest data
+                              await fetchUsers();
                             }}
                             className="flex items-center space-x-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm whitespace-nowrap"
                           >
@@ -2385,13 +2070,17 @@ const PodAdminDashboard = () => {
                             >
                               {/* Member Avatar and Info */}
                               <div className="flex items-center space-x-4 flex-1 min-w-0">
-                                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                                  {member.name
-                                    .split(" ")
-                                    .map((n) => n[0])
-                                    .join("")
-                                    .slice(0, 2)}
-                                </div>
+                                {member.image ? (
+                                  <img
+                                    src={`/api/image-proxy?url=${encodeURIComponent(member.image)}`}
+                                    alt={member.name || ""}
+                                    className="w-12 h-12 rounded-full object-cover border-2 border-white dark:border-gray-800 shadow-sm"
+                                  />
+                                ) : (
+                                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 flex items-center justify-center text-white font-semibold text-lg border-2 border-white dark:border-gray-800 shadow-sm">
+                                    {(member.name || member.email || "U").charAt(0).toUpperCase()}
+                                  </div>
+                                )}
 
                                 <div className="flex-1 min-w-0">
                                   <h4 className="font-semibold text-gray-900 dark:text-gray-100 truncate">
@@ -2521,21 +2210,7 @@ const PodAdminDashboard = () => {
 
                     {/* Modal Footer */}
                     <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                      <div className="text-sm text-gray-500 dark:text-gray-400">
-                        Team created from Google Sheets
-                      </div>
                       <div className="flex items-center space-x-3">
-                        {team.sheetUrl && (
-                          <a
-                            href={team.sheetUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                            <span>Open Team Sheet</span>
-                          </a>
-                        )}
                         <button
                           onClick={() => setShowMembersModal(null)}
                           className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm"
@@ -3056,21 +2731,7 @@ const PodAdminDashboard = () => {
                     {/* Modal Footer - Mobile Responsive */}
                     <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                        <div className="text-sm text-gray-500 dark:text-gray-400">
-                          Team tasks from Google Sheets
-                        </div>
                         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                          {team.sheetUrl && (
-                            <a
-                              href={team.sheetUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center justify-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                              <span>Open Team Sheet</span>
-                            </a>
-                          )}
                           <button
                             onClick={() => setShowTasksModal(null)}
                             className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm"
@@ -3512,7 +3173,6 @@ const AddTeamForm = ({
   onClose: () => void;
   onSubmit: (data: {
     teamName: string;
-    sheetUrl: string;
     creators: string[];
     members?: { userId: string; role: string }[];
   }) => void;
@@ -3520,10 +3180,9 @@ const AddTeamForm = ({
 }) => {
   const [formData, setFormData] = useState({
     teamName: "",
-    sheetUrl: "",
   });
   const [selectedCreators, setSelectedCreators] = useState<string[]>([]);
-  const [availableCreators, setAvailableCreators] = useState<string[]>([]);
+  const [availableCreators, setAvailableCreators] = useState<{id: string; name: string}[]>([]);
   const [isLoadingCreators, setIsLoadingCreators] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [creatorsSearchTerm, setCreatorsSearchTerm] = useState("");
@@ -3537,7 +3196,7 @@ const AddTeamForm = ({
 
   // Filter creators based on search term
   const filteredCreators = availableCreators.filter((creator) =>
-    creator.toLowerCase().includes(creatorsSearchTerm.toLowerCase())
+    creator.name.toLowerCase().includes(creatorsSearchTerm.toLowerCase())
   );
 
   // Filter POD users for members based on search term and exclude already selected
@@ -3553,12 +3212,12 @@ const AddTeamForm = ({
     );
 
   // Handle creator selection
-  const handleCreatorToggle = (creator: string) => {
+  const handleCreatorToggle = (creatorName: string) => {
     setSelectedCreators((prev) => {
-      if (prev.includes(creator)) {
-        return prev.filter((c) => c !== creator);
+      if (prev.includes(creatorName)) {
+        return prev.filter((c) => c !== creatorName);
       } else if (prev.length < MAX_CREATORS) {
-        return [...prev, creator];
+        return [...prev, creatorName];
       }
       return prev;
     });
@@ -3592,17 +3251,21 @@ const AddTeamForm = ({
       if (Array.isArray(data.creators)) {
         console.log('Raw creators data from API (modal):', data.creators);
         
-        // Extract creator names from database
-        const creatorNames = data.creators
-          .map((creator: any) => creator.name?.trim())
+        // Extract creator names and IDs from database
+        const creatorsData = data.creators
+          .map((creator: any) => ({
+            id: creator.id,
+            name: creator.name?.trim() || creator.clientName?.trim()
+          }))
           .filter(
-            (name: string, index: number, array: string[]) =>
-              name && name.length > 0 && array.indexOf(name) === index
+            (creator: any, index: number, array: any[]) =>
+              creator.name && creator.name.length > 0 && 
+              array.findIndex(c => c.name === creator.name) === index
           )
-          .sort();
+          .sort((a: any, b: any) => a.name.localeCompare(b.name));
           
-        console.log('Processed creator names (modal):', creatorNames);
-        setAvailableCreators(creatorNames);
+        console.log('Processed creators data (modal):', creatorsData);
+        setAvailableCreators(creatorsData);
       } else {
         console.error(
           "Failed to fetch creators from database:",
@@ -3639,7 +3302,6 @@ const AddTeamForm = ({
       });
       setFormData({
         teamName: "",
-        sheetUrl: "",
       });
       setSelectedCreators([]);
       setSelectedMembers([]);
@@ -3659,9 +3321,7 @@ const AddTeamForm = ({
     );
   };
 
-  const isFormValid =
-    formData.teamName.trim() &&
-    (formData.sheetUrl.trim() === "" || isValidUrl(formData.sheetUrl));
+  const isFormValid = formData.teamName.trim();
 
   if (!isOpen) return null;
 
@@ -3706,27 +3366,6 @@ const AddTeamForm = ({
               />
             </div>
 
-            {/* Google Sheet URL */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                Google Sheet URL (Optional)
-              </label>
-              <input
-                type="url"
-                value={formData.sheetUrl}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, sheetUrl: e.target.value }))
-                }
-                placeholder="https://docs.google.com/spreadsheets/d/..."
-                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
-                
-              />
-              {formData.sheetUrl && !isValidUrl(formData.sheetUrl) && (
-                <p className="text-sm text-red-600 dark:text-red-400 mt-2">
-                  Please enter a valid Google Sheets URL (or leave empty)
-                </p>
-              )}
-            </div>
           </div>
 
           {/* Creators Assignment Section */}
@@ -3794,13 +3433,13 @@ const AddTeamForm = ({
               ) : filteredCreators.length > 0 ? (
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-80 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-6 bg-gray-50 dark:bg-gray-800">
                   {filteredCreators.map((creator) => {
-                    const isSelected = selectedCreators.includes(creator);
+                    const isSelected = selectedCreators.includes(creator.name);
                     const canSelect =
                       selectedCreators.length < MAX_CREATORS || isSelected;
 
                     return (
                       <label
-                        key={creator}
+                        key={creator.id}
                         className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-all duration-200 ${
                           !canSelect ? "opacity-50 cursor-not-allowed" : ""
                         } ${
@@ -3813,13 +3452,13 @@ const AddTeamForm = ({
                           type="checkbox"
                           checked={isSelected}
                           onChange={() =>
-                            canSelect && handleCreatorToggle(creator)
+                            canSelect && handleCreatorToggle(creator.name)
                           }
                           disabled={!canSelect}
                           className="h-5 w-5 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
                         />
                         <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate flex-1">
-                          {creator}
+                          {creator.name}
                         </span>
                       </label>
                     );
@@ -4024,7 +3663,7 @@ const AddMemberForm = ({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (users: { userId: string; role: string }[]) => void;
+  onSubmit: (users: { userId: string; role: string; userEmail?: string; userName?: string }[]) => void;
   podUsers: SystemUser[];
   existingMembers: TeamMember[];
   onRefreshUsers: () => void;
@@ -4042,10 +3681,14 @@ const AddMemberForm = ({
   // Filter available users (POD users not already in team)
   const availableUsers = podUsers.filter(
     (user) =>
-      !existingMembers.some((member) => member.id === user.id) &&
+      user.email && // Only show users with valid email addresses
+      !existingMembers.some((member) => member.email === user.email) &&
       (user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.email?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+
+  console.log(`🔍 AddMemberForm - Existing members emails:`, existingMembers.map(m => m.email));
+  console.log(`🔍 AddMemberForm - Available users (${availableUsers.length}):`, availableUsers.map(u => u.email));
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -4106,11 +3749,16 @@ const AddMemberForm = ({
 
     setIsSubmitting(true);
     try {
-      // Create array of users with their individual roles
+      // Create array of users with their individual roles and email/name for reliable lookup
       const usersToAdd = selectedUsers.map((user) => ({
         userId: user.id,
         role: userRoles[user.id] || "Member",
+        userEmail: user.email || undefined,
+        userName: user.name || undefined,
       }));
+
+      console.log('🔍 AddMemberForm - About to submit users:', usersToAdd);
+      console.log('🔍 AddMemberForm - Selected users from state:', selectedUsers.map(u => ({ id: u.id, email: u.email, name: u.name })));
 
       // Submit all users at once
       await onSubmit(usersToAdd);
@@ -4454,11 +4102,10 @@ const RemoveMemberConfirmModal = ({
               <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 flex-shrink-0" />
               <div className="text-sm text-yellow-800 dark:text-yellow-300">
                 <p className="font-medium">
-                  This will also update the Google Sheet
+                  This will remove the member from the team
                 </p>
                 <p>
-                  The member will be removed from both the team and the
-                  associated spreadsheet.
+                  The member will no longer have access to this team's resources.
                 </p>
               </div>
             </div>
