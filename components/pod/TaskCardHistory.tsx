@@ -17,6 +17,7 @@ import {
 import Image from 'next/image';
 import { useTaskActivities } from '@/lib/stores/boardStore';
 import type { TaskActivity } from '@/lib/stores/boardStore';
+import UserProfile from '@/components/ui/UserProfile';
 
 interface TaskCardHistoryProps {
   taskId: string;
@@ -185,21 +186,7 @@ export default function TaskCardHistory({ taskId, teamId, isModal = false }: Tas
                 <div className="flex flex-col items-center space-y-2">
                   {/* User Avatar */}
                   <div className="relative">
-                    {activity.user.image ? (
-                      <Image
-                        src={activity.user.image}
-                        alt={activity.user.name || activity.user.email}
-                        width={32}
-                        height={32}
-                        className="rounded-full border-2 border-white dark:border-gray-800 shadow-sm"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 bg-gradient-to-br from-slate-400 to-slate-600 rounded-full flex items-center justify-center border-2 border-white dark:border-gray-800 shadow-sm">
-                        <span className="text-white text-xs font-semibold">
-                          {activity.user.name?.charAt(0)?.toUpperCase() || activity.user.email.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                    )}
+                    <UserProfile user={activity.user} size="md" showTooltip />
                     
                     {/* Activity Icon Badge */}
                     <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-white dark:bg-gray-900 rounded-full border border-gray-200 dark:border-gray-700 flex items-center justify-center">

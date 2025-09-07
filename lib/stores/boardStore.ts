@@ -104,6 +104,20 @@ export interface TaskActivity {
   };
 }
 
+// Task Comment types
+export interface TaskComment {
+  id: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  user: {
+    id: string;
+    name?: string | null;
+    email: string | null;
+    image?: string | null;
+  };
+}
+
 // Default column configurations
 export const DEFAULT_COLUMNS: Omit<BoardColumn, 'id' | 'teamId' | 'createdAt' | 'updatedAt'>[] = [
   {
@@ -216,6 +230,11 @@ export interface BoardStore {
   isLoadingActivities: Record<string, boolean>; // key: taskId
   activityError: Record<string, APIError | null>; // key: taskId
   
+  // Task Comments State
+  taskComments: Record<string, TaskComment[]>; // key: taskId
+  isLoadingComments: Record<string, boolean>; // key: taskId
+  commentsError: Record<string, APIError | null>; // key: taskId
+  
   // Actions - Column Management
   fetchColumns: (teamId: string, forceRefresh?: boolean) => Promise<void>;
   createColumn: (column: Omit<BoardColumn, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
@@ -229,6 +248,13 @@ export interface BoardStore {
   fetchTaskActivities: (taskId: string, teamId: string, forceRefresh?: boolean) => Promise<void>;
   clearTaskActivities: (taskId?: string) => void;
   
+  // Actions - Task Comments
+  fetchTaskComments: (taskId: string, forceRefresh?: boolean) => Promise<void>;
+  createTaskComment: (taskId: string, content: string) => Promise<void>;
+  updateTaskComment: (taskId: string, commentId: string, content: string) => Promise<void>;
+  deleteTaskComment: (taskId: string, commentId: string) => Promise<void>;
+  clearTaskComments: (taskId?: string) => void;
+  
   // Actions - Error Handling
   setError: (error: APIError | null) => void;
   clearError: () => void;
@@ -238,6 +264,7 @@ export interface BoardStore {
 const CACHE_DURATIONS = {
   TASKS: 2 * 60 * 1000, // 2 minutes (active updates)
   ACTIVITIES: 5 * 60 * 1000, // 5 minutes (less frequent changes)
+  COMMENTS: 3 * 60 * 1000, // 3 minutes (moderate updates)
 };
 
 // API helper with retry logic
@@ -343,6 +370,11 @@ export const useBoardStore = create<BoardStore>()(
         taskActivities: {},
         isLoadingActivities: {},
         activityError: {},
+        
+        // Task Comments State
+        taskComments: {},
+        isLoadingComments: {},
+        commentsError: {},
         
         // Cache management
         getCachedData: <T>(key: string): T | null => {
@@ -1039,6 +1071,231 @@ export const useBoardStore = create<BoardStore>()(
           }
         },
         
+        // Task Comments Actions
+        fetchTaskComments: async (taskId: string, forceRefresh = false) => {
+          if (!taskId) return;
+          
+          const cacheKey = `comments-${taskId}`;
+          
+          // Check cache first unless force refresh
+          if (!forceRefresh) {
+            const cached = get().getCachedData<TaskComment[]>(cacheKey);
+            if (cached) {
+              set((state) => ({
+                taskComments: { ...state.taskComments, [taskId]: cached },
+                isLoadingComments: { ...state.isLoadingComments, [taskId]: false },
+                commentsError: { ...state.commentsError, [taskId]: null }
+              }));
+              return;
+            }
+          }
+          
+          // Set loading state
+          set((state) => ({
+            isLoadingComments: { ...state.isLoadingComments, [taskId]: true },
+            commentsError: { ...state.commentsError, [taskId]: null }
+          }));
+          
+          try {
+            const response = await apiCall<{ success: boolean; comments: TaskComment[] }>(`/api/tasks/${taskId}/comments`);
+            
+            if (response.success) {
+              // Sort comments with newest first (for display at top)
+              const comments = (response.comments || []).sort((a, b) => 
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+              );
+              
+              // Cache the data
+              get().setCachedData(cacheKey, comments, CACHE_DURATIONS.COMMENTS);
+              
+              // Update state
+              set((state) => ({
+                taskComments: { ...state.taskComments, [taskId]: comments },
+                isLoadingComments: { ...state.isLoadingComments, [taskId]: false },
+                commentsError: { ...state.commentsError, [taskId]: null }
+              }));
+            } else {
+              throw new Error('Failed to fetch comments');
+            }
+          } catch (error) {
+            const apiError: APIError = {
+              message: error instanceof Error ? error.message : 'Failed to load comments',
+              code: 'COMMENTS_FETCH_ERROR',
+              timestamp: Date.now(),
+            };
+            
+            set((state) => ({
+              commentsError: { ...state.commentsError, [taskId]: apiError },
+              isLoadingComments: { ...state.isLoadingComments, [taskId]: false }
+            }));
+          }
+        },
+        
+        createTaskComment: async (taskId: string, content: string) => {
+          if (!taskId || !content.trim()) return;
+          
+          try {
+            const response = await apiCall<{ success: boolean; comment: TaskComment }>(`/api/tasks/${taskId}/comments`, {
+              method: 'POST',
+              body: JSON.stringify({ content: content.trim() })
+            });
+            
+            if (response.success && response.comment) {
+              // Add new comment to the beginning of the array (newest first)
+              set((state) => {
+                const currentComments = state.taskComments[taskId] || [];
+                return {
+                  taskComments: { 
+                    ...state.taskComments, 
+                    [taskId]: [response.comment, ...currentComments] 
+                  }
+                };
+              });
+              
+              // Invalidate cache to force refresh on next fetch
+              get().clearCache(`comments-${taskId}`);
+            } else {
+              throw new Error('Failed to create comment');
+            }
+          } catch (error) {
+            const apiError: APIError = {
+              message: error instanceof Error ? error.message : 'Failed to create comment',
+              code: 'COMMENT_CREATE_ERROR',
+              timestamp: Date.now(),
+            };
+            
+            set((state) => ({
+              commentsError: { ...state.commentsError, [taskId]: apiError }
+            }));
+            
+            throw error;
+          }
+        },
+        
+        updateTaskComment: async (taskId: string, commentId: string, content: string) => {
+          if (!taskId || !commentId || !content.trim()) return;
+          
+          try {
+            const response = await apiCall<{ success: boolean; comment: TaskComment }>(`/api/tasks/${taskId}/comments/${commentId}`, {
+              method: 'PUT',
+              body: JSON.stringify({ content: content.trim() })
+            });
+            
+            if (response.success && response.comment) {
+              // Update comment in the array
+              set((state) => {
+                const currentComments = state.taskComments[taskId] || [];
+                const updatedComments = currentComments.map(comment => 
+                  comment.id === commentId ? response.comment : comment
+                );
+                return {
+                  taskComments: { 
+                    ...state.taskComments, 
+                    [taskId]: updatedComments
+                  }
+                };
+              });
+              
+              // Invalidate cache to force refresh on next fetch
+              get().clearCache(`comments-${taskId}`);
+            } else {
+              throw new Error('Failed to update comment');
+            }
+          } catch (error) {
+            const apiError: APIError = {
+              message: error instanceof Error ? error.message : 'Failed to update comment',
+              code: 'COMMENT_UPDATE_ERROR',
+              timestamp: Date.now(),
+            };
+            
+            set((state) => ({
+              commentsError: { ...state.commentsError, [taskId]: apiError }
+            }));
+            
+            throw error;
+          }
+        },
+        
+        deleteTaskComment: async (taskId: string, commentId: string) => {
+          if (!taskId || !commentId) return;
+          
+          try {
+            const response = await apiCall<{ success: boolean }>(`/api/tasks/${taskId}/comments/${commentId}`, {
+              method: 'DELETE'
+            });
+            
+            if (response.success) {
+              // Remove comment from the array
+              set((state) => {
+                const currentComments = state.taskComments[taskId] || [];
+                const filteredComments = currentComments.filter(comment => comment.id !== commentId);
+                return {
+                  taskComments: { 
+                    ...state.taskComments, 
+                    [taskId]: filteredComments
+                  }
+                };
+              });
+              
+              // Invalidate cache to force refresh on next fetch
+              get().clearCache(`comments-${taskId}`);
+            } else {
+              throw new Error('Failed to delete comment');
+            }
+          } catch (error) {
+            const apiError: APIError = {
+              message: error instanceof Error ? error.message : 'Failed to delete comment',
+              code: 'COMMENT_DELETE_ERROR',
+              timestamp: Date.now(),
+            };
+            
+            set((state) => ({
+              commentsError: { ...state.commentsError, [taskId]: apiError }
+            }));
+            
+            throw error;
+          }
+        },
+        
+        clearTaskComments: (taskId?: string) => {
+          if (taskId) {
+            // Clear specific task comments
+            set((state) => {
+              const newTaskComments = { ...state.taskComments };
+              const newIsLoadingComments = { ...state.isLoadingComments };
+              const newCommentsError = { ...state.commentsError };
+              
+              delete newTaskComments[taskId];
+              delete newIsLoadingComments[taskId];
+              delete newCommentsError[taskId];
+              
+              return {
+                taskComments: newTaskComments,
+                isLoadingComments: newIsLoadingComments,
+                commentsError: newCommentsError
+              };
+            });
+            
+            // Clear from cache
+            get().clearCache(`comments-${taskId}`);
+          } else {
+            // Clear all task comments
+            set({
+              taskComments: {},
+              isLoadingComments: {},
+              commentsError: {}
+            });
+            
+            // Clear all comment caches
+            const cache = get().cache;
+            Object.keys(cache).forEach(key => {
+              if (key.startsWith('comments-')) {
+                get().clearCache(key);
+              }
+            });
+          }
+        },
+        
         // Error Handling Actions
         setError: (error) => set({ error }),
         clearError: () => set({ error: null }),
@@ -1165,5 +1422,28 @@ export const useTaskActivities = (taskId: string) => {
     columns,
     fetchTaskActivities,
     clearTaskActivities,
+  };
+};
+
+export const useTaskComments = (taskId: string) => {
+  const taskComments = useBoardStore((state) => state.taskComments[taskId]);
+  const isLoadingComments = useBoardStore((state) => state.isLoadingComments[taskId]);
+  const commentsError = useBoardStore((state) => state.commentsError[taskId]);
+  
+  const fetchTaskComments = useBoardStore((state) => state.fetchTaskComments);
+  const createTaskComment = useBoardStore((state) => state.createTaskComment);
+  const updateTaskComment = useBoardStore((state) => state.updateTaskComment);
+  const deleteTaskComment = useBoardStore((state) => state.deleteTaskComment);
+  const clearTaskComments = useBoardStore((state) => state.clearTaskComments);
+  
+  return {
+    comments: taskComments || [],
+    isLoading: isLoadingComments || false,
+    error: commentsError || null,
+    fetchTaskComments,
+    createTaskComment,
+    updateTaskComment,
+    deleteTaskComment,
+    clearTaskComments,
   };
 };

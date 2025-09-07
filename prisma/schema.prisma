@@ -25,6 +25,7 @@ model User {
   sessions           Session[]
   createdTasks       Task[]                @relation("TaskCreator")
   taskActivities     TaskActivityHistory[] @relation("TaskActivityUser")
+  taskComments       TaskComment[]         @relation("TaskCommentUser")
   verificationTokens VerificationToken[]
 }
 
@@ -164,6 +165,7 @@ model Task {
   ContentSubmission   ContentSubmission?    @relation(fields: [contentSubmissionId], references: [id])
   createdBy           User                  @relation("TaskCreator", fields: [createdById], references: [id])
   activityHistory     TaskActivityHistory[]
+  comments            TaskComment[]
 
   @@index([teamId])
   @@index([createdById])
@@ -189,6 +191,21 @@ model TaskActivityHistory {
   @@index([userId])
   @@index([createdAt])
   @@index([actionType])
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation("TaskCommentUser", fields: [userId], references: [id])
+
+  @@index([taskId])
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model ClientModel {

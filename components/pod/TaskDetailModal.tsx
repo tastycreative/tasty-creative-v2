@@ -8,6 +8,8 @@ import UserDropdown from "@/components/UserDropdown";
 import FileUpload from "@/components/ui/FileUpload";
 import AttachmentViewer from "@/components/ui/AttachmentViewer";
 import TaskCardHistory from "./TaskCardHistory";
+import TaskComments from "./TaskComments";
+import UserProfile from "@/components/ui/UserProfile";
 
 // Utility function to make links clickable
 const linkifyText = (text: string) => {
@@ -184,12 +186,16 @@ export default function TaskDetailModal({
             </div>
           </div>
         </div>
-         {/* Task History - Shows when toggled */}
-                {showHistory && (
-                  <div>
-                    <TaskCardHistory taskId={selectedTask.id} teamId={selectedTask.teamId} isModal={true} />
-                  </div>
-                )}
+        {/* Task History - Shows when toggled */}
+        {showHistory && (
+          <div>
+            <TaskCardHistory
+              taskId={selectedTask.id}
+              teamId={selectedTask.teamId}
+              isModal={true}
+            />
+          </div>
+        )}
 
         {/* Modal Content - Mobile Responsive */}
         <div className="flex flex-col lg:flex-row">
@@ -351,6 +357,18 @@ export default function TaskDetailModal({
                     </p>
                   )}
                 </div>
+                   {/* Comments Section */}
+                <div className=" ">
+                  <TaskComments 
+                    taskId={selectedTask.id} 
+                    currentUser={session?.user ? {
+                      id: session.user.id!,
+                      name: session.user.name,
+                      email: session.user.email!,
+                      image: session.user.image
+                    } : null} 
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -432,13 +450,11 @@ export default function TaskDetailModal({
                 </label>
                 {selectedTask.assignedUser ? (
                   <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-white text-xs font-medium">
-                        {selectedTask.assignedUser.name?.charAt(0) ||
-                          selectedTask.assignedUser.email?.charAt(0) ||
-                          "U"}
-                      </span>
-                    </div>
+                    <UserProfile
+                      user={selectedTask.assignedUser}
+                      size="md"
+                      showTooltip
+                    />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                         {selectedTask.assignedUser.name ||
@@ -503,13 +519,11 @@ export default function TaskDetailModal({
                     </span>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <div className="w-6 h-6 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-white text-xs font-medium">
-                        {selectedTask.createdBy.name?.charAt(0) ||
-                          selectedTask.createdBy.email?.charAt(0) ||
-                          "U"}
-                      </span>
-                    </div>
+                    <UserProfile
+                      user={selectedTask.createdBy}
+                      size="sm"
+                      showTooltip
+                    />
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
                         {selectedTask.createdBy.name ||

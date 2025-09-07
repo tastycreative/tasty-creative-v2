@@ -2,6 +2,7 @@
 
 import React, { useEffect, useCallback, useState, useMemo } from 'react';
 import { Session } from 'next-auth';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   AlertCircle
 } from 'lucide-react';
@@ -79,6 +80,10 @@ const statusConfig = {
 };
 
 export default function Board({ teamId, teamName, session, availableTeams, onTeamChange, selectedRow }: BoardProps) {
+  // Navigation hooks
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   // Zustand store hooks
   const { tasks, isLoading, error, currentTeamId, fetchTasks, setCurrentTeamId } = useBoardTasks();
   const { 
@@ -143,6 +148,36 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
     return () => clearTimeout(timeoutId);
   }, [teamId, currentTeamId, setCurrentTeamId, fetchTasks, fetchColumns]);
+
+  // Handle URL parameter for task sharing - URL is the single source of truth
+  useEffect(() => {
+    const taskParam = searchParams?.get('task');
+    
+    if (taskParam && tasks.length > 0) {
+      // URL has a task parameter - ensure task is selected
+      const task = tasks.find(t => t.id === taskParam);
+      if (task && (!selectedTask || selectedTask.id !== taskParam)) {
+        setSelectedTask(task);
+        setEditingTaskData({
+          title: task.title,
+          description: task.description || '',
+          priority: task.priority,
+          dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
+          assignedTo: task.assignedTo || '',
+          attachments: task.attachments || []
+        });
+      }
+    } else if (!taskParam) {
+      // No URL parameter - always clear the selection regardless of current state
+      if (selectedTask !== null) {
+        setSelectedTask(null);
+      }
+      if (isEditingTask) {
+        setIsEditingTask(false);
+      }
+      setEditingTaskData({});
+    }
+  }, [searchParams, tasks]);
 
   // Synchronize scroll between header and body on desktop
   useEffect(() => {
@@ -219,21 +254,18 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   // Task detail and editing functions
   const openTaskDetail = (task: Task) => {
-    setSelectedTask(task);
-    setEditingTaskData({
-      title: task.title,
-      description: task.description || '',
-      priority: task.priority,
-      dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
-      assignedTo: task.assignedTo || '',
-      attachments: task.attachments || []
-    });
+    // Only update URL - the useEffect will handle state updates
+    const params = new URLSearchParams(searchParams?.toString() || '');
+    params.set('task', task.id);
+    router.push(`?${params.toString()}`);
   };
 
   const closeTaskDetail = () => {
-    setSelectedTask(null);
-    setIsEditingTask(false);
-    setEditingTaskData({});
+    // Only update URL - the useEffect will handle state clearing
+    const params = new URLSearchParams(searchParams?.toString() || '');
+    params.delete('task');
+    const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+    router.push(newUrl);
   };
 
   const startEditingTask = () => {
