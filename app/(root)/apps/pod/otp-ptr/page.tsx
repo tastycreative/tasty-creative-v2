@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import FileUpload from "@/components/ui/FileUpload";
+import FileUpload, { LocalFilePreview, uploadAllLocalFiles } from "@/components/ui/FileUpload";
 import { TaskAttachment } from "@/lib/stores/boardStore";
 import { useContentSubmissionStore } from "@/lib/stores/contentSubmissionStore";
 import ModelsDropdownList from "@/components/ModelsDropdownList";
@@ -43,6 +43,7 @@ export default function OtpPtrPage() {
   >(null);
   const [currentAttachmentIndex, setCurrentAttachmentIndex] = useState(0);
   const [mounted, setMounted] = useState(false);
+  const [localFiles, setLocalFiles] = useState<LocalFilePreview[]>([]);
 
   // Zustand store
   const {
@@ -107,6 +108,11 @@ export default function OtpPtrPage() {
   }, [fullscreenAttachments, currentAttachmentIndex]);
 
   const handleSubmit = async () => {
+    // First upload any local files to S3
+    if (localFiles.length > 0) {
+      await uploadAllLocalFiles(localFiles, attachments, setAttachments, setLocalFiles);
+    }
+
     const success = await submitContent();
     
     // Refresh submissions if history is visible and submission was successful
@@ -583,6 +589,9 @@ export default function OtpPtrPage() {
                         <FileUpload
                           attachments={attachments}
                           onAttachmentsChange={setAttachments}
+                          localFiles={localFiles}
+                          onLocalFilesChange={setLocalFiles}
+                          uploadOnSubmit={true}
                           maxFiles={5}
                           acceptedTypes={[
                             "image/jpeg",

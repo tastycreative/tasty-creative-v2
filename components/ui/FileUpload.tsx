@@ -5,6 +5,16 @@ import { Upload, X, Image, File, AlertCircle, Loader2 } from 'lucide-react';
 import { TaskAttachment } from '@/lib/stores/boardStore';
 import { toast } from 'sonner';
 
+// Extended interface for local files with preview
+export interface LocalFilePreview {
+  id: string;
+  file: File;
+  name: string;
+  size: number;
+  type: string;
+  previewUrl: string; // For local preview (blob URL)
+}
+
 interface FileUploadProps {
   attachments: TaskAttachment[];
   onAttachmentsChange: (attachments: TaskAttachment[]) => void;
@@ -13,6 +23,10 @@ interface FileUploadProps {
   acceptedTypes?: string[];
   className?: string;
   disableAutoSave?: boolean; // Add option to disable immediate callbacks during batch upload
+  // New props for deferred upload mode
+  uploadOnSubmit?: boolean; // If true, files are only uploaded when explicitly triggered
+  localFiles?: LocalFilePreview[]; // Local files waiting to be uploaded
+  onLocalFilesChange?: (files: LocalFilePreview[]) => void;
 }
 
 export default function FileUpload({
@@ -22,7 +36,10 @@ export default function FileUpload({
   maxFileSize = 10, // 10MB default
   acceptedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf', 'text/plain'],
   className = '',
-  disableAutoSave = false
+  disableAutoSave = false,
+  uploadOnSubmit = false,
+  localFiles = [],
+  onLocalFilesChange
 }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +48,7 @@ export default function FileUpload({
   const [localAttachments, setLocalAttachments] = useState<TaskAttachment[]>(attachments); // Local state during upload
   const [removingAttachments, setRemovingAttachments] = useState<string[]>([]); // Track which attachments are being removed
 
-  const validateFile = (file: File, currentCount: number = attachments.length): string | null => {
+  const validateFile = (file: File, currentCount: number = attachments.length + localFiles.length): string | null => {
     if (file.size > maxFileSize * 1024 * 1024) {
       return `File "${file.name}" is too large. Maximum size is ${maxFileSize}MB.`;
     }
@@ -48,114 +65,92 @@ export default function FileUpload({
   };
 
   const processFiles = useCallback(async (fileList: FileList) => {
-    console.log('processFiles called with FileList:', fileList);
-    console.log('Number of files:', fileList.length);
-    
-    // Convert FileList to regular array to prevent mutation issues
     const files = Array.from(fileList);
-    console.log('Converted to array:', files.map(f => f.name));
-    console.log('Array length:', files.length);
-    
     setError(null);
-    setUploading(true);
 
-    const newAttachments: TaskAttachment[] = [];
-    const failedUploads: string[] = [];
-    
-    // Check if total files would exceed limit
-    if (attachments.length + files.length > maxFiles) {
-      setError(`Cannot upload ${files.length} files. Maximum ${maxFiles} files allowed (currently have ${attachments.length}).`);
-      setUploading(false);
+    // Check total count
+    const totalCount = attachments.length + localFiles.length + files.length;
+    if (totalCount > maxFiles) {
+      setError(`Cannot add ${files.length} files. Maximum ${maxFiles} files allowed (currently have ${attachments.length + localFiles.length}).`);
       return;
     }
 
     // Validate all files first
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      console.log(`Validating file ${i + 1}:`, file.name, file.size, file.type);
-      const validationError = validateFile(file, 0); // Use 0 since we already checked total count above
-      
+    for (const file of files) {
+      const validationError = validateFile(file, attachments.length + localFiles.length);
       if (validationError) {
-        console.error('Validation error:', validationError);
         setError(validationError);
-        setUploading(false);
         return;
       }
     }
 
-    // Add all files to uploading list at once
-    const fileNames = files.map(f => f.name);
-    console.log('Setting uploading files:', fileNames);
-    setUploadingFiles(fileNames);
-
-    // Process files one by one
-    console.log(`About to process ${files.length} files in loop`);
-    for (let i = 0; i < files.length; i++) {
-      console.log(`\n=== LOOP ITERATION ${i + 1}/${files.length} STARTING ===`);
-      const file = files[i];
-      console.log(`Processing file ${i + 1}/${files.length}: ${file.name}`);
-
-      try {
-        console.log(`Starting upload for: ${file.name} (${file.size} bytes, ${file.type})`);
+    // If uploadOnSubmit is false, upload immediately (backward compatibility)
+    if (!uploadOnSubmit) {
+      await uploadFilesImmediately(files);
+    } else {
+      // Add to local files for preview
+      const newLocalFiles: LocalFilePreview[] = [];
+      
+      for (const file of files) {
+        const id = `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const previewUrl = URL.createObjectURL(file);
         
-        // Upload to S3
+        newLocalFiles.push({
+          id,
+          file,
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          previewUrl
+        });
+      }
+
+      if (onLocalFilesChange) {
+        onLocalFilesChange([...localFiles, ...newLocalFiles]);
+      }
+      
+      if (newLocalFiles.length === 1) {
+        toast.success(`Added ${newLocalFiles[0].name} for upload`);
+      } else {
+        toast.success(`Added ${newLocalFiles.length} files for upload`);
+      }
+    }
+  }, [attachments, localFiles, onLocalFilesChange, maxFiles, maxFileSize, acceptedTypes, uploadOnSubmit]);
+
+  const uploadFilesImmediately = async (files: File[]) => {
+    setUploading(true);
+    const newAttachments: TaskAttachment[] = [];
+    const failedUploads: string[] = [];
+
+    for (const file of files) {
+      try {
         const formData = new FormData();
         formData.append('file', file);
-        console.log('FormData created, making fetch request...');
 
         const response = await fetch('/api/upload/s3', {
           method: 'POST',
           body: formData,
         });
 
-        console.log(`Response status for ${file.name}:`, response.status, response.statusText);
-
         if (!response.ok) {
           const errorData = await response.json();
-          console.error(`Upload failed for ${file.name}:`, errorData);
           throw new Error(errorData.error || 'Upload failed');
         }
 
         const responseData = await response.json();
-        console.log(`Response data for ${file.name}:`, responseData);
-        
         const { attachment } = responseData;
         newAttachments.push(attachment);
         
-        console.log(`Successfully uploaded: ${file.name}`, attachment);
-        console.log(`Total attachments so far: ${newAttachments.length}`);
-        
-      } catch (fileError) {
-        console.error(`Failed to upload ${file.name}:`, fileError);
-        failedUploads.push(file.name);
-        // Continue with other files instead of stopping
-      }
-      
-      try {
-        // Remove this file from uploading list
-        setUploadingFiles(prev => {
-          const updated = prev.filter(name => name !== file.name);
-          console.log(`Removing ${file.name} from uploading list. Remaining:`, updated);
-          return updated;
-        });
-        
-        console.log(`Finished processing file ${i + 1}/${files.length}: ${file.name}`);
       } catch (error) {
-        console.error(`Error in cleanup for ${file.name}:`, error);
+        console.error(`Failed to upload ${file.name}:`, error);
+        failedUploads.push(file.name);
       }
     }
 
-    console.log(`=== LOOP COMPLETED ===`);
-    console.log(`Total successful uploads: ${newAttachments.length}`, newAttachments);
-    console.log(`Failed uploads: ${failedUploads.length}`, failedUploads);
-
-    // Update attachments with all successfully uploaded files at once
     if (newAttachments.length > 0) {
       const updatedAttachments = [...attachments, ...newAttachments];
-      console.log('Calling onAttachmentsChange with:', updatedAttachments);
       onAttachmentsChange(updatedAttachments);
       
-      // Show success toast
       if (newAttachments.length === 1) {
         toast.success(`Successfully uploaded ${newAttachments[0].name}`);
       } else {
@@ -163,16 +158,14 @@ export default function FileUpload({
       }
     }
 
-    // Show error for failed uploads
     if (failedUploads.length > 0) {
       const errorMessage = `Failed to upload: ${failedUploads.join(', ')}`;
       setError(errorMessage);
       toast.error(errorMessage);
     }
 
-    console.log('Setting uploading to false');
     setUploading(false);
-  }, [attachments, onAttachmentsChange, maxFiles, maxFileSize, acceptedTypes]);
+  };
 
   const handleDrag = useCallback((e: DragEvent) => {
     e.preventDefault();
@@ -217,6 +210,19 @@ export default function FileUpload({
     // Reset input
     e.target.value = '';
   }, [processFiles]);
+
+  const removeLocalFile = useCallback((fileId: string) => {
+    const fileToRemove = localFiles.find(f => f.id === fileId);
+    if (fileToRemove && onLocalFilesChange) {
+      // Clean up blob URL
+      URL.revokeObjectURL(fileToRemove.previewUrl);
+      
+      const updatedFiles = localFiles.filter(f => f.id !== fileId);
+      onLocalFilesChange(updatedFiles);
+      
+      toast.success(`Removed ${fileToRemove.name}`);
+    }
+  }, [localFiles, onLocalFilesChange]);
 
   const removeAttachment = useCallback(async (attachmentId: string) => {
     const attachment = attachments.find(att => att.id === attachmentId);
@@ -294,7 +300,7 @@ export default function FileUpload({
           accept={acceptedTypes.join(',')}
           onChange={handleFileInput}
           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          disabled={uploading || attachments.length >= maxFiles}
+          disabled={uploading || (attachments.length + localFiles.length) >= maxFiles}
         />
         
         <div className="text-center">
@@ -309,6 +315,11 @@ export default function FileUpload({
           {uploading && uploadingFiles.length > 0 && (
             <p className="text-xs text-blue-600 dark:text-blue-400 mb-2">
               Currently uploading: {uploadingFiles.join(', ')}
+            </p>
+          )}
+          {uploadOnSubmit && localFiles.length > 0 && (
+            <p className="text-xs text-blue-600 dark:text-blue-400 mb-2">
+              {localFiles.length} file(s) ready for upload
             </p>
           )}
           <p className="text-xs text-gray-500 dark:text-gray-500">
@@ -331,19 +342,19 @@ export default function FileUpload({
         </div>
       )}
 
-      {/* Attachments Preview */}
-      {attachments.length > 0 && (
+      {/* Files Preview - both uploaded and local files */}
+      {(attachments.length > 0 || localFiles.length > 0) && (
         <div className="space-y-2">
           <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Attachments ({attachments.length})
+            Files ({attachments.length + localFiles.length})
           </h4>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Uploaded attachments */}
             {attachments.filter(att => !removingAttachments.includes(att.id)).map((attachment) => (
               <div
                 key={attachment.id}
-                className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700"
+                className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700"
               >
-                {/* Thumbnail/Icon */}
                 <div className="flex-shrink-0">
                   {isImage(attachment.type) ? (
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
@@ -359,22 +370,57 @@ export default function FileUpload({
                     </div>
                   )}
                 </div>
-
-                {/* File Info */}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                     {attachment.name}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {formatFileSize(attachment.size)}
+                  <p className="text-xs text-green-600 dark:text-green-400">
+                    Uploaded • {formatFileSize(attachment.size)}
                   </p>
                 </div>
-
-                {/* Remove Button */}
                 <button
                   onClick={() => removeAttachment(attachment.id)}
                   className="flex-shrink-0 p-1 text-gray-400 hover:text-red-500 transition-colors"
-                  title="Remove attachment"
+                  title="Remove uploaded file"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+
+            {/* Local file previews */}
+            {localFiles.map((localFile) => (
+              <div
+                key={localFile.id}
+                className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700"
+              >
+                <div className="flex-shrink-0">
+                  {isImage(localFile.type) ? (
+                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+                      <img
+                        src={localFile.previewUrl}
+                        alt={localFile.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                      <File className="w-6 h-6 text-gray-500 dark:text-gray-400" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                    {localFile.name}
+                  </p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400">
+                    Ready to upload • {formatFileSize(localFile.size)}
+                  </p>
+                </div>
+                <button
+                  onClick={() => removeLocalFile(localFile.id)}
+                  className="flex-shrink-0 p-1 text-gray-400 hover:text-red-500 transition-colors"
+                  title="Remove file"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -386,3 +432,60 @@ export default function FileUpload({
     </div>
   );
 }
+
+// Function to upload all local files (for use with uploadOnSubmit mode)
+export const uploadAllLocalFiles = async (
+  localFiles: LocalFilePreview[],
+  attachments: TaskAttachment[],
+  onAttachmentsChange: (attachments: TaskAttachment[]) => void,
+  onLocalFilesChange?: (files: LocalFilePreview[]) => void
+): Promise<TaskAttachment[]> => {
+  if (localFiles.length === 0) return [];
+  
+  const newAttachments: TaskAttachment[] = [];
+  const failedUploads: string[] = [];
+
+  for (const localFile of localFiles) {
+    try {
+      const formData = new FormData();
+      formData.append('file', localFile.file);
+
+      const response = await fetch('/api/upload/s3', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Upload failed');
+      }
+
+      const responseData = await response.json();
+      const { attachment } = responseData;
+      newAttachments.push(attachment);
+      
+    } catch (error) {
+      console.error(`Failed to upload ${localFile.name}:`, error);
+      failedUploads.push(localFile.name);
+    }
+  }
+
+  // Clean up all blob URLs
+  localFiles.forEach(localFile => {
+    URL.revokeObjectURL(localFile.previewUrl);
+  });
+
+  // Update attachments and clear local files
+  const updatedAttachments = [...attachments, ...newAttachments];
+  onAttachmentsChange(updatedAttachments);
+  if (onLocalFilesChange) {
+    onLocalFilesChange([]);
+  }
+
+  if (failedUploads.length > 0) {
+    const errorMessage = `Failed to upload: ${failedUploads.join(', ')}`;
+    toast.error(errorMessage);
+  }
+
+  return newAttachments;
+};
