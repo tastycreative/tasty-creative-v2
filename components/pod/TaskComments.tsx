@@ -3,8 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { Send, MessageSquare, Loader2, AlertCircle, Edit2, Trash2, Check, X } from 'lucide-react';
 import UserProfile from '@/components/ui/UserProfile';
+import CommentFilePreview from '@/components/ui/CommentFilePreview';
 import { useTaskComments } from '@/lib/stores/boardStore';
-import type { TaskComment } from '@/lib/stores/boardStore';
+import type { TaskComment, TaskAttachment } from '@/lib/stores/boardStore';
+import type { PreviewFile } from '@/components/ui/CommentFilePreview';
+
+
+import AttachmentViewer from "@/components/ui/AttachmentViewer";
 
 // Utility function to make links clickable
 const linkifyText = (text: string) => {
@@ -68,9 +73,12 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
   } = useTaskComments(taskId);
   
   const [newComment, setNewComment] = useState('');
+  const [newCommentPreviewFiles, setNewCommentPreviewFiles] = useState<PreviewFile[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
+  const [editPreviewFiles, setEditPreviewFiles] = useState<PreviewFile[]>([]);
+  const [editExistingAttachments, setEditExistingAttachments] = useState<TaskAttachment[]>([]);
   const [isDeletingComment, setIsDeletingComment] = useState<string | null>(null);
   const [isUpdatingComment, setIsUpdatingComment] = useState<string | null>(null);
 
@@ -83,12 +91,53 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!newComment.trim() || !currentUser) return;
+    if ((!newComment.trim() && newCommentPreviewFiles.length === 0) || !currentUser) return;
     
     try {
       setIsSubmitting(true);
-      await createTaskComment(taskId, newComment.trim());
+      
+      let uploadedAttachments: TaskAttachment[] = [];
+      
+      // Upload preview files to S3 if any
+      if (newCommentPreviewFiles.length > 0) {
+        for (const previewFile of newCommentPreviewFiles) {
+          try {
+            const formData = new FormData();
+            formData.append('file', previewFile.file);
+
+            const response = await fetch('/api/upload/s3', {
+              method: 'POST',
+              body: formData,
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || 'Upload failed');
+            }
+
+            const responseData = await response.json();
+            const { attachment } = responseData;
+            uploadedAttachments.push(attachment);
+            
+          } catch (uploadError) {
+            console.error(`Failed to upload ${previewFile.name}:`, uploadError);
+            // Continue with other files, but notify user
+            alert(`Failed to upload ${previewFile.name}. Comment will be posted without this file.`);
+          }
+        }
+      }
+      
+      await createTaskComment(taskId, newComment.trim() || ' ', uploadedAttachments);
       setNewComment('');
+      setNewCommentPreviewFiles([]);
+      
+      // Clean up preview URLs
+      newCommentPreviewFiles.forEach(file => {
+        if (file.previewUrl) {
+          URL.revokeObjectURL(file.previewUrl);
+        }
+      });
+      
     } catch (error) {
       console.error('Error posting comment:', error);
       // Error handling is managed by the store
@@ -100,11 +149,22 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
   const handleStartEdit = (comment: TaskComment) => {
     setEditingCommentId(comment.id);
     setEditContent(comment.content);
+    setEditExistingAttachments(comment.attachments || []);
+    setEditPreviewFiles([]);
   };
 
   const handleCancelEdit = () => {
     setEditingCommentId(null);
     setEditContent('');
+    setEditExistingAttachments([]);
+    setEditPreviewFiles([]);
+    
+    // Clean up preview URLs
+    editPreviewFiles.forEach(file => {
+      if (file.previewUrl) {
+        URL.revokeObjectURL(file.previewUrl);
+      }
+    });
   };
 
   const handleUpdateComment = async (commentId: string) => {
@@ -112,9 +172,50 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
 
     try {
       setIsUpdatingComment(commentId);
-      await updateTaskComment(taskId, commentId, editContent.trim());
+      
+      let finalAttachments: TaskAttachment[] = [...editExistingAttachments];
+      
+      // Upload new preview files to S3 if any
+      if (editPreviewFiles.length > 0) {
+        for (const previewFile of editPreviewFiles) {
+          try {
+            const formData = new FormData();
+            formData.append('file', previewFile.file);
+
+            const response = await fetch('/api/upload/s3', {
+              method: 'POST',
+              body: formData,
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || 'Upload failed');
+            }
+
+            const responseData = await response.json();
+            const { attachment } = responseData;
+            finalAttachments.push(attachment);
+            
+          } catch (uploadError) {
+            console.error(`Failed to upload ${previewFile.name}:`, uploadError);
+            alert(`Failed to upload ${previewFile.name}. Comment will be updated without this file.`);
+          }
+        }
+      }
+      
+      await updateTaskComment(taskId, commentId, editContent.trim(), finalAttachments);
       setEditingCommentId(null);
       setEditContent('');
+      setEditExistingAttachments([]);
+      setEditPreviewFiles([]);
+      
+      // Clean up preview URLs
+      editPreviewFiles.forEach(file => {
+        if (file.previewUrl) {
+          URL.revokeObjectURL(file.previewUrl);
+        }
+      });
+      
     } catch (error) {
       console.error('Error updating comment:', error);
     } finally {
@@ -133,6 +234,10 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
     } finally {
       setIsDeletingComment(null);
     }
+  };
+
+  const handleRemoveExistingAttachment = (attachmentId: string) => {
+    setEditExistingAttachments(prev => prev.filter(att => att.id !== attachmentId));
   };
 
   const canEditComment = (comment: TaskComment) => {
@@ -191,19 +296,27 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
               />
             </div>
           </div>
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={!newComment.trim() || isSubmitting}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-md transition-colors"
-            >
-              {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <Send className="h-4 w-4 mr-2" />
-              )}
-              {isSubmitting ? 'Posting...' : 'Post Comment'}
-            </button>
+          <div className="space-y-3">
+            <CommentFilePreview
+              previewFiles={newCommentPreviewFiles}
+              onPreviewFilesChange={setNewCommentPreviewFiles}
+              maxFiles={3}
+              maxFileSize={10}
+            />
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={(!newComment.trim() && newCommentPreviewFiles.length === 0) || isSubmitting}
+                className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-md transition-colors"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Send className="h-4 w-4 mr-2" />
+                )}
+                {isSubmitting ? 'Posting...' : 'Post Comment'}
+              </button>
+            </div>
           </div>
         </form>
       )}
@@ -281,18 +394,66 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
                   )}
                 </div>
                 {editingCommentId === comment.id ? (
-                  <textarea
-                    value={editContent}
-                    onChange={(e) => setEditContent(e.target.value)}
-                    disabled={isUpdatingComment === comment.id}
-                    className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                    rows={2}
-                    autoFocus
-                  />
+                  <div className="space-y-3">
+                    <textarea
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      disabled={isUpdatingComment === comment.id}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      rows={2}
+                      autoFocus
+                    />
+                    
+                    {/* Existing Attachments Management */}
+                    {editExistingAttachments.length > 0 && (
+                      <div className="space-y-2">
+                        <h5 className="text-xs font-medium text-gray-600 dark:text-gray-400">Current Attachments:</h5>
+                        <div className="flex flex-wrap gap-2">
+                          {editExistingAttachments.map((attachment) => (
+                            <div key={attachment.id} className="relative group">
+                              <div className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-700 rounded-md px-2 py-1">
+                                <span className="text-xs text-gray-600 dark:text-gray-300 truncate max-w-[150px]">
+                                  {attachment.name}
+                                </span>
+                                <button
+                                  onClick={() => handleRemoveExistingAttachment(attachment.id)}
+                                  disabled={isUpdatingComment === comment.id}
+                                  className="text-red-500 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  title="Remove attachment"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* New Attachments Upload */}
+                    <CommentFilePreview
+                      previewFiles={editPreviewFiles}
+                      onPreviewFilesChange={setEditPreviewFiles}
+                      maxFiles={3}
+                      maxFileSize={10}
+                    />
+                  </div>
                 ) : (
-                  <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
-                    {linkifyText(comment.content)}
-                  </p>
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
+                      {linkifyText(comment.content)}
+                    </p>
+                    
+                    {/* Comment Attachments */}
+                    {comment.attachments && comment.attachments.length > 0 && (
+                      <AttachmentViewer
+                        attachments={comment.attachments}
+                        showTitle={false}
+                        compact={true}
+                        className="mt-2"
+                      />
+                    )}
+                  </div>
                 )}
               </div>
             </div>

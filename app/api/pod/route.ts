@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
     const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
-    const { sourceUrl, fromType, toType } = await request.json();
+    const { sourceUrl, fromType, toType, modelName } = await request.json();
 
     if (!sourceUrl) {
       return NextResponse.json(
@@ -77,7 +77,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('Conversion:', fromType, '→', toType);
+    if (!modelName) {
+      return NextResponse.json(
+        { error: 'Model name is required' },
+        { status: 400 }
+      );
+    }
+
+    console.log('Conversion:', fromType, '→', toType, 'for model:', modelName);
 
     // Validate and extract spreadsheet ID and GID from source URL
     const sourceSpreadsheetId = extractSpreadsheetId(sourceUrl);
@@ -222,7 +229,7 @@ export async function POST(request: NextRequest) {
         minute: '2-digit' 
       }); // HH:MM format
       const conversionDirection = `${fromType.replace(' Sheet', '')} to ${toType.replace(' Sheet', '')}`;
-      const newFileName = `${spreadsheetName} - ${conversionDirection} - ${dateStr} ${timeStr}`;
+      const newFileName = `${modelName} - ${spreadsheetName} - ${conversionDirection} - ${dateStr} ${timeStr}`;
       
       const copyResponse = await drive.files.copy({
         fileId: templateId,

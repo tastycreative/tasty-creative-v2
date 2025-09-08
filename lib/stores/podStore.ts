@@ -49,6 +49,8 @@ export interface PodData {
     url: string; 
     id: string;
     clientName: string;
+    sheetType: string;
+    createdAt: string;
   }>;
   isActive: boolean;
   createdAt: string;

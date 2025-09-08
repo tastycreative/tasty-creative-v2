@@ -73,6 +73,35 @@ export default function PodLayout({ children }: PodLayoutProps) {
   const [viewMode, setViewMode] = useState<"dashboard" | "sheet" | "creator">(
     "dashboard"
   );
+  
+  // State for sheet links fetched from ClientModelSheetLinks
+  const [sheetLinks, setSheetLinks] = useState<Array<{
+    id: string;
+    name: string;
+    url: string;
+    clientName: string;
+    sheetType: string;
+    createdAt: string;
+  }>>([]);
+  const [isLoadingSheetLinks, setIsLoadingSheetLinks] = useState(false);
+
+  // Function to fetch sheet links from the new API
+  const fetchSheetLinks = async (teamId: string) => {
+    setIsLoadingSheetLinks(true);
+    try {
+      const response = await fetch(`/api/pod/sheet-links?teamId=${teamId}`);
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          setSheetLinks(result.sheetLinks);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching sheet links:', error);
+    } finally {
+      setIsLoadingSheetLinks(false);
+    }
+  };
 
   // Get current tab from pathname
   const getCurrentTab = () => {
@@ -97,7 +126,7 @@ export default function PodLayout({ children }: PodLayoutProps) {
 
     const groups: Record<
       string,
-      Array<{ name: string; url: string; cellGroup?: string; id?: string }>
+      Array<{ name: string; url: string; cellGroup?: string; id?: string; sheetType?: string; }>
     > = {};
     podData.creators.forEach((creator) => {
       groups[creator.name] = [];
@@ -105,28 +134,30 @@ export default function PodLayout({ children }: PodLayoutProps) {
 
     groups["Others"] = [];
 
-    if (podData.sheetLinks) {
-      podData.sheetLinks.forEach((link) => {
+    if (sheetLinks.length > 0) {
+      sheetLinks.forEach((link) => {
         let assignedCreator = "Others";
 
+        // Match by clientName instead of sheet name since we have relational data
         for (const creator of podData.creators || []) {
-          if (link.name.toLowerCase().includes(creator.name.toLowerCase())) {
+          if (link.clientName.toLowerCase().includes(creator.name.toLowerCase()) ||
+              creator.name.toLowerCase().includes(link.clientName.toLowerCase())) {
             assignedCreator = creator.name;
             break;
           }
         }
 
         groups[assignedCreator].push({
-          ...link,
-          id:
-            link.id ||
-            `link-${assignedCreator}-${groups[assignedCreator].length}`,
+          name: link.name,
+          url: link.url,
+          id: link.id,
+          sheetType: link.sheetType
         });
       });
     }
 
     return groups;
-  }, [podData?.sheetLinks, podData?.creators]);
+  }, [sheetLinks, podData?.creators]);
 
   // Handle URL parameters for Google Sheets on page load
   useEffect(() => {
@@ -179,6 +210,9 @@ export default function PodLayout({ children }: PodLayoutProps) {
     if (selectedTeamId !== null && availableTeams.length > 0) {
       console.log(`🔄 Fetching data for team ${selectedTeamId} (teams loaded: ${availableTeams.length})`);
       fetchPodData(selectedTeamId, true); // Force refresh when team changes
+      
+      // Also fetch sheet links from the new ClientModelSheetLinks table
+      fetchSheetLinks(selectedTeamId);
     }
   }, [selectedTeamId, fetchPodData, availableTeams.length]);
 
@@ -510,7 +544,7 @@ export default function PodLayout({ children }: PodLayoutProps) {
                       </div>
 
                       {/* Sheet Links Accordion */}
-                      {(isLoading ||
+                      {(isLoading || isLoadingSheetLinks ||
                         (podData?.creators && podData.creators.length > 0)) && (
                         <div className="px-6 py-4 border-t border-gray-100 dark:border-gray-800">
                           <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4 flex items-center">
@@ -520,7 +554,7 @@ export default function PodLayout({ children }: PodLayoutProps) {
                             Sheet Links
                           </h4>
                           <div className="space-y-2">
-                            {isLoading ? (
+                            {isLoading || isLoadingSheetLinks ? (
                               <div className="space-y-2">
                                 {Array.from({ length: 2 }).map((_, index) => (
                                   <div

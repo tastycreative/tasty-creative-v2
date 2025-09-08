@@ -107,6 +107,7 @@ export interface TaskActivity {
 export interface TaskComment {
   id: string;
   content: string;
+  attachments?: TaskAttachment[] | null;
   createdAt: string;
   updatedAt: string;
   user: {
@@ -249,8 +250,8 @@ export interface BoardStore {
   
   // Actions - Task Comments
   fetchTaskComments: (taskId: string, forceRefresh?: boolean) => Promise<void>;
-  createTaskComment: (taskId: string, content: string) => Promise<void>;
-  updateTaskComment: (taskId: string, commentId: string, content: string) => Promise<void>;
+  createTaskComment: (taskId: string, content: string, attachments?: TaskAttachment[]) => Promise<void>;
+  updateTaskComment: (taskId: string, commentId: string, content: string, attachments?: TaskAttachment[]) => Promise<void>;
   deleteTaskComment: (taskId: string, commentId: string) => Promise<void>;
   clearTaskComments: (taskId?: string) => void;
   
@@ -1130,13 +1131,16 @@ export const useBoardStore = create<BoardStore>()(
           }
         },
         
-        createTaskComment: async (taskId: string, content: string) => {
+        createTaskComment: async (taskId: string, content: string, attachments?: TaskAttachment[]) => {
           if (!taskId || !content.trim()) return;
           
           try {
             const response = await apiCall<{ success: boolean; comment: TaskComment }>(`/api/tasks/${taskId}/comments`, {
               method: 'POST',
-              body: JSON.stringify({ content: content.trim() })
+              body: JSON.stringify({ 
+                content: content.trim(),
+                attachments: attachments || []
+              })
             });
             
             if (response.success && response.comment) {
@@ -1171,13 +1175,16 @@ export const useBoardStore = create<BoardStore>()(
           }
         },
         
-        updateTaskComment: async (taskId: string, commentId: string, content: string) => {
+        updateTaskComment: async (taskId: string, commentId: string, content: string, attachments?: TaskAttachment[]) => {
           if (!taskId || !commentId || !content.trim()) return;
           
           try {
             const response = await apiCall<{ success: boolean; comment: TaskComment }>(`/api/tasks/${taskId}/comments/${commentId}`, {
               method: 'PUT',
-              body: JSON.stringify({ content: content.trim() })
+              body: JSON.stringify({ 
+                content: content.trim(),
+                attachments: attachments || []
+              })
             });
             
             if (response.success && response.comment) {

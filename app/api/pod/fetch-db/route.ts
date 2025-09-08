@@ -45,8 +45,15 @@ export async function POST(request: NextRequest) {
                 clientName: true,
                 row_id: true,
                 guaranteed: true,
-                sheetLink: true,
-                spreadsheetName: true
+                sheetLinks: {
+                  select: {
+                    id: true,
+                    sheetUrl: true,
+                    sheetName: true,
+                    sheetType: true,
+                    createdAt: true
+                  }
+                }
               }
             },
             assignedBy: {
@@ -99,15 +106,26 @@ export async function POST(request: NextRequest) {
       notes: assignment.notes
     }));
 
-    // Transform sheet links from ClientModel data
-    const sheetLinks = podTeam.assignedClients
-      .filter(assignment => assignment.clientModel.sheetLink)
-      .map(assignment => ({
-        name: assignment.clientModel.spreadsheetName || assignment.clientModel.clientName,
-        url: assignment.clientModel.sheetLink || '',
-        id: assignment.clientModel.id,
-        clientName: assignment.clientModel.clientName
-      }));
+    // Transform sheet links from ClientModelSheetLinks data
+    // Fetch sheet links from the new API endpoint
+    let sheetLinks: any[] = [];
+    try {
+      const sheetLinksResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/pod/sheet-links?teamId=${podTeam.id}`, {
+        method: 'GET',
+        headers: {
+          'Cookie': request.headers.get('Cookie') || ''
+        }
+      });
+      if (sheetLinksResponse.ok) {
+        const sheetLinksResult = await sheetLinksResponse.json();
+        if (sheetLinksResult.success) {
+          sheetLinks = sheetLinksResult.sheetLinks;
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching sheet links:', error);
+      // Continue without sheet links rather than failing
+    }
 
     // Return the parsed data with the new relational structure
     return NextResponse.json({

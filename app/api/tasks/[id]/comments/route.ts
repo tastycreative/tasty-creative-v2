@@ -32,7 +32,7 @@ export async function GET(request: NextRequest, { params }: CommentsParams) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    // Fetch comments with user information
+    // Fetch comments with user information and attachments
     const comments = await (prisma as any).taskComment.findMany({
       where: { taskId },
       include: {
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest, { params }: CommentsParams) {
 
     const { id: taskId } = await params;
     const data = await request.json();
-    const { content } = data;
+    const { content, attachments } = data;
 
     if (!taskId || !content?.trim()) {
       return NextResponse.json(
@@ -95,7 +95,8 @@ export async function POST(request: NextRequest, { params }: CommentsParams) {
       data: {
         taskId,
         userId: session.user.id,
-        content: content.trim()
+        content: content.trim(),
+        attachments: attachments && attachments.length > 0 ? attachments : null
       },
       include: {
         user: {

@@ -3572,8 +3572,9 @@ const AddTeamForm = ({
                           disabled={selectedMembers.length >= MAX_MEMBERS}
                         >
                           <option value="">Add as...</option>
+                          <option value="LEADER">Leader</option>
                           <option value="ADMIN">Admin</option>
-                          <option value="USER">User</option>
+                          <option value="MEMBER">Member</option>
                         </select>
                       </div>
                     </div>
