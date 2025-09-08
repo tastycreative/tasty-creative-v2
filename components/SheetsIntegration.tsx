@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ModelsDropdownList from "@/components/ModelsDropdownList";
+import { useSheetLinks, usePodStore } from "@/lib/stores/podStore";
 import {
   Loader2,
   FileSpreadsheet,
@@ -24,11 +25,13 @@ import {
 interface SheetsIntegrationProps {
   onSpreadsheetCreated?: (url: string) => void;
   onSheetCreated?: () => void;
+  onSheetLinksUpdated?: () => void; // New prop to trigger sheet links refresh
 }
 
 const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
   onSpreadsheetCreated,
   onSheetCreated,
+  onSheetLinksUpdated,
 }) => {
   const [spreadsheetUrl, setSpreadsheetUrl] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
@@ -44,6 +47,10 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
     null
   );
   const [rotationCount, setRotationCount] = useState(0);
+
+  // Hook for sheet links store functionality
+  const { fetchSheetLinks } = useSheetLinks();
+  const selectedTeamId = usePodStore((state) => state.selectedTeamId);
 
   // New state for sheet links functionality
   const [activeTab, setActiveTab] = useState("sync");
@@ -178,6 +185,14 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
         // Reset form
         setSheetLinkUrl("");
         setSheetType("");
+        
+        // Trigger sheet links refresh in sidebar
+        if (selectedTeamId && fetchSheetLinks) {
+          fetchSheetLinks(selectedTeamId, true); // Force refresh
+        }
+        if (onSheetLinksUpdated) {
+          onSheetLinksUpdated();
+        }
       } else {
         setSheetLinkStatus({
           type: "error",
@@ -282,6 +297,14 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
         // Refresh the sheet integrations dashboard
         if (onSheetCreated) {
           onSheetCreated();
+        }
+        
+        // Trigger sheet links refresh in sidebar
+        if (selectedTeamId && fetchSheetLinks) {
+          fetchSheetLinks(selectedTeamId, true); // Force refresh
+        }
+        if (onSheetLinksUpdated) {
+          onSheetLinksUpdated();
         }
       } else {
         if (

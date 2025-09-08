@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { ArrowLeft, Info, Image, MessageSquare, Zap, Users, Images } from "lucide-react";
+import { ArrowLeft, Info, Image, MessageSquare, Zap, Users, Images, FileSpreadsheet } from "lucide-react";
 import { usePodData } from "@/lib/stores/podStore";
 import { useCreatorComplete } from "@/lib/stores/creatorStore";
 
@@ -25,6 +25,7 @@ const getImageUrl = (model: any): string => {
 import ModelPodInfoTab from "@/components/models/ModelPodInfoTab";
 import ModelAssetsTab from "@/components/models/ModelAssetTabs";
 import ModelChattersTab from "@/components/models/tabs/ModelChattersTab";
+import ModelSheetLinksTab from "@/components/models/tabs/ModelSheetLinksTab";
 import dynamic from "next/dynamic";
 import ModelForumTab from "@/components/models/tabs/ModelForumTab";
 import ModelAppsTab from "@/components/models/tabs/ModelAppsTab";
@@ -138,6 +139,7 @@ function CreatorNavigation({ creatorName }: { creatorName: string }) {
     { id: "information", label: "Information", icon: Info, color: "purple" },
     { id: "assets", label: "Assets", icon: Image, color: "pink" },
     { id: "chatters", label: "Chatters", icon: MessageSquare, color: "blue" },
+    { id: "sheet-links", label: "Sheet Links", icon: FileSpreadsheet, color: "emerald" },
     { id: "apps", label: "Apps", icon: Zap, color: "green" },
     { id: "content-gallery", label: "Content Gallery", icon: Images, color: "cyan" },
     { id: "forum", label: "Forum", icon: Users, color: "orange" },
@@ -194,6 +196,8 @@ function CreatorTabContent({ tab, creatorName }: { tab: string; creatorName: str
       return <ModelAssetsTab modelName={displayName} />;
     case "chatters":
       return <ModelChattersTab modelName={displayName} />;
+    case "sheet-links":
+      return <ModelSheetLinksTab modelName={displayName} />;
     case "apps":
       return <ModelAppsTab modelName={displayName} />;
     case "content-gallery":

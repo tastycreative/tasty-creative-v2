@@ -38,6 +38,7 @@ import {
   usePodStore,
   usePodData,
   useAvailableTeams,
+  useSheetLinks,
 } from "@/lib/stores/podStore";
 
 interface PodLayoutProps {
@@ -64,6 +65,12 @@ export default function PodLayout({ children }: PodLayoutProps) {
     loading: isLoadingTeams,
     fetchAvailableTeams,
   } = useAvailableTeams();
+  
+  const { 
+    sheetLinks, 
+    loading: isLoadingSheetLinks, 
+    fetchSheetLinks 
+  } = useSheetLinks();
 
   // Local component state for UI
   const [selectedSheet, setSelectedSheet] = useState<{
@@ -73,35 +80,6 @@ export default function PodLayout({ children }: PodLayoutProps) {
   const [viewMode, setViewMode] = useState<"dashboard" | "sheet" | "creator">(
     "dashboard"
   );
-  
-  // State for sheet links fetched from ClientModelSheetLinks
-  const [sheetLinks, setSheetLinks] = useState<Array<{
-    id: string;
-    name: string;
-    url: string;
-    clientName: string;
-    sheetType: string;
-    createdAt: string;
-  }>>([]);
-  const [isLoadingSheetLinks, setIsLoadingSheetLinks] = useState(false);
-
-  // Function to fetch sheet links from the new API
-  const fetchSheetLinks = async (teamId: string) => {
-    setIsLoadingSheetLinks(true);
-    try {
-      const response = await fetch(`/api/pod/sheet-links?teamId=${teamId}`);
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          setSheetLinks(result.sheetLinks);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching sheet links:', error);
-    } finally {
-      setIsLoadingSheetLinks(false);
-    }
-  };
 
   // Get current tab from pathname
   const getCurrentTab = () => {
@@ -212,9 +190,9 @@ export default function PodLayout({ children }: PodLayoutProps) {
       fetchPodData(selectedTeamId, true); // Force refresh when team changes
       
       // Also fetch sheet links from the new ClientModelSheetLinks table
-      fetchSheetLinks(selectedTeamId);
+      fetchSheetLinks(selectedTeamId, true); // Force refresh when team changes
     }
-  }, [selectedTeamId, fetchPodData, availableTeams.length]);
+  }, [selectedTeamId, fetchPodData, fetchSheetLinks, availableTeams.length]);
 
 
   const handleSheetClick = (sheetName: string, sheetUrl: string) => {

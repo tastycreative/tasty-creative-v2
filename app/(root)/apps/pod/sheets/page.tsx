@@ -2,7 +2,7 @@
 
 import React, { Suspense } from "react";
 import dynamic from "next/dynamic";
-import { usePodData, useDriveSheets } from "@/lib/stores/podStore";
+import { usePodData, useDriveSheets, useSheetLinks, usePodStore } from "@/lib/stores/podStore";
 
 // Dynamic import for better performance
 const SheetsIntegration = dynamic(() => import("@/components/SheetsIntegration"), {
@@ -20,11 +20,19 @@ const SheetsIntegration = dynamic(() => import("@/components/SheetsIntegration")
 export default function SheetsPage() {
   const { podData } = usePodData();
   const { fetchDriveSheets } = useDriveSheets();
+  const { fetchSheetLinks } = useSheetLinks();
+  const selectedTeamId = usePodStore((state) => state.selectedTeamId);
 
   const handleSpreadsheetCreated = () => {
     if (podData?.creators && podData.creators.length > 0) {
       const creatorNames = podData.creators.map(creator => creator.name);
       fetchDriveSheets(creatorNames, true);
+    }
+  };
+
+  const handleSheetLinksUpdated = () => {
+    if (selectedTeamId) {
+      fetchSheetLinks(selectedTeamId, true); // Force refresh
     }
   };
 
@@ -58,6 +66,7 @@ export default function SheetsPage() {
             fetchDriveSheets(creatorNames, true);
           }
         }}
+        onSheetLinksUpdated={handleSheetLinksUpdated}
       />
     </Suspense>
   );

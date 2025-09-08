@@ -107,6 +107,7 @@ export interface LoadingStates {
   tasks: boolean;
   driveSheets: boolean;
   pricingPreview: boolean;
+  sheetLinks: boolean;
 }
 
 export interface PodStore {
@@ -121,6 +122,7 @@ export interface PodStore {
   driveSheets: DriveSheet[];
   pricingPreview: PricingItem[];
   allPricingData: PricingItem[];
+  sheetLinks: any[];
   
   // Cache
   cache: Record<string, CacheEntry<any>>;
@@ -135,6 +137,7 @@ export interface PodStore {
     tasks: APIError | null;
     driveSheets: APIError | null;
     pricingPreview: APIError | null;
+    sheetLinks: APIError | null;
   };
   
   // UI state
@@ -151,6 +154,7 @@ export interface PodStore {
   fetchTasks: (teamId: string, forceRefresh?: boolean) => Promise<void>;
   fetchDriveSheets: (creatorNames: string[], forceRefresh?: boolean) => Promise<void>;
   fetchPricingPreview: (creators: Creator[], forceRefresh?: boolean) => Promise<void>;
+  fetchSheetLinks: (teamId: string, forceRefresh?: boolean) => Promise<void>;
   
   // Cache management
   getCachedData: <T>(key: string) => T | null;
@@ -241,6 +245,7 @@ export const usePodStore = create<PodStore>()(
         driveSheets: [],
         pricingPreview: [],
         allPricingData: [],
+        sheetLinks: [],
         
         cache: {},
         
@@ -250,6 +255,7 @@ export const usePodStore = create<PodStore>()(
           tasks: false,
           driveSheets: false,
           pricingPreview: false,
+          sheetLinks: false,
         },
         
         errors: {
@@ -258,6 +264,7 @@ export const usePodStore = create<PodStore>()(
           tasks: null,
           driveSheets: null,
           pricingPreview: null,
+          sheetLinks: null,
         },
         
         pricingRotationProgress: 0,
@@ -356,7 +363,7 @@ export const usePodStore = create<PodStore>()(
                 loading: { ...state.loading, podData: false }
               }));
             } else {
-              throw new Error(result.error || 'Failed to fetch pod data from database');
+              throw new Error('Failed to fetch pod data from database');
             }
           } catch (error) {
             const apiError: APIError = {
@@ -541,7 +548,7 @@ export const usePodStore = create<PodStore>()(
                 loading: { ...state.loading, driveSheets: false }
               }));
             } else {
-              throw new Error(result.error || 'Failed to fetch drive sheets');
+              throw new Error('Failed to fetch drive sheets');
             }
           } catch (error) {
             const apiError: APIError = {
@@ -719,6 +726,57 @@ export const usePodStore = create<PodStore>()(
           }
         },
         
+        fetchSheetLinks: async (teamId, forceRefresh = false) => {
+          const cacheKey = `sheet-links-${teamId}`;
+          
+          if (!forceRefresh) {
+            const cached = get().getCachedData<any[]>(cacheKey);
+            if (cached) {
+              set({ sheetLinks: cached });
+              return;
+            }
+          }
+          
+          set((state) => ({
+            ...state,
+            loading: { ...state.loading, sheetLinks: true },
+            errors: { ...state.errors, sheetLinks: null }
+          }));
+          
+          try {
+            const result = await apiCall<{ success: boolean; sheetLinks: any[] }>(`/api/pod/sheet-links?teamId=${teamId}`);
+            
+            if (result.success && result.sheetLinks) {
+              get().setCachedData(cacheKey, result.sheetLinks, CACHE_DURATIONS.DRIVE_SHEETS);
+              
+              set((state) => ({
+                ...state,
+                sheetLinks: result.sheetLinks,
+                loading: { ...state.loading, sheetLinks: false }
+              }));
+            } else {
+              set((state) => ({
+                ...state,
+                sheetLinks: [],
+                loading: { ...state.loading, sheetLinks: false }
+              }));
+            }
+          } catch (error) {
+            const apiError: APIError = {
+              message: error instanceof Error ? error.message : 'Failed to fetch sheet links',
+              code: 'SHEET_LINKS_FETCH_ERROR',
+              timestamp: Date.now(),
+            };
+            
+            set((state) => ({
+              ...state,
+              sheetLinks: [],
+              errors: { ...state.errors, sheetLinks: apiError },
+              loading: { ...state.loading, sheetLinks: false }
+            }));
+          }
+        },
+        
         // UI helpers
         toggleSheetGroup: (groupName) =>
           set((state) => ({
@@ -786,6 +844,7 @@ export const usePodStore = create<PodStore>()(
               tasks: null,
               driveSheets: null,
               pricingPreview: null,
+              sheetLinks: null,
             }
           })),
       }),
@@ -794,7 +853,6 @@ export const usePodStore = create<PodStore>()(
         storage: createJSONStorage(() => localStorage),
         partialize: (state) => ({
           // Only persist UI state, not loading states, errors, or cache
-          selectedRow: state.selectedRow,
           activeTab: state.activeTab,
           openSheetGroups: state.openSheetGroups,
           // Don't persist cache as it has expiration logic
@@ -866,4 +924,13 @@ export const usePricingPreview = () => {
     setPricingRotationProgress, 
     rotatePricingPreview 
   };
+};
+
+export const useSheetLinks = () => {
+  const sheetLinks = usePodStore((state) => state.sheetLinks);
+  const loading = usePodStore((state) => state.loading.sheetLinks);
+  const error = usePodStore((state) => state.errors.sheetLinks);
+  const fetchSheetLinks = usePodStore((state) => state.fetchSheetLinks);
+  
+  return { sheetLinks, loading, error, fetchSheetLinks };
 };

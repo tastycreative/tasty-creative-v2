@@ -86,6 +86,50 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// PUT - Update an existing sheet link
+export async function PUT(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
+    const data = await request.json();
+    const { action, id, sheetUrl, sheetName, sheetType } = data;
+
+    if (action === 'updateSheetLink') {
+      if (!id || !sheetUrl || !sheetType) {
+        return NextResponse.json(
+          { error: "Sheet link ID, URL, and type are required" },
+          { status: 400 }
+        );
+      }
+
+      // Update the sheet link
+      const sheetLink = await (prisma as any).clientModelSheetLinks.update({
+        where: { id },
+        data: {
+          sheetUrl,
+          sheetName: sheetName || null,
+          sheetType,
+          updatedAt: new Date()
+        }
+      });
+
+      return NextResponse.json({ success: true, sheetLink });
+    }
+
+    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+
+  } catch (error) {
+    console.error('Error updating sheet link:', error);
+    return NextResponse.json(
+      { error: 'Failed to update sheet link' },
+      { status: 500 }
+    );
+  }
+}
+
 // DELETE - Remove a sheet link
 export async function DELETE(request: NextRequest) {
   try {
@@ -94,18 +138,22 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const sheetLinkId = searchParams.get('sheetLinkId');
+    const data = await request.json();
+    const { action, id } = data;
 
-    if (!sheetLinkId) {
-      return NextResponse.json({ error: "Sheet link ID is required" }, { status: 400 });
+    if (action === 'deleteSheetLink') {
+      if (!id) {
+        return NextResponse.json({ error: "Sheet link ID is required" }, { status: 400 });
+      }
+
+      await (prisma as any).clientModelSheetLinks.delete({
+        where: { id }
+      });
+
+      return NextResponse.json({ success: true });
     }
 
-    await (prisma as any).clientModelSheetLinks.delete({
-      where: { id: sheetLinkId }
-    });
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
 
   } catch (error) {
     console.error('Error deleting sheet link:', error);
