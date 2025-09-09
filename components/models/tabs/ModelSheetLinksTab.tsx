@@ -31,6 +31,7 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle,
+  X,
 } from "lucide-react";
 
 interface SheetLink {
@@ -60,13 +61,14 @@ export default function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProp
   const [modelId, setModelId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<SheetLink | null>(null);
-  const [formData, setFormData] = useState({
-    sheetUrl: "",
-    sheetType: "",
-    sheetName: "",
-  });
-  const [isFetchingSheetName, setIsFetchingSheetName] = useState(false);
-  const [fetchedSheetName, setFetchedSheetName] = useState("");
+  const [sheetEntries, setSheetEntries] = useState([{
+    id: 1,
+    url: "",
+    type: "",
+    fetchedName: "",
+    isFetching: false,
+    isEditing: false
+  }]);
   const [formLoading, setFormLoading] = useState(false);
   const [status, setStatus] = useState<{
     type: "success" | "error" | "info";
@@ -123,33 +125,74 @@ export default function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProp
     fetchSheetLinks();
   }, [modelId]);
 
-  // Auto-fetch sheet name when URL changes
-  useEffect(() => {
-    if (formData.sheetUrl && isValidGoogleSheetsUrl(formData.sheetUrl)) {
-      setIsFetchingSheetName(true);
-      fetchSheetName(formData.sheetUrl)
-        .then((name) => {
-          if (name) {
-            setFetchedSheetName(name);
-            setFormData(prev => ({ ...prev, sheetName: name }));
-          }
-        })
-        .catch(() => {
-          setFetchedSheetName("");
-        })
-        .finally(() => {
-          setIsFetchingSheetName(false);
-        });
-    } else {
-      setFetchedSheetName("");
-      setIsFetchingSheetName(false);
-    }
-  }, [formData.sheetUrl]);
+  // Helper functions for managing multiple entries
+  const handleUrlChange = async (entryId: number, url: string) => {
+    setSheetEntries(prev => prev.map(entry => 
+      entry.id === entryId 
+        ? { ...entry, url, fetchedName: "", isFetching: false }
+        : entry
+    ));
 
-  const extractSpreadsheetId = (url: string): string | null => {
-    const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-    return match ? match[1] : null;
+    if (url && isValidGoogleSheetsUrl(url)) {
+      setSheetEntries(prev => prev.map(entry => 
+        entry.id === entryId 
+          ? { ...entry, isFetching: true }
+          : entry
+      ));
+
+      try {
+        const name = await fetchSheetName(url);
+        if (name) {
+          setSheetEntries(prev => prev.map(entry => 
+            entry.id === entryId 
+              ? { ...entry, fetchedName: name, isFetching: false }
+              : entry
+          ));
+        }
+      } catch (error) {
+        setSheetEntries(prev => prev.map(entry => 
+          entry.id === entryId 
+            ? { ...entry, fetchedName: "", isFetching: false }
+            : entry
+        ));
+      }
+    }
   };
+
+  const addNewSheetEntry = () => {
+    const newId = Math.max(...sheetEntries.map(e => e.id)) + 1;
+    setSheetEntries(prev => [...prev, {
+      id: newId,
+      url: "",
+      type: "",
+      fetchedName: "",
+      isFetching: false,
+      isEditing: false
+    }]);
+  };
+
+  const removeSheetEntry = (id: number) => {
+    if (sheetEntries.length > 1) {
+      setSheetEntries(prev => prev.filter(entry => entry.id !== id));
+    }
+  };
+
+  const updateSheetType = (entryId: number, type: string) => {
+    setSheetEntries(prev => prev.map(entry => 
+      entry.id === entryId 
+        ? { ...entry, type }
+        : entry
+    ));
+  };
+
+  const toggleEdit = (entryId: number) => {
+    setSheetEntries(prev => prev.map(entry => 
+      entry.id === entryId 
+        ? { ...entry, isEditing: !entry.isEditing }
+        : entry
+    ));
+  };
+
 
   const isValidGoogleSheetsUrl = (url: string) => {
     return url.includes("docs.google.com/spreadsheets") && url.includes("/d/");
@@ -176,100 +219,159 @@ export default function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProp
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!modelId || !formData.sheetUrl || !formData.sheetType) {
-      setStatus({
-        type: "error",
-        message: "Please fill in all required fields"
-      });
-      return;
-    }
-
-    if (!isValidGoogleSheetsUrl(formData.sheetUrl)) {
-      setStatus({
-        type: "error",
-        message: "Please enter a valid Google Sheets URL"
-      });
-      return;
-    }
-
-    setFormLoading(true);
-    setStatus(null);
-
-    try {
-      // Use the current form sheet name (which gets auto-populated from fetchedSheetName)
-      let sheetName = formData.sheetName;
-      if (!sheetName && !editingLink) {
-        // Only fetch if we don't have a name and it's a new link
-        sheetName = await fetchSheetName(formData.sheetUrl) || "";
-      }
-
-      const method = editingLink ? 'PUT' : 'POST';
-      const body = editingLink 
-        ? {
-            action: 'updateSheetLink',
-            id: editingLink.id,
-            sheetUrl: formData.sheetUrl,
-            sheetType: formData.sheetType,
-            sheetName
-          }
-        : {
-            action: 'saveSheetLink',
-            clientModelId: modelId,
-            sheetUrl: formData.sheetUrl,
-            sheetType: formData.sheetType,
-            sheetName
-          };
-
-      const response = await fetch('/api/client-model-sheets', {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-
-      const result = await response.json();
-
-      if (response.ok && result.success) {
-        setStatus({
-          type: "success",
-          message: editingLink ? "Sheet link updated successfully!" : "Sheet link added successfully!"
-        });
-
-        // Refresh the list
-        const listResponse = await fetch(`/api/client-model-sheets?clientModelId=${modelId}`);
-        const listData = await listResponse.json();
-        if (listData.success) {
-          setSheetLinks(listData.sheetLinks || []);
-        }
-
-        // Reset form
-        setFormData({ sheetUrl: "", sheetType: "", sheetName: "" });
-        setFetchedSheetName("");
-        setEditingLink(null);
-        setIsDialogOpen(false);
-      } else {
+    if (editingLink) {
+      // Handle single edit mode
+      const validEntry = sheetEntries[0];
+      if (!modelId || !validEntry.url || !validEntry.type) {
         setStatus({
           type: "error",
-          message: result.error || "Failed to save sheet link"
+          message: "Please fill in all required fields"
         });
+        return;
       }
-    } catch (error) {
-      setStatus({
-        type: "error",
-        message: "Network error. Please try again."
-      });
-    } finally {
-      setFormLoading(false);
+
+      if (!isValidGoogleSheetsUrl(validEntry.url)) {
+        setStatus({
+          type: "error",
+          message: "Please enter a valid Google Sheets URL"
+        });
+        return;
+      }
+
+      setFormLoading(true);
+      setStatus(null);
+
+      try {
+        const response = await fetch('/api/client-model-sheets', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'updateSheetLink',
+            id: editingLink.id,
+            sheetUrl: validEntry.url,
+            sheetType: validEntry.type,
+            sheetName: validEntry.fetchedName || ""
+          })
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          setStatus({
+            type: "success",
+            message: "Sheet link updated successfully!"
+          });
+
+          // Refresh the list
+          const listResponse = await fetch(`/api/client-model-sheets?clientModelId=${modelId}`);
+          const listData = await listResponse.json();
+          if (listData.success) {
+            setSheetLinks(listData.sheetLinks || []);
+          }
+
+          setEditingLink(null);
+          setIsDialogOpen(false);
+        } else {
+          setStatus({
+            type: "error",
+            message: result.error || "Failed to update sheet link"
+          });
+        }
+      } catch (error) {
+        setStatus({
+          type: "error",
+          message: "Network error. Please try again."
+        });
+      } finally {
+        setFormLoading(false);
+      }
+    } else {
+      // Handle multiple entries mode
+      const validEntries = sheetEntries.filter(entry => entry.url && entry.type && entry.fetchedName);
+      
+      if (!modelId || validEntries.length === 0) {
+        setStatus({
+          type: "error",
+          message: "Please complete all fields before saving"
+        });
+        return;
+      }
+
+      setFormLoading(true);
+      setStatus(null);
+
+      try {
+        // Save all valid entries
+        const promises = validEntries.map(entry => 
+          fetch('/api/client-model-sheets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'saveSheetLink',
+              clientModelId: modelId,
+              sheetUrl: entry.url,
+              sheetName: entry.fetchedName,
+              sheetType: entry.type
+            })
+          })
+        );
+        
+        const responses = await Promise.all(promises);
+        const results = await Promise.all(responses.map(r => r.json()));
+        
+        const allSuccessful = responses.every(r => r.ok) && results.every(r => r.success);
+        
+        if (allSuccessful) {
+          setStatus({
+            type: "success",
+            message: `Successfully added ${validEntries.length} sheet link(s)!`
+          });
+          
+          // Refresh the list
+          const listResponse = await fetch(`/api/client-model-sheets?clientModelId=${modelId}`);
+          const listData = await listResponse.json();
+          if (listData.success) {
+            setSheetLinks(listData.sheetLinks || []);
+          }
+          
+          // Reset form to single empty entry
+          setSheetEntries([{
+            id: 1,
+            url: "",
+            type: "",
+            fetchedName: "",
+            isFetching: false,
+            isEditing: false
+          }]);
+          
+          setIsDialogOpen(false);
+        } else {
+          setStatus({
+            type: "error",
+            message: "Failed to save some sheet links"
+          });
+        }
+      } catch (error) {
+        setStatus({
+          type: "error",
+          message: "Network error. Please try again."
+        });
+      } finally {
+        setFormLoading(false);
+      }
     }
   };
 
   const handleEdit = (link: SheetLink) => {
     setEditingLink(link);
-    setFormData({
-      sheetUrl: link.sheetUrl,
-      sheetType: link.sheetType,
-      sheetName: link.sheetName || "",
-    });
-    setFetchedSheetName(link.sheetName || "");
+    setSheetEntries([{
+      id: 1,
+      url: link.sheetUrl,
+      type: link.sheetType,
+      fetchedName: link.sheetName || "",
+      isFetching: false,
+      isEditing: false
+    }]);
     setStatus(null);
     setIsDialogOpen(true);
   };
@@ -310,8 +412,14 @@ export default function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProp
 
   const openNewDialog = () => {
     setEditingLink(null);
-    setFormData({ sheetUrl: "", sheetType: "", sheetName: "" });
-    setFetchedSheetName("");
+    setSheetEntries([{
+      id: 1,
+      url: "",
+      type: "",
+      fetchedName: "",
+      isFetching: false,
+      isEditing: false
+    }]);
     setStatus(null);
     setIsDialogOpen(true);
   };
@@ -346,105 +454,118 @@ export default function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProp
             </Button>
           </DialogTrigger>
           
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {editingLink ? "Edit Sheet Link" : "Add New Sheet Link"}
+                {editingLink ? "Edit Sheet Link" : "Add New Sheet Links"}
               </DialogTitle>
               <DialogDescription>
                 {editingLink 
                   ? "Update the sheet link details below."
-                  : "Add a new Google Sheets link for this model."
+                  : "Add Google Sheets links for this model. You can add multiple sheets at once."
                 }
               </DialogDescription>
             </DialogHeader>
             
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Sheet Type *
-                </label>
-                <Select value={formData.sheetType} onValueChange={(value) => 
-                  setFormData(prev => ({ ...prev, sheetType: value }))
-                }>
-                  <SelectTrigger className="w-full mt-1">
-                    <SelectValue placeholder="Select sheet type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {SHEET_TYPES.map(type => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Sheet Entries */}
+              <div className="space-y-4">
+                {sheetEntries.map((entry) => (
+                  <div key={entry.id} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="flex items-start space-x-3">
+                      {/* Sheet URL/Name Input */}
+                      <div className="flex-1">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                          Google Sheets URL *
+                        </label>
+                        <div className="flex items-center space-x-2">
+                          {entry.fetchedName && !entry.isEditing ? (
+                            <div className="flex-1 flex items-center space-x-2 p-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
+                              <FileSpreadsheet className="h-4 w-4 text-pink-600 dark:text-pink-400" />
+                              <span className="flex-1 text-gray-900 dark:text-gray-100 font-medium">{entry.fetchedName}</span>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => toggleEdit(entry.id)}
+                                className="p-1 h-8 w-8"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <Input
+                              type="url"
+                              value={entry.url}
+                              onChange={(e) => handleUrlChange(entry.id, e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && entry.fetchedName) {
+                                  e.preventDefault();
+                                  toggleEdit(entry.id);
+                                }
+                              }}
+                              placeholder="https://docs.google.com/spreadsheets/d/..."
+                              className="flex-1 h-12 text-base border-2 border-gray-200 dark:border-gray-600 focus:border-pink-500 dark:focus:border-pink-400 transition-colors duration-300 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                              required
+                            />
+                          )}
+                          
+                          {/* Remove Button */}
+                          {!editingLink && sheetEntries.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeSheetEntry(entry.id)}
+                              className="p-2 h-12 w-12 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
 
-              <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Google Sheets URL *
-                </label>
-                <Input
-                  type="url"
-                  value={formData.sheetUrl}
-                  onChange={(e) => setFormData(prev => ({ ...prev, sheetUrl: e.target.value }))}
-                  placeholder="https://docs.google.com/spreadsheets/d/..."
-                  className="mt-1"
-                  required
-                />
-                {/* URL Validation */}
-                {formData.sheetUrl && (
-                  <div className="mt-2">
-                    <div
-                      className={`flex items-center space-x-2 p-2 rounded-md text-sm ${
-                        isValidGoogleSheetsUrl(formData.sheetUrl)
-                          ? "bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-green-800 dark:text-green-200"
-                          : "bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-800 dark:text-red-200"
-                      }`}
-                    >
-                      {isValidGoogleSheetsUrl(formData.sheetUrl) ? (
-                        <>
-                          <CheckCircle className="h-4 w-4 flex-shrink-0" />
-                          <span>Valid Google Sheets URL</span>
-                        </>
-                      ) : (
-                        <>
-                          <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                          <span>Please enter a valid Google Sheets URL</span>
-                        </>
-                      )}
+                        {/* Loading/Status for URL */}
+                        {entry.isFetching && (
+                          <div className="mt-2 flex items-center space-x-2 text-sm text-pink-600 dark:text-pink-400">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span>Fetching sheet name...</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Sheet Type Selection */}
+                      <div className="w-48">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                          Sheet Type *
+                        </label>
+                        <Select value={entry.type} onValueChange={(value) => updateSheetType(entry.id, value)}>
+                          <SelectTrigger className="h-12">
+                            <SelectValue placeholder="Select type..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {SHEET_TYPES.map(type => (
+                              <SelectItem key={type} value={type}>{type}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                   </div>
-                )}
+                ))}
               </div>
 
-              <div>
-                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Sheet Name
-                </label>
-                <div className="relative mt-1">
-                  <Input
-                    value={formData.sheetName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, sheetName: e.target.value }))}
-                    placeholder={isFetchingSheetName ? "Fetching sheet name..." : "Enter sheet name or leave empty to auto-fetch"}
-                    className="pr-10"
-                    disabled={isFetchingSheetName}
-                  />
-                  {isFetchingSheetName && (
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      <Loader2 className="h-4 w-4 animate-spin text-pink-600 dark:text-pink-400" />
-                    </div>
-                  )}
-                </div>
-                {fetchedSheetName && (
-                  <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/30 rounded-md border border-blue-200 dark:border-blue-700">
-                    <div className="flex items-center space-x-2">
-                      <CheckCircle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                      <span className="text-sm text-blue-800 dark:text-blue-200">
-                        Auto-fetched: <strong>{fetchedSheetName}</strong>
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
+              {/* Add Another Sheet Button - Only show in add mode */}
+              {!editingLink && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addNewSheetEntry}
+                  className="w-full h-12 text-base border-dashed border-2 border-gray-300 dark:border-gray-600 hover:border-pink-500 dark:hover:border-pink-400 text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Another Sheet Link
+                </Button>
+              )}
 
               {status && (
                 <div className={`p-3 rounded-md border ${
@@ -476,7 +597,7 @@ export default function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProp
                 </Button>
                 <Button 
                   type="submit" 
-                  disabled={formLoading || isFetchingSheetName}
+                  disabled={formLoading || !modelId || (editingLink ? false : !sheetEntries.some(entry => entry.url && entry.type && entry.fetchedName))}
                   className="bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white"
                 >
                   {formLoading ? (
@@ -484,13 +605,13 @@ export default function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProp
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                       {editingLink ? "Updating..." : "Adding..."}
                     </>
-                  ) : isFetchingSheetName ? (
+                  ) : sheetEntries.some(entry => entry.isFetching) ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Fetching name...
+                      Fetching names...
                     </>
                   ) : (
-                    editingLink ? "Update" : "Add"
+                    editingLink ? "Update" : `Add ${sheetEntries.filter(entry => entry.url && entry.type && entry.fetchedName).length} Sheet(s)`
                   )}
                 </Button>
               </DialogFooter>
@@ -550,22 +671,28 @@ export default function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProp
               <TableHeader>
                 <TableRow className="bg-gray-50/50 dark:bg-gray-900/50">
                   <TableHead className="text-gray-700 dark:text-gray-300">Name</TableHead>
-                  <TableHead className="text-gray-700 dark:text-gray-300">Type</TableHead>
-                  <TableHead className="text-gray-700 dark:text-gray-300">Created</TableHead>
+                  <TableHead className="w-[120px] text-gray-700 dark:text-gray-300">Type</TableHead>
+                  <TableHead className="w-[100px] text-gray-700 dark:text-gray-300">Created</TableHead>
                   <TableHead className="w-[100px] text-gray-700 dark:text-gray-300">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sheetLinks.map((link) => (
                   <TableRow key={link.id} className="hover:bg-pink-50/50 dark:hover:bg-pink-900/10 transition-colors">
-                    <TableCell>
+                    <TableCell className="w-full max-w-0">
                       <div className="flex items-center space-x-2">
-                        <FileSpreadsheet className="h-4 w-4 text-pink-600 dark:text-pink-400" />
-                        <div>
-                          <div className="font-medium text-sm text-gray-900 dark:text-gray-100">
+                        <FileSpreadsheet className="h-4 w-4 text-pink-600 dark:text-pink-400 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <div 
+                            className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate cursor-help"
+                            title={link.sheetName || "Untitled Sheet"}
+                          >
                             {link.sheetName || "Untitled Sheet"}
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]">
+                          <div 
+                            className="text-xs text-gray-500 dark:text-gray-400 truncate cursor-help"
+                            title={link.sheetUrl}
+                          >
                             {link.sheetUrl}
                           </div>
                         </div>

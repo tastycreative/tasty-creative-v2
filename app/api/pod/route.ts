@@ -39,22 +39,25 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
-    // It's also good practice to check for refreshToken if your OAuth flow provides it and it's essential for refreshing tokens.
-    // Depending on the Google API client library behavior, a missing refresh token might not be an immediate issue
-    // if the access token is still valid, but it will prevent refreshing the token later.
-    // For now, we'll proceed if accessToken is present, assuming the library handles refresh token absence gracefully if not strictly needed for this call.
+
+    if (!session.refreshToken) {
+      return NextResponse.json(
+        { error: "No refresh token is set. Please re-authenticate with Google." },
+        { status: 401 }
+      );
+    }
 
     //console.log("Session retrieved:", session);
 
     const oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.AUTH_GOOGLE_ID,
+      process.env.AUTH_GOOGLE_SECRET,
       process.env.GOOGLE_REDIRECT_URI
     );
 
     oauth2Client.setCredentials({
       access_token: session.accessToken,
-      refresh_token: session.refreshToken, // session.refreshToken should be available if scoped correctly
+      refresh_token: session.refreshToken,
       expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined, // Convert seconds to milliseconds
     });
 

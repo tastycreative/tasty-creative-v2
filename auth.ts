@@ -62,6 +62,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       authorization: {
         params: {
           access_type: "offline",
+          prompt: "consent", // Forces Google to always ask for consent and return refresh token
           scope:
             "openid profile email https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/spreadsheets",
         },
@@ -174,29 +175,37 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       // Add Google OAuth tokens to the JWT
       if (account && account.provider === "google") {
+        console.log("JWT Callback - Google account data:");
+        console.log("- Has access_token:", !!account.access_token);
+        console.log("- Has refresh_token:", !!account.refresh_token);
+        console.log("- expires_at:", account.expires_at);
+        
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token;
         token.expiresAt = account.expires_at;
+        
+        if (!account.refresh_token) {
+          console.warn("WARNING: Google did not return a refresh token! This will cause permission issues.");
+        }
       }
 
       // If the access token has expired, try to refresh it
-      if (account?.provider === "google" && token.refreshToken && token.expiresAt) {
-        // Check if token is expired or about to expire (e.g., within the next 60 seconds)
-        const buffer = 60 * 1000; // 60 seconds buffer
-        if (Date.now() > (Number(token.expiresAt) * 1000) - buffer) {
-          console.log("Access token expired, attempting refresh...");
+      // This now works for any request, not just when account is present
+      if (token.refreshToken && token.expiresAt) {
+        // Check if token is expired or about to expire (e.g., within the next 5 minutes)
+        const buffer = 5 * 60 * 1000; // 5 minutes buffer
+        const now = Date.now();
+        const expiryTime = Number(token.expiresAt) * 1000;
+        
+        if (now > expiryTime - buffer) {
+          console.log("Access token expired or expiring soon, attempting refresh...");
           const refreshedToken = await refreshAccessToken(token);
 
           if (refreshedToken.error) {
             console.error("Failed to refresh access token:", refreshedToken.error);
-            // Invalidate the session by clearing token details if refresh fails
+            // Don't clear the token immediately - let the user know they need to re-auth
             token.error = refreshedToken.error;
-            token.accessToken = undefined;
-            // We might want to keep the refresh token if the error was temporary,
-            // but for "invalid_grant" (which Google sends for revoked refresh tokens),
-            // we should clear it. For simplicity here, we clear it on any refresh error.
-            // token.refreshToken = undefined; // Consider specific error handling for this
-            return token; // Return token with error
+            return token; // Return token with error so UI can handle re-authentication
           }
           console.log("Access token refreshed successfully.");
           return refreshedToken;

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ModelsDropdownList from "@/components/ModelsDropdownList";
+import PermissionGoogle from "@/components/PermissionGoogle";
 import { useSheetLinks, usePodStore } from "@/lib/stores/podStore";
 import {
   Loader2,
@@ -20,6 +21,9 @@ import {
   Link,
   Save,
   Database,
+  Edit,
+  Plus,
+  X,
 } from "lucide-react";
 
 interface SheetsIntegrationProps {
@@ -37,7 +41,7 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
   const [selectedModel, setSelectedModel] = useState("");
   const [selectedModelId, setSelectedModelId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [fromType, setFromType] = useState("POD Team");
+  const [fromType, setFromType] = useState("Scheduler");
   const [toType, setToType] = useState("Betterfans Sheet");
   const [status, setStatus] = useState<{
     type: "success" | "error" | "info";
@@ -54,10 +58,14 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
 
   // New state for sheet links functionality
   const [activeTab, setActiveTab] = useState("sync");
-  const [sheetLinkUrl, setSheetLinkUrl] = useState("");
-  const [sheetType, setSheetType] = useState("");
-  const [fetchedSheetName, setFetchedSheetName] = useState("");
-  const [isFetchingSheetName, setIsFetchingSheetName] = useState(false);
+  const [sheetEntries, setSheetEntries] = useState([{
+    id: 1,
+    url: "",
+    type: "",
+    fetchedName: "",
+    isFetching: false,
+    isEditing: false
+  }]);
   const [isSavingLink, setIsSavingLink] = useState(false);
   const [sheetLinkStatus, setSheetLinkStatus] = useState<{
     type: "success" | "error" | "info";
@@ -102,7 +110,6 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
       throw new Error("Invalid Google Sheets URL");
     }
 
-    setIsFetchingSheetName(true);
     try {
       // Use our server-side API to fetch sheet name
       const response = await fetch('/api/sheets/get-name', {
@@ -120,17 +127,13 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
       const sheetName = data.sheetName;
 
       if (sheetName) {
-        setFetchedSheetName(sheetName);
         return sheetName;
       } else {
         throw new Error("Could not retrieve sheet name");
       }
     } catch (error) {
       console.error("Error fetching sheet name:", error);
-      setFetchedSheetName("");
       throw error;
-    } finally {
-      setIsFetchingSheetName(false);
     }
   };
 
@@ -139,19 +142,76 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
   };
 
   // Auto-fetch sheet name when URL changes
-  useEffect(() => {
-    if (sheetLinkUrl && isValidGoogleSheetsUrl(sheetLinkUrl)) {
-      fetchSheetName(sheetLinkUrl).catch(() => {
-        // Reset sheet name if fetching fails
-        setFetchedSheetName("");
-      });
-    } else {
-      setFetchedSheetName("");
+  const handleUrlChange = async (entryId: number, url: string) => {
+    setSheetEntries(prev => prev.map(entry => 
+      entry.id === entryId 
+        ? { ...entry, url, fetchedName: "", isFetching: false }
+        : entry
+    ));
+
+    if (url && isValidGoogleSheetsUrl(url)) {
+      setSheetEntries(prev => prev.map(entry => 
+        entry.id === entryId 
+          ? { ...entry, isFetching: true }
+          : entry
+      ));
+
+      try {
+        const name = await fetchSheetName(url);
+        setSheetEntries(prev => prev.map(entry => 
+          entry.id === entryId 
+            ? { ...entry, fetchedName: name, isFetching: false, isEditing: false }
+            : entry
+        ));
+      } catch (error) {
+        setSheetEntries(prev => prev.map(entry => 
+          entry.id === entryId 
+            ? { ...entry, fetchedName: "", isFetching: false }
+            : entry
+        ));
+      }
     }
-  }, [sheetLinkUrl]);
+  };
+
+  const addNewSheetEntry = () => {
+    const newId = Math.max(...sheetEntries.map(e => e.id)) + 1;
+    setSheetEntries(prev => [...prev, {
+      id: newId,
+      url: "",
+      type: "",
+      fetchedName: "",
+      isFetching: false,
+      isEditing: false
+    }]);
+  };
+
+  const removeSheetEntry = (id: number) => {
+    if (sheetEntries.length > 1) {
+      setSheetEntries(prev => prev.filter(entry => entry.id !== id));
+    }
+  };
+
+  const updateSheetType = (entryId: number, type: string) => {
+    setSheetEntries(prev => prev.map(entry => 
+      entry.id === entryId 
+        ? { ...entry, type }
+        : entry
+    ));
+  };
+
+  const toggleEdit = (entryId: number) => {
+    setSheetEntries(prev => prev.map(entry => 
+      entry.id === entryId 
+        ? { ...entry, isEditing: !entry.isEditing }
+        : entry
+    ));
+  };
 
   const saveSheetLink = async () => {
-    if (!selectedModelId || !sheetLinkUrl || !sheetType) {
+    // Validate all entries
+    const validEntries = sheetEntries.filter(entry => entry.url && entry.type && entry.fetchedName);
+    
+    if (!selectedModelId || validEntries.length === 0) {
       setSheetLinkStatus({
         type: "error",
         message: "Please complete all fields before saving"
@@ -162,29 +222,41 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
     setIsSavingLink(true);
     
     try {
-      const response = await fetch('/api/client-model-sheets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'saveSheetLink',
-          clientModelId: selectedModelId,
-          sheetUrl: sheetLinkUrl,
-          sheetName: fetchedSheetName || null, // Use fetched name or null
-          sheetType
+      // Save all valid entries
+      const promises = validEntries.map(entry => 
+        fetch('/api/client-model-sheets', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'saveSheetLink',
+            clientModelId: selectedModelId,
+            sheetUrl: entry.url,
+            sheetName: entry.fetchedName,
+            sheetType: entry.type
+          })
         })
-      });
+      );
       
-      const result = await response.json();
+      const responses = await Promise.all(promises);
+      const results = await Promise.all(responses.map(r => r.json()));
       
-      if (response.ok && result.success) {
+      const allSuccessful = responses.every(r => r.ok) && results.every(r => r.success);
+      
+      if (allSuccessful) {
         setSheetLinkStatus({
           type: "success",
-          message: "Sheet link saved successfully!"
+          message: `Successfully saved ${validEntries.length} sheet link(s)!`
         });
         
-        // Reset form
-        setSheetLinkUrl("");
-        setSheetType("");
+        // Reset form to single empty entry
+        setSheetEntries([{
+          id: 1,
+          url: "",
+          type: "",
+          fetchedName: "",
+          isFetching: false,
+          isEditing: false
+        }]);
         
         // Trigger sheet links refresh in sidebar
         if (selectedTeamId && fetchSheetLinks) {
@@ -196,7 +268,7 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
       } else {
         setSheetLinkStatus({
           type: "error",
-          message: result.error || "Failed to save sheet link"
+          message: "Failed to save some sheet links"
         });
       }
     } catch (error) {
@@ -600,29 +672,41 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
             </div>
           )}
 
-          {/* Submit Button */}
-          <Button
-            type="submit"
-            size="lg"
-            className="w-full h-14 text-lg bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-            disabled={
-              isLoading ||
-              !spreadsheetUrl ||
-              !isValidGoogleSheetsUrl(spreadsheetUrl) ||
-              !selectedModel
-            }
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-3 animate-spin" />
-                Processing Your Request...
-              </>
-            ) : (
-              <>
-                <Copy className="w-5 h-5 mr-3" />✨ Create Sync Spreadsheet
-              </>
-            )}
-          </Button>
+          {/* Submit Button with Permission Check */}
+          <PermissionGoogle apiEndpoint="/api/pod/check-permissions">
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full h-14 text-lg bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              disabled={
+                isLoading ||
+                !spreadsheetUrl ||
+                !isValidGoogleSheetsUrl(spreadsheetUrl) ||
+                !selectedModel
+              }
+              onClick={() => {
+                // Debug logging
+                console.log('Button click debug:', {
+                  isLoading,
+                  spreadsheetUrl,
+                  isValidUrl: isValidGoogleSheetsUrl(spreadsheetUrl),
+                  selectedModel,
+                  buttonDisabled: isLoading || !spreadsheetUrl || !isValidGoogleSheetsUrl(spreadsheetUrl) || !selectedModel
+                });
+              }}
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                  Processing Your Request...
+                </>
+              ) : (
+                <>
+                  <Copy className="w-5 h-5 mr-3" />✨ Create Sync Spreadsheet
+                </>
+              )}
+            </Button>
+          </PermissionGoogle>
         </form>
 
         {/* Info Section */}
@@ -677,75 +761,104 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
               </p>
             </div>
 
-            {/* Sheet Type Selection */}
-            <div className="space-y-3">
-              <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center">
-                <div className="h-2 w-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 mr-2"></div>
-                Sheet Type
-              </label>
-              <Select value={sheetType} onValueChange={setSheetType}>
-                <SelectTrigger className="w-full h-12">
-                  <SelectValue placeholder="Select the type of sheet..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="POD Team">POD Team</SelectItem>
-                  <SelectItem value="Betterfans Sheet">Betterfans Sheet</SelectItem>
-                  <SelectItem value="Analyst">Analyst</SelectItem>
-                  <SelectItem value="Scheduler">Scheduler</SelectItem>
-                  <SelectItem value="Creator">Creator</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Sheet Entries */}
+            <div className="space-y-4">
+              {sheetEntries.map((entry) => (
+                <div key={entry.id} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                  <div className="flex items-start space-x-3">
+                    {/* Sheet URL/Name Input */}
+                    <div className="flex-1">
+                      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center mb-2">
+                        <div className="h-2 w-2 rounded-full bg-gradient-to-r from-orange-500 to-red-500 mr-2"></div>
+                        Sheet URL
+                      </label>
+                      <div className="flex items-center space-x-2">
+                        {entry.fetchedName && !entry.isEditing ? (
+                          <div className="flex-1 flex items-center space-x-2 p-3 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg">
+                            <FileSpreadsheet className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                            <span className="flex-1 text-gray-900 dark:text-gray-100 font-medium">{entry.fetchedName}</span>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleEdit(entry.id)}
+                              className="p-1 h-8 w-8"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <Input
+                            type="url"
+                            value={entry.url}
+                            onChange={(e) => handleUrlChange(entry.id, e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && entry.fetchedName) {
+                                e.preventDefault();
+                                toggleEdit(entry.id);
+                              }
+                            }}
+                            placeholder="https://docs.google.com/spreadsheets/d/your-sheet-id..."
+                            className="flex-1 h-12 text-base border-2 border-gray-200 dark:border-gray-600 focus:border-orange-500 dark:focus:border-orange-400 transition-colors duration-300 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          />
+                        )}
+                        
+                        {/* Remove Button */}
+                        {sheetEntries.length > 1 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeSheetEntry(entry.id)}
+                            className="p-2 h-12 w-12 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/30"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
 
-            {/* Sheet URL Input */}
-            <div className="space-y-3">
-              <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center">
-                <div className="h-2 w-2 rounded-full bg-gradient-to-r from-orange-500 to-red-500 mr-2"></div>
-                Sheet URL
-              </label>
-              <div className="flex space-x-2">
-                <Input
-                  type="url"
-                  value={sheetLinkUrl}
-                  onChange={(e) => {
-                    setSheetLinkUrl(e.target.value);
-                    setSheetLinkStatus(null);
-                  }}
-                  placeholder="https://docs.google.com/spreadsheets/d/your-sheet-id..."
-                  className="flex-1 h-12 text-base border-2 border-gray-200 dark:border-gray-600 focus:border-orange-500 dark:focus:border-orange-400 transition-colors duration-300 rounded-lg bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 text-gray-900 dark:text-gray-100"
-                />
-              </div>
-              
-              {/* Sheet Name Display */}
-              {sheetLinkUrl && isValidGoogleSheetsUrl(sheetLinkUrl) && (
-                <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg border border-blue-200 dark:border-blue-700">
-                  <div className="flex items-center space-x-3">
-                    {isFetchingSheetName ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                        <span className="text-sm text-blue-700 dark:text-blue-300">
-                          Fetching sheet name...
-                        </span>
-                      </>
-                    ) : fetchedSheetName ? (
-                      <>
-                        <CheckCircle className="h-4 w-4 text-blue-600" />
-                        <span className="text-sm text-blue-700 dark:text-blue-300">
-                          Sheet found: <strong>{fetchedSheetName}</strong>
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        <AlertCircle className="h-4 w-4 text-orange-600" />
-                        <span className="text-sm text-orange-700 dark:text-orange-300">
-                          Could not fetch sheet name
-                        </span>
-                      </>
-                    )}
+                      {/* Loading/Status for URL */}
+                      {entry.isFetching && (
+                        <div className="mt-2 flex items-center space-x-2 text-sm text-blue-600 dark:text-blue-400">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Fetching sheet name...</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Sheet Type Selection */}
+                    <div className="w-48">
+                      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center mb-2">
+                        <div className="h-2 w-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 mr-2"></div>
+                        Sheet Type
+                      </label>
+                      <Select value={entry.type} onValueChange={(value) => updateSheetType(entry.id, value)}>
+                        <SelectTrigger className="h-12">
+                          <SelectValue placeholder="Select type..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Betterfans Sheet">Betterfans Sheet</SelectItem>
+                          <SelectItem value="Analyst">Analyst</SelectItem>
+                          <SelectItem value="Scheduler">Scheduler</SelectItem>
+                          <SelectItem value="Creator">Creator</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
-              )}
+              ))}
             </div>
+
+            {/* Add Another Sheet Button */}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={addNewSheetEntry}
+              className="w-full h-12 text-base border-dashed border-2 border-gray-300 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Another Sheet Link
+            </Button>
 
             {/* Status Alert for Sheet Links */}
             {sheetLinkStatus && (
@@ -784,18 +897,18 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
             {/* Save Button */}
             <Button
               onClick={saveSheetLink}
-              disabled={!sheetType || !sheetLinkUrl || isSavingLink || isFetchingSheetName || !selectedModelId}
+              disabled={isSavingLink || !selectedModelId || !sheetEntries.some(entry => entry.url && entry.type && entry.fetchedName)}
               className="w-full h-12 text-base bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white"
             >
               {isSavingLink ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Saving Sheet Link...
+                  Saving Sheet Links...
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4 mr-2" />
-                  Save Sheet Link
+                  Save Sheet Links
                 </>
               )}
             </Button>
@@ -806,10 +919,11 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
                 How to use:
               </h4>
               <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
-                <li>• Select the type of sheet you're adding</li>
-                <li>• Paste the Google Sheets URL</li>
-                <li>• Click "Save Sheet Link" to store it in the database</li>
-                <li>• Sheet names will be automatically fetched by n8n automation</li>
+                <li>• Paste a Google Sheets URL - the sheet name will be fetched automatically</li>
+                <li>• Select the sheet type from the dropdown</li>
+                <li>• Use the edit button to change the URL after the name is loaded</li>
+                <li>• Click "Add Another Sheet Link" to add multiple sheets</li>
+                <li>• Click "Save Sheet Links" to store all entries in the database</li>
               </ul>
             </div>
           </div>

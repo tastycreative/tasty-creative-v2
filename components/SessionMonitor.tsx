@@ -26,84 +26,32 @@ export function SessionMonitor() {
           }
         )
 
+        // Commented out force refresh logic - now handled by PermissionGoogle component
         // Wait a moment for the toast to show
         setTimeout(async () => {
           try {
-            console.log('Attempting to force refresh session...')
+            console.log('Role change detected, but skipping force refresh (handled by PermissionGoogle)')
             
-            // First try our force refresh endpoint
-            const response = await fetch('/api/auth/force-refresh', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' }
-            })
+            // Just try to update the session normally
+            await update()
             
-            if (response.ok) {
-              const data = await response.json()
-              console.log('Force refresh response:', data)
-              
-              if (data.roleChanged) {
-                // Role has changed, we need to force a complete session refresh
-                console.log('Role change detected, forcing session refresh...')
-                
-                // Try to update the session first
-                await update()
-                
-                // Wait a bit then check if the session actually updated
-                setTimeout(async () => {
-                  const currentSession = await fetch('/api/auth/session').then(r => r.json())
-                  console.log('Current session after update:', currentSession?.user?.role)
-                  
-                  if (currentSession?.user?.role === notification.oldRole) {
-                    // Session didn't update, we need to force a sign out and back in
-                    console.log('Session update failed, forcing re-authentication...')
-                    toast.info(
-                      "Refreshing your session...", 
-                      {
-                        description: "Please wait while we update your permissions.",
-                        duration: 3000,
-                      }
-                    )
-                    
-                    // Store current page to redirect back
-                    const currentPath = window.location.pathname
-                    localStorage.setItem('redirectAfterAuth', currentPath)
-                    
-                    // Force re-authentication
-                    await signOut({ redirect: false })
-                    await signIn(undefined, { callbackUrl: currentPath })
-                  } else {
-                    // Session updated successfully
-                    toast.success(
-                      "Session updated successfully!", 
-                      {
-                        description: "You can now access your new permissions.",
-                        duration: 3000,
-                      }
-                    )
-                    // Force a page refresh to ensure all components see the new role
-                    setTimeout(() => {
-                      window.location.reload()
-                    }, 1000)
-                  }
-                }, 2000)
-              } else {
-                // No role change detected, just update normally
-                await update()
-                toast.success(
-                  "Session updated successfully!", 
-                  {
-                    description: "You can now access your new permissions.",
-                    duration: 3000,
-                  }
-                )
+            toast.success(
+              "Session updated successfully!", 
+              {
+                description: "You can now access your new permissions.",
+                duration: 3000,
               }
-            } else {
-              throw new Error('Force refresh failed')
-            }
+            )
+            
+            // Optional: Force a page refresh to ensure all components see the new role
+            // setTimeout(() => {
+            //   window.location.reload()
+            // }, 1000)
+            
           } catch (error) {
-            console.error('Failed to refresh session:', error)
+            console.error('Failed to update session:', error)
             toast.error(
-              "Failed to refresh session", 
+              "Session update failed", 
               {
                 description: "Please refresh the page to see your new role.",
                 duration: 5000,

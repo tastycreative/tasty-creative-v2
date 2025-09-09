@@ -18,24 +18,32 @@ const PermissionGoogle: React.FC<PermissionGoogleProps> = ({
   const [hasPermission, setHasPermission] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasChecked, setHasChecked] = useState(false);
   const { status: sessionStatus } = useSession();
 
   const missingApiEndpointError = "API endpoint is not defined.";
 
   const checkPermission = useCallback(async () => {
+    console.log('checkPermission called', { apiEndpoint, sessionStatus, hasChecked });
+    
+    // Prevent multiple checks
+    if (hasChecked) {
+      console.log('Already checked permissions, skipping...');
+      return;
+    }
+    
     if (!apiEndpoint) {
       setError(missingApiEndpointError);
       setIsLoading(false);
       setHasPermission(false);
+      setHasChecked(true);
       return;
     }
     if (sessionStatus === "unauthenticated") {
-      //console.log(
-      //   "Permission check: User is not authenticated (session). Skipping API call."
-      // );
       setHasPermission(false);
       setIsLoading(false);
       setError(null);
+      setHasChecked(true);
       return;
     }
     if (sessionStatus === "loading") {
@@ -45,72 +53,78 @@ const PermissionGoogle: React.FC<PermissionGoogleProps> = ({
 
     setIsLoading(true);
     setError(null);
+    
     try {
+      console.log('Making permission check request to:', apiEndpoint);
       const response = await fetch(apiEndpoint);
+      console.log('Permission check response status:', response.status);
+      
       if (response.ok) {
+        console.log('Permission check successful');
         setHasPermission(true);
+        setError(null);
+        setHasChecked(true);
         onPermissionsLoaded?.();
       } else if (response.status === 401) {
+        console.log('Permission check: 401 Unauthorized');
         setHasPermission(false);
-        //console.log(
-        //   `Permission check for ${apiEndpoint}: User not authorized (401).`
-        // );
+        setHasChecked(true);
       } else if (response.status === 403) {
+        console.log('Permission check: 403 Forbidden');
         let errorData;
         try {
           errorData = await response.json();
+          console.log('Permission check error data:', errorData);
         } catch {
-          console.error(
-            `Permission check for ${apiEndpoint}: 403 response was not JSON`,
-            await response.text()
-          );
+          console.error(`Permission check for ${apiEndpoint}: 403 response was not JSON`);
           setError("You have insufficient permission for this feature");
           setHasPermission(false);
+          setHasChecked(true);
+          setIsLoading(false);
           return;
         }
 
         if (errorData && errorData.error === "GooglePermissionDenied") {
-          //console.log(
-          //   `Permission check for ${apiEndpoint}: GooglePermissionDenied (403). Message: ${errorData.message}`
-          // );
-          setError("You have insufficient permission for this feature");
+          console.log("Google permission denied, showing re-auth prompt");
+          setError(errorData.message || "You have insufficient permission for this feature");
         } else {
-          console.error(
-            `Permission check for ${apiEndpoint}: Received 403 but not GooglePermissionDenied.`,
-            errorData
-          );
+          console.error(`Permission check for ${apiEndpoint}: Received 403 but not GooglePermissionDenied.`, errorData);
           setError("You have insufficient permission for this feature");
         }
         setHasPermission(false);
+        setHasChecked(true);
       } else {
-        const errorText = await response.text();
-        console.error(
-          `Permission check for ${apiEndpoint}: API error`,
-          response.status,
-          errorText
-        );
-        setError(
-          `Error checking permissions for ${apiEndpoint}: Status ${response.status}.`
-        );
+        console.error(`Permission check for ${apiEndpoint}: API error`, response.status);
+        setError(`Error checking permissions for ${apiEndpoint}: Status ${response.status}.`);
         setHasPermission(false);
+        setHasChecked(true);
       }
     } catch (err) {
-      console.error(
-        `Permission check for ${apiEndpoint}: Network or other error`,
-        err
-      );
-      setError(
-        `Failed to check permissions for ${apiEndpoint}. Please try again.`
-      );
+      console.error(`Permission check for ${apiEndpoint}: Network or other error`, err);
+      setError(`Failed to check permissions for ${apiEndpoint}. Please try again.`);
       setHasPermission(false);
+      setHasChecked(true);
     } finally {
       setIsLoading(false);
     }
-  }, [apiEndpoint, sessionStatus]);
+  }, [apiEndpoint, sessionStatus, hasChecked]);
 
   useEffect(() => {
     checkPermission();
   }, [checkPermission]);
+
+  // Disable periodic refresh for now to avoid loops
+  // Set up periodic token refresh check (every 4 minutes)
+  // useEffect(() => {
+  //   if (!hasPermission || sessionStatus !== "authenticated") return;
+    
+  //   const interval = setInterval(() => {
+  //     // Silently check and refresh tokens in the background
+  //     checkPermission(true);
+  //   }, 4 * 60 * 1000); // 4 minutes
+
+  //   return () => clearInterval(interval);
+  // }, [hasPermission, sessionStatus, checkPermission]);
 
   // Call onPermissionsLoaded when permissions are ready
   useEffect(() => {
@@ -122,11 +136,34 @@ const PermissionGoogle: React.FC<PermissionGoogleProps> = ({
   const handleGrantAccess = async () => {
     setIsLoading(true);
     setError(null);
+    setHasChecked(false); // Reset check flag to allow re-checking after auth
     try {
       await signIn("google");
     } catch (err) {
       console.error("Error during signIn:", err);
       setError("Failed to initiate sign-in. Please try again.");
+      setIsLoading(false);
+    }
+  };
+
+  const handleResetGoogleAuth = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/auth/revoke-google', {
+        method: 'POST'
+      });
+      
+      if (response.ok) {
+        // Force a page reload after revoke to clear any cached session
+        window.location.reload();
+      } else {
+        setError("Failed to reset Google authentication. Please try again.");
+        setIsLoading(false);
+      }
+    } catch (err) {
+      console.error("Error resetting Google auth:", err);
+      setError("Failed to reset Google authentication. Please try again.");
       setIsLoading(false);
     }
   };
@@ -158,10 +195,10 @@ const PermissionGoogle: React.FC<PermissionGoogleProps> = ({
           </p>
         </div>
         
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full max-w-xs sm:max-w-sm">
+        <div className="flex flex-col gap-2 sm:gap-3 w-full max-w-xs sm:max-w-sm">
           <Button 
             onClick={handleGrantAccess} 
-            className="flex-1 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white border-0 shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105 text-sm sm:text-base px-3 sm:px-4 py-2 sm:py-2.5"
+            className="w-full bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white border-0 shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105 text-sm sm:text-base px-3 sm:px-4 py-2 sm:py-2.5"
           >
             <svg className="w-4 h-4 mr-1.5 sm:mr-2 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -171,20 +208,17 @@ const PermissionGoogle: React.FC<PermissionGoogleProps> = ({
             </svg>
             <span className="truncate">Grant Google Access</span>
           </Button>
-          
-          {/* {error !== missingApiEndpointError && (
-            <Button
-              onClick={checkPermission}
-              variant="outline"
-              className="bg-transparent border-gray-300 text-gray-700 hover:bg-gray-50/50 transition-all duration-200 text-sm sm:text-base px-3 sm:px-4 py-2 sm:py-2.5 min-w-0"
-            >
-              <svg className="w-4 h-4 mr-1.5 sm:mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              <span className="hidden sm:inline">Retry</span>
-              <span className="sm:hidden">↻</span>
-            </Button>
-          )} */}
+
+          <Button 
+            onClick={handleResetGoogleAuth}
+            variant="outline"
+            className="w-full bg-transparent border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-all duration-200 text-sm sm:text-base px-3 sm:px-4 py-2 sm:py-2.5"
+          >
+            <svg className="w-4 h-4 mr-1.5 sm:mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span className="truncate">Reset & Re-authenticate</span>
+          </Button>
         </div>
       </div>
     );
