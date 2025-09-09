@@ -168,7 +168,9 @@ export default function PodLayout({ children }: PodLayoutProps) {
   // Auto-select first team if none is selected
   useEffect(() => {
     if (!selectedTeamId && availableTeams.length > 0 && !isLoadingTeams) {
-      console.log(`🎯 Auto-selecting first team: ${availableTeams[0].name} (${availableTeams[0].id})`);
+      console.log(
+        `🎯 Auto-selecting first team: ${availableTeams[0].name} (${availableTeams[0].id})`
+      );
       setSelectedTeamId(availableTeams[0].id);
     }
   }, [selectedTeamId, availableTeams, isLoadingTeams, setSelectedTeamId]);
@@ -182,18 +184,19 @@ export default function PodLayout({ children }: PodLayoutProps) {
       selectedTeamId,
       availableTeamsLength: availableTeams.length,
       pathname,
-      willFetch: selectedTeamId !== null && availableTeams.length > 0
+      willFetch: selectedTeamId !== null && availableTeams.length > 0,
     });
-    
+
     if (selectedTeamId !== null && availableTeams.length > 0) {
-      console.log(`🔄 Fetching data for team ${selectedTeamId} (teams loaded: ${availableTeams.length})`);
+      console.log(
+        `🔄 Fetching data for team ${selectedTeamId} (teams loaded: ${availableTeams.length})`
+      );
       fetchPodData(selectedTeamId, true); // Force refresh when team changes
       
       // Also fetch sheet links from the new ClientModelSheetLinks table
       fetchSheetLinks(selectedTeamId, true); // Force refresh when team changes
     }
   }, [selectedTeamId, fetchPodData, fetchSheetLinks, availableTeams.length]);
-
 
   const handleSheetClick = (sheetName: string, sheetUrl: string) => {
     setSelectedSheet({ name: sheetName, url: sheetUrl });
@@ -408,9 +411,7 @@ export default function PodLayout({ children }: PodLayoutProps) {
                                   </option>
                                 ))
                               ) : (
-                                <option value="">
-                                  Loading teams...
-                                </option>
+                                <option value="">Loading teams...</option>
                               )}
                             </select>
                             {(isLoading || isLoadingTeams) && (

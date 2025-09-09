@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from '@/lib/prisma';
+import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
 
 export async function POST(request: NextRequest) {
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     // Fetch specific pod team from database
     const podTeam = await prisma.podTeam.findUnique({
       where: {
-        id: rowId.toString() // Using ID directly now instead of row_id
+        id: rowId.toString(), // Using ID directly now instead of row_id
       },
       include: {
         members: {
@@ -32,10 +32,10 @@ export async function POST(request: NextRequest) {
                 id: true,
                 name: true,
                 email: true,
-                image: true
-              }
-            }
-          }
+                image: true,
+              },
+            },
+          },
         },
         assignedClients: {
           include: {
@@ -51,71 +51,73 @@ export async function POST(request: NextRequest) {
                     sheetUrl: true,
                     sheetName: true,
                     sheetType: true,
-                    createdAt: true
-                  }
-                }
-              }
+                    createdAt: true,
+                  },
+                },
+              },
             },
             assignedBy: {
               select: {
                 id: true,
                 name: true,
-                email: true
-              }
-            }
-          }
+                email: true,
+              },
+            },
+          },
         },
         createdBy: {
           select: {
             id: true,
             name: true,
-            email: true
-          }
-        }
-      }
+            email: true,
+          },
+        },
+      },
     });
 
     if (!podTeam) {
-      return NextResponse.json(
-        { error: "Team not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Team not found" }, { status: 404 });
     }
 
     // Transform team members from relational data
     const teamMembers = podTeam.members.map((member) => ({
       id: member.id,
-      name: member.user.name || member.user.email?.split('@')[0] || 'Unknown',
-      email: member.user.email || '',
+      name: member.user.name || member.user.email?.split("@")[0] || "Unknown",
+      email: member.user.email || "",
       role: member.role,
       joinedAt: member.joinedAt.toISOString(),
       userId: member.user.id,
-      image: member.user.image
+      image: member.user.image,
     }));
 
     // Transform assigned creators from relational data
     const creators = podTeam.assignedClients.map((assignment) => ({
       id: assignment.clientModel.id,
       name: assignment.clientModel.clientName,
-      rowNumber: assignment.clientModel.row_id ? parseInt(assignment.clientModel.row_id) : null,
+      rowNumber: assignment.clientModel.row_id
+        ? parseInt(assignment.clientModel.row_id)
+        : null,
       row_id: assignment.clientModel.row_id,
       guaranteed: assignment.clientModel.guaranteed,
       assignedAt: assignment.assignedAt.toISOString(),
       assignedBy: assignment.assignedBy,
       isActive: assignment.isActive,
-      notes: assignment.notes
+      notes: assignment.notes,
     }));
 
     // Transform sheet links from ClientModelSheetLinks data
     // Fetch sheet links from the new API endpoint
     let sheetLinks: any[] = [];
     try {
-      const sheetLinksResponse = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/pod/sheet-links?teamId=${podTeam.id}`, {
-        method: 'GET',
-        headers: {
-          'Cookie': request.headers.get('Cookie') || ''
+      const sheetLinksResponse = await fetch(
+        `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/api/pod/sheet-links?teamId=${podTeam.id}`,
+        {
+          method: "GET",
+          headers: {
+            Cookie: request.headers.get("Cookie") || "",
+          },
         }
-      });
+      );
       if (sheetLinksResponse.ok) {
         const sheetLinksResult = await sheetLinksResponse.json();
         if (sheetLinksResult.success) {
@@ -123,7 +125,7 @@ export async function POST(request: NextRequest) {
         }
       }
     } catch (error) {
-      console.error('Error fetching sheet links:', error);
+      console.error("Error fetching sheet links:", error);
       // Continue without sheet links rather than failing
     }
 
@@ -140,10 +142,9 @@ export async function POST(request: NextRequest) {
         isActive: podTeam.isActive,
         createdAt: podTeam.createdAt.toISOString(),
         lastUpdated: podTeam.updatedAt.toISOString(),
-        createdBy: podTeam.createdBy
+        createdBy: podTeam.createdBy,
       },
     });
-
   } catch (error) {
     console.error("Error fetching team from database:", error);
     return NextResponse.json(
