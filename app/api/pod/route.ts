@@ -346,21 +346,21 @@ export async function POST(request: NextRequest) {
         if (fromType === 'Scheduler') {
           // POD → Betterfans: Use IMPORTRANGE formulas (existing logic)
           const importFormulas = [
-            // B2: =IMPORTRANGE("url", "Sheet!E12:E") - Source column E
+            // B2: =IMPORTRANGE("url", "Sheet!C12:C") - Source column C
             [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!C12:C")`],
-            // C2: =IMPORTRANGE("url", "Sheet!D12:D") - Source column D  
+            // C2: =IMPORTRANGE("url", "Sheet!K12:K") - Source column K  
             [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!K12:K")`],
-            // D2: =IMPORTRANGE("url", "Sheet!F12:F") - Source column F
+            // D2: =IMPORTRANGE("url", "Sheet!E12:E") - Source column E
             [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!E12:E")`],
-            // E2: =IMPORTRANGE("url", "Sheet!G12:G") - Source column G
+            // E2: =IMPORTRANGE("url", "Sheet!F12:F") - Source column F
             [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!F12:F")`],
             // F2: Skip - leave as template (index 4 skipped)
             null,
-            // G2: =IMPORTRANGE("url", "Sheet!I12:I") - Source column I
+            // G2: =IMPORTRANGE("url", "Sheet!H12:H") - Source column H
             [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!H12:H")`],
             // H2: Skip - leave as template (index 6 skipped)
             null,
-            // I2: =IMPORTRANGE("url", "Sheet!K12:K") - Source column K
+            // I2: =IMPORTRANGE("url", "Sheet!J12:J") - Source column J
             [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!J12:J")`],
             // J2: Skip - leave as template (index 8 skipped)
             null,
