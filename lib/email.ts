@@ -542,6 +542,165 @@ export async function sendRoleElevationEmail({
   });
 }
 
+export async function sendSheetLinkNotificationEmail({
+  to,
+  modelName,
+  sheetName,
+  sheetUrl,
+  sheetType,
+  userWhoLinked,
+}: {
+  to: string;
+  modelName: string;
+  sheetName: string;
+  sheetUrl: string;
+  sheetType: string;
+  userWhoLinked: string;
+}) {
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject: `New sheet link added to ${modelName} - Tasty Creative`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>New Sheet Link Notification</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f9fafb;">
+          <div style="background-color: #f9fafb; padding: 40px 20px;">
+            <!-- Main Container -->
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);">
+              
+              <!-- Header -->
+              <div style="background: linear-gradient(135deg, #fdf2f8 0%, #fce7f3 100%); padding: 48px 40px; text-align: center; border-bottom: 1px solid #fce7f3;">
+                <svg
+                  style="margin: 0 auto 16px; height: 48px; width: 48px; color: #ec4899;"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+                <h1 style="margin: 0 0 8px 0; font-size: 32px; font-weight: 800; color: #111827; letter-spacing: -0.5px;">
+                  New Sheet Link Added!
+                </h1>
+                <p style="margin: 0; font-size: 16px; color: #6b7280;">
+                  A Google Sheet has been linked to <span style="font-weight: 600; color: #ec4899;">${modelName}</span>
+                </p>
+              </div>
+              
+              <!-- Body Content -->
+              <div style="padding: 48px 40px;">
+                <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #374151;">
+                  Hello team member,
+                </p>
+                <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #374151;">
+                  <strong>${userWhoLinked}</strong> has added a new Google Sheet link to <strong>${modelName}</strong>.
+                </p>
+                
+                <!-- Sheet Details -->
+                <div style="background-color: #f9fafb; padding: 24px; border-radius: 8px; margin: 32px 0;">
+                  <h3 style="margin: 0 0 16px 0; font-size: 18px; color: #111827; font-weight: 600;">
+                    Sheet Details
+                  </h3>
+                  <div style="space-y: 12px;">
+                    <div style="margin-bottom: 12px;">
+                      <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                        Sheet Name
+                      </p>
+                      <p style="margin: 0; font-size: 16px; color: #111827; font-weight: 600;">
+                        ${sheetName}
+                      </p>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                      <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                        Sheet Type
+                      </p>
+                      <p style="margin: 0; font-size: 16px; color: #6366f1; font-weight: 600;">
+                        ${sheetType}
+                      </p>
+                    </div>
+                    <div>
+                      <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                        Model
+                      </p>
+                      <p style="margin: 0; font-size: 16px; color: #ec4899; font-weight: 600;">
+                        ${modelName}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- CTA Button -->
+                <div style="text-align: center; margin: 32px 0;">
+                  <a href="${sheetUrl}" style="display: inline-block; padding: 14px 32px; background-color: #000000; color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; transition: all 0.3s ease;">
+                    View Google Sheet
+                  </a>
+                </div>
+                
+                <!-- Divider -->
+                <div style="margin: 40px 0; border-top: 1px solid #e5e7eb;"></div>
+                
+                <!-- Additional Information -->
+                <div style="background-color: #f9fafb; padding: 24px; border-radius: 8px; margin-bottom: 24px;">
+                  <p style="margin: 0 0 12px 0; font-size: 14px; color: #6b7280;">
+                    <strong>Stay organized!</strong>
+                  </p>
+                  <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 20px;">
+                    This sheet link has been added to ${modelName}'s profile. You can access it anytime from the model's sheet links section in the POD dashboard.
+                  </p>
+                </div>
+                
+                <!-- Footer text -->
+                <p style="margin: 0 0 12px 0; font-size: 14px; color: #6b7280; line-height: 20px;">
+                  You're receiving this notification because you're a member of the POD team assigned to ${modelName}.
+                </p>
+                
+                <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 20px;">
+                  <strong>Note:</strong> This is an automated notification from the Tasty Creative POD system.
+                </p>
+              </div>
+              
+              <!-- Footer -->
+              <div style="background-color: #f9fafb; padding: 32px 40px; text-align: center; border-top: 1px solid #e5e7eb;">
+                <p style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #111827;">
+                  Tasty Creative
+                </p>
+                <p style="margin: 0; font-size: 14px; color: #6b7280;">
+                  Creating amazing content experiences
+                </p>
+                
+                <!-- Social links placeholder -->
+                <div style="margin-top: 20px;">
+                  <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+                    © ${new Date().getFullYear()} Tasty Creative. All rights reserved.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Email footer -->
+            <div style="text-align: center; margin-top: 32px;">
+              <p style="margin: 0; font-size: 12px; color: #9ca3af; line-height: 18px;">
+                This email was sent to ${to}<br>
+                You received this notification because a sheet link was added to your assigned model.
+              </p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+  });
+}
+
 export async function sendSubmissionConfirmationEmail({
   to,
   formTitle,

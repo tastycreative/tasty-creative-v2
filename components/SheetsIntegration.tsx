@@ -248,6 +248,27 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
           message: `Successfully saved ${validEntries.length} sheet link(s)!`
         });
         
+        // Send notification emails to POD team members via API
+        if (selectedModel && selectedModelId) {
+          for (const entry of validEntries) {
+            try {
+              await fetch('/api/notifications/sheet-link', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  clientModelId: selectedModelId,
+                  modelName: selectedModel,
+                  sheetName: entry.fetchedName,
+                  sheetUrl: entry.url,
+                  sheetType: entry.type,
+                })
+              });
+            } catch (error) {
+              console.error('Error sending notification for sheet link:', error);
+            }
+          }
+        }
+        
         // Reset form to single empty entry
         setSheetEntries([{
           id: 1,
@@ -353,6 +374,23 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
             
             if (saveResponse.ok) {
               console.log('Sync spreadsheet saved to ClientModelSheetLinks');
+              
+              // Send notification emails to POD team members for sync spreadsheet via API
+              try {
+                await fetch('/api/notifications/sheet-link', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    clientModelId: selectedModelId,
+                    modelName: selectedModel,
+                    sheetName: result.fileName,
+                    sheetUrl: result.spreadsheetUrl,
+                    sheetType: toType,
+                  })
+                });
+              } catch (error) {
+                console.error('Error sending notification for sync spreadsheet:', error);
+              }
             } else {
               console.error('Failed to save sync spreadsheet to ClientModelSheetLinks');
             }

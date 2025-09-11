@@ -327,6 +327,27 @@ export default function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProp
             message: `Successfully added ${validEntries.length} sheet link(s)!`
           });
           
+          // Send notification emails to POD team members via API
+          if (modelName && modelId) {
+            for (const entry of validEntries) {
+              try {
+                await fetch('/api/notifications/sheet-link', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    clientModelId: modelId,
+                    modelName: modelName,
+                    sheetName: entry.fetchedName,
+                    sheetUrl: entry.url,
+                    sheetType: entry.type,
+                  })
+                });
+              } catch (error) {
+                console.error('Error sending notification for sheet link:', error);
+              }
+            }
+          }
+          
           // Refresh the list
           const listResponse = await fetch(`/api/client-model-sheets?clientModelId=${modelId}`);
           const listData = await listResponse.json();
