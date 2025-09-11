@@ -41,8 +41,13 @@ export async function GET(request: NextRequest) {
             id: true,
             title: true,
             status: true,
-            teamName: true,
-            createdAt: true
+            createdAt: true,
+            podTeam: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
           }
         },
         User: {

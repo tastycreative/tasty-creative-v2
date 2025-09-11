@@ -39,32 +39,29 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
-
-    if (!session.refreshToken) {
-      return NextResponse.json(
-        { error: "No refresh token is set. Please re-authenticate with Google." },
-        { status: 401 }
-      );
-    }
+    // It's also good practice to check for refreshToken if your OAuth flow provides it and it's essential for refreshing tokens.
+    // Depending on the Google API client library behavior, a missing refresh token might not be an immediate issue
+    // if the access token is still valid, but it will prevent refreshing the token later.
+    // For now, we'll proceed if accessToken is present, assuming the library handles refresh token absence gracefully if not strictly needed for this call.
 
     //console.log("Session retrieved:", session);
 
     const oauth2Client = new google.auth.OAuth2(
-      process.env.AUTH_GOOGLE_ID,
-      process.env.AUTH_GOOGLE_SECRET,
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
       process.env.GOOGLE_REDIRECT_URI
     );
 
     oauth2Client.setCredentials({
       access_token: session.accessToken,
-      refresh_token: session.refreshToken,
+      refresh_token: session.refreshToken, // session.refreshToken should be available if scoped correctly
       expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined, // Convert seconds to milliseconds
     });
 
     const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
     const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
-    const { sourceUrl, fromType, toType, modelName } = await request.json();
+    const { sourceUrl, fromType, toType } = await request.json();
 
     if (!sourceUrl) {
       return NextResponse.json(
@@ -80,14 +77,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!modelName) {
-      return NextResponse.json(
-        { error: 'Model name is required' },
-        { status: 400 }
-      );
-    }
-
-    console.log('Conversion:', fromType, '→', toType, 'for model:', modelName);
+    console.log('Conversion:', fromType, '→', toType);
 
     // Validate and extract spreadsheet ID and GID from source URL
     const sourceSpreadsheetId = extractSpreadsheetId(sourceUrl);
@@ -119,7 +109,7 @@ export async function POST(request: NextRequest) {
       
       // Find sheets based on conversion direction
       if (spreadsheetInfo.data.sheets) {
-        if (fromType === 'POD Scheduler Sheet') {
+        if (fromType === 'Scheduler') {
           // Find all sheets that contain "Schedule #1" in their name and are not hidden
           scheduleSheets = spreadsheetInfo.data.sheets
             .filter(sheet => {
@@ -179,7 +169,7 @@ export async function POST(request: NextRequest) {
 
       // Test access to all schedule sheets to ensure we can read them
       for (const sheet of scheduleSheets) {
-        const testRange = fromType === 'POD Scheduler Sheet' 
+        const testRange = fromType === 'Scheduler' 
           ? `'${sheet.name}'!C12:T12`  // POD test range
           : `'${sheet.name}'!B2:P2`;   // Betterfans test range
         console.log('Testing access to range:', testRange);
@@ -232,7 +222,7 @@ export async function POST(request: NextRequest) {
         minute: '2-digit' 
       }); // HH:MM format
       const conversionDirection = `${fromType.replace(' Sheet', '')} to ${toType.replace(' Sheet', '')}`;
-      const newFileName = `${modelName} - ${spreadsheetName} - ${conversionDirection} - ${dateStr} ${timeStr}`;
+      const newFileName = `${spreadsheetName} - ${conversionDirection} - ${dateStr} ${timeStr}`;
       
       const copyResponse = await drive.files.copy({
         fileId: templateId,
@@ -268,7 +258,7 @@ export async function POST(request: NextRequest) {
     // Step 2.5: Find the correct template sheet GID for POD template
     let actualTemplateGid = templateGid;
     
-    if (toType === 'POD Scheduler Sheet') {
+    if (toType === 'Scheduler') {
       try {
         // Get the template spreadsheet info to find the TEMPLATE sheet GID
         const templateInfo = await sheets.spreadsheets.get({
@@ -353,25 +343,25 @@ export async function POST(request: NextRequest) {
         }
 
         // Handle data copying based on conversion direction
-        if (fromType === 'POD Scheduler Sheet') {
+        if (fromType === 'Scheduler') {
           // POD → Betterfans: Use IMPORTRANGE formulas (existing logic)
           const importFormulas = [
-            // B2: =IMPORTRANGE("url", "Sheet!E12:E") - Source column E
+            // B2: =IMPORTRANGE("url", "Sheet!C12:C") - Source column C
+            [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!C12:C")`],
+            // C2: =IMPORTRANGE("url", "Sheet!K12:K") - Source column K  
+            [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!K12:K")`],
+            // D2: =IMPORTRANGE("url", "Sheet!E12:E") - Source column E
             [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!E12:E")`],
-            // C2: =IMPORTRANGE("url", "Sheet!D12:D") - Source column D  
-            [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!D12:D")`],
-            // D2: =IMPORTRANGE("url", "Sheet!F12:F") - Source column F
+            // E2: =IMPORTRANGE("url", "Sheet!F12:F") - Source column F
             [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!F12:F")`],
-            // E2: =IMPORTRANGE("url", "Sheet!G12:G") - Source column G
-            [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!G12:G")`],
             // F2: Skip - leave as template (index 4 skipped)
             null,
-            // G2: =IMPORTRANGE("url", "Sheet!I12:I") - Source column I
-            [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!I12:I")`],
+            // G2: =IMPORTRANGE("url", "Sheet!H12:H") - Source column H
+            [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!H12:H")`],
             // H2: Skip - leave as template (index 6 skipped)
             null,
-            // I2: =IMPORTRANGE("url", "Sheet!K12:K") - Source column K
-            [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!K12:K")`],
+            // I2: =IMPORTRANGE("url", "Sheet!J12:J") - Source column J
+            [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!J12:J")`],
             // J2: Skip - leave as template (index 8 skipped)
             null,
             // K2: =IMPORTRANGE("url", "Sheet!N12:N") - Source column N
@@ -545,8 +535,8 @@ export async function POST(request: NextRequest) {
 
         // Auto-resize columns for this sheet in a separate request
         try {
-          const resizeStartIndex = fromType === 'POD Scheduler Sheet' ? 1 : 3; // B for Betterfans, D for POD
-          const resizeEndIndex = fromType === 'POD Scheduler Sheet' ? 16 : 21;  // P for Betterfans, T for POD
+          const resizeStartIndex = fromType === 'Scheduler' ? 1 : 3; // B for Betterfans, D for POD
+          const resizeEndIndex = fromType === 'Scheduler' ? 16 : 21;  // P for Betterfans, T for POD
           
           await sheets.spreadsheets.batchUpdate({
             spreadsheetId: newSpreadsheetId,
@@ -572,11 +562,11 @@ export async function POST(request: NextRequest) {
         console.log(`Successfully processed sheet: ${targetSheetName}`);
       }
 
-      const processType = fromType === 'POD Scheduler Sheet' ? 'IMPORTRANGE formulas' : 'real data copying';
+      const processType = fromType === 'Scheduler' ? 'IMPORTRANGE formulas' : 'real data copying';
       console.log(`Successfully set up ${processType} for ${scheduleSheets.length} sheets`);
 
     } catch (error) {
-      const processType = fromType === 'POD Scheduler Sheet' ? 'IMPORTRANGE formulas' : 'data copying';
+      const processType = fromType === 'Scheduler' ? 'IMPORTRANGE formulas' : 'data copying';
       console.error(`Error setting up ${processType}:`, error);
       
       // Clean up the created file if formula setup failed
@@ -609,13 +599,13 @@ export async function POST(request: NextRequest) {
         fields: 'webViewLink,name',
       });
 
-      const isRealTimeSync = fromType === 'POD Scheduler Sheet';
+      const isRealTimeSync = fromType === 'Scheduler';
       const syncType = isRealTimeSync ? 'IMPORTRANGE' : 'STATIC_COPY';
       const processMessage = isRealTimeSync 
         ? `IMPORTRANGE formulas set up successfully for ${scheduleSheets.length} sheets with real-time sync`
         : `Real data copied successfully for ${scheduleSheets.length} sheets`;
       
-      const columnMapping = fromType === 'POD Scheduler Sheet'
+      const columnMapping = fromType === 'Scheduler'
         ? 'POD E→Betterfans B, POD D→Betterfans C, POD F→Betterfans D, POD G→Betterfans E, POD I→Betterfans G, POD K→Betterfans I, POD N→Betterfans K, POD M→Betterfans L, POD O→Betterfans M, POD P→Betterfans N, POD R→Betterfans O, POD T→Betterfans P'
         : 'Betterfans B→POD E, Betterfans C→POD D, Betterfans D→POD F, Betterfans E→POD G, Betterfans G→POD I, Betterfans I→POD K, Betterfans K→POD N, Betterfans L→POD M, Betterfans M→POD O, Betterfans N→POD P, Betterfans O→POD R, Betterfans P→POD T, Betterfans S→POD AL, Betterfans T→POD AK, Betterfans U→POD AM';
       
