@@ -19,7 +19,7 @@ const Sidebar = () => {
     <>
       {/* Desktop Sidebar */}
       <div className={clsx(
-        "hidden lg:block fixed left-0 top-0 h-screen transition-all duration-300 ease-in-out z-20",
+        "hidden lg:block sticky top-0 h-screen transition-all duration-300 ease-in-out z-20",
         "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-r border-pink-200 dark:border-pink-500/30",
         "shadow-[4px_0_24px_rgba(0,0,0,0.06)] dark:shadow-[4px_0_24px_rgba(0,0,0,0.2)]",
         isCollapsed ? "w-16" : "w-64"
