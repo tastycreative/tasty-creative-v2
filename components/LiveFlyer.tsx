@@ -48,6 +48,9 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
     "MonthDay" | "DayOfWeek" | "MMDD"
   >("MonthDay");
 
+  const [tonightSelected, setTonightSelected] = useState<boolean>(false);
+  const [tomorrowSelected, setTomorrowSelected] = useState<boolean>(false);
+
   const [eventCreated, setEventCreated] = useState<{
     success: boolean;
     message: string;
@@ -94,14 +97,19 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
         selectedDateTime.hasSame(nowInZone, "month") &&
         selectedDateTime.hasSame(nowInZone, "year");
 
+      // Use "Going Live" if Tonight or Tomorrow is selected, otherwise use original logic
+      const headerText = (tonightSelected || tomorrowSelected) 
+        ? "Going Live" 
+        : (isToday ? "Live Tonight" : "Going Live");
+
       setFormData((prev) => ({
         ...prev,
-        header: isToday ? "Live Tonight" : "Going Live",
+        header: headerText,
       }));
     } catch (err) {
       console.error("Invalid date/time/timezone format:", err);
     }
-  }, [formData.date, formData.time, formData.timezone]);
+  }, [formData.date, formData.time, formData.timezone, tonightSelected, tomorrowSelected]);
 
   const fetchWebhookData = async (requestId: string) => {
     try {
@@ -463,9 +471,18 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
     const datetimezone = date + " " + time + " " + timezone;
 
     try {
+      const formattedDate = formatDateOption(datetimezone, dtmzoption);
+      let finalDateString = formattedDate;
+      
+      if (tonightSelected) {
+        finalDateString = "Tonight " + formattedDate;
+      } else if (tomorrowSelected) {
+        finalDateString = "Tomorrow " + formattedDate;
+      }
+      
       setFormData((prev) => ({
         ...prev,
-        datetmz: formatDateOption(datetimezone, dtmzoption),
+        datetmz: finalDateString,
       }));
     } catch (err) {
       console.error("Invalid date/timezone format:", err);
@@ -477,7 +494,7 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
     if (formData.date && formData.time && formData.timezone) {
       dateTimezone();
     }
-  }, [formData.date, formData.time, formData.timezone, dtmzoption]);
+  }, [formData.date, formData.time, formData.timezone, dtmzoption, tonightSelected, tomorrowSelected]);
 
   return (
     <div className="flex flex-col gap-5">
@@ -648,11 +665,54 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
               </div>
             </div>
 
+            {/* Tonight/Tomorrow Options */}
+            <div className="col-span-2 flex flex-col gap-2">
+              <div className="flex gap-4 items-center">
+                <label className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                  <input
+                    type="checkbox"
+                    checked={tonightSelected}
+                    onChange={(e) => {
+                      setTonightSelected(e.target.checked);
+                      if (e.target.checked) {
+                        setTomorrowSelected(false);
+                      }
+                    }}
+                    disabled={isLoading || isFetchingImage || webhookData}
+                    className="accent-pink-600"
+                  />
+                  <span className="text-sm font-medium">Tonight</span>
+                </label>
+                
+                <label className="flex items-center gap-2 text-gray-700 dark:text-gray-200">
+                  <input
+                    type="checkbox"
+                    checked={tomorrowSelected}
+                    onChange={(e) => {
+                      setTomorrowSelected(e.target.checked);
+                      if (e.target.checked) {
+                        setTonightSelected(false);
+                      }
+                    }}
+                    disabled={isLoading || isFetchingImage || webhookData}
+                    className="accent-pink-600"
+                  />
+                  <span className="text-sm font-medium">Tomorrow</span>
+                </label>
+              </div>
+              {(tonightSelected || tomorrowSelected) && (
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Note: Tonight and Tomorrow options are subject to the selected template as they may not work as intended.
+                </p>
+              )}
+            </div>
+
             {/* <div className="col-span-2 w-full">
               <label className="text-sm font-medium mb-1"></label>
               {formData.datetmz ? formData.datetmz : "Date/Timezone"}
             </div> */}
-
+            
+            {/* DateTime Format */}
             <div className="col-span-2 text-gray-700 dark:text-gray-200 flex flex-col gap-4 ">
               <label className="flex items-center gap-1">
                 <input
@@ -664,15 +724,16 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
                   className="accent-pink-600"
                 />
                 <span className="text-sm">
-                  {formData.datetmz
-                    ? formatDateOption(
-                        formData.date +
-                          " " +
-                          formData.time +
-                          " " +
-                          formData.timezone,
-                        "MonthDay"
-                      )
+                  {formData.date && formData.time && formData.timezone
+                    ? (() => {
+                        const baseFormat = formatDateOption(
+                          formData.date + " " + formData.time + " " + formData.timezone,
+                          "MonthDay"
+                        );
+                        if (tonightSelected) return "Tonight " + baseFormat;
+                        if (tomorrowSelected) return "Tomorrow " + baseFormat;
+                        return baseFormat;
+                      })()
                     : "MonthDay"}
                 </span>
               </label>
@@ -687,16 +748,16 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
                   className="accent-pink-600"
                 />
                 <span className="text-sm">
-                  {" "}
-                  {formData.datetmz
-                    ? formatDateOption(
-                        formData.date +
-                          " " +
-                          formData.time +
-                          " " +
-                          formData.timezone,
-                        "DayOfWeek"
-                      )
+                  {formData.date && formData.time && formData.timezone
+                    ? (() => {
+                        const baseFormat = formatDateOption(
+                          formData.date + " " + formData.time + " " + formData.timezone,
+                          "DayOfWeek"
+                        );
+                        if (tonightSelected) return "Tonight " + baseFormat;
+                        if (tomorrowSelected) return "Tomorrow " + baseFormat;
+                        return baseFormat;
+                      })()
                     : "DayOfWeek"}
                 </span>
               </label>
@@ -711,16 +772,16 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
                   className="accent-pink-600"
                 />
                 <span className="text-sm">
-                  {" "}
-                  {formData.datetmz
-                    ? formatDateOption(
-                        formData.date +
-                          " " +
-                          formData.time +
-                          " " +
-                          formData.timezone,
-                        "MMDD"
-                      )
+                  {formData.date && formData.time && formData.timezone
+                    ? (() => {
+                        const baseFormat = formatDateOption(
+                          formData.date + " " + formData.time + " " + formData.timezone,
+                          "MMDD"
+                        );
+                        if (tonightSelected) return "Tonight " + baseFormat;
+                        if (tomorrowSelected) return "Tomorrow " + baseFormat;
+                        return baseFormat;
+                      })()
                     : "MMDD"}
                 </span>
               </label>
