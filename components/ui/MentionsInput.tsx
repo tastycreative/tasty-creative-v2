@@ -9,6 +9,8 @@ export interface MentionUser {
   name: string | null;
   email: string | null;
   image?: string | null;
+  isTeamMember?: boolean;
+  isGlobalAdmin?: boolean;
 }
 
 export interface Mention {
@@ -24,6 +26,7 @@ interface MentionsInputProps {
   onChange: (value: string) => void;
   onMentionsChange?: (mentions: Mention[]) => void;
   teamMembers: MentionUser[];
+  teamAdmins?: MentionUser[];
   placeholder?: string;
   className?: string;
   disabled?: boolean;
@@ -36,6 +39,7 @@ const MentionsInput: React.FC<MentionsInputProps> = ({
   onChange,
   onMentionsChange,
   teamMembers,
+  teamAdmins = [],
   placeholder = "Type your message...",
   className = "",
   disabled = false,
@@ -161,12 +165,20 @@ const MentionsInput: React.FC<MentionsInputProps> = ({
     };
   }, [displayValue]);
 
-  // Filter team members for suggestions
+  // Filter team members and admins for suggestions
   const filteredMembers = teamMembers.filter(member => {
     if (!suggestionFilter) return true;
     const displayName = member.name || member.email?.split('@')[0] || '';
     return displayName.toLowerCase().includes(suggestionFilter.toLowerCase());
   });
+
+  const filteredAdmins = teamAdmins.filter(admin => {
+    if (!suggestionFilter) return true;
+    const displayName = admin.name || admin.email?.split('@')[0] || '';
+    return displayName.toLowerCase().includes(suggestionFilter.toLowerCase());
+  });
+
+  const allFilteredUsers = [...filteredMembers, ...filteredAdmins];
 
   // Handle text change
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -287,25 +299,25 @@ const MentionsInput: React.FC<MentionsInputProps> = ({
 
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!showSuggestions || filteredMembers.length === 0) return;
+    if (!showSuggestions || allFilteredUsers.length === 0) return;
 
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
         setSelectedSuggestionIndex(prev => 
-          prev < filteredMembers.length - 1 ? prev + 1 : 0
+          prev < allFilteredUsers.length - 1 ? prev + 1 : 0
         );
         break;
       case 'ArrowUp':
         e.preventDefault();
         setSelectedSuggestionIndex(prev => 
-          prev > 0 ? prev - 1 : filteredMembers.length - 1
+          prev > 0 ? prev - 1 : allFilteredUsers.length - 1
         );
         break;
       case 'Enter':
       case 'Tab':
         e.preventDefault();
-        selectSuggestion(filteredMembers[selectedSuggestionIndex]);
+        selectSuggestion(allFilteredUsers[selectedSuggestionIndex]);
         break;
       case 'Escape':
         setShowSuggestions(false);
@@ -423,32 +435,82 @@ const MentionsInput: React.FC<MentionsInputProps> = ({
             left: dropdownPosition.left,
           }}
         >
-          {filteredMembers.map((member, index) => {
-            const displayName = member.name || member.email?.split('@')[0] || 'Unknown User';
-            const isSelected = index === selectedSuggestionIndex;
+          {/* Team Members Section */}
+          {filteredMembers.length > 0 && (
+            <>
+              <div className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50">
+                Members
+              </div>
+              {filteredMembers.map((member, index) => {
+                const displayName = member.name || member.email?.split('@')[0] || 'Unknown User';
+                const isSelected = index === selectedSuggestionIndex;
 
-            return (
-              <button
-                key={member.id}
-                onClick={() => selectSuggestion(member)}
-                className={`w-full px-3 py-2 text-left flex items-center space-x-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${
-                  isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-                } transition-colors`}
-              >
-                <UserProfile user={member} size="xs" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                    {displayName}
-                  </div>
-                  {member.email && (
-                    <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                      {member.email}
+                return (
+                  <button
+                    key={member.id}
+                    onClick={() => selectSuggestion(member)}
+                    className={`w-full px-3 py-2 text-left flex items-center space-x-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                      isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                    } transition-colors`}
+                  >
+                    <UserProfile user={member} size="xs" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                        {displayName}
+                      </div>
+                      {member.email && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          {member.email}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              </button>
-            );
-          })}
+                  </button>
+                );
+              })}
+            </>
+          )}
+
+          {/* Admins Section */}
+          {filteredAdmins.length > 0 && (
+            <>
+              {filteredMembers.length > 0 && (
+                <div className="border-b border-gray-200 dark:border-gray-600"></div>
+              )}
+              <div className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50">
+                Admins
+              </div>
+              {filteredAdmins.map((admin, index) => {
+                const displayName = admin.name || admin.email?.split('@')[0] || 'Unknown User';
+                const adjustedIndex = filteredMembers.length + index;
+                const isSelected = adjustedIndex === selectedSuggestionIndex;
+
+                return (
+                  <button
+                    key={admin.id}
+                    onClick={() => selectSuggestion(admin)}
+                    className={`w-full px-3 py-2 text-left flex items-center space-x-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                      isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                    } transition-colors`}
+                  >
+                    <UserProfile user={admin} size="xs" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate flex items-center">
+                        {displayName}
+                        <span className="ml-2 px-1.5 py-0.5 text-[10px] bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded font-medium">
+                          ADMIN
+                        </span>
+                      </div>
+                      {admin.email && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          {admin.email}
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </>
+          )}
         </div>
       )}
     </div>

@@ -230,11 +230,12 @@ export default function TaskComments({ taskId, teamId, currentUser }: TaskCommen
 
   // New state for mentions
   const [teamMembers, setTeamMembers] = useState<MentionUser[]>([]);
+  const [teamAdmins, setTeamAdmins] = useState<MentionUser[]>([]);
   const [newCommentMentions, setNewCommentMentions] = useState<Mention[]>([]);
   const [editCommentMentions, setEditCommentMentions] = useState<Mention[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
 
-  // Fetch team members
+  // Fetch team members and admins
   useEffect(() => {
     const fetchTeamMembers = async () => {
       if (!teamId) {
@@ -246,8 +247,13 @@ export default function TaskComments({ taskId, teamId, currentUser }: TaskCommen
         const response = await fetch(`/api/pod/teams/${teamId}/members`);
         if (response.ok) {
           const data = await response.json();
-          if (data.success && data.members) {
-            setTeamMembers(data.members);
+          if (data.success) {
+            if (data.members) {
+              setTeamMembers(data.members);
+            }
+            if (data.admins) {
+              setTeamAdmins(data.admins);
+            }
           }
         }
       } catch (error) {
@@ -510,7 +516,8 @@ export default function TaskComments({ taskId, teamId, currentUser }: TaskCommen
                 onChange={setNewComment}
                 onMentionsChange={setNewCommentMentions}
                 teamMembers={teamMembers}
-                placeholder="Add a comment... Use @ to mention team members"
+                teamAdmins={teamAdmins}
+                placeholder="Add a comment... Use @ to mention team members and admins"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                 rows={2}
                 disabled={isSubmitting}
@@ -621,7 +628,8 @@ export default function TaskComments({ taskId, teamId, currentUser }: TaskCommen
                       onChange={setEditContent}
                       onMentionsChange={setEditCommentMentions}
                       teamMembers={teamMembers}
-                      placeholder="Edit your comment... Use @ to mention team members"
+                      teamAdmins={teamAdmins}
+                      placeholder="Edit your comment... Use @ to mention team members and admins"
                       className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                       rows={2}
                       disabled={isUpdatingComment === comment.id}
