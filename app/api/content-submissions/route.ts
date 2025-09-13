@@ -77,14 +77,9 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Found OTP-PTR team:', otpPtrTeam.id, (otpPtrTeam as any).name);
 
-    // Get the first column status for the OTP-PTR team
-    const firstColumn = await (prisma as any).boardColumn.findFirst({
-      where: { teamId: otpPtrTeam.id },
-      orderBy: { position: 'asc' }
-    });
-
-    const initialStatus = firstColumn?.status || 'NOT_STARTED';
-    console.log('📋 Using initial status for task:', initialStatus);
+    // Use custom status for OTP-PTR tasks
+    const initialStatus = 'CUSTOM_PG_TEAM_1757256153984';
+    console.log('📋 Using custom status for task:', initialStatus);
 
     // Create content submission record
     const submission = await (prisma as any).contentSubmission.create({

@@ -29,6 +29,8 @@ import {
   UserMinus,
   Check,
   AlertTriangle,
+  Target,
+  Bell,
 } from "lucide-react";
 import { updateUserRole } from "@/app/actions/admin";
 import { Role } from "@prisma/client";
@@ -47,6 +49,7 @@ interface TeamMember {
   role: string;
   email?: string;
   image?: string;
+  userId?: string; // The actual User ID for database operations
 }
 
 interface Task {
@@ -159,6 +162,17 @@ const PodAdminDashboard = () => {
   const [updatingCreators, setUpdatingCreators] = useState<string | null>(null);
   const [creatorsSuccess, setCreatorsSuccess] = useState<string | null>(null);
   const [availableCreators, setAvailableCreators] = useState<string[]>([]);
+
+  // Column assignments state
+  const [showColumnAssignments, setShowColumnAssignments] = useState<string | null>(null);
+  const [teamColumns, setTeamColumns] = useState<any[]>([]);
+  const [loadingColumns, setLoadingColumns] = useState(false);
+  const [showAssignMemberModal, setShowAssignMemberModal] = useState<{
+    columnId: string;
+    columnLabel: string;
+    teamId: string;
+  } | null>(null);
+  const [assigningMember, setAssigningMember] = useState(false);
 
 
   // Close dropdown when clicking outside
@@ -1299,6 +1313,77 @@ const PodAdminDashboard = () => {
     return matchesSearch;
   });
 
+  // Column management functions
+  const fetchTeamColumns = async (teamId: string) => {
+    setLoadingColumns(true);
+    try {
+      const response = await fetch(`/api/board-columns?teamId=${teamId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTeamColumns(data.columns || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch team columns:', error);
+    } finally {
+      setLoadingColumns(false);
+    }
+  };
+
+  const assignMemberToColumn = async (columnId: string, userId: string, teamId: string) => {
+    setAssigningMember(true);
+    try {
+      const response = await fetch('/api/board-column-assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ columnId, userId, teamId })
+      });
+      
+      if (response.ok) {
+        // Refresh columns data
+        await fetchTeamColumns(teamId);
+        setSuccessMessage('Member assigned to column successfully');
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to assign member');
+      }
+    } catch (error) {
+      console.error('Failed to assign member:', error);
+      alert(`Error: ${error instanceof Error ? error.message : 'Failed to assign member'}`);
+    } finally {
+      setAssigningMember(false);
+      setShowAssignMemberModal(null);
+    }
+  };
+
+  const removeMemberFromColumn = async (assignmentId: string, teamId: string) => {
+    try {
+      const response = await fetch(`/api/board-column-assignments?assignmentId=${assignmentId}&teamId=${teamId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        // Refresh columns data
+        await fetchTeamColumns(teamId);
+        setSuccessMessage('Member removed from column successfully');
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to remove member');
+      }
+    } catch (error) {
+      console.error('Failed to remove member:', error);
+      alert(`Error: ${error instanceof Error ? error.message : 'Failed to remove member'}`);
+    }
+  };
+
+  // Effect to fetch columns when team is selected
+  useEffect(() => {
+    if (showColumnAssignments) {
+      fetchTeamColumns(showColumnAssignments);
+    }
+  }, [showColumnAssignments]);
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -1531,7 +1616,7 @@ const PodAdminDashboard = () => {
         {/* Team Management View */}
         {activeView === "teams" && (
           <div className="space-y-6">
-            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+            <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
               <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                 <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
                   Team Management
@@ -1541,15 +1626,15 @@ const PodAdminDashboard = () => {
                 </span>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
-                <div className="relative flex-1 xl:flex-initial">
+              <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                <div className="relative flex-1 lg:flex-initial">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
                     type="text"
                     placeholder="Search teams..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-4 py-2 w-full xl:w-64 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="pl-10 pr-4 py-2 w-full lg:w-64 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
                 </div>
 
@@ -1564,14 +1649,14 @@ const PodAdminDashboard = () => {
             </div>
 
             {/* Teams Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
               {filteredTeams.map((team) => {
                 const stats = getTeamStats(team);
 
                 return (
                   <div
                     key={team.id}
-                    className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 hover:shadow-lg transition-shadow"
+                    className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-6 hover:shadow-lg transition-shadow"
                   >
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
@@ -1750,45 +1835,49 @@ const PodAdminDashboard = () => {
                               </div>
                             </div>
                           ) : (
-                            <div className="flex items-center space-x-2">
-                              <Star className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                Creators:
-                              </span>
-                              {team.creators && team.creators.length > 0 ? (
-                                <div className="flex flex-wrap gap-1 flex-1">
-                                  {team.creators.map((creator, index) => (
-                                    <span
-                                      key={index}
-                                      className="inline-flex items-center px-2 py-1 bg-purple-100 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-500/30 rounded-full text-xs font-medium text-purple-700 dark:text-purple-300"
-                                    >
-                                      {creator}
-                                    </span>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="inline-flex items-center px-2 py-1 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-500 dark:text-gray-400">
-                                  No creators assigned
-                                </div>
-                              )}
-                              <button
-                                onClick={() => {
-                                  setEditingCreators(team.id);
-                                  setEditingCreatorsValue(team.creators || []);
-                                  if (availableCreators.length === 0) {
-                                    fetchAvailableCreators();
-                                  }
-                                }}
-                                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                                title="Edit creators"
-                              >
-                                <Edit className="h-3 w-3" />
-                              </button>
-                              {creatorsSuccess === team.id && (
-                                <span className="text-green-600 dark:text-green-400 text-xs animate-pulse">
-                                  ✓ Updated
+                            <div className="flex items-start space-x-2">
+                              <Star className="h-4 w-4 text-gray-500 dark:text-gray-400 flex-shrink-0 mt-0.5" />
+                              <div className="flex-1 min-w-0">
+                                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 block mb-1">
+                                  Creators:
                                 </span>
-                              )}
+                                {team.creators && team.creators.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {team.creators.map((creator, index) => (
+                                      <span
+                                        key={index}
+                                        className="inline-flex items-center px-2 py-1 bg-purple-100 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-500/30 rounded-full text-xs font-medium text-purple-700 dark:text-purple-300"
+                                      >
+                                        {creator}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="inline-flex items-center px-2 py-1 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-500 dark:text-gray-400">
+                                    No creators assigned
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center space-x-1 flex-shrink-0">
+                                <button
+                                  onClick={() => {
+                                    setEditingCreators(team.id);
+                                    setEditingCreatorsValue(team.creators || []);
+                                    if (availableCreators.length === 0) {
+                                      fetchAvailableCreators();
+                                    }
+                                  }}
+                                  className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                  title="Edit creators"
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </button>
+                                {creatorsSuccess === team.id && (
+                                  <span className="text-green-600 dark:text-green-400 text-xs animate-pulse">
+                                    ✓ Updated
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -1856,7 +1945,8 @@ const PodAdminDashboard = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 mb-4">
+                    {/* Action Buttons - Responsive Layout */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-3 mb-4">
                       <button
                         onClick={() => setShowMembersModal(team.id)}
                         className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-left cursor-pointer"
@@ -1878,6 +1968,26 @@ const PodAdminDashboard = () => {
                           <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
                             {stats.totalTasks} Tasks
                           </span>
+                        </div>
+                      </button>
+
+                      {/* Column Assignments Button - Responsive */}
+                      <button
+                        onClick={() => setShowColumnAssignments(team.id)}
+                        className="group bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-800/30 dark:hover:to-pink-800/30 rounded-xl p-3 sm:p-4 transition-all duration-300 text-left cursor-pointer border border-purple-200 dark:border-purple-500/30 hover:border-purple-300 dark:hover:border-purple-400/50 hover:shadow-lg transform hover:scale-[1.02] sm:col-span-2 lg:col-span-1 xl:col-span-2 2xl:col-span-1"
+                      >
+                        <div className="flex items-center space-x-2 sm:space-x-3">
+                          <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
+                            <Target className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <span className="text-xs sm:text-sm font-bold text-purple-700 dark:text-purple-300 block truncate">
+                              Notifications
+                            </span>
+                            <span className="text-xs text-purple-600 dark:text-purple-400 truncate block">
+                              Column alerts setup
+                            </span>
+                          </div>
                         </div>
                       </button>
                     </div>
@@ -1912,6 +2022,7 @@ const PodAdminDashboard = () => {
                       </div>
                     )}
 
+                    {/* Progress Bar */}
                     {stats.totalTasks > 0 && (
                       <div className="mb-4">
                         <div className="flex items-center justify-between mb-2">
@@ -1936,6 +2047,7 @@ const PodAdminDashboard = () => {
                       </div>
                     )}
 
+                    {/* Team Footer - Members and Status Icons */}
                     <div className="flex items-center justify-between">
                       <div className="flex -space-x-2">
                         {team.members.slice(0, 3).map((member) => (
@@ -1945,11 +2057,11 @@ const PodAdminDashboard = () => {
                                 src={`/api/image-proxy?url=${encodeURIComponent(member.image)}`}
                                 alt={member.name || ""}
                                 title={member.name || ""}
-                                className="w-8 h-8 rounded-full object-cover border-2 border-white dark:border-gray-800 shadow-sm"
+                                className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover border-2 border-white dark:border-gray-800 shadow-sm"
                               />
                             ) : (
                               <div 
-                                className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 flex items-center justify-center text-white font-semibold text-sm border-2 border-white dark:border-gray-800 shadow-sm"
+                                className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 flex items-center justify-center text-white font-semibold text-xs sm:text-sm border-2 border-white dark:border-gray-800 shadow-sm"
                                 title={member.name || ""}
                               >
                                 {(member.name || member.email || "U").charAt(0).toUpperCase()}
@@ -1958,7 +2070,7 @@ const PodAdminDashboard = () => {
                           </div>
                         ))}
                         {team.members.length > 3 && (
-                          <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-gray-600 dark:text-gray-300 text-xs font-medium border-2 border-white dark:border-gray-800">
+                          <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-gray-600 dark:text-gray-300 text-xs font-medium border-2 border-white dark:border-gray-800">
                             +{team.members.length - 3}
                           </div>
                         )}
@@ -2995,6 +3107,301 @@ const PodAdminDashboard = () => {
           memberName={showRemoveMemberConfirm.memberName}
           teamName={showRemoveMemberConfirm.teamName}
         />
+      )}
+
+      {/* Column Assignment Modal */}
+      {showColumnAssignments && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+            {/* Modern Header */}
+            <div className="bg-gradient-to-r from-purple-500 to-pink-500 px-8 py-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                    <Target className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">
+                      Notification Settings
+                    </h3>
+                    <p className="text-purple-100 text-sm">
+                      Set up who gets notified when tasks move between columns
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowColumnAssignments(null)}
+                  className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-8 overflow-y-auto max-h-[calc(90vh-140px)]">
+              {loadingColumns ? (
+                <div className="space-y-6">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 h-32 rounded-2xl"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : teamColumns.length === 0 ? (
+                <div className="text-center py-20">
+                  <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                    <Target className="h-12 w-12 text-purple-500" />
+                  </div>
+                  <h4 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
+                    No Board Columns
+                  </h4>
+                  <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto leading-relaxed">
+                    This team doesn't have any board columns set up yet. Create a board first to manage column notifications.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-6">
+                  {teamColumns.map((column: any) => (
+                    <div
+                      key={column.id}
+                      className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-700 dark:to-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-600 hover:shadow-lg transition-all duration-300"
+                      style={{ 
+                        boxShadow: `0 0 0 2px ${column.color}15`,
+                        borderLeftColor: column.color,
+                        borderLeftWidth: '6px'
+                      }}
+                    >
+                      {/* Column Header */}
+                      <div className="flex items-start justify-between mb-6">
+                        <div className="flex items-center space-x-4">
+                          <div 
+                            className="w-4 h-4 rounded-full shadow-sm"
+                            style={{ backgroundColor: column.color }}
+                          />
+                          <div>
+                            <h4 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                              {column.label}
+                            </h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center space-x-3 mt-1">
+                              <span>Column {column.position + 1}</span>
+                              <span>•</span>
+                              <span className="capitalize">{column.status}</span>
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <button
+                          onClick={() => setShowAssignMemberModal({
+                            columnId: column.id,
+                            columnLabel: column.label,
+                            teamId: showColumnAssignments
+                          })}
+                          className="group flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                        >
+                          <UserPlus className="h-5 w-5" />
+                          <span>Add Person</span>
+                        </button>
+                      </div>
+                      
+                      {/* Notification Members */}
+                      {column.assignedMembers && column.assignedMembers.length > 0 ? (
+                        <div className="space-y-4">
+                          <div className="flex items-center space-x-3 mb-4">
+                            <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                              <Bell className="h-4 w-4 text-green-600 dark:text-green-400" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-900 dark:text-gray-100">
+                                {column.assignedMembers.length} {column.assignedMembers.length === 1 ? 'Person' : 'People'} Getting Notified
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                They'll be alerted when tasks move to this column
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="grid gap-3">
+                            {column.assignedMembers.map((assignment: any) => (
+                              <div
+                                key={assignment.id}
+                                className="group flex items-center justify-between p-4 bg-white dark:bg-gray-600 rounded-xl border border-gray-200 dark:border-gray-500 hover:shadow-md transition-all duration-200"
+                              >
+                                <div className="flex items-center space-x-4">
+                                  {assignment.user.image ? (
+                                    <img
+                                      src={`/api/image-proxy?url=${encodeURIComponent(assignment.user.image)}`}
+                                      alt={assignment.user.name}
+                                      className="w-12 h-12 rounded-full object-cover border-3 border-gray-200 dark:border-gray-500"
+                                    />
+                                  ) : (
+                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm shadow-md">
+                                      {assignment.user.name?.charAt(0).toUpperCase() || '?'}
+                                    </div>
+                                  )}
+                                  <div>
+                                    <div className="font-semibold text-gray-900 dark:text-gray-100">
+                                      {assignment.user.name}
+                                    </div>
+                                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                                      {assignment.user.email}
+                                    </div>
+                                    <div className="text-xs text-gray-400 dark:text-gray-500 flex items-center space-x-1 mt-1">
+                                      <span>Added by</span>
+                                      <span className="font-medium">{assignment.assignedBy.name}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <button
+                                  onClick={() => removeMemberFromColumn(assignment.id, showColumnAssignments!)}
+                                  className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all duration-200 opacity-0 group-hover:opacity-100"
+                                  title="Remove from notifications"
+                                >
+                                  <X className="h-5 w-5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-12 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl bg-gray-50/50 dark:bg-gray-700/50">
+                          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <Bell className="h-8 w-8 text-gray-400" />
+                          </div>
+                          <h5 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            No Notifications Set
+                          </h5>
+                          <p className="text-gray-500 dark:text-gray-400 text-sm max-w-xs mx-auto">
+                            Add team members to get notified when tasks move to this column
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Member Assignment Modal */}
+      {showAssignMemberModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-500 to-purple-500 px-6 py-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                    <UserPlus className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">
+                      Add to {showAssignMemberModal.columnLabel}
+                    </h3>
+                    <p className="text-blue-100 text-sm">
+                      Choose who gets notified
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowAssignMemberModal(null)}
+                  className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            
+            {/* Member List */}
+            <div className="p-6">
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {(() => {
+                  const selectedTeam = teams.find(t => t.id === showColumnAssignments);
+                  if (!selectedTeam) return (
+                    <div className="text-center py-12">
+                      <p className="text-gray-500 dark:text-gray-400">No team selected</p>
+                    </div>
+                  );
+                  
+                  const assignedUserIds = teamColumns
+                    .find((c: any) => c.id === showAssignMemberModal.columnId)
+                    ?.assignedMembers?.map((a: any) => a.userId) || [];
+                    
+                  const availableMembers = selectedTeam.members.filter(
+                    member => !assignedUserIds.includes(member.id)
+                  );
+                  
+                  if (availableMembers.length === 0) {
+                    return (
+                      <div className="text-center py-16">
+                        <div className="w-20 h-20 bg-gradient-to-br from-green-100 to-blue-100 dark:from-green-900/30 dark:to-blue-900/30 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                          <UserPlus className="h-10 w-10 text-green-500" />
+                        </div>
+                        <h4 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">
+                          Everyone's Already Added!
+                        </h4>
+                        <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+                          All team members are already getting notifications for this column.
+                        </p>
+                      </div>
+                    );
+                  }
+                  
+                  return availableMembers.map((member) => (
+                    <button
+                      key={member.id}
+                      onClick={() =>
+                        assignMemberToColumn(
+                          showAssignMemberModal.columnId,
+                          member.userId || member.id, // Use userId when available, fallback to id
+                          showAssignMemberModal.teamId
+                        )
+                      }
+                      disabled={assigningMember}
+                      className="group w-full flex items-center space-x-4 p-4 bg-gradient-to-r from-gray-50 to-white dark:from-gray-700 dark:to-gray-800 hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-900/20 dark:hover:to-purple-900/20 rounded-2xl border-2 border-transparent hover:border-blue-200 dark:hover:border-blue-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+                    >
+                      {member.image ? (
+                        <img
+                          src={`/api/image-proxy?url=${encodeURIComponent(member.image)}`}
+                          alt={member.name}
+                          className="w-14 h-14 rounded-full object-cover border-3 border-gray-200 dark:border-gray-600 group-hover:border-blue-300 dark:group-hover:border-blue-500 transition-colors"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                          {member.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="flex-1 text-left">
+                        <div className="font-bold text-gray-900 dark:text-gray-100 text-lg">
+                          {member.name}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {member.email}
+                        </div>
+                        <div className="text-xs text-blue-600 dark:text-blue-400 font-semibold mt-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/30 rounded-full inline-block">
+                          {member.role}
+                        </div>
+                      </div>
+                      {assigningMember ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent"></div>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Adding...</span>
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 flex items-center justify-center group-hover:from-blue-200 group-hover:to-purple-200 dark:group-hover:from-blue-800/50 dark:group-hover:to-purple-800/50 transition-all">
+                          <Bell className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        </div>
+                      )}
+                    </button>
+                  ));
+                })()}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

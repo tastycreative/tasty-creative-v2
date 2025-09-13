@@ -4,12 +4,103 @@ import React, { useState, useEffect } from 'react';
 import { Send, MessageSquare, Loader2, AlertCircle, Edit2, Trash2, Check, X } from 'lucide-react';
 import UserProfile from '@/components/ui/UserProfile';
 import CommentFilePreview from '@/components/ui/CommentFilePreview';
+import MentionsInput, { type MentionUser, type Mention } from '@/components/ui/MentionsInput';
 import { useTaskComments } from '@/lib/stores/boardStore';
 import type { TaskComment, TaskAttachment } from '@/lib/stores/boardStore';
 import type { PreviewFile } from '@/components/ui/CommentFilePreview';
 
 
 import AttachmentViewer from "@/components/ui/AttachmentViewer";
+
+interface UserData {
+  id: string;
+  name?: string | null;
+  email: string | null;
+  image?: string | null;
+}
+
+// Hover card component for mentions
+const MentionHoverCard = ({ userId, userName, children }: { 
+  userId: string; 
+  userName: string; 
+  children: React.ReactNode;
+}) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchUserData = async () => {
+    if (isLoading || userData) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/users/${userId}`);
+      if (response.ok) {
+        const user = await response.json();
+        setUserData(user);
+      }
+    } catch (error) {
+      console.error('Failed to fetch user data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div 
+      className="relative inline-block"
+      onMouseEnter={() => {
+        setIsVisible(true);
+        fetchUserData();
+      }}
+      onMouseLeave={() => setIsVisible(false)}
+    >
+      {children}
+      
+      {isVisible && (
+        <div 
+          className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 min-w-[200px]"
+          style={{ pointerEvents: 'none' }}
+        >
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+            <div className="w-2 h-2 bg-white dark:bg-gray-800 border-r border-b border-gray-200 dark:border-gray-700 transform rotate-45"></div>
+          </div>
+          
+          {isLoading ? (
+            <div className="flex items-center justify-center py-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            </div>
+          ) : userData ? (
+            <div className="flex items-center space-x-3">
+              <UserProfile user={userData} size="md" />
+              <div className="flex-1">
+                <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                  {userData.name || userData.email?.split('@')[0] || 'User'}
+                </p>
+                {userData.name && userData.email && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {userData.email}
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                  {userName.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                {userName}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Utility function to make links clickable
 const linkifyText = (text: string) => {
@@ -32,6 +123,60 @@ const linkifyText = (text: string) => {
   });
 };
 
+// Utility function to render text with clean mentions and clickable links
+const renderTextWithMentionsAndLinks = (text: string) => {
+  if (!text) return null;
+
+  // First, process mentions - convert @[Name](id) to clean display with hover
+  const mentionRegex = /@\[([^\]]+)\]\(([^)]+)\)/g;
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = mentionRegex.exec(text)) !== null) {
+    // Add text before mention (with links processed)
+    if (match.index > lastIndex) {
+      const beforeText = text.substring(lastIndex, match.index);
+      const beforeParts = linkifyText(beforeText);
+      parts.push(...beforeParts.map((part, i) => ({ key: `before-${lastIndex}-${i}`, content: part })));
+    }
+
+    // Add the interactive mention with user ID
+    const mentionName = match[1];
+    const userId = match[2];
+    parts.push({
+      key: `mention-${match.index}`,
+      content: (
+        <MentionHoverCard userId={userId} userName={mentionName}>
+          <span className="text-blue-600 dark:text-blue-400 font-medium cursor-pointer hover:text-blue-800 dark:hover:text-blue-300 transition-colors">
+            {mentionName}
+          </span>
+        </MentionHoverCard>
+      )
+    });
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text (with links processed)
+  if (lastIndex < text.length) {
+    const remainingText = text.substring(lastIndex);
+    const remainingParts = linkifyText(remainingText);
+    parts.push(...remainingParts.map((part, i) => ({ key: `remaining-${lastIndex}-${i}`, content: part })));
+  }
+
+  // If no mentions were found, just process links
+  if (parts.length === 0) {
+    return linkifyText(text);
+  }
+
+  return parts.map((part, index) => (
+    <React.Fragment key={part.key || index}>
+      {part.content}
+    </React.Fragment>
+  ));
+};
+
 interface CommentUser {
   id: string;
   name?: string | null;
@@ -41,6 +186,7 @@ interface CommentUser {
 
 interface TaskCommentsProps {
   taskId: string;
+  teamId?: string;
   currentUser?: CommentUser | null;
 }
 
@@ -61,7 +207,7 @@ const formatTimeAgo = (dateString: string) => {
   });
 };
 
-export default function TaskComments({ taskId, currentUser }: TaskCommentsProps) {
+export default function TaskComments({ taskId, teamId, currentUser }: TaskCommentsProps) {
   const {
     comments,
     isLoading,
@@ -82,11 +228,72 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
   const [isDeletingComment, setIsDeletingComment] = useState<string | null>(null);
   const [isUpdatingComment, setIsUpdatingComment] = useState<string | null>(null);
 
+  // New state for mentions
+  const [teamMembers, setTeamMembers] = useState<MentionUser[]>([]);
+  const [teamAdmins, setTeamAdmins] = useState<MentionUser[]>([]);
+  const [newCommentMentions, setNewCommentMentions] = useState<Mention[]>([]);
+  const [editCommentMentions, setEditCommentMentions] = useState<Mention[]>([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+
+  // Fetch team members and admins
+  useEffect(() => {
+    const fetchTeamMembers = async () => {
+      if (!teamId) {
+        return;
+      }
+      
+      setIsLoadingMembers(true);
+      try {
+        const response = await fetch(`/api/pod/teams/${teamId}/members`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            if (data.members) {
+              setTeamMembers(data.members);
+            }
+            if (data.admins) {
+              setTeamAdmins(data.admins);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch team members:', error);
+      } finally {
+        setIsLoadingMembers(false);
+      }
+    };
+
+    fetchTeamMembers();
+  }, [teamId]);
+
   useEffect(() => {
     if (taskId) {
       fetchTaskComments(taskId);
     }
   }, [taskId, fetchTaskComments]);
+
+  // Send mention notifications
+  const sendMentionNotifications = async (mentions: Mention[], commentContent: string, taskTitle?: string) => {
+    if (mentions.length === 0) return;
+
+    try {
+      await fetch('/api/notifications/mention', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mentionedUserIds: mentions.map(m => m.userId),
+          taskId,
+          commentContent,
+          taskTitle,
+          teamId,
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to send mention notifications:', error);
+    }
+  };
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -127,9 +334,17 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
         }
       }
       
-      await createTaskComment(taskId, newComment.trim() || ' ', uploadedAttachments);
+      const commentText = newComment.trim() || ' ';
+      await createTaskComment(taskId, commentText, uploadedAttachments);
+      
+      // Send mention notifications
+      if (newCommentMentions.length > 0) {
+        await sendMentionNotifications(newCommentMentions, commentText);
+      }
+      
       setNewComment('');
       setNewCommentPreviewFiles([]);
+      setNewCommentMentions([]);
       
       // Clean up preview URLs
       newCommentPreviewFiles.forEach(file => {
@@ -151,6 +366,7 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
     setEditContent(comment.content);
     setEditExistingAttachments(comment.attachments || []);
     setEditPreviewFiles([]);
+    setEditCommentMentions([]);
   };
 
   const handleCancelEdit = () => {
@@ -158,6 +374,7 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
     setEditContent('');
     setEditExistingAttachments([]);
     setEditPreviewFiles([]);
+    setEditCommentMentions([]);
     
     // Clean up preview URLs
     editPreviewFiles.forEach(file => {
@@ -203,11 +420,19 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
         }
       }
       
-      await updateTaskComment(taskId, commentId, editContent.trim(), finalAttachments);
+      const commentText = editContent.trim();
+      await updateTaskComment(taskId, commentId, commentText, finalAttachments);
+      
+      // Send mention notifications for edited comments
+      if (editCommentMentions.length > 0) {
+        await sendMentionNotifications(editCommentMentions, commentText);
+      }
+      
       setEditingCommentId(null);
       setEditContent('');
       setEditExistingAttachments([]);
       setEditPreviewFiles([]);
+      setEditCommentMentions([]);
       
       // Clean up preview URLs
       editPreviewFiles.forEach(file => {
@@ -285,11 +510,14 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
         <form onSubmit={handleSubmitComment} className="space-y-3">
           <div className="flex space-x-3">
             <UserProfile user={currentUser} size="sm" />
-            <div className="flex-1">
-              <textarea
+            <div className="flex-1 relative">
+              <MentionsInput
                 value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Add a comment..."
+                onChange={setNewComment}
+                onMentionsChange={setNewCommentMentions}
+                teamMembers={teamMembers}
+                teamAdmins={teamAdmins}
+                placeholder="Add a comment... Use @ to mention team members and admins"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                 rows={2}
                 disabled={isSubmitting}
@@ -395,12 +623,16 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
                 </div>
                 {editingCommentId === comment.id ? (
                   <div className="space-y-3">
-                    <textarea
+                    <MentionsInput
                       value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      disabled={isUpdatingComment === comment.id}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      onChange={setEditContent}
+                      onMentionsChange={setEditCommentMentions}
+                      teamMembers={teamMembers}
+                      teamAdmins={teamAdmins}
+                      placeholder="Edit your comment... Use @ to mention team members and admins"
+                      className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                       rows={2}
+                      disabled={isUpdatingComment === comment.id}
                       autoFocus
                     />
                     
@@ -441,7 +673,7 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
                 ) : (
                   <div className="space-y-2">
                     <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
-                      {linkifyText(comment.content)}
+                      {renderTextWithMentionsAndLinks(comment.content)}
                     </p>
                     
                     {/* Comment Attachments */}
