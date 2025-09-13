@@ -29,6 +29,8 @@ import {
   UserMinus,
   Check,
   AlertTriangle,
+  Target,
+  Bell,
 } from "lucide-react";
 import { updateUserRole } from "@/app/actions/admin";
 import { Role } from "@prisma/client";
@@ -159,6 +161,17 @@ const PodAdminDashboard = () => {
   const [updatingCreators, setUpdatingCreators] = useState<string | null>(null);
   const [creatorsSuccess, setCreatorsSuccess] = useState<string | null>(null);
   const [availableCreators, setAvailableCreators] = useState<string[]>([]);
+
+  // Column assignments state
+  const [showColumnAssignments, setShowColumnAssignments] = useState<string | null>(null);
+  const [teamColumns, setTeamColumns] = useState<any[]>([]);
+  const [loadingColumns, setLoadingColumns] = useState(false);
+  const [showAssignMemberModal, setShowAssignMemberModal] = useState<{
+    columnId: string;
+    columnLabel: string;
+    teamId: string;
+  } | null>(null);
+  const [assigningMember, setAssigningMember] = useState(false);
 
 
   // Close dropdown when clicking outside
@@ -1299,6 +1312,77 @@ const PodAdminDashboard = () => {
     return matchesSearch;
   });
 
+  // Column management functions
+  const fetchTeamColumns = async (teamId: string) => {
+    setLoadingColumns(true);
+    try {
+      const response = await fetch(`/api/board-columns?teamId=${teamId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTeamColumns(data.columns || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch team columns:', error);
+    } finally {
+      setLoadingColumns(false);
+    }
+  };
+
+  const assignMemberToColumn = async (columnId: string, userId: string, teamId: string) => {
+    setAssigningMember(true);
+    try {
+      const response = await fetch('/api/board-column-assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ columnId, userId, teamId })
+      });
+      
+      if (response.ok) {
+        // Refresh columns data
+        await fetchTeamColumns(teamId);
+        setSuccessMessage('Member assigned to column successfully');
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to assign member');
+      }
+    } catch (error) {
+      console.error('Failed to assign member:', error);
+      alert(`Error: ${error instanceof Error ? error.message : 'Failed to assign member'}`);
+    } finally {
+      setAssigningMember(false);
+      setShowAssignMemberModal(null);
+    }
+  };
+
+  const removeMemberFromColumn = async (assignmentId: string, teamId: string) => {
+    try {
+      const response = await fetch(`/api/board-column-assignments?assignmentId=${assignmentId}&teamId=${teamId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        // Refresh columns data
+        await fetchTeamColumns(teamId);
+        setSuccessMessage('Member removed from column successfully');
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to remove member');
+      }
+    } catch (error) {
+      console.error('Failed to remove member:', error);
+      alert(`Error: ${error instanceof Error ? error.message : 'Failed to remove member'}`);
+    }
+  };
+
+  // Effect to fetch columns when team is selected
+  useEffect(() => {
+    if (showColumnAssignments) {
+      fetchTeamColumns(showColumnAssignments);
+    }
+  }, [showColumnAssignments]);
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -1856,7 +1940,7 @@ const PodAdminDashboard = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="grid grid-cols-3 gap-3 mb-4">
                       <button
                         onClick={() => setShowMembersModal(team.id)}
                         className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-left cursor-pointer"
@@ -1877,6 +1961,18 @@ const PodAdminDashboard = () => {
                           <ClipboardList className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                           <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
                             {stats.totalTasks} Tasks
+                          </span>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => setShowColumnAssignments(team.id)}
+                        className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors text-left cursor-pointer"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <Target className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                          <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
+                            Column Assignments
                           </span>
                         </div>
                       </button>
@@ -2995,6 +3091,222 @@ const PodAdminDashboard = () => {
           memberName={showRemoveMemberConfirm.memberName}
           teamName={showRemoveMemberConfirm.teamName}
         />
+      )}
+
+      {/* Column Assignment Modal */}
+      {showColumnAssignments && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-4xl mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                  Column Member Assignments
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  Assign team members to board columns to receive notifications when tasks move
+                </p>
+              </div>
+              <button
+                onClick={() => setShowColumnAssignments(null)}
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {loadingColumns ? (
+              <div className="space-y-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="animate-pulse">
+                    <div className="h-24 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                  </div>
+                ))}
+              </div>
+            ) : teamColumns.length === 0 ? (
+              <div className="text-center py-12">
+                <Target className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+                <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                  No Columns Found
+                </h4>
+                <p className="text-gray-500 dark:text-gray-400">
+                  This team doesn't have any board columns set up yet.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {teamColumns.map((column: any) => (
+                  <div
+                    key={column.id}
+                    className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4"
+                    style={{ borderLeft: `4px solid ${column.color}` }}
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                          {column.label}
+                        </h4>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Status: {column.status} • Position: {column.position + 1}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setShowAssignMemberModal({
+                          columnId: column.id,
+                          columnLabel: column.label,
+                          teamId: showColumnAssignments
+                        })}
+                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
+                      >
+                        <UserPlus className="h-4 w-4" />
+                        Assign Member
+                      </button>
+                    </div>
+                    
+                    {column.assignedMembers && column.assignedMembers.length > 0 ? (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                          Assigned Members ({column.assignedMembers.length})
+                        </p>
+                        <div className="space-y-2">
+                          {column.assignedMembers.map((assignment: any) => (
+                            <div
+                              key={assignment.id}
+                              className="flex items-center justify-between p-3 bg-white dark:bg-gray-600 rounded-lg"
+                            >
+                              <div className="flex items-center space-x-3">
+                                {assignment.user.image ? (
+                                  <img
+                                    src={`/api/image-proxy?url=${encodeURIComponent(assignment.user.image)}`}
+                                    alt={assignment.user.name}
+                                    className="w-8 h-8 rounded-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xs">
+                                    {assignment.user.name?.charAt(0).toUpperCase() || '?'}
+                                  </div>
+                                )}
+                                <div>
+                                  <div className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                                    {assignment.user.name}
+                                  </div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    {assignment.user.email}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-2">
+                                <div className="text-xs text-gray-400 dark:text-gray-500">
+                                  Assigned by {assignment.assignedBy.name}
+                                </div>
+                                <button
+                                  onClick={() => removeMemberFromColumn(assignment.id, showColumnAssignments!)}
+                                  className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                  title="Remove assignment"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-6">
+                        <Bell className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          No members assigned
+                        </p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                          Assign members to receive notifications when tasks move to this column
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Member Assignment Modal */}
+      {showAssignMemberModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Assign Member to {showAssignMemberModal.columnLabel}
+              </h3>
+              <button
+                onClick={() => setShowAssignMemberModal(null)}
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-3 max-h-64 overflow-y-auto">
+              {(() => {
+                const selectedTeam = teams.find(t => t.id === showColumnAssignments);
+                if (!selectedTeam) return <p className="text-gray-500">No team selected</p>;
+                
+                const assignedUserIds = teamColumns
+                  .find((c: any) => c.id === showAssignMemberModal.columnId)
+                  ?.assignedMembers?.map((a: any) => a.userId) || [];
+                  
+                const availableMembers = selectedTeam.members.filter(
+                  member => !assignedUserIds.includes(member.id)
+                );
+                
+                if (availableMembers.length === 0) {
+                  return (
+                    <p className="text-center text-gray-500 dark:text-gray-400 py-4">
+                      All team members are already assigned to this column
+                    </p>
+                  );
+                }
+                
+                return availableMembers.map((member) => (
+                  <button
+                    key={member.id}
+                    onClick={() =>
+                      assignMemberToColumn(
+                        showAssignMemberModal.columnId,
+                        member.id,
+                        showAssignMemberModal.teamId
+                      )
+                    }
+                    disabled={assigningMember}
+                    className="w-full flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {member.image ? (
+                      <img
+                        src={`/api/image-proxy?url=${encodeURIComponent(member.image)}`}
+                        alt={member.name}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
+                        {member.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="flex-1 text-left">
+                      <div className="font-medium text-gray-900 dark:text-gray-100">
+                        {member.name}
+                      </div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        {member.email} • {member.role}
+                      </div>
+                    </div>
+                    {assigningMember && (
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
+                    )}
+                  </button>
+                ));
+              })()}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -8,28 +8,35 @@ datasource db {
 }
 
 model User {
-  id                   String                    @id @default(cuid())
-  email                String                    @unique
-  emailVerified        DateTime?
-  name                 String?
-  image                String?
-  role                 Role                      @default(GUEST)
-  createdAt            DateTime                  @default(now())
-  updatedAt            DateTime                  @updatedAt
-  password             String?
-  lastAccessedAt       DateTime?                 @default(now())
-  username             String?                   @unique
-  accounts             Account[]
-  ContentSubmission    ContentSubmission[]
-  pageViews            PageView[]
-  createdPodTeams      PodTeam[]                 @relation("PodTeamCreator")
-  podClientAssignments PodTeamClientAssignment[] @relation("PodClientAssignedBy")
-  podTeamMemberships   PodTeamMember[]           @relation("PodTeamMemberUser")
-  sessions             Session[]
-  createdTasks         Task[]                    @relation("TaskCreator")
-  taskActivities       TaskActivityHistory[]     @relation("TaskActivityUser")
-  taskComments         TaskComment[]             @relation("TaskCommentUser")
-  verificationTokens   VerificationToken[]
+  id                         String                        @id @default(cuid())
+  email                      String                        @unique
+  emailVerified              DateTime?
+  name                       String?
+  image                      String?
+  role                       Role                          @default(GUEST)
+  createdAt                  DateTime                      @default(now())
+  updatedAt                  DateTime                      @updatedAt
+  password                   String?
+  lastAccessedAt             DateTime?                     @default(now())
+  username                   String?                       @unique
+  accounts                   Account[]
+  assignedBoardColumnsByUser BoardColumnMemberAssignment[] @relation("BoardColumnAssignedBy")
+  assignedBoardColumns       BoardColumnMemberAssignment[] @relation("BoardColumnAssignedUser")
+  ContentSubmission          ContentSubmission[]
+  ModerationLog              ModerationLog[]
+  pageViews                  PageView[]
+  createdPodTeams            PodTeam[]                     @relation("PodTeamCreator")
+  podClientAssignments       PodTeamClientAssignment[]     @relation("PodClientAssignedBy")
+  podTeamMemberships         PodTeamMember[]               @relation("PodTeamMemberUser")
+  Post                       Post[]
+  PostReaction               PostReaction[]
+  sessions                   Session[]
+  createdTasks               Task[]                        @relation("TaskCreator")
+  taskActivities             TaskActivityHistory[]         @relation("TaskActivityUser")
+  taskComments               TaskComment[]                 @relation("TaskCommentUser")
+  Thread                     Thread[]
+  ThreadWatcher              ThreadWatcher[]
+  verificationTokens         VerificationToken[]
 }
 
 model Account {
@@ -380,21 +387,39 @@ model PodTeamClientAssignment {
 }
 
 model BoardColumn {
-  id        String   @id
-  teamId    String
-  label     String
-  status    String
-  position  Int
-  color     String   @default("#6B7280")
-  isDefault Boolean  @default(false)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime
+  id              String                        @id
+  teamId          String
+  label           String
+  status          String
+  position        Int
+  color           String                        @default("#6B7280")
+  isDefault       Boolean                       @default(false)
+  isActive        Boolean                       @default(true)
+  createdAt       DateTime                      @default(now())
+  updatedAt       DateTime
+  assignedMembers BoardColumnMemberAssignment[]
 
   @@unique([teamId, position])
   @@unique([teamId, status])
   @@index([position])
   @@index([teamId])
+}
+
+model BoardColumnMemberAssignment {
+  id           String      @id @default(cuid())
+  columnId     String
+  userId       String
+  assignedAt   DateTime    @default(now())
+  assignedById String
+  isActive     Boolean     @default(true)
+  assignedBy   User        @relation("BoardColumnAssignedBy", fields: [assignedById], references: [id])
+  column       BoardColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  user         User        @relation("BoardColumnAssignedUser", fields: [userId], references: [id])
+
+  @@unique([columnId, userId])
+  @@index([columnId])
+  @@index([userId])
+  @@index([assignedById])
 }
 
 model ContentSubmission {
@@ -423,6 +448,118 @@ model ContentSubmission {
   @@index([priority])
   @@index([status])
   @@index([submissionType])
+}
+
+model Attachment {
+  id       String         @id
+  postId   String
+  url      String
+  filename String
+  type     AttachmentType
+  size     Int
+  Post     Post           @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
+model ForumCategory {
+  id        String           @id
+  modelId   String
+  key       ForumCategoryKey @default(GENERAL)
+  name      String
+  createdAt DateTime         @default(now())
+  updatedAt DateTime
+  Thread    Thread[]
+
+  @@unique([modelId, key])
+  @@index([modelId])
+}
+
+model ModerationLog {
+  id         String           @id
+  actorId    String
+  targetType ModerationTarget
+  targetId   String
+  action     ModerationAction
+  reason     String?
+  createdAt  DateTime         @default(now())
+  User       User             @relation(fields: [actorId], references: [id])
+
+  @@index([actorId])
+  @@index([createdAt])
+  @@index([targetType, targetId])
+}
+
+model Post {
+  id           String         @id
+  threadId     String
+  authorId     String
+  content_md   String
+  content_html String
+  parentPostId String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime
+  editedAt     DateTime?
+  Attachment   Attachment[]
+  User         User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  Post         Post?          @relation("PostToPost", fields: [parentPostId], references: [id])
+  other_Post   Post[]         @relation("PostToPost")
+  Thread       Thread         @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  PostReaction PostReaction[]
+
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([parentPostId])
+  @@index([threadId])
+}
+
+model PostReaction {
+  id     String @id
+  postId String
+  userId String
+  emoji  String
+  Post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  User   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId, emoji])
+  @@index([postId])
+  @@index([userId])
+}
+
+model Thread {
+  id            String          @id
+  modelId       String
+  categoryId    String
+  title         String
+  authorId      String
+  pinned        Boolean         @default(false)
+  locked        Boolean         @default(false)
+  solved        Boolean         @default(false)
+  views         Int             @default(0)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime
+  Post          Post[]
+  User          User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  ForumCategory ForumCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  ThreadWatcher ThreadWatcher[]
+
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([modelId, categoryId])
+  @@index([pinned])
+  @@index([updatedAt])
+}
+
+model ThreadWatcher {
+  id       String @id
+  userId   String
+  threadId String
+  Thread   Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  User     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, threadId])
+  @@index([threadId])
+  @@index([userId])
 }
 
 enum Role {
@@ -505,4 +642,39 @@ enum PodMemberRole {
   LEADER
   MEMBER
   ADMIN
+}
+
+enum AttachmentType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  OTHER
+}
+
+enum ForumCategoryKey {
+  GENERAL
+  QA
+  BUGS
+  SHOWCASE
+  RELEASES
+}
+
+enum ModerationAction {
+  PIN
+  UNPIN
+  LOCK
+  UNLOCK
+  SOLVE
+  UNSOLVE
+  DELETE
+  RESTORE
+  MOVE_CATEGORY
+  BAN_USER
+  UNBAN_USER
+}
+
+enum ModerationTarget {
+  THREAD
+  POST
+  USER
 }

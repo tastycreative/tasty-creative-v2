@@ -84,6 +84,28 @@ export interface BoardColumn {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  assignedMembers?: BoardColumnMemberAssignment[];
+}
+
+// Board Column Member Assignment
+export interface BoardColumnMemberAssignment {
+  id: string;
+  columnId: string;
+  userId: string;
+  assignedAt: string;
+  assignedById: string;
+  isActive: boolean;
+  user: {
+    id: string;
+    name: string | null;
+    email: string | null;
+    image: string | null;
+  };
+  assignedBy: {
+    id: string;
+    name: string | null;
+    email: string | null;
+  };
 }
 
 // Task Activity types
