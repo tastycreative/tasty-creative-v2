@@ -35,7 +35,6 @@ import {
   DialogTitle,
   DialogClose,
 } from "./ui/dialog";
-import { formatDateTime } from "@/lib/utils";
 
 const Calendar = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -47,6 +46,42 @@ const Calendar = () => {
   const [isEventDetailOpen, setIsEventDetailOpen] = useState(false);
   const [calendarError, setCalendarError] = useState("");
   const [isCalendarLoading, setIsCalendarLoading] = useState(false);
+  const [userTimezone, setUserTimezone] = useState<string>(
+    Intl.DateTimeFormat().resolvedOptions().timeZone
+  );
+
+  // Helper function to format date in user's timezone
+  const formatDateInUserTimezone = (dateString: string, isAllDay = false) => {
+    const date = new Date(dateString);
+    if (isAllDay) {
+      return date.toLocaleDateString("en-US", {
+        timeZone: userTimezone,
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    }
+    return date.toLocaleString("en-US", {
+      timeZone: userTimezone,
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  // Helper function to get time string in user's timezone
+  const getTimeStringInUserTimezone = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString("en-US", {
+      timeZone: userTimezone,
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   const handleViewEventDetails = async (eventId: string) => {
     try {
@@ -173,6 +208,7 @@ const Calendar = () => {
               {selectedDate.toLocaleString("default", {
                 month: "long",
                 year: "numeric",
+                timeZone: userTimezone,
               })}
             </h3>
 
@@ -235,10 +271,14 @@ const Calendar = () => {
                   if (!eventDateString) return false;
 
                   const eventDate = new Date(eventDateString);
+                  const eventDateInUserTZ = new Date(
+                    eventDate.toLocaleString("en-US", { timeZone: userTimezone })
+                  );
+                  
                   return (
-                    eventDate.getDate() === i &&
-                    eventDate.getMonth() === currentDate.getMonth() &&
-                    eventDate.getFullYear() === currentDate.getFullYear()
+                    eventDateInUserTZ.getDate() === i &&
+                    eventDateInUserTZ.getMonth() === currentDate.getMonth() &&
+                    eventDateInUserTZ.getFullYear() === currentDate.getFullYear()
                   );
                 });
 
@@ -317,10 +357,7 @@ const Calendar = () => {
                   // Get time of day or "All day"
                   const timeStr = isAllDay
                     ? "All day"
-                    : eventDate.toLocaleTimeString("en-US", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      });
+                    : getTimeStringInUserTimezone(eventDateStr);
 
                   return (
                     <button
@@ -341,10 +378,13 @@ const Calendar = () => {
                           <div className="text-xs text-gray-600 dark:text-gray-300">
                             {eventDate.toLocaleDateString("en-US", {
                               month: "short",
+                              timeZone: userTimezone,
                             })}
                           </div>
                           <div className="text-xl font-bold text-gray-800 dark:text-gray-200">
-                            {eventDate.getDate()}
+                            {new Date(
+                              eventDate.toLocaleString("en-US", { timeZone: userTimezone })
+                            ).getDate()}
                           </div>
                         </div>
 
@@ -516,7 +556,7 @@ const Calendar = () => {
                         {selectedEvent.start.date ? (
                           // All-day event
                           <p className="text-gray-800 dark:text-gray-200 text-lg">
-                            {formatDateTime(selectedEvent.start.date, true)}
+                            {formatDateInUserTimezone(selectedEvent.start.date, true)}
                             {selectedEvent.end &&
                               selectedEvent.end.date &&
                               new Date(
@@ -528,7 +568,7 @@ const Calendar = () => {
                                 <>
                                   {" "}
                                   to{" "}
-                                  {formatDateTime(selectedEvent.end.date, true)}
+                                  {formatDateInUserTimezone(selectedEvent.end.date, true)}
                                 </>
                               )}
                             <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full border border-blue-200">
@@ -538,17 +578,20 @@ const Calendar = () => {
                         ) : (
                           // Timed event
                           <p className="text-gray-800 dark:text-gray-200 text-lg">
-                            {formatDateTime(selectedEvent.start.dateTime)}
+                            {selectedEvent.start.dateTime && formatDateInUserTimezone(selectedEvent.start.dateTime)}
                             {selectedEvent.end &&
                               selectedEvent.end.dateTime && (
                                 <>
                                   {" "}
                                   to{" "}
-                                  {formatDateTime(selectedEvent.end.dateTime)}
+                                  {formatDateInUserTimezone(selectedEvent.end.dateTime)}
                                 </>
                               )}
                           </p>
                         )}
+                        <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                          Timezone: {userTimezone}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -582,7 +625,7 @@ const Calendar = () => {
                               <iframe
                                 src={embedUrl}
                                 className="absolute top-0 left-0 w-full h-full"
-                                frameBorder="0"
+                                style={{ border: 0 }}
                                 allowFullScreen
                                 title="Google Drive File Preview"
                               ></iframe>
