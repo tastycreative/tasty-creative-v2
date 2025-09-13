@@ -49,6 +49,7 @@ interface TeamMember {
   role: string;
   email?: string;
   image?: string;
+  userId?: string; // The actual User ID for database operations
 }
 
 interface Task {
@@ -1967,13 +1968,20 @@ const PodAdminDashboard = () => {
 
                       <button
                         onClick={() => setShowColumnAssignments(team.id)}
-                        className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors text-left cursor-pointer"
+                        className="group bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-800/30 dark:hover:to-pink-800/30 rounded-xl p-4 transition-all duration-300 text-left cursor-pointer border border-purple-200 dark:border-purple-500/30 hover:border-purple-300 dark:hover:border-purple-400/50 hover:shadow-lg transform hover:scale-[1.02]"
                       >
-                        <div className="flex items-center space-x-2">
-                          <Target className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                          <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
-                            Column Assignments
-                          </span>
+                        <div className="flex items-center space-x-3">
+                          <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <Target className="h-4 w-4 text-white" />
+                          </div>
+                          <div>
+                            <span className="text-sm font-bold text-purple-700 dark:text-purple-300 block">
+                              Notifications
+                            </span>
+                            <span className="text-xs text-purple-600 dark:text-purple-400">
+                              Column alerts setup
+                            </span>
+                          </div>
                         </div>
                       </button>
                     </div>
@@ -3095,215 +3103,294 @@ const PodAdminDashboard = () => {
 
       {/* Column Assignment Modal */}
       {showColumnAssignments && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-4xl mx-4 max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                  Column Member Assignments
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  Assign team members to board columns to receive notifications when tasks move
-                </p>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+            {/* Modern Header */}
+            <div className="bg-gradient-to-r from-purple-500 to-pink-500 px-8 py-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                    <Target className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">
+                      Notification Settings
+                    </h3>
+                    <p className="text-purple-100 text-sm">
+                      Set up who gets notified when tasks move between columns
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowColumnAssignments(null)}
+                  className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                >
+                  <X className="h-6 w-6" />
+                </button>
               </div>
-              <button
-                onClick={() => setShowColumnAssignments(null)}
-                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                <X className="h-5 w-5" />
-              </button>
             </div>
 
-            {loadingColumns ? (
-              <div className="space-y-4">
-                {[...Array(3)].map((_, i) => (
-                  <div key={i} className="animate-pulse">
-                    <div className="h-24 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
-                  </div>
-                ))}
-              </div>
-            ) : teamColumns.length === 0 ? (
-              <div className="text-center py-12">
-                <Target className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-                <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                  No Columns Found
-                </h4>
-                <p className="text-gray-500 dark:text-gray-400">
-                  This team doesn't have any board columns set up yet.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {teamColumns.map((column: any) => (
-                  <div
-                    key={column.id}
-                    className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4"
-                    style={{ borderLeft: `4px solid ${column.color}` }}
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                          {column.label}
-                        </h4>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Status: {column.status} • Position: {column.position + 1}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => setShowAssignMemberModal({
-                          columnId: column.id,
-                          columnLabel: column.label,
-                          teamId: showColumnAssignments
-                        })}
-                        className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
-                      >
-                        <UserPlus className="h-4 w-4" />
-                        Assign Member
-                      </button>
+            {/* Content */}
+            <div className="p-8 overflow-y-auto max-h-[calc(90vh-140px)]">
+              {loadingColumns ? (
+                <div className="space-y-6">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 h-32 rounded-2xl"></div>
                     </div>
-                    
-                    {column.assignedMembers && column.assignedMembers.length > 0 ? (
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                          Assigned Members ({column.assignedMembers.length})
-                        </p>
-                        <div className="space-y-2">
-                          {column.assignedMembers.map((assignment: any) => (
-                            <div
-                              key={assignment.id}
-                              className="flex items-center justify-between p-3 bg-white dark:bg-gray-600 rounded-lg"
-                            >
-                              <div className="flex items-center space-x-3">
-                                {assignment.user.image ? (
-                                  <img
-                                    src={`/api/image-proxy?url=${encodeURIComponent(assignment.user.image)}`}
-                                    alt={assignment.user.name}
-                                    className="w-8 h-8 rounded-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-xs">
-                                    {assignment.user.name?.charAt(0).toUpperCase() || '?'}
-                                  </div>
-                                )}
-                                <div>
-                                  <div className="font-medium text-gray-900 dark:text-gray-100 text-sm">
-                                    {assignment.user.name}
-                                  </div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    {assignment.user.email}
+                  ))}
+                </div>
+              ) : teamColumns.length === 0 ? (
+                <div className="text-center py-20">
+                  <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                    <Target className="h-12 w-12 text-purple-500" />
+                  </div>
+                  <h4 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
+                    No Board Columns
+                  </h4>
+                  <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto leading-relaxed">
+                    This team doesn't have any board columns set up yet. Create a board first to manage column notifications.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-6">
+                  {teamColumns.map((column: any) => (
+                    <div
+                      key={column.id}
+                      className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-700 dark:to-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-600 hover:shadow-lg transition-all duration-300"
+                      style={{ 
+                        boxShadow: `0 0 0 2px ${column.color}15`,
+                        borderLeftColor: column.color,
+                        borderLeftWidth: '6px'
+                      }}
+                    >
+                      {/* Column Header */}
+                      <div className="flex items-start justify-between mb-6">
+                        <div className="flex items-center space-x-4">
+                          <div 
+                            className="w-4 h-4 rounded-full shadow-sm"
+                            style={{ backgroundColor: column.color }}
+                          />
+                          <div>
+                            <h4 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                              {column.label}
+                            </h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center space-x-3 mt-1">
+                              <span>Column {column.position + 1}</span>
+                              <span>•</span>
+                              <span className="capitalize">{column.status}</span>
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <button
+                          onClick={() => setShowAssignMemberModal({
+                            columnId: column.id,
+                            columnLabel: column.label,
+                            teamId: showColumnAssignments
+                          })}
+                          className="group flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                        >
+                          <UserPlus className="h-5 w-5" />
+                          <span>Add Person</span>
+                        </button>
+                      </div>
+                      
+                      {/* Notification Members */}
+                      {column.assignedMembers && column.assignedMembers.length > 0 ? (
+                        <div className="space-y-4">
+                          <div className="flex items-center space-x-3 mb-4">
+                            <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                              <Bell className="h-4 w-4 text-green-600 dark:text-green-400" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-900 dark:text-gray-100">
+                                {column.assignedMembers.length} {column.assignedMembers.length === 1 ? 'Person' : 'People'} Getting Notified
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                They'll be alerted when tasks move to this column
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="grid gap-3">
+                            {column.assignedMembers.map((assignment: any) => (
+                              <div
+                                key={assignment.id}
+                                className="group flex items-center justify-between p-4 bg-white dark:bg-gray-600 rounded-xl border border-gray-200 dark:border-gray-500 hover:shadow-md transition-all duration-200"
+                              >
+                                <div className="flex items-center space-x-4">
+                                  {assignment.user.image ? (
+                                    <img
+                                      src={`/api/image-proxy?url=${encodeURIComponent(assignment.user.image)}`}
+                                      alt={assignment.user.name}
+                                      className="w-12 h-12 rounded-full object-cover border-3 border-gray-200 dark:border-gray-500"
+                                    />
+                                  ) : (
+                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm shadow-md">
+                                      {assignment.user.name?.charAt(0).toUpperCase() || '?'}
+                                    </div>
+                                  )}
+                                  <div>
+                                    <div className="font-semibold text-gray-900 dark:text-gray-100">
+                                      {assignment.user.name}
+                                    </div>
+                                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                                      {assignment.user.email}
+                                    </div>
+                                    <div className="text-xs text-gray-400 dark:text-gray-500 flex items-center space-x-1 mt-1">
+                                      <span>Added by</span>
+                                      <span className="font-medium">{assignment.assignedBy.name}</span>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                              <div className="flex items-center space-x-2">
-                                <div className="text-xs text-gray-400 dark:text-gray-500">
-                                  Assigned by {assignment.assignedBy.name}
-                                </div>
+                                
                                 <button
                                   onClick={() => removeMemberFromColumn(assignment.id, showColumnAssignments!)}
-                                  className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                                  title="Remove assignment"
+                                  className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all duration-200 opacity-0 group-hover:opacity-100"
+                                  title="Remove from notifications"
                                 >
-                                  <X className="h-4 w-4" />
+                                  <X className="h-5 w-5" />
                                 </button>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="text-center py-6">
-                        <Bell className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          No members assigned
-                        </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                          Assign members to receive notifications when tasks move to this column
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+                      ) : (
+                        <div className="text-center py-12 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl bg-gray-50/50 dark:bg-gray-700/50">
+                          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <Bell className="h-8 w-8 text-gray-400" />
+                          </div>
+                          <h5 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            No Notifications Set
+                          </h5>
+                          <p className="text-gray-500 dark:text-gray-400 text-sm max-w-xs mx-auto">
+                            Add team members to get notified when tasks move to this column
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
 
       {/* Member Assignment Modal */}
       {showAssignMemberModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Assign Member to {showAssignMemberModal.columnLabel}
-              </h3>
-              <button
-                onClick={() => setShowAssignMemberModal(null)}
-                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-              >
-                <X className="h-5 w-5" />
-              </button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-500 to-purple-500 px-6 py-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                    <UserPlus className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">
+                      Add to {showAssignMemberModal.columnLabel}
+                    </h3>
+                    <p className="text-blue-100 text-sm">
+                      Choose who gets notified
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowAssignMemberModal(null)}
+                  className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
             
-            <div className="space-y-3 max-h-64 overflow-y-auto">
-              {(() => {
-                const selectedTeam = teams.find(t => t.id === showColumnAssignments);
-                if (!selectedTeam) return <p className="text-gray-500">No team selected</p>;
-                
-                const assignedUserIds = teamColumns
-                  .find((c: any) => c.id === showAssignMemberModal.columnId)
-                  ?.assignedMembers?.map((a: any) => a.userId) || [];
-                  
-                const availableMembers = selectedTeam.members.filter(
-                  member => !assignedUserIds.includes(member.id)
-                );
-                
-                if (availableMembers.length === 0) {
-                  return (
-                    <p className="text-center text-gray-500 dark:text-gray-400 py-4">
-                      All team members are already assigned to this column
-                    </p>
-                  );
-                }
-                
-                return availableMembers.map((member) => (
-                  <button
-                    key={member.id}
-                    onClick={() =>
-                      assignMemberToColumn(
-                        showAssignMemberModal.columnId,
-                        member.id,
-                        showAssignMemberModal.teamId
-                      )
-                    }
-                    disabled={assigningMember}
-                    className="w-full flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    {member.image ? (
-                      <img
-                        src={`/api/image-proxy?url=${encodeURIComponent(member.image)}`}
-                        alt={member.name}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm">
-                        {member.name.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <div className="flex-1 text-left">
-                      <div className="font-medium text-gray-900 dark:text-gray-100">
-                        {member.name}
-                      </div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">
-                        {member.email} • {member.role}
-                      </div>
+            {/* Member List */}
+            <div className="p-6">
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {(() => {
+                  const selectedTeam = teams.find(t => t.id === showColumnAssignments);
+                  if (!selectedTeam) return (
+                    <div className="text-center py-12">
+                      <p className="text-gray-500 dark:text-gray-400">No team selected</p>
                     </div>
-                    {assigningMember && (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
-                    )}
-                  </button>
-                ));
-              })()}
+                  );
+                  
+                  const assignedUserIds = teamColumns
+                    .find((c: any) => c.id === showAssignMemberModal.columnId)
+                    ?.assignedMembers?.map((a: any) => a.userId) || [];
+                    
+                  const availableMembers = selectedTeam.members.filter(
+                    member => !assignedUserIds.includes(member.id)
+                  );
+                  
+                  if (availableMembers.length === 0) {
+                    return (
+                      <div className="text-center py-16">
+                        <div className="w-20 h-20 bg-gradient-to-br from-green-100 to-blue-100 dark:from-green-900/30 dark:to-blue-900/30 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                          <UserPlus className="h-10 w-10 text-green-500" />
+                        </div>
+                        <h4 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">
+                          Everyone's Already Added!
+                        </h4>
+                        <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+                          All team members are already getting notifications for this column.
+                        </p>
+                      </div>
+                    );
+                  }
+                  
+                  return availableMembers.map((member) => (
+                    <button
+                      key={member.id}
+                      onClick={() =>
+                        assignMemberToColumn(
+                          showAssignMemberModal.columnId,
+                          member.userId || member.id, // Use userId when available, fallback to id
+                          showAssignMemberModal.teamId
+                        )
+                      }
+                      disabled={assigningMember}
+                      className="group w-full flex items-center space-x-4 p-4 bg-gradient-to-r from-gray-50 to-white dark:from-gray-700 dark:to-gray-800 hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-900/20 dark:hover:to-purple-900/20 rounded-2xl border-2 border-transparent hover:border-blue-200 dark:hover:border-blue-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+                    >
+                      {member.image ? (
+                        <img
+                          src={`/api/image-proxy?url=${encodeURIComponent(member.image)}`}
+                          alt={member.name}
+                          className="w-14 h-14 rounded-full object-cover border-3 border-gray-200 dark:border-gray-600 group-hover:border-blue-300 dark:group-hover:border-blue-500 transition-colors"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                          {member.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="flex-1 text-left">
+                        <div className="font-bold text-gray-900 dark:text-gray-100 text-lg">
+                          {member.name}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {member.email}
+                        </div>
+                        <div className="text-xs text-blue-600 dark:text-blue-400 font-semibold mt-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/30 rounded-full inline-block">
+                          {member.role}
+                        </div>
+                      </div>
+                      {assigningMember ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent"></div>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Adding...</span>
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 flex items-center justify-center group-hover:from-blue-200 group-hover:to-purple-200 dark:group-hover:from-blue-800/50 dark:group-hover:to-purple-800/50 transition-all">
+                          <Bell className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        </div>
+                      )}
+                    </button>
+                  ));
+                })()}
+              </div>
             </div>
           </div>
         </div>

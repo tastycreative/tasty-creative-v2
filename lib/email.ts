@@ -775,3 +775,202 @@ export async function sendSubmissionConfirmationEmail({
     html: emailHtml,
   });
 }
+
+export async function sendColumnAssignmentNotificationEmail({
+  to,
+  userName,
+  taskTitle,
+  taskDescription,
+  columnName,
+  teamName,
+  movedBy,
+  priority,
+  taskUrl,
+}: {
+  to: string;
+  userName: string;
+  taskTitle: string;
+  taskDescription?: string;
+  columnName: string;
+  teamName: string;
+  movedBy: string;
+  priority: string;
+  taskUrl?: string;
+}) {
+  // Truncate task description if it's too long for email
+  const truncatedDescription = taskDescription && taskDescription.length > 150 
+    ? taskDescription.substring(0, 150) + "..." 
+    : taskDescription || "No description provided";
+
+  // Priority color mapping
+  const priorityColors: Record<string, { bg: string; text: string; badge: string }> = {
+    HIGH: { bg: '#fef2f2', text: '#dc2626', badge: 'High Priority' },
+    MEDIUM: { bg: '#fefbf2', text: '#d97706', badge: 'Medium Priority' },
+    LOW: { bg: '#f0fdf4', text: '#16a34a', badge: 'Low Priority' },
+  };
+  
+  const priorityColor = priorityColors[priority] || priorityColors.MEDIUM;
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject: `Task moved to your column: ${taskTitle} - Tasty Creative`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Task Assignment Notification</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f9fafb;">
+          <div style="background-color: #f9fafb; padding: 40px 20px;">
+            <!-- Main Container -->
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);">
+              
+              <!-- Header -->
+              <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 48px 40px; text-align: center; border-bottom: 1px solid #e0f2fe;">
+                <svg
+                  style="margin: 0 auto 16px; height: 48px; width: 48px; color: #0ea5e9;"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2M12 12h4m-4 4h4m-4-8h4"
+                  />
+                </svg>
+                <h1 style="margin: 0 0 8px 0; font-size: 32px; font-weight: 800; color: #111827; letter-spacing: -0.5px;">
+                  Task Assignment
+                </h1>
+                <p style="margin: 0; font-size: 16px; color: #6b7280;">
+                  A task has been moved to your assigned column in <span style="font-weight: 600; color: #0ea5e9;">${teamName}</span>
+                </p>
+              </div>
+              
+              <!-- Body Content -->
+              <div style="padding: 48px 40px;">
+                <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #374151;">
+                  Hello <strong>${userName}</strong>,
+                </p>
+                <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #374151;">
+                  <strong>${movedBy}</strong> just moved a task to your assigned column "<strong>${columnName}</strong>"!
+                </p>
+                
+                <!-- Task Details -->
+                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px; margin: 32px 0;">
+                  <!-- Priority Badge -->
+                  <div style="margin-bottom: 16px;">
+                    <span style="background-color: ${priorityColor.bg}; color: ${priorityColor.text}; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                      ${priorityColor.badge}
+                    </span>
+                  </div>
+                  
+                  <!-- Task Title -->
+                  <h3 style="margin: 0 0 16px 0; font-size: 20px; color: #111827; font-weight: 700; line-height: 28px;">
+                    ${taskTitle}
+                  </h3>
+                  
+                  <!-- Task Description -->
+                  <p style="margin: 0 0 20px 0; font-size: 14px; color: #6b7280; line-height: 20px;">
+                    ${truncatedDescription}
+                  </p>
+                  
+                  <!-- Column Info -->
+                  <div style="background-color: #dbeafe; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; margin-top: 20px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                      <svg
+                        style="height: 20px; width: 20px; color: #2563eb; flex-shrink: 0;"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                        />
+                      </svg>
+                      <span style="font-size: 14px; color: #1e40af; font-weight: 600;">
+                        Assigned to: ${columnName}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- CTA Button -->
+                ${taskUrl ? `
+                <div style="text-align: center; margin: 32px 0;">
+                  <a href="${taskUrl}" style="display: inline-block; padding: 14px 32px; background-color: #000000; color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; transition: all 0.3s ease;">
+                    View Task Details
+                  </a>
+                </div>
+                ` : ''}
+                
+                <!-- Divider -->
+                <div style="margin: 40px 0; border-top: 1px solid #e5e7eb;"></div>
+                
+                <!-- Additional Information -->
+                <div style="background-color: #f9fafb; padding: 24px; border-radius: 8px; margin-bottom: 24px;">
+                  <p style="margin: 0 0 12px 0; font-size: 14px; color: #6b7280;">
+                    <strong>Next Steps:</strong>
+                  </p>
+                  <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 20px;">
+                    This task has been moved to a column you're responsible for. Please review the task details and take any necessary action to move it forward in your workflow.
+                  </p>
+                </div>
+                
+                <!-- Team Info -->
+                <div style="background-color: #fffbeb; border: 1px solid #fed7aa; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+                  <p style="margin: 0; font-size: 14px; color: #92400e; line-height: 20px;">
+                    <strong>Team:</strong> ${teamName}<br>
+                    <strong>Column:</strong> ${columnName}<br>
+                    <strong>Moved by:</strong> ${movedBy}
+                  </p>
+                </div>
+                
+                <!-- Footer text -->
+                <p style="margin: 0 0 12px 0; font-size: 14px; color: #6b7280; line-height: 20px;">
+                  You're receiving this notification because you're assigned to the "${columnName}" column in the ${teamName} team board.
+                </p>
+                
+                <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 20px;">
+                  <strong>Note:</strong> This is an automated notification from the Tasty Creative task management system.
+                </p>
+              </div>
+              
+              <!-- Footer -->
+              <div style="background-color: #f9fafb; padding: 32px 40px; text-align: center; border-top: 1px solid #e5e7eb;">
+                <p style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #111827;">
+                  Tasty Creative
+                </p>
+                <p style="margin: 0; font-size: 14px; color: #6b7280;">
+                  Streamlining team collaboration
+                </p>
+                
+                <!-- Social links placeholder -->
+                <div style="margin-top: 20px;">
+                  <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+                    © ${new Date().getFullYear()} Tasty Creative. All rights reserved.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Email footer -->
+            <div style="text-align: center; margin-top: 32px;">
+              <p style="margin: 0; font-size: 12px; color: #9ca3af; line-height: 18px;">
+                This email was sent to ${to}<br>
+                You received this notification because a task was moved to your assigned column.
+              </p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+  });
+}

@@ -431,14 +431,87 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     e.dataTransfer.dropEffect = 'move';
   };
 
-  const handleDrop = (e: React.DragEvent, newStatus: Task['status']) => {
+  const handleDrop = async (e: React.DragEvent, newStatus: Task['status']) => {
     e.preventDefault();
     
     if (!draggedTask || draggedTask.status === newStatus) {
       return;
     }
 
-    updateTaskStatus(draggedTask.id, newStatus);
+    // Store the old status for notification purposes
+    const oldStatus = draggedTask.status;
+
+    // Update the task status first
+    await updateTaskStatus(draggedTask.id, newStatus);
+
+    // Send notifications to assigned members
+    await sendColumnNotifications(draggedTask, oldStatus, newStatus);
+  };
+
+  // Function to send notifications to column members
+  const sendColumnNotifications = async (task: Task, oldStatus: Task['status'], newStatus: Task['status']) => {
+    try {
+      // Find the target column to get assigned members
+      const targetColumn = columns.find(column => column.status === newStatus);
+      
+      if (!targetColumn || !targetColumn.assignedMembers || targetColumn.assignedMembers.length === 0) {
+        console.log('📭 No assigned members for column:', newStatus);
+        return;
+      }
+
+      // Get source column name for better logging
+      const sourceColumn = columns.find(col => col.status === oldStatus);
+
+      // Prepare notification data
+      const notificationData = {
+        taskId: task.id,
+        taskTitle: task.title,
+        taskDescription: task.description || '',
+        assignedTo: task.assignedTo || 'Unassigned',
+        priority: task.priority,
+        oldColumn: sourceColumn?.label || oldStatus,
+        newColumn: targetColumn.label,
+        teamId: teamId,
+        teamName: teamName,
+        movedBy: session?.user?.name || 'Unknown User',
+        movedById: session?.user?.id || '',
+        assignedMembers: targetColumn.assignedMembers.map(assignment => ({
+          userId: assignment.userId,
+          userEmail: assignment.user.email,
+          userName: assignment.user.name
+        }))
+      };
+
+      console.log('📬 Sending column notifications for task movement:', {
+        task: task.title,
+        from: notificationData.oldColumn,
+        to: notificationData.newColumn,
+        assignedCount: notificationData.assignedMembers.length
+      });
+
+      // Send notifications via API
+      const response = await fetch('/api/notifications/column-movement', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(notificationData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ Failed to send column notifications:', errorData);
+        // Show user-friendly error message
+        console.warn('Notifications could not be sent, but task was moved successfully');
+      } else {
+        const result = await response.json();
+        console.log('✅ Column notifications sent successfully:', result.summary);
+      }
+    } catch (error) {
+      console.error('❌ Error sending column notifications:', error);
+      // Don't block the task movement if notifications fail
+      console.warn('Task moved successfully, but notifications failed');
+    }
   };
 
   const getTasksForStatus = (status: Task['status']) => {

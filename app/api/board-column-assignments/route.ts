@@ -17,15 +17,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Team ID is required' }, { status: 400 });
     }
 
-    // Verify user has access to this team
-    const teamMember = await (prisma as any).podTeamMember.findFirst({
-      where: {
-        teamId: teamId,
-        userId: session.user.id
-      }
-    });
+    // Verify user has access to this team - either global admin/pod or team member
+    const hasGlobalAccess = session.user.role === 'POD' || session.user.role === 'ADMIN';
+    
+    let hasTeamAccess = false;
+    if (!hasGlobalAccess) {
+      const teamMember = await (prisma as any).podTeamMember.findFirst({
+        where: {
+          podTeamId: teamId,
+          userId: session.user.id
+        }
+      });
+      hasTeamAccess = !!teamMember;
+    }
 
-    if (!teamMember && session.user.role !== 'POD') {
+    if (!hasGlobalAccess && !hasTeamAccess) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
@@ -93,32 +99,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify user has admin access to this team
-    const teamMember = await (prisma as any).podTeamMember.findFirst({
-      where: {
-        teamId: teamId,
-        userId: session.user.id,
-        role: { in: ['ADMIN', 'MANAGER'] }
-      }
-    });
-
-    if (!teamMember && session.user.role !== 'POD') {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    // Verify user has admin access - either global admin/pod or team admin/leader
+    const hasGlobalAdminAccess = session.user.role === 'POD' || session.user.role === 'ADMIN';
+    
+    let hasTeamAdminAccess = false;
+    if (!hasGlobalAdminAccess) {
+      const teamMember = await (prisma as any).podTeamMember.findFirst({
+        where: {
+          podTeamId: teamId,
+          userId: session.user.id,
+          role: { in: ['ADMIN', 'LEADER'] }
+        }
+      });
+      hasTeamAdminAccess = !!teamMember;
     }
 
-    // Verify the user being assigned is a member of the team
-    const targetTeamMember = await (prisma as any).podTeamMember.findFirst({
-      where: {
-        teamId: teamId,
-        userId: userId
-      }
-    });
-
-    if (!targetTeamMember) {
-      return NextResponse.json(
-        { error: 'User is not a member of this team' },
-        { status: 400 }
-      );
+    if (!hasGlobalAdminAccess && !hasTeamAdminAccess) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
     // Verify the column belongs to the team
@@ -209,16 +206,23 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Verify user has admin access to this team
-    const teamMember = await (prisma as any).podTeamMember.findFirst({
-      where: {
-        teamId: teamId,
-        userId: session.user.id,
-        role: { in: ['ADMIN', 'MANAGER'] }
-      }
-    });
+    // Check if user has global admin access or team-specific admin access
+    const hasGlobalAccess = session.user.role === 'POD' || session.user.role === 'ADMIN';
+    
+    let hasTeamAccess = false;
+    if (!hasGlobalAccess) {
+      // Only check team membership if user doesn't have global access
+      const teamMember = await (prisma as any).podTeamMember.findFirst({
+        where: {
+          podTeamId: teamId,
+          userId: session.user.id,
+          role: { in: ['ADMIN', 'LEADER'] }
+        }
+      });
+      hasTeamAccess = !!teamMember;
+    }
 
-    if (!teamMember && session.user.role !== 'POD') {
+    if (!hasGlobalAccess && !hasTeamAccess) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
