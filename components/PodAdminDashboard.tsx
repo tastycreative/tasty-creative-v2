@@ -1616,7 +1616,7 @@ const PodAdminDashboard = () => {
         {/* Team Management View */}
         {activeView === "teams" && (
           <div className="space-y-6">
-            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+            <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
               <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                 <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
                   Team Management
@@ -1626,15 +1626,15 @@ const PodAdminDashboard = () => {
                 </span>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
-                <div className="relative flex-1 xl:flex-initial">
+              <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                <div className="relative flex-1 lg:flex-initial">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
                     type="text"
                     placeholder="Search teams..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-4 py-2 w-full xl:w-64 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="pl-10 pr-4 py-2 w-full lg:w-64 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
                 </div>
 
@@ -1649,14 +1649,14 @@ const PodAdminDashboard = () => {
             </div>
 
             {/* Teams Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
               {filteredTeams.map((team) => {
                 const stats = getTeamStats(team);
 
                 return (
                   <div
                     key={team.id}
-                    className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 hover:shadow-lg transition-shadow"
+                    className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-6 hover:shadow-lg transition-shadow"
                   >
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
@@ -1835,45 +1835,49 @@ const PodAdminDashboard = () => {
                               </div>
                             </div>
                           ) : (
-                            <div className="flex items-center space-x-2">
-                              <Star className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                Creators:
-                              </span>
-                              {team.creators && team.creators.length > 0 ? (
-                                <div className="flex flex-wrap gap-1 flex-1">
-                                  {team.creators.map((creator, index) => (
-                                    <span
-                                      key={index}
-                                      className="inline-flex items-center px-2 py-1 bg-purple-100 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-500/30 rounded-full text-xs font-medium text-purple-700 dark:text-purple-300"
-                                    >
-                                      {creator}
-                                    </span>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="inline-flex items-center px-2 py-1 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-500 dark:text-gray-400">
-                                  No creators assigned
-                                </div>
-                              )}
-                              <button
-                                onClick={() => {
-                                  setEditingCreators(team.id);
-                                  setEditingCreatorsValue(team.creators || []);
-                                  if (availableCreators.length === 0) {
-                                    fetchAvailableCreators();
-                                  }
-                                }}
-                                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                                title="Edit creators"
-                              >
-                                <Edit className="h-3 w-3" />
-                              </button>
-                              {creatorsSuccess === team.id && (
-                                <span className="text-green-600 dark:text-green-400 text-xs animate-pulse">
-                                  ✓ Updated
+                            <div className="flex items-start space-x-2">
+                              <Star className="h-4 w-4 text-gray-500 dark:text-gray-400 flex-shrink-0 mt-0.5" />
+                              <div className="flex-1 min-w-0">
+                                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 block mb-1">
+                                  Creators:
                                 </span>
-                              )}
+                                {team.creators && team.creators.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {team.creators.map((creator, index) => (
+                                      <span
+                                        key={index}
+                                        className="inline-flex items-center px-2 py-1 bg-purple-100 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-500/30 rounded-full text-xs font-medium text-purple-700 dark:text-purple-300"
+                                      >
+                                        {creator}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="inline-flex items-center px-2 py-1 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-500 dark:text-gray-400">
+                                    No creators assigned
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center space-x-1 flex-shrink-0">
+                                <button
+                                  onClick={() => {
+                                    setEditingCreators(team.id);
+                                    setEditingCreatorsValue(team.creators || []);
+                                    if (availableCreators.length === 0) {
+                                      fetchAvailableCreators();
+                                    }
+                                  }}
+                                  className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                  title="Edit creators"
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </button>
+                                {creatorsSuccess === team.id && (
+                                  <span className="text-green-600 dark:text-green-400 text-xs animate-pulse">
+                                    ✓ Updated
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -1941,7 +1945,8 @@ const PodAdminDashboard = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3 mb-4">
+                    {/* Action Buttons - Responsive Layout */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-3 mb-4">
                       <button
                         onClick={() => setShowMembersModal(team.id)}
                         className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-left cursor-pointer"
@@ -1966,19 +1971,20 @@ const PodAdminDashboard = () => {
                         </div>
                       </button>
 
+                      {/* Column Assignments Button - Responsive */}
                       <button
                         onClick={() => setShowColumnAssignments(team.id)}
-                        className="group bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-800/30 dark:hover:to-pink-800/30 rounded-xl p-4 transition-all duration-300 text-left cursor-pointer border border-purple-200 dark:border-purple-500/30 hover:border-purple-300 dark:hover:border-purple-400/50 hover:shadow-lg transform hover:scale-[1.02]"
+                        className="group bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-800/30 dark:hover:to-pink-800/30 rounded-xl p-3 sm:p-4 transition-all duration-300 text-left cursor-pointer border border-purple-200 dark:border-purple-500/30 hover:border-purple-300 dark:hover:border-purple-400/50 hover:shadow-lg transform hover:scale-[1.02] sm:col-span-2 lg:col-span-1 xl:col-span-2 2xl:col-span-1"
                       >
-                        <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <Target className="h-4 w-4 text-white" />
+                        <div className="flex items-center space-x-2 sm:space-x-3">
+                          <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
+                            <Target className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
                           </div>
-                          <div>
-                            <span className="text-sm font-bold text-purple-700 dark:text-purple-300 block">
+                          <div className="min-w-0 flex-1">
+                            <span className="text-xs sm:text-sm font-bold text-purple-700 dark:text-purple-300 block truncate">
                               Notifications
                             </span>
-                            <span className="text-xs text-purple-600 dark:text-purple-400">
+                            <span className="text-xs text-purple-600 dark:text-purple-400 truncate block">
                               Column alerts setup
                             </span>
                           </div>
@@ -2016,6 +2022,7 @@ const PodAdminDashboard = () => {
                       </div>
                     )}
 
+                    {/* Progress Bar */}
                     {stats.totalTasks > 0 && (
                       <div className="mb-4">
                         <div className="flex items-center justify-between mb-2">
@@ -2040,6 +2047,7 @@ const PodAdminDashboard = () => {
                       </div>
                     )}
 
+                    {/* Team Footer - Members and Status Icons */}
                     <div className="flex items-center justify-between">
                       <div className="flex -space-x-2">
                         {team.members.slice(0, 3).map((member) => (
@@ -2049,11 +2057,11 @@ const PodAdminDashboard = () => {
                                 src={`/api/image-proxy?url=${encodeURIComponent(member.image)}`}
                                 alt={member.name || ""}
                                 title={member.name || ""}
-                                className="w-8 h-8 rounded-full object-cover border-2 border-white dark:border-gray-800 shadow-sm"
+                                className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover border-2 border-white dark:border-gray-800 shadow-sm"
                               />
                             ) : (
                               <div 
-                                className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 flex items-center justify-center text-white font-semibold text-sm border-2 border-white dark:border-gray-800 shadow-sm"
+                                className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 flex items-center justify-center text-white font-semibold text-xs sm:text-sm border-2 border-white dark:border-gray-800 shadow-sm"
                                 title={member.name || ""}
                               >
                                 {(member.name || member.email || "U").charAt(0).toUpperCase()}
@@ -2062,7 +2070,7 @@ const PodAdminDashboard = () => {
                           </div>
                         ))}
                         {team.members.length > 3 && (
-                          <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-gray-600 dark:text-gray-300 text-xs font-medium border-2 border-white dark:border-gray-800">
+                          <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-gray-600 dark:text-gray-300 text-xs font-medium border-2 border-white dark:border-gray-800">
                             +{team.members.length - 3}
                           </div>
                         )}

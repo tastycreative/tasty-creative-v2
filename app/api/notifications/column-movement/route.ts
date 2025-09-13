@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
             teamName,
             movedBy,
             priority,
-            taskUrl: `${process.env.NEXTAUTH_URL}/tasks/${taskId}` // You can adjust this URL as needed
+            taskUrl: `${process.env.NEXTAUTH_URL}/apps/pod/board?task=${taskId}`
           });
 
           emailResults.push({
