@@ -188,8 +188,12 @@ const MentionsInput: React.FC<MentionsInputProps> = ({
     // Calculate what changed
     const lengthDiff = newText.length - displayValue.length;
     
+    // Check if any mention text appears in the display without proper mention tracking
+    // This happens when mentions are deleted and re-added
+    const cleanedText = newText.replace(/@\[([^\]]+)\]\([^)]+\)/g, '$1');
+    
     // Update mentions positions based on the change
-    const updatedMentions = mentions.map(mention => {
+    let updatedMentions = mentions.map(mention => {
       if (cursorPos <= mention.displayStart) {
         // Change is before the mention, adjust position
         return {
@@ -200,21 +204,33 @@ const MentionsInput: React.FC<MentionsInputProps> = ({
       } else if (cursorPos > mention.displayStart && cursorPos < mention.displayEnd) {
         // Change is inside the mention, remove it
         return null;
+      } else if (cursorPos >= mention.displayStart && cursorPos <= mention.displayEnd) {
+        // Change is at the edge of mention, remove it to be safe
+        return null;
       }
       // Change is after the mention, no adjustment needed
       return mention;
     }).filter(Boolean) as typeof mentions;
     
-    // Convert back to storage format
-    const storageValue = convertToStorageFormat(newText, updatedMentions);
+    // Validate that all mentions still exist in the text
+    updatedMentions = updatedMentions.filter(mention => {
+      const mentionText = newText.substring(mention.displayStart, mention.displayEnd);
+      return mentionText === mention.name;
+    });
     
-    setDisplayValue(newText);
+    // Use cleaned text for display to avoid duplication
+    const finalDisplayText = cleanedText;
+    
+    // Convert back to storage format
+    const storageValue = convertToStorageFormat(finalDisplayText, updatedMentions);
+    
+    setDisplayValue(finalDisplayText);
     setMentions(updatedMentions);
     isInternalChange.current = true;
     onChange(storageValue);
     
     // Check for @ symbol to show suggestions
-    const textBeforeCursor = newText.substring(0, cursorPos);
+    const textBeforeCursor = finalDisplayText.substring(0, Math.min(cursorPos, finalDisplayText.length));
     const atIndex = textBeforeCursor.lastIndexOf('@');
     
     if (atIndex !== -1 && (atIndex === 0 || /\s/.test(textBeforeCursor[atIndex - 1]))) {
