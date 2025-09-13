@@ -974,3 +974,143 @@ export async function sendColumnAssignmentNotificationEmail({
     `,
   });
 }
+
+export async function sendMentionNotificationEmail({
+  to,
+  mentionedUserName,
+  mentionerName,
+  taskTitle,
+  taskDescription,
+  commentContent,
+  teamName,
+  taskUrl,
+}: {
+  to: string;
+  mentionedUserName: string;
+  mentionerName: string;
+  taskTitle: string;
+  taskDescription?: string | null;
+  commentContent: string;
+  teamName?: string | null;
+  taskUrl: string;
+}) {
+  // Truncate comment if it's too long for email
+  const truncatedComment = commentContent.length > 200 
+    ? commentContent.substring(0, 200) + "..." 
+    : commentContent;
+
+  const truncatedDescription = taskDescription && taskDescription.length > 150
+    ? taskDescription.substring(0, 150) + "..."
+    : taskDescription;
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject: `You were mentioned in "${taskTitle}" - Tasty Creative`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>You were mentioned</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f9fafb;">
+          <div style="background-color: #f9fafb; padding: 40px 20px;">
+            <!-- Main Container -->
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);">
+              
+              <!-- Header -->
+              <div style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); padding: 48px 40px; text-align: center; border-bottom: 1px solid #dbeafe;">
+                <svg
+                  style="margin: 0 auto 16px; height: 48px; width: 48px; color: #3b82f6;"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
+                  />
+                </svg>
+                <h1 style="margin: 0 0 8px 0; font-size: 32px; font-weight: 800; color: #111827; letter-spacing: -0.5px;">
+                  You Were Mentioned!
+                </h1>
+                <p style="margin: 0; font-size: 16px; color: #6b7280;">
+                  <span style="font-weight: 600; color: #3b82f6;">${mentionerName}</span> mentioned you in a comment
+                </p>
+              </div>
+              
+              <!-- Body Content -->
+              <div style="padding: 48px 40px;">
+                <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #374151;">
+                  Hi <span style="font-weight: 600; color: #3b82f6;">${mentionedUserName}</span>,
+                </p>
+                
+                <p style="margin: 0 0 32px 0; font-size: 16px; line-height: 24px; color: #374151;">
+                  You were mentioned in a comment on the task "<strong style="color: #111827;">${taskTitle}</strong>"${teamName ? ` in team <strong style="color: #111827;">${teamName}</strong>` : ''}.
+                </p>
+
+                ${truncatedDescription ? `
+                  <div style="background-color: #f3f4f6; border-radius: 12px; padding: 24px; margin-bottom: 32px;">
+                    <h3 style="margin: 0 0 12px 0; font-size: 14px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px;">
+                      Task Description
+                    </h3>
+                    <p style="margin: 0; font-size: 16px; line-height: 24px; color: #374151;">
+                      ${truncatedDescription}
+                    </p>
+                  </div>
+                ` : ''}
+                
+                <!-- Comment Box -->
+                <div style="background-color: #f9fafb; border-left: 4px solid #3b82f6; border-radius: 0 12px 12px 0; padding: 24px; margin-bottom: 32px;">
+                  <div style="display: flex; align-items: center; margin-bottom: 12px;">
+                    <h3 style="margin: 0; font-size: 14px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px;">
+                      ${mentionerName}'s Comment
+                    </h3>
+                  </div>
+                  <p style="margin: 0; font-size: 16px; line-height: 24px; color: #374151; font-style: italic;">
+                    "${truncatedComment}"
+                  </p>
+                </div>
+                
+                <!-- CTA Button -->
+                <div style="text-align: center; margin: 32px 0;">
+                  <a
+                    href="${taskUrl}"
+                    style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: #ffffff; font-weight: 600; font-size: 16px; padding: 16px 32px; border-radius: 12px; text-decoration: none; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.25); transition: all 0.2s ease;"
+                  >
+                    View Task & Reply
+                  </a>
+                </div>
+                
+                <div style="text-align: center; margin-top: 24px;">
+                  <p style="margin: 0; font-size: 14px; color: #9ca3af;">
+                    Or copy and paste this link: <br>
+                    <span style="color: #3b82f6; word-break: break-all;">${taskUrl}</span>
+                  </p>
+                </div>
+              </div>
+              
+              <!-- Footer -->
+              <div style="background-color: #f9fafb; padding: 32px 40px; border-top: 1px solid #e5e7eb; text-align: center;">
+                <p style="margin: 0 0 16px 0; font-size: 14px; color: #6b7280;">
+                  This notification was sent because you were mentioned in a task comment.
+                </p>
+                
+                <div style="display: flex; justify-content: center; align-items: center; gap: 16px; flex-wrap: wrap;">
+                  <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+                    © ${new Date().getFullYear()} Tasty Creative. All rights reserved.
+                  </p>
+                </div>
+              </div>
+              
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+  });
+}

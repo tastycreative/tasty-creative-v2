@@ -360,7 +360,8 @@ export default function TaskDetailModal({
                    {/* Comments Section */}
                 <div className=" ">
                   <TaskComments 
-                    taskId={selectedTask.id} 
+                    taskId={selectedTask.id}
+                    teamId={selectedTask.podTeamId || undefined}
                     currentUser={session?.user ? {
                       id: session.user.id!,
                       name: session.user.name,
