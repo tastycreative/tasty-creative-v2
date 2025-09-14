@@ -1,6 +1,20 @@
 // SSE broadcast utility for sending real-time notifications
-// Store active connections
-const connections = new Map<string, ReadableStreamDefaultController>();
+
+// Use globalThis to persist connections across Next.js hot reloads in development
+const globalForConnections = globalThis as unknown as {
+  sseConnections: Map<string, ReadableStreamDefaultController> | undefined
+};
+
+// Store active connections - persisted across hot reloads
+const connections = globalForConnections.sseConnections ?? new Map<string, ReadableStreamDefaultController>();
+
+if (!globalForConnections.sseConnections) {
+  globalForConnections.sseConnections = connections;
+  console.log('📡 Initialized SSE connections store');
+} else {
+  console.log(`📡 Reusing existing SSE connections store with ${connections.size} connections`);
+  console.log(`📡 Existing connected users: [${Array.from(connections.keys()).join(', ')}]`);
+}
 
 // Register a new connection
 export function registerConnection(userId: string, controller: ReadableStreamDefaultController) {
