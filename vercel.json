@@ -2,43 +2,6 @@
   "functions": {
     "app/api/realtime/route.ts": {
       "maxDuration": 60
-    },
-    "app/api/notifications/stream/route.ts": {
-      "maxDuration": 300
-    },
-    "app/api/notifications/health/route.ts": {
-      "maxDuration": 10
     }
-  },
-  "headers": [
-    {
-      "source": "/api/notifications/stream",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate"
-        },
-        {
-          "key": "Connection", 
-          "value": "keep-alive"
-        },
-        {
-          "key": "Content-Type",
-          "value": "text/event-stream"
-        },
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        },
-        {
-          "key": "Access-Control-Allow-Credentials",
-          "value": "true"
-        },
-        {
-          "key": "X-Accel-Buffering",
-          "value": "no"
-        }
-      ]
-    }
-  ]
+  }
 }
