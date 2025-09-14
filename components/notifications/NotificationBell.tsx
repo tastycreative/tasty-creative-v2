@@ -29,22 +29,7 @@ interface NotificationBellProps {
 
 export default function NotificationBell({ className = '' }: NotificationBellProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const { notifications, unreadCount, isConnected, connectionType, lastUpdated, testIncrement, markAsRead, markAllAsRead, refetch } = useNotifications();
-
-  // Debug logging to track re-renders and values
-  console.log('🔔 NotificationBell render:', {
-    unreadCount,
-    notificationsLength: notifications.length,
-    isConnected,
-    connectionType,
-    lastUpdated,
-    timestamp: new Date().toLocaleTimeString()
-  });
-
-  // Track when unreadCount changes
-  useEffect(() => {
-    console.log('🔔 unreadCount changed to:', unreadCount);
-  }, [unreadCount]);
+  const { notifications, unreadCount, isConnected, connectionType, lastUpdated, markAsRead, markAllAsRead, refetch } = useNotifications();
 
   // Get icon based on notification type
   const getNotificationIcon = (type: string) => {
@@ -129,11 +114,7 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
         </div>
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-[20px] text-[11px] font-semibold">
-            {(() => {
-              const displayCount = unreadCount > 99 ? '99+' : unreadCount;
-              console.log('🔔 Badge render:', { unreadCount, displayCount });
-              return displayCount;
-            })()}
+            {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
       </button>
@@ -170,13 +151,6 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
               <div className="flex items-center space-x-2">
                 {process.env.NODE_ENV === 'development' && (
                   <>
-                    <button
-                      onClick={testIncrement}
-                      className="text-xs text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 px-2 py-1 rounded bg-green-50 dark:bg-green-900/20"
-                      title="Test context update"
-                    >
-                      +1
-                    </button>
                     <button
                       onClick={testNotification}
                       className="text-xs text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 px-2 py-1 rounded bg-purple-50 dark:bg-purple-900/20"

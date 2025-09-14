@@ -6,6 +6,7 @@ import UserProfile from '@/components/ui/UserProfile';
 import CommentFilePreview from '@/components/ui/CommentFilePreview';
 import MentionsInput, { type MentionUser, type Mention } from '@/components/ui/MentionsInput';
 import { useTaskComments } from '@/lib/stores/boardStore';
+import { useNotifications } from '@/contexts/NotificationContext';
 import type { TaskComment, TaskAttachment } from '@/lib/stores/boardStore';
 import type { PreviewFile } from '@/components/ui/CommentFilePreview';
 
@@ -217,8 +218,12 @@ export default function TaskComments({ taskId, teamId, currentUser }: TaskCommen
     updateTaskComment,
     deleteTaskComment,
   } = useTaskComments(taskId);
+
+  // Subscribe to real-time notifications for comment updates
+  const { notifications } = useNotifications();
   
   const [newComment, setNewComment] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0); // Add refresh key for force updates
   const [newCommentPreviewFiles, setNewCommentPreviewFiles] = useState<PreviewFile[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
@@ -271,6 +276,60 @@ export default function TaskComments({ taskId, teamId, currentUser }: TaskCommen
       fetchTaskComments(taskId);
     }
   }, [taskId, fetchTaskComments]);
+
+  // Listen for real-time comment notifications and refresh comments
+  useEffect(() => {
+    if (!taskId) return;
+
+    // Check recent notifications for comment-related activity on this task
+    const recentCommentNotifications = notifications.filter(notification => {
+      const isCommentNotification = [
+        'TASK_COMMENT_ADDED',
+        'TASK_COMMENT_UPDATED', 
+        'TASK_COMMENT_DELETED'
+      ].includes(notification.type);
+      
+      const isThisTask = notification.data?.taskId === taskId;
+      const isRecent = new Date(notification.createdAt).getTime() > Date.now() - 5000; // Last 5 seconds
+      
+      return isCommentNotification && isThisTask && isRecent;
+    });
+
+    if (recentCommentNotifications.length > 0) {
+      // Force component re-render
+      setRefreshKey(prev => prev + 1);
+      
+      // Add a small delay to ensure the comment is saved to database
+      setTimeout(async () => {
+        try {
+          await fetchTaskComments(taskId, true); // Force refresh to bypass cache
+        } catch (error) {
+          console.error('Error refreshing comments:', error);
+        }
+      }, 500); // 500ms delay
+    }
+  }, [notifications, taskId, fetchTaskComments]);
+
+  // Send comment notifications to team members
+  const sendCommentNotifications = async (commentId?: string, action: string = 'ADDED') => {
+    if (!teamId) return;
+
+    try {
+      await fetch('/api/notifications/comment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          taskId,
+          commentId,
+          action,
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to send comment notifications:', error);
+    }
+  };
 
   // Send mention notifications
   const sendMentionNotifications = async (mentions: Mention[], commentContent: string, taskTitle?: string) => {
@@ -341,6 +400,12 @@ export default function TaskComments({ taskId, teamId, currentUser }: TaskCommen
       if (newCommentMentions.length > 0) {
         await sendMentionNotifications(newCommentMentions, commentText);
       }
+
+      // Send comment notifications to team members (for real-time updates)
+      // Add a small delay to ensure comment is saved to database first
+      setTimeout(() => {
+        sendCommentNotifications(undefined, 'ADDED');
+      }, 200);
       
       setNewComment('');
       setNewCommentPreviewFiles([]);
@@ -427,6 +492,9 @@ export default function TaskComments({ taskId, teamId, currentUser }: TaskCommen
       if (editCommentMentions.length > 0) {
         await sendMentionNotifications(editCommentMentions, commentText);
       }
+
+      // Send comment update notifications to team members
+      await sendCommentNotifications(commentId, 'UPDATED');
       
       setEditingCommentId(null);
       setEditContent('');
@@ -454,6 +522,9 @@ export default function TaskComments({ taskId, teamId, currentUser }: TaskCommen
     try {
       setIsDeletingComment(commentId);
       await deleteTaskComment(taskId, commentId);
+      
+      // Send comment deletion notifications to team members
+      await sendCommentNotifications(commentId, 'DELETED');
     } catch (error) {
       console.error('Error deleting comment:', error);
     } finally {
@@ -550,7 +621,7 @@ export default function TaskComments({ taskId, teamId, currentUser }: TaskCommen
       )}
 
       {/* Comments List */}
-      <div className="space-y-4">
+      <div className="space-y-4" key={refreshKey}>
         {comments.length === 0 ? (
           <div className="text-center py-8 text-gray-500 dark:text-gray-400">
             <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />

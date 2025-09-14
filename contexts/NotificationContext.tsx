@@ -34,7 +34,6 @@ interface NotificationContextType {
   isConnected: boolean;
   connectionType: 'sse' | 'polling' | null;
   lastUpdated: number; // Add timestamp to force re-renders
-  testIncrement: () => void; // Add test function
   markAsRead: (notificationId: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   refetch: () => Promise<void>;
@@ -201,18 +200,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   };
 
-  // Test function to manually increment count
-  const testIncrement = () => {
-    console.log('🧪 Test increment triggered');
-    setUnreadCount(prev => {
-      const newCount = prev + 1;
-      console.log('🧪 Test unread count updated from', prev, 'to', newCount);
-      return newCount;
-    });
-    setLastUpdated(Date.now());
-    console.log('🧪 Test timestamp updated');
-  };
-
   // Task subscription functions (simplified for SSE)
   const subscribeToTaskUpdates = (teamId: string, onTaskUpdate: (update: TaskUpdate) => void) => {
     console.log('📋 Subscribing to task updates for team:', teamId);
@@ -302,7 +289,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       isConnected,
       connectionType,
       lastUpdated,
-      testIncrement,
       markAsRead,
       markAllAsRead,
       refetch,
