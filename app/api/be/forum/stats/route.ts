@@ -1,33 +1,20 @@
 // src/app/api/be/forum/stats/route.ts
-
-const BACKEND_URL = process.env.BACKEND_API_URL || "http://localhost:3000";
+import { ForumStats } from "../../../../lib/forum-api";
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const timezoneOffset = searchParams.get('timezoneOffset');
-  
-  let backendUrl = `${BACKEND_URL}/forum/stats`;
-  if (timezoneOffset) {
-    backendUrl += `?timezoneOffset=${timezoneOffset}`;
-  }
-
   try {
-    const fetchRes = await fetch(backendUrl, {
-      headers: {
-        Accept: "application/json",
-      },
-    });
+    // Mock forum stats data matching the ForumStats interface
+    const mockStats: ForumStats = {
+      totalUsers: 1247,
+      totalPosts: 3892,
+      totalComments: 15640,
+      todayPosts: 23,
+      activeUsers: 156,
+    };
 
-    if (!fetchRes.ok) {
-      return new Response("Failed to fetch forum stats", {
-        status: fetchRes.status,
-      });
-    }
-
-    const data = await fetchRes.json();
-    return Response.json(data);
+    return Response.json(mockStats);
   } catch (err) {
-    console.error("Forum stats proxy error:", err);
+    console.error("Forum stats error:", err);
     return new Response("Failed to retrieve forum stats", { status: 500 });
   }
 }

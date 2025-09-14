@@ -105,25 +105,34 @@ export async function POST(request: NextRequest) {
       notes: assignment.notes,
     }));
 
-    // Transform sheet links from ClientModelSheetLinks data
-    // Fetch sheet links from the new API endpoint
+    // Fetch sheet links directly from database instead of internal API call
     let sheetLinks: any[] = [];
     try {
-      const sheetLinksResponse = await fetch(
-        `${process.env.NEXTAUTH_URL || "http://localhost:3000"}/api/pod/sheet-links?teamId=${podTeam.id}`,
-        {
-          method: "GET",
-          headers: {
-            Cookie: request.headers.get("Cookie") || "",
-          },
-        }
-      );
-      if (sheetLinksResponse.ok) {
-        const sheetLinksResult = await sheetLinksResponse.json();
-        if (sheetLinksResult.success) {
-          sheetLinks = sheetLinksResult.sheetLinks;
-        }
-      }
+      const sheetLinksRaw = await prisma.$queryRaw`
+        SELECT
+          cmsl.id,
+          cmsl."sheetUrl",
+          cmsl."sheetName",
+          cmsl."sheetType",
+          cmsl."createdAt",
+          cm."clientName"
+        FROM "ClientModelSheetLinks" cmsl
+        JOIN "ClientModel" cm ON cmsl."clientModelId" = cm.id
+        JOIN "PodTeamClientAssignment" ptca ON cm.id = ptca."clientModelId"
+        WHERE ptca."podTeamId" = ${podTeam.id}
+          AND ptca."isActive" = true
+        ORDER BY cmsl."createdAt" DESC
+      `;
+
+      // Transform the raw results
+      sheetLinks = (sheetLinksRaw as any[]).map(link => ({
+        id: link.id,
+        name: link.sheetName || link.clientName,
+        url: link.sheetUrl,
+        clientName: link.clientName,
+        sheetType: link.sheetType,
+        createdAt: link.createdAt.toISOString()
+      }));
     } catch (error) {
       console.error("Error fetching sheet links:", error);
       // Continue without sheet links rather than failing

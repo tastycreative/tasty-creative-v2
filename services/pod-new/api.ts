@@ -28,20 +28,51 @@ async function http<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
 }
 
 export async function fetchPodNewTeams(): Promise<TeamOption[]> {
-  const result = await http<{ success: boolean; teams: TeamOption[] }>(
+  const result = await http<{ success: boolean; teams: any[] }>(
     "/api/pod/teams-db"
   );
   if (!result.success) throw new Error("Failed to fetch teams");
-  return result.teams;
+
+  // Convert database teams to row-based format for backward compatibility
+  const teamOptions: TeamOption[] = result.teams.map((team, index) => ({
+    row: index + 1, // Create sequential row numbers starting from 1
+    name: team.name,
+    label: team.name
+  }));
+
+  return teamOptions;
 }
 
 export async function fetchPodNewTeam(rowNumber: number): Promise<PodNewTeam> {
-  const result = await http<{ success: boolean; data: PodNewTeam }>(
+  // First get all teams to map row number to team ID
+  const teamsResult = await http<{ success: boolean; teams: any[] }>(
+    "/api/pod/teams-db"
+  );
+  if (!teamsResult.success) throw new Error("Failed to fetch teams");
+
+  // Find the team by row number (1-based indexing)
+  const targetTeam = teamsResult.teams[rowNumber - 1];
+  if (!targetTeam) throw new Error(`Team not found for row ${rowNumber}`);
+
+  // Now fetch the specific team data using the team ID
+  const result = await http<{ success: boolean; data: any }>(
     "/api/pod/fetch-db",
-    { method: "POST", body: JSON.stringify({ rowId: rowNumber }) }
+    { method: "POST", body: JSON.stringify({ rowId: targetTeam.id }) }
   );
   if (!result.success) throw new Error("Failed to fetch team");
-  return result.data;
+
+  // Transform the data to match PodNewTeam format
+  const podNewTeam: PodNewTeam = {
+    rowNumber: rowNumber,
+    teamName: result.data.teamName || targetTeam.name,
+    teamMembers: result.data.teamMembers || [],
+    creators: result.data.creators || [],
+    schedulerSpreadsheetUrl: result.data.schedulerSpreadsheetUrl,
+    sheetLinks: result.data.sheetLinks || [],
+    lastUpdated: result.data.lastUpdated || new Date().toISOString()
+  };
+
+  return podNewTeam;
 }
 
 export type SidebarData = {

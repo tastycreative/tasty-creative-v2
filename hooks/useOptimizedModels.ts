@@ -24,7 +24,7 @@ export function useOptimizedModelsData(options: UseModelsOptions) {
       displayName: model.name.trim(),
       searchableText: `${model.name} ${model.referrerName || ''} ${model.personalityType || ''}`.toLowerCase(),
       statusLabel: model.status.charAt(0).toUpperCase() + model.status.slice(1).toLowerCase(),
-      hasImage: Boolean(model.profileImage || model.profile),
+      hasImage: Boolean(model.profileImage),
       hasSocialLinks: Boolean(model.instagram || model.twitter || model.tiktok),
       revenueFormatted: model.stats?.monthlyRevenue 
         ? `$${model.stats.monthlyRevenue.toLocaleString()}` 

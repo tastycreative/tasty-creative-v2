@@ -1,4 +1,4 @@
-import { ModelProfileLayout } from "@/components/pod-new/model-profile/ModelProfileLayout";
+import { ModelProfileLayout } from "@/components/pod-new/layouts/ModelProfileLayout";
 import type { ExtendedModelDetails } from "@/lib/mock-data/model-profile";
 
 interface ModelProfilePageProps {

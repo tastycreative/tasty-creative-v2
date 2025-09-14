@@ -3,8 +3,8 @@
 import React, { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import LeftSidebar from "@/components/pod-new/LeftSidebar";
-import RightSidebar from "@/components/pod-new/RightSidebar";
+import LeftSidebar from "@/components/pod-new/layouts/LeftSidebar";
+import RightSidebar from "@/components/pod-new/layouts/RightSidebar";
 import {
   usePodStore,
   usePodData,
@@ -17,7 +17,7 @@ interface PodNewLayoutProps {
 
 export default function PodNewLayout({ children }: PodNewLayoutProps) {
   const pathname = usePathname();
-  const { selectedRow } = usePodStore();
+  const { selectedRow, selectedTeamId } = usePodStore();
   const { fetchPodData } = usePodData();
   const { teams, fetchAvailableTeams } = useAvailableTeams();
 
@@ -31,9 +31,15 @@ export default function PodNewLayout({ children }: PodNewLayoutProps) {
 
   useEffect(() => {
     if (selectedRow && teams.length > 0) {
-      fetchPodData(selectedRow);
+      // Convert selectedRow to team ID (1-based indexing)
+      const targetTeam = teams[selectedRow - 1];
+      if (targetTeam?.id) {
+        fetchPodData(targetTeam.id);
+      }
+    } else if (selectedTeamId) {
+      fetchPodData(selectedTeamId);
     }
-  }, [selectedRow, teams.length, fetchPodData]);
+  }, [selectedRow, selectedTeamId, teams, fetchPodData]);
 
   const getCurrentTab = () => {
     if (!pathname) return "dashboard";

@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   AlertCircle
 } from 'lucide-react';
-import { useSocketTasks } from '@/hooks/useSocketTasks';
+import { useTaskUpdates } from '@/hooks/useTaskUpdates';
 import { useBoardStore, useBoardTasks, useBoardFilters, useBoardTaskActions, useBoardColumns, type Task, type BoardColumn, type NewTaskData } from '@/lib/stores/boardStore';
 import ColumnSettings from './ColumnSettings';
 import BoardHeader from './BoardHeader';
@@ -205,9 +205,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   }, [columns]);
 
   // Real-time task updates with debouncing
-  const { broadcastTaskUpdate } = useSocketTasks({
+  const { broadcastTaskUpdate } = useTaskUpdates({
     teamId: currentTeamId,
-    onTaskUpdate: useCallback((update) => {
+    onTaskUpdate: useCallback((update: any) => {
       const timeoutId = setTimeout(() => {
         if (update.type === 'TASK_UPDATED' || update.type === 'TASK_CREATED' || update.type === 'TASK_DELETED') {
           fetchTasks(currentTeamId, true);
@@ -218,12 +218,48 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     }, [currentTeamId, fetchTasks])
   });
 
+  // Initialize team from URL parameters on component mount
+  useEffect(() => {
+    const teamParam = searchParams?.get('team');
+    if (teamParam && teamParam !== currentTeamId) {
+      // Extract team row number from team-N format
+      const teamRowMatch = teamParam.match(/^team-(\d+)$/);
+      if (teamRowMatch) {
+        const teamRow = parseInt(teamRowMatch[1]);
+        // Only trigger if it's a valid team row and different from current
+        if (teamRow >= 1 && teamRow <= availableTeams.length) {
+          onTeamChange(teamRow);
+        }
+      }
+    } else if (!teamParam && currentTeamId) {
+      // If no team in URL but we have a current team, update the URL
+      const params = new URLSearchParams(searchParams?.toString() || '');
+      params.set('team', currentTeamId);
+      router.push(`?${params.toString()}`, { scroll: false });
+    }
+  }, [searchParams, currentTeamId, availableTeams.length, onTeamChange, router]);
+
+  // Sync URL when teamId prop changes (handles initial load and external team changes)
+  useEffect(() => {
+    const teamParam = searchParams?.get('team');
+    if (teamId && teamId !== teamParam) {
+      const params = new URLSearchParams(searchParams?.toString() || '');
+      params.set('team', teamId);
+      router.push(`?${params.toString()}`, { scroll: false });
+    }
+  }, [teamId, searchParams, router]);
+
   // Handle team change with immediate UI update
   const handleTeamChange = (newTeamRow: number) => {
     const newTeamId = `team-${newTeamRow}`;
     setCurrentTeamId(newTeamId);
     setShowNewTaskForm(null);
     onTeamChange(newTeamRow);
+    
+    // Update URL parameters to include team
+    const params = new URLSearchParams(searchParams?.toString() || '');
+    params.set('team', newTeamId);
+    router.push(`?${params.toString()}`);
   };
 
   // Task management functions

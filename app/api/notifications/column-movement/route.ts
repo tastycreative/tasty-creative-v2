@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { sendColumnAssignmentNotificationEmail } from '@/lib/email';
+import { createInAppNotification } from '@/lib/notifications';
+import { broadcastToUser } from '@/lib/sse-broadcast';
+
+// Force SSE for App Router (Socket.IO not properly supported)
+const isProduction = true; // Always use SSE
 
 export async function POST(req: NextRequest) {
   try {
@@ -100,6 +105,41 @@ export async function POST(req: NextRequest) {
             message: emailError instanceof Error ? emailError.message : 'Unknown email error'
           });
           console.error(`❌ Failed to send email to ${member.userEmail}:`, emailError);
+        }
+
+        // Create in-app notification
+        try {
+          const inAppNotification = await createInAppNotification({
+            userId: member.userId,
+            type: 'TASK_STATUS_CHANGED',
+            title: 'Task moved to your column',
+            message: `${movedBy} moved "${taskTitle}" to ${newColumn}`,
+            data: {
+              taskId,
+              taskTitle,
+              oldColumn,
+              newColumn,
+              columnName: newColumn,
+              teamName,
+              movedBy,
+              priority,
+              taskUrl: `${process.env.NEXTAUTH_URL}/apps/pod/board?team=${teamId}&task=${taskId}`
+            },
+            taskId
+          });
+
+          // Broadcast real-time notification using SSE
+          try {
+            await broadcastToUser(member.userId, 'NEW_NOTIFICATION', inAppNotification);
+            console.log(`📡 SSE notification broadcasted to user ${member.userId}`);
+          } catch (broadcastError) {
+            console.error(`❌ Failed to broadcast notification via SSE:`, broadcastError);
+          }
+
+          console.log(`📱 In-app notification created for ${member.userName} (${member.userEmail})`, inAppNotification);
+          console.log(`📱 About to broadcast notification to user ${member.userId}:`, inAppNotification.title);
+        } catch (inAppError) {
+          console.error(`❌ Failed to create in-app notification for ${member.userEmail}:`, inAppError);
         }
 
         console.log(`📬 Notification logged for ${member.userName} (${member.userEmail})`);

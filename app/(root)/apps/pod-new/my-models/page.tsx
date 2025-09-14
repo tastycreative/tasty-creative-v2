@@ -3,10 +3,10 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import EnhancedModelsPage from "@/components/pod-new/EnhancedModelsPage";
-import { RefreshButton } from "@/components/pod-new/LoadingStates";
+import EnhancedModelsPage from "@/components/pod-new/models/pages/EnhancedModelsPage";
+import { RefreshButton } from "@/components/pod-new/ui/LoadingStates";
 import { Plus, Download } from "lucide-react";
-import { PageLoadingState } from "@/components/pod-new/LoadingStates";
+import { PageLoadingState } from "@/components/pod-new/ui/LoadingStates";
 import { useAvailableTeams, usePodStore } from "@/lib/stores/podStore";
 
 export default function PodNewMyModelsPage() {

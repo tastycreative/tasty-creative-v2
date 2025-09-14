@@ -42,7 +42,7 @@ export const CACHE_CONFIG = {
   refetchOnWindowFocus: false, // Don't refetch when user returns to tab
   refetchOnMount: false, // Don't refetch on component mount if data exists
   retry: 3, // Retry failed requests 3 times
-  retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
+  retryDelay: (attemptIndex: number) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
 } as const;
 
 // Fetch function for models with pagination
@@ -79,7 +79,7 @@ async function fetchModels({
 export function useInfiniteModels(options: UseModelsOptions = {}) {
   return useInfiniteQuery({
     queryKey: modelsQueryKeys.list(options),
-    queryFn: ({ pageParam }) => fetchModels({ ...options, pageParam }),
+    queryFn: ({ pageParam }: { pageParam: number }) => fetchModels({ ...options, pageParam }),
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     placeholderData: keepPreviousData,
@@ -185,7 +185,7 @@ export async function prefetchNextModelsPage(
 ) {
   await queryClient.prefetchInfiniteQuery({
     queryKey: modelsQueryKeys.list(options),
-    queryFn: ({ pageParam }) => fetchModels({ ...options, pageParam }),
+    queryFn: ({ pageParam }: { pageParam: number }) => fetchModels({ ...options, pageParam }),
     initialPageParam: currentCursor,
     pages: 1,
   });
@@ -198,7 +198,7 @@ export function usePrefetchModels() {
   const prefetchModelsWithOptions = (options: UseModelsOptions) => {
     queryClient.prefetchInfiniteQuery({
       queryKey: modelsQueryKeys.list(options),
-      queryFn: ({ pageParam }) => fetchModels({ ...options, pageParam }),
+      queryFn: ({ pageParam }: { pageParam: number }) => fetchModels({ ...options, pageParam }),
       initialPageParam: 0,
       ...CACHE_CONFIG,
     });

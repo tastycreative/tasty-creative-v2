@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { ModelProfileSidebar } from '@/components/pod-new/model-profile/ModelProfileSidebar';
+import { ModelProfileSidebar } from '@/components/pod-new/models/profile/ModelProfileSidebar';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { ExtendedModelDetails } from '@/lib/mock-data/model-profile';
 

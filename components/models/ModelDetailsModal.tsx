@@ -10,11 +10,11 @@ import ModelDetailsTabs from "./ModelDetailsTab";
 import ModelInfoTab from "./ModelInfoTab";
 
 // Helper function to get the appropriate image URL
-const getImageUrl = (model: ModelDetails): string => {
-  const imageUrl = model.profileImage || model.profile;
+const getImageUrl = (model: ModelDetails): string | null => {
+  const imageUrl = model.profileImage;
   
   if (!imageUrl) {
-    return '/placeholder-image.jpg';
+    return null;
   }
   
   // Check if it's a Google Drive URL that needs proxying
