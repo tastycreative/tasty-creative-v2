@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { usePodData, useDriveSheets } from "@/lib/stores/podStore";
 
 const SheetsIntegration = dynamic(
-  () => import("@/components/pod-new/SheetsIntegration"),
+  () => import("@/components/pod-new/integrations/SheetsIntegration"),
   {
     loading: () => (
       <div className="bg-slate-900/70 border border-white/10 rounded-lg p-6">

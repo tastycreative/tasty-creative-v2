@@ -12,21 +12,21 @@ import {
 import { cn } from "@/lib/utils";
 
 // Import our new components
-import { ModelsGrid, GridSection, GridEmptyState } from "./ModelsGrid";
-import EnhancedModelCard from "./EnhancedModelCard";
+import { ModelsGrid, GridSection, GridEmptyState } from "../grids/ModelsGrid";
+import EnhancedModelCard from "../cards/EnhancedModelCard";
 import ModelsSearchAndFilter, {
   type QuickFilterType,
   type SortOption,
   type SortDirection,
   type ViewMode,
-} from "./ModelsSearchAndFilter";
+} from "../grids/ModelsSearchAndFilter";
 import {
   ModelsGridSkeleton,
   SearchSkeleton,
   LoadingSpinner,
   RefreshButton,
   EmptyState,
-} from "./LoadingStates";
+} from "../../ui/LoadingStates";
 import { useOptimizedModelsData } from "@/hooks/useOptimizedModels";
 import useSelectedModelStore from "@/store/useSelectedModelStore";
 

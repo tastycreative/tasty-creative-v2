@@ -15,7 +15,7 @@ import {
   Users2,
   Zap,
 } from "lucide-react";
-import { ThemeToggle } from "../admin/ThemeToggle";
+import { ThemeToggle } from "@/components/admin/ThemeToggle";
 
 type NavItem = {
   title: string;
