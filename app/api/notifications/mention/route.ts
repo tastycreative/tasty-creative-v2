@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { sendMentionNotificationEmail } from '@/lib/email';
+import { createInAppNotification } from '@/lib/notifications';
+import { broadcastToUser } from '../stream/route';
+import { broadcastNotification } from '@/lib/socket';
+
+// Detect if we're in production or development
+const isProduction = typeof process !== 'undefined' && !(
+  process.env.NODE_ENV === 'development'
+);
 
 interface EmailResult {
   userId: string;
@@ -140,7 +148,7 @@ export async function POST(req: NextRequest) {
               taskDescription: task.description,
               commentContent: cleanMentionsForEmail(commentContent),
               teamName: team?.name,
-              taskUrl: `${process.env.NEXTAUTH_URL}/apps/pod/board?task=${taskId}`,
+              taskUrl: `${process.env.NEXTAUTH_URL}/apps/pod/board?team=${teamId}&task=${taskId}`,
             });
 
             emailResults.push({
@@ -160,6 +168,43 @@ export async function POST(req: NextRequest) {
             });
             console.error(`❌ Failed to send mention email to ${user.email}:`, emailError);
           }
+        }
+
+        // Create in-app notification
+        try {
+          const inAppNotification = await createInAppNotification({
+            userId: user.id,
+            type: 'TASK_COMMENT_ADDED',
+            title: 'You were mentioned in a comment',
+            message: `${session.user.name || session.user.email || 'Someone'} mentioned you in "${task.title}"`,
+            data: {
+              taskId,
+              taskTitle: task.title,
+              commentContent: cleanMentionsForEmail(commentContent),
+              mentionerName: session.user.name || session.user.email || 'Someone',
+              teamName: team?.name,
+              taskUrl: `${process.env.NEXTAUTH_URL}/apps/pod/board?team=${teamId}&task=${taskId}`,
+            },
+            taskId,
+            podTeamId: teamId,
+          });
+
+          // Broadcast real-time notification based on environment
+          try {
+            if (isProduction) {
+              // Production: Use SSE
+              await broadcastToUser(user.id, inAppNotification);
+            } else {
+              // Development: Use Socket.IO
+              broadcastNotification(inAppNotification);
+            }
+          } catch (broadcastError) {
+            console.error(`❌ Failed to broadcast mention notification:`, broadcastError);
+          }
+
+          console.log(`📱 In-app mention notification created for ${user.name} (${user.email})`);
+        } catch (inAppError) {
+          console.error(`❌ Failed to create in-app mention notification for ${user.email}:`, inAppError);
         }
       } catch (error) {
         console.error(`❌ Failed to create mention notification for user ${user.id}:`, error);

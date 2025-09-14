@@ -402,7 +402,7 @@ export default function TaskDetailModal({
                       const columnConfig = getColumnConfig().find(
                         ([status]) => status === selectedTask.status
                       );
-                      const IconComponent = columnConfig
+                      const IconComponent = (columnConfig && columnConfig[1] && columnConfig[1].icon)
                         ? columnConfig[1].icon
                         : Clock;
                       return (

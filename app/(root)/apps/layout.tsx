@@ -1,6 +1,7 @@
 "use client";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 export default function AppsLayout({
   children,
@@ -24,6 +25,13 @@ export default function AppsLayout({
       <div className="fixed top-10 right-10 w-72 h-72 bg-pink-300/20 dark:bg-pink-600/15 rounded-full blur-3xl -z-40"></div>
       <div className="fixed bottom-10 left-10 w-96 h-96 bg-rose-300/15 dark:bg-rose-600/10 rounded-full blur-3xl -z-40"></div>
       <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-200/10 dark:bg-pink-700/8 rounded-full blur-3xl -z-40"></div>
+
+      {/* Fixed Notification Bell - Top Right */}
+      <div className="fixed top-3 right-3 sm:top-4 sm:right-4 z-50">
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-full shadow-lg border border-pink-200/50 dark:border-pink-500/30 hover:shadow-xl transition-all duration-300 hover:border-pink-300/60 dark:hover:border-pink-400/50">
+          <NotificationBell className="sm:scale-100 scale-90" />
+        </div>
+      </div>
 
       {/* Back Button - Only show on sub-pages */}
       {isSubPage && (
