@@ -4,12 +4,9 @@ import { prisma } from '@/lib/prisma';
 import { sendMentionNotificationEmail } from '@/lib/email';
 import { createInAppNotification } from '@/lib/notifications';
 import { broadcastToUser } from '../stream/route';
-import { broadcastNotification } from '@/lib/socket';
 
-// Detect if we're in production or development
-const isProduction = typeof process !== 'undefined' && !(
-  process.env.NODE_ENV === 'development'
-);
+// Force SSE for App Router (Socket.IO not properly supported)
+const isProduction = true; // Always use SSE
 
 interface EmailResult {
   userId: string;
@@ -189,17 +186,12 @@ export async function POST(req: NextRequest) {
             podTeamId: teamId,
           });
 
-          // Broadcast real-time notification based on environment
+          // Broadcast real-time notification using SSE
           try {
-            if (isProduction) {
-              // Production: Use SSE
-              await broadcastToUser(user.id, inAppNotification);
-            } else {
-              // Development: Use Socket.IO
-              await broadcastNotification(inAppNotification);
-            }
+            await broadcastToUser(user.id, inAppNotification);
+            console.log(`📡 SSE mention notification broadcasted to user ${user.id}`);
           } catch (broadcastError) {
-            console.error(`❌ Failed to broadcast mention notification:`, broadcastError);
+            console.error(`❌ Failed to broadcast mention notification via SSE:`, broadcastError);
           }
 
           console.log(`📱 In-app mention notification created for ${user.name} (${user.email})`);

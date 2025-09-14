@@ -1,8 +1,6 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
-
-// Store active connections
-const connections = new Map<string, ReadableStreamDefaultController>();
+import { registerConnection, removeConnection } from '@/lib/sse-broadcast';
 
 export async function GET(req: NextRequest) {
   try {
@@ -11,6 +9,8 @@ export async function GET(req: NextRequest) {
     if (!session?.user?.id) {
       return new Response('Unauthorized', { status: 401 });
     }
+
+    console.log(`📡 Setting up SSE stream for user: ${session.user.id}`);
 
     // Create SSE stream
     const stream = new ReadableStream({
@@ -24,8 +24,8 @@ export async function GET(req: NextRequest) {
         
         controller.enqueue(new TextEncoder().encode(initialMessage));
 
-        // Store connection for broadcasting
-        connections.set(session.user.id, controller);
+        // Register connection for broadcasting
+        registerConnection(session.user.id, controller);
 
         // Keep connection alive with heartbeat
         const heartbeat = setInterval(() => {
@@ -37,15 +37,17 @@ export async function GET(req: NextRequest) {
             
             controller.enqueue(new TextEncoder().encode(heartbeatMessage));
           } catch (error) {
+            console.error('Heartbeat error:', error);
             clearInterval(heartbeat);
-            connections.delete(session.user.id);
+            removeConnection(session.user.id);
           }
         }, 30000); // 30 seconds
 
         // Clean up on close
         const cleanup = () => {
+          console.log(`📡 Cleaning up SSE connection for user: ${session.user.id}`);
           clearInterval(heartbeat);
-          connections.delete(session.user.id);
+          removeConnection(session.user.id);
           try {
             controller.close();
           } catch (error) {
@@ -57,7 +59,8 @@ export async function GET(req: NextRequest) {
         (controller as any).cleanup = cleanup;
       },
       cancel() {
-        connections.delete(session.user.id);
+        console.log(`📡 SSE stream cancelled for user: ${session.user.id}`);
+        removeConnection(session.user.id);
       }
     });
 
@@ -74,25 +77,5 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     console.error('Error setting up notification stream:', error);
     return new Response('Internal Server Error', { status: 500 });
-  }
-}
-
-// Helper function to broadcast to specific user
-export async function broadcastToUser(userId: string, data: any) {
-  const controller = connections.get(userId);
-  if (controller) {
-    try {
-      const message = `data: ${JSON.stringify({
-        type: 'NEW_NOTIFICATION',
-        data,
-        timestamp: new Date().toISOString()
-      })}\n\n`;
-      
-      controller.enqueue(new TextEncoder().encode(message));
-      console.log(`📡 Broadcasted to user ${userId}:`, data.title);
-    } catch (error) {
-      console.error('Error broadcasting to user:', error);
-      connections.delete(userId);
-    }
   }
 }

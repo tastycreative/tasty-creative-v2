@@ -67,6 +67,30 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
     }
   };
 
+  // Test notification function for debugging
+  const testNotification = async () => {
+    try {
+      const response = await fetch('/api/notifications/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Test notification result:', result);
+        
+        // Show result in an alert for debugging
+        alert(`Test notification sent! SSE enabled: ${result.sseEnabled || true}`);
+      } else {
+        console.error('❌ Test notification failed:', response.status);
+        alert('Test notification failed');
+      }
+    } catch (error) {
+      console.error('❌ Test notification error:', error);
+      alert('Test notification error');
+    }
+  };
+
 
   return (
     <div className={`relative ${className}`}>
@@ -115,7 +139,7 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
                 {isConnected ? (
                   <div className="flex items-center space-x-1 text-xs text-green-600 dark:text-green-400">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span>{connectionType === 'socketio' ? 'Socket.IO' : connectionType === 'sse' ? 'Live' : 'Connected'}</span>
+                    <span>{connectionType === 'sse' ? 'Live' : connectionType === 'polling' ? 'Polling' : 'Connected'}</span>
                   </div>
                 ) : (
                   <div className="flex items-center space-x-1 text-xs text-red-600 dark:text-red-400">
@@ -124,14 +148,25 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
                   </div>
                 )}
               </div>
-              {unreadCount > 0 && (
-                <button
-                  onClick={markAllAsRead}
-                  className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                >
-                  Mark all read
-                </button>
-              )}
+              <div className="flex items-center space-x-2">
+                {process.env.NODE_ENV === 'development' && (
+                  <button
+                    onClick={testNotification}
+                    className="text-xs text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 px-2 py-1 rounded bg-purple-50 dark:bg-purple-900/20"
+                    title="Send test notification"
+                  >
+                    Test
+                  </button>
+                )}
+                {unreadCount > 0 && (
+                  <button
+                    onClick={markAllAsRead}
+                    className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                  >
+                    Mark all read
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Notifications List */}

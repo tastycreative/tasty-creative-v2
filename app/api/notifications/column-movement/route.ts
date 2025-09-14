@@ -4,12 +4,9 @@ import { prisma } from '@/lib/prisma';
 import { sendColumnAssignmentNotificationEmail } from '@/lib/email';
 import { createInAppNotification } from '@/lib/notifications';
 import { broadcastToUser } from '../stream/route';
-import { broadcastNotification } from '@/lib/socket';
 
-// Detect if we're in production or development
-const isProduction = typeof process !== 'undefined' && !(
-  process.env.NODE_ENV === 'development'
-);
+// Force SSE for App Router (Socket.IO not properly supported)
+const isProduction = true; // Always use SSE
 
 export async function POST(req: NextRequest) {
   try {
@@ -131,17 +128,12 @@ export async function POST(req: NextRequest) {
             taskId
           });
 
-          // Broadcast real-time notification based on environment
+          // Broadcast real-time notification using SSE
           try {
-            if (isProduction) {
-              // Production: Use SSE
-              await broadcastToUser(member.userId, inAppNotification);
-            } else {
-              // Development: Use Socket.IO
-              await broadcastNotification(inAppNotification);
-            }
+            await broadcastToUser(member.userId, inAppNotification);
+            console.log(`📡 SSE notification broadcasted to user ${member.userId}`);
           } catch (broadcastError) {
-            console.error(`❌ Failed to broadcast notification:`, broadcastError);
+            console.error(`❌ Failed to broadcast notification via SSE:`, broadcastError);
           }
 
           console.log(`📱 In-app notification created for ${member.userName} (${member.userEmail})`, inAppNotification);

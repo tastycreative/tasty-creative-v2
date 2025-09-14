@@ -8,7 +8,7 @@ import {
   sendCommentNotificationEmail,
   sendSubmissionConfirmationEmail
 } from './email';
-import { broadcastNotification } from './socket';
+import { broadcastToUser } from '@/app/api/notifications/stream/route';
 
 // Detect if we're in production or development
 const isProduction = typeof process !== 'undefined' && !(
@@ -277,14 +277,12 @@ export async function sendEmailNotification(emailData: EmailNotificationData) {
 
 export async function triggerRealTimeNotification(notification: any) {
   try {
-    if (isProduction) {
-      // Production: Use SSE (would need to implement SSE broadcasting)
-      console.log('Real-time notification triggered (SSE):', notification.id);
-      // TODO: Implement SSE broadcasting in production
-    } else {
-      // Development: Use Socket.IO
-      broadcastNotification(notification);
-    }
+    console.log('📡 Triggering real-time notification via SSE:', notification.id);
+    
+    // Use SSE for all environments (App Router compatible)
+    await broadcastToUser(notification.userId, notification);
+    
+    console.log('✅ Real-time notification sent successfully via SSE');
   } catch (error) {
     console.error('Error triggering real-time notification:', error);
   }
