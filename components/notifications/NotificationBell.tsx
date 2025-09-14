@@ -31,6 +31,12 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
   const [isOpen, setIsOpen] = useState(false);
   const { notifications, unreadCount, isConnected, connectionType, lastUpdated, markAsRead, markAllAsRead, refetch } = useNotifications();
 
+  // Force re-render when lastUpdated changes
+  useEffect(() => {
+    // This effect ensures the component re-renders when notifications update
+    console.log('🔔 NotificationBell re-render triggered by lastUpdated:', lastUpdated, 'unreadCount:', unreadCount);
+  }, [lastUpdated, unreadCount]);
+
   // Get icon based on notification type
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -93,7 +99,7 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
 
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative ${className}`} key={`bell-${lastUpdated}`}>
       {/* Bell Icon */}
       <button
         onClick={() => {
@@ -114,7 +120,11 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
         </div>
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-[20px] text-[11px] font-semibold">
-            {unreadCount > 99 ? '99+' : unreadCount}
+            {(() => {
+              const displayCount = unreadCount > 99 ? '99+' : unreadCount;
+              console.log('🔔 Badge rendering with unreadCount:', unreadCount, 'displayCount:', displayCount, 'timestamp:', Date.now());
+              return displayCount;
+            })()}
           </span>
         )}
       </button>

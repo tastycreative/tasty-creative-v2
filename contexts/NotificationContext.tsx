@@ -51,6 +51,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [isConnected, setIsConnected] = useState(false);
   const [connectionType, setConnectionType] = useState<'sse' | 'polling' | null>(null);
   const [lastUpdated, setLastUpdated] = useState(Date.now());
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const maxReconnectAttempts = 5;
+  const processedNotifications = useRef(new Set<string>());
   const eventSourceRef = useRef<EventSource | null>(null);
   const taskUpdateCallbacks = useRef<Map<string, (update: TaskUpdate) => void>>(new Map());
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -122,13 +125,19 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         eventSourceRef.current.close();
       }
 
-      const eventSource = new EventSource('/api/notifications/stream');
+      const eventSource = new EventSource('/api/notifications/stream', {
+        withCredentials: true
+      });
       eventSourceRef.current = eventSource;
+
+      // Add error state tracking
+      let hasErrored = false;
 
       eventSource.onopen = () => {
         console.log('📡 SSE notification stream connected');
         setIsConnected(true);
         setConnectionType('sse');
+        setReconnectAttempts(0); // Reset reconnection attempts on successful connection
         
         // Clear any reconnection timeout
         if (reconnectTimeoutRef.current) {
@@ -144,6 +153,20 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           
           if (data.type === 'NEW_NOTIFICATION') {
             console.log('🎉 NEW NOTIFICATION via SSE:', data.data);
+            
+            // Prevent duplicate processing
+            if (processedNotifications.current.has(data.data.id)) {
+              console.log('📡 Skipping duplicate notification:', data.data.id);
+              return;
+            }
+            processedNotifications.current.add(data.data.id);
+            
+            // Clean up old processed notifications to prevent memory leaks
+            if (processedNotifications.current.size > 100) {
+              const notificationIds = Array.from(processedNotifications.current);
+              const toKeep = notificationIds.slice(-50);
+              processedNotifications.current = new Set(toKeep);
+            }
             
             // Add new notification to the list
             setNotifications(prev => {
@@ -171,8 +194,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           } else if (data.type === 'connected') {
             console.log('📡 SSE connection established');
           } else if (data.type === 'heartbeat') {
-            // Keep connection alive
+            // Keep connection alive - respond to heartbeat
             console.log('💓 SSE heartbeat received');
+            // Reset reconnection attempts on successful heartbeat
+            if (reconnectAttempts > 0) {
+              setReconnectAttempts(0);
+              console.log('🔄 Reset reconnection attempts due to heartbeat');
+            }
           }
         } catch (error) {
           console.error('Failed to parse SSE message:', error);
@@ -181,22 +209,116 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
       eventSource.onerror = (error) => {
         console.error('❌ SSE error:', error);
+        hasErrored = true;
         setIsConnected(false);
         
-        // Attempt to reconnect after 5 seconds
-        if (reconnectTimeoutRef.current) {
-          clearTimeout(reconnectTimeoutRef.current);
+        // Close the current connection
+        if (eventSource.readyState !== EventSource.CLOSED) {
+          eventSource.close();
         }
         
-        reconnectTimeoutRef.current = setTimeout(() => {
-          console.log('🔄 Attempting SSE reconnection...');
-          initializeSSE();
-        }, 5000);
+        // Check if this is an authentication error by testing a simple endpoint
+        const checkAuth = async () => {
+          try {
+            const authResponse = await fetch('/api/notifications/health');
+            if (authResponse.status === 401) {
+              console.log('❌ Authentication error detected, not reconnecting');
+              setConnectionType('polling');
+              startFallbackPolling();
+              return;
+            }
+          } catch (authError) {
+            console.log('❌ Auth check failed:', authError);
+          }
+          
+          // Proceed with reconnection if not auth error
+          if (reconnectAttempts < maxReconnectAttempts) {
+            if (reconnectTimeoutRef.current) {
+              clearTimeout(reconnectTimeoutRef.current);
+            }
+            
+            const backoffDelay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000); // Max 30 seconds
+            console.log(`🔄 Attempting SSE reconnection in ${backoffDelay}ms... (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
+            
+            reconnectTimeoutRef.current = setTimeout(() => {
+              setReconnectAttempts(prev => prev + 1);
+              initializeSSE();
+            }, backoffDelay);
+          } else {
+            console.log('❌ Max SSE reconnection attempts reached, falling back to polling');
+            setConnectionType('polling');
+            startFallbackPolling();
+          }
+        };
+        
+        checkAuth();
       };
 
     } catch (error) {
       console.error('Failed to setup SSE:', error);
       setIsConnected(false);
+      setConnectionType('polling');
+      startFallbackPolling();
+    }
+  };
+
+  // Fallback polling when SSE fails
+  const startFallbackPolling = () => {
+    console.log('📡 Starting fallback polling for notifications');
+    setConnectionType('polling');
+    
+    // Poll every 30 seconds
+    const interval = setInterval(async () => {
+      try {
+        await refetch();
+        setIsConnected(true);
+      } catch (error) {
+        console.error('Polling failed:', error);
+        setIsConnected(false);
+      }
+    }, 30000);
+
+    // Clean up polling on unmount or when SSE reconnects
+    return () => clearInterval(interval);
+  };
+
+  // Debug function for production troubleshooting
+  const debugSSEStatus = async () => {
+    try {
+      const [healthResponse, debugResponse] = await Promise.all([
+        fetch('/api/notifications/health'),
+        fetch('/api/notifications/debug')
+      ]);
+
+      const health = await healthResponse.json();
+      const debug = await debugResponse.json();
+
+      console.log('🔍 SSE Debug Status:', {
+        health,
+        debug,
+        clientState: {
+          isConnected,
+          connectionType,
+          reconnectAttempts,
+          lastUpdated: new Date(lastUpdated).toLocaleString(),
+          notificationCount: notifications.length,
+          unreadCount
+        },
+        eventSource: {
+          readyState: eventSourceRef.current?.readyState,
+          url: eventSourceRef.current?.url,
+          readyStates: {
+            0: 'CONNECTING',
+            1: 'OPEN', 
+            2: 'CLOSED'
+          }
+        }
+      });
+
+      return { health, debug };
+    } catch (error) {
+      console.error('Debug status check failed:', error);
+      return null;
     }
   };
 
@@ -271,6 +393,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         console.log('Notification permission:', permission);
       });
     }
+
+    // Make debug function available globally
+    (window as any).debugSSE = debugSSEStatus;
+    return () => {
+      delete (window as any).debugSSE;
+    };
   }, []);
 
   // Fallback polling if SSE disconnects
