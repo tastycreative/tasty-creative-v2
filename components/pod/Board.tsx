@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   AlertCircle
 } from 'lucide-react';
-import { useSocketTasks } from '@/hooks/useSocketTasks';
+import { useTaskUpdates } from '@/hooks/useTaskUpdates';
 import { useBoardStore, useBoardTasks, useBoardFilters, useBoardTaskActions, useBoardColumns, type Task, type BoardColumn, type NewTaskData } from '@/lib/stores/boardStore';
 import ColumnSettings from './ColumnSettings';
 import BoardHeader from './BoardHeader';
@@ -205,9 +205,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   }, [columns]);
 
   // Real-time task updates with debouncing
-  const { broadcastTaskUpdate } = useSocketTasks({
+  const { broadcastTaskUpdate } = useTaskUpdates({
     teamId: currentTeamId,
-    onTaskUpdate: useCallback((update) => {
+    onTaskUpdate: useCallback((update: any) => {
       const timeoutId = setTimeout(() => {
         if (update.type === 'TASK_UPDATED' || update.type === 'TASK_CREATED' || update.type === 'TASK_DELETED') {
           fetchTasks(currentTeamId, true);

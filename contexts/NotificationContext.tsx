@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 
 interface Notification {
@@ -22,7 +22,14 @@ interface Notification {
   };
 }
 
-interface UseNotificationsReturn {
+interface TaskUpdate {
+  type: 'TASK_UPDATED' | 'TASK_CREATED' | 'TASK_DELETED';
+  taskId: string;
+  teamId: string;
+  data?: any;
+}
+
+interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
   isConnected: boolean;
@@ -30,10 +37,16 @@ interface UseNotificationsReturn {
   markAsRead: (notificationId: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   refetch: () => Promise<void>;
+  // Task update functions
+  subscribeToTaskUpdates: (teamId: string, onTaskUpdate: (update: TaskUpdate) => void) => void;
+  unsubscribeFromTaskUpdates: (teamId: string) => void;
+  broadcastTaskUpdate: (update: Omit<TaskUpdate, 'teamId'>, teamId: string) => Promise<boolean>;
 }
 
+const NotificationContext = createContext<NotificationContextType | null>(null);
+
 // Detect if we're in production or development
-const isProduction = typeof window !== 'undefined' && !(
+const isProduction = typeof window !== 'undefined' && !( 
   window.location.hostname === 'localhost' ||
   window.location.hostname === '127.0.0.1' ||
   window.location.hostname.startsWith('192.168.') ||
@@ -42,13 +55,14 @@ const isProduction = typeof window !== 'undefined' && !(
   window.location.port === '3001'
 ) && process.env.NODE_ENV === 'production';
 
-export function useNotifications(): UseNotificationsReturn {
+export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionType, setConnectionType] = useState<'socketio' | 'sse' | 'polling' | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const taskUpdateCallbacks = useRef<Map<string, (update: TaskUpdate) => void>>(new Map());
 
   // Fetch notifications from API
   const refetch = async () => {
@@ -108,34 +122,6 @@ export function useNotifications(): UseNotificationsReturn {
     }
   };
 
-  // Set up real-time notifications
-  useEffect(() => {
-    // Initial fetch
-    refetch();
-
-    // Debug environment detection
-    if (typeof window !== 'undefined') {
-      console.log('📱 Notification Environment:', {
-        hostname: window.location.hostname,
-        port: window.location.port,
-        isProduction,
-        willUse: isProduction ? 'SSE (Production)' : 'Socket.IO (Development)'
-      });
-    }
-
-    if (isProduction) {
-      // Production: Use SSE
-      initializeSSE();
-    } else {
-      // Development: Use Socket.IO
-      initializeSocketIO();
-    }
-
-    return () => {
-      cleanup();
-    };
-  }, []);
-
   const initializeSocketIO = async () => {
     try {
       // First, ensure Socket.IO server is initialized
@@ -154,7 +140,7 @@ export function useNotifications(): UseNotificationsReturn {
         setConnectionType('socketio');
         console.log('📱 Socket.IO connected for notifications');
         
-        // Get current user ID
+        // Get current user ID and join notification room
         try {
           const response = await fetch('/api/auth/session');
           if (response.ok) {
@@ -167,27 +153,38 @@ export function useNotifications(): UseNotificationsReturn {
         } catch (error) {
           console.error('Failed to get user session for notifications:', error);
         }
+
+        // Join any pending team rooms for task updates
+        for (const teamId of taskUpdateCallbacks.current.keys()) {
+          console.log('📋 Re-joining team room on reconnect:', teamId);
+          socket.emit('join-team', teamId);
+        }
       });
 
       socket.on('joined-notifications', (userId) => {
         console.log('📱 Joined notifications room for user:', userId);
       });
 
+      socket.on('joined-team', (teamId) => {
+        console.log('📋 Joined team room for tasks:', teamId);
+      });
+
+      socket.on('task-updated', (update: TaskUpdate) => {
+        console.log('🔄 Received task update:', update);
+        
+        // Call the callback for this team if it exists
+        const callback = taskUpdateCallbacks.current.get(update.teamId);
+        if (callback) {
+          callback(update);
+        }
+      });
+
       socket.on('new-notification', (notification: Notification) => {
         console.log('🎉 CLIENT: Received new notification via Socket.IO:', notification);
-        console.log('🎉 CLIENT: Current unread count before update:', unreadCount);
         
         // Add new notification to the list
-        setNotifications(prev => {
-          console.log('🎉 CLIENT: Adding notification to list. Previous count:', prev.length);
-          return [notification, ...prev];
-        });
-        
-        setUnreadCount(prev => {
-          const newCount = prev + 1;
-          console.log('🎉 CLIENT: Updating unread count from', prev, 'to', newCount);
-          return newCount;
-        });
+        setNotifications(prev => [notification, ...prev]);
+        setUnreadCount(prev => prev + 1);
         
         // Show browser notification
         if ('Notification' in window && Notification.permission === 'granted') {
@@ -272,7 +269,67 @@ export function useNotifications(): UseNotificationsReturn {
     }
   };
 
+  // Task subscription functions
+  const subscribeToTaskUpdates = (teamId: string, onTaskUpdate: (update: TaskUpdate) => void) => {
+    console.log('📋 Subscribing to task updates for team:', teamId);
+    
+    // Store the callback
+    taskUpdateCallbacks.current.set(teamId, onTaskUpdate);
+    
+    // Join the team room if connected
+    if (socketRef.current && isConnected) {
+      console.log('📋 Emitting join-team for:', teamId);
+      socketRef.current.emit('join-team', teamId);
+    }
+  };
+
+  const unsubscribeFromTaskUpdates = (teamId: string) => {
+    console.log('📋 Unsubscribing from task updates for team:', teamId);
+    
+    // Remove the callback
+    taskUpdateCallbacks.current.delete(teamId);
+    
+    // Leave the team room if connected
+    if (socketRef.current && isConnected) {
+      socketRef.current.emit('leave-team', teamId);
+    }
+  };
+
+  const broadcastTaskUpdate = async (update: Omit<TaskUpdate, 'teamId'>, teamId: string): Promise<boolean> => {
+    const payload = { ...update, teamId };
+    
+    if (isProduction) {
+      // Production: Use HTTP fallback (since SSE is one-way)
+      try {
+        const response = await fetch('/api/tasks/broadcast', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        return response.ok;
+      } catch (error) {
+        console.error('Failed to broadcast task update:', error);
+        return false;
+      }
+    } else {
+      // Development: Use Socket.IO
+      if (socketRef.current && isConnected) {
+        socketRef.current.emit('task-update', payload);
+        return true;
+      }
+      return false;
+    }
+  };
+
   const cleanup = async () => {
+    // Leave all team rooms
+    for (const teamId of taskUpdateCallbacks.current.keys()) {
+      if (socketRef.current) {
+        socketRef.current.emit('leave-team', teamId);
+      }
+    }
+    taskUpdateCallbacks.current.clear();
+
     if (socketRef.current) {
       // Get user ID for cleanup
       try {
@@ -299,6 +356,34 @@ export function useNotifications(): UseNotificationsReturn {
     setConnectionType(null);
   };
 
+  // Initialize notifications and persistent connection
+  useEffect(() => {
+    // Initial fetch
+    refetch();
+
+    // Debug environment detection
+    if (typeof window !== 'undefined') {
+      console.log('📱 Notification Environment:', {
+        hostname: window.location.hostname,
+        port: window.location.port,
+        isProduction,
+        willUse: isProduction ? 'SSE (Production)' : 'Socket.IO (Development)'
+      });
+    }
+
+    if (isProduction) {
+      // Production: Use SSE
+      initializeSSE();
+    } else {
+      // Development: Use Socket.IO
+      initializeSocketIO();
+    }
+
+    return () => {
+      cleanup();
+    };
+  }, []);
+
   // Request notification permission on mount
   useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {
@@ -308,31 +393,37 @@ export function useNotifications(): UseNotificationsReturn {
     }
   }, []);
 
-  // Fallback polling if not connected or on production
+  // Fallback polling if not connected
   useEffect(() => {
-    if (!isConnected || isProduction) {
+    if (!isConnected) {
       console.log('📱 Starting fallback polling for notifications');
       const interval = setInterval(refetch, 10000); // Poll every 10 seconds
       return () => clearInterval(interval);
     }
   }, [isConnected]);
 
-  // Additional frequent polling for development if Socket.IO fails
-  useEffect(() => {
-    if (!isProduction && connectionType === null) {
-      console.log('📱 Starting frequent polling due to connection issues');
-      const interval = setInterval(refetch, 5000); // Poll every 5 seconds
-      return () => clearInterval(interval);
-    }
-  }, [connectionType]);
+  return (
+    <NotificationContext.Provider value={{
+      notifications,
+      unreadCount,
+      isConnected,
+      connectionType,
+      markAsRead,
+      markAllAsRead,
+      refetch,
+      subscribeToTaskUpdates,
+      unsubscribeFromTaskUpdates,
+      broadcastTaskUpdate,
+    }}>
+      {children}
+    </NotificationContext.Provider>
+  );
+}
 
-  return {
-    notifications,
-    unreadCount,
-    isConnected,
-    connectionType,
-    markAsRead,
-    markAllAsRead,
-    refetch,
-  };
+export function useNotifications() {
+  const context = useContext(NotificationContext);
+  if (!context) {
+    throw new Error('useNotifications must be used within a NotificationProvider');
+  }
+  return context;
 }

@@ -196,7 +196,7 @@ export async function POST(req: NextRequest) {
               await broadcastToUser(user.id, inAppNotification);
             } else {
               // Development: Use Socket.IO
-              broadcastNotification(inAppNotification);
+              await broadcastNotification(inAppNotification);
             }
           } catch (broadcastError) {
             console.error(`❌ Failed to broadcast mention notification:`, broadcastError);

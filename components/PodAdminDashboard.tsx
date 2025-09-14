@@ -123,7 +123,7 @@ const PodAdminDashboard = () => {
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [memberSearchQuery, setMemberSearchQuery] = useState("");
-  const [selectedPodUser, setSelectedPodUser] = useState<SystemUser | null>(
+  const [selectedUser, setSelectedUser] = useState<SystemUser | null>(
     null
   );
   const [showUserDropdown, setShowUserDropdown] = useState(false);
@@ -135,7 +135,7 @@ const PodAdminDashboard = () => {
   const [showMembersModal, setShowMembersModal] = useState<string | null>(null);
   const [showTasksModal, setShowTasksModal] = useState<string | null>(null);
   const [editingMember, setEditingMember] = useState<string | null>(null);
-  const [podUsers, setPodUsers] = useState<SystemUser[]>([]);
+  const [availableUsers, setAvailableUsers] = useState<SystemUser[]>([]);
   const [editingTask, setEditingTask] = useState<string | null>(null);
   const [showAddTaskForm, setShowAddTaskForm] = useState<string | null>(null);
   const [showRemoveMemberConfirm, setShowRemoveMemberConfirm] = useState<{
@@ -455,17 +455,18 @@ const PodAdminDashboard = () => {
       const filteredUsers = result.users.filter((user: SystemUser) =>
         ["GUEST", "USER", "POD"].includes(user.role)
       );
-      const podOnlyUsers = result.users.filter(
-        (user: SystemUser) => user.role === "POD"
+      // Include all users except GUEST for team member selection
+      const eligibleUsers = result.users.filter(
+        (user: SystemUser) => user.role !== "GUEST"
       );
 
       setUsers(filteredUsers);
-      setPodUsers(podOnlyUsers);
+      setAvailableUsers(eligibleUsers);
 
-      // Update stats with POD users count
+      // Update stats with eligible users count
       setStats((prevStats) => ({
         ...prevStats,
-        totalUsers: podOnlyUsers.length,
+        totalUsers: eligibleUsers.length,
       }));
     } catch (err) {
       console.error("Error fetching users:", err);
@@ -485,9 +486,9 @@ const PodAdminDashboard = () => {
       if (!team) return;
 
       // Try to find user by email first (more reliable), then by ID
-      let user = podUsers.find((u) => u.email === data.userEmail);
+      let user = availableUsers.find((u: SystemUser) => u.email === data.userEmail);
       if (!user) {
-        user = podUsers.find((u) => u.id === data.userId);
+        user = availableUsers.find((u: SystemUser) => u.id === data.userId);
         console.warn('User not found by email, falling back to ID lookup:', { 
           searchEmail: data.userEmail, 
           foundUser: user ? { id: user.id, email: user.email, name: user.name } : null 
@@ -563,7 +564,7 @@ const PodAdminDashboard = () => {
     users: { userId: string; role: string; userEmail?: string; userName?: string }[]
   ) => {
     console.log('🔍 addMultipleMembersToTeam - Received data:', { teamId, users });
-    console.log('🔍 addMultipleMembersToTeam - Current podUsers:', podUsers.map(u => ({ id: u.id, email: u.email, name: u.name })));
+    console.log('🔍 addMultipleMembersToTeam - Current availableUsers:', availableUsers.map((u: SystemUser) => ({ id: u.id, email: u.email, name: u.name })));
     
     try {
       const team = teams.find((t) => t.id === teamId);
@@ -574,9 +575,9 @@ const PodAdminDashboard = () => {
           console.log('🔍 Processing user data:', userData);
           
           // Try to find user by email first (more reliable), then by ID
-          let user = podUsers.find((u) => u.email === userData.userEmail);
+          let user = availableUsers.find((u: SystemUser) => u.email === userData.userEmail);
           if (!user) {
-            user = podUsers.find((u) => u.id === userData.userId);
+            user = availableUsers.find((u: SystemUser) => u.id === userData.userId);
             console.warn('User not found by email, falling back to ID lookup:', { 
               searchEmail: userData.userEmail, 
               searchId: userData.userId,
@@ -1044,8 +1045,8 @@ const PodAdminDashboard = () => {
     }
   };
 
-  // Fetch POD users separately for member dropdown
-  const fetchPodUsers = async () => {
+  // Fetch available users (all except GUEST) for member dropdown
+  const fetchAvailableUsers = async () => {
     try {
       const response = await fetch("/api/admin/users");
       if (!response.ok) {
@@ -1053,12 +1054,12 @@ const PodAdminDashboard = () => {
       }
 
       const result = await response.json();
-      const podOnlyUsers = result.users.filter(
-        (user: SystemUser) => user.role === "POD"
+      const eligibleUsers = result.users.filter(
+        (user: SystemUser) => user.role !== "GUEST"
       );
-      setPodUsers(podOnlyUsers);
+      setAvailableUsers(eligibleUsers);
     } catch (err) {
-      console.error("Error fetching POD users:", err);
+      console.error("Error fetching available users:", err);
     }
   };
 
@@ -1510,6 +1511,8 @@ const PodAdminDashboard = () => {
               <span className="hidden sm:inline">Team Management</span>
               <span className="sm:hidden">Teams</span>
             </button>
+            {/* User Management temporarily disabled */}
+            {/*
             <button
               onClick={() => {
                 setActiveView("users");
@@ -1524,6 +1527,7 @@ const PodAdminDashboard = () => {
               <span className="hidden sm:inline">User Management</span>
               <span className="sm:hidden">Users</span>
             </button>
+            */}
           </div>
         </div>
 
@@ -2409,7 +2413,7 @@ const PodAdminDashboard = () => {
                                   assignedTo: session?.user?.email || "",
                                 }));
                               }
-                              if (!podUsers.length) fetchUsers();
+                              if (!availableUsers.length) fetchUsers();
                             }}
                             className="flex items-center justify-center space-x-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors text-sm flex-1 sm:flex-none"
                           >
@@ -2860,7 +2864,8 @@ const PodAdminDashboard = () => {
           </div>
         )}
 
-        {/* User Management View */}
+        {/* User Management View - Temporarily Disabled */}
+        {/*
         {activeView === "users" && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -2877,7 +2882,6 @@ const PodAdminDashboard = () => {
               </button>
             </div>
 
-            {/* Search Section */}
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
@@ -2925,7 +2929,6 @@ const PodAdminDashboard = () => {
                 </div>
               </div>
 
-              {/* Results Count */}
               {!isUsersLoading && (
                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                   <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -2983,7 +2986,6 @@ const PodAdminDashboard = () => {
             {!isUsersLoading &&
               (() => {
                 const filteredUsers = users.filter((user) => {
-                  // Filter by search query
                   const matchesSearch =
                     userSearchQuery === "" ||
                     user.name
@@ -2996,7 +2998,6 @@ const PodAdminDashboard = () => {
                       .toLowerCase()
                       .includes(userSearchQuery.toLowerCase());
 
-                  // Filter by role
                   const matchesRole =
                     userRoleFilter === "all" || user.role === userRoleFilter;
 
@@ -3065,6 +3066,7 @@ const PodAdminDashboard = () => {
             )}
           </div>
         )}
+        */}
       </div>
 
       {/* Add Team Form Modal */}
@@ -3083,11 +3085,14 @@ const PodAdminDashboard = () => {
           onSubmit={(users) =>
             addMultipleMembersToTeam(showAddMemberForm, users)
           }
-          podUsers={podUsers}
+          availableUsers={availableUsers}
           existingMembers={
             teams.find((t) => t.id === showAddMemberForm)?.members || []
           }
-          onRefreshUsers={fetchUsers}
+          onRefreshUsers={async () => {
+            await fetchUsers();
+            await fetchAvailableUsers();
+          }}
         />
       )}
 
@@ -3598,9 +3603,6 @@ const AddTeamForm = ({
   >([]);
   const [membersSearchTerm, setMembersSearchTerm] = useState("");
 
-  const MAX_CREATORS = 3;
-  const MAX_MEMBERS = 5; // Optional team members limit
-
   // Filter creators based on search term
   const filteredCreators = availableCreators.filter((creator) =>
     creator.name.toLowerCase().includes(creatorsSearchTerm.toLowerCase())
@@ -3623,18 +3625,15 @@ const AddTeamForm = ({
     setSelectedCreators((prev) => {
       if (prev.includes(creatorName)) {
         return prev.filter((c) => c !== creatorName);
-      } else if (prev.length < MAX_CREATORS) {
+      } else {
         return [...prev, creatorName];
       }
-      return prev;
     });
   };
 
   // Handle member selection
   const handleMemberAdd = (userId: string, role: string) => {
-    if (selectedMembers.length < MAX_MEMBERS) {
-      setSelectedMembers((prev) => [...prev, { userId, role }]);
-    }
+    setSelectedMembers((prev) => [...prev, { userId, role }]);
   };
 
   // Handle member removal
@@ -3787,11 +3786,11 @@ const AddTeamForm = ({
             <div>
               <div className="flex items-center justify-between mb-4">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Assign Creators (Optional - Max {MAX_CREATORS})
+                  Assign Creators (Optional)
                 </label>
                 <div className="flex items-center space-x-3">
                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {selectedCreators.length}/{MAX_CREATORS} selected
+                    {selectedCreators.length} selected
                   </div>
                   {!isLoadingCreators && (
                     <button
@@ -3805,16 +3804,6 @@ const AddTeamForm = ({
                   )}
                 </div>
               </div>
-
-              {/* Selection Limit Warning */}
-              {selectedCreators.length >= MAX_CREATORS && (
-                <div className="mb-3 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-500/30 rounded-lg">
-                  <p className="text-sm text-amber-800 dark:text-amber-300">
-                    Maximum of {MAX_CREATORS} creators can be assigned to a
-                    team.
-                  </p>
-                </div>
-              )}
 
               {/* Creators Search */}
               <div className="mb-4">
@@ -3841,15 +3830,11 @@ const AddTeamForm = ({
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-80 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-6 bg-gray-50 dark:bg-gray-800">
                   {filteredCreators.map((creator) => {
                     const isSelected = selectedCreators.includes(creator.name);
-                    const canSelect =
-                      selectedCreators.length < MAX_CREATORS || isSelected;
 
                     return (
                       <label
                         key={creator.id}
                         className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-all duration-200 ${
-                          !canSelect ? "opacity-50 cursor-not-allowed" : ""
-                        } ${
                           isSelected
                             ? "bg-purple-100 dark:bg-purple-900/30 border-2 border-purple-300 dark:border-purple-500 shadow-md"
                             : "bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 hover:border-purple-200 dark:hover:border-purple-400"
@@ -3858,10 +3843,7 @@ const AddTeamForm = ({
                         <input
                           type="checkbox"
                           checked={isSelected}
-                          onChange={() =>
-                            canSelect && handleCreatorToggle(creator.name)
-                          }
-                          disabled={!canSelect}
+                          onChange={() => handleCreatorToggle(creator.name)}
                           className="h-5 w-5 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
                         />
                         <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate flex-1">
@@ -3930,10 +3912,10 @@ const AddTeamForm = ({
             <div>
               <div className="flex items-center justify-between mb-4">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Select POD Users (Max {MAX_MEMBERS})
+                  Select POD Users
                 </label>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                  {selectedMembers.length}/{MAX_MEMBERS} selected
+                  {selectedMembers.length} selected
                 </div>
               </div>
 
@@ -3967,16 +3949,12 @@ const AddTeamForm = ({
                       <div className="flex items-center space-x-2">
                         <select
                           onChange={(e) => {
-                            if (
-                              e.target.value &&
-                              selectedMembers.length < MAX_MEMBERS
-                            ) {
+                            if (e.target.value) {
                               handleMemberAdd(user.id, e.target.value);
                               e.target.value = "";
                             }
                           }}
                           className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                          disabled={selectedMembers.length >= MAX_MEMBERS}
                         >
                           <option value="">Add as...</option>
                           <option value="LEADER">Leader</option>
@@ -3992,9 +3970,7 @@ const AddTeamForm = ({
                   <p className="text-gray-500 dark:text-gray-400 text-sm">
                     {podUsers.filter((u) => u.role === "POD").length === 0
                       ? "No POD users available"
-                      : selectedMembers.length >= MAX_MEMBERS
-                        ? "Maximum number of members selected"
-                        : `No POD users match "${membersSearchTerm}"`}
+                      : `No POD users match "${membersSearchTerm}"`}
                   </p>
                 </div>
               )}
@@ -4065,14 +4041,14 @@ const AddMemberForm = ({
   isOpen,
   onClose,
   onSubmit,
-  podUsers,
+  availableUsers: eligibleUsers,
   existingMembers,
   onRefreshUsers,
 }: {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (users: { userId: string; role: string; userEmail?: string; userName?: string }[]) => void;
-  podUsers: SystemUser[];
+  availableUsers: SystemUser[];
   existingMembers: TeamMember[];
   onRefreshUsers: () => void;
 }) => {
@@ -4084,10 +4060,8 @@ const AddMemberForm = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const MAX_SELECTIONS = 3;
-
-  // Filter available users (POD users not already in team)
-  const availableUsers = podUsers.filter(
+  // Filter available users (all except GUEST, not already in team)
+  const availableUsers = eligibleUsers.filter(
     (user) =>
       user.email && // Only show users with valid email addresses
       !existingMembers.some((member) => member.email === user.email) &&
@@ -4121,16 +4095,13 @@ const AddMemberForm = ({
         });
         return prev.filter((u) => u.id !== user.id);
       } else {
-        // Add user if under limit
-        if (prev.length < MAX_SELECTIONS) {
-          // Set default role for new user
-          setUserRoles((prevRoles) => ({
-            ...prevRoles,
-            [user.id]: "Member",
-          }));
-          return [...prev, user];
-        }
-        return prev;
+        // Add user
+        // Set default role for new user
+        setUserRoles((prevRoles) => ({
+          ...prevRoles,
+          [user.id]: "Member",
+        }));
+        return [...prev, user];
       }
     });
   };
@@ -4148,8 +4119,6 @@ const AddMemberForm = ({
   const isUserSelected = (user: SystemUser) => {
     return selectedUsers.some((u) => u.id === user.id);
   };
-
-  const canSelectMore = selectedUsers.length < MAX_SELECTIONS;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -4258,44 +4227,33 @@ const AddMemberForm = ({
           <div className="mb-4 flex-1 min-h-0">
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Select Users (Max {MAX_SELECTIONS})
+                Select Users
               </label>
               <div className="flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400">
                 <span>
-                  {selectedUsers.length}/{MAX_SELECTIONS} selected
+                  {selectedUsers.length} selected
                 </span>
                 <span>•</span>
                 <span>{availableUsers.length} available</span>
               </div>
             </div>
 
-            {/* Selection Limit Warning */}
-            {selectedUsers.length >= MAX_SELECTIONS && (
-              <div className="mb-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-500/30 rounded-lg">
-                <p className="text-sm text-amber-800 dark:text-amber-300">
-                  Maximum of {MAX_SELECTIONS} members can be selected at once.
-                </p>
-              </div>
-            )}
-
             <div className="border border-gray-300 dark:border-gray-600 rounded-lg max-h-40 overflow-y-auto">
               {availableUsers.length > 0 ? (
                 availableUsers.map((user) => {
                   const selected = isUserSelected(user);
-                  const canSelect = canSelectMore || selected;
 
                   return (
                     <label
                       key={user.id}
                       className={`flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-b border-gray-200 dark:border-gray-600 last:border-b-0 cursor-pointer ${
-                        !canSelect ? "opacity-50 cursor-not-allowed" : ""
-                      } ${selected ? "bg-purple-50 dark:bg-purple-900/30" : ""}`}
+                        selected ? "bg-purple-50 dark:bg-purple-900/30" : ""
+                      }`}
                     >
                       <input
                         type="checkbox"
                         checked={selected}
-                        onChange={() => canSelect && handleUserToggle(user)}
-                        disabled={!canSelect}
+                        onChange={() => handleUserToggle(user)}
                         className="mr-3 h-4 w-4 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
                       />
 

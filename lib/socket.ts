@@ -17,21 +17,63 @@ export function getSocketIOServer() {
   return io;
 }
 
-// Helper function to broadcast notification to all connected clients
-export function broadcastNotification(notification: any) {
-  if (io) {
-    console.log('📱 Broadcasting notification via Socket.IO:', notification.title);
-    io.to('notifications').emit('new-notification', notification);
-    return true;
+export function setSocketIOServer(serverInstance: ServerIO) {
+  io = serverInstance;
+  console.log('📱 Socket.IO server instance set globally');
+}
+
+// Helper function to broadcast notification to specific user
+export async function broadcastNotification(notification: any) {
+  try {
+    // Ensure Socket.IO is initialized
+    if (!io) {
+      console.log('📱 Socket.IO not initialized, attempting to initialize...');
+      try {
+        // Try to trigger Socket.IO initialization
+        const response = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/socket`);
+        console.log('📱 Socket.IO initialization response:', response.status);
+        
+        // Wait a bit for initialization
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (fetchError) {
+        console.log('📱 Socket.IO initialization via /api/socket failed:', fetchError);
+      }
+    }
+
+    if (io && notification.userId) {
+      console.log('📱 Broadcasting notification via Socket.IO to user:', notification.userId, notification.title);
+      console.log('📱 Socket.IO instance exists:', !!io);
+      
+      const room = `user-${notification.userId}`;
+      console.log('📱 Broadcasting to room:', room);
+      
+      io.to(room).emit('new-notification', notification);
+      
+      // Check how many clients are in the room
+      const roomClients = io.sockets.adapter.rooms.get(room);
+      console.log('📱 Clients in room:', roomClients ? roomClients.size : 0);
+      
+      return true;
+    } else {
+      console.log('❌ Cannot broadcast notification - falling back to polling:', {
+        hasIo: !!io,
+        hasUserId: !!notification?.userId,
+        notification: notification?.title || 'undefined',
+        reason: !io ? 'Socket.IO not available' : 'No userId'
+      });
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ Error in broadcastNotification:', error);
+    return false;
   }
-  return false;
 }
 
 export function initializeSocketIO(server: NetServer) {
   if (!io) {
     console.log('Initializing Socket.IO server...');
     
-    io = new ServerIO(server, {
+    const serverInstance = new ServerIO(server, {
       path: '/api/socket.io/',
       addTrailingSlash: false,
       cors: {
@@ -39,6 +81,9 @@ export function initializeSocketIO(server: NetServer) {
         methods: ["GET", "POST"]
       }
     });
+
+    // Set the global instance
+    io = serverInstance;
 
     io.on('connection', (socket) => {
       console.log('New client connected:', socket.id);
@@ -64,25 +109,21 @@ export function initializeSocketIO(server: NetServer) {
         socket.to(`team-${data.teamId}`).emit('task-updated', data);
       });
 
-      // Handle notification rooms
-      socket.on('join-notifications', () => {
-        console.log(`Client ${socket.id} joining notifications`);
-        socket.join('notifications');
-        socket.emit('joined-notifications');
+      // Handle user-specific notification rooms
+      socket.on('join-notifications', (userId) => {
+        if (userId) {
+          console.log(`Client ${socket.id} joining notifications for user: ${userId}`);
+          socket.join(`user-${userId}`);
+          socket.emit('joined-notifications', userId);
+        }
       });
 
       // Handle leaving notification rooms
-      socket.on('leave-notifications', () => {
-        console.log(`Client ${socket.id} leaving notifications`);
-        socket.leave('notifications');
-      });
-
-      // Handle broadcasting notifications to specific user
-      socket.on('notification-for-user', (data) => {
-        console.log('Broadcasting notification to user:', data.userId, data.notification);
-        
-        // Broadcast to all clients in the notifications room
-        socket.to('notifications').emit('new-notification', data.notification);
+      socket.on('leave-notifications', (userId) => {
+        if (userId) {
+          console.log(`Client ${socket.id} leaving notifications for user: ${userId}`);
+          socket.leave(`user-${userId}`);
+        }
       });
       
       socket.on('disconnect', () => {

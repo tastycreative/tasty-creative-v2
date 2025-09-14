@@ -138,13 +138,14 @@ export async function POST(req: NextRequest) {
               await broadcastToUser(member.userId, inAppNotification);
             } else {
               // Development: Use Socket.IO
-              broadcastNotification(inAppNotification);
+              await broadcastNotification(inAppNotification);
             }
           } catch (broadcastError) {
             console.error(`❌ Failed to broadcast notification:`, broadcastError);
           }
 
-          console.log(`📱 In-app notification created for ${member.userName} (${member.userEmail})`);
+          console.log(`📱 In-app notification created for ${member.userName} (${member.userEmail})`, inAppNotification);
+          console.log(`📱 About to broadcast notification to user ${member.userId}:`, inAppNotification.title);
         } catch (inAppError) {
           console.error(`❌ Failed to create in-app notification for ${member.userEmail}:`, inAppError);
         }

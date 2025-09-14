@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Bell, X, CheckCircle2, Clock, Users, FileText, Wifi, WifiOff } from 'lucide-react';
-import { useNotifications } from '@/hooks/useNotifications';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 interface Notification {
   id: string;
