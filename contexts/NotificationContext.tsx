@@ -33,6 +33,8 @@ interface NotificationContextType {
   unreadCount: number;
   isConnected: boolean;
   connectionType: 'sse' | 'polling' | null;
+  lastUpdated: number; // Add timestamp to force re-renders
+  testIncrement: () => void; // Add test function
   markAsRead: (notificationId: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   refetch: () => Promise<void>;
@@ -49,6 +51,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [unreadCount, setUnreadCount] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionType, setConnectionType] = useState<'sse' | 'polling' | null>(null);
+  const [lastUpdated, setLastUpdated] = useState(Date.now());
   const eventSourceRef = useRef<EventSource | null>(null);
   const taskUpdateCallbacks = useRef<Map<string, (update: TaskUpdate) => void>>(new Map());
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -154,6 +157,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
               return newCount;
             });
             
+            // Force re-render by updating timestamp
+            setLastUpdated(Date.now());
+            console.log('📡 Forced re-render with new timestamp');
+            
             // Show browser notification
             if ('Notification' in window && Notification.permission === 'granted') {
               new Notification(data.data.title, {
@@ -192,6 +199,18 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       console.error('Failed to setup SSE:', error);
       setIsConnected(false);
     }
+  };
+
+  // Test function to manually increment count
+  const testIncrement = () => {
+    console.log('🧪 Test increment triggered');
+    setUnreadCount(prev => {
+      const newCount = prev + 1;
+      console.log('🧪 Test unread count updated from', prev, 'to', newCount);
+      return newCount;
+    });
+    setLastUpdated(Date.now());
+    console.log('🧪 Test timestamp updated');
   };
 
   // Task subscription functions (simplified for SSE)
@@ -282,6 +301,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       unreadCount,
       isConnected,
       connectionType,
+      lastUpdated,
+      testIncrement,
       markAsRead,
       markAllAsRead,
       refetch,

@@ -8,7 +8,7 @@ import {
   sendCommentNotificationEmail,
   sendSubmissionConfirmationEmail
 } from './email';
-import { broadcastToUser } from '@/app/api/notifications/stream/route';
+import { broadcastToUser } from '@/lib/sse-broadcast';
 
 // Detect if we're in production or development
 const isProduction = typeof process !== 'undefined' && !(

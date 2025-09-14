@@ -12,8 +12,13 @@ export function registerConnection(userId: string, controller: ReadableStreamDef
 
 // Remove a connection
 export function removeConnection(userId: string) {
+  const existed = connections.has(userId);
   connections.delete(userId);
-  console.log(`📡 SSE connection removed for user: ${userId}`);
+  console.log(`📡 SSE connection removed for user: ${userId} (existed: ${existed})`);
+  console.log(`📡 Remaining connections: ${connections.size}, users: [${Array.from(connections.keys()).join(', ')}]`);
+  
+  // Log stack trace to see what's calling removeConnection
+  console.trace('📡 removeConnection called from:');
 }
 
 // Get connection count for debugging
@@ -28,16 +33,20 @@ export function getConnectedUsers(): string[] {
 
 // Broadcast to specific user
 export async function broadcastToUser(userId: string, type: string, data: any): Promise<boolean> {
-  console.log(`📡 Attempting to broadcast to user: ${userId}, type: ${type}`);
+  console.log(`📡 === BROADCAST ATTEMPT ===`);
+  console.log(`📡 Target user: ${userId}, type: ${type}`);
   console.log(`📡 Current connections: ${connections.size}, connected users: [${Array.from(connections.keys()).join(', ')}]`);
+  console.log(`📡 Looking for connection for user: ${userId}`);
   
   const controller = connections.get(userId);
   
   if (!controller) {
-    console.log(`📡 No SSE connection found for user: ${userId}`);
+    console.log(`❌ No SSE connection found for user: ${userId}`);
     console.log(`📡 Available connections for users: [${Array.from(connections.keys()).join(', ')}]`);
     return false;
   }
+
+  console.log(`✅ Found controller for user: ${userId}, attempting to send message...`);
 
   try {
     const message = `data: ${JSON.stringify({
@@ -51,6 +60,7 @@ export async function broadcastToUser(userId: string, type: string, data: any): 
     return true;
   } catch (error) {
     console.error(`❌ Error broadcasting via SSE to user ${userId}:`, error);
+    console.log(`📡 Removing connection for user ${userId} due to error`);
     connections.delete(userId);
     return false;
   }
