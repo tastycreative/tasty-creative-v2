@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
       }
     });
 
-        // Broadcast it via SSE
+            // Broadcast it via SSE
     const broadcastSuccess = await broadcastToUser(session.user.id, 'NEW_NOTIFICATION', testNotification);
 
     return NextResponse.json({

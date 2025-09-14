@@ -280,7 +280,7 @@ export async function triggerRealTimeNotification(notification: any) {
     console.log('📡 Triggering real-time notification via SSE:', notification.id);
     
     // Use SSE for all environments (App Router compatible)
-    await broadcastToUser(notification.userId, notification);
+    await broadcastToUser(notification.userId, 'NEW_NOTIFICATION', notification);
     
     console.log('✅ Real-time notification sent successfully via SSE');
   } catch (error) {

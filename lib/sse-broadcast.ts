@@ -6,6 +6,8 @@ const connections = new Map<string, ReadableStreamDefaultController>();
 export function registerConnection(userId: string, controller: ReadableStreamDefaultController) {
   connections.set(userId, controller);
   console.log(`📡 SSE connection registered for user: ${userId}`);
+  console.log(`📡 Total active connections: ${connections.size}`);
+  console.log(`📡 All connected users: [${Array.from(connections.keys()).join(', ')}]`);
 }
 
 // Remove a connection
@@ -26,10 +28,14 @@ export function getConnectedUsers(): string[] {
 
 // Broadcast to specific user
 export async function broadcastToUser(userId: string, type: string, data: any): Promise<boolean> {
+  console.log(`📡 Attempting to broadcast to user: ${userId}, type: ${type}`);
+  console.log(`📡 Current connections: ${connections.size}, connected users: [${Array.from(connections.keys()).join(', ')}]`);
+  
   const controller = connections.get(userId);
   
   if (!controller) {
     console.log(`📡 No SSE connection found for user: ${userId}`);
+    console.log(`📡 Available connections for users: [${Array.from(connections.keys()).join(', ')}]`);
     return false;
   }
 
@@ -41,10 +47,10 @@ export async function broadcastToUser(userId: string, type: string, data: any): 
     })}\n\n`;
     
     controller.enqueue(new TextEncoder().encode(message));
-    console.log(`📡 SSE broadcasted to user ${userId}, type: ${type}, title: ${data?.title}`);
+    console.log(`📡 SSE broadcasted successfully to user ${userId}, type: ${type}, title: ${data?.title}`);
     return true;
   } catch (error) {
-    console.error('Error broadcasting via SSE:', error);
+    console.error(`❌ Error broadcasting via SSE to user ${userId}:`, error);
     connections.delete(userId);
     return false;
   }

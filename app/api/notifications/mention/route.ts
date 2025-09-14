@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { sendMentionNotificationEmail } from '@/lib/email';
 import { createInAppNotification } from '@/lib/notifications';
-import { broadcastToUser } from '../stream/route';
+import { broadcastToUser } from '@/lib/sse-broadcast';
 
 // Force SSE for App Router (Socket.IO not properly supported)
 const isProduction = true; // Always use SSE
@@ -188,7 +188,7 @@ export async function POST(req: NextRequest) {
 
           // Broadcast real-time notification using SSE
           try {
-            await broadcastToUser(user.id, inAppNotification);
+            await broadcastToUser(user.id, 'NEW_NOTIFICATION', inAppNotification);
             console.log(`📡 SSE mention notification broadcasted to user ${user.id}`);
           } catch (broadcastError) {
             console.error(`❌ Failed to broadcast mention notification via SSE:`, broadcastError);
