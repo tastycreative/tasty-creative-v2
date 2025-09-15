@@ -5,6 +5,7 @@ import { RootLayoutClient } from "@/components/RootLayoutClient";
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { SidebarProvider } from "@/components/SidebarProvider";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 export const metadata: Metadata = {
   title: {

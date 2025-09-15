@@ -27,6 +27,7 @@ interface MentionsInputProps {
   onMentionsChange?: (mentions: Mention[]) => void;
   teamMembers: MentionUser[];
   teamAdmins?: MentionUser[];
+  currentUserId?: string;
   placeholder?: string;
   className?: string;
   disabled?: boolean;
@@ -40,6 +41,7 @@ const MentionsInput: React.FC<MentionsInputProps> = ({
   onMentionsChange,
   teamMembers,
   teamAdmins = [],
+  currentUserId,
   placeholder = "Type your message...",
   className = "",
   disabled = false,
@@ -167,12 +169,16 @@ const MentionsInput: React.FC<MentionsInputProps> = ({
 
   // Filter team members and admins for suggestions
   const filteredMembers = teamMembers.filter(member => {
+    // Exclude current user
+    if (currentUserId && member.id === currentUserId) return false;
     if (!suggestionFilter) return true;
     const displayName = member.name || member.email?.split('@')[0] || '';
     return displayName.toLowerCase().includes(suggestionFilter.toLowerCase());
   });
 
   const filteredAdmins = teamAdmins.filter(admin => {
+    // Exclude current user
+    if (currentUserId && admin.id === currentUserId) return false;
     if (!suggestionFilter) return true;
     const displayName = admin.name || admin.email?.split('@')[0] || '';
     return displayName.toLowerCase().includes(suggestionFilter.toLowerCase());

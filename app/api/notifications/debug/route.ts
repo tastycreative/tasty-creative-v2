@@ -1,6 +1,5 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
-import { getConnectionCount, getConnectedUsers } from '@/lib/sse-broadcast';
 
 export async function GET(req: NextRequest) {
   try {
@@ -21,11 +20,6 @@ export async function GET(req: NextRequest) {
       environment: process.env.NODE_ENV,
       vercelRegion: process.env.VERCEL_REGION || 'local',
       userId: session.user.id,
-      connections: {
-        total: getConnectionCount(),
-        users: getConnectedUsers(),
-        isCurrentUserConnected: getConnectedUsers().includes(session.user.id)
-      },
       runtime: 'nodejs'
     }), {
       headers: { 'Content-Type': 'application/json' }

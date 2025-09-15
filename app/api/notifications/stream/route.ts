@@ -1,139 +1,110 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/auth';
-import { registerConnection, removeConnection } from '@/lib/sse-broadcast';
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-export const maxDuration = 300; // 5 minutes max for Vercel Pro
+const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
+const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 
+// Simple SSE proxy that connects to Upstash subscribe stream for a user's channel.
 export async function GET(req: NextRequest) {
   try {
     const session = await auth();
-    
     if (!session?.user?.id) {
-      console.log('❌ SSE: Unauthorized access attempt');
-      return new Response('Unauthorized', { status: 401 });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
     }
 
-    const userId = session.user.id;
-    console.log(`📡 Setting up SSE stream for user: ${userId} in ${process.env.NODE_ENV} mode`);
+    if (!UPSTASH_URL || !UPSTASH_TOKEN) {
+      return new Response(JSON.stringify({ error: 'Upstash not configured' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+    }
 
-    // Create SSE stream with better error handling
+    const url = new URL(req.url);
+    const teamParam = url.searchParams.get('team');
+
+    // Channels we'll subscribe to: user channel and optional team channel
+    const channels = [`user:${session.user.id}`];
+    if (teamParam) channels.push(`team:${teamParam}`);
+
+    // Upstash supports a streaming subscribe endpoint at /subscribe/:channel
+    // We'll open a streaming fetch and pipe events as SSE.
+
+    const controller = new AbortController();
+
+    // Build subscribe URL for multiple channels by joining with ','
+    const subscribePath = new URL(UPSTASH_URL);
+    // Ensure no trailing slash
+    subscribePath.pathname = subscribePath.pathname.replace(/\/$/, '') + `/subscribe/${channels.join(',')}`;
+
+    let upstream: Response;
+    try {
+      upstream = await fetch(subscribePath.toString(), {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${UPSTASH_TOKEN}`,
+        },
+        signal: controller.signal,
+      });
+    } catch (fetchErr: any) {
+      console.error('Upstream fetch failed:', fetchErr);
+      return new Response(JSON.stringify({ error: 'Upstash subscribe fetch failed', message: fetchErr?.message || String(fetchErr) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    if (!upstream.ok || !upstream.body) {
+      const text = await upstream.text().catch(() => 'Unable to read body');
+      return new Response(JSON.stringify({ error: 'Upstash subscribe failed', details: text, status: upstream.status }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+    }
+
+    // Create a streaming response that re-emits lines as SSE `data:` messages
     const stream = new ReadableStream({
-      start(controller) {
-        console.log(`📡 Starting SSE controller for user: ${userId}`);
-        
-        // Send initial connection message
-        const sendMessage = (data: any) => {
-          try {
-            const message = `data: ${JSON.stringify(data)}\n\n`;
-            controller.enqueue(new TextEncoder().encode(message));
-            return true;
-          } catch (error) {
-            console.error(`❌ Error sending SSE message to user ${userId}:`, error);
-            return false;
-          }
-        };
+      async start(controllerStream) {
+        const reader = upstream.body!.getReader();
+        const decoder = new TextDecoder();
 
-        // Initial connection confirmation
-        if (!sendMessage({
-          type: 'connected',
-          message: 'Notification stream connected',
-          timestamp: new Date().toISOString(),
-          userId
-        })) {
-          console.error(`❌ Failed to send initial message to user ${userId}`);
-          removeConnection(userId);
-          return;
-        }
+        // Send initial comment to keep connection alive
+        controllerStream.enqueue(utf8Encode(': connected\n\n'));
 
-        // Register connection for broadcasting
-        registerConnection(userId, controller);
-
-        // Keep connection alive with heartbeat - more aggressive for production
-        const heartbeatInterval = process.env.NODE_ENV === 'production' ? 10000 : 15000; // 10s prod, 15s dev
-        const heartbeat = setInterval(() => {
-          if (!sendMessage({
-            type: 'heartbeat',
-            timestamp: new Date().toISOString()
-          })) {
-            console.error(`❌ Heartbeat failed for user ${userId}, cleaning up`);
-            clearInterval(heartbeat);
-            removeConnection(userId);
-            try {
-              if (controller.desiredSize !== null) {
-                controller.close();
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+            // Upstash sends newline-separated JSON lines; reformat to SSE
+            const lines = chunk.split(/\r?\n/).filter(Boolean);
+            for (const line of lines) {
+              // Each line is expected to be a JSON array [channel, message]
+              try {
+                const parsed = JSON.parse(line);
+                const payload = JSON.stringify(parsed);
+                controllerStream.enqueue(utf8Encode(`data: ${payload}\n\n`));
+              } catch (e) {
+                // If not JSON, forward raw line
+                controllerStream.enqueue(utf8Encode(`data: ${line}\n\n`));
               }
-            } catch (error) {
-              console.log('Controller already closed:', error);
             }
           }
-        }, heartbeatInterval);
-
-        // Clean up on close
-        const cleanup = () => {
-          console.log(`📡 Cleaning up SSE connection for user: ${userId}`);
-          clearInterval(heartbeat);
-          removeConnection(userId);
-          try {
-            if (controller.desiredSize !== null) {
-              controller.close();
-            }
-          } catch (error) {
-            console.log('Controller already closed during cleanup:', error);
-          }
-        };
-
-        // Store cleanup function for external access
-        (controller as any).cleanup = cleanup;
-
-        // Handle connection close/abort from client
-        if (req.signal) {
-          req.signal.addEventListener('abort', () => {
-            console.log(`📡 Client aborted SSE connection for user: ${userId}`);
-            cleanup();
-          });
+        } catch (err) {
+          // upstream aborted
+        } finally {
+          controllerStream.close();
         }
-
-        // Cleanup on process termination (important for Vercel)
-        const processCleanup = () => {
-          console.log(`📡 Process cleanup for SSE user: ${userId}`);
-          cleanup();
-        };
-        
-        process.on('SIGTERM', processCleanup);
-        process.on('SIGINT', processCleanup);
       },
-      cancel(reason) {
-        console.log(`📡 SSE stream cancelled for user: ${userId}, reason:`, reason);
-        removeConnection(userId);
+      cancel() {
+        controller.abort();
       }
     });
 
     return new Response(stream, {
+      status: 200,
       headers: {
         'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': req.headers.get('origin') || '*',
-        'Access-Control-Allow-Headers': 'Cache-Control, Content-Type, Authorization',
-        'Access-Control-Allow-Credentials': 'true',
-        'X-Accel-Buffering': 'no', // Disable nginx buffering
-        // Additional headers for better Vercel support
-        'Transfer-Encoding': 'chunked',
-        'X-Content-Type-Options': 'nosniff',
+        'Cache-Control': 'no-cache, no-transform',
+        Connection: 'keep-alive',
       },
     });
-
-  } catch (error) {
-    console.error('Error setting up notification stream:', error);
-    return new Response(JSON.stringify({
-      error: 'Internal Server Error',
-      message: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString()
-    }), { 
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+  } catch (error: any) {
+    console.error('SSE stream error:', error);
+    return new Response(JSON.stringify({ error: 'SSE stream error', message: error?.message || String(error) }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
+}
+
+function utf8Encode(s: string) {
+  return new TextEncoder().encode(s);
 }

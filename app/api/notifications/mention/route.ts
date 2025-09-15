@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { sendMentionNotificationEmail } from '@/lib/email';
 import { createInAppNotification } from '@/lib/notifications';
-import { broadcastToUser } from '@/lib/sse-broadcast';
+import { upstashPublish } from '@/lib/upstash';
 
 // Force SSE for App Router (Socket.IO not properly supported)
 const isProduction = true; // Always use SSE
@@ -155,7 +155,7 @@ export async function POST(req: NextRequest) {
               message: 'Mention notification sent successfully',
             });
 
-            console.log(`📧 Mention notification sent to ${user.name} (${user.email})`);
+            // mention email sent
           } catch (emailError) {
             emailResults.push({
               userId: user.id,
@@ -169,6 +169,12 @@ export async function POST(req: NextRequest) {
 
         // Create in-app notification
         try {
+          // Get the user who made the mention for profile data
+          const mentionerUser = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { id: true, name: true, email: true, image: true }
+          });
+
           const inAppNotification = await createInAppNotification({
             userId: user.id,
             type: 'TASK_COMMENT_ADDED',
@@ -179,6 +185,12 @@ export async function POST(req: NextRequest) {
               taskTitle: task.title,
               commentContent: cleanMentionsForEmail(commentContent),
               mentionerName: session.user.name || session.user.email || 'Someone',
+              mentionerUser: mentionerUser ? {
+                id: mentionerUser.id,
+                name: mentionerUser.name,
+                email: mentionerUser.email,
+                image: mentionerUser.image
+              } : null,
               teamName: team?.name,
               taskUrl: `${process.env.NEXTAUTH_URL}/apps/pod/board?team=${teamId}&task=${taskId}`,
             },
@@ -186,15 +198,44 @@ export async function POST(req: NextRequest) {
             podTeamId: teamId,
           });
 
-          // Broadcast real-time notification using SSE
-          try {
-            await broadcastToUser(user.id, 'NEW_NOTIFICATION', inAppNotification);
-            console.log(`📡 SSE mention notification broadcasted to user ${user.id}`);
-          } catch (broadcastError) {
-            console.error(`❌ Failed to broadcast mention notification via SSE:`, broadcastError);
-          }
 
-          console.log(`📱 In-app mention notification created for ${user.name} (${user.email})`);
+
+          // in-app mention notification created
+
+          // Publish to Upstash channels: user and optional team
+          try {
+            const payload = {
+              type: 'TASK_COMMENT_ADDED',
+              title: 'You were mentioned in a comment',
+              message: `${session.user.name || session.user.email || 'Someone'} mentioned you in "${task.title}"`,
+              data: {
+                taskId,
+                taskTitle: task.title,
+                commentContent: cleanMentionsForEmail(commentContent),
+                mentionerName: session.user.name || session.user.email || 'Someone',
+                mentionerUser: mentionerUser ? {
+                  id: mentionerUser.id,
+                  name: mentionerUser.name,
+                  email: mentionerUser.email,
+                  image: mentionerUser.image
+                } : null,
+                teamId,
+                taskUrl: `${process.env.NEXTAUTH_URL}/apps/pod/board?team=${teamId}&task=${taskId}`,
+                notificationId: inAppNotification?.id || null,
+              },
+              createdAt: new Date().toISOString(),
+            };
+
+            const userChannel = `user:${user.id}`;
+            await upstashPublish(userChannel, payload);
+
+            if (teamId) {
+              const teamChannel = `team:${teamId}`;
+              await upstashPublish(teamChannel, payload);
+            }
+          } catch (pubErr) {
+            console.error('❌ Upstash publish failed for mention:', pubErr);
+          }
         } catch (inAppError) {
           console.error(`❌ Failed to create in-app mention notification for ${user.email}:`, inAppError);
         }
@@ -204,17 +245,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Enhanced logging
-    console.log(`💬 MENTION NOTIFICATIONS:`);
-    console.log(`   └─ Task: "${task.title}" (ID: ${taskId})`);
-    console.log(`   └─ Comment by: ${session.user.name || session.user.email}`);
-    console.log(`   └─ Mentioned users: ${mentionedUsers.length}`);
-    console.log(`   └─ Notifications created: ${notifications.length}`);
-    console.log(`   └─ Emails sent: ${emailResults.filter(r => r.status === 'sent').length}`);
-
-    notifications.forEach((notif, index) => {
-      const emailStatus = emailResults.find(e => e.userId === notif.userId);
-      console.log(`   ${index + 1}. ${notif.userName} (${notif.userEmail}) - ${emailStatus?.status || 'no email'}`);
-    });
+  // mention notifications processed
 
     return NextResponse.json({
       success: true,

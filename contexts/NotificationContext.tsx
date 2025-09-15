@@ -1,6 +1,11 @@
-'use client';
+"use client";
 
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import { toast } from 'sonner';
+import UserProfile from '@/components/ui/UserProfile';
+
+// Minimal notification context shim — removes all SSE/EventSource logic but
+// preserves the public API so the app can be rebuilt and iterated on.
 
 interface Notification {
   id: string;
@@ -10,22 +15,6 @@ interface Notification {
   isRead: boolean;
   createdAt: string;
   data?: any;
-  task?: {
-    id: string;
-    title: string;
-    status: string;
-  };
-  podTeam?: {
-    id: string;
-    name: string;
-  };
-}
-
-interface TaskUpdate {
-  type: 'TASK_UPDATED' | 'TASK_CREATED' | 'TASK_DELETED';
-  taskId: string;
-  teamId: string;
-  data?: any;
 }
 
 interface NotificationContextType {
@@ -33,14 +22,13 @@ interface NotificationContextType {
   unreadCount: number;
   isConnected: boolean;
   connectionType: 'sse' | 'polling' | null;
-  lastUpdated: number; // Add timestamp to force re-renders
+  lastUpdated: number;
   markAsRead: (notificationId: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   refetch: () => Promise<void>;
-  // Task update functions (simplified for SSE)
-  subscribeToTaskUpdates: (teamId: string, onTaskUpdate: (update: TaskUpdate) => void) => void;
+  subscribeToTaskUpdates: (teamId: string, onTaskUpdate: (payload: any) => void) => void;
   unsubscribeFromTaskUpdates: (teamId: string) => void;
-  broadcastTaskUpdate: (update: Omit<TaskUpdate, 'teamId'>, teamId: string) => Promise<boolean>;
+  broadcastTaskUpdate: (update: any, teamId: string) => Promise<boolean>;
 }
 
 const NotificationContext = createContext<NotificationContextType | null>(null);
@@ -48,382 +36,228 @@ const NotificationContext = createContext<NotificationContextType | null>(null);
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState(Date.now());
   const [isConnected, setIsConnected] = useState(false);
   const [connectionType, setConnectionType] = useState<'sse' | 'polling' | null>(null);
-  const [lastUpdated, setLastUpdated] = useState(Date.now());
-  const [reconnectAttempts, setReconnectAttempts] = useState(0);
-  const maxReconnectAttempts = 5;
-  const processedNotifications = useRef(new Set<string>());
-  const eventSourceRef = useRef<EventSource | null>(null);
-  const taskUpdateCallbacks = useRef<Map<string, (update: TaskUpdate) => void>>(new Map());
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const esRef = useRef<EventSource | null>(null);
+  const previousNotificationIds = useRef<Set<string>>(new Set());
 
-  // Fetch notifications from API
+  const showNotificationToast = (notification: Notification) => {
+    const data = notification.data || {};
+    
+    console.log('🔔 showNotificationToast called with:', notification);
+    
+    // Extract user info from notification data - try the new user profile structure first
+    const triggerUserProfile = data.movedByUser || data.mentionerUser || null;
+    const triggerUserName = triggerUserProfile?.name || data.movedBy || data.mentionerName || data.userWhoLinked || 'Someone';
+    const taskTitle = data.taskTitle || data.taskUrl?.split('task=')[1] || '';
+    const taskUrl = data.taskUrl;
+    
+    console.log('🔔 Toast data:', { triggerUserProfile, triggerUserName, taskTitle, taskUrl, type: notification.type });
+    
+    // Create summary based on notification type
+    let summary = '';
+    let action = '';
+    
+    switch (notification.type) {
+      case 'TASK_STATUS_CHANGED':
+        action = `moved "${taskTitle}" to ${data.newColumn || 'a new column'}`;
+        summary = `Task moved to ${data.newColumn || 'new status'}`;
+        break;
+      case 'TASK_COMMENT_ADDED':
+        action = `mentioned you in "${taskTitle}"`;
+        summary = 'You were mentioned in a comment';
+        break;
+      case 'POD_TEAM_ADDED':
+      case 'POD_TEAM_CLIENT_ASSIGNED':
+      case 'POD_TEAM_MEMBER_JOINED':
+        action = 'added you to a team';
+        summary = notification.message;
+        break;
+      default:
+        action = notification.message;
+        summary = notification.title;
+    }
+
+    console.log('🔔 Final toast content:', { action, summary });
+
+    // Show toast with click handler
+    toast(
+      <div className="flex items-start space-x-3 cursor-pointer" onClick={() => handleToastClick(taskUrl, notification)}>
+        {triggerUserProfile ? (
+          <UserProfile 
+            user={{
+              id: triggerUserProfile.id,
+              name: triggerUserProfile.name,
+              email: triggerUserProfile.email,
+              image: triggerUserProfile.image
+            }}
+            size="sm"
+            className="flex-shrink-0"
+          />
+        ) : (
+          <div className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-pink-400 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+            {triggerUserName.charAt(0).toUpperCase()}
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+            {triggerUserName}
+          </p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+            {action}
+          </p>
+        </div>
+      </div>,
+      {
+        duration: 6000,
+        position: 'bottom-right',
+      }
+    );
+    
+    console.log('🔔 Toast called successfully');
+  };
+
+  const handleToastClick = (taskUrl?: string, notification?: Notification) => {
+    if (taskUrl) {
+      window.location.href = taskUrl;
+    } else if (notification?.data?.taskId) {
+      // Fallback: construct URL from task ID
+      const teamParam = notification.data.teamId ? `team=${notification.data.teamId}&` : '';
+      window.location.href = `/apps/pod/board?${teamParam}task=${notification.data.taskId}`;
+    }
+  };
+
   const refetch = async () => {
     try {
-      const response = await fetch('/api/notifications/in-app');
-      if (response.ok) {
-        const data = await response.json();
-        setNotifications(data.notifications || []);
+      const res = await fetch('/api/notifications/in-app', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        const newNotifications = data.notifications || [];
+        
+        // Check for new notifications and show toast
+        // Only show toasts if we have previous notifications to compare against
+        const isFirstLoad = previousNotificationIds.current.size === 0;
+        
+        if (!isFirstLoad) {
+          const newOnes = newNotifications.filter((notif: Notification) => 
+            !previousNotificationIds.current.has(notif.id)
+          );
+          
+          console.log('🔔 New notifications detected:', newOnes.length);
+          
+          newOnes.forEach((notif: Notification) => {
+            console.log('🔔 Showing toast for:', notif.title);
+            showNotificationToast(notif);
+          });
+        } else {
+          console.log('🔔 First load, not showing toasts for', newNotifications.length, 'notifications');
+        }
+        
+        // Update the set of seen notification IDs
+        previousNotificationIds.current = new Set(newNotifications.map((n: Notification) => n.id));
+        
+        setNotifications(newNotifications);
         setUnreadCount(data.count || 0);
+        setLastUpdated(Date.now());
       }
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error);
+    } catch (err) {
+      // swallow network errors silently to avoid noisy logs
     }
   };
 
-  // Mark notification as read
   const markAsRead = async (notificationId: string) => {
     try {
-      const response = await fetch('/api/notifications/mark-read', {
+      await fetch('/api/notifications/mark-read', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ notificationId }),
       });
-
-      if (response.ok) {
-        setNotifications(prev => 
-          prev.map(notif => 
-            notif.id === notificationId 
-              ? { ...notif, isRead: true }
-              : notif
-          )
-        );
-        setUnreadCount(prev => Math.max(0, prev - 1));
-      }
-    } catch (error) {
-      console.error('Failed to mark notification as read:', error);
+    } catch (err) {
+      // ignore
     }
+    await refetch();
   };
 
-  // Mark all notifications as read
   const markAllAsRead = async () => {
     try {
-      const response = await fetch('/api/notifications/mark-read', {
+      await fetch('/api/notifications/mark-read', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ markAll: true }),
       });
-
-      if (response.ok) {
-        setNotifications(prev => 
-          prev.map(notif => ({ ...notif, isRead: true }))
-        );
-        setUnreadCount(0);
-      }
-    } catch (error) {
-      console.error('Failed to mark all notifications as read:', error);
+    } catch (err) {
+      // ignore
     }
+    await refetch();
   };
 
-  const initializeSSE = () => {
-    try {
-      console.log('📡 Initializing SSE connection...');
-      
-      // Clean up existing connection
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
-      }
+  // No-op realtime subscription API to keep callers working until a new
+  // realtime implementation is added.
+  function subscribeToTaskUpdates(_teamId: string, _onTaskUpdate: (p: any) => void) {
+  // intentionally left blank — use refetch() for updates
+  }
 
-      const eventSource = new EventSource('/api/notifications/stream', {
-        withCredentials: true
-      });
-      eventSourceRef.current = eventSource;
+  function unsubscribeFromTaskUpdates(_teamId: string) {
+    // no-op
+  }
 
-      // Add error state tracking
-      let hasErrored = false;
+  async function broadcastTaskUpdate(_update: any, _teamId: string): Promise<boolean> {
+    // no-op broadcast
+    return false;
+  }
 
-      eventSource.onopen = () => {
-        console.log('📡 SSE notification stream connected');
-        setIsConnected(true);
-        setConnectionType('sse');
-        setReconnectAttempts(0); // Reset reconnection attempts on successful connection
-        
-        // Clear any reconnection timeout
-        if (reconnectTimeoutRef.current) {
-          clearTimeout(reconnectTimeoutRef.current);
-          reconnectTimeoutRef.current = null;
-        }
-      };
-
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log('📡 SSE message received:', data.type);
-          
-          if (data.type === 'NEW_NOTIFICATION') {
-            console.log('🎉 NEW NOTIFICATION via SSE:', data.data);
-            
-            // Prevent duplicate processing
-            if (processedNotifications.current.has(data.data.id)) {
-              console.log('📡 Skipping duplicate notification:', data.data.id);
-              return;
-            }
-            processedNotifications.current.add(data.data.id);
-            
-            // Clean up old processed notifications to prevent memory leaks
-            if (processedNotifications.current.size > 100) {
-              const notificationIds = Array.from(processedNotifications.current);
-              const toKeep = notificationIds.slice(-50);
-              processedNotifications.current = new Set(toKeep);
-            }
-            
-            // Add new notification to the list
-            setNotifications(prev => {
-              console.log('📡 Adding SSE notification, prev count:', prev.length);
-              return [data.data, ...prev];
-            });
-            setUnreadCount(prev => {
-              const newCount = prev + 1;
-              console.log('📡 Updating SSE unread count from', prev, 'to', newCount);
-              return newCount;
-            });
-            
-            // Force re-render by updating timestamp
-            setLastUpdated(Date.now());
-            console.log('📡 Forced re-render with new timestamp');
-            
-            // Show browser notification
-            if ('Notification' in window && Notification.permission === 'granted') {
-              new Notification(data.data.title, {
-                body: data.data.message,
-                icon: '/favicon.ico',
-                tag: data.data.id,
-              });
-            }
-          } else if (data.type === 'connected') {
-            console.log('📡 SSE connection established');
-          } else if (data.type === 'heartbeat') {
-            // Keep connection alive - respond to heartbeat
-            console.log('💓 SSE heartbeat received');
-            // Reset reconnection attempts on successful heartbeat
-            if (reconnectAttempts > 0) {
-              setReconnectAttempts(0);
-              console.log('🔄 Reset reconnection attempts due to heartbeat');
-            }
-          }
-        } catch (error) {
-          console.error('Failed to parse SSE message:', error);
-        }
-      };
-
-      eventSource.onerror = (error) => {
-        console.error('❌ SSE error:', error);
-        hasErrored = true;
-        setIsConnected(false);
-        
-        // Close the current connection
-        if (eventSource.readyState !== EventSource.CLOSED) {
-          eventSource.close();
-        }
-        
-        // Check if this is an authentication error by testing a simple endpoint
-        const checkAuth = async () => {
-          try {
-            const authResponse = await fetch('/api/notifications/health');
-            if (authResponse.status === 401) {
-              console.log('❌ Authentication error detected, not reconnecting');
-              setConnectionType('polling');
-              startFallbackPolling();
-              return;
-            }
-          } catch (authError) {
-            console.log('❌ Auth check failed:', authError);
-          }
-          
-          // Proceed with reconnection if not auth error
-          if (reconnectAttempts < maxReconnectAttempts) {
-            if (reconnectTimeoutRef.current) {
-              clearTimeout(reconnectTimeoutRef.current);
-            }
-            
-            const backoffDelay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000); // Max 30 seconds
-            console.log(`🔄 Attempting SSE reconnection in ${backoffDelay}ms... (attempt ${reconnectAttempts + 1}/${maxReconnectAttempts})`);
-            
-            reconnectTimeoutRef.current = setTimeout(() => {
-              setReconnectAttempts(prev => prev + 1);
-              initializeSSE();
-            }, backoffDelay);
-          } else {
-            console.log('❌ Max SSE reconnection attempts reached, falling back to polling');
-            setConnectionType('polling');
-            startFallbackPolling();
-          }
-        };
-        
-        checkAuth();
-      };
-
-    } catch (error) {
-      console.error('Failed to setup SSE:', error);
-      setIsConnected(false);
-      setConnectionType('polling');
-      startFallbackPolling();
-    }
-  };
-
-  // Fallback polling when SSE fails
-  const startFallbackPolling = () => {
-    console.log('📡 Starting fallback polling for notifications');
-    setConnectionType('polling');
-    
-    // Poll every 30 seconds
-    const interval = setInterval(async () => {
-      try {
-        await refetch();
-        setIsConnected(true);
-      } catch (error) {
-        console.error('Polling failed:', error);
-        setIsConnected(false);
-      }
-    }, 30000);
-
-    // Clean up polling on unmount or when SSE reconnects
-    return () => clearInterval(interval);
-  };
-
-  // Debug function for production troubleshooting
-  const debugSSEStatus = async () => {
-    try {
-      const [healthResponse, debugResponse] = await Promise.all([
-        fetch('/api/notifications/health'),
-        fetch('/api/notifications/debug')
-      ]);
-
-      const health = await healthResponse.json();
-      const debug = await debugResponse.json();
-
-      console.log('🔍 SSE Debug Status:', {
-        health,
-        debug,
-        clientState: {
-          isConnected,
-          connectionType,
-          reconnectAttempts,
-          lastUpdated: new Date(lastUpdated).toLocaleString(),
-          notificationCount: notifications.length,
-          unreadCount
-        },
-        eventSource: {
-          readyState: eventSourceRef.current?.readyState,
-          url: eventSourceRef.current?.url,
-          readyStates: {
-            0: 'CONNECTING',
-            1: 'OPEN', 
-            2: 'CLOSED'
-          }
-        }
-      });
-
-      return { health, debug };
-    } catch (error) {
-      console.error('Debug status check failed:', error);
-      return null;
-    }
-  };
-
-  // Task subscription functions (simplified for SSE)
-  const subscribeToTaskUpdates = (teamId: string, onTaskUpdate: (update: TaskUpdate) => void) => {
-    console.log('📋 Subscribing to task updates for team:', teamId);
-    taskUpdateCallbacks.current.set(teamId, onTaskUpdate);
-  };
-
-  const unsubscribeFromTaskUpdates = (teamId: string) => {
-    console.log('📋 Unsubscribing from task updates for team:', teamId);
-    taskUpdateCallbacks.current.delete(teamId);
-  };
-
-  const broadcastTaskUpdate = async (update: Omit<TaskUpdate, 'teamId'>, teamId: string): Promise<boolean> => {
-    // For SSE, we use HTTP fallback to broadcast updates
-    try {
-      const response = await fetch('/api/tasks/broadcast', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...update, teamId })
-      });
-      
-      if (response.ok) {
-        console.log('📡 Task update broadcasted via HTTP');
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('Failed to broadcast task update:', error);
-      return false;
-    }
-  };
-
-  const cleanup = async () => {
-    // Clear all task update callbacks
-    taskUpdateCallbacks.current.clear();
-    
-    // Clear reconnection timeout
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-
-    // Close SSE connection
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-      eventSourceRef.current = null;
-    }
-    
-    setIsConnected(false);
-    setConnectionType(null);
-  };
-
-  // Initialize notifications and SSE connection
+  // Establish SSE connection to our stream endpoint
   useEffect(() => {
-    // Initial fetch
+    // Only run on client
+    if (typeof window === 'undefined') return;
+  // Use polling-only to avoid flaky SSE streaming on serverless platforms.
+  startPolling();
+  return () => stopPolling();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Polling fallback
+  let pollTimer: number | undefined;
+  function startPolling() {
+  setConnectionType('polling');
+  setIsConnected(true);
+    // fetch immediately
     refetch();
+    pollTimer = window.setInterval(() => {
+      refetch();
+    }, 10000);
+  }
 
-    console.log('📡 Starting SSE-only notification system');
-    initializeSSE();
-
-    return () => {
-      cleanup();
-    };
-  }, []);
-
-  // Request notification permission on mount
-  useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().then(permission => {
-        console.log('Notification permission:', permission);
-      });
+  function stopPolling() {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = undefined;
     }
+  }
 
-    // Make debug function available globally
-    (window as any).debugSSE = debugSSEStatus;
-    return () => {
-      delete (window as any).debugSSE;
-    };
-  }, []);
-
-  // Fallback polling if SSE disconnects
   useEffect(() => {
-    if (!isConnected) {
-      console.log('📡 Starting fallback polling for notifications');
-      const interval = setInterval(refetch, 30000); // Poll every 30 seconds
-      return () => clearInterval(interval);
-    }
-  }, [isConnected]);
+    refetch();
+  }, []);
 
   return (
-    <NotificationContext.Provider value={{
-      notifications,
-      unreadCount,
-      isConnected,
-      connectionType,
-      lastUpdated,
-      markAsRead,
-      markAllAsRead,
-      refetch,
-      subscribeToTaskUpdates,
-      unsubscribeFromTaskUpdates,
-      broadcastTaskUpdate,
-    }}>
+    <NotificationContext.Provider
+      value={{
+        notifications,
+        unreadCount,
+  isConnected,
+  connectionType,
+        lastUpdated,
+        markAsRead,
+        markAllAsRead,
+        refetch,
+        subscribeToTaskUpdates,
+        unsubscribeFromTaskUpdates,
+        broadcastTaskUpdate,
+      }}
+    >
       {children}
     </NotificationContext.Provider>
   );

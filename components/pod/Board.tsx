@@ -95,6 +95,11 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     columns, isLoadingColumns, showColumnSettings, fetchColumns, setShowColumnSettings 
   } = useBoardColumns();
   
+  // Team membership state
+  const [teamMembers, setTeamMembers] = useState<Array<{id: string, email: string, name?: string}>>([]);
+  const [teamAdmins, setTeamAdmins] = useState<Array<{id: string, email: string, name?: string}>>([]);
+  const [isLoadingTeamMembers, setIsLoadingTeamMembers] = useState(false);
+  
   // UI State from store
   const draggedTask = useBoardStore(state => state.draggedTask);
   const showNewTaskForm = useBoardStore(state => state.showNewTaskForm);
@@ -118,6 +123,29 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   // Local state for minimum skeleton display time
   const [showMinimumSkeleton, setShowMinimumSkeleton] = useState(false);
+
+  // Fetch team members and admins
+  const fetchTeamMembers = useCallback(async (teamId: string) => {
+    if (!teamId) return;
+    
+    try {
+      setIsLoadingTeamMembers(true);
+      const response = await fetch(`/api/pod/teams/${teamId}/members`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setTeamMembers(data.members || []);
+          setTeamAdmins(data.admins || []);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch team members:', error);
+      setTeamMembers([]);
+      setTeamAdmins([]);
+    } finally {
+      setIsLoadingTeamMembers(false);
+    }
+  }, []);
 
   // Effect to ensure skeleton shows for minimum time
   useEffect(() => {
@@ -144,10 +172,11 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     const timeoutId = setTimeout(() => {
       fetchTasks(teamId);
       fetchColumns(teamId);
+      fetchTeamMembers(teamId);
     }, 100);
 
     return () => clearTimeout(timeoutId);
-  }, [teamId, currentTeamId, setCurrentTeamId, fetchTasks, fetchColumns]);
+  }, [teamId, currentTeamId, setCurrentTeamId, fetchTasks, fetchColumns, fetchTeamMembers]);
 
   // Handle URL parameter for task sharing - URL is the single source of truth
   useEffect(() => {
@@ -407,11 +436,36 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     return false;
   };
 
+  // Check if user is part of the team (member or admin)
+  const isUserInTeam = useCallback(() => {
+    if (!session?.user) return false;
+    
+    const userId = session.user.id;
+    const userEmail = session.user.email;
+    
+    // Check if user is in team members
+    const isMember = teamMembers.some(member => 
+      member.id === userId || member.email === userEmail
+    );
+    
+    // Check if user is in team admins
+    const isAdmin = teamAdmins.some(admin => 
+      admin.id === userId || admin.email === userEmail
+    );
+    
+    return isMember || isAdmin;
+  }, [session?.user, teamMembers, teamAdmins]);
+
   const canEditTask = (task: Task) => {
     if (!session?.user) return false;
     
+    // Global admins can always edit
     if (session.user.role === 'ADMIN') return true;
     
+    // Team members and team admins can edit tasks
+    if (isUserInTeam()) return true;
+    
+    // Task assignees can edit their assigned tasks
     if (task.assignedTo === session.user.id || 
         task.assignedTo === session.user.email ||
         task.assignedUser?.id === session.user.id ||
@@ -491,7 +545,6 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       const targetColumn = columns.find(column => column.status === newStatus);
       
       if (!targetColumn || !targetColumn.assignedMembers || targetColumn.assignedMembers.length === 0) {
-        console.log('📭 No assigned members for column:', newStatus);
         return;
       }
 
@@ -518,12 +571,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         }))
       };
 
-      console.log('📬 Sending column notifications for task movement:', {
-        task: task.title,
-        from: notificationData.oldColumn,
-        to: notificationData.newColumn,
-        assignedCount: notificationData.assignedMembers.length
-      });
+  // sending column movement notification payload
 
       // Send notifications via API
       const response = await fetch('/api/notifications/column-movement', {
@@ -537,16 +585,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       if (!response.ok) {
         const errorData = await response.json();
         console.error('❌ Failed to send column notifications:', errorData);
-        // Show user-friendly error message
-        console.warn('Notifications could not be sent, but task was moved successfully');
-      } else {
-        const result = await response.json();
-        console.log('✅ Column notifications sent successfully:', result.summary);
       }
     } catch (error) {
       console.error('❌ Error sending column notifications:', error);
-      // Don't block the task movement if notifications fail
-      console.warn('Task moved successfully, but notifications failed');
     }
   };
 
@@ -793,6 +834,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           editingTaskData={editingTaskData}
           session={session}
           canEditTask={canEditTask}
+          isUserInTeam={isUserInTeam()}
+          teamMembers={teamMembers}
+          teamAdmins={teamAdmins}
           onClose={closeTaskDetail}
           onStartEditing={startEditingTask}
           onCancelEditing={cancelEditingTask}

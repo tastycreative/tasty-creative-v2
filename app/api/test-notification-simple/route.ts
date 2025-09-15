@@ -1,14 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { broadcastToUser, getConnectionCount, getConnectedUsers } from '@/lib/sse-broadcast';
 
 export async function GET(req: NextRequest) {
   try {
-    const connectionCount = getConnectionCount();
-    const connectedUsers = getConnectedUsers();
-    
-    console.log(`📡 SSE Debug Info:`);
-    console.log(`- Active connections: ${connectionCount}`);
-    console.log(`- Connected users: ${JSON.stringify(connectedUsers)}`);
+  console.log(`📡 Test notification endpoint hit`);
     
     // Try to broadcast to all connected users
     const testData = {
@@ -21,19 +15,11 @@ export async function GET(req: NextRequest) {
       data: { test: true }
     };
 
-    const results: any[] = [];
-    
-    for (const userId of connectedUsers) {
-      console.log(`📡 Broadcasting test notification to user: ${userId}`);
-      const success = await broadcastToUser(userId, 'NEW_NOTIFICATION', testData);
-      results.push({ userId, success });
-    }
+  const results: any[] = [];
 
     return NextResponse.json({
       success: true,
-      message: 'Test notifications sent',
-      connectionCount,
-      connectedUsers,
+      message: 'Test endpoint hit',
       broadcastResults: results,
       timestamp: new Date().toISOString()
     });

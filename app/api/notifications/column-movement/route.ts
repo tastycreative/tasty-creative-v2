@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { sendColumnAssignmentNotificationEmail } from '@/lib/email';
 import { createInAppNotification } from '@/lib/notifications';
-import { broadcastToUser } from '@/lib/sse-broadcast';
+import { upstashPublish } from '@/lib/upstash';
 
 // Force SSE for App Router (Socket.IO not properly supported)
 const isProduction = true; // Always use SSE
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
             message: 'Email notification sent successfully'
           });
 
-          console.log(`📧 Email sent to ${member.userName} (${member.userEmail})`);
+          // email sent
         } catch (emailError) {
           emailResults.push({
             userId: member.userId,
@@ -109,6 +109,12 @@ export async function POST(req: NextRequest) {
 
         // Create in-app notification
         try {
+          // Get the user who moved the task for profile data
+          const movedByUser = await prisma.user.findUnique({
+            where: { id: movedById },
+            select: { id: true, name: true, email: true, image: true }
+          });
+
           const inAppNotification = await createInAppNotification({
             userId: member.userId,
             type: 'TASK_STATUS_CHANGED',
@@ -122,28 +128,65 @@ export async function POST(req: NextRequest) {
               columnName: newColumn,
               teamName,
               movedBy,
+              movedByUser: movedByUser ? {
+                id: movedByUser.id,
+                name: movedByUser.name,
+                email: movedByUser.email,
+                image: movedByUser.image
+              } : null,
               priority,
               taskUrl: `${process.env.NEXTAUTH_URL}/apps/pod/board?team=${teamId}&task=${taskId}`
             },
             taskId
           });
 
-          // Broadcast real-time notification using SSE
-          try {
-            await broadcastToUser(member.userId, 'NEW_NOTIFICATION', inAppNotification);
-            console.log(`📡 SSE notification broadcasted to user ${member.userId}`);
-          } catch (broadcastError) {
-            console.error(`❌ Failed to broadcast notification via SSE:`, broadcastError);
-          }
 
-          console.log(`📱 In-app notification created for ${member.userName} (${member.userEmail})`, inAppNotification);
-          console.log(`📱 About to broadcast notification to user ${member.userId}:`, inAppNotification.title);
+          // in-app notification created
+
+          // Publish to Upstash channels: individual user and team (if provided)
+          try {
+            const payload = {
+              type: 'TASK_STATUS_CHANGED',
+              title: 'Task moved to your column',
+              message: `${movedBy} moved "${taskTitle}" to ${newColumn}`,
+              data: {
+                taskId,
+                taskTitle,
+                oldColumn,
+                newColumn,
+                teamId,
+                teamName,
+                movedBy,
+                movedByUser: movedByUser ? {
+                  id: movedByUser.id,
+                  name: movedByUser.name,
+                  email: movedByUser.email,
+                  image: movedByUser.image
+                } : null,
+                priority,
+                taskUrl: `${process.env.NEXTAUTH_URL}/apps/pod/board?team=${teamId}&task=${taskId}`,
+                notificationId: inAppNotification?.id || null,
+              },
+              createdAt: new Date().toISOString(),
+            };
+
+            const userChannel = `user:${member.userId}`;
+            const teamChannel = `team:${teamId}`;
+
+            const userResult = await upstashPublish(userChannel, payload);
+            // upstash publish result (user)
+
+            // publish to team channel as well
+            const teamResult = await upstashPublish(teamChannel, payload);
+            // upstash publish result (team)
+          } catch (pubErr) {
+            console.error('❌ Upstash publish failed for column movement:', pubErr);
+          }
         } catch (inAppError) {
           console.error(`❌ Failed to create in-app notification for ${member.userEmail}:`, inAppError);
         }
 
-        console.log(`📬 Notification logged for ${member.userName} (${member.userEmail})`);
-        console.log(`   └─ Task: "${taskTitle}" moved to column "${newColumn}"`);
+          // notification logged
       } catch (error) {
         console.error(`❌ Failed to create notification for user ${member.userId}:`, error);
         // Continue with other notifications even if one fails
@@ -151,18 +194,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Enhanced logging
-    console.log(`🔄 TASK MOVEMENT NOTIFICATION:`);
-    console.log(`   └─ Task: "${taskTitle}" (ID: ${taskId})`);
-    console.log(`   └─ From: "${oldColumn}" → To: "${newColumn}"`);
-    console.log(`   └─ Moved by: ${movedBy} (${movedById})`);
-    console.log(`   └─ Team: ${teamName} (${teamId})`);
-    console.log(`   └─ Database logs: ${notifications.length} created`);
-    console.log(`   └─ Email notifications: ${emailResults.filter(r => r.status === 'sent').length} sent, ${emailResults.filter(r => r.status === 'failed').length} failed`);
-    
-    notifications.forEach((notif, index) => {
-      const emailStatus = emailResults.find(e => e.userId === notif.userId);
-      console.log(`   ${index + 1}. ${notif.userName} (${notif.userEmail}) - ${emailStatus?.status || 'unknown'}`);
-    });
+  // summary logged
 
     return NextResponse.json({
       success: true,

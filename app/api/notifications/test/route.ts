@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { createInAppNotification } from '@/lib/notifications';
-import { broadcastToUser } from '@/app/api/notifications/stream/route';
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,17 +22,12 @@ export async function POST(req: NextRequest) {
       }
     });
 
-            // Broadcast it via SSE
-    const broadcastSuccess = await broadcastToUser(session.user.id, 'NEW_NOTIFICATION', testNotification);
-
-    return NextResponse.json({
-      success: true,
-      message: 'Test notification created',
-      notification: testNotification,
-      broadcastSuccess,
-      sseEnabled: broadcastSuccess,
-      timestamp: new Date().toISOString()
-    });
+            return NextResponse.json({
+              success: true,
+              message: 'Test notification created',
+              notification: testNotification,
+              timestamp: new Date().toISOString()
+            });
 
   } catch (error) {
     console.error('❌ Error creating test notification:', error);

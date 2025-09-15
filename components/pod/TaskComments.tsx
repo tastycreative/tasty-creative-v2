@@ -189,6 +189,7 @@ interface TaskCommentsProps {
   taskId: string;
   teamId?: string;
   currentUser?: CommentUser | null;
+  isViewOnly?: boolean;
 }
 
 const formatTimeAgo = (dateString: string) => {
@@ -208,7 +209,7 @@ const formatTimeAgo = (dateString: string) => {
   });
 };
 
-export default function TaskComments({ taskId, teamId, currentUser }: TaskCommentsProps) {
+export default function TaskComments({ taskId, teamId, currentUser, isViewOnly = false }: TaskCommentsProps) {
   const {
     comments,
     isLoading,
@@ -537,7 +538,7 @@ export default function TaskComments({ taskId, teamId, currentUser }: TaskCommen
   };
 
   const canEditComment = (comment: TaskComment) => {
-    return currentUser && currentUser.id === comment.user.id;
+    return currentUser && currentUser.id === comment.user.id && !isViewOnly;
   };
 
   if (isLoading) {
@@ -576,8 +577,17 @@ export default function TaskComments({ taskId, teamId, currentUser }: TaskCommen
         </div>
       )}
 
+      {/* View-only message */}
+      {isViewOnly && (
+        <div className="p-3 bg-amber-50/50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
+          <p className="text-sm text-amber-700 dark:text-amber-300">
+            🔒 You can view comments but cannot add or edit them. Only team members and admins can interact with comments.
+          </p>
+        </div>
+      )}
+
       {/* New Comment Form */}
-      {currentUser && (
+      {currentUser && !isViewOnly && (
         <form onSubmit={handleSubmitComment} className="space-y-3">
           <div className="flex space-x-3">
             <UserProfile user={currentUser} size="sm" />
@@ -588,6 +598,7 @@ export default function TaskComments({ taskId, teamId, currentUser }: TaskCommen
                 onMentionsChange={setNewCommentMentions}
                 teamMembers={teamMembers}
                 teamAdmins={teamAdmins}
+                currentUserId={currentUser?.id}
                 placeholder="Add a comment... Use @ to mention team members and admins"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                 rows={2}
@@ -700,6 +711,7 @@ export default function TaskComments({ taskId, teamId, currentUser }: TaskCommen
                       onMentionsChange={setEditCommentMentions}
                       teamMembers={teamMembers}
                       teamAdmins={teamAdmins}
+                      currentUserId={currentUser?.id}
                       placeholder="Edit your comment... Use @ to mention team members and admins"
                       className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                       rows={2}
