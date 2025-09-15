@@ -33,8 +33,7 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
 
   // Force re-render when lastUpdated changes
   useEffect(() => {
-    // This effect ensures the component re-renders when notifications update
-    console.log('🔔 NotificationBell re-render triggered by lastUpdated:', lastUpdated, 'unreadCount:', unreadCount);
+  // Re-render on updates; keep quiet in production
   }, [lastUpdated, unreadCount]);
 
   // Get icon based on notification type
@@ -83,17 +82,13 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
       
       if (response.ok) {
         const result = await response.json();
-        console.log('✅ Test notification result:', result);
-        
-        // Show result in an alert for debugging
-        alert(`Test notification sent! SSE enabled: ${result.sseEnabled || true}`);
+            // Show result in an alert for quick confirmation
+            alert(`Test notification sent!`);
       } else {
-        console.error('❌ Test notification failed:', response.status);
-        alert('Test notification failed');
+            alert('Test notification failed');
       }
     } catch (error) {
-      console.error('❌ Test notification error:', error);
-      alert('Test notification error');
+          alert('Test notification error');
     }
   };
 
@@ -120,11 +115,7 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
         </div>
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-[20px] text-[11px] font-semibold">
-            {(() => {
-              const displayCount = unreadCount > 99 ? '99+' : unreadCount;
-              console.log('🔔 Badge rendering with unreadCount:', unreadCount, 'displayCount:', displayCount, 'timestamp:', Date.now());
-              return displayCount;
-            })()}
+            {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
       </button>

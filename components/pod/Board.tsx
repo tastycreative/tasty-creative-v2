@@ -491,7 +491,6 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       const targetColumn = columns.find(column => column.status === newStatus);
       
       if (!targetColumn || !targetColumn.assignedMembers || targetColumn.assignedMembers.length === 0) {
-        console.log('📭 No assigned members for column:', newStatus);
         return;
       }
 
@@ -518,12 +517,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         }))
       };
 
-      console.log('📬 Sending column notifications for task movement:', {
-        task: task.title,
-        from: notificationData.oldColumn,
-        to: notificationData.newColumn,
-        assignedCount: notificationData.assignedMembers.length
-      });
+  // sending column movement notification payload
 
       // Send notifications via API
       const response = await fetch('/api/notifications/column-movement', {
@@ -537,16 +531,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       if (!response.ok) {
         const errorData = await response.json();
         console.error('❌ Failed to send column notifications:', errorData);
-        // Show user-friendly error message
-        console.warn('Notifications could not be sent, but task was moved successfully');
-      } else {
-        const result = await response.json();
-        console.log('✅ Column notifications sent successfully:', result.summary);
       }
     } catch (error) {
       console.error('❌ Error sending column notifications:', error);
-      // Don't block the task movement if notifications fail
-      console.warn('Task moved successfully, but notifications failed');
     }
   };
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 
 // Minimal notification context shim — removes all SSE/EventSource logic but
 // preserves the public API so the app can be rebuilt and iterated on.
@@ -35,6 +35,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [lastUpdated, setLastUpdated] = useState(Date.now());
+  const [isConnected, setIsConnected] = useState(false);
+  const [connectionType, setConnectionType] = useState<'sse' | 'polling' | null>(null);
+  const esRef = useRef<EventSource | null>(null);
 
   const refetch = async () => {
     try {
@@ -46,7 +49,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         setLastUpdated(Date.now());
       }
     } catch (err) {
-      console.error('Notification shim: failed to fetch in-app notifications', err);
+      // swallow network errors silently to avoid noisy logs
     }
   };
 
@@ -81,7 +84,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   // No-op realtime subscription API to keep callers working until a new
   // realtime implementation is added.
   function subscribeToTaskUpdates(_teamId: string, _onTaskUpdate: (p: any) => void) {
-    console.warn('subscribeToTaskUpdates: realtime removed — subscription is a no-op');
+  // intentionally left blank — use refetch() for updates
   }
 
   function unsubscribeFromTaskUpdates(_teamId: string) {
@@ -93,6 +96,35 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     return false;
   }
 
+  // Establish SSE connection to our stream endpoint
+  useEffect(() => {
+    // Only run on client
+    if (typeof window === 'undefined') return;
+  // Use polling-only to avoid flaky SSE streaming on serverless platforms.
+  startPolling();
+  return () => stopPolling();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Polling fallback
+  let pollTimer: number | undefined;
+  function startPolling() {
+  setConnectionType('polling');
+  setIsConnected(true);
+    // fetch immediately
+    refetch();
+    pollTimer = window.setInterval(() => {
+      refetch();
+    }, 10000);
+  }
+
+  function stopPolling() {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = undefined;
+    }
+  }
+
   useEffect(() => {
     refetch();
   }, []);
@@ -102,8 +134,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       value={{
         notifications,
         unreadCount,
-        isConnected: false,
-        connectionType: null,
+  isConnected,
+  connectionType,
         lastUpdated,
         markAsRead,
         markAllAsRead,
