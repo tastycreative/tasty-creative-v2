@@ -3,7 +3,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import NotificationDebugger from "@/components/NotificationDebugger";
-import { NotificationProvider } from "@/contexts/NotificationContext";
 
 export default function AppsLayout({
   children,
@@ -20,7 +19,6 @@ export default function AppsLayout({
   };
 
   return (
-    <NotificationProvider>
       <div className="relative w-full h-full">
         <title>Apps | Tasty Creative</title>
         {/* Pink themed background with decorative elements */}
@@ -75,6 +73,5 @@ export default function AppsLayout({
         <NotificationDebugger />
 
       </div>
-    </NotificationProvider>
   );
 }

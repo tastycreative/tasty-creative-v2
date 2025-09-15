@@ -8,7 +8,7 @@ import {
   sendCommentNotificationEmail,
   sendSubmissionConfirmationEmail
 } from './email';
-import { broadcastToUser } from '@/lib/sse-broadcast';
+// Real-time in-app broadcasting has been removed. Keep DB and email flows only.
 
 // Detect if we're in production or development
 const isProduction = typeof process !== 'undefined' && !(
@@ -277,12 +277,7 @@ export async function sendEmailNotification(emailData: EmailNotificationData) {
 
 export async function triggerRealTimeNotification(notification: any) {
   try {
-    console.log('📡 Triggering real-time notification via SSE:', notification.id);
-    
-    // Use SSE for all environments (App Router compatible)
-    await broadcastToUser(notification.userId, 'NEW_NOTIFICATION', notification);
-    
-    console.log('✅ Real-time notification sent successfully via SSE');
+  console.log('📡 Real-time notification trigger is disabled in this build. Notification saved to DB only:', notification.id);
   } catch (error) {
     console.error('Error triggering real-time notification:', error);
   }

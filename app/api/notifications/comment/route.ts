@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { createInAppNotification } from '@/lib/notifications';
-import { broadcastToUser } from '@/lib/sse-broadcast';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
@@ -66,13 +65,7 @@ export async function POST(req: NextRequest) {
 
         notifications.push(notification);
 
-        // Broadcast real-time notification via SSE
-        try {
-          await broadcastToUser(member.userId, 'NEW_NOTIFICATION', notification);
-          console.log(`📡 Comment ${actionText} notification sent to user ${member.userId}`);
-        } catch (broadcastError) {
-          console.error(`❌ Failed to broadcast comment notification:`, broadcastError);
-        }
+        
 
       } catch (error) {
         console.error(`❌ Failed to create comment notification for user ${member.userId}:`, error);

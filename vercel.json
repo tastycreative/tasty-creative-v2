@@ -2,9 +2,6 @@
   "functions": {
     "app/api/realtime/route.ts": {
       "maxDuration": 60
-    },
-    "app/api/notifications/stream/route.ts": {
-      "maxDuration": 300
     }
   }
 }

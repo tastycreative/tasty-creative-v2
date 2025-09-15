@@ -3,7 +3,6 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { sendColumnAssignmentNotificationEmail } from '@/lib/email';
 import { createInAppNotification } from '@/lib/notifications';
-import { broadcastToUser } from '@/lib/sse-broadcast';
 
 // Force SSE for App Router (Socket.IO not properly supported)
 const isProduction = true; // Always use SSE
@@ -128,13 +127,8 @@ export async function POST(req: NextRequest) {
             taskId
           });
 
-          // Broadcast real-time notification using SSE
-          try {
-            await broadcastToUser(member.userId, 'NEW_NOTIFICATION', inAppNotification);
-            console.log(`📡 SSE notification broadcasted to user ${member.userId}`);
-          } catch (broadcastError) {
-            console.error(`❌ Failed to broadcast notification via SSE:`, broadcastError);
-          }
+
+          // SSE removed - in-app notification persisted to DB only
 
           console.log(`📱 In-app notification created for ${member.userName} (${member.userEmail})`, inAppNotification);
           console.log(`📱 About to broadcast notification to user ${member.userId}:`, inAppNotification.title);
