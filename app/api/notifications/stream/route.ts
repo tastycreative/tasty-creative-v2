@@ -50,6 +50,27 @@ export async function GET(req: NextRequest) {
         // Register connection for broadcasting
         registerConnection(userId, controller);
 
+        // Poll Upstash for pending messages for this user and forward to the SSE controller
+        const pollingInterval = process.env.NODE_ENV === 'production' ? 1500 : 3000;
+        const poller = setInterval(async () => {
+          try {
+            // popUserMessage returns the next queued message (or null)
+            const { popUserMessage } = await import('@/lib/upstash');
+            const message = await popUserMessage(userId);
+            if (message) {
+              const msg = `data: ${JSON.stringify(message)}\n\n`;
+              try {
+                controller.enqueue(new TextEncoder().encode(msg));
+                console.log(`📡 Forwarded Upstash message to user ${userId}`);
+              } catch (err) {
+                console.error('❌ Failed to enqueue Upstash message to controller:', err);
+              }
+            }
+          } catch (error) {
+            console.error('Upstash poller error:', error);
+          }
+        }, pollingInterval);
+
         // Keep connection alive with heartbeat - more aggressive for production
         const heartbeatInterval = process.env.NODE_ENV === 'production' ? 10000 : 15000; // 10s prod, 15s dev
         const heartbeat = setInterval(() => {
@@ -74,6 +95,7 @@ export async function GET(req: NextRequest) {
         const cleanup = () => {
           console.log(`📡 Cleaning up SSE connection for user: ${userId}`);
           clearInterval(heartbeat);
+          clearInterval(poller);
           removeConnection(userId);
           try {
             if (controller.desiredSize !== null) {

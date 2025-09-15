@@ -1,4 +1,5 @@
 import { createInAppNotification } from '@/lib/notifications';
+import { pushUserMessage } from '@/lib/upstash';
 
 // Use globalThis to persist connections across Next.js hot reloads in development
 const globalForConnections = globalThis as unknown as {
@@ -58,6 +59,17 @@ export async function broadcastToUser(userId: string, type: string, data: any): 
   try {
     await storeNotificationForUser(userId, type, data);
     console.log(`📡 Notification stored in database for user: ${userId}`);
+    // Publish to Upstash list so other server instances can deliver to connected clients
+    try {
+      await pushUserMessage(userId, {
+        type,
+        data,
+        timestamp: new Date().toISOString(),
+      });
+      console.log(`📡 Published notification to Upstash for user: ${userId}`);
+    } catch (upError) {
+      console.error('❌ Failed to publish notification to Upstash:', upError);
+    }
   } catch (error) {
     console.error(`❌ Failed to store notification in database for user ${userId}:`, error);
   }
