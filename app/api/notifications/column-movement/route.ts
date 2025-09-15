@@ -109,6 +109,12 @@ export async function POST(req: NextRequest) {
 
         // Create in-app notification
         try {
+          // Get the user who moved the task for profile data
+          const movedByUser = await prisma.user.findUnique({
+            where: { id: movedById },
+            select: { id: true, name: true, email: true, image: true }
+          });
+
           const inAppNotification = await createInAppNotification({
             userId: member.userId,
             type: 'TASK_STATUS_CHANGED',
@@ -122,6 +128,12 @@ export async function POST(req: NextRequest) {
               columnName: newColumn,
               teamName,
               movedBy,
+              movedByUser: movedByUser ? {
+                id: movedByUser.id,
+                name: movedByUser.name,
+                email: movedByUser.email,
+                image: movedByUser.image
+              } : null,
               priority,
               taskUrl: `${process.env.NEXTAUTH_URL}/apps/pod/board?team=${teamId}&task=${taskId}`
             },
@@ -145,6 +157,12 @@ export async function POST(req: NextRequest) {
                 teamId,
                 teamName,
                 movedBy,
+                movedByUser: movedByUser ? {
+                  id: movedByUser.id,
+                  name: movedByUser.name,
+                  email: movedByUser.email,
+                  image: movedByUser.image
+                } : null,
                 priority,
                 taskUrl: `${process.env.NEXTAUTH_URL}/apps/pod/board?team=${teamId}&task=${taskId}`,
                 notificationId: inAppNotification?.id || null,

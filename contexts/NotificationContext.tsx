@@ -1,6 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import { toast } from 'sonner';
+import UserProfile from '@/components/ui/UserProfile';
 
 // Minimal notification context shim — removes all SSE/EventSource logic but
 // preserves the public API so the app can be rebuilt and iterated on.
@@ -38,13 +40,124 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [isConnected, setIsConnected] = useState(false);
   const [connectionType, setConnectionType] = useState<'sse' | 'polling' | null>(null);
   const esRef = useRef<EventSource | null>(null);
+  const previousNotificationIds = useRef<Set<string>>(new Set());
+
+  const showNotificationToast = (notification: Notification) => {
+    const data = notification.data || {};
+    
+    console.log('🔔 showNotificationToast called with:', notification);
+    
+    // Extract user info from notification data - try the new user profile structure first
+    const triggerUserProfile = data.movedByUser || data.mentionerUser || null;
+    const triggerUserName = triggerUserProfile?.name || data.movedBy || data.mentionerName || data.userWhoLinked || 'Someone';
+    const taskTitle = data.taskTitle || data.taskUrl?.split('task=')[1] || '';
+    const taskUrl = data.taskUrl;
+    
+    console.log('🔔 Toast data:', { triggerUserProfile, triggerUserName, taskTitle, taskUrl, type: notification.type });
+    
+    // Create summary based on notification type
+    let summary = '';
+    let action = '';
+    
+    switch (notification.type) {
+      case 'TASK_STATUS_CHANGED':
+        action = `moved "${taskTitle}" to ${data.newColumn || 'a new column'}`;
+        summary = `Task moved to ${data.newColumn || 'new status'}`;
+        break;
+      case 'TASK_COMMENT_ADDED':
+        action = `mentioned you in "${taskTitle}"`;
+        summary = 'You were mentioned in a comment';
+        break;
+      case 'POD_TEAM_ADDED':
+      case 'POD_TEAM_CLIENT_ASSIGNED':
+      case 'POD_TEAM_MEMBER_JOINED':
+        action = 'added you to a team';
+        summary = notification.message;
+        break;
+      default:
+        action = notification.message;
+        summary = notification.title;
+    }
+
+    console.log('🔔 Final toast content:', { action, summary });
+
+    // Show toast with click handler
+    toast(
+      <div className="flex items-start space-x-3 cursor-pointer" onClick={() => handleToastClick(taskUrl, notification)}>
+        {triggerUserProfile ? (
+          <UserProfile 
+            user={{
+              id: triggerUserProfile.id,
+              name: triggerUserProfile.name,
+              email: triggerUserProfile.email,
+              image: triggerUserProfile.image
+            }}
+            size="sm"
+            className="flex-shrink-0"
+          />
+        ) : (
+          <div className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-pink-400 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+            {triggerUserName.charAt(0).toUpperCase()}
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+            {triggerUserName}
+          </p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+            {action}
+          </p>
+        </div>
+      </div>,
+      {
+        duration: 6000,
+        position: 'bottom-right',
+      }
+    );
+    
+    console.log('🔔 Toast called successfully');
+  };
+
+  const handleToastClick = (taskUrl?: string, notification?: Notification) => {
+    if (taskUrl) {
+      window.location.href = taskUrl;
+    } else if (notification?.data?.taskId) {
+      // Fallback: construct URL from task ID
+      const teamParam = notification.data.teamId ? `team=${notification.data.teamId}&` : '';
+      window.location.href = `/apps/pod/board?${teamParam}task=${notification.data.taskId}`;
+    }
+  };
 
   const refetch = async () => {
     try {
       const res = await fetch('/api/notifications/in-app', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        setNotifications(data.notifications || []);
+        const newNotifications = data.notifications || [];
+        
+        // Check for new notifications and show toast
+        // Only show toasts if we have previous notifications to compare against
+        const isFirstLoad = previousNotificationIds.current.size === 0;
+        
+        if (!isFirstLoad) {
+          const newOnes = newNotifications.filter((notif: Notification) => 
+            !previousNotificationIds.current.has(notif.id)
+          );
+          
+          console.log('🔔 New notifications detected:', newOnes.length);
+          
+          newOnes.forEach((notif: Notification) => {
+            console.log('🔔 Showing toast for:', notif.title);
+            showNotificationToast(notif);
+          });
+        } else {
+          console.log('🔔 First load, not showing toasts for', newNotifications.length, 'notifications');
+        }
+        
+        // Update the set of seen notification IDs
+        previousNotificationIds.current = new Set(newNotifications.map((n: Notification) => n.id));
+        
+        setNotifications(newNotifications);
         setUnreadCount(data.count || 0);
         setLastUpdated(Date.now());
       }

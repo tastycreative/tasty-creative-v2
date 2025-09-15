@@ -169,6 +169,12 @@ export async function POST(req: NextRequest) {
 
         // Create in-app notification
         try {
+          // Get the user who made the mention for profile data
+          const mentionerUser = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { id: true, name: true, email: true, image: true }
+          });
+
           const inAppNotification = await createInAppNotification({
             userId: user.id,
             type: 'TASK_COMMENT_ADDED',
@@ -179,6 +185,12 @@ export async function POST(req: NextRequest) {
               taskTitle: task.title,
               commentContent: cleanMentionsForEmail(commentContent),
               mentionerName: session.user.name || session.user.email || 'Someone',
+              mentionerUser: mentionerUser ? {
+                id: mentionerUser.id,
+                name: mentionerUser.name,
+                email: mentionerUser.email,
+                image: mentionerUser.image
+              } : null,
               teamName: team?.name,
               taskUrl: `${process.env.NEXTAUTH_URL}/apps/pod/board?team=${teamId}&task=${taskId}`,
             },
@@ -201,6 +213,12 @@ export async function POST(req: NextRequest) {
                 taskTitle: task.title,
                 commentContent: cleanMentionsForEmail(commentContent),
                 mentionerName: session.user.name || session.user.email || 'Someone',
+                mentionerUser: mentionerUser ? {
+                  id: mentionerUser.id,
+                  name: mentionerUser.name,
+                  email: mentionerUser.email,
+                  image: mentionerUser.image
+                } : null,
                 teamId,
                 taskUrl: `${process.env.NEXTAUTH_URL}/apps/pod/board?team=${teamId}&task=${taskId}`,
                 notificationId: inAppNotification?.id || null,
