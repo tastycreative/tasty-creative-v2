@@ -69,6 +69,9 @@ interface TaskDetailModalProps {
   editingTaskData: Partial<Task>;
   session: Session | null;
   canEditTask: (task: Task) => boolean;
+  isUserInTeam: boolean;
+  teamMembers: Array<{id: string, email: string, name?: string}>;
+  teamAdmins: Array<{id: string, email: string, name?: string}>;
   onClose: () => void;
   onStartEditing: () => void;
   onCancelEditing: () => void;
@@ -85,6 +88,9 @@ export default function TaskDetailModal({
   editingTaskData,
   session,
   canEditTask,
+  isUserInTeam,
+  teamMembers,
+  teamAdmins,
   onClose,
   onStartEditing,
   onCancelEditing,
@@ -95,8 +101,14 @@ export default function TaskDetailModal({
   getColumnConfig,
 }: TaskDetailModalProps) {
   const [showHistory, setShowHistory] = useState(false);
+  
+  // Determine if user should have view-only access
+  // View-only if user is not admin, not team member, and not assigned to task
+  const isViewOnly = !session?.user?.role || 
+    (session.user.role !== 'ADMIN' && !isUserInTeam && !canEditTask(selectedTask));
+  
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center p-2 sm:p-4 z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center p-2 sm:p-4 z-[10000] overflow-y-auto">
       <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-xl shadow-2xl w-full max-w-4xl border border-white/20 dark:border-gray-700/50 my-4 sm:my-8">
         {/* Modal Header */}
         <div className="relative px-4 sm:px-8 py-4 sm:py-6 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-white/50 to-gray-50/50 dark:from-gray-800/50 dark:to-gray-900/50">
@@ -152,7 +164,13 @@ export default function TaskDetailModal({
                       <span className="hidden sm:inline">Edit</span>
                     </button>
                   )}
-                  {!canEditTask(selectedTask) && (
+                  {isViewOnly && (
+                    <div className="text-xs text-amber-600 dark:text-amber-400 px-2 sm:px-4 py-2 bg-amber-50/50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
+                      <span className="hidden sm:inline">🔒 View Only - Not team member</span>
+                      <span className="sm:hidden">🔒 View Only</span>
+                    </div>
+                  )}
+                  {!isViewOnly && !canEditTask(selectedTask) && (
                     <div className="text-xs text-gray-500 dark:text-gray-400 px-2 sm:px-4 py-2 bg-gray-100/50 dark:bg-gray-700/50 rounded-lg">
                       <span className="hidden sm:inline">View Only</span>
                       <span className="sm:hidden">View</span>
@@ -200,7 +218,7 @@ export default function TaskDetailModal({
         {/* Modal Content - Mobile Responsive */}
         <div className="flex flex-col lg:flex-row">
           {/* Main Content - Mobile Responsive */}
-          <div className="flex-1 p-4 sm:p-8">
+          <div className="flex-1 p-4 sm:p-8 order-2 lg:order-1">
             {isEditingTask ? (
               <div className="space-y-6">
                 {/* Edit Description */}
@@ -367,7 +385,8 @@ export default function TaskDetailModal({
                       name: session.user.name,
                       email: session.user.email!,
                       image: session.user.image
-                    } : null} 
+                    } : null}
+                    isViewOnly={isViewOnly}
                   />
                 </div>
               </div>
@@ -375,7 +394,7 @@ export default function TaskDetailModal({
           </div>
 
           {/* Sidebar - Mobile Responsive */}
-          <div className="w-full lg:w-80 bg-gray-50/50 dark:bg-gray-800/30 border-t lg:border-t-0 lg:border-l border-gray-200/50 dark:border-gray-700/50 p-4 sm:p-6">
+          <div className="w-full lg:w-80 bg-gray-50/50 dark:bg-gray-800/30 border-t lg:border-t-0 lg:border-l border-gray-200/50 dark:border-gray-700/50 p-4 sm:p-6 order-1 lg:order-2">
             <div className="space-y-4 sm:space-y-6">
               {/* Status - Interactive for authorized users */}
               <div>
