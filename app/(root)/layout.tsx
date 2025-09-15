@@ -4,6 +4,7 @@ import ContentLayout from "@/components/ContentLayout";
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { SidebarProvider } from "@/components/SidebarProvider";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 export const metadata: Metadata = {
   title: {
@@ -28,7 +29,7 @@ export default async function RootLayout({
     <SidebarProvider>
       {/* Base background layer - admin dashboard style */}
       <div className="fixed inset-0 bg-gradient-to-br from-gray-50 via-pink-50/30 to-rose-50/50 dark:from-gray-900 dark:via-gray-800/70 dark:to-gray-900/80 -z-50 transition-colors"></div>
-      
+
       {/* Main content container */}
       <div className="min-h-screen flex justify-center relative">
         <div className="min-h-screen flex flex-col relative w-full max-w-[1600px]">
@@ -43,9 +44,15 @@ export default async function RootLayout({
             <div className="absolute top-2/3 left-1/4 w-40 h-40 bg-gradient-to-r from-pink-200/25 to-rose-200/25 dark:from-pink-600/15 dark:to-rose-600/15 rounded-full blur-2xl animate-pulse" />
           </div>
 
+          {/* Fixed Notification Bell - Top Right */}
+          <div className="fixed top-3 right-3 sm:top-4 sm:right-4 z-50">
+            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-full shadow-lg border border-pink-200/50 dark:border-pink-500/30 hover:shadow-xl transition-all duration-300 hover:border-pink-300/60 dark:hover:border-pink-400/50">
+              <NotificationBell className="sm:scale-100 scale-90" />
+            </div>
+          </div>
+
           {/* Content */}
           <div className="relative z-10">
-         
             <ContentLayout>{children}</ContentLayout>
           </div>
         </div>
