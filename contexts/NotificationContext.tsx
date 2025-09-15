@@ -54,6 +54,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const maxReconnectAttempts = 5;
   const processedNotifications = useRef(new Set<string>());
+  const isProduction = typeof window !== 'undefined' && window.location.hostname !== 'localhost';
+  const sseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const taskUpdateCallbacks = useRef<Map<string, (update: TaskUpdate) => void>>(new Map());
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -118,11 +120,17 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   const initializeSSE = () => {
     try {
-      console.log('📡 Initializing SSE connection...');
+      console.log(`📡 Initializing SSE connection... (Production: ${isProduction})`);
       
       // Clean up existing connection
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
+      }
+
+      // Clear any existing timeout
+      if (sseTimeoutRef.current) {
+        clearTimeout(sseTimeoutRef.current);
+        sseTimeoutRef.current = null;
       }
 
       const eventSource = new EventSource('/api/notifications/stream', {
@@ -132,17 +140,30 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
       // Add error state tracking
       let hasErrored = false;
+      let connectionStartTime = Date.now();
 
       eventSource.onopen = () => {
-        console.log('📡 SSE notification stream connected');
+        console.log(`📡 SSE notification stream connected (${isProduction ? 'production' : 'development'})`);
         setIsConnected(true);
         setConnectionType('sse');
         setReconnectAttempts(0); // Reset reconnection attempts on successful connection
+        connectionStartTime = Date.now();
         
         // Clear any reconnection timeout
         if (reconnectTimeoutRef.current) {
           clearTimeout(reconnectTimeoutRef.current);
           reconnectTimeoutRef.current = null;
+        }
+
+        // Check for missed notifications when reconnecting
+        checkForMissedNotifications();
+
+        // In production, proactively reconnect before Vercel timeout
+        if (isProduction) {
+          sseTimeoutRef.current = setTimeout(() => {
+            console.log('📡 Proactive SSE reconnection for Vercel timeout prevention');
+            initializeSSE();
+          }, 240000); // 4 minutes (before 5min Vercel limit)
         }
       };
 
@@ -209,12 +230,31 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
       eventSource.onerror = (error) => {
         console.error('❌ SSE error:', error);
+        const connectionDuration = Date.now() - connectionStartTime;
+        console.log(`📡 Connection lasted: ${Math.round(connectionDuration / 1000)}s`);
+        
         hasErrored = true;
         setIsConnected(false);
+        
+        // Clear proactive timeout since connection failed
+        if (sseTimeoutRef.current) {
+          clearTimeout(sseTimeoutRef.current);
+          sseTimeoutRef.current = null;
+        }
         
         // Close the current connection
         if (eventSource.readyState !== EventSource.CLOSED) {
           eventSource.close();
+        }
+        
+        // In production, if connection lasted less than 30 seconds, probably serverless timeout
+        const isLikelyServerlessTimeout = isProduction && connectionDuration < 30000;
+        
+        if (isLikelyServerlessTimeout) {
+          console.log('⚠️ Detected likely Vercel serverless timeout, switching to polling mode');
+          setConnectionType('polling');
+          startFallbackPolling();
+          return;
         }
         
         // Check if this is an authentication error by testing a simple endpoint
@@ -222,7 +262,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           try {
             const authResponse = await fetch('/api/notifications/health');
             if (authResponse.status === 401) {
-              console.log('❌ Authentication error detected, not reconnecting');
+              console.log('❌ Authentication error detected, switching to polling');
               setConnectionType('polling');
               startFallbackPolling();
               return;
@@ -264,22 +304,77 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   // Fallback polling when SSE fails
   const startFallbackPolling = () => {
-    console.log('📡 Starting fallback polling for notifications');
+    console.log(`📡 Starting fallback polling for notifications (Production: ${isProduction})`);
     setConnectionType('polling');
+    setIsConnected(true); // Consider polling as "connected"
     
-    // Poll every 30 seconds
+    // More frequent polling in production due to SSE reliability issues
+    const pollInterval = isProduction ? 10000 : 30000; // 10s in prod, 30s in dev
+    console.log(`📡 Polling every ${pollInterval / 1000}s`);
+    
+    // Immediate fetch
+    refetch().catch(error => console.error('Initial polling fetch failed:', error));
+    
+    // Set up polling interval
     const interval = setInterval(async () => {
       try {
         await refetch();
         setIsConnected(true);
+        console.log('📡 Polling successful');
       } catch (error) {
-        console.error('Polling failed:', error);
+        console.error('📡 Polling failed:', error);
         setIsConnected(false);
       }
-    }, 30000);
+    }, pollInterval);
 
     // Clean up polling on unmount or when SSE reconnects
     return () => clearInterval(interval);
+  };
+
+  // Check for missed notifications when reconnecting
+  const checkForMissedNotifications = async () => {
+    try {
+      console.log('📡 Checking for missed notifications...');
+      const response = await fetch('/api/notifications/missed');
+      
+      if (response.ok) {
+        const { missedNotifications } = await response.json();
+        
+        if (missedNotifications && missedNotifications.length > 0) {
+          console.log(`📡 Found ${missedNotifications.length} missed notifications`);
+          
+          // Add missed notifications to the list
+          setNotifications(prev => {
+            const existingIds = new Set(prev.map(n => n.id));
+            const newNotifications = missedNotifications.filter((n: any) => !existingIds.has(n.id));
+            
+            if (newNotifications.length > 0) {
+              console.log(`📡 Adding ${newNotifications.length} new missed notifications`);
+              return [...newNotifications, ...prev];
+            }
+            
+            return prev;
+          });
+          
+          // Update unread count
+          const unreadMissed = missedNotifications.filter((n: any) => !n.isRead).length;
+          if (unreadMissed > 0) {
+            setUnreadCount(prev => {
+              const newCount = prev + unreadMissed;
+              console.log(`📡 Added ${unreadMissed} missed unread notifications, total: ${newCount}`);
+              return newCount;
+            });
+          }
+          
+          // Force re-render
+          setLastUpdated(Date.now());
+        } else {
+          console.log('📡 No missed notifications found');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check for missed notifications:', error);
+    }
   };
 
   // Debug function for production troubleshooting
@@ -361,6 +456,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
+    }
+
+    // Clear SSE proactive timeout
+    if (sseTimeoutRef.current) {
+      clearTimeout(sseTimeoutRef.current);
+      sseTimeoutRef.current = null;
     }
 
     // Close SSE connection

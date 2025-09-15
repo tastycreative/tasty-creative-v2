@@ -1,4 +1,4 @@
-// SSE broadcast utility for sending real-time notifications
+import { createInAppNotification } from '@/lib/notifications';
 
 // Use globalThis to persist connections across Next.js hot reloads in development
 const globalForConnections = globalThis as unknown as {
@@ -54,10 +54,20 @@ export async function broadcastToUser(userId: string, type: string, data: any): 
   
   const controller = connections.get(userId);
   
+  // Always store the notification in database for persistence
+  try {
+    await storeNotificationForUser(userId, type, data);
+    console.log(`📡 Notification stored in database for user: ${userId}`);
+  } catch (error) {
+    console.error(`❌ Failed to store notification in database for user ${userId}:`, error);
+  }
+  
+  // Try to send via SSE if user is connected
   if (!controller) {
     console.log(`❌ No SSE connection found for user: ${userId}`);
     console.log(`📡 Available connections for users: [${Array.from(connections.keys()).join(', ')}]`);
-    return false;
+    console.log(`📡 Notification stored for delivery when user reconnects`);
+    return false; // Not delivered via SSE, but stored for later
   }
 
   console.log(`✅ Found controller for user: ${userId}, attempting to send message...`);
@@ -77,6 +87,30 @@ export async function broadcastToUser(userId: string, type: string, data: any): 
     console.log(`📡 Removing connection for user ${userId} due to error`);
     connections.delete(userId);
     return false;
+  }
+}
+
+// Store notification in database for persistent delivery
+async function storeNotificationForUser(userId: string, type: string, data: any) {
+  // Use the existing notification creation function directly
+  try {
+    const notification = await createInAppNotification({
+      userId,
+      type: type as any, // Cast to the expected notification type
+      title: data.title || 'New Notification',
+      message: data.message || '',
+      data,
+      taskId: data.taskId,
+      podTeamId: data.podTeamId,
+      contentSubmissionId: data.contentSubmissionId,
+      clientModelId: data.clientModelId
+    });
+    
+    console.log(`📡 Notification stored directly via createInAppNotification: ${notification.id}`);
+    return notification;
+  } catch (error) {
+    console.error('Failed to store notification directly:', error);
+    throw error;
   }
 }
 
