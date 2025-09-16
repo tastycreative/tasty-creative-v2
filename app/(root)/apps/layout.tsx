@@ -1,8 +1,6 @@
 "use client";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
-import NotificationBell from "@/components/notifications/NotificationBell";
-import NotificationDebugger from "@/components/NotificationDebugger";
 
 export default function AppsLayout({
   children,
@@ -61,9 +59,6 @@ export default function AppsLayout({
           {children}
         </div>
       </div>
-
-      {/* Debug Component - Remove in production */}
-      <NotificationDebugger />
     </div>
   );
 }
