@@ -182,6 +182,13 @@ export async function POST(req: NextRequest) {
                 email: mentionerUser.email,
                 image: mentionerUser.image
               } : null,
+              // Also add commenterUser for consistency with comment notifications
+              commenterUser: mentionerUser ? {
+                id: mentionerUser.id,
+                name: mentionerUser.name,
+                email: mentionerUser.email,
+                image: mentionerUser.image
+              } : null,
               teamName: team?.name,
               taskUrl: await generateTaskUrl(taskId, teamId),
             },
@@ -205,6 +212,13 @@ export async function POST(req: NextRequest) {
                 commentContent: cleanMentionsForEmail(commentContent),
                 mentionerName: session.user.name || session.user.email || 'Someone',
                 mentionerUser: mentionerUser ? {
+                  id: mentionerUser.id,
+                  name: mentionerUser.name,
+                  email: mentionerUser.email,
+                  image: mentionerUser.image
+                } : null,
+                // Also add commenterUser for consistency
+                commenterUser: mentionerUser ? {
                   id: mentionerUser.id,
                   name: mentionerUser.name,
                   email: mentionerUser.email,

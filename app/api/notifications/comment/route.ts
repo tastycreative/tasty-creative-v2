@@ -65,6 +65,12 @@ export async function POST(req: NextRequest) {
             taskUrl: taskUrl,
             commentId,
             commenterName: session.user.name || session.user.email,
+            commenterUser: {
+              id: session.user.id,
+              name: session.user.name,
+              email: session.user.email,
+              image: session.user.image
+            },
             teamId: task.podTeamId
           },
           taskId: task.id,
@@ -83,6 +89,12 @@ export async function POST(req: NextRequest) {
     console.log(`💬 COMMENT NOTIFICATIONS (${action}):`);
     console.log(`   └─ Task: "${task.title}" (ID: ${taskId})`);
     console.log(`   └─ Comment by: ${session.user.name || session.user.email}`);
+    console.log(`   └─ Commenter user data:`, {
+      id: session.user.id,
+      name: session.user.name,
+      email: session.user.email,
+      image: session.user.image
+    });
     console.log(`   └─ Team members notified: ${notifications.length}`);
 
     return NextResponse.json({
