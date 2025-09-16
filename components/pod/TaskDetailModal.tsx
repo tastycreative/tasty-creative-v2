@@ -122,8 +122,12 @@ export default function TaskDetailModal({
                 ></div>
                 <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">
                   Task •{" "}
-                  {(statusConfig as any)[selectedTask.status]?.label ||
-                    selectedTask.status}
+                  {selectedTask.podTeam?.projectPrefix && selectedTask.taskNumber ? (
+                    <span className="font-mono">{selectedTask.podTeam.projectPrefix}-{selectedTask.taskNumber}</span>
+                  ) : (
+                    (statusConfig as any)[selectedTask.status]?.label ||
+                    selectedTask.status
+                  )}
                 </span>
               </div>
               {isEditingTask ? (

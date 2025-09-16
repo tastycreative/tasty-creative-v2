@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { createInAppNotification } from '@/lib/notifications';
 import { prisma } from '@/lib/prisma';
+import { generateTaskUrl } from '@/lib/taskUtils';
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,7 +23,10 @@ export async function POST(req: NextRequest) {
       where: { id: taskId },
       include: {
         podTeam: {
-          include: {
+          select: {
+            id: true,
+            name: true,
+            projectPrefix: true,
             members: {
               include: { user: true }
             }
@@ -34,6 +38,9 @@ export async function POST(req: NextRequest) {
     if (!task) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
+
+    // Generate proper task URL using prefix-taskNumber format
+    const taskUrl = await generateTaskUrl(taskId, task.podTeamId || undefined);
 
     const notificationType = 'TASK_COMMENT_ADDED';
     const actionText = action.toLowerCase();
@@ -55,6 +62,7 @@ export async function POST(req: NextRequest) {
           data: {
             taskId: task.id,
             taskTitle: task.title,
+            taskUrl: taskUrl,
             commentId,
             commenterName: session.user.name || session.user.email,
             teamId: task.podTeamId

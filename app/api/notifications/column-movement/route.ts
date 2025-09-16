@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { sendColumnAssignmentNotificationEmail } from '@/lib/email';
+import { generateTaskUrl } from '@/lib/taskUtils';
 import { createInAppNotification } from '@/lib/notifications';
 import { upstashPublish } from '@/lib/upstash';
 
@@ -86,7 +87,7 @@ export async function POST(req: NextRequest) {
             teamName,
             movedBy,
             priority,
-            taskUrl: `${process.env.NEXTAUTH_URL}/apps/pod/board?task=${taskId}`
+            taskUrl: await generateTaskUrl(taskId)
           });
 
           emailResults.push({
@@ -135,7 +136,7 @@ export async function POST(req: NextRequest) {
                 image: movedByUser.image
               } : null,
               priority,
-              taskUrl: `${process.env.NEXTAUTH_URL}/apps/pod/board?team=${teamId}&task=${taskId}`
+              taskUrl: await generateTaskUrl(taskId, teamId)
             },
             taskId
           });
@@ -164,7 +165,7 @@ export async function POST(req: NextRequest) {
                   image: movedByUser.image
                 } : null,
                 priority,
-                taskUrl: `${process.env.NEXTAUTH_URL}/apps/pod/board?team=${teamId}&task=${taskId}`,
+                taskUrl: await generateTaskUrl(taskId, teamId),
                 notificationId: inAppNotification?.id || null,
               },
               createdAt: new Date().toISOString(),

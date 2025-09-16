@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
 import { upstashPublish } from '@/lib/upstash';
 import { sendOTPPTRTaskNotificationEmail } from '@/lib/email';
+import { generateTaskUrl } from '@/lib/taskUtils';
 
 interface SubmissionData {
   submissionType: 'otp' | 'ptr';
@@ -134,7 +135,7 @@ async function sendPGTeamNotifications({
     console.log('🔔 Total unique users to notify:', usersToNotify.length);
 
     // Create task URL for notifications
-    const taskUrl = `${process.env.NEXTAUTH_URL}/apps/pod/board?team=${teamId}&task=${task.id}`;
+    const taskUrl = await generateTaskUrl(task.id, teamId);
 
     // Send in-app notifications
     const notificationPromises = usersToNotify.map(async (user) => {
@@ -286,9 +287,15 @@ export async function POST(request: NextRequest) {
     const submissionType = data.submissionType.toUpperCase() as 'OTP' | 'PTR';
 
     // First, verify the OTP-PTR team exists before creating the submission
-    const allTeams = await prisma.podTeam.findMany();
-    console.log('🔍 Available teams:', allTeams.map(t => ({ id: t.id, name: (t as any).name || (t as any).pod_name })));
-    const otpPtrTeam = allTeams.find(team => (team as any).name === 'OTP-PTR');
+    const allTeams = await prisma.podTeam.findMany({
+      select: {
+        id: true,
+        name: true,
+        projectPrefix: true
+      }
+    });
+    console.log('🔍 Available teams:', allTeams.map(t => ({ id: t.id, name: t.name })));
+    const otpPtrTeam = allTeams.find(team => team.name === 'OTP-PTR');
 
     if (!otpPtrTeam) {
       console.error('❌ OTP-PTR team not found in database');
@@ -298,7 +305,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('✅ Found OTP-PTR team:', otpPtrTeam.id, (otpPtrTeam as any).name);
+    console.log('✅ Found OTP-PTR team:', otpPtrTeam.id, otpPtrTeam.name);
 
     // Use custom status for OTP-PTR tasks
     const initialStatus = 'CUSTOM_PG_TEAM_1757256153984';
@@ -360,10 +367,11 @@ export async function POST(request: NextRequest) {
         createdById: session.user.id!,
         contentSubmissionId: submission.id,
         attachments: data.screenshotAttachments || [],
+        // taskNumber will be auto-incremented by the database
       }
     } as any);
 
-    console.log('📋 Task created:', task.id, 'for team:', (otpPtrTeam as any).name);
+    console.log('📋 Task created:', task.id, 'for team:', otpPtrTeam.name);
 
     // Create task activity history for automatic task creation
     await (prisma as any).taskActivityHistory.create({
@@ -387,7 +395,7 @@ export async function POST(request: NextRequest) {
       submissionType,
       modelName: data.modelName,
       teamId: otpPtrTeam.id,
-      teamName: (otpPtrTeam as any).name,
+      teamName: otpPtrTeam.name,
       createdById: session.user.id!,
       createdByName: session.user.name || session.user.email || 'Unknown User'
     });
@@ -412,7 +420,7 @@ export async function POST(request: NextRequest) {
       task: {
         id: task.id,
         title: task.title,
-        teamName: (otpPtrTeam as any).name,
+        teamName: otpPtrTeam.name,
         priority: task.priority
       },
       message: 'Content submission processed and task created successfully'

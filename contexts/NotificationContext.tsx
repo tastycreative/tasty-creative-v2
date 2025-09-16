@@ -138,7 +138,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   const refetch = async () => {
     try {
-      const res = await fetch('/api/notifications/in-app', { credentials: 'include' });
+      const res = await fetch('/api/notifications/in-app?all=true', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         const newNotifications = data.notifications || [];

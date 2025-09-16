@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
         attachments: attachments || null,
         podTeamId: teamId, // Use podTeamId instead of teamId
         createdById: session.user.id,
+        // taskNumber will be auto-incremented by the database
       } as any,
       include: {
         createdBy: {
@@ -41,6 +42,13 @@ export async function POST(request: NextRequest) {
             name: true,
             email: true,
             image: true,
+          },
+        },
+        podTeam: {
+          select: {
+            id: true,
+            name: true,
+            projectPrefix: true,
           },
         },
       },
@@ -116,6 +124,13 @@ export async function GET(request: NextRequest) {
             name: true,
             email: true,
             image: true,
+          },
+        },
+        podTeam: {
+          select: {
+            id: true,
+            name: true,
+            projectPrefix: true,
           },
         },
       },

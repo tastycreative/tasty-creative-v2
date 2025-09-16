@@ -184,9 +184,20 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     const taskParam = searchParams?.get('task');
     
     if (taskParam && tasks.length > 0) {
-      // URL has a task parameter - ensure task is selected
-      const task = tasks.find(t => t.id === taskParam);
-      if (task && (!selectedTask || selectedTask.id !== taskParam)) {
+      // URL has a task parameter - find task by ID or podTeam.projectPrefix-taskNumber
+      let task: Task | undefined;
+      
+      // Check if taskParam looks like projectPrefix-taskNumber format
+      if (taskParam.includes('-') && /^[A-Z0-9]{3,5}-\d+$/.test(taskParam)) {
+        const [projectPrefix, taskNumberStr] = taskParam.split('-');
+        const taskNumber = parseInt(taskNumberStr, 10);
+        task = tasks.find(t => t.podTeam?.projectPrefix === projectPrefix && t.taskNumber === taskNumber);
+      } else {
+        // Fall back to finding by task ID
+        task = tasks.find(t => t.id === taskParam);
+      }
+      
+      if (task && (!selectedTask || selectedTask.id !== task.id)) {
         setSelectedTask(task);
         setEditingTaskData({
           title: task.title,
@@ -322,7 +333,11 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   const openTaskDetail = (task: Task) => {
     // Only update URL - the useEffect will handle state updates
     const params = new URLSearchParams(searchParams?.toString() || '');
-    params.set('task', task.id);
+    // Use podTeam.projectPrefix-taskNumber if available, otherwise fall back to task ID
+    const taskIdentifier = (task.podTeam?.projectPrefix && task.taskNumber) 
+      ? `${task.podTeam.projectPrefix}-${task.taskNumber}` 
+      : task.id;
+    params.set('task', taskIdentifier);
     router.push(`?${params.toString()}`);
   };
 

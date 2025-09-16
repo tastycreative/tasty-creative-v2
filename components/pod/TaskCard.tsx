@@ -55,13 +55,21 @@ export default function TaskCard({
     >
       {/* Task Header */}
       <div className="flex items-start justify-between mb-2">
-        <h4
-          className={`font-medium text-gray-900 dark:text-gray-100 text-sm ${isMobile ? "line-clamp-2 flex-1 mr-2" : "leading-tight"}`}
-        >
-          {task.title}
-        </h4>
+        <div className="flex-1 min-w-0">
+          <h4
+            className={`font-medium text-gray-900 dark:text-gray-100 text-sm ${isMobile ? "line-clamp-2" : "leading-tight"} flex items-center gap-2`}
+          >
+            {/* Task Identifier - Subtle prefix */}
+            {task.podTeam?.projectPrefix && task.taskNumber && (
+              <span className="text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded flex-shrink-0">
+                {task.podTeam.projectPrefix}-{task.taskNumber}
+              </span>
+            )}
+            <span className="truncate">{task.title}</span>
+          </h4>
+        </div>
         <div
-          className={`flex items-center ${isMobile ? "flex-shrink-0" : "space-x-1 ml-2"}`}
+          className={`flex items-center ${isMobile ? "flex-shrink-0 ml-2" : "space-x-1 ml-2"}`}
         >
           {!isMobile && session?.user?.role === "ADMIN" && (
             <button

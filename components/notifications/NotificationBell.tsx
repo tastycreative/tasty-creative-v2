@@ -29,7 +29,21 @@ interface NotificationBellProps {
 
 export default function NotificationBell({ className = '' }: NotificationBellProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'read'>('all');
   const { notifications, unreadCount, isConnected, connectionType, lastUpdated, markAsRead, markAllAsRead, refetch } = useNotifications();
+
+  // Filter notifications based on active tab
+  const filteredNotifications = notifications.filter(notification => {
+    switch (activeTab) {
+      case 'unread':
+        return !notification.isRead;
+      case 'read':
+        return notification.isRead;
+      case 'all':
+      default:
+        return true;
+    }
+  });
 
   // Force re-render when lastUpdated changes
   useEffect(() => {
@@ -172,15 +186,44 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
               </div>
             </div>
 
+            {/* Tabs */}
+            <div className="flex border-b border-gray-200 dark:border-gray-700">
+              {(['all', 'unread', 'read'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex-1 px-4 py-2 text-sm font-medium text-center capitalize transition-colors ${
+                    activeTab === tab
+                      ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                  }`}
+                >
+                  {tab}
+                  {tab === 'unread' && unreadCount > 0 && (
+                    <span className="ml-1 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[16px] text-center">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+
             {/* Notifications List */}
             <div className="max-h-80 overflow-y-auto">
-              {notifications.length === 0 ? (
+              {filteredNotifications.length === 0 ? (
                 <div className="p-8 text-center text-gray-500 dark:text-gray-400">
                   <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No notifications yet</p>
+                  <p>
+                    {activeTab === 'unread' && notifications.length > 0 
+                      ? 'No unread notifications'
+                      : activeTab === 'read' && notifications.length > 0
+                      ? 'No read notifications'
+                      : 'No notifications yet'
+                    }
+                  </p>
                 </div>
               ) : (
-                notifications.map((notification) => (
+                filteredNotifications.map((notification) => (
                   <div
                     key={notification.id}
                     className={`p-4 border-b border-gray-100 dark:border-gray-700 last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
@@ -233,7 +276,7 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
             </div>
 
             {/* Footer */}
-            {notifications.length > 0 && (
+            {filteredNotifications.length > 0 && (
               <div className="p-3 border-t border-gray-200 dark:border-gray-700 text-center">
                 <button
                   onClick={() => {

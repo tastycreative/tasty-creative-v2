@@ -29,11 +29,17 @@ export interface Task {
   createdAt: string;
   updatedAt: string;
   updatedBy: string | null; // Email of the user who last updated the task
+  taskNumber: number | null;
   createdBy: {
     id: string;
     name: string | null;
     email: string | null;
   };
+  podTeam?: {
+    id: string;
+    name: string;
+    projectPrefix: string | null;
+  } | null;
   assignedUser?: {
     id: string;
     name: string | null;
