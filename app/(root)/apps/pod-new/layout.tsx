@@ -50,6 +50,7 @@ export default function PodNewLayout({ children }: PodNewLayoutProps) {
     if (pathname.includes("/apps/pod-new/pricing")) return "pricing";
     if (pathname.includes("/apps/pod-new/gallery")) return "gallery";
     if (pathname.includes("/apps/pod-new/gif-maker")) return "gif-maker";
+    if (pathname.includes("/apps/pod-new/forms")) return "forms";
     if (pathname.includes("/apps/pod-new/admin")) return "admin";
     return "dashboard";
   };
@@ -63,12 +64,19 @@ export default function PodNewLayout({ children }: PodNewLayoutProps) {
     { id: "pricing", label: "Pricing Guide", href: "/apps/pod-new/pricing" },
     { id: "gallery", label: "Gallery", href: "/apps/pod-new/gallery" },
     { id: "gif-maker", label: "GIF Maker", href: "/apps/pod-new/gif-maker" },
+    { id: "forms", label: "Workflow Forms", href: "/apps/pod-new/forms" },
   ];
 
   // For model profile pages, render completely full-screen without any parent layout
   if (isModelProfilePage) {
     return children;
   }
+
+  // Determine if right sidebar should be shown
+  const showRightSidebar = pathname === "/apps/pod-new" ||
+                          pathname === "/apps/pod-new/dashboard" ||
+                          pathname === "/apps/pod-new/board" ||
+                          pathname === "/apps/pod-new/forms";
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-200">
@@ -112,12 +120,16 @@ export default function PodNewLayout({ children }: PodNewLayoutProps) {
         ))}
       </div>
 
-      {/* Content Grid - Normal layout with sidebars */}
-      <div className="w-full px-6 lg:px-8 mt-6 grid grid-cols-1 xl:grid-cols-[280px_1fr_320px] gap-8 items-start">
+      {/* Content Grid - Conditional layout based on right sidebar visibility */}
+      <div className={`w-full px-6 lg:px-8 mt-6 grid grid-cols-1 ${
+        showRightSidebar
+          ? "xl:grid-cols-[280px_1fr_320px]"
+          : "xl:grid-cols-[280px_1fr]"
+      } gap-8 items-start`}>
         <LeftSidebar />
         {/* Main Content */}
         <main className="min-h-[500px]">{children}</main>
-        <RightSidebar />
+        {showRightSidebar && <RightSidebar />}
       </div>
     </div>
   );

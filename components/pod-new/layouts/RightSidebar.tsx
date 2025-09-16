@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
+import { usePathname } from "next/navigation";
 import {
   ChevronDown,
   Link as LinkIcon,
@@ -47,15 +48,20 @@ function EmptyState({ icon, title, subtitle }: EmptyStateProps) {
       <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100/70 dark:bg-white/5 ring-1 ring-gray-200/50 dark:ring-white/10 text-gray-600 dark:text-slate-300">
         {icon}
       </div>
-      <div className="text-sm font-medium text-gray-800 dark:text-slate-200">{title}</div>
+      <div className="text-sm font-medium text-gray-800 dark:text-slate-200">
+        {title}
+      </div>
       {subtitle && (
-        <div className="mt-1 text-xs text-gray-600 dark:text-slate-400">{subtitle}</div>
+        <div className="mt-1 text-xs text-gray-600 dark:text-slate-400">
+          {subtitle}
+        </div>
       )}
     </div>
   );
 }
 
 export function RightSidebar() {
+  const pathname = usePathname();
   const selectedRow = usePodStore((s) => s.selectedRow);
   const setSelectedRow = usePodStore((s) => s.setSelectedRow);
   const setSelectedTeamId = usePodStore((s) => s.setSelectedTeamId);
@@ -68,6 +74,19 @@ export function RightSidebar() {
       setSelectedRow(1);
     }
   }, [selectedRow, teams, setSelectedRow]);
+
+  // Only show sidebar on /apps/pod-new, /apps/pod-new/dashboard, /apps/pod-new/board, and /apps/pod-new/forms routes
+  const allowedPaths = [
+    "/apps/pod-new",
+    "/apps/pod-new/dashboard",
+    "/apps/pod-new/board",
+    "/apps/pod-new/forms",
+  ];
+  const shouldShowSidebar = allowedPaths.includes(pathname || "");
+
+  if (!shouldShowSidebar) {
+    return null;
+  }
 
   return (
     <div
@@ -97,13 +116,13 @@ export function RightSidebar() {
 
               // Also fetch teams to get the team ID for the selected row
               try {
-                const teamsResponse = await fetch('/api/pod/teams-db');
+                const teamsResponse = await fetch("/api/pod/teams-db");
                 const { success, teams: dbTeams } = await teamsResponse.json();
                 if (success && dbTeams[rowNumber - 1]) {
                   setSelectedTeamId(dbTeams[rowNumber - 1].id);
                 }
               } catch (error) {
-                console.error('Error syncing team selection:', error);
+                console.error("Error syncing team selection:", error);
               }
             }}
           >
@@ -140,8 +159,12 @@ export function RightSidebar() {
                 {m.name?.charAt(0) || "?"}
               </div>
               <div className="min-w-0">
-                <div className="text-sm text-gray-900 dark:text-white truncate">{m.name}</div>
-                <div className="text-xs text-gray-600 dark:text-slate-400 truncate">{m.role}</div>
+                <div className="text-sm text-gray-900 dark:text-white truncate">
+                  {m.name}
+                </div>
+                <div className="text-xs text-gray-600 dark:text-slate-400 truncate">
+                  {m.role}
+                </div>
               </div>
             </div>
           ))}
@@ -150,7 +173,9 @@ export function RightSidebar() {
 
       <Card
         title={`Assigned Models${data?.assignedModels ? ` (${data.assignedModels.length})` : ""}`}
-        icon={<ListChecks className="w-4 h-4 text-gray-600 dark:text-slate-400" />}
+        icon={
+          <ListChecks className="w-4 h-4 text-gray-600 dark:text-slate-400" />
+        }
       >
         <div className="space-y-2">
           {isLoading && (
@@ -171,7 +196,9 @@ export function RightSidebar() {
                 {m.name?.charAt(0) || "?"}
               </div>
               <div className="min-w-0">
-                <div className="text-sm text-gray-900 dark:text-white truncate">{m.name}</div>
+                <div className="text-sm text-gray-900 dark:text-white truncate">
+                  {m.name}
+                </div>
                 <div className="text-[11px] text-gray-600 dark:text-slate-400 truncate">
                   {m.owner ? `${m.owner} (Owner)` : "Creator"}
                 </div>
@@ -183,7 +210,9 @@ export function RightSidebar() {
 
       <Card
         title="Sheet Links"
-        icon={<LinkIcon className="w-4 h-4 text-gray-600 dark:text-slate-400" />}
+        icon={
+          <LinkIcon className="w-4 h-4 text-gray-600 dark:text-slate-400" />
+        }
       >
         <div className="space-y-2">
           {isLoading && (
