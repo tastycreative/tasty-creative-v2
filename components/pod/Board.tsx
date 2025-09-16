@@ -123,6 +123,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   // Local state for minimum skeleton display time
   const [showMinimumSkeleton, setShowMinimumSkeleton] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Fetch team members and admins
   const fetchTeamMembers = useCallback(async (teamId: string) => {
@@ -369,6 +370,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     if (!selectedTask) return;
 
     try {
+      setIsSaving(true);
       const updates = {
         title: editingTaskData.title,
         description: editingTaskData.description,
@@ -384,8 +386,12 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         taskId: selectedTask.id,
         data: { ...selectedTask, ...updates }
       });
+      setIsEditingTask(false);
+      setEditingTaskData({});
     } catch (error) {
       console.error('Error updating task:', error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -837,6 +843,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           isUserInTeam={isUserInTeam()}
           teamMembers={teamMembers}
           teamAdmins={teamAdmins}
+          isSaving={isSaving}
           onClose={closeTaskDetail}
           onStartEditing={startEditingTask}
           onCancelEditing={cancelEditingTask}

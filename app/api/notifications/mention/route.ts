@@ -113,21 +113,11 @@ export async function POST(req: NextRequest) {
       }
 
       try {
-        // Create activity log for notification record
-        const activityLog = await prisma.taskActivityHistory.create({
-          data: {
-            taskId,
-            userId: user.id,
-            actionType: 'COMMENT_ADDED',
-            fieldName: 'mention_notification',
-            oldValue: null,
-            newValue: 'mentioned',
-            description: `User mentioned in comment: "${cleanMentionsForEmail(commentContent).substring(0, 100)}${cleanMentionsForEmail(commentContent).length > 100 ? '...' : ''}" by ${session.user.name || session.user.email}`,
-          },
-        });
+        // Note: Removed activity log creation for comments per user request
+        // Comments should not create activity history entries
 
         notifications.push({
-          activityId: activityLog.id,
+          activityId: 'no-activity', // No activity log created
           userId: user.id,
           userEmail: user.email!,
           userName: user.name,

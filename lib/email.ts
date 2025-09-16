@@ -1114,3 +1114,187 @@ export async function sendMentionNotificationEmail({
     `,
   });
 }
+
+export async function sendOTPPTRTaskNotificationEmail({
+  to,
+  userName,
+  taskTitle,
+  taskDescription,
+  submissionType,
+  modelName,
+  priority,
+  teamName,
+  taskUrl,
+  createdByName,
+  reason,
+  columnLabel
+}: {
+  to: string;
+  userName: string;
+  taskTitle: string;
+  taskDescription: string;
+  submissionType: string;
+  modelName: string;
+  priority: string;
+  teamName: string;
+  taskUrl: string;
+  createdByName: string;
+  reason: string;
+  columnLabel?: string;
+}) {
+  // Priority color mapping
+  const priorityColors: Record<string, { bg: string; text: string; badge: string }> = {
+    HIGH: { bg: '#fef2f2', text: '#dc2626', badge: 'High Priority' },
+    MEDIUM: { bg: '#fefbf2', text: '#d97706', badge: 'Medium Priority' },
+    LOW: { bg: '#f0fdf4', text: '#16a34a', badge: 'Low Priority' },
+    URGENT: { bg: '#fef2f2', text: '#dc2626', badge: 'Urgent Priority' },
+  };
+
+  const priorityColor = priorityColors[priority.toUpperCase()] || priorityColors.MEDIUM;
+  const truncatedDescription = taskDescription && taskDescription.length > 150 
+    ? taskDescription.substring(0, 150) + "..." 
+    : taskDescription || "No description provided";
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject: `New ${submissionType} Content Task - ${modelName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>New ${submissionType} Task Notification</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f9fafb;">
+          <div style="background-color: #f9fafb; padding: 40px 20px;">
+            <!-- Main Container -->
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);">
+              
+              <!-- Header -->
+              <div style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 48px 40px; text-align: center; border-bottom: 1px solid #e0f2fe;">
+                <div style="background-color: #0ea5e9; width: 80px; height: 80px; border-radius: 20px; margin: 0 auto 24px; display: flex; align-items: center; justify-content: center;">
+                  <svg
+                    style="height: 40px; width: 40px; color: #ffffff;"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                    />
+                  </svg>
+                </div>
+                <h1 style="margin: 0 0 8px 0; font-size: 32px; font-weight: 800; color: #111827; letter-spacing: -0.5px;">
+                  New ${submissionType} Task
+                </h1>
+                <p style="margin: 0; font-size: 16px; color: #6b7280;">
+                  A new content task has been created in <span style="font-weight: 600; color: #0ea5e9;">${teamName}</span>
+                </p>
+              </div>
+              
+              <!-- Body Content -->
+              <div style="padding: 48px 40px;">
+                <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #374151;">
+                  Hello <strong>${userName}</strong>,
+                </p>
+                <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #374151;">
+                  <strong>${createdByName}</strong> just created a new ${submissionType} content task for <strong>${modelName}</strong>!
+                </p>
+                
+                <!-- Task Details -->
+                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px; margin: 32px 0;">
+                  <!-- Priority Badge -->
+                  <div style="margin-bottom: 16px;">
+                    <span style="background-color: ${priorityColor.bg}; color: ${priorityColor.text}; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                      ${priorityColor.badge}
+                    </span>
+                  </div>
+                  
+                  <!-- Task Title -->
+                  <h3 style="margin: 0 0 16px 0; font-size: 20px; color: #111827; font-weight: 700; line-height: 28px;">
+                    ${taskTitle}
+                  </h3>
+                  
+                  <!-- Task Description -->
+                  <p style="margin: 0 0 20px 0; font-size: 14px; color: #6b7280; line-height: 20px;">
+                    ${truncatedDescription}
+                  </p>
+                  
+                  <!-- Reason Info -->
+                  <div style="background-color: #dbeafe; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px; margin-top: 20px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                      <svg
+                        style="height: 20px; width: 20px; color: #2563eb; flex-shrink: 0;"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <span style="font-size: 14px; color: #1e40af; font-weight: 600;">
+                        Notification Reason: ${reason}${columnLabel ? ` (${columnLabel} column)` : ''}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- CTA Button -->
+                <div style="text-align: center; margin: 32px 0;">
+                  <a href="${taskUrl}" style="display: inline-block; padding: 14px 32px; background-color: #0ea5e9; color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; transition: all 0.3s ease;">
+                    View Task Details
+                  </a>
+                </div>
+                
+                <!-- Additional Information -->
+                <div style="background-color: #fffbeb; border: 1px solid #fed7aa; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+                  <p style="margin: 0; font-size: 14px; color: #92400e; line-height: 20px;">
+                    This task was automatically created from an ${submissionType} content submission and needs your attention as part of the content processing workflow.
+                  </p>
+                </div>
+                
+                <!-- Team Info -->
+                <div style="background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+                  <p style="margin: 0; font-size: 14px; color: #0c4a6e; line-height: 20px;">
+                    <strong>Team:</strong> ${teamName}<br>
+                    <strong>Model:</strong> ${modelName}<br>
+                    <strong>Created by:</strong> ${createdByName}
+                  </p>
+                </div>
+                
+                <!-- Footer text -->
+                <p style="margin: 0 0 12px 0; font-size: 14px; color: #6b7280; line-height: 20px;">
+                  You're receiving this notification because you're ${reason.toLowerCase()}${columnLabel ? ` for the "${columnLabel}" column` : ''} in the ${teamName} team.
+                </p>
+                
+                <!-- Footer -->
+                <div style="margin-top: 48px; padding-top: 32px; border-top: 1px solid #e5e7eb; text-align: center;">
+                  <p style="margin: 0 0 8px 0; font-size: 12px; color: #9ca3af; line-height: 18px;">
+                    © ${new Date().getFullYear()} Tasty Creative. All rights reserved.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Email footer -->
+            <div style="text-align: center; margin-top: 32px;">
+              <p style="margin: 0; font-size: 12px; color: #9ca3af; line-height: 18px;">
+                This email was sent to ${to}<br>
+                You received this notification because a new content task requires your attention.
+              </p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+  });
+}

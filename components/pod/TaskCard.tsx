@@ -2,8 +2,9 @@
 
 import React from "react";
 import { Session } from "next-auth";
-import { MoreHorizontal, User, UserPlus, Trash2 } from "lucide-react";
+import { MoreHorizontal, UserPlus, Trash2 } from "lucide-react";
 import { Task } from "@/lib/stores/boardStore";
+import UserProfile from "@/components/ui/UserProfile";
 
 const priorityConfig = {
   LOW: { label: "Low", color: "bg-gray-100 text-gray-700" },
@@ -135,20 +136,26 @@ export default function TaskCard({
 
           <div className="space-y-1 text-xs text-gray-500 dark:text-gray-400">
             <div className="flex items-center">
-              <User className="h-3 w-3 mr-1" />
+              <svg className="h-3 w-3 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4h3a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2h3z" />
+              </svg>
               <span className="truncate">
-                Created by: {task.createdBy.name || task.createdBy.email}
+                Created: {formatDate(task.createdAt)}
               </span>
             </div>
             {task.assignedUser ? (
               <div className="flex items-center">
-                <UserPlus className="h-3 w-3 mr-1" />
+                <UserProfile
+                  user={task.assignedUser}
+                  size="xs"
+                  className="mr-1"
+                />
                 <span className="truncate">
-                  Assigned: {task.assignedUser.name || task.assignedUser.email}
+                  {task.assignedUser.name || task.assignedUser.email}
                 </span>
               </div>
             ) : (
-              <div className="flex items-center">
+              <div className="flex items-center text-amber-600 dark:text-amber-400">
                 <UserPlus className="h-3 w-3 mr-1" />
                 <span>Unassigned</span>
               </div>
@@ -164,13 +171,6 @@ export default function TaskCard({
             >
               {priorityConfig[task.priority].label}
             </span>
-
-            {/* Permission Indicator */}
-            {canMoveTask(task) && (
-              <span className="text-xs text-green-600 dark:text-green-400 font-medium">
-                Can Edit
-              </span>
-            )}
           </div>
 
           {/* Due Date */}
@@ -182,18 +182,24 @@ export default function TaskCard({
         </div>
       )}
 
-      {/* Desktop Assignment Info (only for desktop) */}
+      {/* Desktop Date and Assignment Info (only for desktop) */}
       {!isMobile && (
         <div className="mt-2 space-y-1 text-xs text-gray-500 dark:text-gray-400">
           <div className="flex items-center">
-            <User className="h-3 w-3 mr-1 flex-shrink-0" />
+            <svg className="h-3 w-3 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4h3a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2h3z" />
+            </svg>
             <span className="truncate">
-              {task.createdBy.name || task.createdBy.email}
+              {formatDate(task.createdAt)}
             </span>
           </div>
           {task.assignedUser ? (
             <div className="flex items-center">
-              <UserPlus className="h-3 w-3 mr-1 flex-shrink-0" />
+              <UserProfile
+                user={task.assignedUser}
+                size="xs"
+                className="mr-1 flex-shrink-0"
+              />
               <span className="truncate">
                 {task.assignedUser.name || task.assignedUser.email}
               </span>

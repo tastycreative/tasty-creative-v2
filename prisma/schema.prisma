@@ -244,8 +244,7 @@ model ClientModel {
   createdAt             DateTime                  @default(now())
   updatedAt             DateTime                  @updatedAt
   row_id                String?
-  sheetLink             String?
-  spreadsheetName       String?
+  calendar_id           String?
   sheetLinks            ClientModelSheetLinks[]
   contentDetails        ContentDetails[]
   notifications         Notification[]

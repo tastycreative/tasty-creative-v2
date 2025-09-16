@@ -88,10 +88,10 @@ export default function PodLayout({ children }: PodLayoutProps) {
       return "dashboard";
     if (pathname.includes("/apps/pod/sheets")) return "sheets";
     if (pathname.includes("/apps/pod/board")) return "board";
+    if (pathname.includes("/apps/pod/otp-ptr")) return "otp-ptr";
     if (pathname.includes("/apps/pod/admin")) return "admin";
     if (pathname.includes("/apps/pod/pricing")) return "pricing";
     if (pathname.includes("/apps/pod/my-models")) return "my-models";
-    if (pathname.includes("/apps/pod/otp-ptr")) return "otp-ptr";
     if (pathname.includes("/apps/pod/creator")) return "creator";
     return "dashboard";
   };
@@ -290,6 +290,17 @@ export default function PodLayout({ children }: PodLayoutProps) {
                 Board
               </Link>
               <Link
+                href="/apps/pod/otp-ptr"
+                prefetch={true}
+                className={`py-3 sm:py-4 px-3 sm:px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                  activeTab === "otp-ptr"
+                    ? "border-pink-500 text-pink-600 dark:text-pink-400"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                }`}
+              >
+                OTP-PTR
+              </Link>
+              <Link
                 href="/apps/pod/pricing"
                 prefetch={true}
                 className={`py-3 sm:py-4 px-3 sm:px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
@@ -312,17 +323,6 @@ export default function PodLayout({ children }: PodLayoutProps) {
               >
                 <span className="sm:hidden">Models</span>
                 <span className="hidden sm:inline">My Models</span>
-              </Link>
-              <Link
-                href="/apps/pod/otp-ptr"
-                prefetch={true}
-                className={`py-3 sm:py-4 px-3 sm:px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
-                  activeTab === "otp-ptr"
-                    ? "border-pink-500 text-pink-600 dark:text-pink-400"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-                }`}
-              >
-                OTP-PTR
               </Link>
               {session?.user?.role === "ADMIN" && (
                 <Link

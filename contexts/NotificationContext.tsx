@@ -48,8 +48,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     console.log('🔔 showNotificationToast called with:', notification);
     
     // Extract user info from notification data - try the new user profile structure first
-    const triggerUserProfile = data.movedByUser || data.mentionerUser || null;
-    const triggerUserName = triggerUserProfile?.name || data.movedBy || data.mentionerName || data.userWhoLinked || 'Someone';
+    const triggerUserProfile = data.movedByUser || data.mentionerUser || data.createdByUser || null;
+    const triggerUserName = triggerUserProfile?.name || data.movedBy || data.mentionerName || data.userWhoLinked || data.createdBy || 'Someone';
     const taskTitle = data.taskTitle || data.taskUrl?.split('task=')[1] || '';
     const taskUrl = data.taskUrl;
     
@@ -68,6 +68,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         action = `mentioned you in "${taskTitle}"`;
         summary = 'You were mentioned in a comment';
         break;
+      case 'TASK_ASSIGNED':
+        action = `created a new ${data.submissionType || 'content'} task${data.modelName ? ` for ${data.modelName}` : ''}`;
+        summary = `New ${data.submissionType || 'content'} task created`;
+        break;
       case 'POD_TEAM_ADDED':
       case 'POD_TEAM_CLIENT_ASSIGNED':
       case 'POD_TEAM_MEMBER_JOINED':
@@ -83,7 +87,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     // Show toast with click handler
     toast(
-      <div className="flex items-start space-x-3 cursor-pointer" onClick={() => handleToastClick(taskUrl, notification)}>
+      <div className="flex items-start space-x-3 cursor-pointer max-w-sm" onClick={() => handleToastClick(taskUrl, notification)}>
         {triggerUserProfile ? (
           <UserProfile 
             user={{
@@ -100,11 +104,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             {triggerUserName.charAt(0).toUpperCase()}
           </div>
         )}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
             {triggerUserName}
           </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+          <p className="text-sm text-gray-600 dark:text-gray-400 break-words leading-tight">
             {action}
           </p>
         </div>
@@ -112,6 +116,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       {
         duration: 6000,
         position: 'bottom-right',
+        style: {
+          maxWidth: '400px',
+          width: 'auto',
+        },
       }
     );
     
