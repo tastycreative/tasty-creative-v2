@@ -23,6 +23,8 @@ model User {
   assignedBoardColumnsByUser BoardColumnMemberAssignment[] @relation("BoardColumnAssignedBy")
   assignedBoardColumns       BoardColumnMemberAssignment[] @relation("BoardColumnAssignedUser")
   ContentSubmission          ContentSubmission[]
+  ForumComment               ForumComment[]
+  ForumVote                  ForumVote[]
   ModerationLog              ModerationLog[]
   notifications              Notification[]
   pageViews                  PageView[]
@@ -172,7 +174,7 @@ model Task {
   contentSubmissionId String?               @unique
   status              String                @default("NOT_STARTED")
   podTeamId           String?
-  taskNumber          Int?                  @default(autoincrement())
+  taskNumber          Int                   @default(autoincrement())
   notifications       Notification[]
   ContentSubmission   ContentSubmission?    @relation(fields: [contentSubmissionId], references: [id])
   createdBy           User                  @relation("TaskCreator", fields: [createdById], references: [id])
@@ -246,7 +248,6 @@ model ClientModel {
   createdAt             DateTime                  @default(now())
   updatedAt             DateTime                  @updatedAt
   row_id                String?
-  calendar_id           String?
   sheetLinks            ClientModelSheetLinks[]
   contentDetails        ContentDetails[]
   notifications         Notification[]
@@ -338,6 +339,7 @@ model ClientModelDetails {
   mm_restrictions       String?
   verbiage_restrictions String?
   wall_restrictions     String?
+  calendar_id           String?
 }
 
 model PodTeam {
@@ -347,8 +349,8 @@ model PodTeam {
   description     String?
   isActive        Boolean?                  @default(true)
   name            String                    @unique
-  projectPrefix   String?                   @unique
   updatedAt       DateTime?                 @updatedAt
+  projectPrefix   String?                   @unique
   notifications   Notification[]
   createdBy       User?                     @relation("PodTeamCreator", fields: [createdById], references: [id])
   assignedClients PodTeamClientAssignment[]
@@ -509,6 +511,8 @@ model Post {
   updatedAt    DateTime
   editedAt     DateTime?
   Attachment   Attachment[]
+  ForumComment ForumComment[]
+  ForumVote    ForumVote[]
   User         User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
   Post         Post?          @relation("PostToPost", fields: [parentPostId], references: [id])
   other_Post   Post[]         @relation("PostToPost")
@@ -535,21 +539,22 @@ model PostReaction {
 }
 
 model Thread {
-  id            String          @id
-  modelId       String
-  categoryId    String
-  title         String
-  authorId      String
-  pinned        Boolean         @default(false)
-  locked        Boolean         @default(false)
-  solved        Boolean         @default(false)
-  views         Int             @default(0)
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime
-  Post          Post[]
-  User          User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  ForumCategory ForumCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  ThreadWatcher ThreadWatcher[]
+  id             String           @id
+  modelId        String
+  categoryId     String
+  title          String
+  authorId       String
+  pinned         Boolean          @default(false)
+  locked         Boolean          @default(false)
+  solved         Boolean          @default(false)
+  views          Int              @default(0)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime
+  ForumThreadTag ForumThreadTag[]
+  Post           Post[]
+  User           User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  ForumCategory  ForumCategory    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  ThreadWatcher  ThreadWatcher[]
 
   @@index([authorId])
   @@index([createdAt])
@@ -598,6 +603,87 @@ model Notification {
   @@index([podTeamId])
   @@index([contentSubmissionId])
   @@index([clientModelId])
+}
+
+model ForumAnalytics {
+  id      String   @id
+  modelId String
+  metric  String
+  value   Float
+  date    DateTime @default(now())
+
+  @@index([date])
+  @@index([metric])
+  @@index([modelId])
+}
+
+model ForumComment {
+  id        String   @id
+  postId    String
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  User      User     @relation(fields: [authorId], references: [id])
+  Post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@index([postId])
+}
+
+model ForumStats {
+  id           String   @id
+  modelId      String
+  totalThreads Int      @default(0)
+  totalPosts   Int      @default(0)
+  totalUsers   Int      @default(0)
+  activeUsers  Int      @default(0)
+  date         DateTime @default(now())
+
+  @@unique([modelId, date])
+  @@index([date])
+  @@index([modelId])
+}
+
+model ForumTag {
+  id             String           @id
+  modelId        String
+  name           String
+  slug           String
+  color          String?
+  createdAt      DateTime         @default(now())
+  ForumThreadTag ForumThreadTag[]
+
+  @@unique([modelId, slug])
+  @@index([modelId])
+  @@index([slug])
+}
+
+model ForumThreadTag {
+  id        String   @id
+  threadId  String
+  tagId     String
+  createdAt DateTime @default(now())
+  ForumTag  ForumTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  Thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@unique([threadId, tagId])
+  @@index([tagId])
+  @@index([threadId])
+}
+
+model ForumVote {
+  id        String        @id
+  postId    String
+  userId    String
+  voteType  ForumVoteType
+  createdAt DateTime      @default(now())
+  Post      Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  User      User          @relation(fields: [userId], references: [id])
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
 }
 
 enum Role {
@@ -728,4 +814,9 @@ enum NotificationType {
   CONTENT_SUBMISSION_STATUS_CHANGED
   CLIENT_SHEET_LINK_ADDED
   SYSTEM_NOTIFICATION
+}
+
+enum ForumVoteType {
+  UPVOTE
+  DOWNVOTE
 }

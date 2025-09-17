@@ -37,32 +37,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Use transaction to avoid unique constraint violations
+    // Use transaction with timeout to avoid unique constraint violations
     const updatedColumns = await prisma.$transaction(async (tx) => {
       // Step 1: Set all columns to temporary negative positions to avoid conflicts
-      for (let i = 0; i < columnIds.length; i++) {
-        await tx.BoardColumn.update({
+      const tempUpdates = columnIds.map((id, index) => 
+        tx.boardColumn.update({
           where: { 
-            id: columnIds[i],
+            id,
             teamId, // Security check
           },
-          data: { position: -(i + 1000) } // Use large negative numbers to avoid conflicts
-        });
-      }
+          data: { position: -(index + 1000) } // Use large negative numbers to avoid conflicts
+        })
+      );
+      await Promise.all(tempUpdates);
 
       // Step 2: Set columns to their final positions
-      for (let i = 0; i < columnIds.length; i++) {
-        await tx.BoardColumn.update({
+      const finalUpdates = columnIds.map((id, index) => 
+        tx.boardColumn.update({
           where: { 
-            id: columnIds[i],
+            id,
             teamId, // Security check
           },
-          data: { position: i }
-        });
-      }
+          data: { position: index }
+        })
+      );
+      await Promise.all(finalUpdates);
 
       // Fetch updated columns
-      return await tx.BoardColumn.findMany({
+      return await tx.boardColumn.findMany({
         where: {
           teamId,
           isActive: true,
@@ -71,6 +73,8 @@ export async function POST(request: NextRequest) {
           position: 'asc'
         }
       });
+    }, {
+      timeout: 10000, // 10 second timeout
     });
 
     return NextResponse.json({ success: true, columns: updatedColumns });
