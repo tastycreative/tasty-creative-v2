@@ -221,9 +221,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     // Only run on client
     if (typeof window === 'undefined') return;
-  // Use polling-only to avoid flaky SSE streaming on serverless platforms.
-  startPolling();
-  return () => stopPolling();
+    // Polling disabled temporarily
+    // startPolling();
+    // return () => stopPolling();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -247,7 +247,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }
 
   useEffect(() => {
-    refetch();
+    // Initial fetch disabled temporarily
+    // refetch();
   }, []);
 
   return (
