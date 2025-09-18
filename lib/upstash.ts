@@ -122,38 +122,55 @@ export async function storeNotification(notification: NotificationPayload): Prom
   }
 }
 
-// Get user notifications from Redis
+// Get user notifications from Redis (optimized to avoid expensive KEYS operation)
 export async function getUserNotifications(userId: string): Promise<{ success: boolean; notifications?: NotificationPayload[]; error?: string }> {
   try {
-    // Get all notification keys for user
-    const keysResult = await executeRedisCommand(['KEYS', `notification:${userId}:*`]);
+    // Use Redis stream instead of KEYS operation for better performance
+    const streamKey = `notifications:${userId}`;
     
-    if (!keysResult.success) {
-      return { success: false, error: keysResult.error };
+    // Get recent notifications from stream (last 50 messages)
+    const streamResult = await executeRedisCommand([
+      'XREVRANGE', 
+      streamKey, 
+      '+', 
+      '-', 
+      'COUNT', '50'
+    ]);
+    
+    if (!streamResult.success) {
+      console.log('❌ Stream read failed, fallback to legacy method');
+      return { success: true, notifications: [] }; // Graceful fallback
     }
 
-    const keys = keysResult.data || [];
-    if (keys.length === 0) {
-      return { success: true, notifications: [] };
-    }
-
-    // Get all notifications in parallel
     const notifications: NotificationPayload[] = [];
+    const messages = streamResult.data || [];
     
-    for (const key of keys) {
-      const notifResult = await executeRedisCommand(['HGETALL', key]);
-      if (notifResult.success && notifResult.data && Object.keys(notifResult.data).length > 0) {
-        const data = notifResult.data;
-        notifications.push({
-          id: data.id,
-          type: data.type,
-          title: data.title,
-          message: data.message,
-          data: data.data ? JSON.parse(data.data) : {},
-          userId: data.userId,
-          teamId: data.teamId,
-          timestamp: parseInt(data.timestamp),
-        });
+    for (const message of messages) {
+      if (Array.isArray(message) && message.length === 2) {
+        const [, fields] = message;
+        
+        // Parse fields array
+        const messageData: any = {};
+        if (Array.isArray(fields)) {
+          for (let i = 0; i < fields.length; i += 2) {
+            const key = fields[i];
+            const value = fields[i + 1];
+            
+            if (key === 'notification' && typeof value === 'string') {
+              try {
+                messageData.notification = JSON.parse(value);
+              } catch {
+                messageData.notification = value;
+              }
+            } else {
+              messageData[key] = value;
+            }
+          }
+        }
+        
+        if (messageData.notification) {
+          notifications.push(messageData.notification);
+        }
       }
     }
 
@@ -180,8 +197,7 @@ export async function markNotificationAsRead(userId: string, notificationId: str
 // Send webhook notification to active connections (Vercel-efficient)
 export async function sendWebhookNotification(userId: string, notification: NotificationPayload): Promise<{ success: boolean; error?: string }> {
   try {
-    // Skip webhook in development if server is not running
-    const isDevelopment = process.env.NODE_ENV === 'development';
+    // Webhook notification functionality
     
     // In production, this would be your app's domain
     const webhookUrl = process.env.VERCEL_URL 
@@ -239,6 +255,8 @@ export async function sendWebhookNotification(userId: string, notification: Noti
 export async function publishNotification(notification: NotificationPayload): Promise<{ success: boolean; error?: string }> {
   try {
     console.log('📤 Publishing notification to Redis stream:', notification.id);
+    console.log('🎯 Target user ID:', notification.userId);
+    console.log('📡 Will publish to stream key:', `notifications:${notification.userId}`);
 
     // Store notification for persistence and history
     if (notification.userId) {

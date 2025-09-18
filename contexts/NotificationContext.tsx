@@ -42,6 +42,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [connectionType, setConnectionType] = useState<'redis' | 'polling' | null>(null);
   const esRef = useRef<EventSource | null>(null);
   const previousNotificationIds = useRef<Set<string>>(new Set());
+  const initialLoadCompletedRef = useRef<boolean>(false);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
@@ -312,10 +313,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         const newNotifications = data.notifications || [];
         
         // Check for new notifications and show toast
-        // Only show toasts if we have previous notifications to compare against
-        const isFirstLoad = previousNotificationIds.current.size === 0;
-        
-        if (!isFirstLoad) {
+        // Only show toasts if this is not the initial load
+        if (initialLoadCompletedRef.current) {
           const newOnes = newNotifications.filter((notif: Notification) => 
             !previousNotificationIds.current.has(notif.id)
           );
@@ -328,6 +327,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           });
         } else {
           console.log('🔔 First load, not showing toasts for', newNotifications.length, 'notifications');
+          initialLoadCompletedRef.current = true;
         }
         
         // Update the set of seen notification IDs
@@ -490,6 +490,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
                 setNotifications(prev => [notification, ...prev]);
                 setUnreadCount(prev => prev + 1);
                 setLastUpdated(Date.now());
+              } else {
+                console.log('🔔 Duplicate notification ignored:', notification.title);
               }
             } else if (data.type === 'connected') {
               console.log('🎉 Efficient notification stream ready');

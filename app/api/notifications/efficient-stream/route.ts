@@ -30,35 +30,29 @@ setInterval(() => {
   }
 }, CLEANUP_INTERVAL);
 
-// Listen to Redis stream for a specific user
-async function listenToUserStream(userId: string, controller: ReadableStreamDefaultController, lastId = '$') {
+// Check for new messages in Redis stream (minimal polling)
+async function checkForNewMessages(userId: string, controller: ReadableStreamDefaultController, lastId = '$') {
   const streamKey = `notifications:${userId}`;
   
   try {
-    // Use non-blocking XREAD since Upstash REST doesn't support blocking commands
+    console.log(`🔍 Checking stream ${streamKey} from position ${lastId}`);
+    
+    // Use XREAD with minimal count to reduce data transfer
     const result = await executeRedisCommand([
       'XREAD',
-      'COUNT', '10', // Read up to 10 messages
+      'COUNT', '5', // Reduced from 10 to 5
       'STREAMS',
       streamKey,
       lastId
     ]);
-
-    console.log(`🔍 XREAD for ${streamKey} from position ${lastId}`);
     
-    if (result.success) {
-      console.log(`✅ XREAD success:`, result.data ? 'HAS_DATA' : 'NO_DATA');
-    } else {
-      console.log(`❌ XREAD failed:`, result.error);
-    }
-
     if (result.success && result.data && Array.isArray(result.data) && result.data.length > 0) {
-      const streamData = result.data[0]; // First stream
+      const streamData = result.data[0];
       if (Array.isArray(streamData) && streamData.length > 1) {
-        const messages = streamData[1]; // Messages array
+        const messages = streamData[1];
         
         if (Array.isArray(messages) && messages.length > 0) {
-          console.log(`📬 ${messages.length} new Redis stream messages for user ${userId}`);
+          console.log(`📬 ${messages.length} new messages for user ${userId}`);
           
           let latestMessageId = lastId;
           for (const message of messages) {
@@ -66,7 +60,7 @@ async function listenToUserStream(userId: string, controller: ReadableStreamDefa
               const [messageId, fields] = message;
               latestMessageId = messageId;
               
-              // Parse the message fields (Redis stores as flat array: [key, value, key, value, ...])
+              // Parse message fields efficiently
               const messageData: any = {};
               if (Array.isArray(fields)) {
                 for (let i = 0; i < fields.length; i += 2) {
@@ -85,7 +79,7 @@ async function listenToUserStream(userId: string, controller: ReadableStreamDefa
                 }
               }
 
-              // Send to SSE client
+              // Send notification immediately
               if (messageData.notification) {
                 const encoder = new TextEncoder();
                 const sseMessage = JSON.stringify({
@@ -93,40 +87,27 @@ async function listenToUserStream(userId: string, controller: ReadableStreamDefa
                   data: messageData.notification
                 });
                 
-                console.log(`📡 Sending SSE notification to user ${userId}:`, messageData.notification.title);
+                console.log(`📡 Real-time notification: ${messageData.notification.title}`);
                 
                 try {
                   controller.enqueue(encoder.encode(`data: ${sseMessage}\n\n`));
-                  
-                  // Update connection activity and stream position
-                  for (const [connId, conn] of activeConnections.entries()) {
-                    if (conn.userId === userId) {
-                      conn.lastActivity = new Date();
-                      conn.streamPosition = messageId;
-                      break;
-                    }
-                  }
                 } catch (error) {
-                  console.error(`❌ Error sending SSE message to user ${userId}:`, error);
+                  console.error(`❌ Error sending SSE message:`, error);
                   throw error;
                 }
               }
             }
           }
           
-          return latestMessageId; // Return the latest message ID processed
+          return latestMessageId;
         }
       }
     }
     
-    // Always add delay between polls to prevent tight looping (whether we got messages or not)
-    await new Promise(resolve => setTimeout(resolve, 10000)); // 10 second delay between polls to save quota
-    return lastId; // Return same ID if no new messages
+    return lastId; // No new messages
     
   } catch (error) {
-    console.error(`❌ Error reading from Redis stream ${streamKey}:`, error);
-    // Add delay on error to prevent tight error loops
-    await new Promise(resolve => setTimeout(resolve, 15000)); // Longer delay on errors
+    console.error(`❌ Error checking stream:`, error);
     throw error;
   }
 }
@@ -142,6 +123,7 @@ export async function GET(request: NextRequest) {
     const connectionId = crypto.randomUUID();
 
     console.log('🔗 Setting up efficient notification stream for user:', userId);
+    console.log('🔍 Stream key will be:', `notifications:${userId}`);
 
     const stream = new ReadableStream({
       async start(controller) {
@@ -151,11 +133,12 @@ export async function GET(request: NextRequest) {
           controller,
           userId,
           lastActivity: new Date(),
-          streamPosition: '0' // Start from beginning to catch existing messages
+          streamPosition: '$' // Start from latest to prevent refresh flooding
         });
 
         console.log(`🔗 New SSE connection established for user ${userId}, connection ${connectionId}`);
         console.log(`📊 Total active connections: ${activeConnections.size}`);
+        console.log(`🎯 This connection will listen for notifications on stream: notifications:${userId}`);
 
         const sendMessage = (data: any) => {
           try {
@@ -176,46 +159,63 @@ export async function GET(request: NextRequest) {
           connectionId 
         });
 
-        // Check for any existing queued notifications (one-time check)
-        try {
-          const result = await getUserNotifications(userId);
-          if (result.success && result.notifications) {
-            const recentNotifications = result.notifications
-              .filter(n => Date.now() - n.timestamp < 60000) // Last minute only
-              .slice(0, 5); // Max 5 recent notifications
-            
-            if (recentNotifications.length > 0) {
-              console.log('📋 Sending recent notifications:', recentNotifications.length);
-              sendMessage({
-                type: 'initial_notifications',
-                data: recentNotifications
-              });
-            }
-          }
-        } catch (error) {
-          console.error('❌ Error fetching initial notifications:', error);
-        }
-
-        // Start listening to Redis stream in a loop with adaptive polling
+        // Optimized stream listening with event-driven approach
         const streamLoop = async () => {
-          let lastStreamId = '0'; // Start from beginning to catch existing messages
+          // Get the latest message ID to start from, preventing old message flooding
+          let lastStreamId = '$';
+          try {
+            const streamKey = `notifications:${userId}`;
+            const latestResult = await executeRedisCommand([
+              'XREVRANGE', 
+              streamKey, 
+              '+', 
+              '-', 
+              'COUNT', '1'
+            ]);
+            
+            if (latestResult.success && latestResult.data && latestResult.data.length > 0) {
+              const latestMessage = latestResult.data[0];
+              if (Array.isArray(latestMessage) && latestMessage.length >= 1) {
+                lastStreamId = latestMessage[0]; // Use the latest message ID as starting point
+                console.log(`🎯 Starting from latest message ID: ${lastStreamId}`);
+              }
+            } else {
+              console.log('📭 No existing messages in stream, starting from $');
+            }
+          } catch (error) {
+            console.log('⚠️ Could not get latest message ID, starting from $');
+          }
+          
           let iterationCount = 0;
-          let noActivityCount = 0; // Track consecutive polls with no messages
+          let consecutiveEmptyPolls = 0;
           
           while (activeConnections.has(connectionId)) {
             try {
-              const newLastId = await listenToUserStream(userId, controller, lastStreamId);
+              const newLastId = await checkForNewMessages(userId, controller, lastStreamId);
+              
               if (newLastId && newLastId !== lastStreamId) {
                 lastStreamId = newLastId;
-                noActivityCount = 0; // Reset since we got messages
+                consecutiveEmptyPolls = 0; // Reset counter on activity
+                console.log(`✅ User ${userId} processed new messages, position: ${newLastId}`);
               } else {
-                noActivityCount++;
+                consecutiveEmptyPolls++;
+                console.log(`📭 No new messages for user ${userId}, empty polls: ${consecutiveEmptyPolls}`);
               }
               
               iterationCount++;
               
-              // Send keepalive less frequently to save quota
-              if (iterationCount % 3 === 0) { // Every 3rd iteration (~30 seconds with 10s delay)
+              // Adaptive polling - faster for testing, still efficient
+              let pollDelay = 5000; // Base 5 seconds for testing
+              
+              if (consecutiveEmptyPolls > 5) {
+                pollDelay = 15000; // 15 seconds after no activity
+              }
+              if (consecutiveEmptyPolls > 10) {
+                pollDelay = 30000; // 30 seconds for extended inactivity
+              }
+              
+              // Minimal keepalive (only every 5 minutes)
+              if (iterationCount % 20 === 0) {
                 sendMessage({ 
                   type: 'keepalive', 
                   timestamp: Date.now(),
@@ -223,23 +223,17 @@ export async function GET(request: NextRequest) {
                 });
               }
               
-              // Adaptive delay: slow down if no recent activity
-              if (noActivityCount > 5) {
-                // After 5 consecutive empty polls, slow down even more
-                console.log(`😴 Slowing down polling for user ${userId} due to inactivity`);
-                await new Promise(resolve => setTimeout(resolve, 20000)); // Extra 20s delay
-              }
+              await new Promise(resolve => setTimeout(resolve, pollDelay));
               
             } catch (error) {
-              console.error(`❌ Stream loop error for user ${userId}:`, error);
+              console.error(`❌ Stream error:`, error);
               
-              // If connection is broken, clean up and exit
               if (!activeConnections.has(connectionId)) {
                 break;
               }
               
-              // Wait before retrying on error
-              await new Promise(resolve => setTimeout(resolve, 15000));
+              // Longer delay on errors to prevent spam
+              await new Promise(resolve => setTimeout(resolve, 30000));
             }
           }
         };
@@ -254,14 +248,16 @@ export async function GET(request: NextRequest) {
         });
 
         // Handle client disconnect
-        request.signal?.addEventListener('abort', () => {
+        const handleDisconnect = () => {
           console.log('🔌 Client disconnected:', connectionId, 'for user:', userId);
           console.log(`📊 Remaining connections: ${activeConnections.size - 1}`);
           activeConnections.delete(connectionId);
           try {
             controller.close();
           } catch {}
-        });
+        };
+        
+        request.signal?.addEventListener('abort', handleDisconnect);
       }
     });
 
