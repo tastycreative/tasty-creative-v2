@@ -303,8 +303,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
                 // Add to seen notifications
                 previousNotificationIds.current.add(notification.id);
                 
-                // Refresh notification list
-                refetch();
+                // Update notifications state directly instead of refetching
+                setNotifications(prev => [notification, ...prev]);
+                setUnreadCount(prev => prev + 1);
+                setLastUpdated(Date.now());
               }
             } else if (data.type === 'connected') {
               console.log('🎉 Efficient notification stream ready');
