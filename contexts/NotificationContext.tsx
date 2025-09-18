@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { toast } from 'sonner';
 import UserProfile from '@/components/ui/UserProfile';
 import { useSession } from 'next-auth/react';
+import { useNotificationStore } from '@/lib/stores/notificationStore';
 
 // Minimal notification context shim — removes all SSE/EventSource logic but
 // preserves the public API so the app can be rebuilt and iterated on.
@@ -35,11 +36,23 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | null>(null);
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  // Use Zustand store for state management and caching
+  const {
+    notifications,
+    unreadCount,
+    isConnected,
+    connectionType,
+    setNotifications,
+    addNotification,
+    markAsRead: storeMarkAsRead,
+    markAllAsRead: storeMarkAllAsRead,
+    setUnreadCount,
+    setConnectionStatus,
+    updateLastFetchTime,
+    shouldRefetch
+  } = useNotificationStore();
+
   const [lastUpdated, setLastUpdated] = useState(Date.now());
-  const [isConnected, setIsConnected] = useState(false);
-  const [connectionType, setConnectionType] = useState<'redis' | 'polling' | null>(null);
   const esRef = useRef<EventSource | null>(null);
   const previousNotificationIds = useRef<Set<string>>(new Set());
   const initialLoadCompletedRef = useRef<boolean>(false);
@@ -289,6 +302,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   };
 
   const refetch = async () => {
+    // Check cache first - reduce API calls significantly
+    if (!shouldRefetch()) {
+      console.log('💾 Using cached notifications, skipping API call');
+      return;
+    }
+
     // Prevent duplicate simultaneous fetches
     if (isFetchingRef.current) {
       console.log('🚫 Already fetching notifications, skipping duplicate request');
@@ -333,13 +352,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         // Update the set of seen notification IDs
         previousNotificationIds.current = new Set(newNotifications.map((n: Notification) => n.id));
         
-        // Update state
+        // Update Zustand store (with caching)
         setNotifications(newNotifications);
         const newUnreadCount = data.count || 0;
         setUnreadCount(newUnreadCount);
+        updateLastFetchTime();
         setLastUpdated(Date.now());
         
-        console.log('📊 Notifications updated:', {
+        console.log('📊 Notifications updated and cached:', {
           total: newNotifications.length,
           unread: newUnreadCount,
           timestamp: new Date().toLocaleString()
@@ -354,6 +374,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   };
 
   const markAsRead = async (notificationId: string) => {
+    // Update store immediately for instant UI feedback
+    storeMarkAsRead(notificationId);
+    
     try {
       await fetch('/api/notifications/mark-read', {
         method: 'POST',
@@ -361,13 +384,18 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         credentials: 'include',
         body: JSON.stringify({ notificationId }),
       });
+      console.log('✅ Marked notification as read:', notificationId);
     } catch (err) {
-      // ignore
+      console.error('❌ Failed to mark as read:', err);
+      // Could implement rollback here if needed
     }
-    await refetch();
+    // No need to refetch - store is already updated
   };
 
   const markAllAsRead = async () => {
+    // Update store immediately for instant UI feedback
+    storeMarkAllAsRead();
+    
     try {
       await fetch('/api/notifications/mark-read', {
         method: 'POST',
@@ -375,10 +403,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ markAll: true }),
       });
+      console.log('✅ Marked all notifications as read');
     } catch (err) {
-      // ignore
+      console.error('❌ Failed to mark all as read:', err);
+      // Could implement rollback here if needed
     }
-    await refetch();
+    // No need to refetch - store is already updated
   };
 
   // No-op realtime subscription API to keep callers working until a new
@@ -453,8 +483,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
         eventSource.onopen = () => {
           console.log('✅ Efficient notification stream connected');
-          setIsConnected(true);
-          setConnectionType('redis');
+          setConnectionStatus(true, 'redis');
           reconnectAttempts.current = 0;
           isConnectingRef.current = false; // Reset connecting flag
           
@@ -486,9 +515,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
                 // Add to seen notifications
                 previousNotificationIds.current.add(notification.id);
                 
-                // Update notifications state directly instead of refetching
-                setNotifications(prev => [notification, ...prev]);
-                setUnreadCount(prev => prev + 1);
+                // Update Zustand store directly
+                addNotification(notification);
                 setLastUpdated(Date.now());
               } else {
                 console.log('🔔 Duplicate notification ignored:', notification.title);
@@ -511,8 +539,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
         eventSource.onerror = (error) => {
           console.error('❌ Efficient notification stream error:', error);
-          setIsConnected(false);
-          setConnectionType(null);
+          setConnectionStatus(false, null);
           isConnectingRef.current = false; // Reset connecting flag on error
           
           // Attempt to reconnect with exponential backoff
@@ -536,8 +563,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         };
       } catch (error) {
         console.error('❌ Failed to create efficient EventSource:', error);
-        setIsConnected(false);
-        setConnectionType(null);
+        setConnectionStatus(false, null);
         isConnectingRef.current = false; // Reset connecting flag on error
         
         // Fallback to polling
@@ -568,16 +594,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         esRef.current = null;
       }
       
-      setIsConnected(false);
-      setConnectionType(null);
+      setConnectionStatus(false, null);
     };
   }, [status, session?.user?.id]); // Only depend on auth status and user ID, not entire session object
 
   // Polling fallback
   let pollTimer: number | undefined;
   function startPolling() {
-  setConnectionType('polling');
-  setIsConnected(true);
+    setConnectionStatus(true, 'polling');
     // fetch immediately
     refetch();
     pollTimer = window.setInterval(() => {
