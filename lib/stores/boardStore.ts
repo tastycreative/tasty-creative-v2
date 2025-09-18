@@ -29,11 +29,17 @@ export interface Task {
   createdAt: string;
   updatedAt: string;
   updatedBy: string | null; // Email of the user who last updated the task
+  taskNumber: number | null;
   createdBy: {
     id: string;
     name: string | null;
     email: string | null;
   };
+  podTeam?: {
+    id: string;
+    name: string;
+    projectPrefix: string | null;
+  } | null;
   assignedUser?: {
     id: string;
     name: string | null;
@@ -650,6 +656,18 @@ export const useBoardStore = create<BoardStore>()(
           const currentTask = get().tasks.find(task => task.id === taskId);
           if (!currentTask) return;
           
+          // Check if assignment is changing
+          const isAssignmentChange = updates.assignedTo !== undefined && updates.assignedTo !== currentTask.assignedTo;
+          const previousAssignee = currentTask.assignedTo;
+          const newAssignee = updates.assignedTo;
+          
+          console.log(`🔄 Task update - Assignment change detection:`);
+          console.log(`  Task ID: ${taskId}`);
+          console.log(`  Updates:`, updates);
+          console.log(`  Previous assignee: ${previousAssignee}`);
+          console.log(`  New assignee: ${newAssignee}`);
+          console.log(`  Is assignment change: ${isAssignmentChange}`);
+          
           // Optimistic update
           const updatedTask = { ...currentTask, ...updates, updatedAt: new Date().toISOString() };
           set((state) => ({
@@ -682,6 +700,72 @@ export const useBoardStore = create<BoardStore>()(
                 isEditingTask: isAttachmentOnlyUpdate ? state.isEditingTask : false,
                 editingTaskData: isAttachmentOnlyUpdate ? { ...state.editingTaskData, attachments: result.task.attachments } : {}
               }));
+              
+              // Send assignment notification if needed
+              if (isAssignmentChange && newAssignee) {
+                try {
+                  console.log(`🔔 Attempting to send assignment notification for task: ${result.task.title}`);
+                  console.log(`Previous assignee: ${previousAssignee}, New assignee: ${newAssignee}`);
+                  
+                  // Get user info from the session or make an API call to get it
+                  const sessionResponse = await fetch('/api/auth/session');
+                  const sessionData = await sessionResponse.json();
+                  
+                  console.log(`Session data:`, sessionData?.user ? 'User found' : 'No user in session');
+                  
+                  if (sessionData?.user) {
+                    // Find assigned user details
+                    console.log(`🔍 Looking up user by email: ${newAssignee}`);
+                    const assignedUserResponse = await fetch(`/api/users/by-email?email=${encodeURIComponent(newAssignee)}`);
+                    const assignedUserData = await assignedUserResponse.json();
+                    
+                    console.log(`User lookup result:`, assignedUserData.success ? `Found user: ${assignedUserData.user?.name || assignedUserData.user?.email}` : `Error: ${assignedUserData.error}`);
+                    
+                    if (assignedUserData?.success && assignedUserData?.user) {
+                      console.log(`📤 Sending assignment notification...`);
+                      const notificationPayload = {
+                        taskId: result.task.id,
+                        taskTitle: result.task.title,
+                        taskDescription: result.task.description,
+                        assignedToEmail: newAssignee,
+                        assignedToUserId: assignedUserData.user.id,
+                        priority: result.task.priority,
+                        teamId: result.task.podTeamId,
+                        teamName: result.task.podTeam?.name || 'Team',
+                        assignedBy: sessionData.user.name || sessionData.user.email,
+                        assignedById: sessionData.user.id,
+                        dueDate: result.task.dueDate,
+                        previousAssigneeId: previousAssignee
+                      };
+                      
+                      console.log(`Notification payload:`, notificationPayload);
+                      
+                      const notificationResponse = await fetch('/api/notifications/assignment', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(notificationPayload),
+                      });
+                      
+                      const notificationResult = await notificationResponse.json();
+                      
+                      if (notificationResult.success) {
+                        console.log(`✅ Assignment notification sent successfully for task: ${result.task.title}`);
+                      } else {
+                        console.error(`❌ Assignment notification failed:`, notificationResult.error);
+                      }
+                    } else {
+                      console.error(`❌ Could not find user with email: ${newAssignee}`, assignedUserData);
+                    }
+                  } else {
+                    console.error(`❌ No valid session found for assignment notification`);
+                  }
+                } catch (notificationError) {
+                  console.error('❌ Failed to send assignment notification:', notificationError);
+                  // Don't fail the task update if notification fails
+                }
+              }
               
               // Invalidate cache
               get().clearCache(`tasks-${get().currentTeamId}`);

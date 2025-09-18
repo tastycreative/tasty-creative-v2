@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { sendColumnAssignmentNotificationEmail } from '@/lib/email';
+import { generateTaskUrl } from '@/lib/taskUtils';
 import { createInAppNotification } from '@/lib/notifications';
-import { upstashPublish } from '@/lib/upstash';
+import { publishNotification } from '@/lib/upstash';
 
 // Force SSE for App Router (Socket.IO not properly supported)
 const isProduction = true; // Always use SSE
@@ -86,7 +87,7 @@ export async function POST(req: NextRequest) {
             teamName,
             movedBy,
             priority,
-            taskUrl: `${process.env.NEXTAUTH_URL}/apps/pod/board?task=${taskId}`
+            taskUrl: await generateTaskUrl(taskId)
           });
 
           emailResults.push({
@@ -135,7 +136,7 @@ export async function POST(req: NextRequest) {
                 image: movedByUser.image
               } : null,
               priority,
-              taskUrl: `${process.env.NEXTAUTH_URL}/apps/pod/board?team=${teamId}&task=${taskId}`
+              taskUrl: await generateTaskUrl(taskId, teamId)
             },
             taskId
           });
@@ -143,45 +144,37 @@ export async function POST(req: NextRequest) {
 
           // in-app notification created
 
-          // Publish to Upstash channels: individual user and team (if provided)
-          try {
-            const payload = {
-              type: 'TASK_STATUS_CHANGED',
-              title: 'Task moved to your column',
-              message: `${movedBy} moved "${taskTitle}" to ${newColumn}`,
-              data: {
-                taskId,
-                taskTitle,
-                oldColumn,
-                newColumn,
-                teamId,
-                teamName,
-                movedBy,
-                movedByUser: movedByUser ? {
-                  id: movedByUser.id,
-                  name: movedByUser.name,
-                  email: movedByUser.email,
-                  image: movedByUser.image
-                } : null,
-                priority,
-                taskUrl: `${process.env.NEXTAUTH_URL}/apps/pod/board?team=${teamId}&task=${taskId}`,
-                notificationId: inAppNotification?.id || null,
-              },
-              createdAt: new Date().toISOString(),
-            };
+          // Send real-time notification via unified Redis system
+          const realtimeNotification = {
+            id: `column_move_${taskId}_${member.userId}_${Date.now()}`,
+            type: 'TASK_STATUS_CHANGED',
+            title: 'Task moved to your column',
+            message: `${movedBy} moved "${taskTitle}" to ${newColumn}`,
+            data: {
+              taskId,
+              taskTitle,
+              oldColumn,
+              newColumn,
+              columnName: newColumn,
+              teamId,
+              teamName,
+              movedBy,
+              movedByUser: movedByUser ? {
+                id: movedByUser.id,
+                name: movedByUser.name,
+                email: movedByUser.email,
+                image: movedByUser.image
+              } : null,
+              priority,
+              taskUrl: await generateTaskUrl(taskId, teamId),
+              notificationId: inAppNotification?.id || null,
+            },
+            userId: member.userId,
+            teamId: teamId,
+            timestamp: Date.now()
+          };
 
-            const userChannel = `user:${member.userId}`;
-            const teamChannel = `team:${teamId}`;
-
-            const userResult = await upstashPublish(userChannel, payload);
-            // upstash publish result (user)
-
-            // publish to team channel as well
-            const teamResult = await upstashPublish(teamChannel, payload);
-            // upstash publish result (team)
-          } catch (pubErr) {
-            console.error('❌ Upstash publish failed for column movement:', pubErr);
-          }
+          await publishNotification(realtimeNotification);
         } catch (inAppError) {
           console.error(`❌ Failed to create in-app notification for ${member.userEmail}:`, inAppError);
         }

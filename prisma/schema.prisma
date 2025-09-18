@@ -340,6 +340,7 @@ model ClientModelDetails {
   mm_restrictions       String?
   verbiage_restrictions String?
   wall_restrictions     String?
+  calendar_id           String?
 }
 
 model PodTeam {
@@ -809,6 +810,7 @@ enum NotificationType {
   TASK_COMMENT_ADDED
   TASK_DUE_DATE_APPROACHING
   POD_TEAM_ADDED
+  TASK_MENTION
   POD_TEAM_CLIENT_ASSIGNED
   POD_TEAM_MEMBER_JOINED
   CONTENT_SUBMISSION_STATUS_CHANGED

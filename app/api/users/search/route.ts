@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
           name: true,
           email: true,
           role: true,
+          image: true,
         },
         take: 20, // Limit to 20 results for all POD users
         orderBy: [
@@ -85,6 +86,7 @@ export async function GET(request: NextRequest) {
         name: true,
         email: true,
         role: true,
+        image: true,
       },
       take: 10, // Limit to 10 results
       orderBy: [

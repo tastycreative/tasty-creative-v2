@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Bell, X, CheckCircle2, Clock, Users, FileText, Wifi, WifiOff } from 'lucide-react';
+import { Bell, X, CheckCircle2, Clock, Users, FileText, Wifi, WifiOff, ExternalLink } from 'lucide-react';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useNotificationStore } from '@/lib/stores/notificationStore';
+import UserProfile from '@/components/ui/UserProfile';
 
 interface Notification {
   id: string;
@@ -29,12 +31,46 @@ interface NotificationBellProps {
 
 export default function NotificationBell({ className = '' }: NotificationBellProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const { notifications, unreadCount, isConnected, connectionType, lastUpdated, markAsRead, markAllAsRead, refetch } = useNotifications();
+  const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'read'>('all');
+  
+  // Use Zustand store directly for better caching and performance
+  const {
+    notifications: storeNotifications,
+    unreadCount: storeUnreadCount,
+    isConnected,
+    connectionType,
+    markAsRead,
+    markAllAsRead,
+    shouldRefetch
+  } = useNotificationStore();
+  
+  // Keep minimal Context usage for refetch functionality only when needed
+  const { refetch } = useNotifications();
+  
+  // Use store data
+  const notifications = storeNotifications;
+  const unreadCount = storeUnreadCount;
 
-  // Force re-render when lastUpdated changes
+  // Filter notifications based on active tab
+  const filteredNotifications = notifications.filter(notification => {
+    switch (activeTab) {
+      case 'unread':
+        return !notification.isRead;
+      case 'read':
+        return notification.isRead;
+      case 'all':
+      default:
+        return true;
+    }
+  });
+
+  // Smart refetch: only fetch if cache is stale and dropdown is opened
   useEffect(() => {
-  // Re-render on updates; keep quiet in production
-  }, [lastUpdated, unreadCount]);
+    if (isOpen && shouldRefetch()) {
+      console.log('📖 NotificationBell: Cache stale, refetching...');
+      refetch();
+    }
+  }, [isOpen, shouldRefetch, refetch]);
 
   // Get icon based on notification type
   const getNotificationIcon = (type: string) => {
@@ -75,46 +111,73 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
   // Test notification function for debugging
   const testNotification = async () => {
     try {
-      const response = await fetch('/api/notifications/test', {
+      const response = await fetch('/api/notifications/test-redis', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: 'Test Redis notification! 🚀'
+        })
       });
       
       if (response.ok) {
         const result = await response.json();
-            // Show result in an alert for quick confirmation
-            alert(`Test notification sent!`);
+        alert(`Test notification sent via Redis!`);
+        console.log('🧪 Test notification result:', result);
       } else {
-            alert('Test notification failed');
+        alert('Test notification failed');
       }
     } catch (error) {
-          alert('Test notification error');
+      alert('Test notification error');
     }
   };
 
+  // Debug connection status
+  const debugConnection = () => {
+    const debugInfo = {
+      isConnected,
+      connectionType,
+      lastUpdated: new Date().toISOString(),
+      unreadCount,
+      totalNotifications: notifications.length,
+      timestamp: new Date().toISOString()
+    };
+    
+    console.log('🔍 Notification Connection Debug:', debugInfo);
+    alert(`Connection Status: ${isConnected ? `Connected (${connectionType})` : 'Disconnected'}\nLast Updated: ${new Date().toLocaleString()}\nNotifications: ${notifications.length}\nUnread: ${unreadCount}`);
+  };
+
+
 
   return (
-    <div className={`relative ${className}`} key={`bell-${lastUpdated}`}>
-      {/* Bell Icon */}
+    <div className={`relative ${className}`}>
+      {/* Bell Icon or Commenter Profile */}
       <button
         onClick={() => {
           setIsOpen(!isOpen);
           if (!isOpen) refetch();
         }}
         className="relative p-2 text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 transition-colors"
-        title={`${unreadCount} unread notifications${isConnected ? ` (${connectionType})` : ' (offline)'}`}
+        title={`${unreadCount} unread notifications${isConnected ? ` (${connectionType === 'redis' ? 'Redis Efficient' : connectionType === 'polling' ? 'Polling' : connectionType === 'sse' ? 'SSE Live' : 'Connected'})` : ' (Disconnected)'}`}
       >
         <div className="relative">
           <Bell className="h-5 w-5" />
           {/* Connection status indicator */}
           {isConnected ? (
-            <Wifi className="h-2 w-2 text-green-500 absolute -bottom-0.5 -right-0.5" />
+            connectionType === 'redis' ? (
+              <div className="h-2 w-2 bg-emerald-500 rounded-full absolute -bottom-0.5 -right-0.5 animate-pulse shadow-sm" title="Redis Live Connection" />
+            ) : connectionType === 'polling' ? (
+              <div className="h-2 w-2 bg-yellow-500 rounded-full absolute -bottom-0.5 -right-0.5" title="Polling Connection" />
+            ) : connectionType === 'sse' ? (
+              <div className="h-2 w-2 bg-blue-500 rounded-full absolute -bottom-0.5 -right-0.5 animate-pulse" title="SSE Live Connection" />
+            ) : (
+              <div className="h-2 w-2 bg-green-500 rounded-full absolute -bottom-0.5 -right-0.5" title="Connected" />
+            )
           ) : (
-            <WifiOff className="h-2 w-2 text-red-500 absolute -bottom-0.5 -right-0.5" />
+            <div className="h-2 w-2 bg-red-500 rounded-full absolute -bottom-0.5 -right-0.5" title="Disconnected" />
           )}
         </div>
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-[20px] text-[11px] font-semibold">
+          <span className="absolute -top-1 -right-1 bg-pink-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center min-w-[20px] text-[11px] font-semibold">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -130,22 +193,37 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
           />
           
           {/* Dropdown Panel */}
-          <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 max-h-96 overflow-hidden">
+          <div className="absolute right-0 top-full mt-2 w-96 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-pink-200/50 dark:border-pink-500/30 z-50 max-h-[500px] flex flex-col transition-all duration-300">
             {/* Header */}
-            <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <div className="px-4 py-3 border-b border-pink-100/60 dark:border-pink-500/20 flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <h3 className="font-semibold text-gray-900 dark:text-gray-100">
                   Notifications
                 </h3>
                 {isConnected ? (
-                  <div className="flex items-center space-x-1 text-xs text-green-600 dark:text-green-400">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span>{connectionType === 'sse' ? 'Live' : connectionType === 'polling' ? 'Polling' : 'Connected'}</span>
+                  <div className={`flex items-center space-x-1 text-xs ${
+                    connectionType === 'redis' ? 'text-emerald-600 dark:text-emerald-400' :
+                    connectionType === 'polling' ? 'text-yellow-600 dark:text-yellow-400' :
+                    connectionType === 'sse' ? 'text-blue-600 dark:text-blue-400' :
+                    'text-green-600 dark:text-green-400'
+                  }`}>
+                    <div className={`w-2 h-2 rounded-full ${
+                      connectionType === 'redis' ? 'bg-emerald-500 animate-pulse' :
+                      connectionType === 'polling' ? 'bg-yellow-500' :
+                      connectionType === 'sse' ? 'bg-blue-500 animate-pulse' :
+                      'bg-green-500'
+                    }`}></div>
+                    <span>
+                      {connectionType === 'redis' ? 'Redis Live' : 
+                       connectionType === 'polling' ? 'Polling' : 
+                       connectionType === 'sse' ? 'SSE Live' : 
+                       'Connected'}
+                    </span>
                   </div>
                 ) : (
                   <div className="flex items-center space-x-1 text-xs text-red-600 dark:text-red-400">
                     <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                    <span>Offline</span>
+                    <span>Disconnected</span>
                   </div>
                 )}
               </div>
@@ -158,6 +236,13 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
                       title="Send test notification"
                     >
                       Test
+                    </button>
+                    <button
+                      onClick={debugConnection}
+                      className="text-xs text-gray-600 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 px-2 py-1 rounded bg-gray-50 dark:bg-gray-900/20"
+                      title="Debug connection status"
+                    >
+                      Debug
                     </button>
                   </>
                 )}
@@ -172,80 +257,125 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
               </div>
             </div>
 
+            {/* Tabs */}
+            <div className="flex border-b border-pink-100/60 dark:border-pink-500/20">
+              {(['all', 'unread', 'read'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex-1 px-4 py-2 text-sm font-medium text-center capitalize transition-colors ${
+                    activeTab === tab
+                      ? 'text-pink-600 dark:text-pink-400 border-b-2 border-pink-600 dark:border-pink-400 bg-pink-50/60 dark:bg-pink-900/20'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400'
+                  }`}
+                >
+                  {tab}
+                  {tab === 'unread' && unreadCount > 0 && (
+                    <span className="ml-1 bg-pink-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[16px] text-center">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+
             {/* Notifications List */}
-            <div className="max-h-80 overflow-y-auto">
-              {notifications.length === 0 ? (
-                <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                  <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No notifications yet</p>
+            <div className="flex-1 overflow-y-auto">
+              {filteredNotifications.length === 0 ? (
+                <div className="p-6 text-center text-gray-500 dark:text-gray-400">
+                  <Bell className="h-6 w-6 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">
+                    {activeTab === 'unread' && notifications.length > 0 
+                      ? 'No unread notifications'
+                      : activeTab === 'read' && notifications.length > 0
+                      ? 'No read notifications'
+                      : 'No notifications yet'
+                    }
+                  </p>
                 </div>
               ) : (
-                notifications.map((notification) => (
-                  <div
-                    key={notification.id}
-                    className={`p-4 border-b border-gray-100 dark:border-gray-700 last:border-b-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-                      !notification.isRead ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-                    }`}
-                    onClick={() => handleNotificationClick(notification)}
-                  >
-                    <div className="flex items-start space-x-3">
-                      <div className="flex-shrink-0 mt-1">
-                        {getNotificationIcon(notification.type)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <p className={`text-sm font-medium text-gray-900 dark:text-gray-100 ${
-                              !notification.isRead ? 'font-semibold' : ''
+                filteredNotifications.slice(0, 5).map((notification) => {
+                  // Extract user info from notification data - prioritize commenter for comment notifications
+                  const triggerUser = notification.type === 'TASK_COMMENT_ADDED' 
+                    ? notification.data?.commenterUser || notification.data?.mentionerUser
+                    : notification.data?.createdByUser || notification.data?.movedByUser || notification.data?.mentionerUser;
+                  
+                  // Debug log for comment notifications
+                  if (notification.type === 'TASK_COMMENT_ADDED') {
+                    console.log('Comment notification debug:', {
+                      notificationId: notification.id,
+                      data: notification.data,
+                      commenterUser: notification.data?.commenterUser,
+                      triggerUser
+                    });
+                  }
+                  
+                  return (
+                    <div
+                      key={notification.id}
+                      className={`p-3 border-b border-pink-100/40 dark:border-pink-500/10 last:border-b-0 cursor-pointer hover:bg-pink-50/40 dark:hover:bg-pink-900/10 transition-colors ${
+                        !notification.isRead ? 'bg-pink-50/60 dark:bg-pink-900/20' : ''
+                      }`}
+                      onClick={() => handleNotificationClick(notification)}
+                    >
+                      <div className="flex items-start space-x-3">
+                        <div className="flex-shrink-0">
+                          <UserProfile 
+                            user={{
+                              id: triggerUser?.id || 'system',
+                              name: triggerUser?.name || 'System',
+                              email: triggerUser?.email || 'system@app.com',
+                              image: triggerUser?.image || null
+                            }}
+                            size="sm"
+                            className="ring-2 ring-pink-200/50 dark:ring-pink-500/30"
+                          />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <p className={`text-sm text-gray-900 dark:text-gray-100 ${
+                              !notification.isRead ? 'font-medium' : ''
                             }`}>
                               {notification.title}
                             </p>
-                            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                              {notification.message}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                              {new Date(notification.createdAt).toLocaleString()}
-                            </p>
+                            {!notification.isRead && (
+                              <div className="w-2 h-2 bg-pink-500 rounded-full ml-2"></div>
+                            )}
                           </div>
-                          {!notification.isRead && (
-                            <div className="flex-shrink-0 ml-2">
-                              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                            </div>
-                          )}
+                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-1">
+                            {notification.message}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                            {new Date(notification.createdAt).toLocaleDateString()} {new Date(notification.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
                         </div>
-                        
-                        {/* Additional context */}
-                        {notification.task && (
-                          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                            Task: {notification.task.title}
-                          </div>
-                        )}
-                        {notification.podTeam && (
-                          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                            Team: {notification.podTeam.name}
-                          </div>
-                        )}
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
             {/* Footer */}
-            {notifications.length > 0 && (
-              <div className="p-3 border-t border-gray-200 dark:border-gray-700 text-center">
-                <button
-                  onClick={() => {
-                    setIsOpen(false);
-                    window.location.href = '/dashboard/notifications';
-                  }}
-                  className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                >
-                  View all notifications
-                </button>
-              </div>
-            )}
+            <div className="flex-shrink-0 p-3 border-t border-pink-100/60 dark:border-pink-500/20">
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  const currentPath = window.location.pathname + window.location.search;
+                  const encodedPath = encodeURIComponent(currentPath);
+                  window.location.href = `/notifications?from=${encodedPath}`;
+                }}
+                className="w-full flex items-center justify-center space-x-2 text-sm text-pink-600 hover:text-pink-700 dark:text-pink-400 dark:hover:text-pink-300 py-2 px-4 rounded-lg hover:bg-pink-50 dark:hover:bg-pink-900/20 transition-colors"
+              >
+                <span>View all notifications</span>
+                <ExternalLink className="h-3 w-3" />
+              </button>
+              {filteredNotifications.length > 5 && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
+                  Showing 5 of {filteredNotifications.length} notifications
+                </p>
+              )}
+            </div>
           </div>
         </>
       )}

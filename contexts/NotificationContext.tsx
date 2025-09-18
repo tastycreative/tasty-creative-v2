@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { toast } from 'sonner';
 import UserProfile from '@/components/ui/UserProfile';
+import { useSession } from 'next-auth/react';
+import { useNotificationStore } from '@/lib/stores/notificationStore';
 
 // Minimal notification context shim — removes all SSE/EventSource logic but
 // preserves the public API so the app can be rebuilt and iterated on.
@@ -21,7 +23,7 @@ interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
   isConnected: boolean;
-  connectionType: 'sse' | 'polling' | null;
+  connectionType: 'redis' | 'polling' | null;
   lastUpdated: number;
   markAsRead: (notificationId: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
@@ -34,22 +36,181 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | null>(null);
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  // Use Zustand store for state management and caching
+  const {
+    notifications,
+    unreadCount,
+    isConnected,
+    connectionType,
+    setNotifications,
+    addNotification,
+    markAsRead: storeMarkAsRead,
+    markAllAsRead: storeMarkAllAsRead,
+    setUnreadCount,
+    setConnectionStatus,
+    updateLastFetchTime,
+    shouldRefetch
+  } = useNotificationStore();
+
   const [lastUpdated, setLastUpdated] = useState(Date.now());
-  const [isConnected, setIsConnected] = useState(false);
-  const [connectionType, setConnectionType] = useState<'sse' | 'polling' | null>(null);
   const esRef = useRef<EventSource | null>(null);
   const previousNotificationIds = useRef<Set<string>>(new Set());
+  const initialLoadCompletedRef = useRef<boolean>(false);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 5;
+  const heartbeatIntervalRef = useRef<NodeJS.Timeout>();
+  const lastHeartbeatRef = useRef<number>(Date.now());
+  const isTabVisibleRef = useRef<boolean>(true);
+  const isConnectingRef = useRef<boolean>(false);
+  const isFetchingRef = useRef<boolean>(false);
+  const lastFetchTimeRef = useRef<number>(0);
+  
+  // Get session for authentication
+  const { data: session, status } = useSession();
+
+  // Declare connectToRedisStream function
+  const connectToRedisStream = useRef<() => void>();
+
+  // Page Visibility API and Focus/Blur events - Track if tab is active
+  useEffect(() => {
+    let visibilityTimeout: NodeJS.Timeout;
+    
+    const handleVisibilityChange = () => {
+      const isVisible = !document.hidden;
+      isTabVisibleRef.current = isVisible;
+      console.log(`👁️ Tab visibility changed: ${isVisible ? 'visible' : 'hidden'}`);
+      
+      if (isVisible) {
+        // Clear any existing timeout
+        if (visibilityTimeout) {
+          clearTimeout(visibilityTimeout);
+        }
+        
+        // Add a small delay to avoid rapid successive calls
+        visibilityTimeout = setTimeout(() => {
+          console.log('🔍 Checking connection health after visibility change...');
+          checkConnectionHealth();
+        }, 1000); // 1 second delay
+      }
+    };
+
+    const handleFocus = () => {
+      console.log('🎯 Window focused - ensuring connection is healthy');
+      isTabVisibleRef.current = true;
+      
+      // Clear any existing timeout
+      if (visibilityTimeout) {
+        clearTimeout(visibilityTimeout);
+      }
+      
+      // Add a small delay to avoid rapid successive calls
+      visibilityTimeout = setTimeout(() => {
+        checkConnectionHealth();
+      }, 500); // 0.5 second delay for focus
+    };
+
+    const handleBlur = () => {
+      console.log('😴 Window blurred - connection will continue in background');
+      isTabVisibleRef.current = false;
+      
+      // Clear any pending health checks
+      if (visibilityTimeout) {
+        clearTimeout(visibilityTimeout);
+      }
+    };
+
+    // Add all event listeners
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      if (visibilityTimeout) {
+        clearTimeout(visibilityTimeout);
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, []);
+
+  // Connection health check - only reconnect if actually disconnected
+  const checkConnectionHealth = () => {
+    // Only reconnect if connection is actually lost
+    if (!esRef.current || esRef.current.readyState === EventSource.CLOSED || esRef.current.readyState === EventSource.CONNECTING) {
+      console.log('🏥 Connection unhealthy (state:', esRef.current?.readyState, '), attempting to reconnect...');
+      connectToRedisStream.current?.();
+    } else if (esRef.current.readyState === EventSource.OPEN) {
+      console.log('💚 Connection healthy and open - no action needed');
+      // Connection is healthy, no need to do anything
+      // Real-time notifications will come through the SSE stream
+    } else {
+      console.log('🔍 Connection in unknown state:', esRef.current?.readyState);
+    }
+  };
+
+  // Emergency heartbeat - only used when connection is unstable
+  const sendEmergencyHeartbeat = async () => {
+    try {
+      console.log('🆘 Sending emergency heartbeat to stabilize connection...');
+      await fetch('/api/notifications/ping', { 
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          timestamp: Date.now(),
+          tabVisible: isTabVisibleRef.current,
+          emergency: true
+        })
+      });
+      console.log('💓 Emergency heartbeat sent successfully');
+    } catch (error) {
+      console.error('❌ Emergency heartbeat failed:', error);
+    }
+  };
+
+  // Connection health monitor - checks periodically but only acts on issues
+  const startHeartbeat = () => {
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+    }
+
+    heartbeatIntervalRef.current = setInterval(() => {
+      lastHeartbeatRef.current = Date.now();
+      
+      // Only act if connection is having issues
+      if (!esRef.current) {
+        console.log('🔍 No EventSource found, attempting reconnect...');
+        connectToRedisStream.current?.();
+      } else if (esRef.current.readyState === EventSource.CLOSED) {
+        console.log('� Connection closed, attempting reconnect...');
+        connectToRedisStream.current?.();
+      } else if (esRef.current.readyState === EventSource.CONNECTING) {
+        console.log('🔄 Connection still connecting, sending emergency heartbeat...');
+        sendEmergencyHeartbeat();
+      } else if (esRef.current.readyState === EventSource.OPEN) {
+        // Connection is healthy - just log silently
+        console.log('� Connection healthy, no action needed');
+      }
+    }, 30000); // Every 30 seconds - just monitoring, not constantly pinging
+  };
+
+  const stopHeartbeat = () => {
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+      heartbeatIntervalRef.current = undefined;
+    }
+  };
 
   const showNotificationToast = (notification: Notification) => {
     const data = notification.data || {};
     
     console.log('🔔 showNotificationToast called with:', notification);
     
-    // Extract user info from notification data - try the new user profile structure first
-    const triggerUserProfile = data.movedByUser || data.mentionerUser || null;
-    const triggerUserName = triggerUserProfile?.name || data.movedBy || data.mentionerName || data.userWhoLinked || 'Someone';
+    // Extract user info from notification data - try different user profile fields
+    const triggerUserProfile = data.movedByUser || data.mentionerUser || data.commenterUser || data.createdByUser || null;
+    const triggerUserName = triggerUserProfile?.name || data.movedBy || data.mentionerName || data.commenterName || data.userWhoLinked || data.createdBy || 'Someone';
     const taskTitle = data.taskTitle || data.taskUrl?.split('task=')[1] || '';
     const taskUrl = data.taskUrl;
     
@@ -64,9 +225,23 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         action = `moved "${taskTitle}" to ${data.newColumn || 'a new column'}`;
         summary = `Task moved to ${data.newColumn || 'new status'}`;
         break;
-      case 'TASK_COMMENT_ADDED':
+      case 'TASK_MENTION':
         action = `mentioned you in "${taskTitle}"`;
         summary = 'You were mentioned in a comment';
+        break;
+      case 'TASK_COMMENT_ADDED':
+        action = `commented on "${taskTitle}"`;
+        summary = 'New comment on task';
+        break;
+      case 'TASK_ASSIGNED':
+        // Use the actual notification message for OTP-PTR team assignments
+        if (data.submissionType && data.teamName) {
+          action = `created a new ${data.submissionType.toUpperCase()} task "${taskTitle}" for your team`;
+          summary = `New ${data.submissionType.toUpperCase()} task assigned to ${data.teamName}`;
+        } else {
+          action = `assigned "${taskTitle}" to you`;
+          summary = 'Task assigned to you';
+        }
         break;
       case 'POD_TEAM_ADDED':
       case 'POD_TEAM_CLIENT_ASSIGNED':
@@ -83,7 +258,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     // Show toast with click handler
     toast(
-      <div className="flex items-start space-x-3 cursor-pointer" onClick={() => handleToastClick(taskUrl, notification)}>
+      <div className="flex items-start space-x-3 cursor-pointer max-w-sm" onClick={() => handleToastClick(taskUrl, notification)}>
         {triggerUserProfile ? (
           <UserProfile 
             user={{
@@ -100,11 +275,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             {triggerUserName.charAt(0).toUpperCase()}
           </div>
         )}
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
             {triggerUserName}
           </p>
-          <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+          <p className="text-sm text-gray-600 dark:text-gray-400 break-words leading-tight">
             {action}
           </p>
         </div>
@@ -112,6 +287,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       {
         duration: 6000,
         position: 'bottom-right',
+        style: {
+          maxWidth: '400px',
+          width: 'auto',
+        },
       }
     );
     
@@ -129,44 +308,81 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   };
 
   const refetch = async () => {
+    // Check cache first - reduce API calls significantly
+    if (!shouldRefetch()) {
+      console.log('💾 Using cached notifications, skipping API call');
+      return;
+    }
+
+    // Prevent duplicate simultaneous fetches
+    if (isFetchingRef.current) {
+      console.log('🚫 Already fetching notifications, skipping duplicate request');
+      return;
+    }
+
+    // Rate limiting - don't fetch more than once every 2 seconds
+    const now = Date.now();
+    if (now - lastFetchTimeRef.current < 2000) {
+      console.log('🚫 Rate limiting: Last fetch was too recent, skipping');
+      return;
+    }
+
     try {
-      const res = await fetch('/api/notifications/in-app', { credentials: 'include' });
+      isFetchingRef.current = true;
+      lastFetchTimeRef.current = now;
+
+      console.log('📡 Fetching notifications from API...');
+      const res = await fetch('/api/notifications/in-app?all=true', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         const newNotifications = data.notifications || [];
         
         // Check for new notifications and show toast
-        // Only show toasts if we have previous notifications to compare against
-        const isFirstLoad = previousNotificationIds.current.size === 0;
-        
-        if (!isFirstLoad) {
+        // Only show toasts if this is not the initial load
+        if (initialLoadCompletedRef.current) {
           const newOnes = newNotifications.filter((notif: Notification) => 
             !previousNotificationIds.current.has(notif.id)
           );
           
-          console.log('🔔 New notifications detected:', newOnes.length);
+          console.log('🔔 New notifications detected during refetch:', newOnes.length);
           
           newOnes.forEach((notif: Notification) => {
-            console.log('🔔 Showing toast for:', notif.title);
+            console.log('🔔 Showing toast for newly fetched:', notif.title);
             showNotificationToast(notif);
           });
         } else {
           console.log('🔔 First load, not showing toasts for', newNotifications.length, 'notifications');
+          initialLoadCompletedRef.current = true;
         }
         
         // Update the set of seen notification IDs
         previousNotificationIds.current = new Set(newNotifications.map((n: Notification) => n.id));
         
+        // Update Zustand store (with caching)
         setNotifications(newNotifications);
-        setUnreadCount(data.count || 0);
+        const newUnreadCount = data.count || 0;
+        setUnreadCount(newUnreadCount);
+        updateLastFetchTime();
         setLastUpdated(Date.now());
+        
+        console.log('📊 Notifications updated and cached:', {
+          total: newNotifications.length,
+          unread: newUnreadCount,
+          timestamp: new Date().toLocaleString()
+        });
       }
     } catch (err) {
+      console.error('❌ Error fetching notifications:', err);
       // swallow network errors silently to avoid noisy logs
+    } finally {
+      isFetchingRef.current = false; // Always reset fetching flag
     }
   };
 
   const markAsRead = async (notificationId: string) => {
+    // Update store immediately for instant UI feedback
+    storeMarkAsRead(notificationId);
+    
     try {
       await fetch('/api/notifications/mark-read', {
         method: 'POST',
@@ -174,13 +390,18 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         credentials: 'include',
         body: JSON.stringify({ notificationId }),
       });
+      console.log('✅ Marked notification as read:', notificationId);
     } catch (err) {
-      // ignore
+      console.error('❌ Failed to mark as read:', err);
+      // Could implement rollback here if needed
     }
-    await refetch();
+    // No need to refetch - store is already updated
   };
 
   const markAllAsRead = async () => {
+    // Update store immediately for instant UI feedback
+    storeMarkAllAsRead();
+    
     try {
       await fetch('/api/notifications/mark-read', {
         method: 'POST',
@@ -188,10 +409,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ markAll: true }),
       });
+      console.log('✅ Marked all notifications as read');
     } catch (err) {
-      // ignore
+      console.error('❌ Failed to mark all as read:', err);
+      // Could implement rollback here if needed
     }
-    await refetch();
+    // No need to refetch - store is already updated
   };
 
   // No-op realtime subscription API to keep callers working until a new
@@ -209,21 +432,181 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     return false;
   }
 
-  // Establish SSE connection to our stream endpoint
+  // Establish Redis SSE connection
   useEffect(() => {
+    console.log('🚀 NotificationContext useEffect triggered');
+    console.log('🔐 Auth status:', status, 'Session:', !!session?.user);
+    
     // Only run on client
-    if (typeof window === 'undefined') return;
-  // Use polling-only to avoid flaky SSE streaming on serverless platforms.
-  startPolling();
-  return () => stopPolling();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (typeof window === 'undefined') {
+      console.log('❌ Running on server, skipping SSE connection');
+      return;
+    }
+    
+    // Wait for authentication to be resolved
+    if (status === 'loading') {
+      console.log('⏳ Auth loading, waiting...');
+      return;
+    }
+    
+    if (status === 'unauthenticated' || !session?.user) {
+      console.log('❌ User not authenticated, skipping SSE connection');
+      return;
+    }
+    
+    console.log('✅ User authenticated, proceeding with SSE connection for:', session.user.email);
+    
+    // Check if we already have a healthy connection
+    if (esRef.current && esRef.current.readyState === EventSource.OPEN) {
+      console.log('🔗 Connection already exists and is healthy, skipping reconnection');
+      setConnectionStatus(true, 'redis');
+      return;
+    }
+    
+    // Define the connection function
+    connectToRedisStream.current = () => {
+      // Prevent multiple simultaneous connection attempts
+      if (isConnectingRef.current) {
+        console.log('🚫 Already connecting, skipping duplicate connection attempt');
+        return;
+      }
+      
+      console.log('🔗 Connecting to efficient notification stream...');
+      isConnectingRef.current = true;
+      
+      // Close existing connection
+      if (esRef.current) {
+        esRef.current.close();
+        esRef.current = null;
+      }
+
+      try {
+        console.log('🚀 Creating EventSource for efficient notification stream...');
+        const eventSource = new EventSource('/api/notifications/efficient-stream');
+        esRef.current = eventSource;
+        console.log('📡 EventSource created, waiting for connection...');
+
+        eventSource.onopen = () => {
+          console.log('✅ Efficient notification stream connected');
+          setConnectionStatus(true, 'redis');
+          reconnectAttempts.current = 0;
+          isConnectingRef.current = false; // Reset connecting flag
+          
+          // Clear any existing reconnect timeout
+          if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
+          }
+          
+          // Start heartbeat to keep connection alive
+          startHeartbeat();
+          
+          // Log connection success for debugging
+          console.log('🎯 SSE Connection established - should register with server');
+        };
+
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            console.log('📬 Received notification stream data:', data);
+            
+            if (data.type === 'notification' && data.data) {
+              const notification = data.data;
+              
+              // Check if this is a new notification
+              if (!previousNotificationIds.current.has(notification.id)) {
+                console.log('🔔 New notification received:', notification.title);
+                showNotificationToast(notification);
+                
+                // Add to seen notifications
+                previousNotificationIds.current.add(notification.id);
+                
+                // Update Zustand store directly
+                addNotification(notification);
+                setLastUpdated(Date.now());
+              } else {
+                console.log('🔔 Duplicate notification ignored:', notification.title);
+              }
+            } else if (data.type === 'connected') {
+              console.log('🎉 Efficient notification stream ready');
+              // Initial fetch of notifications
+              refetch();
+            } else if (data.type === 'initial_notifications') {
+              console.log('📋 Received initial notifications:', data.data?.length || 0);
+              // Handle initial notifications if needed
+            } else if (data.type === 'keepalive') {
+              // Just a keepalive, no action needed
+              console.log('💓 Keepalive received, connections:', data.connections || 0);
+            }
+          } catch (error) {
+            console.error('❌ Error parsing notification data:', error);
+          }
+        };
+
+        eventSource.onerror = (error) => {
+          console.error('❌ Efficient notification stream error:', error);
+          setConnectionStatus(false, null);
+          isConnectingRef.current = false; // Reset connecting flag on error
+          
+          // Attempt to reconnect with exponential backoff
+          if (reconnectAttempts.current < maxReconnectAttempts) {
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
+            console.log(`🔄 Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts})`);
+            
+            reconnectTimeoutRef.current = setTimeout(() => {
+              reconnectAttempts.current++;
+              connectToRedisStream.current?.();
+            }, delay);
+          } else {
+            console.error('❌ Max reconnection attempts reached, falling back to polling');
+            startPolling();
+          }
+          
+          if (esRef.current) {
+            esRef.current.close();
+            esRef.current = null;
+          }
+        };
+      } catch (error) {
+        console.error('❌ Failed to create efficient EventSource:', error);
+        setConnectionStatus(false, null);
+        isConnectingRef.current = false; // Reset connecting flag on error
+        
+        // Fallback to polling
+        console.log('🔄 Falling back to polling due to EventSource error');
+        startPolling();
+      }
+    };
+
+    // Start Redis connection
+    connectToRedisStream.current?.();
+
+    // Cleanup function
+    return () => {
+        console.log('🧹 Cleaning up efficient notification stream...');
+      
+      // Stop heartbeat
+      stopHeartbeat();
+      
+      // Reset flags
+      isConnectingRef.current = false;
+      
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      
+      if (esRef.current) {
+        esRef.current.close();
+        esRef.current = null;
+      }
+      
+      setConnectionStatus(false, null);
+    };
+  }, [status, session?.user?.id]); // Only depend on auth status and user ID, not entire session object
 
   // Polling fallback
   let pollTimer: number | undefined;
   function startPolling() {
-  setConnectionType('polling');
-  setIsConnected(true);
+    setConnectionStatus(true, 'polling');
     // fetch immediately
     refetch();
     pollTimer = window.setInterval(() => {
@@ -238,8 +621,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }
 
+  // Initial fetch when component mounts
   useEffect(() => {
-    refetch();
+    // Initial fetch will happen when Redis stream connects
+    // This ensures we don't double-fetch
   }, []);
 
   return (

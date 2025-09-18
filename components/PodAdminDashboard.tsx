@@ -66,6 +66,7 @@ interface Team {
   id: string;
   name: string;
   description?: string;
+  projectPrefix?: string;
   members: TeamMember[];
   tasks: Task[];
   sheetUrl?: string;
@@ -131,6 +132,10 @@ const PodAdminDashboard = () => {
   const [editingTeamNameValue, setEditingTeamNameValue] = useState("");
   const [updatingTeamName, setUpdatingTeamName] = useState<string | null>(null);
   const [teamNameSuccess, setTeamNameSuccess] = useState<string | null>(null);
+  const [editingTeamPrefix, setEditingTeamPrefix] = useState<string | null>(null);
+  const [editingTeamPrefixValue, setEditingTeamPrefixValue] = useState("");
+  const [updatingTeamPrefix, setUpdatingTeamPrefix] = useState<string | null>(null);
+  const [teamPrefixSuccess, setTeamPrefixSuccess] = useState<string | null>(null);
   const [showTeamMenu, setShowTeamMenu] = useState<string | null>(null);
   const [showMembersModal, setShowMembersModal] = useState<string | null>(null);
   const [showTasksModal, setShowTasksModal] = useState<string | null>(null);
@@ -284,6 +289,7 @@ const PodAdminDashboard = () => {
               id: teamId,
               name: dbTeam.name,
               description: dbTeam.description || `Team: ${dbTeam.name}`,
+              projectPrefix: dbTeam.projectPrefix,
               members: teamMembers,
               tasks: dbTasks,
               sheetUrl,
@@ -1127,9 +1133,70 @@ const PodAdminDashboard = () => {
     }
   };
 
+  // Team prefix update function
+  const updateTeamPrefix = async (teamId: string, newPrefix: string) => {
+    if (!newPrefix.trim()) return;
+
+    // Validate prefix format (3-5 characters, alphanumeric)
+    const prefix = newPrefix.trim().toUpperCase();
+    if (!/^[A-Z0-9]{3,5}$/.test(prefix)) {
+      alert("Project prefix must be 3-5 characters long and contain only letters and numbers.");
+      return;
+    }
+
+    setUpdatingTeamPrefix(teamId);
+    try {
+      // Update database via teams API
+      const response = await fetch(`/api/pod/teams/${teamId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          projectPrefix: prefix,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update team prefix in database");
+      }
+
+      console.log("Successfully updated team prefix in database");
+
+      // Update team in local state
+      setTeams((prev) =>
+        prev.map((team) =>
+          team.id === teamId ? { ...team, projectPrefix: prefix } : team
+        )
+      );
+
+      setTeamPrefixSuccess(teamId);
+      setTimeout(() => setTeamPrefixSuccess(null), 3000);
+    } catch (err) {
+      console.error("Error updating team prefix:", err);
+      // Revert local state on error
+      setTeams((prev) =>
+        prev.map((team) =>
+          team.id === teamId ? { ...team, projectPrefix: editingTeamPrefixValue } : team
+        )
+      );
+
+      // Show error to user
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to update team prefix";
+      alert(`Error: ${errorMessage}`);
+    } finally {
+      setUpdatingTeamPrefix(null);
+      setEditingTeamPrefix(null);
+      setEditingTeamPrefixValue("");
+    }
+  };
+
   // Add Team function
   const handleAddTeam = async (data: {
     teamName: string;
+    projectPrefix: string;
     creators: string[];
     members?: { userId: string; role: string }[];
   }) => {
@@ -1142,6 +1209,7 @@ const PodAdminDashboard = () => {
         },
         body: JSON.stringify({
           name: data.teamName.trim(),
+          projectPrefix: data.projectPrefix.trim().toUpperCase(),
           description: `Team created via admin dashboard`,
         }),
       });
@@ -1540,7 +1608,7 @@ const PodAdminDashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">
-                      POD Users
+                      Users
                     </p>
                     <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
                       {stats.totalUsers}
@@ -1723,6 +1791,98 @@ const PodAdminDashboard = () => {
                               <Edit className="h-4 w-4" />
                             </button>
                             {teamNameSuccess === team.id && (
+                              <span className="text-green-600 dark:text-green-400 text-sm">
+                                ✓ Updated
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Project Prefix Section */}
+                        {editingTeamPrefix === team.id ? (
+                          <div className="flex items-center space-x-2 mb-3">
+                            <input
+                              type="text"
+                              value={editingTeamPrefixValue}
+                              onChange={(e) => {
+                                // Convert to uppercase and limit to 5 characters
+                                const value = e.target.value.toUpperCase().slice(0, 5);
+                                // Only allow alphanumeric characters
+                                if (/^[A-Z0-9]*$/.test(value)) {
+                                  setEditingTeamPrefixValue(value);
+                                }
+                              }}
+                              placeholder="e.g. ABC"
+                              className="px-2 py-1 text-sm font-mono border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 w-20"
+                              maxLength={5}
+                              autoFocus
+                            />
+                            <button
+                              onClick={() =>
+                                updateTeamPrefix(team.id, editingTeamPrefixValue)
+                              }
+                              disabled={
+                                !editingTeamPrefixValue.trim() ||
+                                editingTeamPrefixValue.length < 3 ||
+                                updatingTeamPrefix === team.id
+                              }
+                              className="p-1 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded disabled:opacity-50"
+                            >
+                              {updatingTeamPrefix === team.id ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                              ) : (
+                                <Save className="h-4 w-4" />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingTeamPrefix(null);
+                                setEditingTeamPrefixValue("");
+                              }}
+                              className="p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2 mb-2">
+                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                              Project Prefix:
+                            </span>
+                            {team.projectPrefix ? (
+                              <>
+                                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-mono rounded">
+                                  {team.projectPrefix}
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    setEditingTeamPrefix(team.id);
+                                    setEditingTeamPrefixValue(team.projectPrefix || "");
+                                  }}
+                                  className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                  title="Edit project prefix"
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <span className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-xs rounded">
+                                  None
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    setEditingTeamPrefix(team.id);
+                                    setEditingTeamPrefixValue("");
+                                  }}
+                                  className="p-1 text-blue-500 hover:text-blue-700 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded"
+                                  title="Add project prefix"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </button>
+                              </>
+                            )}
+                            {teamPrefixSuccess === team.id && (
                               <span className="text-green-600 dark:text-green-400 text-sm">
                                 ✓ Updated
                               </span>
@@ -3585,6 +3745,7 @@ const AddTeamForm = ({
   onClose: () => void;
   onSubmit: (data: {
     teamName: string;
+    projectPrefix: string;
     creators: string[];
     members?: { userId: string; role: string }[];
   }) => void;
@@ -3592,6 +3753,7 @@ const AddTeamForm = ({
 }) => {
   const [formData, setFormData] = useState({
     teamName: "",
+    projectPrefix: "",
   });
   const [selectedCreators, setSelectedCreators] = useState<string[]>([]);
   const [availableCreators, setAvailableCreators] = useState<{id: string; name: string}[]>([]);
@@ -3608,7 +3770,7 @@ const AddTeamForm = ({
     creator.name.toLowerCase().includes(creatorsSearchTerm.toLowerCase())
   );
 
-  // Filter POD users for members based on search term and exclude already selected
+  // Filter Users for members based on search term and exclude already selected
   const filteredPodUsers = podUsers
     .filter((user) => user.role === "POD")
     .filter(
@@ -3697,7 +3859,7 @@ const AddTeamForm = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.teamName.trim()) return;
+    if (!formData.teamName.trim() || !formData.projectPrefix.trim()) return;
 
     setIsSubmitting(true);
     try {
@@ -3708,6 +3870,7 @@ const AddTeamForm = ({
       });
       setFormData({
         teamName: "",
+        projectPrefix: "",
       });
       setSelectedCreators([]);
       setSelectedMembers([]);
@@ -3727,7 +3890,7 @@ const AddTeamForm = ({
     );
   };
 
-  const isFormValid = formData.teamName.trim();
+  const isFormValid = formData.teamName.trim() && formData.projectPrefix.trim();
 
   if (!isOpen) return null;
 
@@ -3770,6 +3933,26 @@ const AddTeamForm = ({
                 placeholder="Enter team name"
                 className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
               />
+            </div>
+
+            {/* Project Prefix */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Project Prefix <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.projectPrefix}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, projectPrefix: e.target.value.toUpperCase() }))
+                }
+                placeholder="e.g., JKL, ABC, PRJ"
+                maxLength={5}
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                3-5 character identifier for task prefixes (e.g., JKL-1, JKL-2)
+              </p>
             </div>
 
           </div>
@@ -3912,7 +4095,7 @@ const AddTeamForm = ({
             <div>
               <div className="flex items-center justify-between mb-4">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Select POD Users
+                  Select Users
                 </label>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   {selectedMembers.length} selected
@@ -3923,14 +4106,14 @@ const AddTeamForm = ({
               <div className="mb-4">
                 <input
                   type="text"
-                  placeholder="Search POD users by name or email..."
+                  placeholder="Search users by name or email..."
                   value={membersSearchTerm}
                   onChange={(e) => setMembersSearchTerm(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 />
               </div>
 
-              {/* Available POD Users */}
+              {/* Available Users */}
               {filteredPodUsers.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-4 bg-white dark:bg-gray-700">
                   {filteredPodUsers.map((user) => (
@@ -3969,8 +4152,8 @@ const AddTeamForm = ({
                 <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-6 bg-gray-50 dark:bg-gray-800 text-center">
                   <p className="text-gray-500 dark:text-gray-400 text-sm">
                     {podUsers.filter((u) => u.role === "POD").length === 0
-                      ? "No POD users available"
-                      : `No POD users match "${membersSearchTerm}"`}
+                      ? "No Users available"
+                      : `No Users match "${membersSearchTerm}"`}
                   </p>
                 </div>
               )}
@@ -4186,14 +4369,14 @@ const AddMemberForm = ({
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Search POD Users
+                Search Users
               </label>
               <button
                 type="button"
                 onClick={handleRefresh}
                 disabled={isRefreshing}
                 className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Refresh POD users list"
+                title="Refresh Users list"
               >
                 <svg
                   className={`h-3 w-3 ${isRefreshing ? "animate-spin" : ""}`}
@@ -4292,7 +4475,7 @@ const AddMemberForm = ({
                 <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                   {searchQuery
                     ? "No users match your search"
-                    : "No POD users available"}
+                    : "No Users available"}
                 </div>
               )}
             </div>

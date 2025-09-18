@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Session } from "next-auth";
-import { X, Edit3, Calendar, Clock } from "lucide-react";
+import { X, Edit3, Calendar, Clock, Loader2 } from "lucide-react";
 import { Task } from "@/lib/stores/boardStore";
 import UserDropdown from "@/components/UserDropdown";
 import FileUpload from "@/components/ui/FileUpload";
@@ -72,6 +72,7 @@ interface TaskDetailModalProps {
   isUserInTeam: boolean;
   teamMembers: Array<{id: string, email: string, name?: string}>;
   teamAdmins: Array<{id: string, email: string, name?: string}>;
+  isSaving?: boolean;
   onClose: () => void;
   onStartEditing: () => void;
   onCancelEditing: () => void;
@@ -91,6 +92,7 @@ export default function TaskDetailModal({
   isUserInTeam,
   teamMembers,
   teamAdmins,
+  isSaving = false,
   onClose,
   onStartEditing,
   onCancelEditing,
@@ -109,7 +111,7 @@ export default function TaskDetailModal({
   
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center p-2 sm:p-4 z-[10000] overflow-y-auto">
-      <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-xl shadow-2xl w-full max-w-4xl border border-white/20 dark:border-gray-700/50 my-4 sm:my-8">
+      <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-xl shadow-2xl w-full max-w-4xl border border-white/20 dark:border-gray-700/50 my-4 sm:my-8 min-w-0">
         {/* Modal Header */}
         <div className="relative px-4 sm:px-8 py-4 sm:py-6 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-white/50 to-gray-50/50 dark:from-gray-800/50 dark:to-gray-900/50">
           <div className="flex items-start justify-between">
@@ -120,8 +122,12 @@ export default function TaskDetailModal({
                 ></div>
                 <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">
                   Task •{" "}
-                  {(statusConfig as any)[selectedTask.status]?.label ||
-                    selectedTask.status}
+                  {selectedTask.podTeam?.projectPrefix && selectedTask.taskNumber ? (
+                    <span className="font-mono">{selectedTask.podTeam.projectPrefix}-{selectedTask.taskNumber}</span>
+                  ) : (
+                    (statusConfig as any)[selectedTask.status]?.label ||
+                    selectedTask.status
+                  )}
                 </span>
               </div>
               {isEditingTask ? (
@@ -188,10 +194,12 @@ export default function TaskDetailModal({
                   </button>
                   <button
                     onClick={onSaveChanges}
-                    className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl"
+                    disabled={isSaving}
+                    className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
-                    <span className="hidden sm:inline">Save Changes</span>
-                    <span className="sm:hidden">Save</span>
+                    {isSaving && <Loader2 className="h-3 w-3 animate-spin" />}
+                    <span className="hidden sm:inline">{isSaving ? 'Saving...' : 'Save Changes'}</span>
+                    <span className="sm:hidden">{isSaving ? 'Saving...' : 'Save'}</span>
                   </button>
                 </div>
               )}
@@ -216,9 +224,9 @@ export default function TaskDetailModal({
         )}
 
         {/* Modal Content - Mobile Responsive */}
-        <div className="flex flex-col lg:flex-row">
+        <div className="flex flex-col lg:flex-row min-h-0 min-w-0">
           {/* Main Content - Mobile Responsive */}
-          <div className="flex-1 p-4 sm:p-8 order-2 lg:order-1">
+          <div className="flex-1 min-w-0 p-4 sm:p-8 order-2 lg:order-1">
             {isEditingTask ? (
               <div className="space-y-6">
                 {/* Edit Description */}
@@ -338,15 +346,15 @@ export default function TaskDetailModal({
                 </div>
               </div>
             ) : (
-              <div className="space-y-8">
+              <div className="space-y-8 min-w-0">
                 {/* Description */}
-                <div>
+                <div className="min-w-0">
                   <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">
                     Description
                   </h4>
                   {selectedTask.description ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                      <p className="text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap">
+                    <div className="prose prose-sm dark:prose-invert max-w-none min-w-0">
+                      <p className="text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere">
                         {linkifyText(selectedTask.description)}
                       </p>
                     </div>
@@ -358,17 +366,19 @@ export default function TaskDetailModal({
                 </div>
 
                 {/* Attachments */}
-                <div>
+                <div className="min-w-0">
                   <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">
                     Attachments
                   </h4>
                   {selectedTask.attachments &&
                   selectedTask.attachments.length > 0 ? (
-                    <AttachmentViewer
-                      attachments={selectedTask.attachments}
-                      showTitle={false}
-                      compact={false}
-                    />
+                    <div className="min-w-0">
+                      <AttachmentViewer
+                        attachments={selectedTask.attachments}
+                        showTitle={false}
+                        compact={false}
+                      />
+                    </div>
                   ) : (
                     <p className="text-gray-400 dark:text-gray-500 italic">
                       No attachments
@@ -376,7 +386,7 @@ export default function TaskDetailModal({
                   )}
                 </div>
                    {/* Comments Section */}
-                <div className=" ">
+                <div className="min-w-0">
                   <TaskComments 
                     taskId={selectedTask.id}
                     teamId={selectedTask.podTeamId || undefined}
@@ -394,8 +404,8 @@ export default function TaskDetailModal({
           </div>
 
           {/* Sidebar - Mobile Responsive */}
-          <div className="w-full lg:w-80 bg-gray-50/50 dark:bg-gray-800/30 border-t lg:border-t-0 lg:border-l border-gray-200/50 dark:border-gray-700/50 p-4 sm:p-6 order-1 lg:order-2">
-            <div className="space-y-4 sm:space-y-6">
+          <div className="w-full lg:w-80 lg:max-w-80 lg:flex-shrink-0 bg-gray-50/50 dark:bg-gray-800/30 border-t lg:border-t-0 lg:border-l border-gray-200/50 dark:border-gray-700/50 p-4 sm:p-6 order-1 lg:order-2">
+            <div className="space-y-4 sm:space-y-6 min-w-0">
               {/* Status - Interactive for authorized users */}
               <div>
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
@@ -416,7 +426,7 @@ export default function TaskDetailModal({
                     ))}
                   </select>
                 ) : (
-                  <div className="flex items-center space-x-3 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                  <div className="flex items-center space-x-3 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg min-w-0">
                     {(() => {
                       const columnConfig = getColumnConfig().find(
                         ([status]) => status === selectedTask.status
@@ -425,10 +435,10 @@ export default function TaskDetailModal({
                         ? columnConfig[1].icon
                         : Clock;
                       return (
-                        <IconComponent className="h-4 w-4 text-gray-500" />
+                        <IconComponent className="h-4 w-4 text-gray-500 flex-shrink-0" />
                       );
                     })()}
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                       {(() => {
                         const columnConfig = getColumnConfig().find(
                           ([status]) => status === selectedTask.status
@@ -447,8 +457,8 @@ export default function TaskDetailModal({
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
                   Priority
                 </label>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm">
+                <div className="flex items-center space-x-2 min-w-0">
+                  <span className="text-sm flex-shrink-0">
                     {selectedTask.priority === "URGENT"
                       ? "🚨"
                       : selectedTask.priority === "HIGH"
@@ -457,7 +467,7 @@ export default function TaskDetailModal({
                           ? "🟡"
                           : "🟢"}
                   </span>
-                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                     {selectedTask.priority}
                   </span>
                 </div>
@@ -469,7 +479,7 @@ export default function TaskDetailModal({
                   Assignee
                 </label>
                 {selectedTask.assignedUser ? (
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-3 min-w-0">
                     <UserProfile
                       user={selectedTask.assignedUser}
                       size="md"
@@ -489,7 +499,7 @@ export default function TaskDetailModal({
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 italic">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 italic truncate">
                     Unassigned
                   </p>
                 )}
@@ -501,7 +511,7 @@ export default function TaskDetailModal({
                   <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
                     Due Date
                   </label>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 min-w-0">
                     <Calendar className="h-4 w-4 text-gray-500 flex-shrink-0" />
                     <span className="text-sm text-gray-900 dark:text-gray-100 truncate">
                       {new Date(selectedTask.dueDate).toLocaleDateString(
@@ -522,8 +532,8 @@ export default function TaskDetailModal({
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
                   Created
                 </label>
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
+                <div className="space-y-2 min-w-0">
+                  <div className="flex items-center space-x-2 min-w-0">
                     <Clock className="h-4 w-4 text-gray-500 flex-shrink-0" />
                     <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
                       {new Date(selectedTask.createdAt).toLocaleDateString(
@@ -538,7 +548,7 @@ export default function TaskDetailModal({
                       )}
                     </span>
                   </div>
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-3 min-w-0">
                     <UserProfile
                       user={selectedTask.createdBy}
                       size="sm"
@@ -562,7 +572,7 @@ export default function TaskDetailModal({
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
                   Last Updated
                 </label>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 min-w-0">
                   <Clock className="h-4 w-4 text-gray-500 flex-shrink-0" />
                   <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
                     {new Date(selectedTask.updatedAt).toLocaleDateString(

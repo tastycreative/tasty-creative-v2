@@ -253,7 +253,7 @@ export async function PUT(request: NextRequest) {
         await prisma.task.updateMany({
           where: {
             status: currentColumn.status,
-            teamId: currentColumn.teamId,
+            podTeamId: currentColumn.teamId,
           },
           data: {
             status: updates.status,

@@ -8,6 +8,7 @@ interface User {
   name: string | null;
   email: string;
   role: string;
+  image?: string | null;
 }
 
 interface UserDropdownProps {
@@ -134,7 +135,8 @@ export default function UserDropdown({
             id: '',
             name: displayName,
             email: value,
-            role: 'POD'
+            role: 'POD',
+            image: null
           });
         };
         
@@ -187,10 +189,18 @@ export default function UserDropdown({
           <div className="flex items-center space-x-3 flex-1">
             {selectedUser ? (
               <>
-                <div className="w-6 h-6 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs font-medium">
-                    {selectedUser.name?.charAt(0) || selectedUser.email?.charAt(0) || 'U'}
-                  </span>
+                <div className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-blue-400 to-blue-600">
+                  {selectedUser.image ? (
+                    <img 
+                      src={selectedUser.image} 
+                      alt={selectedUser.name || selectedUser.email}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-white text-xs font-medium">
+                      {selectedUser.name?.charAt(0) || selectedUser.email?.charAt(0) || 'U'}
+                    </span>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
@@ -263,10 +273,18 @@ export default function UserDropdown({
                     onClick={() => handleUserSelect(user)}
                     className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center space-x-3"
                   >
-                    <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center">
-                      <span className="text-white text-sm font-medium">
-                        {user.name?.charAt(0) || user.email?.charAt(0) || 'U'}
-                      </span>
+                    <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-purple-400 to-purple-600">
+                      {user.image ? (
+                        <img 
+                          src={user.image} 
+                          alt={user.name || user.email}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-white text-sm font-medium">
+                          {user.name?.charAt(0) || user.email?.charAt(0) || 'U'}
+                        </span>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">

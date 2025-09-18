@@ -1,4 +1,5 @@
 import { prisma } from './prisma';
+import { generateTaskUrl } from './taskUtils';
 import { 
   sendColumnAssignmentNotificationEmail,
   sendMentionNotificationEmail,
@@ -17,7 +18,7 @@ const isProduction = typeof process !== 'undefined' && !(
 
 export interface NotificationData {
   userId: string;
-  type: 'TASK_ASSIGNED' | 'TASK_STATUS_CHANGED' | 'TASK_COMMENT_ADDED' | 'TASK_DUE_DATE_APPROACHING' | 'POD_TEAM_ADDED' | 'POD_TEAM_CLIENT_ASSIGNED' | 'POD_TEAM_MEMBER_JOINED' | 'CONTENT_SUBMISSION_STATUS_CHANGED' | 'CLIENT_SHEET_LINK_ADDED' | 'SYSTEM_NOTIFICATION';
+  type: 'TASK_ASSIGNED' | 'TASK_STATUS_CHANGED' | 'TASK_COMMENT_ADDED' | 'TASK_MENTION' | 'TASK_DUE_DATE_APPROACHING' | 'POD_TEAM_ADDED' | 'POD_TEAM_CLIENT_ASSIGNED' | 'POD_TEAM_MEMBER_JOINED' | 'CONTENT_SUBMISSION_STATUS_CHANGED' | 'CLIENT_SHEET_LINK_ADDED' | 'SYSTEM_NOTIFICATION';
   title: string;
   message: string;
   data?: Record<string, any>;
@@ -100,6 +101,53 @@ export async function getUnreadNotifications(userId: string) {
     return notifications;
   } catch (error) {
     console.error('Error fetching unread notifications:', error);
+    throw error;
+  }
+}
+
+export async function getAllNotifications(userId: string) {
+  try {
+    const notifications = await prisma.notification.findMany({
+      where: {
+        userId,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      include: {
+        task: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+          },
+        },
+        podTeam: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        contentSubmission: {
+          select: {
+            id: true,
+            submissionType: true,
+            modelName: true,
+          },
+        },
+        clientModel: {
+          select: {
+            id: true,
+            clientName: true,
+          },
+        },
+      },
+      take: 50, // Limit to last 50 notifications for performance
+    });
+
+    return notifications;
+  } catch (error) {
+    console.error('Error fetching all notifications:', error);
     throw error;
   }
 }
@@ -300,7 +348,7 @@ export async function sendMentionNotification(
 
   if (!mentionedUser?.email) return;
 
-  const taskUrl = `${process.env.NEXTAUTH_URL}/apps/pod/board?team=${podTeamId}&task=${taskId}`;
+  const taskUrl = await generateTaskUrl(taskId, podTeamId);
 
   await sendDualNotification(
     {
@@ -399,7 +447,7 @@ export async function sendTaskAssignmentNotification(
 
   if (!assignedUser?.email || !assignedByUser) return;
 
-  const taskUrl = `${process.env.NEXTAUTH_URL}/apps/pod/board?team=${podTeamId}&task=${taskId}`;
+  const taskUrl = await generateTaskUrl(taskId, podTeamId);
   const assignerName = assignedByUser.name || assignedByUser.email?.split('@')[0] || 'Someone';
 
   await sendDualNotification(

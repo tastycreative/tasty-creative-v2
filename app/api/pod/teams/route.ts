@@ -58,6 +58,7 @@ export async function GET(request: NextRequest) {
       id: team.id,
       name: team.name,
       description: team.description,
+      projectPrefix: team.projectPrefix,
       isActive: team.isActive,
       createdAt: team.createdAt.toISOString(),
       createdBy: team.createdBy,
@@ -100,11 +101,27 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await request.json();
-    const { name, description } = data;
+    const { name, description, projectPrefix } = data;
 
     if (!name?.trim()) {
       return NextResponse.json(
         { error: "Team name is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!projectPrefix?.trim()) {
+      return NextResponse.json(
+        { error: "Project prefix is required" },
+        { status: 400 }
+      );
+    }
+
+    // Validate project prefix format (3-5 characters, alphanumeric)
+    const prefix = projectPrefix.trim().toUpperCase();
+    if (!/^[A-Z0-9]{3,5}$/.test(prefix)) {
+      return NextResponse.json(
+        { error: "Project prefix must be 3-5 alphanumeric characters" },
         { status: 400 }
       );
     }
@@ -120,6 +137,21 @@ export async function POST(request: NextRequest) {
     if (existingTeam) {
       return NextResponse.json(
         { error: "Team name already exists" },
+        { status: 400 }
+      );
+    }
+
+    // Check if project prefix already exists
+    const existingPrefix = await prisma.podTeam.findFirst({
+      where: {
+        projectPrefix: prefix,
+        isActive: true
+      }
+    });
+
+    if (existingPrefix) {
+      return NextResponse.json(
+        { error: "Project prefix already exists" },
         { status: 400 }
       );
     }
@@ -141,6 +173,7 @@ export async function POST(request: NextRequest) {
       data: {
         name: name.trim(),
         description: description?.trim() || null,
+        projectPrefix: prefix,
         createdById: existingUser?.id || null
       },
       include: {
@@ -160,6 +193,7 @@ export async function POST(request: NextRequest) {
         id: team.id,
         name: team.name,
         description: team.description,
+        projectPrefix: team.projectPrefix,
         isActive: team.isActive,
         createdAt: team.createdAt.toISOString(),
         createdBy: team.createdBy || null,

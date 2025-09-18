@@ -19,7 +19,8 @@ export function middleware(request: NextRequest) {
     path.startsWith("/api/webhook") ||
     path.startsWith("/api/hubstaff") ||
     path.startsWith("/api/media-proxy") ||
-    path.startsWith("/api/gallery-db");
+    path.startsWith("/api/gallery-db") ||
+    path.startsWith("/api/notifications");
 
   const publicPaths = ["/"];
   const isPublic = publicPaths.includes(path);
