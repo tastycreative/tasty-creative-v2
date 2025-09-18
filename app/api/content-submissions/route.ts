@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
-import { upstashPublish } from '@/lib/upstash';
+import { publishNotification } from '@/lib/upstash';
 import { sendOTPPTRTaskNotificationEmail } from '@/lib/email';
 import { generateTaskUrl } from '@/lib/taskUtils';
 
@@ -172,26 +172,35 @@ async function sendPGTeamNotifications({
         }
       });
 
-      // Publish to Upstash Redis for real-time notifications
-      await upstashPublish(`notifications:${user.id}`, {
+      // Publish real-time notification via Redis
+      await publishNotification({
+        id: notification.id,
         type: 'TASK_ASSIGNED',
         title: `New ${submissionType} Content Task`,
-        message: `A new ${submissionType} content task for ${modelName} has been created.`,
+        message: `A new ${submissionType} content task for ${modelName} has been created and assigned to the ${teamName} team.`,
+        userId: user.id,
+        teamId: teamId,
+        timestamp: Date.now(),
         data: {
           taskId: task.id,
           taskTitle: task.title,
+          taskDescription: taskDescription,
           taskUrl: taskUrl,
+          teamId: teamId,
           teamName: teamName,
           submissionType: submissionType,
           modelName: modelName,
+          priority: task.priority,
+          createdBy: createdByUser.name || createdByUser.email || 'Unknown User',
           createdByUser: {
             id: createdByUser.id,
             name: createdByUser.name,
             email: createdByUser.email,
             image: createdByUser.image
-          }
-        },
-        timestamp: Date.now()
+          },
+          reason: user.reason,
+          columnLabel: user.columnLabel || null
+        }
       });
 
       return { user, notification };

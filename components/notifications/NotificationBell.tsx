@@ -90,21 +90,39 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
   // Test notification function for debugging
   const testNotification = async () => {
     try {
-      const response = await fetch('/api/notifications/test', {
+      const response = await fetch('/api/notifications/test-redis', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: 'Test Redis notification! 🚀'
+        })
       });
       
       if (response.ok) {
         const result = await response.json();
-            // Show result in an alert for quick confirmation
-            alert(`Test notification sent!`);
+        alert(`Test notification sent via Redis!`);
+        console.log('🧪 Test notification result:', result);
       } else {
-            alert('Test notification failed');
+        alert('Test notification failed');
       }
     } catch (error) {
-          alert('Test notification error');
+      alert('Test notification error');
     }
+  };
+
+  // Debug connection status
+  const debugConnection = () => {
+    const debugInfo = {
+      isConnected,
+      connectionType,
+      lastUpdated: new Date(lastUpdated).toISOString(),
+      unreadCount,
+      totalNotifications: notifications.length,
+      timestamp: new Date().toISOString()
+    };
+    
+    console.log('🔍 Notification Connection Debug:', debugInfo);
+    alert(`Connection Status: ${isConnected ? `Connected (${connectionType})` : 'Disconnected'}\nLast Updated: ${new Date(lastUpdated).toLocaleString()}\nNotifications: ${notifications.length}\nUnread: ${unreadCount}`);
   };
 
 
@@ -118,15 +136,23 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
           if (!isOpen) refetch();
         }}
         className="relative p-2 text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 transition-colors"
-        title={`${unreadCount} unread notifications${isConnected ? ` (${connectionType})` : ' (offline)'}`}
+        title={`${unreadCount} unread notifications${isConnected ? ` (${connectionType === 'redis' ? 'Redis Efficient' : connectionType === 'polling' ? 'Polling' : connectionType === 'sse' ? 'SSE Live' : 'Connected'})` : ' (Disconnected)'}`}
       >
         <div className="relative">
           <Bell className="h-5 w-5" />
           {/* Connection status indicator */}
           {isConnected ? (
-            <Wifi className="h-2 w-2 text-green-500 absolute -bottom-0.5 -right-0.5" />
+            connectionType === 'redis' ? (
+              <div className="h-2 w-2 bg-emerald-500 rounded-full absolute -bottom-0.5 -right-0.5 animate-pulse shadow-sm" title="Redis Live Connection" />
+            ) : connectionType === 'polling' ? (
+              <div className="h-2 w-2 bg-yellow-500 rounded-full absolute -bottom-0.5 -right-0.5" title="Polling Connection" />
+            ) : connectionType === 'sse' ? (
+              <div className="h-2 w-2 bg-blue-500 rounded-full absolute -bottom-0.5 -right-0.5 animate-pulse" title="SSE Live Connection" />
+            ) : (
+              <div className="h-2 w-2 bg-green-500 rounded-full absolute -bottom-0.5 -right-0.5" title="Connected" />
+            )
           ) : (
-            <WifiOff className="h-2 w-2 text-red-500 absolute -bottom-0.5 -right-0.5" />
+            <div className="h-2 w-2 bg-red-500 rounded-full absolute -bottom-0.5 -right-0.5" title="Disconnected" />
           )}
         </div>
         {unreadCount > 0 && (
@@ -154,14 +180,29 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
                   Notifications
                 </h3>
                 {isConnected ? (
-                  <div className="flex items-center space-x-1 text-xs text-green-600 dark:text-green-400">
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span>{connectionType === 'sse' ? 'Live' : connectionType === 'polling' ? 'Polling' : 'Connected'}</span>
+                  <div className={`flex items-center space-x-1 text-xs ${
+                    connectionType === 'redis' ? 'text-emerald-600 dark:text-emerald-400' :
+                    connectionType === 'polling' ? 'text-yellow-600 dark:text-yellow-400' :
+                    connectionType === 'sse' ? 'text-blue-600 dark:text-blue-400' :
+                    'text-green-600 dark:text-green-400'
+                  }`}>
+                    <div className={`w-2 h-2 rounded-full ${
+                      connectionType === 'redis' ? 'bg-emerald-500 animate-pulse' :
+                      connectionType === 'polling' ? 'bg-yellow-500' :
+                      connectionType === 'sse' ? 'bg-blue-500 animate-pulse' :
+                      'bg-green-500'
+                    }`}></div>
+                    <span>
+                      {connectionType === 'redis' ? 'Redis Live' : 
+                       connectionType === 'polling' ? 'Polling' : 
+                       connectionType === 'sse' ? 'SSE Live' : 
+                       'Connected'}
+                    </span>
                   </div>
                 ) : (
                   <div className="flex items-center space-x-1 text-xs text-red-600 dark:text-red-400">
                     <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                    <span>Offline</span>
+                    <span>Disconnected</span>
                   </div>
                 )}
               </div>
@@ -174,6 +215,13 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
                       title="Send test notification"
                     >
                       Test
+                    </button>
+                    <button
+                      onClick={debugConnection}
+                      className="text-xs text-gray-600 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 px-2 py-1 rounded bg-gray-50 dark:bg-gray-900/20"
+                      title="Debug connection status"
+                    >
+                      Debug
                     </button>
                   </>
                 )}

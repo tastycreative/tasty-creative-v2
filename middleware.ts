@@ -18,7 +18,11 @@ export function middleware(request: NextRequest) {
     path.startsWith("/api/auth") || 
     path.startsWith("/api/webhook") || 
     path.startsWith("/api/hubstaff") ||
-    path.startsWith("/api/media-proxy");
+    path.startsWith("/api/media-proxy") ||
+    path.startsWith("/api/notifications/efficient-stream") ||
+    path.startsWith("/api/notifications/debug-connections") ||
+    path.startsWith("/api/notifications/test-sse") ||
+    path.startsWith("/api/notifications/test-redis");
 
   const publicPaths = ["/"];
   const isPublic = publicPaths.includes(path);

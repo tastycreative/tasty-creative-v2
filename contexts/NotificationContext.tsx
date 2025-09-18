@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { toast } from 'sonner';
 import UserProfile from '@/components/ui/UserProfile';
+import { useSession } from 'next-auth/react';
 
 // Minimal notification context shim — removes all SSE/EventSource logic but
 // preserves the public API so the app can be rebuilt and iterated on.
@@ -21,7 +22,7 @@ interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
   isConnected: boolean;
-  connectionType: 'sse' | 'polling' | null;
+  connectionType: 'redis' | 'polling' | null;
   lastUpdated: number;
   markAsRead: (notificationId: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
@@ -38,9 +39,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [unreadCount, setUnreadCount] = useState(0);
   const [lastUpdated, setLastUpdated] = useState(Date.now());
   const [isConnected, setIsConnected] = useState(false);
-  const [connectionType, setConnectionType] = useState<'sse' | 'polling' | null>(null);
+  const [connectionType, setConnectionType] = useState<'redis' | 'polling' | null>(null);
   const esRef = useRef<EventSource | null>(null);
   const previousNotificationIds = useRef<Set<string>>(new Set());
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 5;
+  
+  // Get session for authentication
+  const { data: session, status } = useSession();
 
   const showNotificationToast = (notification: Notification) => {
     const data = notification.data || {};
@@ -152,10 +159,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             !previousNotificationIds.current.has(notif.id)
           );
           
-          console.log('🔔 New notifications detected:', newOnes.length);
+          console.log('🔔 New notifications detected during refetch:', newOnes.length);
           
           newOnes.forEach((notif: Notification) => {
-            console.log('🔔 Showing toast for:', notif.title);
+            console.log('🔔 Showing toast for newly fetched:', notif.title);
             showNotificationToast(notif);
           });
         } else {
@@ -165,11 +172,20 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         // Update the set of seen notification IDs
         previousNotificationIds.current = new Set(newNotifications.map((n: Notification) => n.id));
         
+        // Update state
         setNotifications(newNotifications);
-        setUnreadCount(data.count || 0);
+        const newUnreadCount = data.count || 0;
+        setUnreadCount(newUnreadCount);
         setLastUpdated(Date.now());
+        
+        console.log('📊 Notifications updated:', {
+          total: newNotifications.length,
+          unread: newUnreadCount,
+          timestamp: new Date().toLocaleString()
+        });
       }
     } catch (err) {
+      console.error('❌ Error fetching notifications:', err);
       // swallow network errors silently to avoid noisy logs
     }
   };
@@ -217,15 +233,148 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     return false;
   }
 
-  // Establish SSE connection to our stream endpoint
+  // Establish Redis SSE connection
   useEffect(() => {
+    console.log('🚀 NotificationContext useEffect triggered');
+    console.log('🔐 Auth status:', status, 'Session:', !!session?.user);
+    
     // Only run on client
-    if (typeof window === 'undefined') return;
-    // Polling disabled temporarily
-    // startPolling();
-    // return () => stopPolling();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (typeof window === 'undefined') {
+      console.log('❌ Running on server, skipping SSE connection');
+      return;
+    }
+    
+    // Wait for authentication to be resolved
+    if (status === 'loading') {
+      console.log('⏳ Auth loading, waiting...');
+      return;
+    }
+    
+    if (status === 'unauthenticated' || !session?.user) {
+      console.log('❌ User not authenticated, skipping SSE connection');
+      return;
+    }
+    
+    console.log('✅ User authenticated, proceeding with SSE connection for:', session.user.email);
+    
+    const connectToRedisStream = () => {
+      console.log('🔗 Connecting to efficient notification stream...');
+      
+      // Close existing connection
+      if (esRef.current) {
+        esRef.current.close();
+        esRef.current = null;
+      }
+
+      try {
+        console.log('🚀 Creating EventSource for efficient notification stream...');
+        const eventSource = new EventSource('/api/notifications/efficient-stream');
+        esRef.current = eventSource;
+        console.log('📡 EventSource created, waiting for connection...');
+
+        eventSource.onopen = () => {
+          console.log('✅ Efficient notification stream connected');
+          setIsConnected(true);
+          setConnectionType('redis');
+          reconnectAttempts.current = 0;
+          
+          // Clear any existing reconnect timeout
+          if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
+          }
+          
+          // Log connection success for debugging
+          console.log('🎯 SSE Connection established - should register with server');
+        };
+
+        eventSource.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            console.log('📬 Received notification stream data:', data);
+            
+            if (data.type === 'notification' && data.data) {
+              const notification = data.data;
+              
+              // Check if this is a new notification
+              if (!previousNotificationIds.current.has(notification.id)) {
+                console.log('🔔 New notification received:', notification.title);
+                showNotificationToast(notification);
+                
+                // Add to seen notifications
+                previousNotificationIds.current.add(notification.id);
+                
+                // Refresh notification list
+                refetch();
+              }
+            } else if (data.type === 'connected') {
+              console.log('🎉 Efficient notification stream ready');
+              // Initial fetch of notifications
+              refetch();
+            } else if (data.type === 'initial_notifications') {
+              console.log('📋 Received initial notifications:', data.data?.length || 0);
+              // Handle initial notifications if needed
+            } else if (data.type === 'keepalive') {
+              // Just a keepalive, no action needed
+              console.log('💓 Keepalive received, connections:', data.connections || 0);
+            }
+          } catch (error) {
+            console.error('❌ Error parsing notification data:', error);
+          }
+        };
+
+        eventSource.onerror = (error) => {
+          console.error('❌ Efficient notification stream error:', error);
+          setIsConnected(false);
+          setConnectionType(null);
+          
+          // Attempt to reconnect with exponential backoff
+          if (reconnectAttempts.current < maxReconnectAttempts) {
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
+            console.log(`🔄 Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts})`);
+            
+            reconnectTimeoutRef.current = setTimeout(() => {
+              reconnectAttempts.current++;
+              connectToRedisStream();
+            }, delay);
+          } else {
+            console.error('❌ Max reconnection attempts reached, falling back to polling');
+            startPolling();
+          }
+          
+          if (esRef.current) {
+            esRef.current.close();
+            esRef.current = null;
+          }
+        };
+      } catch (error) {
+        console.error('❌ Failed to create efficient EventSource:', error);
+        setIsConnected(false);
+        setConnectionType(null);
+        
+        // Fallback to polling
+        console.log('🔄 Falling back to polling due to EventSource error');
+        startPolling();
+      }
+    };
+
+    // Start Redis connection
+    connectToRedisStream();
+
+    // Cleanup function
+    return () => {
+        console.log('🧹 Cleaning up efficient notification stream...');      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      
+      if (esRef.current) {
+        esRef.current.close();
+        esRef.current = null;
+      }
+      
+      setIsConnected(false);
+      setConnectionType(null);
+    };
+  }, [status, session]); // Add dependencies
 
   // Polling fallback
   let pollTimer: number | undefined;
@@ -246,9 +395,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }
 
+  // Initial fetch when component mounts
   useEffect(() => {
-    // Initial fetch disabled temporarily
-    // refetch();
+    // Initial fetch will happen when Redis stream connects
+    // This ensures we don't double-fetch
   }, []);
 
   return (
