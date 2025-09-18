@@ -190,12 +190,13 @@
   }
 }
 
-
+/*
 @font-face {
   font-family: "Apple Color Emoji";
   src: url("../fonts/AppleColorEmoji.ttf") format("truetype");
   font-display: swap;
 }
+*/
 
 .emoji-draggable {
   position: absolute;
