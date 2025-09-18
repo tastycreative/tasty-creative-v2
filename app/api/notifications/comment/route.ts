@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { createInAppNotification } from '@/lib/notifications';
+import { publishNotification } from '@/lib/upstash';
 import { prisma } from '@/lib/prisma';
 import { generateTaskUrl } from '@/lib/taskUtils';
 
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
       if (member.userId === session.user.id) continue; // Skip the person who made the comment
 
       try {
-        // Create in-app notification
+        // Create in-app notification for persistence
         const notification = await createInAppNotification({
           userId: member.userId,
           type: notificationType,
@@ -79,7 +80,35 @@ export async function POST(req: NextRequest) {
 
         notifications.push(notification);
 
-        
+        // Send real-time notification via Redis
+        const realtimeNotification = {
+          id: `comment_${task.id}_${member.userId}_${Date.now()}`,
+          type: 'task_comment',
+          title: `Comment ${actionText} on task`,
+          message: `${session.user.name || session.user.email} ${actionText} a comment on "${task.title}"`,
+          data: {
+            taskId: task.id,
+            taskTitle: task.title,
+            taskUrl: taskUrl,
+            commentId,
+            commenterName: session.user.name || session.user.email,
+            commenterUser: {
+              id: session.user.id,
+              name: session.user.name,
+              email: session.user.email,
+              image: session.user.image
+            },
+            teamId: task.podTeamId,
+            notificationType: notificationType,
+            action: actionText,
+            priority: 'normal'
+          },
+          userId: member.userId,
+          teamId: task.podTeamId || undefined,
+          timestamp: Date.now()
+        };
+
+        await publishNotification(realtimeNotification);
 
       } catch (error) {
         console.error(`❌ Failed to create comment notification for user ${member.userId}:`, error);

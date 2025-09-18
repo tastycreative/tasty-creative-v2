@@ -656,6 +656,11 @@ export const useBoardStore = create<BoardStore>()(
           const currentTask = get().tasks.find(task => task.id === taskId);
           if (!currentTask) return;
           
+          // Check if assignment is changing
+          const isAssignmentChange = updates.assignedTo !== undefined && updates.assignedTo !== currentTask.assignedTo;
+          const previousAssignee = currentTask.assignedTo;
+          const newAssignee = updates.assignedTo;
+          
           // Optimistic update
           const updatedTask = { ...currentTask, ...updates, updatedAt: new Date().toISOString() };
           set((state) => ({
@@ -688,6 +693,48 @@ export const useBoardStore = create<BoardStore>()(
                 isEditingTask: isAttachmentOnlyUpdate ? state.isEditingTask : false,
                 editingTaskData: isAttachmentOnlyUpdate ? { ...state.editingTaskData, attachments: result.task.attachments } : {}
               }));
+              
+              // Send assignment notification if needed
+              if (isAssignmentChange && newAssignee) {
+                try {
+                  // Get user info from the session or make an API call to get it
+                  const sessionResponse = await fetch('/api/auth/session');
+                  const sessionData = await sessionResponse.json();
+                  
+                  if (sessionData?.user) {
+                    // Find assigned user details
+                    const assignedUserResponse = await fetch(`/api/users/by-email?email=${newAssignee}`);
+                    const assignedUserData = await assignedUserResponse.json();
+                    
+                    if (assignedUserData?.user) {
+                      await fetch('/api/notifications/assignment', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          taskId: result.task.id,
+                          taskTitle: result.task.title,
+                          taskDescription: result.task.description,
+                          assignedToEmail: newAssignee,
+                          assignedToUserId: assignedUserData.user.id,
+                          priority: result.task.priority,
+                          teamId: result.task.podTeamId,
+                          teamName: result.task.podTeam?.name || 'Team',
+                          assignedBy: sessionData.user.name || sessionData.user.email,
+                          assignedById: sessionData.user.id,
+                          dueDate: result.task.dueDate,
+                          previousAssigneeId: previousAssignee
+                        }),
+                      });
+                      console.log(`📬 Assignment notification sent for task: ${result.task.title}`);
+                    }
+                  }
+                } catch (notificationError) {
+                  console.error('❌ Failed to send assignment notification:', notificationError);
+                  // Don't fail the task update if notification fails
+                }
+              }
               
               // Invalidate cache
               get().clearCache(`tasks-${get().currentTeamId}`);

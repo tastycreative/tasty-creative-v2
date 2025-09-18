@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { sendMentionNotificationEmail } from '@/lib/email';
 import { generateTaskUrl } from '@/lib/taskUtils';
 import { createInAppNotification } from '@/lib/notifications';
-import { upstashPublish } from '@/lib/upstash';
+import { publishNotification } from '@/lib/upstash';
 
 // Force SSE for App Router (Socket.IO not properly supported)
 const isProduction = true; // Always use SSE
@@ -200,47 +200,40 @@ export async function POST(req: NextRequest) {
 
           // in-app mention notification created
 
-          // Publish to Upstash channels: user and optional team
-          try {
-            const payload = {
-              type: 'TASK_COMMENT_ADDED',
-              title: 'You were mentioned in a comment',
-              message: `${session.user.name || session.user.email || 'Someone'} mentioned you in "${task.title}"`,
-              data: {
-                taskId,
-                taskTitle: task.title,
-                commentContent: cleanMentionsForEmail(commentContent),
-                mentionerName: session.user.name || session.user.email || 'Someone',
-                mentionerUser: mentionerUser ? {
-                  id: mentionerUser.id,
-                  name: mentionerUser.name,
-                  email: mentionerUser.email,
-                  image: mentionerUser.image
-                } : null,
-                // Also add commenterUser for consistency
-                commenterUser: mentionerUser ? {
-                  id: mentionerUser.id,
-                  name: mentionerUser.name,
-                  email: mentionerUser.email,
-                  image: mentionerUser.image
-                } : null,
-                teamId,
-                taskUrl: await generateTaskUrl(taskId, teamId),
-                notificationId: inAppNotification?.id || null,
-              },
-              createdAt: new Date().toISOString(),
-            };
+          // Send real-time notification via unified Redis system
+          const realtimeNotification = {
+            id: `mention_${taskId}_${user.id}_${Date.now()}`,
+            type: 'TASK_COMMENT_ADDED',
+            title: 'You were mentioned in a comment',
+            message: `${session.user.name || session.user.email || 'Someone'} mentioned you in "${task.title}"`,
+            data: {
+              taskId,
+              taskTitle: task.title,
+              commentContent: cleanMentionsForEmail(commentContent),
+              mentionerName: session.user.name || session.user.email || 'Someone',
+              mentionerUser: mentionerUser ? {
+                id: mentionerUser.id,
+                name: mentionerUser.name,
+                email: mentionerUser.email,
+                image: mentionerUser.image
+              } : null,
+              // Also add commenterUser for consistency
+              commenterUser: mentionerUser ? {
+                id: mentionerUser.id,
+                name: mentionerUser.name,
+                email: mentionerUser.email,
+                image: mentionerUser.image
+              } : null,
+              teamId,
+              taskUrl: await generateTaskUrl(taskId, teamId),
+              notificationId: inAppNotification?.id || null,
+            },
+            userId: user.id,
+            teamId: teamId || undefined,
+            timestamp: Date.now()
+          };
 
-            const userChannel = `user:${user.id}`;
-            await upstashPublish(userChannel, payload);
-
-            if (teamId) {
-              const teamChannel = `team:${teamId}`;
-              await upstashPublish(teamChannel, payload);
-            }
-          } catch (pubErr) {
-            console.error('❌ Upstash publish failed for mention:', pubErr);
-          }
+          await publishNotification(realtimeNotification);
         } catch (inAppError) {
           console.error(`❌ Failed to create in-app mention notification for ${user.email}:`, inAppError);
         }

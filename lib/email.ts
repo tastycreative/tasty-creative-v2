@@ -1298,3 +1298,204 @@ export async function sendOTPPTRTaskNotificationEmail({
     `,
   });
 }
+
+export async function sendTaskAssignmentNotificationEmail({
+  to,
+  assigneeName,
+  taskTitle,
+  taskDescription,
+  assignedBy,
+  priority,
+  teamName,
+  taskUrl,
+  dueDate,
+}: {
+  to: string;
+  assigneeName: string;
+  taskTitle: string;
+  taskDescription?: string | null;
+  assignedBy: string;
+  priority: string;
+  teamName: string;
+  taskUrl: string;
+  dueDate?: string | null;
+}) {
+  // Get priority styling
+  const priorityConfig: Record<string, { bg: string; text: string; badge: string; emoji: string }> = {
+    LOW: { bg: '#f0f9ff', text: '#0369a1', badge: 'Low Priority', emoji: '🟢' },
+    MEDIUM: { bg: '#fef3c7', text: '#d97706', badge: 'Medium Priority', emoji: '🟡' },
+    HIGH: { bg: '#fee2e2', text: '#dc2626', badge: 'High Priority', emoji: '🔴' },
+    URGENT: { bg: '#fef2f2', text: '#991b1b', badge: 'Urgent Priority', emoji: '🚨' },
+  };
+  
+  const priorityColor = priorityConfig[priority] || priorityConfig.MEDIUM;
+  
+  // Truncate description if too long
+  const truncatedDescription = taskDescription && taskDescription.length > 300 
+    ? taskDescription.substring(0, 300) + "..." 
+    : taskDescription || "No description provided";
+
+  // Format due date
+  const dueDateDisplay = dueDate 
+    ? new Date(dueDate).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : null;
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject: `Task assigned to you: ${taskTitle} - ${teamName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Task Assignment Notification</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f9fafb;">
+          <div style="background-color: #f9fafb; padding: 40px 20px;">
+            <!-- Main Container -->
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);">
+              
+              <!-- Header -->
+              <div style="background: linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%); padding: 48px 40px; text-align: center; border-bottom: 1px solid #c4b5fd;">
+                <svg
+                  style="margin: 0 auto 16px; height: 48px; width: 48px; color: #7c3aed;"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                  />
+                </svg>
+                <h1 style="margin: 0 0 8px 0; font-size: 32px; font-weight: 800; color: #111827; letter-spacing: -0.5px;">
+                  Task Assigned!
+                </h1>
+                <p style="margin: 0; font-size: 16px; color: #6b7280;">
+                  You have been assigned a new task in <span style="font-weight: 600; color: #7c3aed;">${teamName}</span>
+                </p>
+              </div>
+              
+              <!-- Body Content -->
+              <div style="padding: 48px 40px;">
+                <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #374151;">
+                  Hello <strong>${assigneeName}</strong>,
+                </p>
+                <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #374151;">
+                  <strong>${assignedBy}</strong> has assigned you a new task that requires your attention.
+                </p>
+                
+                <!-- Task Details -->
+                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px; margin: 32px 0;">
+                  <!-- Priority Badge -->
+                  <div style="margin-bottom: 16px;">
+                    <span style="background-color: ${priorityColor.bg}; color: ${priorityColor.text}; padding: 8px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px;">
+                      ${priorityColor.emoji} ${priorityColor.badge}
+                    </span>
+                  </div>
+                  
+                  <!-- Task Title -->
+                  <h3 style="margin: 0 0 16px 0; font-size: 20px; color: #111827; font-weight: 700; line-height: 28px;">
+                    ${taskTitle}
+                  </h3>
+                  
+                  <!-- Task Description -->
+                  <p style="margin: 0 0 20px 0; font-size: 14px; color: #6b7280; line-height: 20px;">
+                    ${truncatedDescription}
+                  </p>
+                  
+                  <!-- Task Meta Info -->
+                  <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 20px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                      <!-- Team -->
+                      <div>
+                        <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Team</p>
+                        <p style="margin: 0; font-size: 14px; color: #111827; font-weight: 600;">${teamName}</p>
+                      </div>
+                      
+                      <!-- Assigned By -->
+                      <div>
+                        <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Assigned By</p>
+                        <p style="margin: 0; font-size: 14px; color: #111827; font-weight: 600;">${assignedBy}</p>
+                      </div>
+                      
+                      ${dueDateDisplay ? `
+                      <!-- Due Date -->
+                      <div>
+                        <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Due Date</p>
+                        <p style="margin: 0; font-size: 14px; color: #dc2626; font-weight: 600;">${dueDateDisplay}</p>
+                      </div>
+                      ` : ''}
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- CTA Button -->
+                <div style="text-align: center; margin: 32px 0;">
+                  <a href="${taskUrl}" style="display: inline-block; padding: 14px 32px; background-color: #7c3aed; color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; transition: all 0.3s ease;">
+                    View Task Details
+                  </a>
+                </div>
+                
+                <!-- Divider -->
+                <div style="margin: 40px 0; border-top: 1px solid #e5e7eb;"></div>
+                
+                <!-- Additional Information -->
+                <div style="background-color: #f9fafb; padding: 24px; border-radius: 8px; margin-bottom: 24px;">
+                  <p style="margin: 0 0 12px 0; font-size: 14px; color: #6b7280;">
+                    <strong>What's next?</strong>
+                  </p>
+                  <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 20px;">
+                    Click the button above to view the task details, update its status, add comments, or ask questions. You can collaborate with your team members directly on the task.
+                  </p>
+                </div>
+                
+                <!-- Footer text -->
+                <p style="margin: 0 0 12px 0; font-size: 14px; color: #6b7280; line-height: 20px;">
+                  You're receiving this notification because you were assigned to this task. You can manage your notification preferences in your account settings.
+                </p>
+                
+                <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 20px;">
+                  <strong>Note:</strong> You can update the task status, add comments, and collaborate with your team members by clicking the link above.
+                </p>
+              </div>
+              
+              <!-- Footer -->
+              <div style="background-color: #f9fafb; padding: 32px 40px; text-align: center; border-top: 1px solid #e5e7eb;">
+                <p style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #111827;">
+                  Tasty Creative
+                </p>
+                <p style="margin: 0; font-size: 14px; color: #6b7280;">
+                  Creating amazing content experiences
+                </p>
+                
+                <!-- Social links placeholder -->
+                <div style="margin-top: 20px;">
+                  <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+                    © ${new Date().getFullYear()} Tasty Creative. All rights reserved.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Email footer -->
+            <div style="text-align: center; margin-top: 32px;">
+              <p style="margin: 0; font-size: 12px; color: #9ca3af; line-height: 18px;">
+                This email was sent to ${to}<br>
+                You received this notification because you were assigned to a task.
+              </p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+  });
+}
