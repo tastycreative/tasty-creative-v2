@@ -168,7 +168,7 @@ export async function POST(req: NextRequest) {
 
           const inAppNotification = await createInAppNotification({
             userId: user.id,
-            type: 'TASK_COMMENT_ADDED',
+            type: 'TASK_MENTION',
             title: 'You were mentioned in a comment',
             message: `${session.user.name || session.user.email || 'Someone'} mentioned you in "${task.title}"`,
             data: {
@@ -203,7 +203,7 @@ export async function POST(req: NextRequest) {
           // Send real-time notification via unified Redis system
           const realtimeNotification = {
             id: `mention_${taskId}_${user.id}_${Date.now()}`,
-            type: 'TASK_COMMENT_ADDED',
+            type: 'TASK_MENTION',
             title: 'You were mentioned in a comment',
             message: `${session.user.name || session.user.email || 'Someone'} mentioned you in "${task.title}"`,
             data: {

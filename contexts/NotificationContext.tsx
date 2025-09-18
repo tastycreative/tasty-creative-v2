@@ -54,9 +54,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     
     console.log('🔔 showNotificationToast called with:', notification);
     
-    // Extract user info from notification data - try the new user profile structure first
-    const triggerUserProfile = data.movedByUser || data.mentionerUser || data.createdByUser || null;
-    const triggerUserName = triggerUserProfile?.name || data.movedBy || data.mentionerName || data.userWhoLinked || data.createdBy || 'Someone';
+    // Extract user info from notification data - try different user profile fields
+    const triggerUserProfile = data.movedByUser || data.mentionerUser || data.commenterUser || data.createdByUser || null;
+    const triggerUserName = triggerUserProfile?.name || data.movedBy || data.mentionerName || data.commenterName || data.userWhoLinked || data.createdBy || 'Someone';
     const taskTitle = data.taskTitle || data.taskUrl?.split('task=')[1] || '';
     const taskUrl = data.taskUrl;
     
@@ -71,13 +71,17 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         action = `moved "${taskTitle}" to ${data.newColumn || 'a new column'}`;
         summary = `Task moved to ${data.newColumn || 'new status'}`;
         break;
-      case 'TASK_COMMENT_ADDED':
+      case 'TASK_MENTION':
         action = `mentioned you in "${taskTitle}"`;
         summary = 'You were mentioned in a comment';
         break;
+      case 'TASK_COMMENT_ADDED':
+        action = `commented on "${taskTitle}"`;
+        summary = 'New comment on task';
+        break;
       case 'TASK_ASSIGNED':
-        action = `created a new ${data.submissionType || 'content'} task${data.modelName ? ` for ${data.modelName}` : ''}`;
-        summary = `New ${data.submissionType || 'content'} task created`;
+        action = `assigned "${taskTitle}" to you`;
+        summary = 'Task assigned to you';
         break;
       case 'POD_TEAM_ADDED':
       case 'POD_TEAM_CLIENT_ASSIGNED':

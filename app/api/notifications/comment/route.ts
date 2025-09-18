@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
         // Send real-time notification via Redis
         const realtimeNotification = {
           id: `comment_${task.id}_${member.userId}_${Date.now()}`,
-          type: 'task_comment',
+          type: 'TASK_COMMENT_ADDED',
           title: `Comment ${actionText} on task`,
           message: `${session.user.name || session.user.email} ${actionText} a comment on "${task.title}"`,
           data: {
