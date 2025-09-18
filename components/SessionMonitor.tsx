@@ -66,7 +66,8 @@ export function SessionMonitor() {
 
     const cleanup = setupRoleChangeListener(session.user.id, handleRoleChange)
     
-    // Also set up a periodic check for role changes (every 30 seconds)
+    // Periodic check for role changes disabled temporarily
+    /*
     const intervalCheck = setInterval(async () => {
       try {
         const response = await fetch('/api/auth/force-refresh', {
@@ -90,10 +91,11 @@ export function SessionMonitor() {
         console.error('Periodic role check failed:', error)
       }
     }, 30000) // Check every 30 seconds
+    */
     
     return () => {
       cleanup()
-      clearInterval(intervalCheck)
+      // clearInterval(intervalCheck)
     }
   }, [session?.user?.id, session?.user?.role, update, router])
 
