@@ -234,8 +234,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         summary = 'New comment on task';
         break;
       case 'TASK_ASSIGNED':
-        action = `assigned "${taskTitle}" to you`;
-        summary = 'Task assigned to you';
+        // Use the actual notification message for OTP-PTR team assignments
+        if (data.submissionType && data.teamName) {
+          action = `created a new ${data.submissionType.toUpperCase()} task "${taskTitle}" for your team`;
+          summary = `New ${data.submissionType.toUpperCase()} task assigned to ${data.teamName}`;
+        } else {
+          action = `assigned "${taskTitle}" to you`;
+          summary = 'Task assigned to you';
+        }
         break;
       case 'POD_TEAM_ADDED':
       case 'POD_TEAM_CLIENT_ASSIGNED':
@@ -453,8 +459,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     // Check if we already have a healthy connection
     if (esRef.current && esRef.current.readyState === EventSource.OPEN) {
       console.log('🔗 Connection already exists and is healthy, skipping reconnection');
-      setIsConnected(true);
-      setConnectionType('redis');
+      setConnectionStatus(true, 'redis');
       return;
     }
     

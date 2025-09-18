@@ -145,7 +145,7 @@ async function sendPGTeamNotifications({
           userId: user.id,
           type: 'TASK_ASSIGNED',
           title: `New ${submissionType} Content Task`,
-          message: `A new ${submissionType} content task for ${modelName} has been created and assigned to the ${teamName} team.`,
+          message: `A new ${submissionType.toUpperCase()} content task for ${modelName} has been created and assigned to your team.`,
           isRead: false,
           data: {
             taskId: task.id,
@@ -177,7 +177,7 @@ async function sendPGTeamNotifications({
         id: notification.id,
         type: 'TASK_ASSIGNED',
         title: `New ${submissionType} Content Task`,
-        message: `A new ${submissionType} content task for ${modelName} has been created and assigned to the ${teamName} team.`,
+        message: `A new ${submissionType.toUpperCase()} content task for ${modelName} has been created and assigned to your team.`,
         userId: user.id,
         teamId: teamId,
         timestamp: Date.now(),

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, X, CheckCircle2, Clock, Users, FileText, Wifi, WifiOff, ExternalLink } from 'lucide-react';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { useNotificationStore } from '@/lib/stores/notificationStore';
 import UserProfile from '@/components/ui/UserProfile';
 
 interface Notification {
@@ -31,7 +32,24 @@ interface NotificationBellProps {
 export default function NotificationBell({ className = '' }: NotificationBellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'read'>('all');
-  const { notifications, unreadCount, isConnected, connectionType, lastUpdated, markAsRead, markAllAsRead, refetch } = useNotifications();
+  
+  // Use Zustand store directly for better caching and performance
+  const {
+    notifications: storeNotifications,
+    unreadCount: storeUnreadCount,
+    isConnected,
+    connectionType,
+    markAsRead,
+    markAllAsRead,
+    shouldRefetch
+  } = useNotificationStore();
+  
+  // Keep minimal Context usage for refetch functionality only when needed
+  const { refetch } = useNotifications();
+  
+  // Use store data
+  const notifications = storeNotifications;
+  const unreadCount = storeUnreadCount;
 
   // Filter notifications based on active tab
   const filteredNotifications = notifications.filter(notification => {
@@ -46,10 +64,13 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
     }
   });
 
-  // Force re-render when lastUpdated changes
+  // Smart refetch: only fetch if cache is stale and dropdown is opened
   useEffect(() => {
-  // Re-render on updates; keep quiet in production
-  }, [lastUpdated, unreadCount]);
+    if (isOpen && shouldRefetch()) {
+      console.log('📖 NotificationBell: Cache stale, refetching...');
+      refetch();
+    }
+  }, [isOpen, shouldRefetch, refetch]);
 
   // Get icon based on notification type
   const getNotificationIcon = (type: string) => {
@@ -115,20 +136,20 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
     const debugInfo = {
       isConnected,
       connectionType,
-      lastUpdated: new Date(lastUpdated).toISOString(),
+      lastUpdated: new Date().toISOString(),
       unreadCount,
       totalNotifications: notifications.length,
       timestamp: new Date().toISOString()
     };
     
     console.log('🔍 Notification Connection Debug:', debugInfo);
-    alert(`Connection Status: ${isConnected ? `Connected (${connectionType})` : 'Disconnected'}\nLast Updated: ${new Date(lastUpdated).toLocaleString()}\nNotifications: ${notifications.length}\nUnread: ${unreadCount}`);
+    alert(`Connection Status: ${isConnected ? `Connected (${connectionType})` : 'Disconnected'}\nLast Updated: ${new Date().toLocaleString()}\nNotifications: ${notifications.length}\nUnread: ${unreadCount}`);
   };
 
 
 
   return (
-    <div className={`relative ${className}`} key={`bell-${lastUpdated}`}>
+    <div className={`relative ${className}`}>
       {/* Bell Icon or Commenter Profile */}
       <button
         onClick={() => {
