@@ -120,13 +120,13 @@ async function listenToUserStream(userId: string, controller: ReadableStreamDefa
     }
     
     // Always add delay between polls to prevent tight looping (whether we got messages or not)
-    await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay between polls
+    await new Promise(resolve => setTimeout(resolve, 10000)); // 10 second delay between polls to save quota
     return lastId; // Return same ID if no new messages
     
   } catch (error) {
     console.error(`❌ Error reading from Redis stream ${streamKey}:`, error);
     // Add delay on error to prevent tight error loops
-    await new Promise(resolve => setTimeout(resolve, 3000)); // Longer delay on errors
+    await new Promise(resolve => setTimeout(resolve, 15000)); // Longer delay on errors
     throw error;
   }
 }
@@ -196,27 +196,38 @@ export async function GET(request: NextRequest) {
           console.error('❌ Error fetching initial notifications:', error);
         }
 
-        // Start listening to Redis stream in a loop
+        // Start listening to Redis stream in a loop with adaptive polling
         const streamLoop = async () => {
           let lastStreamId = '0'; // Start from beginning to catch existing messages
           let iterationCount = 0;
+          let noActivityCount = 0; // Track consecutive polls with no messages
           
           while (activeConnections.has(connectionId)) {
             try {
               const newLastId = await listenToUserStream(userId, controller, lastStreamId);
               if (newLastId && newLastId !== lastStreamId) {
                 lastStreamId = newLastId;
+                noActivityCount = 0; // Reset since we got messages
+              } else {
+                noActivityCount++;
               }
               
               iterationCount++;
               
-              // Send keepalive only every 6th iteration (roughly every 30 seconds with 5s XREAD timeout)
-              if (iterationCount % 6 === 0) {
+              // Send keepalive less frequently to save quota
+              if (iterationCount % 3 === 0) { // Every 3rd iteration (~30 seconds with 10s delay)
                 sendMessage({ 
                   type: 'keepalive', 
                   timestamp: Date.now(),
                   connections: activeConnections.size 
                 });
+              }
+              
+              // Adaptive delay: slow down if no recent activity
+              if (noActivityCount > 5) {
+                // After 5 consecutive empty polls, slow down even more
+                console.log(`😴 Slowing down polling for user ${userId} due to inactivity`);
+                await new Promise(resolve => setTimeout(resolve, 20000)); // Extra 20s delay
               }
               
             } catch (error) {
@@ -228,7 +239,7 @@ export async function GET(request: NextRequest) {
               }
               
               // Wait before retrying on error
-              await new Promise(resolve => setTimeout(resolve, 5000));
+              await new Promise(resolve => setTimeout(resolve, 15000));
             }
           }
         };
