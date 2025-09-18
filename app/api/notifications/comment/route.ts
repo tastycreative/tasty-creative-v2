@@ -109,6 +109,7 @@ export async function POST(req: NextRequest) {
         };
 
         await publishNotification(realtimeNotification);
+        console.log('✅ Published comment notification to Redis stream for user:', member.userId);
 
       } catch (error) {
         console.error(`❌ Failed to create comment notification for user ${member.userId}:`, error);

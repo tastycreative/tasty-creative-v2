@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { getUserNotifications } from '@/lib/upstash';
+import { getUserNotifications, executeRedisCommand } from '@/lib/upstash';
 
-// More efficient notification system for Vercel
-// Uses webhooks + manual refresh instead of polling
+// Real-time notification system using Upstash Redis Streams
+// Uses XREAD to listen for new notifications
 
-// Store active connections per user (minimal memory usage)
+// Store active connections per user
 const activeConnections = new Map<string, {
   controller: ReadableStreamDefaultController;
   userId: string;
   lastActivity: Date;
+  streamPosition: string;
 }>();
 
-// Cleanup every 5 minutes
+// Cleanup stale connections every 5 minutes
 const CLEANUP_INTERVAL = 5 * 60 * 1000;
 const CONNECTION_TIMEOUT = 10 * 60 * 1000; // 10 minutes
 
@@ -28,6 +29,107 @@ setInterval(() => {
     }
   }
 }, CLEANUP_INTERVAL);
+
+// Listen to Redis stream for a specific user
+async function listenToUserStream(userId: string, controller: ReadableStreamDefaultController, lastId = '$') {
+  const streamKey = `notifications:${userId}`;
+  
+  try {
+    // Use non-blocking XREAD since Upstash REST doesn't support blocking commands
+    const result = await executeRedisCommand([
+      'XREAD',
+      'COUNT', '10', // Read up to 10 messages
+      'STREAMS',
+      streamKey,
+      lastId
+    ]);
+
+    console.log(`🔍 XREAD for ${streamKey} from position ${lastId}`);
+    
+    if (result.success) {
+      console.log(`✅ XREAD success:`, result.data ? 'HAS_DATA' : 'NO_DATA');
+    } else {
+      console.log(`❌ XREAD failed:`, result.error);
+    }
+
+    if (result.success && result.data && Array.isArray(result.data) && result.data.length > 0) {
+      const streamData = result.data[0]; // First stream
+      if (Array.isArray(streamData) && streamData.length > 1) {
+        const messages = streamData[1]; // Messages array
+        
+        if (Array.isArray(messages) && messages.length > 0) {
+          console.log(`📬 ${messages.length} new Redis stream messages for user ${userId}`);
+          
+          let latestMessageId = lastId;
+          for (const message of messages) {
+            if (Array.isArray(message) && message.length === 2) {
+              const [messageId, fields] = message;
+              latestMessageId = messageId;
+              
+              // Parse the message fields (Redis stores as flat array: [key, value, key, value, ...])
+              const messageData: any = {};
+              if (Array.isArray(fields)) {
+                for (let i = 0; i < fields.length; i += 2) {
+                  const key = fields[i];
+                  const value = fields[i + 1];
+                  
+                  if (key === 'notification' && typeof value === 'string') {
+                    try {
+                      messageData.notification = JSON.parse(value);
+                    } catch {
+                      messageData.notification = value;
+                    }
+                  } else {
+                    messageData[key] = value;
+                  }
+                }
+              }
+
+              // Send to SSE client
+              if (messageData.notification) {
+                const encoder = new TextEncoder();
+                const sseMessage = JSON.stringify({
+                  type: 'notification',
+                  data: messageData.notification
+                });
+                
+                console.log(`📡 Sending SSE notification to user ${userId}:`, messageData.notification.title);
+                
+                try {
+                  controller.enqueue(encoder.encode(`data: ${sseMessage}\n\n`));
+                  
+                  // Update connection activity and stream position
+                  for (const [connId, conn] of activeConnections.entries()) {
+                    if (conn.userId === userId) {
+                      conn.lastActivity = new Date();
+                      conn.streamPosition = messageId;
+                      break;
+                    }
+                  }
+                } catch (error) {
+                  console.error(`❌ Error sending SSE message to user ${userId}:`, error);
+                  throw error;
+                }
+              }
+            }
+          }
+          
+          return latestMessageId; // Return the latest message ID processed
+        }
+      }
+    }
+    
+    // Always add delay between polls to prevent tight looping (whether we got messages or not)
+    await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay between polls
+    return lastId; // Return same ID if no new messages
+    
+  } catch (error) {
+    console.error(`❌ Error reading from Redis stream ${streamKey}:`, error);
+    // Add delay on error to prevent tight error loops
+    await new Promise(resolve => setTimeout(resolve, 3000)); // Longer delay on errors
+    throw error;
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -48,7 +150,8 @@ export async function GET(request: NextRequest) {
         activeConnections.set(connectionId, {
           controller,
           userId,
-          lastActivity: new Date()
+          lastActivity: new Date(),
+          streamPosition: '0' // Start from beginning to catch existing messages
         });
 
         console.log(`🔗 New SSE connection established for user ${userId}, connection ${connectionId}`);
@@ -93,24 +196,56 @@ export async function GET(request: NextRequest) {
           console.error('❌ Error fetching initial notifications:', error);
         }
 
-        // Send keepalive every 2 minutes
-        const keepAliveInterval = setInterval(() => {
-          if (activeConnections.has(connectionId)) {
-            sendMessage({ 
-              type: 'keepalive', 
-              timestamp: Date.now(),
-              connections: activeConnections.size 
-            });
-          } else {
-            clearInterval(keepAliveInterval);
+        // Start listening to Redis stream in a loop
+        const streamLoop = async () => {
+          let lastStreamId = '0'; // Start from beginning to catch existing messages
+          let iterationCount = 0;
+          
+          while (activeConnections.has(connectionId)) {
+            try {
+              const newLastId = await listenToUserStream(userId, controller, lastStreamId);
+              if (newLastId && newLastId !== lastStreamId) {
+                lastStreamId = newLastId;
+              }
+              
+              iterationCount++;
+              
+              // Send keepalive only every 6th iteration (roughly every 30 seconds with 5s XREAD timeout)
+              if (iterationCount % 6 === 0) {
+                sendMessage({ 
+                  type: 'keepalive', 
+                  timestamp: Date.now(),
+                  connections: activeConnections.size 
+                });
+              }
+              
+            } catch (error) {
+              console.error(`❌ Stream loop error for user ${userId}:`, error);
+              
+              // If connection is broken, clean up and exit
+              if (!activeConnections.has(connectionId)) {
+                break;
+              }
+              
+              // Wait before retrying on error
+              await new Promise(resolve => setTimeout(resolve, 5000));
+            }
           }
-        }, 120000); // 2 minutes
+        };
+
+        // Start the stream listening loop
+        streamLoop().catch(error => {
+          console.error(`❌ Fatal stream error for user ${userId}:`, error);
+          activeConnections.delete(connectionId);
+          try {
+            controller.close();
+          } catch {}
+        });
 
         // Handle client disconnect
         request.signal?.addEventListener('abort', () => {
           console.log('🔌 Client disconnected:', connectionId, 'for user:', userId);
           console.log(`📊 Remaining connections: ${activeConnections.size - 1}`);
-          clearInterval(keepAliveInterval);
           activeConnections.delete(connectionId);
           try {
             controller.close();
@@ -136,60 +271,13 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Webhook endpoint to push notifications to active connections
-export async function POST(request: NextRequest) {
-  try {
-    // Skip auth for webhook calls (internal server-to-server)
-    const { userId, notification } = await request.json();
-    
-    if (!userId || !notification) {
-      return NextResponse.json({ error: 'Missing userId or notification' }, { status: 400 });
-    }
-
-    console.log('🔔 Webhook: Pushing notification to user:', userId);
-
-    // Find active connections for this user
-    let sentCount = 0;
-    for (const [id, conn] of activeConnections.entries()) {
-      if (conn.userId === userId) {
-        try {
-          const encoder = new TextEncoder();
-          conn.controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({
-              type: 'notification',
-              data: notification
-            })}\n\n`)
-          );
-          conn.lastActivity = new Date();
-          sentCount++;
-          console.log('📡 Sent notification to connection:', id);
-        } catch (error) {
-          console.error('❌ Error sending to connection:', id, error);
-          activeConnections.delete(id);
-        }
-      }
-    }
-
-    console.log(`📡 Sent notification to ${sentCount} active connections`);
-
-    return NextResponse.json({
-      success: true,
-      sentToConnections: sentCount,
-      totalConnections: activeConnections.size
-    });
-
-  } catch (error) {
-    console.error('❌ Error in webhook:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  }
-}
-
-// Stats endpoint
+// Stats endpoint for debugging
 export async function PATCH(request: NextRequest) {
   const connections = Array.from(activeConnections.entries()).map(([id, conn]) => ({
     id,
     userId: conn.userId,
     lastActivity: conn.lastActivity,
+    streamPosition: conn.streamPosition,
   }));
 
   return NextResponse.json({

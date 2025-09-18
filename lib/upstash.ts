@@ -37,7 +37,10 @@ export async function executeRedisCommand(command: string[]): Promise<{ success:
   }
 
   try {
-    const body = JSON.stringify({ command });
+    // Simple command logging without request body details
+    console.log('🔧 Redis command:', command[0], '→', command[1] || '...');
+
+    const body = JSON.stringify(command);
 
     const res = await fetch(UPSTASH_URL, {
       method: 'POST',
@@ -50,12 +53,14 @@ export async function executeRedisCommand(command: string[]): Promise<{ success:
 
     if (!res.ok) {
       const text = await res.text();
+      console.log('❌ Redis error:', text);
       return { success: false, error: `Upstash responded ${res.status}: ${text}` };
     }
 
     const data = await res.json();
     return { success: true, data: data.result };
   } catch (err: any) {
+    console.log('❌ Redis command exception:', err);
     return { success: false, error: err?.message || String(err) };
   }
 }
@@ -181,9 +186,9 @@ export async function sendWebhookNotification(userId: string, notification: Noti
     // In production, this would be your app's domain
     const webhookUrl = process.env.VERCEL_URL 
       ? `https://${process.env.VERCEL_URL}/api/notifications/efficient-stream`
-      : 'http://localhost:3000/api/notifications/efficient-stream';
+      : `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/notifications/efficient-stream`;
 
-    console.log('📡 Sending webhook to:', webhookUrl);
+    console.log('📡 Sending webhook to:', webhookUrl, 'for user:', userId);
 
     const response = await fetch(webhookUrl, {
       method: 'POST',
@@ -233,10 +238,11 @@ export async function sendWebhookNotification(userId: string, notification: Noti
 // Efficient publish notification (stores + sends webhook)
 export async function publishNotification(notification: NotificationPayload): Promise<{ success: boolean; error?: string }> {
   try {
-    console.log('📤 Publishing notification efficiently:', notification.id);
+    console.log('📤 Publishing notification to Redis stream:', notification.id);
 
     // Store notification for persistence and history
     if (notification.userId) {
+      console.log('🏪 Starting notification storage...');
       const storeResult = await storeNotification(notification);
       if (!storeResult.success) {
         console.error('❌ Failed to store notification:', storeResult.error);
@@ -246,26 +252,41 @@ export async function publishNotification(notification: NotificationPayload): Pr
       }
     }
 
-    // Send webhook to active connections (much more efficient than queues)
+    // Publish to Redis stream for real-time delivery using XADD
     if (notification.userId) {
-      const webhookResult = await sendWebhookNotification(notification.userId, notification);
-      if (!webhookResult.success) {
-        console.warn('⚠️ Failed to send webhook notification:', webhookResult.error);
-        // Don't fail the entire process if webhook fails - it's just real-time delivery
-      } else {
-        console.log('📡 Webhook notification sent successfully');
-      }
-    }
+      console.log('📡 Starting Redis stream publish...');
+      const streamKey = `notifications:${notification.userId}`;
+      console.log('📡 Stream key:', streamKey);
+      
+      const streamResult = await executeRedisCommand([
+        'XADD',
+        streamKey,
+        '*', // Auto-generate ID
+        'notification', JSON.stringify(notification),
+        'timestamp', notification.timestamp.toString(),
+        'type', notification.type
+      ]);
 
-    // Skip legacy pub/sub since it's failing and we have webhooks now
-    // const userChannel = `notifications:${notification.userId}`;
-    // const publishResult = await upstashPublish(userChannel, notification);
+      if (!streamResult.success) {
+        console.error('❌ Failed to add to Redis stream:', streamResult.error);
+        return { success: false, error: streamResult.error };
+      } else {
+        console.log('📡 Added to Redis stream successfully:', streamResult.data);
+      }
+
+      // Set expiration on stream to prevent infinite growth (keep for 7 days)
+      console.log('⏰ Setting stream expiration...');
+      await executeRedisCommand(['EXPIRE', streamKey, '604800']); // 7 days in seconds
+      console.log('⏰ Stream expiration set');
+    } else {
+      console.log('⚠️ No userId provided, skipping stream publish');
+    }
     
-    console.log('✅ Notification published efficiently:', notification.id);
+    console.log('✅ Notification published to Redis stream:', notification.id);
     return { success: true };
     
   } catch (err: any) {
-    console.error('❌ Error publishing notification:', err);
+    console.error('❌ Error publishing notification to Redis stream:', err);
     return { success: false, error: err?.message || String(err) };
   }
 }

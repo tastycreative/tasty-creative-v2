@@ -234,6 +234,7 @@ export async function POST(req: NextRequest) {
           };
 
           await publishNotification(realtimeNotification);
+          console.log('✅ Published mention notification to Redis stream for user:', user.id);
         } catch (inAppError) {
           console.error(`❌ Failed to create in-app mention notification for ${user.email}:`, inAppError);
         }

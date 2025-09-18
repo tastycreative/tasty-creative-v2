@@ -45,9 +45,149 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
+  const heartbeatIntervalRef = useRef<NodeJS.Timeout>();
+  const lastHeartbeatRef = useRef<number>(Date.now());
+  const isTabVisibleRef = useRef<boolean>(true);
+  const isConnectingRef = useRef<boolean>(false);
+  const isFetchingRef = useRef<boolean>(false);
+  const lastFetchTimeRef = useRef<number>(0);
   
   // Get session for authentication
   const { data: session, status } = useSession();
+
+  // Declare connectToRedisStream function
+  const connectToRedisStream = useRef<() => void>();
+
+  // Page Visibility API and Focus/Blur events - Track if tab is active
+  useEffect(() => {
+    let visibilityTimeout: NodeJS.Timeout;
+    
+    const handleVisibilityChange = () => {
+      const isVisible = !document.hidden;
+      isTabVisibleRef.current = isVisible;
+      console.log(`👁️ Tab visibility changed: ${isVisible ? 'visible' : 'hidden'}`);
+      
+      if (isVisible) {
+        // Clear any existing timeout
+        if (visibilityTimeout) {
+          clearTimeout(visibilityTimeout);
+        }
+        
+        // Add a small delay to avoid rapid successive calls
+        visibilityTimeout = setTimeout(() => {
+          console.log('🔍 Checking connection health after visibility change...');
+          checkConnectionHealth();
+        }, 1000); // 1 second delay
+      }
+    };
+
+    const handleFocus = () => {
+      console.log('🎯 Window focused - ensuring connection is healthy');
+      isTabVisibleRef.current = true;
+      
+      // Clear any existing timeout
+      if (visibilityTimeout) {
+        clearTimeout(visibilityTimeout);
+      }
+      
+      // Add a small delay to avoid rapid successive calls
+      visibilityTimeout = setTimeout(() => {
+        checkConnectionHealth();
+      }, 500); // 0.5 second delay for focus
+    };
+
+    const handleBlur = () => {
+      console.log('😴 Window blurred - connection will continue in background');
+      isTabVisibleRef.current = false;
+      
+      // Clear any pending health checks
+      if (visibilityTimeout) {
+        clearTimeout(visibilityTimeout);
+      }
+    };
+
+    // Add all event listeners
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('blur', handleBlur);
+
+    return () => {
+      if (visibilityTimeout) {
+        clearTimeout(visibilityTimeout);
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, []);
+
+  // Connection health check - only reconnect if actually disconnected
+  const checkConnectionHealth = () => {
+    // Only reconnect if connection is actually lost
+    if (!esRef.current || esRef.current.readyState === EventSource.CLOSED || esRef.current.readyState === EventSource.CONNECTING) {
+      console.log('🏥 Connection unhealthy (state:', esRef.current?.readyState, '), attempting to reconnect...');
+      connectToRedisStream.current?.();
+    } else if (esRef.current.readyState === EventSource.OPEN) {
+      console.log('💚 Connection healthy and open - no action needed');
+      // Connection is healthy, no need to do anything
+      // Real-time notifications will come through the SSE stream
+    } else {
+      console.log('🔍 Connection in unknown state:', esRef.current?.readyState);
+    }
+  };
+
+  // Emergency heartbeat - only used when connection is unstable
+  const sendEmergencyHeartbeat = async () => {
+    try {
+      console.log('🆘 Sending emergency heartbeat to stabilize connection...');
+      await fetch('/api/notifications/ping', { 
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          timestamp: Date.now(),
+          tabVisible: isTabVisibleRef.current,
+          emergency: true
+        })
+      });
+      console.log('💓 Emergency heartbeat sent successfully');
+    } catch (error) {
+      console.error('❌ Emergency heartbeat failed:', error);
+    }
+  };
+
+  // Connection health monitor - checks periodically but only acts on issues
+  const startHeartbeat = () => {
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+    }
+
+    heartbeatIntervalRef.current = setInterval(() => {
+      lastHeartbeatRef.current = Date.now();
+      
+      // Only act if connection is having issues
+      if (!esRef.current) {
+        console.log('🔍 No EventSource found, attempting reconnect...');
+        connectToRedisStream.current?.();
+      } else if (esRef.current.readyState === EventSource.CLOSED) {
+        console.log('� Connection closed, attempting reconnect...');
+        connectToRedisStream.current?.();
+      } else if (esRef.current.readyState === EventSource.CONNECTING) {
+        console.log('🔄 Connection still connecting, sending emergency heartbeat...');
+        sendEmergencyHeartbeat();
+      } else if (esRef.current.readyState === EventSource.OPEN) {
+        // Connection is healthy - just log silently
+        console.log('� Connection healthy, no action needed');
+      }
+    }, 30000); // Every 30 seconds - just monitoring, not constantly pinging
+  };
+
+  const stopHeartbeat = () => {
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+      heartbeatIntervalRef.current = undefined;
+    }
+  };
 
   const showNotificationToast = (notification: Notification) => {
     const data = notification.data || {};
@@ -148,7 +288,24 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   };
 
   const refetch = async () => {
+    // Prevent duplicate simultaneous fetches
+    if (isFetchingRef.current) {
+      console.log('🚫 Already fetching notifications, skipping duplicate request');
+      return;
+    }
+
+    // Rate limiting - don't fetch more than once every 2 seconds
+    const now = Date.now();
+    if (now - lastFetchTimeRef.current < 2000) {
+      console.log('🚫 Rate limiting: Last fetch was too recent, skipping');
+      return;
+    }
+
     try {
+      isFetchingRef.current = true;
+      lastFetchTimeRef.current = now;
+
+      console.log('📡 Fetching notifications from API...');
       const res = await fetch('/api/notifications/in-app?all=true', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
@@ -191,6 +348,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     } catch (err) {
       console.error('❌ Error fetching notifications:', err);
       // swallow network errors silently to avoid noisy logs
+    } finally {
+      isFetchingRef.current = false; // Always reset fetching flag
     }
   };
 
@@ -261,8 +420,24 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     
     console.log('✅ User authenticated, proceeding with SSE connection for:', session.user.email);
     
-    const connectToRedisStream = () => {
+    // Check if we already have a healthy connection
+    if (esRef.current && esRef.current.readyState === EventSource.OPEN) {
+      console.log('🔗 Connection already exists and is healthy, skipping reconnection');
+      setIsConnected(true);
+      setConnectionType('redis');
+      return;
+    }
+    
+    // Define the connection function
+    connectToRedisStream.current = () => {
+      // Prevent multiple simultaneous connection attempts
+      if (isConnectingRef.current) {
+        console.log('🚫 Already connecting, skipping duplicate connection attempt');
+        return;
+      }
+      
       console.log('🔗 Connecting to efficient notification stream...');
+      isConnectingRef.current = true;
       
       // Close existing connection
       if (esRef.current) {
@@ -281,11 +456,15 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           setIsConnected(true);
           setConnectionType('redis');
           reconnectAttempts.current = 0;
+          isConnectingRef.current = false; // Reset connecting flag
           
           // Clear any existing reconnect timeout
           if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current);
           }
+          
+          // Start heartbeat to keep connection alive
+          startHeartbeat();
           
           // Log connection success for debugging
           console.log('🎯 SSE Connection established - should register with server');
@@ -332,6 +511,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           console.error('❌ Efficient notification stream error:', error);
           setIsConnected(false);
           setConnectionType(null);
+          isConnectingRef.current = false; // Reset connecting flag on error
           
           // Attempt to reconnect with exponential backoff
           if (reconnectAttempts.current < maxReconnectAttempts) {
@@ -340,7 +520,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             
             reconnectTimeoutRef.current = setTimeout(() => {
               reconnectAttempts.current++;
-              connectToRedisStream();
+              connectToRedisStream.current?.();
             }, delay);
           } else {
             console.error('❌ Max reconnection attempts reached, falling back to polling');
@@ -356,6 +536,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         console.error('❌ Failed to create efficient EventSource:', error);
         setIsConnected(false);
         setConnectionType(null);
+        isConnectingRef.current = false; // Reset connecting flag on error
         
         // Fallback to polling
         console.log('🔄 Falling back to polling due to EventSource error');
@@ -364,11 +545,19 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     };
 
     // Start Redis connection
-    connectToRedisStream();
+    connectToRedisStream.current?.();
 
     // Cleanup function
     return () => {
-        console.log('🧹 Cleaning up efficient notification stream...');      if (reconnectTimeoutRef.current) {
+        console.log('🧹 Cleaning up efficient notification stream...');
+      
+      // Stop heartbeat
+      stopHeartbeat();
+      
+      // Reset flags
+      isConnectingRef.current = false;
+      
+      if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
       
@@ -380,7 +569,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       setIsConnected(false);
       setConnectionType(null);
     };
-  }, [status, session]); // Add dependencies
+  }, [status, session?.user?.id]); // Only depend on auth status and user ID, not entire session object
 
   // Polling fallback
   let pollTimer: number | undefined;
