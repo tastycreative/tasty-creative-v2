@@ -23,7 +23,7 @@ interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
   isConnected: boolean;
-  connectionType: 'redis' | 'polling' | null;
+  connectionType: 'polling' | 'ably' | null;
   lastUpdated: number;
   markAsRead: (notificationId: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
@@ -69,8 +69,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   // Get session for authentication
   const { data: session, status } = useSession();
 
-  // Declare connectToRedisStream function
-  const connectToRedisStream = useRef<() => void>();
+  // Declare connectToAblyStream function
+  const connectToAblyStream = useRef<() => void>();
 
   // Page Visibility API and Focus/Blur events - Track if tab is active
   useEffect(() => {
@@ -140,7 +140,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     // Only reconnect if connection is actually lost
     if (!esRef.current || esRef.current.readyState === EventSource.CLOSED || esRef.current.readyState === EventSource.CONNECTING) {
       console.log('🏥 Connection unhealthy (state:', esRef.current?.readyState, '), attempting to reconnect...');
-      connectToRedisStream.current?.();
+      connectToAblyStream.current?.();
     } else if (esRef.current.readyState === EventSource.OPEN) {
       console.log('💚 Connection healthy and open - no action needed');
       // Connection is healthy, no need to do anything
@@ -182,16 +182,16 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       // Only act if connection is having issues
       if (!esRef.current) {
         console.log('🔍 No EventSource found, attempting reconnect...');
-        connectToRedisStream.current?.();
+        connectToAblyStream.current?.();
       } else if (esRef.current.readyState === EventSource.CLOSED) {
-        console.log('� Connection closed, attempting reconnect...');
-        connectToRedisStream.current?.();
+        console.log('🔌 Connection closed, attempting reconnect...');
+        connectToAblyStream.current?.();
       } else if (esRef.current.readyState === EventSource.CONNECTING) {
         console.log('🔄 Connection still connecting, sending emergency heartbeat...');
         sendEmergencyHeartbeat();
       } else if (esRef.current.readyState === EventSource.OPEN) {
         // Connection is healthy - just log silently
-        console.log('� Connection healthy, no action needed');
+        console.log('💚 Connection healthy, no action needed');
       }
     }, 30000); // Every 30 seconds - just monitoring, not constantly pinging
   };
@@ -432,171 +432,176 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     return false;
   }
 
-  // Establish Redis SSE connection
-  // useEffect(() => {
-  //   console.log('🚀 NotificationContext useEffect triggered');
-  //   console.log('🔐 Auth status:', status, 'Session:', !!session?.user);
+  // Establish Ably real-time connection
+  useEffect(() => {
+    console.log('🚀 NotificationContext useEffect triggered');
+    console.log('🔐 Auth status:', status, 'Session:', !!session?.user);
     
-  //   // Only run on client
-  //   if (typeof window === 'undefined') {
-  //     console.log('❌ Running on server, skipping SSE connection');
-  //     return;
-  //   }
+    // Only run on client
+    if (typeof window === 'undefined') {
+      console.log('❌ Running on server, skipping Ably connection');
+      return;
+    }
     
-  //   // Wait for authentication to be resolved
-  //   if (status === 'loading') {
-  //     console.log('⏳ Auth loading, waiting...');
-  //     return;
-  //   }
+    // Wait for authentication to be resolved
+    if (status === 'loading') {
+      console.log('⏳ Auth loading, waiting...');
+      return;
+    }
     
-  //   if (status === 'unauthenticated' || !session?.user) {
-  //     console.log('❌ User not authenticated, skipping SSE connection');
-  //     return;
-  //   }
+    if (status === 'unauthenticated' || !session?.user) {
+      console.log('❌ User not authenticated, skipping Ably connection');
+      return;
+    }
     
-  //   console.log('✅ User authenticated, proceeding with SSE connection for:', session.user.email);
+    console.log('✅ User authenticated, proceeding with Ably connection for:', session.user.email);
     
-  //   // Check if we already have a healthy connection
-  //   if (esRef.current && esRef.current.readyState === EventSource.OPEN) {
-  //     console.log('🔗 Connection already exists and is healthy, skipping reconnection');
-  //     setConnectionStatus(true, 'redis');
-  //     return;
-  //   }
-    
-  //   // Define the connection function
-  //   connectToRedisStream.current = () => {
-  //     // Prevent multiple simultaneous connection attempts
-  //     if (isConnectingRef.current) {
-  //       console.log('🚫 Already connecting, skipping duplicate connection attempt');
-  //       return;
-  //     }
+    // Define the connection function
+    connectToAblyStream.current = async () => {
+      // Prevent multiple simultaneous connection attempts
+      if (isConnectingRef.current) {
+        console.log('🚫 Already connecting, skipping duplicate connection attempt');
+        return;
+      }
       
-  //     console.log('🔗 Connecting to efficient notification stream...');
-  //     isConnectingRef.current = true;
+      console.log('🔗 Connecting to Ably notification stream...');
+      isConnectingRef.current = true;
       
-  //     // Close existing connection
-  //     if (esRef.current) {
-  //       esRef.current.close();
-  //       esRef.current = null;
-  //     }
-
-  //     try {
-  //       console.log('🚀 Creating EventSource for efficient notification stream...');
-  //       const eventSource = new EventSource('/api/notifications/efficient-stream');
-  //       esRef.current = eventSource;
-  //       console.log('📡 EventSource created, waiting for connection...');
-
-  //       eventSource.onopen = () => {
-  //         console.log('✅ Efficient notification stream connected');
-  //         setConnectionStatus(true, 'redis');
-  //         reconnectAttempts.current = 0;
-  //         isConnectingRef.current = false; // Reset connecting flag
-          
-  //         // Clear any existing reconnect timeout
-  //         if (reconnectTimeoutRef.current) {
-  //           clearTimeout(reconnectTimeoutRef.current);
-  //         }
-          
-  //         // Start heartbeat to keep connection alive
-  //         startHeartbeat();
-          
-  //         // Log connection success for debugging
-  //         console.log('🎯 SSE Connection established - should register with server');
-  //       };
-
-  //       eventSource.onmessage = (event) => {
-  //         try {
-  //           const data = JSON.parse(event.data);
-  //           console.log('📬 Received notification stream data:', data);
-            
-  //           if (data.type === 'notification' && data.data) {
-  //             const notification = data.data;
-              
-  //             // Check if this is a new notification
-  //             if (!previousNotificationIds.current.has(notification.id)) {
-  //               console.log('🔔 New notification received:', notification.title);
-  //               showNotificationToast(notification);
-                
-  //               // Add to seen notifications
-  //               previousNotificationIds.current.add(notification.id);
-                
-  //               // Update Zustand store directly
-  //               addNotification(notification);
-  //               setLastUpdated(Date.now());
-  //             } else {
-  //               console.log('🔔 Duplicate notification ignored:', notification.title);
-  //             }
-  //           } else if (data.type === 'connected') {
-  //             console.log('🎉 Efficient notification stream ready');
-  //             // Initial fetch of notifications
-  //             refetch();
-  //           } else if (data.type === 'initial_notifications') {
-  //             console.log('📋 Received initial notifications:', data.data?.length || 0);
-  //             // Handle initial notifications if needed
-  //           } else if (data.type === 'keepalive') {
-  //             // Just a keepalive, no action needed
-  //             console.log('💓 Keepalive received, connections:', data.connections || 0);
-  //           }
-  //         } catch (error) {
-  //           console.error('❌ Error parsing notification data:', error);
-  //         }
-  //       };
-
-  //       eventSource.onerror = (error) => {
-  //         console.error('❌ Efficient notification stream error:', error);
-  //         setConnectionStatus(false, null);
-  //         isConnectingRef.current = false; // Reset connecting flag on error
-          
-  //         // Attempt to reconnect with exponential backoff
-  //         if (reconnectAttempts.current < maxReconnectAttempts) {
-  //           const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
-  //           console.log(`🔄 Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts})`);
-            
-  //           reconnectTimeoutRef.current = setTimeout(() => {
-  //             reconnectAttempts.current++;
-  //             connectToRedisStream.current?.();
-  //           }, delay);
-  //         } 
-          
-  //         if (esRef.current) {
-  //           esRef.current.close();
-  //           esRef.current = null;
-  //         }
-  //       };
-  //     } catch (error) {
-  //       console.error('❌ Failed to create efficient EventSource:', error);
-  //       setConnectionStatus(false, null);
-  //       isConnectingRef.current = false; // Reset connecting flag on error
+      try {
+        // Import Ably dynamically to avoid SSR issues
+        const Ably = (await import('ably')).default;
         
-   
-  //     }
-  //   };
+        console.log('🚀 Creating Ably client connection...');
+        
+        const ably = new Ably.Realtime({
+          authUrl: '/api/notifications/ably-token',
+          authMethod: 'POST'
+        });
 
-  //   // Start Redis connection
-  //   connectToRedisStream.current?.();
+        console.log('📡 Ably client created, waiting for connection...');
 
-  //   // Cleanup function
-  //   return () => {
-  //       console.log('🧹 Cleaning up efficient notification stream...');
+        ably.connection.on('connected', () => {
+          console.log('✅ Ably connection established');
+          setConnectionStatus(true, 'ably');
+          reconnectAttempts.current = 0;
+          isConnectingRef.current = false;
+          
+          // Clear any existing reconnect timeout
+          if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
+          }
+          
+          // Start heartbeat to monitor connection
+          startHeartbeat();
+          
+          console.log('🎯 Ably Connection established successfully');
+          
+          // Initial fetch of notifications
+          refetch();
+        });
+
+        // Subscribe to user's notification channel
+        const userId = session?.user?.id;
+        if (userId) {
+          const channelName = `user:${userId}:notifications`;
+          console.log('🔗 Subscribing to channel:', channelName);
+          
+          const channel = ably.channels.get(channelName);
+          
+          await channel.subscribe('notification', (message) => {
+            try {
+              console.log('📬 Received Ably notification:', message);
+              
+              const notificationData = message.data?.data || message.data;
+              
+              if (notificationData) {
+                const notification = notificationData;
+                
+                // Check if this is a new notification
+                if (!previousNotificationIds.current.has(notification.id)) {
+                  console.log('🔔 New Ably notification received:', notification.title);
+                  showNotificationToast(notification);
+                  
+                  // Add to seen notifications
+                  previousNotificationIds.current.add(notification.id);
+                  
+                  // Update Zustand store directly
+                  addNotification(notification);
+                  setLastUpdated(Date.now());
+                } else {
+                  console.log('🔔 Duplicate notification ignored:', notification.title);
+                }
+              }
+            } catch (error) {
+              console.error('❌ Error processing Ably notification:', error);
+            }
+          });
+          
+          console.log('✅ Subscribed to Ably notifications for user:', userId);
+        }
+
+        ably.connection.on('failed', (error) => {
+          console.error('❌ Ably connection failed:', error);
+          setConnectionStatus(false, null);
+          isConnectingRef.current = false;
+          
+          // Attempt to reconnect with exponential backoff
+          if (reconnectAttempts.current < maxReconnectAttempts) {
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
+            console.log(`🔄 Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts})`);
+            
+            reconnectTimeoutRef.current = setTimeout(() => {
+              reconnectAttempts.current++;
+              connectToAblyStream.current?.();
+            }, delay);
+          }
+        });
+
+        ably.connection.on('disconnected', () => {
+          console.warn('⚠️ Ably connection disconnected');
+          setConnectionStatus(false, null);
+        });
+
+        // Store reference for cleanup
+        esRef.current = ably as any;
+        
+      } catch (error) {
+        console.error('❌ Failed to create Ably connection:', error);
+        setConnectionStatus(false, null);
+        isConnectingRef.current = false;
+      }
+    };
+
+    // Start Ably connection
+    connectToAblyStream.current?.();
+
+    // Cleanup function
+    return () => {
+      console.log('🧹 Cleaning up Ably notification connection...');
       
-  //     // Stop heartbeat
-  //     stopHeartbeat();
+      // Stop heartbeat
+      stopHeartbeat();
       
-  //     // Reset flags
-  //     isConnectingRef.current = false;
+      // Reset flags
+      isConnectingRef.current = false;
       
-  //     if (reconnectTimeoutRef.current) {
-  //       clearTimeout(reconnectTimeoutRef.current);
-  //     }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
       
-  //     if (esRef.current) {
-  //       esRef.current.close();
-  //       esRef.current = null;
-  //     }
+      if (esRef.current) {
+        // Close Ably connection
+        try {
+          (esRef.current as any).connection.close();
+        } catch (error) {
+          console.log('Error closing Ably connection:', error);
+        }
+        esRef.current = null;
+      }
       
-  //     setConnectionStatus(false, null);
-  //   };
-  // }, [status, session?.user?.id]); // Only depend on auth status and user ID, not entire session object
+      setConnectionStatus(false, null);
+    };
+  }, [status, session?.user?.id]);
 
 
 
@@ -604,7 +609,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   // Initial fetch when component mounts
   useEffect(() => {
-    // Initial fetch will happen when Redis stream connects
+    // Initial fetch will happen when Ably stream connects
     // This ensures we don't double-fetch
   }, []);
 

@@ -19,7 +19,7 @@ interface NotificationState {
   unreadCount: number;
   lastFetchTime: number;
   isConnected: boolean;
-  connectionType: 'redis' | 'polling' | null;
+  connectionType: 'polling' | 'ably' | null;
   
   // Actions
   setNotifications: (notifications: Notification[]) => void;
@@ -27,7 +27,7 @@ interface NotificationState {
   markAsRead: (notificationId: string) => void;
   markAllAsRead: () => void;
   setUnreadCount: (count: number) => void;
-  setConnectionStatus: (isConnected: boolean, type: 'redis' | 'polling' | null) => void;
+  setConnectionStatus: (isConnected: boolean, type: 'polling' | 'ably' | null) => void;
   updateLastFetchTime: () => void;
   
   // Cache helpers
