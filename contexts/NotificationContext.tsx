@@ -210,7 +210,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     
     // Extract user info from notification data - try different user profile fields
     const triggerUserProfile = data.movedByUser || data.mentionerUser || data.commenterUser || data.createdByUser || null;
-    const triggerUserName = triggerUserProfile?.name || data.movedBy || data.mentionerName || data.commenterName || data.userWhoLinked || data.createdBy || 'Someone';
+    const triggerUserName = triggerUserProfile?.name || data.movedBy || data.mentionerName || data.commenterName || data.userWhoLinked || data.createdBy || data.assignedBy || 'Someone';
     const taskTitle = data.taskTitle || data.taskUrl?.split('task=')[1] || '';
     const taskUrl = data.taskUrl;
     
@@ -239,7 +239,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           action = `created a new ${data.submissionType.toUpperCase()} task "${taskTitle}" for your team`;
           summary = `New ${data.submissionType.toUpperCase()} task assigned to ${data.teamName}`;
         } else {
-          action = `assigned "${taskTitle}" to you`;
+          // Use the actual notification message which includes the assigner's name
+          action = notification.message;
           summary = 'Task assigned to you';
         }
         break;
