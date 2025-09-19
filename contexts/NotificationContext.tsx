@@ -209,7 +209,17 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     console.log('🔔 showNotificationToast called with:', notification);
     
     // Extract user info from notification data - try different user profile fields
-    const triggerUserProfile = data.movedByUser || data.mentionerUser || data.commenterUser || data.createdByUser || null;
+    let triggerUserProfile = data.movedByUser || data.mentionerUser || data.commenterUser || data.createdByUser || null;
+    
+    // For TASK_ASSIGNED notifications, create a profile object from assignedBy data if we don't have one
+    if (!triggerUserProfile && notification.type === 'TASK_ASSIGNED' && data.assignedBy && data.assignedById) {
+      triggerUserProfile = {
+        id: data.assignedById,
+        name: data.assignedBy,
+        email: data.assignedByEmail || '', // This might not be available, but we'll provide a fallback
+        image: null // We don't have the image, so it will show initials
+      };
+    }
     const triggerUserName = triggerUserProfile?.name || data.movedBy || data.mentionerName || data.commenterName || data.userWhoLinked || data.createdBy || data.assignedBy || 'Someone';
     const taskTitle = data.taskTitle || data.taskUrl?.split('task=')[1] || '';
     const taskUrl = data.taskUrl;
