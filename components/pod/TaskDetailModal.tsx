@@ -340,8 +340,9 @@ export default function TaskDetailModal({
                     onChange={(email) =>
                       onSetEditingTaskData({ assignedTo: email })
                     }
-                    placeholder="Search and select user..."
+                    placeholder="Search and select team member..."
                     className=""
+                    teamId={selectedTask.podTeamId || undefined}
                   />
                 </div>
               </div>

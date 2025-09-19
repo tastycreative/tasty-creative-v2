@@ -108,26 +108,28 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
     }
   };
 
-  // Test notification function for debugging
-  const testNotification = async () => {
+  // Removed Redis testing function - now using pure Ably
+
+  // Test Ably notification function for debugging
+  const testAblyNotification = async () => {
     try {
-      const response = await fetch('/api/notifications/test-redis', {
+      const response = await fetch('/api/notifications/test-ably', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: 'Test Redis notification! 🚀'
+          message: 'Test Ably notification! ⚡'
         })
       });
       
       if (response.ok) {
         const result = await response.json();
-        alert(`Test notification sent via Redis!`);
-        console.log('🧪 Test notification result:', result);
+        alert(`Test notification sent via Ably!`);
+        console.log('🧪 Test Ably notification result:', result);
       } else {
-        alert('Test notification failed');
+        alert('Test Ably notification failed');
       }
     } catch (error) {
-      alert('Test notification error');
+      alert('Test Ably notification error');
     }
   };
 
@@ -157,18 +159,16 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
           if (!isOpen) refetch();
         }}
         className="relative p-2 text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100 transition-colors"
-        title={`${unreadCount} unread notifications${isConnected ? ` (${connectionType === 'redis' ? 'Redis Efficient' : connectionType === 'polling' ? 'Polling' : connectionType === 'sse' ? 'SSE Live' : 'Connected'})` : ' (Disconnected)'}`}
+        title={`${unreadCount} unread notifications${isConnected ? ` (${connectionType === 'polling' ? 'Polling' : connectionType === 'ably' ? 'Ably Realtime' : 'Connected'})` : ' (Disconnected)'}`}
       >
         <div className="relative">
           <Bell className="h-5 w-5" />
           {/* Connection status indicator */}
           {isConnected ? (
-            connectionType === 'redis' ? (
-              <div className="h-2 w-2 bg-emerald-500 rounded-full absolute -bottom-0.5 -right-0.5 animate-pulse shadow-sm" title="Redis Live Connection" />
-            ) : connectionType === 'polling' ? (
+            connectionType === 'polling' ? (
               <div className="h-2 w-2 bg-yellow-500 rounded-full absolute -bottom-0.5 -right-0.5" title="Polling Connection" />
-            ) : connectionType === 'sse' ? (
-              <div className="h-2 w-2 bg-blue-500 rounded-full absolute -bottom-0.5 -right-0.5 animate-pulse" title="SSE Live Connection" />
+            ) : connectionType === 'ably' ? (
+              <div className="h-2 w-2 bg-purple-500 rounded-full absolute -bottom-0.5 -right-0.5 animate-pulse" title="Ably Realtime Connection" />
             ) : (
               <div className="h-2 w-2 bg-green-500 rounded-full absolute -bottom-0.5 -right-0.5" title="Connected" />
             )
@@ -202,21 +202,18 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
                 </h3>
                 {isConnected ? (
                   <div className={`flex items-center space-x-1 text-xs ${
-                    connectionType === 'redis' ? 'text-emerald-600 dark:text-emerald-400' :
                     connectionType === 'polling' ? 'text-yellow-600 dark:text-yellow-400' :
-                    connectionType === 'sse' ? 'text-blue-600 dark:text-blue-400' :
+                    connectionType === 'ably' ? 'text-purple-600 dark:text-purple-400' :
                     'text-green-600 dark:text-green-400'
                   }`}>
                     <div className={`w-2 h-2 rounded-full ${
-                      connectionType === 'redis' ? 'bg-emerald-500 animate-pulse' :
                       connectionType === 'polling' ? 'bg-yellow-500' :
-                      connectionType === 'sse' ? 'bg-blue-500 animate-pulse' :
+                      connectionType === 'ably' ? 'bg-purple-500 animate-pulse' :
                       'bg-green-500'
                     }`}></div>
                     <span>
-                      {connectionType === 'redis' ? 'Redis Live' : 
-                       connectionType === 'polling' ? 'Polling' : 
-                       connectionType === 'sse' ? 'SSE Live' : 
+                      {connectionType === 'polling' ? 'Polling' : 
+                       connectionType === 'ably' ? 'Ably Realtime' : 
                        'Connected'}
                     </span>
                   </div>
@@ -231,11 +228,11 @@ export default function NotificationBell({ className = '' }: NotificationBellPro
                 {process.env.NODE_ENV === 'development' && (
                   <>
                     <button
-                      onClick={testNotification}
+                      onClick={testAblyNotification}
                       className="text-xs text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 px-2 py-1 rounded bg-purple-50 dark:bg-purple-900/20"
-                      title="Send test notification"
+                      title="Send test Ably notification"
                     >
-                      Test
+                      Test Ably
                     </button>
                     <button
                       onClick={debugConnection}

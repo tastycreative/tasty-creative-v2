@@ -59,9 +59,9 @@ export default function UserDropdown({
         let response;
         
         if (teamId) {
-          // If teamId is provided, use team-specific endpoint
-          const queryParam = searchTerm.length >= 2 ? searchTerm : '';
-          response = await fetch(`/api/users/team?teamId=${encodeURIComponent(teamId)}&q=${encodeURIComponent(queryParam)}`);
+          // If teamId is provided, use team members endpoint (for database team IDs)
+          const queryParam = searchTerm.length >= 2 ? `&q=${encodeURIComponent(searchTerm)}` : '';
+          response = await fetch(`/api/pod/teams/${encodeURIComponent(teamId)}/members${queryParam ? `?${queryParam.substring(1)}` : ''}`);
         } else {
           // Fallback to original behavior for non-team contexts
           const queryParam = searchTerm.length >= 2 ? searchTerm : 'POD_USERS_ALL';
@@ -71,7 +71,23 @@ export default function UserDropdown({
         if (response.ok) {
           const result = await response.json();
           if (result.success) {
-            setUsers(result.users);
+            if (teamId && result.members) {
+              // For team members endpoint, combine members and admins
+              const allUsers = [...(result.members || []), ...(result.admins || [])];
+              
+              // Filter by search term if provided
+              const filteredUsers = searchTerm.length >= 2 
+                ? allUsers.filter(user => 
+                    user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+                  )
+                : allUsers;
+              
+              setUsers(filteredUsers);
+            } else {
+              // For regular user search endpoint
+              setUsers(result.users || []);
+            }
           }
         }
       } catch (error) {
@@ -262,7 +278,7 @@ export default function UserDropdown({
               <div className="p-4 text-center">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto"></div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                  {searchTerm.length >= 2 ? 'Searching...' : 'Loading POD users...'}
+                  {searchTerm.length >= 2 ? 'Searching...' : teamId ? 'Loading team members...' : 'Loading POD users...'}
                 </p>
               </div>
             ) : users.length > 0 ? (
@@ -303,7 +319,7 @@ export default function UserDropdown({
             ) : searchTerm.length >= 2 ? (
               <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                 <User className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No POD users found</p>
+                <p className="text-sm">{teamId ? 'No team members found' : 'No POD users found'}</p>
                 <p className="text-xs">Try a different search term</p>
               </div>
             ) : (
