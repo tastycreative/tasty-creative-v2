@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { sendMentionNotificationEmail } from '@/lib/email';
 import { generateTaskUrl } from '@/lib/taskUtils';
 import { createInAppNotification } from '@/lib/notifications';
-import { publishNotification } from '@/lib/upstash';
+import { publishNotification } from '@/lib/ably';
 
 // Force SSE for App Router (Socket.IO not properly supported)
 const isProduction = true; // Always use SSE

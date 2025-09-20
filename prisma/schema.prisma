@@ -26,6 +26,7 @@ model User {
   forumComments              ForumComment[]
   forumVotes                 ForumVote[]
   ModerationLog              ModerationLog[]
+  ModularWorkflow            ModularWorkflow[]
   notifications              Notification[]
   pageViews                  PageView[]
   createdPodTeams            PodTeam[]                     @relation("PodTeamCreator")
@@ -175,6 +176,7 @@ model Task {
   status              String                @default("NOT_STARTED")
   podTeamId           String?
   taskNumber          Int                   @default(autoincrement())
+  ModularWorkflow     ModularWorkflow?
   notifications       Notification[]
   ContentSubmission   ContentSubmission?    @relation(fields: [contentSubmissionId], references: [id])
   createdBy           User                  @relation("TaskCreator", fields: [createdById], references: [id])
@@ -449,6 +451,7 @@ model ContentSubmission {
   minimumPrice          String?
   releaseDate           String?
   releaseTime           String?
+  timezone              String?                       // Timezone for release date/time (e.g., "America/New_York", "UTC")
   User                  User               @relation(fields: [createdById], references: [id])
   notifications         Notification[]
   Task                  Task?
@@ -590,8 +593,10 @@ model Notification {
   podTeamId           String?
   contentSubmissionId String?
   clientModelId       String?
+  modularWorkflowId   String?
   clientModel         ClientModel?       @relation(fields: [clientModelId], references: [id], onDelete: Cascade)
   contentSubmission   ContentSubmission? @relation(fields: [contentSubmissionId], references: [id], onDelete: Cascade)
+  ModularWorkflow     ModularWorkflow?   @relation(fields: [modularWorkflowId], references: [id], onDelete: Cascade)
   podTeam             PodTeam?           @relation(fields: [podTeamId], references: [id], onDelete: Cascade)
   task                Task?              @relation(fields: [taskId], references: [id], onDelete: Cascade)
   user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -604,6 +609,7 @@ model Notification {
   @@index([podTeamId])
   @@index([contentSubmissionId])
   @@index([clientModelId])
+  @@index([modularWorkflowId])
 }
 
 model ForumComment {
@@ -685,6 +691,41 @@ model ForumAnalytics {
   @@index([modelId])
   @@index([metric])
   @@index([date])
+}
+
+model ModularWorkflow {
+  id                 String             @id
+  submissionType     SubmissionType
+  contentStyle       ContentStyle
+  selectedComponents Json
+  componentData      Json?
+  workflowTemplate   String?
+  modelName          String
+  priority           SubmissionPriority
+  driveLink          String
+  contentDescription String
+  attachments        Json?
+  estimatedDuration  Int?
+  teamAssignments    Json?
+  createdById        String
+  teamId             String?
+  taskId             String?            @unique
+  status             WorkflowStatus     @default(PENDING)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime
+  processedAt        DateTime?
+  User               User               @relation(fields: [createdById], references: [id])
+  Task               Task?              @relation(fields: [taskId], references: [id])
+  Notification       Notification[]
+
+  @@index([contentStyle])
+  @@index([createdAt])
+  @@index([createdById])
+  @@index([modelName])
+  @@index([priority])
+  @@index([status])
+  @@index([submissionType])
+  @@index([teamId])
 }
 
 enum Role {
@@ -809,8 +850,8 @@ enum NotificationType {
   TASK_STATUS_CHANGED
   TASK_COMMENT_ADDED
   TASK_DUE_DATE_APPROACHING
-  POD_TEAM_ADDED
   TASK_MENTION
+  POD_TEAM_ADDED
   POD_TEAM_CLIENT_ASSIGNED
   POD_TEAM_MEMBER_JOINED
   CONTENT_SUBMISSION_STATUS_CHANGED
@@ -821,4 +862,19 @@ enum NotificationType {
 enum ForumVoteType {
   UPVOTE
   DOWNVOTE
+}
+
+enum ContentStyle {
+  NORMAL
+  GAME
+  POLL
+  LIVESTREAM
+}
+
+enum WorkflowStatus {
+  PENDING
+  PROCESSING
+  TASK_CREATED
+  COMPLETED
+  CANCELLED
 }

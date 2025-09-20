@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { createInAppNotification } from '@/lib/notifications';
-import { publishNotification } from '@/lib/upstash';
+import { publishNotification } from '@/lib/ably';
 import { prisma } from '@/lib/prisma';
 import { generateTaskUrl } from '@/lib/taskUtils';
 

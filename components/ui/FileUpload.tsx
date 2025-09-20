@@ -92,6 +92,17 @@ export default function FileUpload({
       const newLocalFiles: LocalFilePreview[] = [];
       
       for (const file of files) {
+        // Check if this file is already in localFiles to prevent duplicates
+        const fileKey = `${file.name}-${file.size}-${file.lastModified}`;
+        const isDuplicate = localFiles.some(localFile => 
+          `${localFile.name}-${localFile.size}-${localFile.file.lastModified}` === fileKey
+        );
+        
+        if (isDuplicate) {
+          console.log(`File ${file.name} is already added, skipping duplicate`);
+          continue;
+        }
+        
         const id = `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const previewUrl = URL.createObjectURL(file);
         
@@ -105,14 +116,16 @@ export default function FileUpload({
         });
       }
 
-      if (onLocalFilesChange) {
+      if (newLocalFiles.length > 0 && onLocalFilesChange) {
         onLocalFilesChange([...localFiles, ...newLocalFiles]);
       }
       
       if (newLocalFiles.length === 1) {
         toast.success(`Added ${newLocalFiles[0].name} for upload`);
-      } else {
+      } else if (newLocalFiles.length > 1) {
         toast.success(`Added ${newLocalFiles.length} files for upload`);
+      } else {
+        toast.info('No new files added (duplicates detected)');
       }
     }
   }, [attachments, localFiles, onLocalFilesChange, maxFiles, maxFileSize, acceptedTypes, uploadOnSubmit]);
@@ -442,11 +455,27 @@ export const uploadAllLocalFiles = async (
 ): Promise<TaskAttachment[]> => {
   if (localFiles.length === 0) return [];
   
+  // Remove duplicates based on file name, size, and last modified date
+  const uniqueFiles: LocalFilePreview[] = [];
+  const seenFiles = new Set<string>();
+  
+  for (const localFile of localFiles) {
+    const fileKey = `${localFile.name}-${localFile.size}-${localFile.file.lastModified}`;
+    if (!seenFiles.has(fileKey)) {
+      seenFiles.add(fileKey);
+      uniqueFiles.push(localFile);
+    } else {
+      console.log(`Skipping duplicate file: ${localFile.name}`);
+    }
+  }
+  
   const newAttachments: TaskAttachment[] = [];
   const failedUploads: string[] = [];
 
-  for (const localFile of localFiles) {
+  for (const localFile of uniqueFiles) {
     try {
+      console.log(`Uploading file: ${localFile.name} (${localFile.size} bytes)`);
+      
       const formData = new FormData();
       formData.append('file', localFile.file);
 
@@ -463,6 +492,7 @@ export const uploadAllLocalFiles = async (
       const responseData = await response.json();
       const { attachment } = responseData;
       newAttachments.push(attachment);
+      console.log(`Successfully uploaded: ${localFile.name} -> S3 key: ${attachment.s3Key}`);
       
     } catch (error) {
       console.error(`Failed to upload ${localFile.name}:`, error);

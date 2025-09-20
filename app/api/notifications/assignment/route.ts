@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { sendTaskAssignmentNotificationEmail } from '@/lib/email';
 import { generateTaskUrl } from '@/lib/taskUtils';
 import { createInAppNotification } from '@/lib/notifications';
-import { publishNotification } from '@/lib/upstash';
+import { publishNotification } from '@/lib/ably';
 
 export async function POST(req: NextRequest) {
   try {

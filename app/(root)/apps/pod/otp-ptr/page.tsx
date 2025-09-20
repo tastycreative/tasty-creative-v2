@@ -14,6 +14,7 @@ import {
 import FileUpload, { LocalFilePreview, uploadAllLocalFiles } from "@/components/ui/FileUpload";
 import { TaskAttachment } from "@/lib/stores/boardStore";
 import { useContentSubmissionStore } from "@/lib/stores/contentSubmissionStore";
+import { TIMEZONES } from "@/lib/lib";
 import ModelsDropdownList from "@/components/ModelsDropdownList";
 import {
   Upload,
@@ -108,16 +109,28 @@ export default function OtpPtrPage() {
   }, [fullscreenAttachments, currentAttachmentIndex]);
 
   const handleSubmit = async () => {
-    // First upload any local files to S3
-    if (localFiles.length > 0) {
-      await uploadAllLocalFiles(localFiles, attachments, setAttachments, setLocalFiles);
+    // Prevent multiple simultaneous submissions
+    if (isSubmitting) {
+      console.log("Submission already in progress, ignoring duplicate call");
+      return;
     }
 
-    const success = await submitContent();
-    
-    // Refresh submissions if history is visible and submission was successful
-    if (success && showHistory) {
-      refreshSubmissions();
+    try {
+      // First upload any local files to S3
+      if (localFiles.length > 0) {
+        console.log(`Uploading ${localFiles.length} local files to S3...`);
+        await uploadAllLocalFiles(localFiles, attachments, setAttachments, setLocalFiles);
+        console.log("Local files uploaded successfully");
+      }
+
+      const success = await submitContent();
+      
+      // Refresh submissions if history is visible and submission was successful
+      if (success && showHistory) {
+        refreshSubmissions();
+      }
+    } catch (error) {
+      console.error("Error during submission:", error);
     }
   };
 
@@ -503,13 +516,16 @@ export default function OtpPtrPage() {
                                 Release Date & Time
                               </label>
                               <p className="text-gray-600 dark:text-gray-400 mt-0.5 text-xs">
-                                When should this content be released?
+                                When should this content be released? (Include timezone for clarity)
                               </p>
                             </div>
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-3 gap-4">
                             {/* Release Date */}
                             <div className="relative">
+                              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Date
+                              </label>
                               <input
                                 type="date"
                                 value={formData.releaseDate}
@@ -521,6 +537,9 @@ export default function OtpPtrPage() {
                             </div>
                             {/* Release Time */}
                             <div className="relative">
+                              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Time
+                              </label>
                               <input
                                 type="time"
                                 value={formData.releaseTime}
@@ -529,6 +548,25 @@ export default function OtpPtrPage() {
                                 }
                                 className="w-full h-12 px-4 text-sm bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-rose-500 dark:focus:border-rose-400 focus:ring-2 focus:ring-rose-500/20 hover:border-rose-400 dark:hover:border-rose-500 hover:shadow-md transition-all duration-300"
                               />
+                            </div>
+                            {/* Timezone */}
+                            <div className="relative">
+                              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Timezone
+                              </label>
+                              <select
+                                value={formData.timezone || "EST"}
+                                onChange={(e) =>
+                                  updateFormData("timezone", e.target.value)
+                                }
+                                className="w-full h-12 px-4 text-sm bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:border-rose-500 dark:focus:border-rose-400 focus:ring-2 focus:ring-rose-500/20 hover:border-rose-400 dark:hover:border-rose-500 hover:shadow-md transition-all duration-300"
+                              >
+                                {TIMEZONES.map((timezone) => (
+                                  <option key={timezone.name} value={timezone.name}>
+                                    {timezone.name}
+                                  </option>
+                                ))}
+                              </select>
                             </div>
                           </div>
                         </div>
@@ -802,6 +840,11 @@ export default function OtpPtrPage() {
                                   <span className="text-purple-600 dark:text-purple-400 flex items-center gap-1">
                                     <Calendar className="h-3 w-3" />
                                     {submission.releaseDate} at {submission.releaseTime}
+                                    {submission.timezone && (
+                                      <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                                        ({submission.timezone.replace('_', ' ')})
+                                      </span>
+                                    )}
                                   </span>
                                 )}
                                 {submission.minimumPrice && (

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { publishNotification } from '@/lib/upstash';
+import { publishNotification } from '@/lib/ably';
 
 export async function POST(req: NextRequest) {
   try {

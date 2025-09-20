@@ -10,6 +10,25 @@ if (!ABLY_API_KEY) {
 // Server-side Ably client (REST-only to avoid WebSocket issues in serverless)
 export const ablyServer = ABLY_API_KEY ? new Ably.Rest(ABLY_API_KEY) : null;
 
+// Types for notifications
+export type PublishResult = {
+  success: boolean;
+  channel: string;
+  message?: any;
+  error?: string;
+};
+
+export type NotificationPayload = {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  data?: any;
+  userId?: string;
+  teamId?: string;
+  timestamp: number;
+};
+
 // Client-side Ably configuration (uses token auth for security)
 export const ablyClientConfig = {
   authUrl: '/api/notifications/ably-token', // We'll create this endpoint for token authentication
@@ -89,6 +108,48 @@ export async function publishNotificationToTeam(teamId: string, notification: an
   } catch (error: any) {
     console.error('❌ Error publishing team notification to Ably:', error);
     return { success: false, error: error.message || String(error) };
+  }
+}
+
+// Main notification publishing function (unified Ably implementation)
+export async function publishNotification(notification: NotificationPayload): Promise<{ success: boolean; error?: string }> {
+  try {
+    console.log('📤 Publishing notification via Ably:', notification.id);
+    console.log('🎯 Target user ID:', notification.userId);
+
+    // Publish to Ably for real-time delivery
+    if (notification.userId) {
+      console.log('📡 Starting Ably publish...');
+      
+      const ablyResult = await publishNotificationToUser(notification.userId, notification);
+
+      if (!ablyResult.success) {
+        console.error('❌ Failed to publish to Ably:', ablyResult.error);
+        return { success: false, error: ablyResult.error };
+      } else {
+        console.log('📡 Published to Ably successfully');
+      }
+
+      // Also publish to team channel if teamId exists
+      if (notification.teamId) {
+        console.log('👥 Publishing to team channel:', notification.teamId);
+        const teamResult = await publishNotificationToTeam(notification.teamId, notification);
+        
+        if (!teamResult.success) {
+          console.warn('⚠️ Failed to publish to team channel:', teamResult.error);
+          // Don't fail entire operation for team publish failure
+        }
+      }
+    } else {
+      console.log('⚠️ No userId provided, skipping Ably publish');
+    }
+    
+    console.log('✅ Notification published via Ably:', notification.id);
+    return { success: true };
+    
+  } catch (err: any) {
+    console.error('❌ Error publishing notification via Ably:', err);
+    return { success: false, error: err?.message || String(err) };
   }
 }
 
