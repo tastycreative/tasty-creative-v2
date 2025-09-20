@@ -109,16 +109,28 @@ export default function OtpPtrPage() {
   }, [fullscreenAttachments, currentAttachmentIndex]);
 
   const handleSubmit = async () => {
-    // First upload any local files to S3
-    if (localFiles.length > 0) {
-      await uploadAllLocalFiles(localFiles, attachments, setAttachments, setLocalFiles);
+    // Prevent multiple simultaneous submissions
+    if (isSubmitting) {
+      console.log("Submission already in progress, ignoring duplicate call");
+      return;
     }
 
-    const success = await submitContent();
-    
-    // Refresh submissions if history is visible and submission was successful
-    if (success && showHistory) {
-      refreshSubmissions();
+    try {
+      // First upload any local files to S3
+      if (localFiles.length > 0) {
+        console.log(`Uploading ${localFiles.length} local files to S3...`);
+        await uploadAllLocalFiles(localFiles, attachments, setAttachments, setLocalFiles);
+        console.log("Local files uploaded successfully");
+      }
+
+      const success = await submitContent();
+      
+      // Refresh submissions if history is visible and submission was successful
+      if (success && showHistory) {
+        refreshSubmissions();
+      }
+    } catch (error) {
+      console.error("Error during submission:", error);
     }
   };
 
