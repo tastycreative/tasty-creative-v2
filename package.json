@@ -96,9 +96,6 @@
     "zod": "^3.25.53",
     "zustand": "^5.0.7"
   },
-  "optionalDependencies": {
-    "@upstash/redis": "^1.18.1"
-  },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@remotion/bundler": "^4.0.332",

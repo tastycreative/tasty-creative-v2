@@ -1,15 +1,10 @@
-// Comprehensive Upstash Redis REST helper for real-time notifications (Vercel-optimized)
-// Uses webhooks instead of polling to minimize function invocations
+// Simplified notification publisher - Upstash Redis removed, using only Ably
 
 export type PublishResult = {
   success: boolean;
   channel: string;
   message?: any;
   error?: string;
-};
-
-export type RedisCommand = {
-  command: string[];
 };
 
 export type NotificationPayload = {
@@ -23,70 +18,7 @@ export type NotificationPayload = {
   timestamp: number;
 };
 
-const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
-const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
-
-if (!UPSTASH_URL || !UPSTASH_TOKEN) {
-  console.warn('⚠️ Upstash not configured - notifications will not work');
-}
-
-// Generic Redis command executor
-export async function executeRedisCommand(command: string[]): Promise<{ success: boolean; data?: any; error?: string }> {
-  if (!UPSTASH_URL || !UPSTASH_TOKEN) {
-    return { success: false, error: 'Upstash not configured' };
-  }
-
-  try {
-    // Simple command logging without request body details
-    console.log('🔧 Redis command:', command[0], '→', command[1] || '...');
-
-    const body = JSON.stringify(command);
-
-    const res = await fetch(UPSTASH_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${UPSTASH_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body,
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.log('❌ Redis error:', text);
-      return { success: false, error: `Upstash responded ${res.status}: ${text}` };
-    }
-
-    const data = await res.json();
-    return { success: true, data: data.result };
-  } catch (err: any) {
-    console.log('❌ Redis command exception:', err);
-    return { success: false, error: err?.message || String(err) };
-  }
-}
-
-// Publish notification to a channel
-export async function upstashPublish(channel: string, message: any): Promise<PublishResult> {
-  if (!UPSTASH_URL || !UPSTASH_TOKEN) {
-    return { success: false, channel, error: 'Upstash not configured' };
-  }
-
-  try {
-    const result = await executeRedisCommand(['PUBLISH', channel, JSON.stringify(message)]);
-    if (result.success) {
-      return { success: true, channel, message: result.data };
-    } else {
-      return { success: false, channel, error: result.error };
-    }
-  } catch (err: any) {
-    return { success: false, channel, error: err?.message || String(err) };
-  }
-}
-
-// Note: Redis storage removed - notifications now use database storage via lib/notifications.ts
-// and real-time delivery via Ably in lib/ably.ts
-
-// Efficient publish notification using Ably (pure Ably implementation)
+// Direct Ably publish notification (no Redis/Upstash)
 export async function publishNotification(notification: NotificationPayload): Promise<{ success: boolean; error?: string }> {
   try {
     console.log('📤 Publishing notification via Ably:', notification.id);
@@ -129,6 +61,17 @@ export async function publishNotification(notification: NotificationPayload): Pr
     console.error('❌ Error publishing notification via Ably:', err);
     return { success: false, error: err?.message || String(err) };
   }
+}
+
+// Legacy compatibility exports (no-op stubs)
+export async function upstashPublish(channel: string, message: any): Promise<PublishResult> {
+  console.log('⚠️ upstashPublish called but Upstash removed - using Ably instead');
+  return { success: false, channel, error: 'Upstash removed - use publishNotification instead' };
+}
+
+export async function executeRedisCommand(command: string[]): Promise<{ success: boolean; data?: any; error?: string }> {
+  console.log('⚠️ executeRedisCommand called but Upstash removed');
+  return { success: false, error: 'Upstash removed - Redis commands no longer supported' };
 }
 
 export default upstashPublish;
