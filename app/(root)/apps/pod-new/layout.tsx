@@ -17,9 +17,9 @@ interface PodNewLayoutProps {
 
 export default function PodNewLayout({ children }: PodNewLayoutProps) {
   const pathname = usePathname();
-  const { selectedRow, selectedTeamId } = usePodStore();
+  const { selectedRow, selectedTeamId, setSelectedTeamId } = usePodStore();
   const { fetchPodData } = usePodData();
-  const { teams, fetchAvailableTeams } = useAvailableTeams();
+  const { teams, loading: isLoadingTeams, fetchAvailableTeams } = useAvailableTeams();
 
   // Check if this is a model profile page that should be full-screen
   const isModelProfilePage = pathname?.includes('/my-models/') && pathname?.split('/').length > 4;
@@ -40,6 +40,16 @@ export default function PodNewLayout({ children }: PodNewLayoutProps) {
       fetchPodData(selectedTeamId);
     }
   }, [selectedRow, selectedTeamId, teams, fetchPodData]);
+
+  // Auto-select first team if none is selected (matching original pod layout behavior)
+  useEffect(() => {
+    if (!selectedTeamId && teams.length > 0 && !isLoadingTeams) {
+      console.log(
+        `🎯 Auto-selecting first team: ${teams[0].name} (${teams[0].id})`
+      );
+      setSelectedTeamId(teams[0].id);
+    }
+  }, [selectedTeamId, teams, isLoadingTeams, setSelectedTeamId]);
 
   const getCurrentTab = () => {
     if (!pathname) return "dashboard";
@@ -72,16 +82,18 @@ export default function PodNewLayout({ children }: PodNewLayoutProps) {
     return children;
   }
 
-  // Determine if right sidebar should be shown
+  // Determine if sidebars should be shown (show on most pages including board)
   const showRightSidebar = pathname === "/apps/pod-new" ||
                           pathname === "/apps/pod-new/dashboard" ||
-                          pathname === "/apps/pod-new/board" ||
-                          pathname === "/apps/pod-new/forms";
+                          pathname === "/apps/pod-new/forms" ||
+                          pathname === "/apps/pod-new/board";
+
+  const showLeftSidebar = true; // Always show left sidebar
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-200">
       {/* Header */}
-      <div className="mx-auto max-w-6xl px-6 py-6">
+      <div className="mx-auto max-w-full xl:max-w-[1400px] px-6 py-6">
         <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-fuchsia-500/10 via-purple-500/15 to-pink-500/10 dark:from-fuchsia-500/10 dark:via-purple-500/15 dark:to-pink-500/10 border border-gray-200/50 dark:border-white/20 backdrop-blur-md px-8 py-6 shadow-2xl shadow-purple-500/10 dark:shadow-purple-500/10 transition-all duration-300 hover:shadow-purple-500/20 dark:hover:shadow-purple-500/20 hover:border-gray-300/70 dark:hover:border-white/30">
           {/* Animated background glow */}
           <div className="absolute inset-0 bg-gradient-to-br from-fuchsia-500/5 via-purple-500/10 to-pink-500/5 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
@@ -120,15 +132,19 @@ export default function PodNewLayout({ children }: PodNewLayoutProps) {
         ))}
       </div>
 
-      {/* Content Grid - Conditional layout based on right sidebar visibility */}
-      <div className={`w-full px-6 lg:px-8 mt-6 grid grid-cols-1 ${
-        showRightSidebar
+      {/* Content Grid - Conditional layout based on sidebar visibility */}
+      <div className={`w-full max-w-full xl:max-w-[1600px] mx-auto px-4 lg:px-6 mt-6 grid grid-cols-1 ${
+        showLeftSidebar && showRightSidebar
           ? "xl:grid-cols-[280px_1fr_320px]"
-          : "xl:grid-cols-[280px_1fr]"
-      } gap-8 items-start`}>
-        <LeftSidebar />
+          : showLeftSidebar
+          ? "xl:grid-cols-[280px_1fr]"
+          : showRightSidebar
+          ? "xl:grid-cols-[1fr_320px]"
+          : "xl:grid-cols-1"
+      } gap-4 items-start`}>
+        {showLeftSidebar && <LeftSidebar />}
         {/* Main Content */}
-        <main className="min-h-[500px]">{children}</main>
+        <main className="min-h-[500px] w-full min-w-0">{children}</main>
         {showRightSidebar && <RightSidebar />}
       </div>
     </div>

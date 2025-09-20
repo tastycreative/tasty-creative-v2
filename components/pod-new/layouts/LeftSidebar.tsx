@@ -14,6 +14,7 @@ import {
   Settings,
   Users2,
   Zap,
+  Kanban,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/admin/ThemeToggle";
 
@@ -35,6 +36,11 @@ const navigation: { title: string; items: NavItem[] }[] = [
         title: "Dashboard",
         href: "/apps/pod-new/dashboard",
         icon: LayoutDashboard,
+      },
+      {
+        title: "Board",
+        href: "/apps/pod-new/board",
+        icon: Kanban,
       },
       {
         title: "Workspace",

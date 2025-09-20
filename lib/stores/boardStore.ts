@@ -45,6 +45,19 @@ export interface Task {
     name: string | null;
     email: string | null;
   } | null;
+  // Modular Workflow information
+  ModularWorkflow?: {
+    id: string;
+    submissionType: 'OTP' | 'PTR';
+    contentStyle: 'NORMAL' | 'GAME' | 'POLL' | 'LIVESTREAM';
+    selectedComponents: string[];
+    componentData: Record<string, any> | null;
+    modelName: string;
+    priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+    driveLink: string;
+    status: string;
+    createdAt: string;
+  } | null;
 }
 
 // Cache configuration

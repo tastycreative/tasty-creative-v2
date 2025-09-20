@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronDown,
   Link as LinkIcon,
@@ -62,6 +62,8 @@ function EmptyState({ icon, title, subtitle }: EmptyStateProps) {
 
 export function RightSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const selectedRow = usePodStore((s) => s.selectedRow);
   const setSelectedRow = usePodStore((s) => s.setSelectedRow);
   const setSelectedTeamId = usePodStore((s) => s.setSelectedTeamId);
@@ -74,6 +76,15 @@ export function RightSidebar() {
       setSelectedRow(1);
     }
   }, [selectedRow, teams, setSelectedRow]);
+
+  // Update URL when team selection changes
+  const updateURLWithTeam = (teamId: string) => {
+    if (pathname && (pathname.includes('/apps/pod-new/forms') || pathname.includes('/apps/pod-new/board'))) {
+      const params = new URLSearchParams(searchParams?.toString() || "");
+      params.set("team", teamId);
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    }
+  };
 
   // Only show sidebar on /apps/pod-new, /apps/pod-new/dashboard, /apps/pod-new/board, and /apps/pod-new/forms routes
   const allowedPaths = [
@@ -119,7 +130,10 @@ export function RightSidebar() {
                 const teamsResponse = await fetch("/api/pod/teams-db");
                 const { success, teams: dbTeams } = await teamsResponse.json();
                 if (success && dbTeams[rowNumber - 1]) {
-                  setSelectedTeamId(dbTeams[rowNumber - 1].id);
+                  const teamId = dbTeams[rowNumber - 1].id;
+                  setSelectedTeamId(teamId);
+                  // Update URL with the new team ID
+                  updateURLWithTeam(teamId);
                 }
               } catch (error) {
                 console.error("Error syncing team selection:", error);

@@ -26,7 +26,7 @@ model User {
   forumComments              ForumComment[]
   forumVotes                 ForumVote[]
   ModerationLog              ModerationLog[]
-  ModularWorkflow            ModularWorkflow[]
+  ModularWorkflow            ModularWorkflow[]             @relation("ModularWorkflowCreator")
   notifications              Notification[]
   pageViews                  PageView[]
   createdPodTeams            PodTeam[]                     @relation("PodTeamCreator")
@@ -176,7 +176,7 @@ model Task {
   status              String                @default("NOT_STARTED")
   podTeamId           String?
   taskNumber          Int                   @default(autoincrement())
-  ModularWorkflow     ModularWorkflow?
+  ModularWorkflow     ModularWorkflow?      @relation("ModularWorkflowTask")
   notifications       Notification[]
   ContentSubmission   ContentSubmission?    @relation(fields: [contentSubmissionId], references: [id])
   createdBy           User                  @relation("TaskCreator", fields: [createdById], references: [id])
@@ -250,7 +250,6 @@ model ClientModel {
   createdAt             DateTime                  @default(now())
   updatedAt             DateTime                  @updatedAt
   row_id                String?
-  calendar_id           String?
   sheetLinks            ClientModelSheetLinks[]
   contentDetails        ContentDetails[]
   notifications         Notification[]
@@ -451,7 +450,7 @@ model ContentSubmission {
   minimumPrice          String?
   releaseDate           String?
   releaseTime           String?
-  timezone              String?                       // Timezone for release date/time (e.g., "America/New_York", "UTC")
+  timezone              String?
   User                  User               @relation(fields: [createdById], references: [id])
   notifications         Notification[]
   Task                  Task?
@@ -462,6 +461,41 @@ model ContentSubmission {
   @@index([priority])
   @@index([status])
   @@index([submissionType])
+}
+
+model ModularWorkflow {
+  id                 String             @id @default(cuid())
+  submissionType     SubmissionType
+  contentStyle       ContentStyle
+  selectedComponents Json
+  componentData      Json?
+  workflowTemplate   String?
+  modelName          String
+  priority           SubmissionPriority
+  driveLink          String
+  contentDescription String
+  attachments        Json?
+  estimatedDuration  Int?
+  teamAssignments    Json?
+  createdById        String
+  teamId             String?
+  taskId             String?            @unique
+  status             WorkflowStatus     @default(PENDING)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  processedAt        DateTime?
+  createdBy          User               @relation("ModularWorkflowCreator", fields: [createdById], references: [id])
+  task               Task?              @relation("ModularWorkflowTask", fields: [taskId], references: [id])
+  notifications      Notification[]
+
+  @@index([createdAt])
+  @@index([createdById])
+  @@index([modelName])
+  @@index([priority])
+  @@index([status])
+  @@index([submissionType])
+  @@index([contentStyle])
+  @@index([teamId])
 }
 
 model Attachment {
@@ -693,41 +727,6 @@ model ForumAnalytics {
   @@index([date])
 }
 
-model ModularWorkflow {
-  id                 String             @id
-  submissionType     SubmissionType
-  contentStyle       ContentStyle
-  selectedComponents Json
-  componentData      Json?
-  workflowTemplate   String?
-  modelName          String
-  priority           SubmissionPriority
-  driveLink          String
-  contentDescription String
-  attachments        Json?
-  estimatedDuration  Int?
-  teamAssignments    Json?
-  createdById        String
-  teamId             String?
-  taskId             String?            @unique
-  status             WorkflowStatus     @default(PENDING)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime
-  processedAt        DateTime?
-  User               User               @relation(fields: [createdById], references: [id])
-  Task               Task?              @relation(fields: [taskId], references: [id])
-  Notification       Notification[]
-
-  @@index([contentStyle])
-  @@index([createdAt])
-  @@index([createdById])
-  @@index([modelName])
-  @@index([priority])
-  @@index([status])
-  @@index([submissionType])
-  @@index([teamId])
-}
-
 enum Role {
   USER
   ADMIN
@@ -804,6 +803,21 @@ enum SubmissionType {
   PTR
 }
 
+enum ContentStyle {
+  NORMAL
+  GAME
+  POLL
+  LIVESTREAM
+}
+
+enum WorkflowStatus {
+  PENDING
+  PROCESSING
+  TASK_CREATED
+  COMPLETED
+  CANCELLED
+}
+
 enum PodMemberRole {
   LEADER
   MEMBER
@@ -850,31 +864,16 @@ enum NotificationType {
   TASK_STATUS_CHANGED
   TASK_COMMENT_ADDED
   TASK_DUE_DATE_APPROACHING
-  TASK_MENTION
   POD_TEAM_ADDED
   POD_TEAM_CLIENT_ASSIGNED
   POD_TEAM_MEMBER_JOINED
   CONTENT_SUBMISSION_STATUS_CHANGED
   CLIENT_SHEET_LINK_ADDED
   SYSTEM_NOTIFICATION
+  TASK_MENTION
 }
 
 enum ForumVoteType {
   UPVOTE
   DOWNVOTE
-}
-
-enum ContentStyle {
-  NORMAL
-  GAME
-  POLL
-  LIVESTREAM
-}
-
-enum WorkflowStatus {
-  PENDING
-  PROCESSING
-  TASK_CREATED
-  COMPLETED
-  CANCELLED
 }
