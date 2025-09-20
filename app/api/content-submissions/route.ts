@@ -14,6 +14,7 @@ interface SubmissionData {
   screenshotAttachments?: any[];
   releaseDate?: string;
   releaseTime?: string;
+  timezone?: string;
   minimumPrice?: string;
 }
 
@@ -337,6 +338,7 @@ export async function POST(request: NextRequest) {
         ...(submissionType === 'PTR' && {
           releaseDate: data.releaseDate,
           releaseTime: data.releaseTime,
+          timezone: data.timezone,
           minimumPrice: data.minimumPrice,
         }),
       }
@@ -361,6 +363,9 @@ export async function POST(request: NextRequest) {
       taskDescription += `\n\n--- PTR Details ---`;
       taskDescription += `\nRelease Date: ${data.releaseDate}`;
       taskDescription += `\nRelease Time: ${data.releaseTime}`;
+      if (data.timezone) {
+        taskDescription += `\nTimezone: ${data.timezone}`;
+      }
       taskDescription += `\nMinimum Price: $${data.minimumPrice}`;
     }
 
