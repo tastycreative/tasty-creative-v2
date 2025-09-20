@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
-import { publishNotification } from '@/lib/upstash';
+import { publishNotification } from '@/lib/ably';
 
 // Test endpoint to trigger an Ably notification
 export async function POST(request: NextRequest) {

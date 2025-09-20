@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
-import { publishNotification } from '@/lib/upstash';
+import { publishNotification } from '@/lib/ably';
 import { sendOTPPTRTaskNotificationEmail } from '@/lib/email';
 import { generateTaskUrl } from '@/lib/taskUtils';
 
