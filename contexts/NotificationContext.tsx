@@ -6,8 +6,7 @@ import UserProfile from '@/components/ui/UserProfile';
 import { useSession } from 'next-auth/react';
 import { useNotificationStore } from '@/lib/stores/notificationStore';
 
-// Minimal notification context shim — removes all SSE/EventSource logic but
-// preserves the public API so the app can be rebuilt and iterated on.
+// Pure Ably notification context - no EventSource/SSE logic
 
 interface Notification {
   id: string;
@@ -36,6 +35,30 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | null>(null);
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
+  // Early SSR guard - prevent any client-side code from running on server
+  if (typeof window === 'undefined') {
+    // Return minimal provider for SSR
+    return (
+      <NotificationContext.Provider
+        value={{
+          notifications: [],
+          unreadCount: 0,
+          isConnected: false,
+          connectionType: null,
+          lastUpdated: Date.now(),
+          markAsRead: async () => {},
+          markAllAsRead: async () => {},
+          refetch: async () => {},
+          subscribeToTaskUpdates: () => {},
+          unsubscribeFromTaskUpdates: () => {},
+          broadcastTaskUpdate: async () => false,
+        }}
+      >
+        {children}
+      </NotificationContext.Provider>
+    );
+  }
+
   // Use Zustand store for state management and caching
   const {
     notifications,
@@ -53,15 +76,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   } = useNotificationStore();
 
   const [lastUpdated, setLastUpdated] = useState(Date.now());
-  const esRef = useRef<EventSource | null>(null);
+  const ablyClientRef = useRef<any>(null); // Store Ably client reference
   const previousNotificationIds = useRef<Set<string>>(new Set());
   const initialLoadCompletedRef = useRef<boolean>(false);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;
-  const heartbeatIntervalRef = useRef<NodeJS.Timeout>();
-  const lastHeartbeatRef = useRef<number>(Date.now());
-  const isTabVisibleRef = useRef<boolean>(true);
   const isConnectingRef = useRef<boolean>(false);
   const isFetchingRef = useRef<boolean>(false);
   const lastFetchTimeRef = useRef<number>(0);
@@ -71,137 +91,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   // Declare connectToAblyStream function
   const connectToAblyStream = useRef<() => void>();
-
-  // Page Visibility API and Focus/Blur events - Track if tab is active
-  useEffect(() => {
-    let visibilityTimeout: NodeJS.Timeout;
-    
-    const handleVisibilityChange = () => {
-      const isVisible = !document.hidden;
-      isTabVisibleRef.current = isVisible;
-      console.log(`👁️ Tab visibility changed: ${isVisible ? 'visible' : 'hidden'}`);
-      
-      if (isVisible) {
-        // Clear any existing timeout
-        if (visibilityTimeout) {
-          clearTimeout(visibilityTimeout);
-        }
-        
-        // Add a small delay to avoid rapid successive calls
-        visibilityTimeout = setTimeout(() => {
-          console.log('🔍 Checking connection health after visibility change...');
-          checkConnectionHealth();
-        }, 1000); // 1 second delay
-      }
-    };
-
-    const handleFocus = () => {
-      console.log('🎯 Window focused - ensuring connection is healthy');
-      isTabVisibleRef.current = true;
-      
-      // Clear any existing timeout
-      if (visibilityTimeout) {
-        clearTimeout(visibilityTimeout);
-      }
-      
-      // Add a small delay to avoid rapid successive calls
-      visibilityTimeout = setTimeout(() => {
-        checkConnectionHealth();
-      }, 500); // 0.5 second delay for focus
-    };
-
-    const handleBlur = () => {
-      console.log('😴 Window blurred - connection will continue in background');
-      isTabVisibleRef.current = false;
-      
-      // Clear any pending health checks
-      if (visibilityTimeout) {
-        clearTimeout(visibilityTimeout);
-      }
-    };
-
-    // Add all event listeners
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-    window.addEventListener('blur', handleBlur);
-
-    return () => {
-      if (visibilityTimeout) {
-        clearTimeout(visibilityTimeout);
-      }
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-      window.removeEventListener('blur', handleBlur);
-    };
-  }, []);
-
-  // Connection health check - only reconnect if actually disconnected
-  const checkConnectionHealth = () => {
-    // Only reconnect if connection is actually lost
-    if (!esRef.current || esRef.current.readyState === EventSource.CLOSED || esRef.current.readyState === EventSource.CONNECTING) {
-      console.log('🏥 Connection unhealthy (state:', esRef.current?.readyState, '), attempting to reconnect...');
-      connectToAblyStream.current?.();
-    } else if (esRef.current.readyState === EventSource.OPEN) {
-      console.log('💚 Connection healthy and open - no action needed');
-      // Connection is healthy, no need to do anything
-      // Real-time notifications will come through the SSE stream
-    } else {
-      console.log('🔍 Connection in unknown state:', esRef.current?.readyState);
-    }
-  };
-
-  // Emergency heartbeat - only used when connection is unstable
-  const sendEmergencyHeartbeat = async () => {
-    try {
-      console.log('🆘 Sending emergency heartbeat to stabilize connection...');
-      await fetch('/api/notifications/ping', { 
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          timestamp: Date.now(),
-          tabVisible: isTabVisibleRef.current,
-          emergency: true
-        })
-      });
-      console.log('💓 Emergency heartbeat sent successfully');
-    } catch (error) {
-      console.error('❌ Emergency heartbeat failed:', error);
-    }
-  };
-
-  // Connection health monitor - checks periodically but only acts on issues
-  const startHeartbeat = () => {
-    if (heartbeatIntervalRef.current) {
-      clearInterval(heartbeatIntervalRef.current);
-    }
-
-    heartbeatIntervalRef.current = setInterval(() => {
-      lastHeartbeatRef.current = Date.now();
-      
-      // Only act if connection is having issues
-      if (!esRef.current) {
-        console.log('🔍 No EventSource found, attempting reconnect...');
-        connectToAblyStream.current?.();
-      } else if (esRef.current.readyState === EventSource.CLOSED) {
-        console.log('🔌 Connection closed, attempting reconnect...');
-        connectToAblyStream.current?.();
-      } else if (esRef.current.readyState === EventSource.CONNECTING) {
-        console.log('🔄 Connection still connecting, sending emergency heartbeat...');
-        sendEmergencyHeartbeat();
-      } else if (esRef.current.readyState === EventSource.OPEN) {
-        // Connection is healthy - just log silently
-        console.log('💚 Connection healthy, no action needed');
-      }
-    }, 30000); // Every 30 seconds - just monitoring, not constantly pinging
-  };
-
-  const stopHeartbeat = () => {
-    if (heartbeatIntervalRef.current) {
-      clearInterval(heartbeatIntervalRef.current);
-      heartbeatIntervalRef.current = undefined;
-    }
-  };
 
   const showNotificationToast = (notification: Notification) => {
     const data = notification.data || {};
@@ -445,14 +334,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
   // Establish Ably real-time connection
   useEffect(() => {
-    console.log('🚀 NotificationContext useEffect triggered');
-    console.log('🔐 Auth status:', status, 'Session:', !!session?.user);
-    
-    // Only run on client
+    // Only run on client side
     if (typeof window === 'undefined') {
       console.log('❌ Running on server, skipping Ably connection');
       return;
     }
+
+    console.log('🚀 NotificationContext useEffect triggered');
+    console.log('🔐 Auth status:', status, 'Session:', !!session?.user);
     
     // Wait for authentication to be resolved
     if (status === 'loading') {
@@ -480,6 +369,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       
       try {
         // Import Ably dynamically to avoid SSR issues
+        if (typeof window === 'undefined') {
+          console.log('❌ Cannot import Ably on server side');
+          return;
+        }
+
         const Ably = (await import('ably')).default;
         
         console.log('🚀 Creating Ably client connection...');
@@ -501,9 +395,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           if (reconnectTimeoutRef.current) {
             clearTimeout(reconnectTimeoutRef.current);
           }
-          
-          // Start heartbeat to monitor connection
-          startHeartbeat();
           
           console.log('🎯 Ably Connection established successfully');
           
@@ -573,8 +464,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           setConnectionStatus(false, null);
         });
 
-        // Store reference for cleanup
-        esRef.current = ably as any;
+        // Store Ably client reference for connection management
+        ablyClientRef.current = ably;
         
       } catch (error) {
         console.error('❌ Failed to create Ably connection:', error);
@@ -590,9 +481,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     return () => {
       console.log('🧹 Cleaning up Ably notification connection...');
       
-      // Stop heartbeat
-      stopHeartbeat();
-      
       // Reset flags
       isConnectingRef.current = false;
       
@@ -600,14 +488,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         clearTimeout(reconnectTimeoutRef.current);
       }
       
-      if (esRef.current) {
+      if (ablyClientRef.current) {
         // Close Ably connection
         try {
-          (esRef.current as any).connection.close();
+          ablyClientRef.current.connection.close();
         } catch (error) {
           console.log('Error closing Ably connection:', error);
         }
-        esRef.current = null;
+        ablyClientRef.current = null;
       }
       
       setConnectionStatus(false, null);
