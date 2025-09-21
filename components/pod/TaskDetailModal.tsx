@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Session } from "next-auth";
 import { X, Edit3, Calendar, Clock, Loader2 } from "lucide-react";
 import { Task } from "@/lib/stores/boardStore";
+import { formatForTaskDetail, formatDueDate, toLocalDateTimeString, utcNow } from "@/lib/dateUtils";
 import UserDropdown from "@/components/UserDropdown";
 import FileUpload from "@/components/ui/FileUpload";
 import AttachmentViewer from "@/components/ui/AttachmentViewer";
@@ -298,9 +299,7 @@ export default function TaskDetailModal({
                           if (!e.target.checked) {
                             onSetEditingTaskData({ dueDate: "" });
                           } else {
-                            const today = new Date()
-                              .toISOString()
-                              .split("T")[0];
+                            const today = toLocalDateTimeString(utcNow()).split("T")[0];
                             onSetEditingTaskData({ dueDate: today });
                           }
                         }}
@@ -514,15 +513,8 @@ export default function TaskDetailModal({
                   </label>
                   <div className="flex items-center space-x-2 min-w-0">
                     <Calendar className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                    <span className="text-sm text-gray-900 dark:text-gray-100 truncate">
-                      {new Date(selectedTask.dueDate).toLocaleDateString(
-                        "en-US",
-                        {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        }
-                      )}
+                    <span className={`text-sm truncate ${formatDueDate(selectedTask.dueDate).className}`}>
+                      {formatDueDate(selectedTask.dueDate).formatted}
                     </span>
                   </div>
                 </div>
@@ -537,16 +529,7 @@ export default function TaskDetailModal({
                   <div className="flex items-center space-x-2 min-w-0">
                     <Clock className="h-4 w-4 text-gray-500 flex-shrink-0" />
                     <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                      {new Date(selectedTask.createdAt).toLocaleDateString(
-                        "en-US",
-                        {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        }
-                      )}
+                      {formatForTaskDetail(selectedTask.createdAt)}
                     </span>
                   </div>
                   <div className="flex items-center space-x-3 min-w-0">
@@ -576,16 +559,7 @@ export default function TaskDetailModal({
                 <div className="flex items-center space-x-2 min-w-0">
                   <Clock className="h-4 w-4 text-gray-500 flex-shrink-0" />
                   <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                    {new Date(selectedTask.updatedAt).toLocaleDateString(
-                      "en-US",
-                      {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      }
-                    )}
+                    {formatForTaskDetail(selectedTask.updatedAt)}
                   </span>
                 </div>
               </div>

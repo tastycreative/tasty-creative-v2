@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useTaskUpdates } from '@/hooks/useTaskUpdates';
 import { useBoardStore, useBoardTasks, useBoardFilters, useBoardTaskActions, useBoardColumns, type Task, type BoardColumn, type NewTaskData } from '@/lib/stores/boardStore';
+import { formatForDisplay, formatForTaskCard, formatDueDate, formatForTaskDetail, toLocalDateTimeString, parseUserDate } from '@/lib/dateUtils';
 import ColumnSettings from './ColumnSettings';
 import BoardHeader from './BoardHeader';
 import BoardFilters from './BoardFilters';
@@ -203,7 +204,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           title: task.title,
           description: task.description || '',
           priority: task.priority,
-          dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
+          dueDate: task.dueDate ? toLocalDateTimeString(task.dueDate).split('T')[0] : '',
           assignedTo: task.assignedTo || '',
           attachments: task.attachments || []
         });
@@ -360,7 +361,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         title: selectedTask.title,
         description: selectedTask.description || '',
         priority: selectedTask.priority,
-        dueDate: selectedTask.dueDate ? selectedTask.dueDate.split('T')[0] : '',
+        dueDate: selectedTask.dueDate ? toLocalDateTimeString(selectedTask.dueDate).split('T')[0] : '',
         assignedTo: selectedTask.assignedTo || '',
         attachments: selectedTask.attachments || []
       });
@@ -390,7 +391,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         title: editingTaskData.title,
         description: editingTaskData.description,
         priority: editingTaskData.priority,
-        dueDate: editingTaskData.dueDate ? new Date(editingTaskData.dueDate).toISOString() : null,
+        dueDate: editingTaskData.dueDate ? parseUserDate(editingTaskData.dueDate)?.toISO() : null,
         assignedTo: editingTaskData.assignedTo || null,
         attachments: editingTaskData.attachments || [],
       };
@@ -747,19 +748,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   const filteredAndSortedTasks = sortTasks(filterTasks(tasks));
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return null;
-    
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
-    } catch {
-      return null;
-    }
-  };
+  // Using Luxon dateUtils now instead of local formatDate function
 
   if (showMinimumSkeleton || (isLoading && tasks.length === 0) || isLoadingColumns) {
     return (
@@ -840,7 +829,6 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         onSetShowNewTaskForm={setShowNewTaskForm}
         onSetNewTaskData={setNewTaskData}
         onCreateTask={handleCreateTask}
-        formatDate={formatDate}
         getColumnConfig={getColumnConfig}
         getTasksForStatus={getTasksForStatus}
         getGridClasses={getGridClasses}

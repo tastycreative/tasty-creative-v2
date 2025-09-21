@@ -5,13 +5,12 @@ import { Send, MessageSquare, Loader2, AlertCircle, Edit2, Trash2, Check, X } fr
 import UserProfile from '@/components/ui/UserProfile';
 import CommentFilePreview from '@/components/ui/CommentFilePreview';
 import MentionsInput, { type MentionUser, type Mention } from '@/components/ui/MentionsInput';
+import { formatForDisplay, formatForTaskDetail } from '@/lib/dateUtils';
 import { useTaskComments } from '@/lib/stores/boardStore';
 import { useNotifications } from '@/contexts/NotificationContext';
 import type { TaskComment, TaskAttachment } from '@/lib/stores/boardStore';
 import type { PreviewFile } from '@/components/ui/CommentFilePreview';
-
-
-import AttachmentViewer from "@/components/ui/AttachmentViewer";
+import AttachmentViewer from '@/components/ui/AttachmentViewer';
 
 interface UserData {
   id: string;
@@ -192,21 +191,15 @@ interface TaskCommentsProps {
   isViewOnly?: boolean;
 }
 
-const formatTimeAgo = (dateString: string) => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (diffInSeconds < 60) return 'now';
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-  
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    ...(date.getFullYear() !== now.getFullYear() && { year: 'numeric' })
-  });
+/**
+ * Format comment timestamp using Luxon helpers
+ * Shows smart relative time (e.g., "2 hours ago", "3 days ago") with tooltip showing full date
+ */
+const formatCommentTime = (dateString: string): { relative: string; full: string } => {
+  return {
+    relative: formatForDisplay(dateString, 'relative'),
+    full: formatForTaskDetail(dateString)
+  };
 };
 
 export default function TaskComments({ taskId, teamId, currentUser, isViewOnly = false }: TaskCommentsProps) {
@@ -648,9 +641,22 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
                     <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       {comment.user.name || comment.user.email?.split('@')[0]}
                     </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {formatTimeAgo(comment.createdAt)}
-                    </span>
+                    <div className="flex items-center space-x-1">
+                      <span 
+                        className="text-xs text-gray-500 dark:text-gray-400 cursor-help"
+                        title={formatCommentTime(comment.createdAt).full}
+                      >
+                        {formatCommentTime(comment.createdAt).relative}
+                      </span>
+                      {comment.updatedAt !== comment.createdAt && (
+                        <span 
+                          className="text-xs text-gray-400 dark:text-gray-500 italic cursor-help"
+                          title={`Last edited: ${formatCommentTime(comment.updatedAt).full}`}
+                        >
+                          (edited)
+                        </span>
+                      )}
+                    </div>
                   </div>
                   {canEditComment(comment) && (
                     <div className="flex items-center space-x-1">

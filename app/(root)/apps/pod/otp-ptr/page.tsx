@@ -15,6 +15,7 @@ import FileUpload, { LocalFilePreview, uploadAllLocalFiles } from "@/components/
 import { TaskAttachment } from "@/lib/stores/boardStore";
 import { useContentSubmissionStore } from "@/lib/stores/contentSubmissionStore";
 import { TIMEZONES } from "@/lib/lib";
+import { formatContentSubmissionDate, formatForDisplay } from "@/lib/dateUtils";
 import ModelsDropdownList from "@/components/ModelsDropdownList";
 import {
   Upload,
@@ -151,15 +152,7 @@ export default function OtpPtrPage() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
-  };
+  // Remove the old formatDate function - now using Luxon helpers from dateUtils
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return "0 Bytes";
@@ -927,12 +920,10 @@ export default function OtpPtrPage() {
                           {/* Created */}
                           <div className="col-span-1">
                             <p className="text-sm text-gray-900 dark:text-gray-100">
-                              {formatDate(submission.createdAt)}
+                              {formatForDisplay(submission.createdAt, 'short')}
                             </p>
                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                              {new Date(
-                                submission.createdAt
-                              ).toLocaleDateString()}
+                              {formatForDisplay(submission.createdAt, 'relative')}
                             </p>
                           </div>
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { PrismaClient } from '@prisma/client';
 import { trackTaskChanges, createTaskActivity } from '@/lib/taskActivityHelper';
+import { parseUserDate } from '@/lib/dateUtils';
 
 const prisma = new PrismaClient();
 
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
         priority: priority || 'MEDIUM',
         status: status || 'NOT_STARTED',
         assignedTo: assignedTo || null,
-        dueDate: dueDate ? new Date(dueDate) : null,
+        dueDate: dueDate ? parseUserDate(dueDate)?.toJSDate() : null,
         attachments: attachments || null,
         podTeamId: teamId, // Use podTeamId instead of teamId
         createdById: session.user.id,
@@ -241,7 +242,7 @@ export async function PUT(request: NextRequest) {
     if (priority !== undefined) updateData.priority = priority;
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
-    if (dueDate !== undefined) updateData.dueDate = dueDate ? new Date(dueDate) : null;
+    if (dueDate !== undefined) updateData.dueDate = dueDate ? parseUserDate(dueDate)?.toJSDate() : null;
     if (attachments !== undefined) updateData.attachments = attachments;
 
     console.log('PUT /api/tasks - Update data being sent to Prisma:', updateData);

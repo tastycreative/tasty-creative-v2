@@ -18,6 +18,7 @@ import Image from 'next/image';
 import { useTaskActivities } from '@/lib/stores/boardStore';
 import type { TaskActivity } from '@/lib/stores/boardStore';
 import UserProfile from '@/components/ui/UserProfile';
+import { formatForDisplay } from '@/lib/dateUtils';
 
 interface TaskCardHistoryProps {
   taskId: string;
@@ -47,21 +48,12 @@ const getActivityIcon = (actionType: string) => {
   }
 };
 
-const formatTimeAgo = (dateString: string) => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (diffInSeconds < 60) return 'now';
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-  
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    ...(date.getFullYear() !== now.getFullYear() && { year: 'numeric' })
-  });
+/**
+ * Format activity timestamp using Luxon helpers
+ * Shows smart relative time (e.g., "2 hours ago", "3 days ago")
+ */
+const formatActivityTime = (dateString: string): string => {
+  return formatForDisplay(dateString, 'relative');
 };
 
 export default function TaskCardHistory({ taskId, teamId, isModal = false }: TaskCardHistoryProps) {
@@ -237,7 +229,7 @@ export default function TaskCardHistory({ taskId, teamId, isModal = false }: Tas
                     </div>
 
                     <div className="text-xs text-gray-500">
-                      {formatTimeAgo(activity.createdAt)}
+                      {formatActivityTime(activity.createdAt)}
                     </div>
                   </div>
                 </div>
