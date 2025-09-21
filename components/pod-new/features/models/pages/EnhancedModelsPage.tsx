@@ -26,7 +26,7 @@ import {
   LoadingSpinner,
   RefreshButton,
   EmptyState,
-} from "../../ui/LoadingStates";
+} from "../../../shared/ui/LoadingStates";
 import { useOptimizedModelsData } from "@/hooks/useOptimizedModels";
 import useSelectedModelStore from "@/store/useSelectedModelStore";
 

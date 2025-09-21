@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Focus, Layout } from "lucide-react";
 import LeftSidebar from "@/components/pod-new/layouts/LeftSidebar";
 import RightSidebar from "@/components/pod-new/layouts/RightSidebar";
 import {
@@ -10,6 +11,7 @@ import {
   usePodData,
   useAvailableTeams,
 } from "@/lib/stores/podStore";
+import { useLayoutStore, useResponsiveLayout } from "@/lib/stores/layoutStore";
 
 interface PodNewLayoutProps {
   children: React.ReactNode;
@@ -20,6 +22,20 @@ export default function PodNewLayout({ children }: PodNewLayoutProps) {
   const { selectedRow, selectedTeamId, setSelectedTeamId } = usePodStore();
   const { fetchPodData } = usePodData();
   const { teams, loading: isLoadingTeams, fetchAvailableTeams } = useAvailableTeams();
+
+  // Layout state management
+  const {
+    leftSidebarCollapsed,
+    rightSidebarCollapsed,
+    focusMode,
+    toggleLeftSidebar,
+    toggleRightSidebar,
+    toggleFocusMode,
+    optimizeForBoard,
+  } = useLayoutStore();
+
+  // Responsive layout hook
+  const { isMobile, isTablet } = useResponsiveLayout();
 
   // Check if this is a model profile page that should be full-screen
   const isModelProfilePage = pathname?.includes('/my-models/') && pathname?.split('/').length > 4;
@@ -50,6 +66,13 @@ export default function PodNewLayout({ children }: PodNewLayoutProps) {
       setSelectedTeamId(teams[0].id);
     }
   }, [selectedTeamId, teams, isLoadingTeams, setSelectedTeamId]);
+
+  // Auto-optimize layout for board pages
+  useEffect(() => {
+    if (pathname?.includes('/board') && !focusMode) {
+      optimizeForBoard();
+    }
+  }, [pathname, optimizeForBoard, focusMode]);
 
   const getCurrentTab = () => {
     if (!pathname) return "dashboard";
@@ -83,12 +106,16 @@ export default function PodNewLayout({ children }: PodNewLayoutProps) {
   }
 
   // Determine if sidebars should be shown (show on most pages including board)
-  const showRightSidebar = pathname === "/apps/pod-new" ||
-                          pathname === "/apps/pod-new/dashboard" ||
-                          pathname === "/apps/pod-new/forms" ||
-                          pathname === "/apps/pod-new/board";
+  const shouldShowRightSidebar = pathname === "/apps/pod-new" ||
+                                pathname === "/apps/pod-new/dashboard" ||
+                                pathname === "/apps/pod-new/forms" ||
+                                pathname === "/apps/pod-new/board";
 
-  const showLeftSidebar = true; // Always show left sidebar
+  const shouldShowLeftSidebar = true; // Always show left sidebar
+
+  // Calculate actual sidebar visibility based on store state
+  const showLeftSidebar = shouldShowLeftSidebar && !leftSidebarCollapsed;
+  const showRightSidebar = shouldShowRightSidebar && !rightSidebarCollapsed;
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-200">
@@ -115,37 +142,109 @@ export default function PodNewLayout({ children }: PodNewLayoutProps) {
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* Tabs and Layout Controls */}
       <div className="flex flex-wrap justify-center gap-2 px-6">
-        {tabItems.map((tab) => (
-          <Link
-            key={tab.id}
-            href={tab.href}
-            className={`inline-flex items-center rounded-full border border-gray-200/50 dark:border-white/10 px-4 py-2 text-sm transition-colors ${
-              activeTab === tab.id
-                ? "bg-gray-100/80 dark:bg-white/10 text-gray-900 dark:text-white"
-                : "text-gray-600 dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"
-            }`}
-          >
-            {tab.label}
-          </Link>
-        ))}
+        {/* Navigation Tabs */}
+        <div className="flex flex-wrap justify-center gap-2">
+          {tabItems.map((tab) => (
+            <Link
+              key={tab.id}
+              href={tab.href}
+              className={`inline-flex items-center rounded-full border border-gray-200/50 dark:border-white/10 px-4 py-2 text-sm transition-colors ${
+                activeTab === tab.id
+                  ? "bg-gray-100/80 dark:bg-white/10 text-gray-900 dark:text-white"
+                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"
+              }`}
+            >
+              {tab.label}
+            </Link>
+          ))}
+        </div>
+
+        {/* Layout Controls - Show on board page */}
+        {pathname?.includes('/board') && (
+          <div className="flex items-center gap-2 ml-4">
+            <div className="h-4 w-px bg-gray-300 dark:bg-gray-600" />
+
+            {/* Left Sidebar Toggle */}
+            <button
+              onClick={toggleLeftSidebar}
+              className="inline-flex items-center rounded-full border border-gray-200/50 dark:border-white/10 px-3 py-2 text-sm transition-colors hover:bg-gray-50/80 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white text-gray-600 dark:text-gray-300"
+              title={leftSidebarCollapsed ? "Show navigation" : "Hide navigation"}
+            >
+              {leftSidebarCollapsed ? (
+                <PanelLeftOpen className="w-4 h-4" />
+              ) : (
+                <PanelLeftClose className="w-4 h-4" />
+              )}
+            </button>
+
+            {/* Right Sidebar Toggle */}
+            <button
+              onClick={toggleRightSidebar}
+              className="inline-flex items-center rounded-full border border-gray-200/50 dark:border-white/10 px-3 py-2 text-sm transition-colors hover:bg-gray-50/80 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white text-gray-600 dark:text-gray-300"
+              title={rightSidebarCollapsed ? "Show team info" : "Hide team info"}
+            >
+              {rightSidebarCollapsed ? (
+                <PanelRightOpen className="w-4 h-4" />
+              ) : (
+                <PanelRightClose className="w-4 h-4" />
+              )}
+            </button>
+
+            {/* Focus Mode Toggle */}
+            <button
+              onClick={toggleFocusMode}
+              className={`inline-flex items-center rounded-full border border-gray-200/50 dark:border-white/10 px-3 py-2 text-sm transition-colors hover:bg-gray-50/80 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white ${
+                focusMode
+                  ? "bg-purple-100/80 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-600"
+                  : "text-gray-600 dark:text-gray-300"
+              }`}
+              title={focusMode ? "Exit focus mode" : "Enter focus mode"}
+            >
+              <Focus className="w-4 h-4" />
+              <span className="ml-1 text-xs">Focus</span>
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Content Grid - Conditional layout based on sidebar visibility */}
-      <div className={`w-full max-w-full xl:max-w-[1600px] mx-auto px-4 lg:px-6 mt-6 grid grid-cols-1 ${
-        showLeftSidebar && showRightSidebar
-          ? "xl:grid-cols-[280px_1fr_320px]"
-          : showLeftSidebar
-          ? "xl:grid-cols-[280px_1fr]"
-          : showRightSidebar
-          ? "xl:grid-cols-[1fr_320px]"
-          : "xl:grid-cols-1"
-      } gap-4 items-start`}>
-        {showLeftSidebar && <LeftSidebar />}
-        {/* Main Content */}
-        <main className="min-h-[500px] w-full min-w-0">{children}</main>
-        {showRightSidebar && <RightSidebar />}
+      {/* Content Grid - Dynamic layout based on sidebar visibility */}
+      <div className={`w-full mx-auto px-4 lg:px-6 mt-6 transition-all duration-300 ${
+        focusMode ? "max-w-full" : "max-w-full xl:max-w-[1600px]"
+      }`}>
+        <div className={`grid grid-cols-1 gap-4 items-start transition-all duration-300 ${
+          // Grid configuration based on sidebar states
+          showLeftSidebar && showRightSidebar
+            ? "xl:grid-cols-[280px_1fr_320px]" // Both sidebars: Fixed left, flexible main, fixed right
+            : showLeftSidebar && !showRightSidebar
+            ? "xl:grid-cols-[280px_1fr]" // Left only: Fixed left, flexible main
+            : !showLeftSidebar && showRightSidebar
+            ? "xl:grid-cols-[1fr_320px]" // Right only: Flexible main, fixed right
+            : "xl:grid-cols-1" // No sidebars: Full width main
+        }`}>
+
+          {/* Left Sidebar - Conditional rendering */}
+          {showLeftSidebar && (
+            <div className="transition-all duration-300">
+              <LeftSidebar collapsed={false} />
+            </div>
+          )}
+
+          {/* Main Content - Full width when sidebars are collapsed */}
+          <main className={`min-h-[500px] w-full min-w-0 transition-all duration-300 ${
+            focusMode ? "px-0" : ""
+          }`}>
+            {children}
+          </main>
+
+          {/* Right Sidebar - Conditional rendering */}
+          {showRightSidebar && (
+            <div className="transition-all duration-300">
+              <RightSidebar collapsed={false} />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

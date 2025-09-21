@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { usePodStore, useAvailableTeams } from "@/lib/stores/podStore";
-import ModularWorkflowForm from "@/components/pod-new/forms/ModularWorkflowForm";
+import ModularWorkflowForm from "@/components/pod-new/features/forms/ModularWorkflowForm";
 import { FileText } from "lucide-react";
 
 export default function FormsPage() {

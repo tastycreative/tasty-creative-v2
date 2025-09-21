@@ -1,17 +1,16 @@
 "use client";
 
-import React, { Suspense, useEffect, useMemo, useCallback } from "react";
+import React, { Suspense } from "react";
 import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { usePodStore, useAvailableTeams } from "@/lib/stores/podStore";
 
 // Dynamic import for better performance
-const Board = dynamic(() => import("@/components/pod-new/board/Board"), {
+const Board = dynamic(() => import("@/components/pod-new/features/board/Board"), {
   loading: () => (
-    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6">
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-lg p-6">
       <div className="flex items-center space-x-3">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600"></div>
+        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-600"></div>
         <span className="text-gray-700 dark:text-gray-300">Loading board...</span>
       </div>
     </div>
@@ -21,46 +20,8 @@ const Board = dynamic(() => import("@/components/pod-new/board/Board"), {
 
 export default function BoardPage() {
   const { data: session } = useSession();
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const pathname = usePathname();
   const { selectedTeamId, setSelectedTeamId } = usePodStore();
   const { teams: availableTeams } = useAvailableTeams();
-
-  // Memoize search params to avoid unnecessary re-renders
-  const teamParam = useMemo(() => searchParams?.get("team"), [searchParams]);
-
-  // Memoize team existence check to avoid recalculating on every render
-  const teamExists = useMemo(() => {
-    if (!teamParam || !availableTeams.length) return false;
-    return availableTeams.some(team => team.id === teamParam);
-  }, [teamParam, availableTeams]);
-
-  // Debounced URL update function
-  const updateURL = useCallback((teamId: string) => {
-    const params = new URLSearchParams(searchParams?.toString() || "");
-    params.set("team", teamId);
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  }, [router, pathname, searchParams]);
-
-  // Sync URL team parameter with Zustand store on mount - reduced dependencies
-  useEffect(() => {
-    // Skip if teams are not loaded yet
-    if (!availableTeams.length) return;
-
-    if (teamParam && teamParam !== selectedTeamId && teamExists) {
-      setSelectedTeamId(teamParam);
-    } else if (selectedTeamId && !teamParam) {
-      updateURL(selectedTeamId);
-    }
-  }, [teamParam, selectedTeamId, teamExists, setSelectedTeamId, updateURL, availableTeams.length]);
-
-  // Update URL when team changes in store - simplified
-  useEffect(() => {
-    if (selectedTeamId && teamParam !== selectedTeamId) {
-      updateURL(selectedTeamId);
-    }
-  }, [selectedTeamId, teamParam, updateURL]);
 
   // Convert team options to match Board component expectations
   const teamOptions = availableTeams.map((team, index) => ({
@@ -82,29 +43,37 @@ export default function BoardPage() {
 
   if (!selectedTeamId || !currentTeam) {
     return (
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6 text-center">
-        <p className="text-gray-700 dark:text-gray-300">Please select a team to view the board.</p>
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900">
+        <div className="container mx-auto px-4 py-8">
+          <div className="bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 border border-gray-200/60 dark:border-gray-700/60 rounded-2xl shadow-lg p-6 text-center backdrop-blur-sm">
+            <p className="text-gray-700 dark:text-gray-300">Please select a team to view the board.</p>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <Suspense fallback={
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6">
-        <div className="flex items-center space-x-3">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600"></div>
-          <span className="text-gray-700 dark:text-gray-300">Loading board...</span>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900">
+      <div className="container mx-auto px-4 py-8">
+        <Suspense fallback={
+          <div className="bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 border border-gray-200/60 dark:border-gray-700/60 rounded-2xl shadow-lg p-6 backdrop-blur-sm">
+            <div className="flex items-center space-x-3">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600 dark:border-pink-400"></div>
+              <span className="text-gray-700 dark:text-gray-300">Loading board...</span>
+            </div>
+          </div>
+        }>
+          <Board
+            teamId={selectedTeamId}
+            teamName={currentTeam.name}
+            session={session}
+            availableTeams={teamOptions}
+            onTeamChange={handleTeamChange}
+            selectedRow={selectedRow}
+          />
+        </Suspense>
       </div>
-    }>
-      <Board
-        teamId={selectedTeamId}
-        teamName={currentTeam.name}
-        session={session}
-        availableTeams={teamOptions}
-        onTeamChange={handleTeamChange}
-        selectedRow={selectedRow}
-      />
-    </Suspense>
+    </div>
   );
 }

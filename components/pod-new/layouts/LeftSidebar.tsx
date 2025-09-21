@@ -113,12 +113,20 @@ function Badge({
   );
 }
 
-export function LeftSidebar() {
+interface LeftSidebarProps {
+  collapsed?: boolean;
+}
+
+export default function LeftSidebar({ collapsed = false }: LeftSidebarProps) {
   const pathname = usePathname();
+
+  if (collapsed) {
+    return null; // Hide completely when collapsed
+  }
 
   return (
     <aside
-      className="hidden xl:flex xl:flex-col sticky top-24 self-start rounded-2xl bg-white/90 dark:bg-slate-900/70 border border-slate-200/50 dark:border-white/10 shadow-sm w-[280px] overflow-hidden backdrop-blur-sm"
+      className="hidden xl:flex xl:flex-col sticky top-24 self-start rounded-2xl bg-white/90 dark:bg-slate-900/70 border border-slate-200/50 dark:border-white/10 shadow-sm w-[280px] overflow-hidden backdrop-blur-sm transition-all duration-300"
       role="navigation"
       aria-label="Primary navigation"
     >
@@ -201,5 +209,3 @@ export function LeftSidebar() {
     </aside>
   );
 }
-
-export default LeftSidebar;

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
-import { publishNotification } from '@/lib/upstash';
+import { publishNotification } from '@/lib/ably';
 import { sendOTPPTRTaskNotificationEmail } from '@/lib/email';
 import { generateTaskUrl } from '@/lib/taskUtils';
 
@@ -19,8 +19,14 @@ interface ModularWorkflowData {
   contentDescription: string;
   attachments?: any[];
 
-  // Team assignment
+  // Enhanced team assignment with manual overrides
   teamId?: string;
+  teamAssignments?: {
+    primaryTeamId: string;
+    additionalTeamIds: string[];
+    assignmentMethod: 'manual' | 'automatic';
+    assignedAt: string;
+  };
   estimatedDuration?: number;
 }
 
@@ -34,35 +40,41 @@ interface WorkflowColumn {
 }
 
 const WORKFLOW_COLUMNS: Record<string, WorkflowColumn[]> = {
+  // Normal WP & Poll Posts Workflow: Wall Post → PG → QA → Deploy
   'normal': [
     { label: 'Wall Post Team', status: 'wall_post', position: 0, color: '#3B82F6', description: 'Content sourcing and initial processing' },
     { label: 'PG Team', status: 'pg_team', position: 1, color: '#8B5CF6', description: 'Caption creation and content enhancement' },
-    { label: 'QA', status: 'qa', position: 2, color: '#F59E0B', description: 'Quality assurance and final approval' },
-    { label: 'Ready to Deploy', status: 'ready_deploy', position: 3, color: '#10B981', description: 'Publication ready' },
-    { label: 'Deployed', status: 'deployed', position: 4, color: '#6B7280', description: 'Content published' }
+    { label: 'QA Team', status: 'qa', position: 2, color: '#F59E0B', description: 'Quality assurance and final approval' },
+    { label: 'Deploy', status: 'deploy', position: 3, color: '#10B981', description: 'Content published' }
   ],
   'poll': [
     { label: 'Wall Post Team', status: 'wall_post', position: 0, color: '#3B82F6', description: 'Content sourcing and initial processing' },
     { label: 'PG Team', status: 'pg_team', position: 1, color: '#8B5CF6', description: 'Caption creation and content enhancement' },
-    { label: 'QA', status: 'qa', position: 2, color: '#F59E0B', description: 'Quality assurance and final approval' },
-    { label: 'Ready to Deploy', status: 'ready_deploy', position: 3, color: '#10B981', description: 'Publication ready' },
-    { label: 'Deployed', status: 'deployed', position: 4, color: '#6B7280', description: 'Content published' }
+    { label: 'QA Team', status: 'qa', position: 2, color: '#F59E0B', description: 'Quality assurance and final approval' },
+    { label: 'Deploy', status: 'deploy', position: 3, color: '#10B981', description: 'Content published' }
   ],
+  // PPV/Bundle Posts Workflow: Wall Post → PG → Flyer → QA → Deploy
+  'ppv': [
+    { label: 'Wall Post Team', status: 'wall_post', position: 0, color: '#3B82F6', description: 'Poll analysis and PPV setup' },
+    { label: 'PG Team', status: 'pg_team', position: 1, color: '#8B5CF6', description: 'Content linking and captions' },
+    { label: 'Flyer Team', status: 'flyer_team', position: 2, color: '#EC4899', description: 'Promotional graphics with pricing' },
+    { label: 'QA Team', status: 'qa', position: 3, color: '#F59E0B', description: 'Content & pricing review' },
+    { label: 'Deploy', status: 'deploy', position: 4, color: '#10B981', description: 'PPV publication' }
+  ],
+  // Game Posts Workflow: Flyer → PG → QA → Deploy
   'game': [
-    { label: 'Wall Post Team', status: 'wall_post', position: 0, color: '#3B82F6', description: 'Content sourcing and initial processing' },
-    { label: 'PG Team', status: 'pg_team', position: 1, color: '#8B5CF6', description: 'Caption creation and content enhancement' },
-    { label: 'Flyer Team', status: 'flyer_team', position: 2, color: '#EF4444', description: 'Visual design and promotional materials' },
-    { label: 'QA', status: 'qa', position: 3, color: '#F59E0B', description: 'Quality assurance and final approval' },
-    { label: 'Ready to Deploy', status: 'ready_deploy', position: 4, color: '#10B981', description: 'Publication ready' },
-    { label: 'Deployed', status: 'deployed', position: 5, color: '#6B7280', description: 'Content published' }
+    { label: 'Flyer Team', status: 'flyer_team', position: 0, color: '#EC4899', description: 'Game setup and pricing tiers' },
+    { label: 'PG Team', status: 'pg_team', position: 1, color: '#8B5CF6', description: 'Game content and instructions' },
+    { label: 'QA Team', status: 'qa', position: 2, color: '#F59E0B', description: 'Functionality testing' },
+    { label: 'Deploy', status: 'deploy', position: 3, color: '#10B981', description: 'Interactive publication' }
   ],
+  // Livestream follows similar pattern to PPV
   'livestream': [
     { label: 'Wall Post Team', status: 'wall_post', position: 0, color: '#3B82F6', description: 'Content sourcing and initial processing' },
     { label: 'PG Team', status: 'pg_team', position: 1, color: '#8B5CF6', description: 'Caption creation and content enhancement' },
-    { label: 'Flyer Team', status: 'flyer_team', position: 2, color: '#EF4444', description: 'Visual design and promotional materials' },
-    { label: 'QA', status: 'qa', position: 3, color: '#F59E0B', description: 'Quality assurance and final approval' },
-    { label: 'Ready to Deploy', status: 'ready_deploy', position: 4, color: '#10B981', description: 'Publication ready' },
-    { label: 'Deployed', status: 'deployed', position: 5, color: '#6B7280', description: 'Content published' }
+    { label: 'Flyer Team', status: 'flyer_team', position: 2, color: '#EC4899', description: 'Visual design and promotional materials' },
+    { label: 'QA Team', status: 'qa', position: 3, color: '#F59E0B', description: 'Quality assurance and final approval' },
+    { label: 'Deploy', status: 'deploy', position: 4, color: '#10B981', description: 'Content published' }
   ]
 };
 
@@ -134,15 +146,15 @@ async function findOrCreateWorkflowTeam(teamName: string): Promise<any> {
   };
 }
 
-// Function to send notifications for modular workflows
+// Function to send notifications for modular workflows with enhanced team support
 async function sendModularWorkflowNotifications({
   workflow,
   task,
   taskDescription,
   submissionType,
   modelName,
-  teamId,
-  teamName,
+  primaryTeam,
+  additionalTeams = [],
   createdById,
   createdByName,
   contentStyle,
@@ -153,8 +165,8 @@ async function sendModularWorkflowNotifications({
   taskDescription: string;
   submissionType: string;
   modelName: string;
-  teamId: string;
-  teamName: string;
+  primaryTeam: { id: string; name: string };
+  additionalTeams?: { id: string; name: string }[];
   createdById: string;
   createdByName: string;
   contentStyle: string;
@@ -181,10 +193,16 @@ async function sendModularWorkflowNotifications({
 
     console.log('👤 Creator user found:', createdByUser);
 
-    // Find members assigned to the team
+    // Collect all teams to notify (primary + additional)
+    const allTeams = [primaryTeam, ...additionalTeams];
+    const allTeamIds = allTeams.map(t => t.id);
+
+    console.log('🔍 Notifying teams:', allTeams.map(t => t.name).join(', '));
+
+    // Find members assigned to all teams
     const teamMembers = await (prisma as any).podTeamMember.findMany({
       where: {
-        podTeamId: teamId,
+        podTeamId: { in: allTeamIds },
         podTeam: {
           isActive: true
         }
@@ -197,27 +215,50 @@ async function sendModularWorkflowNotifications({
             email: true,
             image: true
           }
+        },
+        podTeam: {
+          select: {
+            id: true,
+            name: true
+          }
         }
       }
     });
 
-    console.log('🔍 Found team members:', teamMembers.length);
+    console.log('🔍 Found team members across all teams:', teamMembers.length);
 
     const usersToNotify = teamMembers.map((member: any) => member.user);
     console.log('🔔 Total users to notify:', usersToNotify.length);
 
     // Create task URL for notifications
-    const taskUrl = await generateTaskUrl(task.id, teamId);
+    const taskUrl = await generateTaskUrl(task.id, primaryTeam.id);
+
+    // Get unique users (remove duplicates if user is in multiple teams)
+    const uniqueUsers = usersToNotify.filter((user, index, array) =>
+      array.findIndex(u => u.id === user.id) === index
+    );
 
     // Send in-app notifications
-    const notificationPromises = usersToNotify.map(async (user) => {
+    const notificationPromises = uniqueUsers.map(async (user) => {
+      // Find which teams this user belongs to for this workflow
+      const userTeams = teamMembers
+        .filter(member => member.user.id === user.id)
+        .map(member => member.podTeam);
+
+      const isPrimaryTeam = userTeams.some(team => team.id === primaryTeam.id);
+      const teamNames = userTeams.map(team => team.name).join(', ');
+
+      // Create enhanced notification message
+      const notificationTitle = `${isPrimaryTeam ? 'Primary' : 'Collaborative'} ${contentStyle.toUpperCase()} ${submissionType.toUpperCase()} Workflow`;
+      const notificationMessage = `A new modular workflow for ${modelName} has been created with ${selectedComponents.length} components: ${selectedComponents.join(', ')}. ${isPrimaryTeam ? 'You are the primary assignee.' : 'You are part of the collaborative team.'}`;
+
       // Create in-app notification
       const notification = await (prisma as any).notification.create({
         data: {
           userId: user.id,
           type: 'TASK_ASSIGNED',
-          title: `New ${contentStyle.toUpperCase()} ${submissionType.toUpperCase()} Workflow`,
-          message: `A new modular workflow for ${modelName} has been created with ${selectedComponents.length} components: ${selectedComponents.join(', ')}.`,
+          title: notificationTitle,
+          message: notificationMessage,
           isRead: false,
           data: {
             workflowId: workflow.id,
@@ -225,8 +266,11 @@ async function sendModularWorkflowNotifications({
             taskTitle: task.title,
             taskDescription: taskDescription,
             taskUrl: taskUrl,
-            teamId: teamId,
-            teamName: teamName,
+            primaryTeamId: primaryTeam.id,
+            primaryTeamName: primaryTeam.name,
+            additionalTeams: additionalTeams.map(t => ({ id: t.id, name: t.name })),
+            userTeams: userTeams,
+            isPrimaryAssignee: isPrimaryTeam,
             submissionType: submissionType,
             contentStyle: contentStyle,
             selectedComponents: selectedComponents,
@@ -242,7 +286,7 @@ async function sendModularWorkflowNotifications({
           },
           taskId: task.id,
           modularWorkflowId: workflow.id,
-          podTeamId: teamId
+          podTeamId: primaryTeam.id
         }
       });
 
@@ -250,10 +294,10 @@ async function sendModularWorkflowNotifications({
       await publishNotification({
         id: notification.id,
         type: 'TASK_ASSIGNED',
-        title: `New ${contentStyle.toUpperCase()} ${submissionType.toUpperCase()} Workflow`,
-        message: `A new modular workflow for ${modelName} has been created with ${selectedComponents.length} components.`,
+        title: notificationTitle,
+        message: notificationMessage,
         userId: user.id,
-        teamId: teamId,
+        teamId: primaryTeam.id,
         timestamp: Date.now(),
         data: {
           workflowId: workflow.id,
@@ -261,8 +305,11 @@ async function sendModularWorkflowNotifications({
           taskTitle: task.title,
           taskDescription: taskDescription,
           taskUrl: taskUrl,
-          teamId: teamId,
-          teamName: teamName,
+          primaryTeamId: primaryTeam.id,
+          primaryTeamName: primaryTeam.name,
+          additionalTeams: additionalTeams.map(t => ({ id: t.id, name: t.name })),
+          userTeams: userTeams,
+          isPrimaryAssignee: isPrimaryTeam,
           submissionType: submissionType,
           contentStyle: contentStyle,
           selectedComponents: selectedComponents,
@@ -286,20 +333,30 @@ async function sendModularWorkflowNotifications({
 
     console.log('✅ In-app notifications created:', successfulNotifications);
 
-    // Send email notifications with modular workflow context
-    const emailPromises = usersToNotify.map(async (user) => {
+    // Send email notifications with enhanced team context
+    const emailPromises = uniqueUsers.map(async (user) => {
+      // Find which teams this user belongs to for this workflow
+      const userTeams = teamMembers
+        .filter(member => member.user.id === user.id)
+        .map(member => member.podTeam);
+
+      const isPrimaryTeam = userTeams.some(team => team.id === primaryTeam.id);
+      const teamNames = userTeams.map(team => team.name).join(', ');
+
+      const enhancedDescription = `${taskDescription}\n\nWorkflow Type: ${contentStyle.toUpperCase()}\nComponents: ${selectedComponents.join(', ')}\n\nTeam Assignment: ${isPrimaryTeam ? 'Primary Assignee' : 'Collaborative Team'}\nYour Teams: ${teamNames}`;
+
       return sendOTPPTRTaskNotificationEmail({
         to: user.email,
         userName: user.name || user.email.split('@')[0],
         taskTitle: task.title,
-        taskDescription: taskDescription + `\n\nWorkflow Type: ${contentStyle.toUpperCase()}\nComponents: ${selectedComponents.join(', ')}`,
+        taskDescription: enhancedDescription,
         submissionType: submissionType,
         modelName: modelName,
         priority: task.priority,
-        teamName: teamName,
+        teamName: primaryTeam.name,
         taskUrl: taskUrl,
         createdByName: createdByName,
-        reason: 'Modular Workflow Assignment'
+        reason: `Modular Workflow ${isPrimaryTeam ? 'Primary' : 'Collaborative'} Assignment`
       });
     });
 
@@ -313,7 +370,10 @@ async function sendModularWorkflowNotifications({
       success: true,
       inAppNotifications: successfulNotifications,
       emailNotifications: successfulEmails,
-      totalUsers: usersToNotify.length
+      totalUsers: uniqueUsers.length,
+      teamsNotified: allTeams.map(t => t.name),
+      primaryTeam: primaryTeam.name,
+      additionalTeams: additionalTeams.map(t => t.name)
     };
 
   } catch (error) {
@@ -376,35 +436,48 @@ export async function POST(request: NextRequest) {
 
     console.log('📋 Workflow columns for', data.contentStyle, ':', workflowColumns.map(col => col.label).join(' → '));
 
-    // Find the team (using provided teamId or fallback to team lookup)
+    // Determine primary team from manual assignments or fallback
+    let primaryTeamId = data.teamAssignments?.primaryTeamId || data.teamId;
+
+    // Find the primary team
     let assignedTeam;
-    if (data.teamId) {
+    if (primaryTeamId) {
       assignedTeam = await prisma.podTeam.findUnique({
-        where: { id: data.teamId }
+        where: { id: primaryTeamId }
       });
       if (!assignedTeam) {
-        throw new Error(`Team with ID ${data.teamId} not found`);
+        throw new Error(`Primary team with ID ${primaryTeamId} not found`);
       }
     } else {
       // Fallback to finding team by name or create one
       assignedTeam = await findOrCreateWorkflowTeam('Default Team');
+      primaryTeamId = assignedTeam.id;
+    }
+
+    // Validate additional teams if provided
+    let additionalTeams: any[] = [];
+    if (data.teamAssignments?.additionalTeamIds?.length) {
+      additionalTeams = await prisma.podTeam.findMany({
+        where: {
+          id: { in: data.teamAssignments.additionalTeamIds },
+          isActive: true
+        }
+      });
+
+      if (additionalTeams.length !== data.teamAssignments.additionalTeamIds.length) {
+        const foundIds = additionalTeams.map(t => t.id);
+        const missingIds = data.teamAssignments.additionalTeamIds.filter(id => !foundIds.includes(id));
+        throw new Error(`Additional teams not found: ${missingIds.join(', ')}`);
+      }
     }
 
     // Create workflow columns in database for this team
     await createWorkflowColumns(assignedTeam.id, data.contentStyle);
 
-    // If using provided teamId, try to find that team instead
-    if (data.teamId) {
-      const specificTeam = await prisma.podTeam.findUnique({
-        where: { id: data.teamId },
-        select: { id: true, name: true, projectPrefix: true }
-      });
-      if (specificTeam) {
-        assignedTeam = specificTeam;
-      }
+    console.log('✅ Primary team for workflow:', assignedTeam.name);
+    if (additionalTeams.length > 0) {
+      console.log('✅ Additional teams:', additionalTeams.map(t => t.name).join(', '));
     }
-
-    console.log('✅ Assigned team for first workflow step:', assignedTeam.name);
 
     // Create modular workflow record
     const workflow = await (prisma as any).modularWorkflow.create({
@@ -422,6 +495,11 @@ export async function POST(request: NextRequest) {
         attachments: data.attachments || [],
         estimatedDuration: data.estimatedDuration,
         teamAssignments: {
+          primaryTeamId: assignedTeam.id,
+          additionalTeamIds: data.teamAssignments?.additionalTeamIds || [],
+          assignmentMethod: data.teamAssignments?.assignmentMethod || 'automatic',
+          assignedAt: data.teamAssignments?.assignedAt || new Date().toISOString(),
+          // Legacy fields for backward compatibility
           primary: assignedTeam.id,
           contentStyle: data.contentStyle,
           components: data.selectedComponents,
@@ -505,15 +583,15 @@ export async function POST(request: NextRequest) {
 
     console.log('📝 Task activity history created for task:', task.id);
 
-    // Send notifications to team members
+    // Send notifications to team members with enhanced team support
     await sendModularWorkflowNotifications({
       workflow: updatedWorkflow,
       task,
       taskDescription,
       submissionType: data.submissionType,
       modelName: data.modelName,
-      teamId: assignedTeam.id,
-      teamName: assignedTeam.name,
+      primaryTeam: { id: assignedTeam.id, name: assignedTeam.name },
+      additionalTeams: additionalTeams.map(team => ({ id: team.id, name: team.name })),
       createdById: session.user.id!,
       createdByName: session.user.name || session.user.email || 'Unknown User',
       contentStyle: data.contentStyle,

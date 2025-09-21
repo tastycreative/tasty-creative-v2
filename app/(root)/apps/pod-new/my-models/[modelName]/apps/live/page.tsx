@@ -1,6 +1,6 @@
 "use client";
 
-import LiveFlyer from "@/components/pod-new/apps/LiveFlyer";
+import LiveFlyer from "@/components/pod-new/features/apps/LiveFlyer";
 
 export default function LivePage() {
   return (

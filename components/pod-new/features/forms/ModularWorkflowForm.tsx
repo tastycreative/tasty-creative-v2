@@ -99,6 +99,8 @@ interface ModularFormData {
   driveLink: string;
   caption?: string;
 
+  // Team assignment fields
+
   // Component fields (dynamic based on selection)
   [key: string]: any;
 }
@@ -584,8 +586,14 @@ export default function ModularWorkflowForm() {
         // File attachments (S3 uploaded files)
         attachments: attachments,
 
-        // Team assignment
-        teamId: selectedTeamId,
+        // Team assignment - handle manual overrides
+        teamId: selectedTeamId, // Uses team selected in RightSidebar
+        teamAssignments: {
+          primaryTeamId: selectedTeamId,
+          additionalTeamIds: [],
+          assignmentMethod: 'automatic',
+          assignedAt: new Date().toISOString()
+        },
         estimatedDuration: undefined // Can be calculated based on components
       };
 
@@ -879,6 +887,7 @@ export default function ModularWorkflowForm() {
                 </p>
               </div>
             </div>
+
           </div>
         )}
 

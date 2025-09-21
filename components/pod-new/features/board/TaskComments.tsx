@@ -9,6 +9,7 @@ import { useTaskComments } from '@/lib/stores/boardStore';
 import { useNotifications } from '@/contexts/NotificationContext';
 import type { TaskComment, TaskAttachment } from '@/lib/stores/boardStore';
 import type { PreviewFile } from '@/components/ui/CommentFilePreview';
+import { formatForDisplay } from '@/lib/dateUtils';
 
 
 import AttachmentViewer from "@/components/ui/AttachmentViewer";
@@ -201,12 +202,8 @@ const formatTimeAgo = (dateString: string) => {
   if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
   if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
   if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-  
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    ...(date.getFullYear() !== now.getFullYear() && { year: 'numeric' })
-  });
+
+  return formatForDisplay(dateString);
 };
 
 export default function TaskComments({ taskId, teamId, currentUser, isViewOnly = false }: TaskCommentsProps) {
@@ -755,9 +752,9 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
+                    <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
                       {renderTextWithMentionsAndLinks(comment.content)}
-                    </p>
+                    </div>
                     
                     {/* Comment Attachments */}
                     {comment.attachments && comment.attachments.length > 0 && (

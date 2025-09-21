@@ -1,14 +1,14 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from 'react';
-import { 
-  Clock, 
-  Edit3, 
-  ArrowRight, 
-  User, 
-  Plus, 
-  Trash2, 
-  Calendar, 
+import {
+  Clock,
+  Edit3,
+  ArrowRight,
+  User,
+  Plus,
+  Trash2,
+  Calendar,
   Tag,
   Loader2,
   AlertCircle,
@@ -18,6 +18,7 @@ import Image from 'next/image';
 import { useTaskActivities } from '@/lib/stores/boardStore';
 import type { TaskActivity } from '@/lib/stores/boardStore';
 import UserProfile from '@/components/ui/UserProfile';
+import { formatForDisplay } from '@/lib/dateUtils';
 
 interface TaskCardHistoryProps {
   taskId: string;
@@ -56,12 +57,8 @@ const formatTimeAgo = (dateString: string) => {
   if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
   if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
   if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-  
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    ...(date.getFullYear() !== now.getFullYear() && { year: 'numeric' })
-  });
+
+  return formatForDisplay(dateString);
 };
 
 export default function TaskCardHistory({ taskId, teamId, isModal = false }: TaskCardHistoryProps) {

@@ -3,18 +3,40 @@
 import React, { useEffect, useCallback, useState, useMemo } from 'react';
 import { Session } from 'next-auth';
 import { useRouter, useSearchParams } from 'next/navigation';
-import {
+import { 
   AlertCircle
 } from 'lucide-react';
 import { useTaskUpdates } from '@/hooks/useTaskUpdates';
-import { useBoardStore, useBoardTasks, useBoardFilters, useBoardTaskActions, useBoardColumns, type Task } from '@/lib/stores/boardStore';
-import ColumnSettings from '@/components/pod/ColumnSettings';
-import BoardHeader from '@/components/pod/BoardHeader';
-import BoardFilters from '@/components/pod/BoardFilters';
-import BoardSkeleton from '@/components/pod/BoardSkeleton';
-import BoardGrid from '@/components/pod/BoardGrid';
-import TaskDetailModal from '@/components/pod/TaskDetailModal';
-import NewTaskModal from '@/components/pod/NewTaskModal';
+import { useBoardStore, useBoardTasks, useBoardFilters, useBoardTaskActions, useBoardColumns, type Task, type BoardColumn, type NewTaskData } from '@/lib/stores/boardStore';
+import { formatForDisplay, formatForTaskCard, formatDueDate, formatForTaskDetail, toLocalDateTimeString, parseUserDate } from '@/lib/dateUtils';
+import ColumnSettings from './ColumnSettings';
+import BoardHeader from './BoardHeader';
+import BoardFilters from './BoardFilters';
+import BoardSkeleton from './BoardSkeleton';
+import BoardGrid from './BoardGrid';
+import TaskDetailModal from './TaskDetailModal';
+import NewTaskModal from './NewTaskModal';
+
+// Utility function to make links clickable
+const linkifyText = (text: string) => {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return text.split(urlRegex).map((part, index) => {
+    if (urlRegex.test(part)) {
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline transition-colors"
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+};
 
 interface TeamOption {
   row: number;
@@ -66,19 +88,19 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   // Zustand store hooks
   const { tasks, isLoading, error, currentTeamId, fetchTasks, setCurrentTeamId } = useBoardTasks();
   const {
-    searchTerm, priorityFilter, assigneeFilter, dueDateFilter, sortBy, sortOrder, showFilters,
-    setSearchTerm, setPriorityFilter, setAssigneeFilter, setDueDateFilter, setSortBy, setSortOrder, setShowFilters
+    searchTerm, priorityFilter, assigneeFilter, dueDateFilter, workflowFilter, sortBy, sortOrder, showFilters,
+    setSearchTerm, setPriorityFilter, setAssigneeFilter, setDueDateFilter, setWorkflowFilter, setSortBy, setSortOrder, setShowFilters
   } = useBoardFilters();
   const { createTask, updateTaskStatus, updateTask, deleteTask } = useBoardTaskActions();
-  const {
-    columns, isLoadingColumns, fetchColumns, setShowColumnSettings
+  const { 
+    columns, isLoadingColumns, showColumnSettings, fetchColumns, setShowColumnSettings 
   } = useBoardColumns();
-
+  
   // Team membership state
   const [teamMembers, setTeamMembers] = useState<Array<{id: string, email: string, name?: string}>>([]);
   const [teamAdmins, setTeamAdmins] = useState<Array<{id: string, email: string, name?: string}>>([]);
   const [isLoadingTeamMembers, setIsLoadingTeamMembers] = useState(false);
-
+  
   // UI State from store
   const draggedTask = useBoardStore(state => state.draggedTask);
   const showNewTaskForm = useBoardStore(state => state.showNewTaskForm);
@@ -89,7 +111,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   const selectedTask = useBoardStore(state => state.selectedTask);
   const isEditingTask = useBoardStore(state => state.isEditingTask);
   const editingTaskData = useBoardStore(state => state.editingTaskData);
-
+  
   // UI State setters from store
   const setDraggedTask = useBoardStore(state => state.setDraggedTask);
   const setShowNewTaskForm = useBoardStore(state => state.setShowNewTaskForm);
@@ -107,7 +129,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   // Fetch team members and admins
   const fetchTeamMembers = useCallback(async (teamId: string) => {
     if (!teamId) return;
-
+    
     try {
       setIsLoadingTeamMembers(true);
       const response = await fetch(`/api/pod/teams/${teamId}/members`);
@@ -161,11 +183,11 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   // Handle URL parameter for task sharing - URL is the single source of truth
   useEffect(() => {
     const taskParam = searchParams?.get('task');
-
+    
     if (taskParam && tasks.length > 0) {
       // URL has a task parameter - find task by ID or podTeam.projectPrefix-taskNumber
       let task: Task | undefined;
-
+      
       // Check if taskParam looks like projectPrefix-taskNumber format
       if (taskParam.includes('-') && /^[A-Z0-9]{3,5}-\d+$/.test(taskParam)) {
         const [projectPrefix, taskNumberStr] = taskParam.split('-');
@@ -175,7 +197,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         // Fall back to finding by task ID
         task = tasks.find(t => t.id === taskParam);
       }
-
+      
       if (task && (!selectedTask || selectedTask.id !== task.id)) {
         setSelectedTask(task);
         setEditingTaskData({
@@ -203,7 +225,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   useEffect(() => {
     const headerScroll = document.getElementById('desktop-header-scroll');
     const bodyScroll = document.getElementById('desktop-body-scroll');
-
+    
     if (!headerScroll || !bodyScroll) return;
 
     const syncScroll = (source: Element, target: Element) => {
@@ -275,7 +297,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     setCurrentTeamId(newTeamId);
     setShowNewTaskForm(null);
     onTeamChange(newTeamRow);
-
+    
     // Update URL parameters to include team
     const params = new URLSearchParams(searchParams?.toString() || '');
     params.set('team', newTeamId);
@@ -313,8 +335,8 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     // Only update URL - the useEffect will handle state updates
     const params = new URLSearchParams(searchParams?.toString() || '');
     // Use podTeam.projectPrefix-taskNumber if available, otherwise fall back to task ID
-    const taskIdentifier = (task.podTeam?.projectPrefix && task.taskNumber)
-      ? `${task.podTeam.projectPrefix}-${task.taskNumber}`
+    const taskIdentifier = (task.podTeam?.projectPrefix && task.taskNumber) 
+      ? `${task.podTeam.projectPrefix}-${task.taskNumber}` 
       : task.id;
     params.set('task', taskIdentifier);
     router.push(`?${params.toString()}`);
@@ -422,57 +444,57 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   // Permission functions
   const canMoveTask = (task: Task) => {
     if (!session?.user) return false;
-
+    
     if (session.user.role === 'ADMIN') return true;
     if (task.createdById === session.user.id) return true;
-
-    if (task.assignedTo === session.user.id ||
+    
+    if (task.assignedTo === session.user.id || 
         task.assignedTo === session.user.email ||
         task.assignedUser?.id === session.user.id ||
         task.assignedUser?.email === session.user.email) {
       return true;
     }
-
+    
     return false;
   };
 
   // Check if user is part of the team (member or admin)
   const isUserInTeam = useCallback(() => {
     if (!session?.user) return false;
-
+    
     const userId = session.user.id;
     const userEmail = session.user.email;
-
+    
     // Check if user is in team members
-    const isMember = teamMembers.some(member =>
+    const isMember = teamMembers.some(member => 
       member.id === userId || member.email === userEmail
     );
-
+    
     // Check if user is in team admins
-    const isAdmin = teamAdmins.some(admin =>
+    const isAdmin = teamAdmins.some(admin => 
       admin.id === userId || admin.email === userEmail
     );
-
+    
     return isMember || isAdmin;
   }, [session?.user, teamMembers, teamAdmins]);
 
   const canEditTask = (task: Task) => {
     if (!session?.user) return false;
-
+    
     // Global admins can always edit
     if (session.user.role === 'ADMIN') return true;
-
+    
     // Team members and team admins can edit tasks
     if (isUserInTeam()) return true;
-
+    
     // Task assignees can edit their assigned tasks
-    if (task.assignedTo === session.user.id ||
+    if (task.assignedTo === session.user.id || 
         task.assignedTo === session.user.email ||
         task.assignedUser?.id === session.user.id ||
         task.assignedUser?.email === session.user.email) {
       return true;
     }
-
+    
     return false;
   };
 
@@ -523,7 +545,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   const handleDrop = async (e: React.DragEvent, newStatus: Task['status']) => {
     e.preventDefault();
-
+    
     if (!draggedTask || draggedTask.status === newStatus) {
       return;
     }
@@ -543,7 +565,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     try {
       // Find the target column to get assigned members
       const targetColumn = columns.find(column => column.status === newStatus);
-
+      
       if (!targetColumn || !targetColumn.assignedMembers || targetColumn.assignedMembers.length === 0) {
         return;
       }
@@ -602,13 +624,13 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       if (isLoadingColumns) {
         return [];
       }
-
+      
       if (columns.length === 0) {
         // Only use default config if explicitly no columns are configured
         console.log('Using default statusConfig, columns.length:', columns.length);
         return Object.entries(statusConfig);
       }
-
+      
       return columns
         .sort((a, b) => a.position - b.position) // Ensure correct order
         .map(column => [
@@ -641,14 +663,14 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     return tasksToFilter.filter(task => {
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
-        const matchesSearch =
+        const matchesSearch = 
           task.title.toLowerCase().includes(searchLower) ||
           task.description?.toLowerCase().includes(searchLower) ||
           task.assignedUser?.name?.toLowerCase().includes(searchLower) ||
           task.assignedUser?.email?.toLowerCase().includes(searchLower) ||
           task.createdBy.name?.toLowerCase().includes(searchLower) ||
           task.createdBy.email?.toLowerCase().includes(searchLower);
-
+        
         if (!matchesSearch) return false;
       }
 
@@ -689,6 +711,27 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         return false;
       }
 
+      // Workflow filtering
+      if (workflowFilter !== 'ALL') {
+        switch (workflowFilter) {
+          case 'NORMAL':
+            if (!task.ModularWorkflow || task.ModularWorkflow.contentStyle !== 'NORMAL') return false;
+            break;
+          case 'GAME':
+            if (!task.ModularWorkflow || task.ModularWorkflow.contentStyle !== 'GAME') return false;
+            break;
+          case 'POLL':
+            if (!task.ModularWorkflow || task.ModularWorkflow.contentStyle !== 'POLL') return false;
+            break;
+          case 'LIVESTREAM':
+            if (!task.ModularWorkflow || task.ModularWorkflow.contentStyle !== 'LIVESTREAM') return false;
+            break;
+          case 'LEGACY':
+            if (!task.ContentSubmission) return false;
+            break;
+        }
+      }
+
       return true;
     });
   };
@@ -726,19 +769,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   const filteredAndSortedTasks = sortTasks(filterTasks(tasks));
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return null;
-
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
-    } catch {
-      return null;
-    }
-  };
+  // Using Luxon dateUtils now instead of local formatDate function
 
   if (showMinimumSkeleton || (isLoading && tasks.length === 0) || isLoadingColumns) {
     return (
@@ -755,144 +786,112 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 transition-all duration-300">
-      {/* Modern glass morphism container */}
-      <div className="relative overflow-hidden rounded-2xl bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/20 dark:border-slate-700/50 shadow-xl shadow-slate-900/5 dark:shadow-slate-950/20">
-        {/* Animated background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 via-pink-500/5 to-cyan-500/5 dark:from-purple-400/10 dark:via-pink-400/10 dark:to-cyan-400/10 animate-pulse" />
+    <div className="space-y-6">
+      {/* Board Header */}
+      <BoardHeader
+        teamName={teamName}
+        availableTeams={availableTeams}
+        selectedRow={selectedRow}
+        onTeamChange={handleTeamChange}
+        totalTasks={tasks.length}
+        filteredTasksCount={filteredAndSortedTasks.length}
+        isLoading={isLoading}
+      />
 
-        {/* Content container with improved spacing */}
-        <div className="relative z-10 p-6 space-y-8">
-          {/* Board Header with enhanced styling */}
-          <div className="glass-morphism rounded-xl p-6 shadow-lg animate-slide-in-left">
-            <BoardHeader
-              teamName={teamName}
-              availableTeams={availableTeams}
-              selectedRow={selectedRow}
-              onTeamChange={handleTeamChange}
-              totalTasks={tasks.length}
-              filteredTasksCount={filteredAndSortedTasks.length}
-              isLoading={isLoading}
-            />
-          </div>
+      {/* Search, Filter, and Sort Controls */}
+      <BoardFilters
+        searchTerm={searchTerm}
+        priorityFilter={priorityFilter}
+        assigneeFilter={assigneeFilter}
+        dueDateFilter={dueDateFilter}
+        workflowFilter={workflowFilter}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        showFilters={showFilters}
+        filteredTasksCount={filteredAndSortedTasks.length}
+        totalTasks={tasks.length}
+        setSearchTerm={setSearchTerm}
+        setPriorityFilter={setPriorityFilter}
+        setAssigneeFilter={setAssigneeFilter}
+        setDueDateFilter={setDueDateFilter}
+        setWorkflowFilter={setWorkflowFilter}
+        setSortBy={setSortBy}
+        setSortOrder={setSortOrder}
+        setShowFilters={setShowFilters}
+        setShowColumnSettings={setShowColumnSettings}
+      />
 
-          {/* Search, Filter, and Sort Controls with glass effect */}
-          <div className="glass-morphism rounded-xl p-6 shadow-lg animate-slide-in-right">
-            <BoardFilters
-              searchTerm={searchTerm}
-              priorityFilter={priorityFilter}
-              assigneeFilter={assigneeFilter}
-              dueDateFilter={dueDateFilter}
-              sortBy={sortBy}
-              sortOrder={sortOrder}
-              showFilters={showFilters}
-              filteredTasksCount={filteredAndSortedTasks.length}
-              totalTasks={tasks.length}
-              setSearchTerm={setSearchTerm}
-              setPriorityFilter={setPriorityFilter}
-              setAssigneeFilter={setAssigneeFilter}
-              setDueDateFilter={setDueDateFilter}
-              setSortBy={setSortBy}
-              setSortOrder={setSortOrder}
-              setShowFilters={setShowFilters}
-              setShowColumnSettings={setShowColumnSettings}
-            />
-          </div>
-
-          {/* Error Message with modern styling */}
-          {error && (
-            <div className="relative overflow-hidden bg-red-50/90 dark:bg-red-900/30 backdrop-blur-sm border border-red-200/50 dark:border-red-500/30 rounded-xl p-6 shadow-lg">
-              <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-pink-500/10 animate-pulse" />
-              <div className="relative flex items-center">
-                <div className="flex-shrink-0 w-10 h-10 bg-red-100 dark:bg-red-900/50 rounded-full flex items-center justify-center">
-                  <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-red-800 dark:text-red-200 font-medium">{error.message}</p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Kanban Board with enhanced container */}
-          <div className="relative overflow-hidden glass-morphism rounded-2xl shadow-2xl animate-float-in">
-            {/* Decorative elements */}
-            <div className="absolute top-4 right-4 w-32 h-32 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse" />
-            <div className="absolute bottom-4 left-4 w-24 h-24 bg-gradient-to-br from-cyan-400/20 to-blue-400/20 rounded-full blur-2xl animate-pulse delay-1000" />
-
-            {/* Board content */}
-            <div className="relative z-10 p-6 custom-scrollbar">
-              <BoardGrid
-                columns={columns}
-                tasks={filteredAndSortedTasks}
-                session={session}
-                draggedTask={draggedTask}
-                showNewTaskForm={showNewTaskForm}
-                newTaskData={newTaskData}
-                isLoading={isLoading}
-                showMinimumSkeleton={showMinimumSkeleton}
-                canMoveTask={canMoveTask}
-                onDragOver={handleDragOver}
-                onDrop={handleDrop}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                onTaskClick={openTaskDetail}
-                onDeleteTask={handleDeleteTask}
-                onOpenNewTaskModal={openNewTaskModal}
-                onSetShowNewTaskForm={setShowNewTaskForm}
-                onSetNewTaskData={setNewTaskData}
-                onCreateTask={handleCreateTask}
-                formatDate={formatDate}
-                getColumnConfig={getColumnConfig}
-                getTasksForStatus={getTasksForStatus}
-                getGridClasses={getGridClasses}
-                getGridStyles={getGridStyles}
-              />
-            </div>
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-500/30 rounded-lg p-4">
+          <div className="flex items-center">
+            <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+            <p className="text-red-700 dark:text-red-400">{error.message}</p>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Task Detail Modal with enhanced backdrop */}
+      {/* Responsive Kanban Board */}
+      <BoardGrid
+        columns={columns}
+        tasks={filteredAndSortedTasks}
+        session={session}
+        draggedTask={draggedTask}
+        showNewTaskForm={showNewTaskForm}
+        newTaskData={newTaskData}
+        isLoading={isLoading}
+        showMinimumSkeleton={showMinimumSkeleton}
+        canMoveTask={canMoveTask}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onTaskClick={openTaskDetail}
+        onDeleteTask={handleDeleteTask}
+        onOpenNewTaskModal={openNewTaskModal}
+        onSetShowNewTaskForm={setShowNewTaskForm}
+        onSetNewTaskData={setNewTaskData}
+        onCreateTask={handleCreateTask}
+        getColumnConfig={getColumnConfig}
+        getTasksForStatus={getTasksForStatus}
+        getGridClasses={getGridClasses}
+        getGridStyles={getGridStyles}
+      />
+
+      {/* Task Detail Modal */}
       {selectedTask && (
-        <div className="fixed inset-0 z-50 backdrop-blur-md bg-black/20 dark:bg-black/40">
-          <TaskDetailModal
-            selectedTask={selectedTask}
-            isEditingTask={isEditingTask}
-            editingTaskData={editingTaskData}
-            session={session}
-            canEditTask={canEditTask}
-            isUserInTeam={isUserInTeam()}
-            teamMembers={teamMembers}
-            teamAdmins={teamAdmins}
-            isSaving={isSaving}
-            onClose={closeTaskDetail}
-            onStartEditing={startEditingTask}
-            onCancelEditing={cancelEditingTask}
-            onSaveChanges={saveTaskChanges}
-            onSetEditingTaskData={setEditingTaskData}
-            onUpdateTaskStatus={updateTaskStatusInModal}
-            onAutoSaveAttachments={autoSaveAttachments}
-            getColumnConfig={getColumnConfig}
-          />
-        </div>
+        <TaskDetailModal
+          selectedTask={selectedTask}
+          isEditingTask={isEditingTask}
+          editingTaskData={editingTaskData}
+          session={session}
+          canEditTask={canEditTask}
+          isUserInTeam={isUserInTeam()}
+          teamMembers={teamMembers}
+          teamAdmins={teamAdmins}
+          isSaving={isSaving}
+          onClose={closeTaskDetail}
+          onStartEditing={startEditingTask}
+          onCancelEditing={cancelEditingTask}
+          onSaveChanges={saveTaskChanges}
+          onSetEditingTaskData={setEditingTaskData}
+          onUpdateTaskStatus={updateTaskStatusInModal}
+          onAutoSaveAttachments={autoSaveAttachments}
+          getColumnConfig={getColumnConfig}
+        />
       )}
 
-      {/* New Task Modal with enhanced backdrop */}
-      {showNewTaskModal && (
-        <div className="fixed inset-0 z-50 backdrop-blur-md bg-black/20 dark:bg-black/40">
-          <NewTaskModal
-            isOpen={showNewTaskModal}
-            newTaskStatus={newTaskStatus}
-            newTaskData={newTaskData}
-            isCreatingTask={isCreatingTask}
-            columns={columns}
-            onClose={closeNewTaskModal}
-            onSetNewTaskData={setNewTaskData}
-            onCreateTask={createTaskFromModal}
-          />
-        </div>
-      )}
+      {/* New Task Modal */}
+      <NewTaskModal
+        isOpen={showNewTaskModal}
+        newTaskStatus={newTaskStatus}
+        newTaskData={newTaskData}
+        isCreatingTask={isCreatingTask}
+        columns={columns}
+        onClose={closeNewTaskModal}
+        onSetNewTaskData={setNewTaskData}
+        onCreateTask={createTaskFromModal}
+      />
 
       {/* Column Settings Modal */}
       <ColumnSettings currentTeamId={currentTeamId} />

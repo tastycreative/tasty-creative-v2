@@ -60,7 +60,11 @@ function EmptyState({ icon, title, subtitle }: EmptyStateProps) {
   );
 }
 
-export function RightSidebar() {
+interface RightSidebarProps {
+  collapsed?: boolean;
+}
+
+export default function RightSidebar({ collapsed = false }: RightSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -76,6 +80,10 @@ export function RightSidebar() {
       setSelectedRow(1);
     }
   }, [selectedRow, teams, setSelectedRow]);
+
+  if (collapsed) {
+    return null; // Hide completely when collapsed
+  }
 
   // Update URL when team selection changes
   const updateURLWithTeam = (teamId: string) => {
@@ -297,5 +305,3 @@ export function RightSidebar() {
     </div>
   );
 }
-
-export default RightSidebar;

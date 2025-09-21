@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react";
 import { LocalFilePreview, uploadAllLocalFiles } from "@/components/ui/FileUpload";
 import { useContentSubmissionStore } from "@/lib/stores/contentSubmissionStore";
-import OtpPtrForm from "@/components/pod-new/otp-ptr/OtpPtrForm";
-import SubmissionsHistory from "@/components/pod-new/otp-ptr/SubmissionsHistory";
-import FullscreenAttachmentModal from "@/components/pod-new/otp-ptr/FullscreenAttachmentModal";
+import OtpPtrForm from "@/components/pod-new/features/otp-ptr/OtpPtrForm";
+import SubmissionsHistory from "@/components/pod-new/features/otp-ptr/SubmissionsHistory";
+import FullscreenAttachmentModal from "@/components/pod-new/features/otp-ptr/FullscreenAttachmentModal";
 import {
   Upload,
   Zap,

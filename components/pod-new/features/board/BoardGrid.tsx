@@ -2,14 +2,10 @@
 
 import React from "react";
 import { Session } from "next-auth";
-import { Plus } from "lucide-react";
 import { Task, NewTaskData } from "@/lib/stores/boardStore";
 import TaskColumn from "./TaskColumn";
-import { TaskSkeleton } from "./BoardSkeleton";
 
 interface BoardGridProps {
-  columns: Array<{ status: string; label: string }>;
-  tasks: Task[];
   session: Session | null;
   draggedTask: Task | null;
   showNewTaskForm: string | null;
@@ -27,7 +23,6 @@ interface BoardGridProps {
   onSetShowNewTaskForm: (status: string | null) => void;
   onSetNewTaskData: (data: Partial<NewTaskData>) => void;
   onCreateTask: (status: Task["status"]) => void;
-  formatDate: (dateString: string | null) => string | null;
   getColumnConfig: () => Array<[string, any]>;
   getTasksForStatus: (status: Task["status"]) => Task[];
   getGridClasses: () => string;
@@ -35,8 +30,6 @@ interface BoardGridProps {
 }
 
 export default function BoardGrid({
-  columns,
-  tasks,
   session,
   draggedTask,
   showNewTaskForm,
@@ -54,14 +47,13 @@ export default function BoardGrid({
   onSetShowNewTaskForm,
   onSetNewTaskData,
   onCreateTask,
-  formatDate,
   getColumnConfig,
   getTasksForStatus,
   getGridClasses,
   getGridStyles,
 }: BoardGridProps) {
   return (
-    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden w-full">
+    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden">
       {/* Mobile Column Navigation - Only visible on mobile */}
       <div className="md:hidden border-b border-gray-200 dark:border-gray-600">
         <div className="flex overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
@@ -71,7 +63,7 @@ export default function BoardGrid({
               <button
                 key={status}
                 className={`flex-shrink-0 flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                  status === "wall_post" // Default selected for demo
+                  status === "NOT_STARTED" // Default selected for demo
                     ? `${config.headerColor} border-gray-400 dark:border-gray-500 text-gray-900 dark:text-gray-100`
                     : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 }`}
@@ -115,7 +107,6 @@ export default function BoardGrid({
                 onSetShowNewTaskForm={onSetShowNewTaskForm}
                 onSetNewTaskData={onSetNewTaskData}
                 onCreateTask={onCreateTask}
-                formatDate={formatDate}
                 isMobile={true}
                 isLastColumn={index === getColumnConfig().length - 1}
               />
@@ -125,9 +116,9 @@ export default function BoardGrid({
       </div>
 
       {/* Desktop: Unified Header + Body Scroll Container */}
-      <div className="hidden md:block overflow-x-auto w-full">
+      <div className="hidden md:block overflow-x-auto">
         <div
-          className={`grid ${getGridClasses()} min-h-[600px] w-full min-w-fit gap-0`}
+          className={`grid ${getGridClasses()} min-h-[600px]`}
           style={getGridStyles()}
         >
           {getColumnConfig().map(([status, config], index) => {
@@ -156,7 +147,6 @@ export default function BoardGrid({
                 onSetShowNewTaskForm={onSetShowNewTaskForm}
                 onSetNewTaskData={onSetNewTaskData}
                 onCreateTask={onCreateTask}
-                formatDate={formatDate}
                 isMobile={false}
                 isLastColumn={index === getColumnConfig().length - 1}
                 includeHeader={true}

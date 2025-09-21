@@ -4,10 +4,10 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { ExtendedModelDetails } from "@/lib/mock-data/model-profile";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { ModelProfileSidebar } from "../models/profile/ModelProfileSidebar";
-import { ModelInformationTab } from "../models/profile/tabs/ModelInformationTab";
-import ModelForumTab from "../models/profile/tabs/ModelForumTab";
-import ModelGalleryTab from "../models/profile/tabs/ModelGalleryTab";
+import { ModelProfileSidebar } from "../features/models/profile/ModelProfileSidebar";
+import { ModelInformationTab } from "../features/models/profile/tabs/ModelInformationTab";
+import ModelForumTab from "../features/models/profile/tabs/ModelForumTab";
+import ModelGalleryTab from "../features/models/profile/tabs/ModelGalleryTab";
 
 interface ModelProfileLayoutProps {
   modelData: ExtendedModelDetails;

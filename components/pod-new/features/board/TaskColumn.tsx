@@ -34,7 +34,6 @@ interface TaskColumnProps {
   onSetShowNewTaskForm: (status: string | null) => void;
   onSetNewTaskData: (data: Partial<NewTaskData>) => void;
   onCreateTask: (status: Task["status"]) => void;
-  formatDate: (dateString: string | null) => string | null;
   isMobile?: boolean;
   isLastColumn?: boolean;
   includeHeader?: boolean;
@@ -61,14 +60,13 @@ export default function TaskColumn({
   onSetShowNewTaskForm,
   onSetNewTaskData,
   onCreateTask,
-  formatDate,
   isMobile = false,
   isLastColumn = false,
   includeHeader = false,
 }: TaskColumnProps) {
   return (
     <div
-      className={`${isMobile ? "flex-shrink-0 w-80 p-3 border-r border-gray-200 dark:border-gray-600 last:border-r-0" : `${!isLastColumn ? "border-r border-gray-200 dark:border-gray-600" : ""}`} transition-colors duration-300 ${
+      className={`${isMobile ? "flex-shrink-0 w-80 p-4 border-r border-gray-200 dark:border-gray-600 last:border-r-0" : `${!isLastColumn ? "border-r-2 border-gray-200 dark:border-gray-600" : ""}`} transition-colors duration-300 ${
         draggedTask && draggedTask.status !== status
           ? "bg-pink-50/30 dark:bg-pink-900/10 border-pink-200 dark:border-pink-500"
           : ""
@@ -78,7 +76,7 @@ export default function TaskColumn({
     >
       {/* Desktop Column Header - Only when includeHeader is true */}
       {!isMobile && includeHeader && (
-        <div className={`p-3 ${config.headerColor} dark:bg-gray-700 border-b-2 border-gray-200 dark:border-gray-600`}>
+        <div className={`p-4 ${config.headerColor} dark:bg-gray-700 border-b-2 border-gray-200 dark:border-gray-600`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
@@ -161,7 +159,7 @@ export default function TaskColumn({
       )}
 
       {/* Column Body */}
-      <div className={`${includeHeader && !isMobile ? 'p-3' : 'p-3'}`}>
+      <div className={`${includeHeader && !isMobile ? 'p-4' : ''}`}>
         {/* New Task Form (Desktop only, when header is not included) */}
         {!isMobile && !includeHeader && showNewTaskForm === status && (
           <div className="mt-4 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg">
@@ -217,7 +215,6 @@ export default function TaskColumn({
               onDragEnd={onDragEnd}
               onTaskClick={onTaskClick}
               onDeleteTask={onDeleteTask}
-              formatDate={formatDate}
               isMobile={isMobile}
             />
           ))}
