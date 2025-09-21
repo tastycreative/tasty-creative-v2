@@ -4,6 +4,7 @@ import { auth } from '@/auth';
 import { publishNotification } from '@/lib/ably';
 import { sendOTPPTRTaskNotificationEmail } from '@/lib/email';
 import { generateTaskUrl } from '@/lib/taskUtils';
+import { utcNow, getDbTimestamp } from '@/lib/dateUtils';
 
 interface SubmissionData {
   submissionType: 'otp' | 'ptr';
@@ -333,7 +334,7 @@ export async function POST(request: NextRequest) {
         screenshotAttachments: data.screenshotAttachments || [],
         status: 'PENDING',
         createdById: session.user.id!,
-        updatedAt: new Date(),
+        // Remove manual updatedAt - Prisma will handle it automatically with @updatedAt
         // PTR-specific fields (only included if submissionType is PTR)
         ...(submissionType === 'PTR' && {
           releaseDate: data.releaseDate,
@@ -419,8 +420,8 @@ export async function POST(request: NextRequest) {
       where: { id: submission.id },
       data: { 
         status: 'TASK_CREATED',
-        processedAt: new Date(),
-        updatedAt: new Date()
+        processedAt: getDbTimestamp()
+        // Remove manual updatedAt - Prisma will handle it automatically with @updatedAt
       }
     });
 

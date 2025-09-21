@@ -4,6 +4,7 @@ import React from "react";
 import { Session } from "next-auth";
 import { MoreHorizontal, UserPlus, Trash2 } from "lucide-react";
 import { Task } from "@/lib/stores/boardStore";
+import { formatForTaskCard, formatDueDate } from "@/lib/dateUtils";
 import UserProfile from "@/components/ui/UserProfile";
 
 const priorityConfig = {
@@ -22,7 +23,6 @@ interface TaskCardProps {
   onDragEnd: (e: React.DragEvent) => void;
   onTaskClick: (task: Task) => void;
   onDeleteTask: (taskId: string) => void;
-  formatDate: (dateString: string | null) => string | null;
   isMobile?: boolean;
 }
 
@@ -35,7 +35,6 @@ export default function TaskCard({
   onDragEnd,
   onTaskClick,
   onDeleteTask,
-  formatDate,
   isMobile = false,
 }: TaskCardProps) {
   return (
@@ -136,8 +135,8 @@ export default function TaskCard({
               {priorityConfig[task.priority || 'MEDIUM'].label}
             </span>
             {task.dueDate && (
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {formatDate(task.dueDate)}
+              <span className={`text-xs ${formatDueDate(task.dueDate).className}`}>
+                {formatDueDate(task.dueDate).formatted}
               </span>
             )}
           </div>
@@ -148,7 +147,7 @@ export default function TaskCard({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4h3a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2h3z" />
               </svg>
               <span className="truncate">
-                Created: {formatDate(task.createdAt)}
+                Created: {formatForTaskCard(task.createdAt)}
               </span>
             </div>
             {task.assignedUser ? (
@@ -183,8 +182,8 @@ export default function TaskCard({
 
           {/* Due Date */}
           {task.dueDate && (
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              {formatDate(task.dueDate)}
+            <span className={`text-xs ${formatDueDate(task.dueDate).className}`}>
+              {formatDueDate(task.dueDate).formatted}
             </span>
           )}
         </div>
@@ -198,7 +197,7 @@ export default function TaskCard({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4h3a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V9a2 2 0 012-2h3z" />
             </svg>
             <span className="truncate">
-              {formatDate(task.createdAt)}
+              {formatForTaskCard(task.createdAt)}
             </span>
           </div>
           {task.assignedUser ? (

@@ -104,8 +104,8 @@ export async function PUT(request: NextRequest, { params }: CommentParams) {
       where: { id: commentId },
       data: {
         content: content.trim(),
-        attachments: attachments && attachments.length > 0 ? attachments : null,
-        updatedAt: new Date()
+        attachments: attachments && attachments.length > 0 ? attachments : null
+        // updatedAt is automatically handled by @updatedAt decorator
       },
       include: {
         user: {
