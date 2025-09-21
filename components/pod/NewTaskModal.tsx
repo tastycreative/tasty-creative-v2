@@ -5,6 +5,7 @@ import { X, Plus } from "lucide-react";
 import { Task, NewTaskData } from "@/lib/stores/boardStore";
 import UserDropdown from "@/components/UserDropdown";
 import FileUpload from "@/components/ui/FileUpload";
+import { toLocalDateTimeString, utcNowDateTime } from '@/lib/dateUtils';
 
 const statusConfig = {
   NOT_STARTED: {
@@ -170,7 +171,7 @@ export default function NewTaskModal({
                       if (!e.target.checked) {
                         onSetNewTaskData({ dueDate: "" });
                       } else {
-                        const today = new Date().toISOString().split("T")[0];
+                        const today = toLocalDateTimeString(utcNowDateTime()).split("T")[0];
                         onSetNewTaskData({ dueDate: today });
                       }
                     }}
