@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { UserRoleForm } from "@/components/admin/UserRoleForm";
 import { BulkRoleEditor } from "@/components/admin/BulkRoleEditor";
 import { prisma } from "@/lib/prisma";
+import { formatForDisplay, utcNowDateTime, toUtc } from "@/lib/dateUtils";
 import { Role } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -63,11 +64,11 @@ export default async function AdminUsersPage() {
   const swdCount = users.filter((u) => u.role === "SWD").length;
   const guestCount = users.filter((u) => u.role === "GUEST").length;
 
-  // Calculate growth metrics
-  const thisMonth = new Date();
-  const lastMonth = new Date(thisMonth.getFullYear(), thisMonth.getMonth() - 1);
+  // Calculate growth metrics using UTC
+  const now = utcNowDateTime();
+  const lastMonth = now.minus({ months: 1 });
   const thisMonthUsers = users.filter(
-    (u) => new Date(u.createdAt) >= lastMonth
+    (u) => toUtc(u.createdAt) >= lastMonth
   ).length;
   const growthRate =
     totalUsers > 0 ? Math.round((thisMonthUsers / totalUsers) * 100) : 0;
@@ -290,7 +291,7 @@ export default async function AdminUsersPage() {
             <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
               <Clock className="h-4 w-4" />
               <span className="hidden sm:inline">Last updated: </span>
-              <span>{new Date().toLocaleTimeString()}</span>
+              <span>Just now</span>
             </div>
           </div>
         </CardHeader>
@@ -326,11 +327,7 @@ export default async function AdminUsersPage() {
                             {user.email}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                            Joined {new Date(user.createdAt).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
+                            Joined {formatForDisplay(user.createdAt, 'date')}
                           </p>
                         </div>
                         <div className="flex flex-col items-end space-y-2 ml-2">
@@ -465,16 +462,10 @@ export default async function AdminUsersPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900 dark:text-gray-100 font-medium">
-                        {new Date(user.createdAt).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
+                        {formatForDisplay(user.createdAt, 'date')}
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {new Date(user.createdAt).toLocaleDateString("en-US", {
-                          weekday: "long",
-                        })}
+                        {formatForDisplay(user.createdAt, 'EEEE')}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
