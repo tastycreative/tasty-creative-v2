@@ -35,6 +35,13 @@ import {
 import { updateUserRole } from "@/app/actions/admin";
 import { Role } from "@prisma/client";
 import { useSession } from "next-auth/react";
+import {
+  formatForDisplay,
+  parseUserDate,
+  formatDueDate,
+  utcNow,
+  utcNowDateTime
+} from "@/lib/dateUtils";
 
 interface AdminStats {
   totalUsers: number;
@@ -237,10 +244,11 @@ const PodAdminDashboard = () => {
       (task) => task.status === "in-progress"
     ).length;
     const overdueTasks = team.tasks.filter(
-      (task) =>
-        task.dueDate &&
-        new Date(task.dueDate) < new Date() &&
-        task.status !== "completed"
+      (task) => {
+        if (!task.dueDate) return false;
+        const dueDateTime = parseUserDate(task.dueDate);
+        return dueDateTime && dueDateTime.diffNow().milliseconds < 0 && task.status !== "completed";
+      }
     ).length;
 
     return { totalTasks, completedTasks, inProgressTasks, overdueTasks };
@@ -418,7 +426,7 @@ const PodAdminDashboard = () => {
           priority: task.priority.toLowerCase() as "low" | "medium" | "high",
           assignedTo: task.assignedTo || "",
           dueDate: task.dueDate
-            ? new Date(task.dueDate).toISOString().split("T")[0]
+            ? formatForDisplay(task.dueDate, 'date')
             : "",
         }));
       }
@@ -878,7 +886,7 @@ const PodAdminDashboard = () => {
           description: newTaskData.description.trim() || null,
           priority: newTaskData.priority.toUpperCase(),
           assignedTo: newTaskData.assignedTo || null,
-          dueDate: newTaskData.dueDate || null,
+          dueDate: newTaskData.dueDate ? parseUserDate(newTaskData.dueDate)?.toISO() : null,
           teamId,
           teamName: team.name,
         }),
@@ -907,7 +915,7 @@ const PodAdminDashboard = () => {
             | "high",
           assignedTo: result.task.assignedTo || "",
           dueDate: result.task.dueDate
-            ? new Date(result.task.dueDate).toISOString().split("T")[0]
+            ? formatForDisplay(result.task.dueDate, 'date')
             : "",
         };
 
@@ -2960,9 +2968,7 @@ const PodAdminDashboard = () => {
                                         <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
                                           <Calendar className="h-3 w-3 flex-shrink-0" />
                                           <span>
-                                            {new Date(
-                                              task.dueDate
-                                            ).toLocaleDateString()}
+                                            {formatForDisplay(task.dueDate, 'short')}
                                           </span>
                                         </div>
                                       ) : (
@@ -3726,7 +3732,7 @@ const UserRoleCard: React.FC<UserRoleCardProps> = ({ user, onRoleUpdate }) => {
       {/* User Details */}
       <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-          <span>Joined {new Date(user.createdAt).toLocaleDateString()}</span>
+          <span>Joined {formatForDisplay(user.createdAt, 'short')}</span>
           <span>ID: {user.id.slice(0, 8)}...</span>
         </div>
       </div>
