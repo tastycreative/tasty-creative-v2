@@ -663,7 +663,7 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
                 teamAdmins={teamAdmins}
                 currentUserId={currentUser?.id}
                 placeholder="Add a comment... Use @ to mention team members and admins"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 min-h-[2.5rem] overflow-y-auto"
                 rows={2}
                 disabled={isSubmitting}
               />
@@ -676,7 +676,7 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
               maxFiles={3}
               maxFileSize={10}
             />
-            <div className="flex justify-end">
+            <div className="flex justify-end pt-2">
               <button
                 type="submit"
                 disabled={(newComment.trim().length === 0 && newCommentPreviewFiles.length === 0) || isSubmitting}
@@ -703,7 +703,7 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
           </div>
         ) : (
           comments.map((comment) => (
-            <div key={comment.id} className="flex space-x-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+            <div key={comment.id} className="group flex space-x-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/70 transition-colors">
               <UserProfile user={comment.user} size="sm" showTooltip />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1">
@@ -729,7 +729,7 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
                     </div>
                   </div>
                   {canEditComment(comment) && (
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       {editingCommentId === comment.id ? (
                         <>
                           <button
@@ -789,7 +789,7 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
                       teamAdmins={teamAdmins}
                       currentUserId={currentUser?.id}
                       placeholder="Edit your comment... Use @ to mention team members and admins"
-                      className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                      className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 min-h-[2.5rem] overflow-y-auto"
                       rows={2}
                       disabled={isUpdatingComment === comment.id}
                       autoFocus

@@ -465,3 +465,13 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Hide scrollbars for mentions overlay */
+.mentions-overlay::-webkit-scrollbar {
+  display: none;
+}
+
+.mentions-overlay {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
