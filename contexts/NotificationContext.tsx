@@ -72,7 +72,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     setUnreadCount,
     setConnectionStatus,
     updateLastFetchTime,
-    shouldRefetch
+    shouldRefetch,
+    setCurrentUser,
+    clearUserData
   } = useNotificationStore();
 
   const [lastUpdated, setLastUpdated] = useState(Date.now());
@@ -208,8 +210,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   };
 
   const refetch = async () => {
+    const currentUserId = session?.user?.id;
+    
     // Check cache first - reduce API calls significantly
-    if (!shouldRefetch()) {
+    if (!shouldRefetch(currentUserId)) {
       console.log('💾 Using cached notifications, skipping API call');
       return;
     }
@@ -236,6 +240,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       if (res.ok) {
         const data = await res.json();
         const newNotifications = data.notifications || [];
+        
+        // Ensure we track the current user for these notifications
+        if (currentUserId) {
+          setCurrentUser(currentUserId);
+        }
         
         // Check for new notifications and show toast
         // Only show toasts if this is not the initial load
@@ -265,7 +274,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         updateLastFetchTime();
         setLastUpdated(Date.now());
         
-        console.log('📊 Notifications updated and cached:', {
+        console.log('📊 Notifications updated and cached for user:', currentUserId, {
           total: newNotifications.length,
           unread: newUnreadCount,
           timestamp: new Date().toLocaleString()
@@ -419,6 +428,16 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
               if (notificationData) {
                 const notification = notificationData;
                 
+                // Double-check that this notification is for the current user
+                // (Should already be guaranteed by channel subscription, but extra safety)
+                const currentUserId = session?.user?.id;
+                const notificationUserId = notification.userId || notification.data?.userId;
+                
+                if (currentUserId && notificationUserId && notificationUserId !== currentUserId) {
+                  console.log('🚫 Ignoring notification for different user:', notificationUserId, 'vs', currentUserId);
+                  return;
+                }
+                
                 // Check if this is a new notification
                 if (!previousNotificationIds.current.has(notification.id)) {
                   console.log('🔔 New Ably notification received:', notification.title);
@@ -501,6 +520,25 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       setConnectionStatus(false, null);
     };
   }, [status, session?.user?.id]);
+
+  // Handle user changes - clear cache when user switches
+  useEffect(() => {
+    const currentUserId = session?.user?.id;
+    
+    if (status === 'authenticated' && currentUserId) {
+      console.log('👤 Setting current user for notifications:', currentUserId);
+      setCurrentUser(currentUserId);
+      
+      // Clear previous notification IDs when user changes
+      previousNotificationIds.current = new Set();
+      initialLoadCompletedRef.current = false;
+    } else if (status === 'unauthenticated') {
+      console.log('👤 User logged out, clearing notification cache');
+      clearUserData();
+      previousNotificationIds.current = new Set();
+      initialLoadCompletedRef.current = false;
+    }
+  }, [status, session?.user?.id, setCurrentUser, clearUserData]);
 
 
 
