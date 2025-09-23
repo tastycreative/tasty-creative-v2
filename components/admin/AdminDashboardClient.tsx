@@ -3,6 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import { formatForDisplay } from "@/lib/dateUtils";
 import {
   XAxis,
   YAxis,
@@ -2524,7 +2525,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                         </Badge>
                       </td>
                       <td className="py-3 px-4 text-gray-500 dark:text-gray-400">
-                        {new Date(user.createdAt).toLocaleDateString()}
+                        {formatForDisplay(user.createdAt, 'date')}
                       </td>
                     </tr>
                   ))}
@@ -2615,33 +2616,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                                   {activity.name}
                                 </p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                                  {(() => {
-                                    if (!activity.createdAt) return "Recently";
-                                    const now = new Date();
-                                    const createdTime = new Date(
-                                      activity.createdAt
-                                    );
-                                    const diffMs =
-                                      now.getTime() - createdTime.getTime();
-                                    const diffSeconds = Math.floor(
-                                      diffMs / 1000
-                                    );
-                                    const diffMinutes = Math.floor(
-                                      diffSeconds / 60
-                                    );
-                                    const diffHours = Math.floor(
-                                      diffMinutes / 60
-                                    );
-                                    const diffDays = Math.floor(diffHours / 24);
-
-                                    if (diffDays > 0)
-                                      return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
-                                    if (diffHours > 0)
-                                      return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
-                                    if (diffMinutes > 0)
-                                      return `${diffMinutes} minute${diffMinutes > 1 ? "s" : ""} ago`;
-                                    return "Just now";
-                                  })()}
+                                  {formatForDisplay(activity.createdAt, 'relative')}
                                 </p>
                               </div>
                               <div className="text-xs text-gray-500 dark:text-gray-400">
