@@ -20,6 +20,16 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingImage, setIsFetchingImage] = useState(false);
 
+  // Direct n8n webhook URLs (bypassing Vercel functions)
+  const DIRECT_WEBHOOK_URLS = {
+    live: "https://n8n.tastycreative.xyz/webhook/8891f352-4735-4daf-9b0f-bf691c59d1a0",
+    discord: "https://n8n.tastycreative.xyz/webhook/6dc27650-f328-4b37-912b-006882d69a65", 
+    vip: "https://n8n.tastycreative.xyz/webhook/fc87dd15-0df9-4ee1-8947-2a82d961fed4",
+    ftt: "https://n8n.tastycreative.xyz/webhook/4713ce33-501e-49b0-a6c6-38a907e1651b"
+  };
+
+  const [useDirectTransfer, setUseDirectTransfer] = useState<boolean>(true);
+
   interface WebhookResponse {
     thumbnail: string;
     webViewLink: string;
@@ -159,7 +169,28 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
     }
 
     const requestId = uuidv4(); // Generate unique ID
-    const webhookUrl = "/api/webhook-proxy";
+    
+    // Choose between direct transfer and Vercel proxy
+    let webhookUrl: string;
+    let useProxy = !useDirectTransfer;
+    
+    if (useDirectTransfer) {
+      // Direct transfer to n8n (bypasses Vercel functions)
+      console.log("Using direct transfer to n8n webhook");
+      if (response?.error === "Invalid JSON response from webhook" || formData.customRequest) {
+        webhookUrl = DIRECT_WEBHOOK_URLS.discord;
+      } else if (formData.type === "VIP") {
+        webhookUrl = DIRECT_WEBHOOK_URLS.vip;
+      } else if (formData.type === "FTT") {
+        webhookUrl = DIRECT_WEBHOOK_URLS.ftt;
+      } else {
+        webhookUrl = DIRECT_WEBHOOK_URLS.live;
+      }
+    } else {
+      // Use existing Vercel proxy as fallback
+      console.log("Using Vercel proxy (fallback)");
+      webhookUrl = "/api/webhook-proxy";
+    }
 
     try {
       setIsLoading(true);
@@ -168,35 +199,65 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
 
       const formDataToSend = new FormData();
 
-      // Append text data
-      formDataToSend.append("customImage", String(formData.customImage));
-      formDataToSend.append("date", formData.date || "");
-      formDataToSend.append("model", formData.model || "");
-      formDataToSend.append("paid", String(formData.paid));
-      formDataToSend.append("time", formData.time || "");
-      formDataToSend.append("timezone", formData.timezone || "");
-      formDataToSend.append("imageId", formData.imageId || "");
-      formDataToSend.append("requestId", requestId);
-      formDataToSend.append("timestamp", new Date().toISOString());
-      formDataToSend.append("imageName", formData.imageName || "");
-      formDataToSend.append("noOfTemplate", String(formData.noOfTemplate));
-      formDataToSend.append("isCustomRequest", String(formData.customRequest));
-      formDataToSend.append("customDetails", formData.customDetails || "");
-      formDataToSend.append("type", formData.type || "");
-      formDataToSend.append("options", String(formData.options || []));
-      formDataToSend.append("croppedImage", formData.croppedImage || "");
-      formDataToSend.append(
-        "templatePosition",
-        formData.templatePosition || ""
-      );
-      formDataToSend.append("selectedTemplate", selectedTemplate || "");
+      if (useDirectTransfer) {
+        // Direct transfer to n8n - format data as n8n expects
+        
+        // Format model name (extract from parentheses if present)
+        const modelValue = formData.model || "";
+        const match = modelValue.match(/\(([^)]+)\)$/);
+        const formattedModel = match ? match[1] : modelValue;
+        
+        formDataToSend.append("model", formattedModel);
+        formDataToSend.append("customImage", String(formData.customImage));
+        formDataToSend.append("date", formData.date || "");
+        formDataToSend.append("paid", String(formData.paid));
+        formDataToSend.append("time", formData.time || "");
+        formDataToSend.append("timezone", formData.timezone || "");
+        formDataToSend.append("imageId", formData.imageId || "");
+        formDataToSend.append("requestId", requestId);
+        formDataToSend.append("timestamp", new Date().toISOString());
+        formDataToSend.append("imageName", formData.imageName || "");
+        formDataToSend.append("noOfTemplate", String(formData.noOfTemplate));
+        formDataToSend.append("isCustomRequest", String(formData.customRequest));
+        formDataToSend.append("customDetails", formData.customDetails || "");
+        formDataToSend.append("type", formData.type || "");
+        formDataToSend.append("options", String(formData.options || []));
+        formDataToSend.append("croppedImage", formData.croppedImage || "");
+        formDataToSend.append("templatePosition", formData.templatePosition || "");
+        formDataToSend.append("selectedTemplate", selectedTemplate || "");
+        
+        // Append image file for direct transfer to n8n
+        if (formData.imageFile && formData.customImage) {
+          formDataToSend.append("imageFile", formData.imageFile, formData.imageFile.name);
+        }
+      } else {
+        // Existing Vercel proxy format
+        formDataToSend.append("customImage", String(formData.customImage));
+        formDataToSend.append("date", formData.date || "");
+        formDataToSend.append("model", formData.model || "");
+        formDataToSend.append("paid", String(formData.paid));
+        formDataToSend.append("time", formData.time || "");
+        formDataToSend.append("timezone", formData.timezone || "");
+        formDataToSend.append("imageId", formData.imageId || "");
+        formDataToSend.append("requestId", requestId);
+        formDataToSend.append("timestamp", new Date().toISOString());
+        formDataToSend.append("imageName", formData.imageName || "");
+        formDataToSend.append("noOfTemplate", String(formData.noOfTemplate));
+        formDataToSend.append("isCustomRequest", String(formData.customRequest));
+        formDataToSend.append("customDetails", formData.customDetails || "");
+        formDataToSend.append("type", formData.type || "");
+        formDataToSend.append("options", String(formData.options || []));
+        formDataToSend.append("croppedImage", formData.croppedImage || "");
+        formDataToSend.append("templatePosition", formData.templatePosition || "");
+        formDataToSend.append("selectedTemplate", selectedTemplate || "");
 
-      // Append the file if it exists
-      if (formDataToSend.has("imageFile")) {
-        formDataToSend.delete("imageFile"); // Ensure only one instance
-      }
-      if (formData.imageFile && formData.customImage) {
-        formDataToSend.append("imageFile", formData.imageFile);
+        // Append the file if it exists
+        if (formDataToSend.has("imageFile")) {
+          formDataToSend.delete("imageFile"); // Ensure only one instance
+        }
+        if (formData.imageFile && formData.customImage) {
+          formDataToSend.append("imageFile", formData.imageFile);
+        }
       }
 
       const response = await fetch(webhookUrl, {

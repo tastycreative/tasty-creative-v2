@@ -119,9 +119,9 @@ export default function OtpPtrPage() {
     try {
       // First upload any local files to S3
       if (localFiles.length > 0) {
-        console.log(`Uploading ${localFiles.length} local files to S3...`);
-        await uploadAllLocalFiles(localFiles, attachments, setAttachments, setLocalFiles);
-        console.log("Local files uploaded successfully");
+        console.log(`🚀 Uploading ${localFiles.length} local files directly to S3...`);
+        await uploadAllLocalFiles(localFiles, attachments, setAttachments, setLocalFiles, true); // true for direct S3 upload
+        console.log("✅ Local files uploaded successfully via direct S3 upload");
       }
 
       const success = await submitContent();
@@ -623,6 +623,7 @@ export default function OtpPtrPage() {
                           localFiles={localFiles}
                           onLocalFilesChange={setLocalFiles}
                           uploadOnSubmit={true}
+                          useDirectS3Upload={true}
                           maxFiles={5}
                           acceptedTypes={[
                             "image/jpeg",
