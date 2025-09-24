@@ -55,6 +55,23 @@ export async function updateUserRole(userId: string, newRole: Role) {
       }
     })
 
+    // Log the role change in activity history
+    try {
+      await prisma.userActivityHistory.create({
+        data: {
+          actorId: session.user.id,
+          targetUserId: userId,
+          actionType: 'ROLE_CHANGED',
+          oldRole: currentUser.role,
+          newRole: newRole,
+          reason: isElevation ? 'Role elevation from guest access' : 'Role changed by admin'
+        }
+      })
+    } catch (activityError) {
+      console.error('Failed to log user activity:', activityError)
+      // Don't fail the role update if activity logging fails
+    }
+
     // Send email notification for role elevation (from GUEST to any other role)
     if (isElevation && currentUser.email && currentUser.name) {
       try {
