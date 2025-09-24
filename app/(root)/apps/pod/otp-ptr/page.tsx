@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +17,7 @@ import { useContentSubmissionStore } from "@/lib/stores/contentSubmissionStore";
 import { TIMEZONES } from "@/lib/lib";
 import { formatContentSubmissionDate, formatForDisplay } from "@/lib/dateUtils";
 import ModelsDropdownList from "@/components/ModelsDropdownList";
+import PricingGuide from "@/components/PricingGuide";
 import {
   Upload,
   Zap,
@@ -72,6 +73,18 @@ export default function OtpPtrPage() {
     refreshSubmissions,
     isFormValid
   } = useContentSubmissionStore();
+
+  // Memoize the creators array to prevent infinite re-renders
+  const creators = useMemo(() => {
+    if (formData.modelName) {
+      return [{
+        id: formData.modelName,
+        name: formData.modelName,
+        rowNumber: 1
+      }];
+    }
+    return [];
+  }, [formData.modelName]);
 
   // Fetch submissions when component mounts or filter changes
   useEffect(() => {
@@ -200,37 +213,38 @@ export default function OtpPtrPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
-      <div className="w-full px-6 py-12 max-w-7xl mx-auto">
+      <div className="w-full px-4 sm:px-6 py-8 sm:py-12 max-w-[95vw] xl:max-w-[1400px] 2xl:max-w-[1600px] mx-auto">
         {/* Header with Navigation */}
-        <div className="flex items-center justify-between mb-12">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 lg:mb-12 gap-6 lg:gap-0">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <Zap className="h-8 w-8 text-blue-600" />
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <Zap className="h-6 sm:h-8 w-6 sm:w-8 text-blue-600" />
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Content Submission
               </h1>
             </div>
-            <p className="text-gray-600 dark:text-gray-400 text-lg">
+            <p className="text-gray-600 dark:text-gray-400 text-base lg:text-lg">
               Submit new content with streamlined workflow automation
             </p>
           </div>
 
           {/* Page Navigation Tabs */}
-          <div className="flex items-center bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-1">
+          <div className="flex items-center bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-1 w-full sm:w-auto">
             <button
               onClick={() => setShowHistory(false)}
-              className={`px-6 py-3 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+              className={`flex-1 sm:flex-initial px-4 sm:px-6 py-3 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
                 !showHistory
                   ? "bg-blue-600 text-white shadow-md"
                   : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
               }`}
             >
               <Upload className="h-4 w-4" />
-              New Submission
+              <span className="hidden sm:inline">New Submission</span>
+              <span className="sm:hidden">Submit</span>
             </button>
             <button
               onClick={() => setShowHistory(true)}
-              className={`px-6 py-3 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+              className={`flex-1 sm:flex-initial px-4 sm:px-6 py-3 rounded-lg text-sm font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
                 showHistory
                   ? "bg-gray-800 dark:bg-gray-700 text-white shadow-md"
                   : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800"
@@ -307,13 +321,13 @@ export default function OtpPtrPage() {
               </div>
 
               {/* Form Content */}
-              <div className="p-8">
+              <div className="p-4 sm:p-6 lg:p-8">
                 {/* Main Form Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 lg:gap-8">
                   {/* Left Column - Main Form Fields */}
-                  <div className="lg:col-span-2 space-y-8">
+                  <div className="xl:col-span-2 space-y-6 lg:space-y-8">
                     {/* First Row: Model Selection and Priority */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
                       {/* Model Selection */}
                       <div className="group">
                         <div className="flex items-center gap-3 mb-4">
@@ -513,7 +527,7 @@ export default function OtpPtrPage() {
                               </p>
                             </div>
                           </div>
-                          <div className="grid grid-cols-3 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             {/* Release Date */}
                             <div className="relative">
                               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -598,49 +612,92 @@ export default function OtpPtrPage() {
                         </div>
                       </>
                     )}
+
+                    {/* Screenshots - Show inline when model is selected */}
+                    {formData.modelName && (
+                      <div className="group">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500 via-purple-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                            <Image className="h-4 w-4 text-white" />
+                          </div>
+                          <div>
+                            <label className="text-base font-semibold text-gray-900 dark:text-white block">
+                              Screenshots
+                            </label>
+                            <p className="text-gray-600 dark:text-gray-400 mt-0.5 text-xs">
+                              Upload images (max 5)
+                            </p>
+                          </div>
+                        </div>
+                        <div className="border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-300 bg-gray-50/50 dark:bg-gray-800/50 h-64">
+                          <FileUpload
+                            attachments={attachments}
+                            onAttachmentsChange={setAttachments}
+                            localFiles={localFiles}
+                            onLocalFilesChange={setLocalFiles}
+                            uploadOnSubmit={true}
+                            useDirectS3Upload={true}
+                            maxFiles={5}
+                            acceptedTypes={[
+                              "image/jpeg",
+                              "image/png",
+                              "image/gif",
+                              "image/webp",
+                            ]}
+                            className="border-none bg-transparent h-full"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Right Column - Screenshots */}
-                  <div className="lg:col-span-1">
-                    <div className="group h-full">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500 via-purple-500 to-indigo-600 flex items-center justify-center shadow-lg">
-                          <Image className="h-4 w-4 text-white" />
+                  {/* Right Column - Pricing Guide or Screenshots */}
+                  <div className="xl:col-span-1">
+                    {formData.modelName ? (
+                      <PricingGuide 
+                        creators={creators}
+                      />
+                    ) : (
+                      <div className="group h-full">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500 via-purple-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                            <Image className="h-4 w-4 text-white" />
+                          </div>
+                          <div>
+                            <label className="text-base font-semibold text-gray-900 dark:text-white block">
+                              Screenshots
+                            </label>
+                            <p className="text-gray-600 dark:text-gray-400 mt-0.5 text-xs">
+                              Upload images (max 5)
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <label className="text-base font-semibold text-gray-900 dark:text-white block">
-                            Screenshots
-                          </label>
-                          <p className="text-gray-600 dark:text-gray-400 mt-0.5 text-xs">
-                            Upload images (max 5)
-                          </p>
+                        <div className=" border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-300 bg-gray-50/50 dark:bg-gray-800/50 h-[calc(100%-4rem)]">
+                          <FileUpload
+                            attachments={attachments}
+                            onAttachmentsChange={setAttachments}
+                            localFiles={localFiles}
+                            onLocalFilesChange={setLocalFiles}
+                            uploadOnSubmit={true}
+                            useDirectS3Upload={true}
+                            maxFiles={5}
+                            acceptedTypes={[
+                              "image/jpeg",
+                              "image/png",
+                              "image/gif",
+                              "image/webp",
+                            ]}
+                            className="border-none bg-transparent h-full"
+                          />
                         </div>
                       </div>
-                      <div className=" border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-300 bg-gray-50/50 dark:bg-gray-800/50 h-[calc(100%-4rem)]">
-                        <FileUpload
-                          attachments={attachments}
-                          onAttachmentsChange={setAttachments}
-                          localFiles={localFiles}
-                          onLocalFilesChange={setLocalFiles}
-                          uploadOnSubmit={true}
-                          useDirectS3Upload={true}
-                          maxFiles={5}
-                          acceptedTypes={[
-                            "image/jpeg",
-                            "image/png",
-                            "image/gif",
-                            "image/webp",
-                          ]}
-                          className="border-none bg-transparent h-full"
-                        />
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Submit Section */}
-              <div className="relative bg-gray-50/80 dark:bg-gray-800/80 px-8 py-8 border-t border-gray-200 dark:border-gray-700">
+              <div className="relative bg-gray-50/80 dark:bg-gray-800/80 px-4 sm:px-6 lg:px-8 py-6 lg:py-8 border-t border-gray-200 dark:border-gray-700">
                 <div className="relative">
                   <Button
                     onClick={(e) => {
@@ -767,8 +824,8 @@ export default function OtpPtrPage() {
                 <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                   {submissions.length > 0 ? (
                     <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                      {/* Header */}
-                      <div className="grid grid-cols-12 gap-4 px-6 py-3 bg-gray-50 dark:bg-gray-800/50 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                      {/* Header - Hidden on mobile, shown on desktop */}
+                      <div className="hidden lg:grid lg:grid-cols-12 gap-4 px-6 py-3 bg-gray-50 dark:bg-gray-800/50 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                         <div className="col-span-1">Type</div>
                         <div className="col-span-2">Model</div>
                         <div className="col-span-3">Description</div>
@@ -782,10 +839,107 @@ export default function OtpPtrPage() {
                       {submissions.map((submission) => (
                         <div
                           key={submission.id}
-                          className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors items-center"
+                          className="block lg:grid lg:grid-cols-12 gap-4 px-4 lg:px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors lg:items-center"
                         >
+                          {/* Mobile Card Layout */}
+                          <div className="lg:hidden space-y-3">
+                            {/* Header row - Type and Status */}
+                            <div className="flex items-center justify-between">
+                              <div
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                                  submission.submissionType.toUpperCase() === "OTP"
+                                    ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                    : "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+                                }`}
+                              >
+                                {submission.submissionType.toUpperCase() === "OTP" ? (
+                                  <Upload className="h-3 w-3" />
+                                ) : (
+                                  <Zap className="h-3 w-3" />
+                                )}
+                                {submission.submissionType.toUpperCase()}
+                              </div>
+                              <div
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                                  submission.status.toUpperCase() === "PENDING"
+                                    ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                    : submission.status.toUpperCase() === "COMPLETED"
+                                      ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                      : submission.status.toUpperCase() === "IN_PROGRESS"
+                                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                        : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                                }`}
+                              >
+                                {submission.status.toUpperCase() === "PENDING" && <Clock className="h-3 w-3" />}
+                                {submission.status.toUpperCase() === "COMPLETED" && <CheckCircle className="h-3 w-3" />}
+                                {submission.status.toUpperCase() === "IN_PROGRESS" && <Zap className="h-3 w-3" />}
+                                {submission.status.toUpperCase() === "CANCELLED" && <X className="h-3 w-3" />}
+                                {submission.status.toUpperCase().replace("_", " ")}
+                              </div>
+                            </div>
+                            
+                            {/* Model and Priority */}
+                            <div>
+                              <p className="font-medium text-gray-900 dark:text-gray-100">
+                                {submission.modelName}
+                              </p>
+                              <p
+                                className={`text-xs font-medium mt-0.5 ${
+                                  submission.priority.toUpperCase() === "URGENT"
+                                    ? "text-red-600 dark:text-red-400"
+                                    : submission.priority.toUpperCase() === "HIGH"
+                                      ? "text-orange-600 dark:text-orange-400"
+                                      : submission.priority.toUpperCase() === "NORMAL"
+                                        ? "text-blue-600 dark:text-blue-400"
+                                        : "text-gray-600 dark:text-gray-400"
+                                }`}
+                              >
+                                {submission.priority.toUpperCase()} Priority
+                              </p>
+                            </div>
+                            
+                            {/* Description */}
+                            <div>
+                              <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-3">
+                                {submission.contentDescription}
+                              </p>
+                            </div>
+                            
+                            {/* PTR Details, Attachments, and Actions */}
+                            <div className="flex items-center justify-between text-xs">
+                              <div className="flex items-center gap-2">
+                                {submission.submissionType.toUpperCase() === "PTR" && 
+                                 submission.releaseDate && (
+                                  <span className="text-purple-600 dark:text-purple-400 flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    {submission.releaseDate}
+                                  </span>
+                                )}
+                                {(submission.screenshotAttachments?.length || 0) > 0 && (
+                                  <span className="text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                                    <Image className="h-3 w-3" />
+                                    {submission.screenshotAttachments?.length}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-gray-500 dark:text-gray-500">
+                                  {formatForDisplay(submission.createdAt)}
+                                </span>
+                                <button
+                                  onClick={() => handleAttachmentClick(submission.screenshotAttachments || [], 0)}
+                                  disabled={!submission.screenshotAttachments || submission.screenshotAttachments.length === 0}
+                                  className="text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 disabled:text-gray-400 disabled:cursor-not-allowed"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Desktop Grid Layout */}
                           {/* Type */}
-                          <div className="col-span-1">
+                          <div className="hidden lg:block col-span-1">
                             <div
                               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
                                 submission.submissionType.toUpperCase() === "OTP"

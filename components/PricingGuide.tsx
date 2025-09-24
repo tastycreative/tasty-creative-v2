@@ -250,9 +250,17 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
       setLoading(true);
       setError(null);
       try {
-        // Fetch both pricing data and creator data from Prisma DB via creators-db API
-        console.log('🎯 PricingGuide fetching from Prisma DB via /api/creators-db');
-        const response = await fetchWithRetry("/api/creators-db");
+        // Build the API URL with creators filter if provided
+        let apiUrl = "/api/creators-db";
+        if (creators.length > 0) {
+          const creatorNames = creators.map(c => c.name).join(',');
+          apiUrl += `?creators=${encodeURIComponent(creatorNames)}`;
+          console.log('🎯 PricingGuide fetching specific creators from Prisma DB:', creatorNames);
+        } else {
+          console.log('🎯 PricingGuide fetching all creators from Prisma DB');
+        }
+        
+        const response = await fetchWithRetry(apiUrl);
 
         if (!response.ok) {
           throw new Error("Failed to fetch pricing data from database");
@@ -265,16 +273,35 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
         console.log("👥 Fetched creators from Prisma DB:", dbCreatorData);
 
         if (dbPricingData && dbPricingData.length > 0) {
-          setPricingData(dbPricingData);
-          console.log("✅ Set pricing data from database:", dbPricingData);
+          // Filter pricing data to only include data for assigned creators if provided
+          let filteredPricingData = dbPricingData;
+          if (creators.length > 0) {
+            const creatorNames = creators.map(c => c.name);
+            filteredPricingData = dbPricingData.map((group: any) => ({
+              ...group,
+              pricing: Object.keys(group.pricing)
+                .filter(creatorName => creatorNames.includes(creatorName))
+                .reduce((filteredPricing: any, creatorName: string) => {
+                  filteredPricing[creatorName] = group.pricing[creatorName];
+                  return filteredPricing;
+                }, {})
+            })).filter((group: any) => Object.keys(group.pricing).length > 0);
+          }
+          
+          setPricingData(filteredPricingData);
+          console.log("✅ Set filtered pricing data:", filteredPricingData);
         }
 
-        if (dbCreatorData && dbCreatorData.length > 0) {
-          // Convert database creators to match expected format
+        if (creators.length > 0) {
+          // Use assigned creators from props
+          setDisplayCreators(creators);
+          console.log("✅ Using assigned creators from props:", creators);
+        } else if (dbCreatorData && dbCreatorData.length > 0) {
+          // Convert database creators to match expected format only if no props provided
           const formattedCreators = dbCreatorData.map((creator: any, index: number) => ({
             id: creator.id,
             name: creator.name,
-            rowNumber: index + 1 // Add row numbers for consistency
+            rowNumber: index + 1
           }));
           setDisplayCreators(formattedCreators);
           console.log("✅ Set display creators from database:", formattedCreators);
@@ -287,14 +314,8 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
       }
     };
 
-    // Only fetch pricing data if there are assigned creators from props
-    if (creators.length > 0) {
-      setDisplayCreators(creators);
-      loadData();
-    } else {
-      // If no assigned creators, still load all data from database to show available creators
-      loadData();
-    }
+    // Always load data, but filter based on assigned creators
+    loadData();
   }, [creators]);
 
   // Get assigned creators (show all assigned creators, even if no pricing data)
@@ -553,17 +574,9 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
 
           {/* Creator Headers & Search - All screens */}
           <div className="px-6 py-4 bg-gray-50/50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-800">
-            <div
-              className={`grid grid-cols-1 gap-4 items-end`}
-              style={{
-                gridTemplateColumns:
-                  availableCreators.length > 0
-                    ? `minmax(0,1fr) repeat(${availableCreators.length}, 120px)`
-                    : "minmax(0,1fr)",
-              }}
-            >
-              {/* Search bar (spans first column) */}
-              <div className="relative max-w-md w-full md:w-full col-span-1">
+            <div className="flex items-end justify-between gap-4">
+              {/* Search bar */}
+              <div className="relative max-w-md w-full flex-1">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
@@ -581,23 +594,20 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
                   </button>
                 )}
               </div>
-              {/* Creator headers (each in their own column) */}
-              {loading
-                ? // Skeleton loaders for creator headers
-                  Array.from({ length: 3 }, (_, i) => (
-                    <div key={i} className="text-right min-w-[120px]">
-                      <div className="animate-pulse">
-                        <div className="h-4 w-16 bg-gray-300 dark:bg-gray-600 rounded ml-auto"></div>
-                      </div>
-                    </div>
-                  ))
-                : availableCreators.map((creator) => (
-                    <div key={creator.id} className="text-right min-w-[120px]">
-                      <div className="text-sm font-semibold text-purple-700 dark:text-purple-300 truncate">
-                        {creator.name}
-                      </div>
-                    </div>
-                  ))}
+              {/* Creator header (single column) */}
+              {loading ? (
+                <div className="text-right min-w-[120px] hidden sm:block">
+                  <div className="animate-pulse">
+                    <div className="h-4 w-16 bg-gray-300 dark:bg-gray-600 rounded ml-auto"></div>
+                  </div>
+                </div>
+              ) : availableCreators.length > 0 ? (
+                <div className="text-right min-w-[120px] hidden sm:block">
+                  <div className="text-sm font-semibold text-purple-700 dark:text-purple-300 truncate">
+                    {availableCreators[0]?.name || "Price"}
+                  </div>
+                </div>
+              ) : null}
             </div>
             {/* Search results count (all screens, below search) */}
             {searchQuery && (
@@ -615,26 +625,19 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
           {loading ? (
             <div className="divide-y divide-gray-100 dark:divide-gray-800">
               {/* Skeleton loaders for accordion rows */}
-              {Array.from({ length: 3 }, (_, groupIndex) => (
+              {Array.from({ length: 1 }, (_, groupIndex) => (
                 <div key={groupIndex} className="px-6 py-6">
                   <div className="animate-pulse">
                     {/* Group header skeleton */}
-                    <div
-                      className={`grid grid-cols-1 gap-4 items-center mb-4`}
-                      style={{
-                        gridTemplateColumns: "minmax(0,1fr) repeat(3, 120px)",
-                      }}
-                    >
-                      <div className="flex items-center space-x-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center space-x-4 flex-1">
                         <div className="h-4 w-4 bg-gray-300 dark:bg-gray-600 rounded"></div>
                         <div className="space-y-2">
                           <div className="h-5 w-32 bg-gray-300 dark:bg-gray-600 rounded"></div>
                           <div className="h-3 w-20 bg-gray-200 dark:bg-gray-700 rounded"></div>
                         </div>
                       </div>
-                      <div className="hidden md:block"></div>
-                      <div className="hidden md:block"></div>
-                      <div className="hidden md:block"></div>
+                      <div className="hidden sm:block h-4 w-16 bg-gray-300 dark:bg-gray-600 rounded"></div>
                     </div>
 
                     {/* Items skeleton */}
@@ -644,20 +647,12 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
                           key={itemIndex}
                           className={`py-4 ${itemIndex !== 0 ? "border-t border-gray-100 dark:border-gray-800" : ""}`}
                         >
-                          <div
-                            className={`grid grid-cols-1 gap-4 items-center`}
-                            style={{
-                              gridTemplateColumns:
-                                "minmax(0,1fr) repeat(3, 120px)",
-                            }}
-                          >
-                            <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-2 flex-1">
                               <div className="h-4 w-28 bg-gray-300 dark:bg-gray-600 rounded"></div>
                               <div className="h-3 w-40 bg-gray-200 dark:bg-gray-700 rounded"></div>
                             </div>
-                            <div className="h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded ml-auto"></div>
-                            <div className="h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded ml-auto"></div>
-                            <div className="h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded ml-auto"></div>
+                            <div className="h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
                           </div>
                         </div>
                       ))}

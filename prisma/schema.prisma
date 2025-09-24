@@ -305,7 +305,7 @@ model ContentDetails {
   contentOptionsForGames     String?
   createdAt                  DateTime    @default(now())
   updatedAt                  DateTime    @updatedAt
-  clientModelName            String
+  clientModelName            String      @unique
   clientModel                ClientModel @relation(fields: [clientModelName], references: [clientName], onDelete: Cascade)
 }
 
