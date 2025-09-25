@@ -40,9 +40,9 @@ model User {
   taskComments               TaskComment[]                 @relation("TaskCommentUser")
   Thread                     Thread[]
   ThreadWatcher              ThreadWatcher[]
-  verificationTokens         VerificationToken[]
   performedUserActivities    UserActivityHistory[]         @relation("UserActivityActor")
   receivedUserActivities     UserActivityHistory[]         @relation("UserActivityTarget")
+  verificationTokens         VerificationToken[]
 }
 
 model Account {
@@ -730,19 +730,18 @@ model ModularWorkflow {
 }
 
 model UserActivityHistory {
-  id          String               @id @default(cuid())
-  actorId     String               // User who performed the action
-  targetUserId String              // User whose role was changed
-  actionType  UserActivityType     
-  oldRole     Role?                // Previous role (null for new user creation)
-  newRole     Role                 // New role assigned
-  reason      String?              // Optional reason for the change
-  ipAddress   String?              // IP address of the actor
-  userAgent   String?              // User agent of the actor
-  createdAt   DateTime             @default(now())
-  
-  actor       User                 @relation("UserActivityActor", fields: [actorId], references: [id], onDelete: Cascade)
-  targetUser  User                 @relation("UserActivityTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  id           String           @id @default(cuid())
+  actorId      String
+  targetUserId String
+  actionType   UserActivityType
+  oldRole      Role?
+  newRole      Role
+  reason       String?
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime         @default(now())
+  actor        User             @relation("UserActivityActor", fields: [actorId], references: [id], onDelete: Cascade)
+  targetUser   User             @relation("UserActivityTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
 
   @@index([actorId])
   @@index([targetUserId])

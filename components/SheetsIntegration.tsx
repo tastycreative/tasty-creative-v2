@@ -111,7 +111,7 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
     }
 
     try {
-      // Use our server-side API to fetch sheet name
+      // Use our server-side API to fetch sheet name with user credentials
       const response = await fetch('/api/sheets/get-name', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -120,7 +120,15 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch sheet information");
+        
+        // Handle authentication errors specifically
+        if (response.status === 401) {
+          throw new Error("Authentication expired. Please refresh the page and sign in again.");
+        } else if (response.status === 403) {
+          throw new Error("Access denied to this spreadsheet. Please ensure it's shared with you or you have proper permissions.");
+        } else {
+          throw new Error(errorData.error || "Failed to fetch sheet information");
+        }
       }
 
       const data = await response.json();
@@ -169,6 +177,17 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
             ? { ...entry, fetchedName: "", isFetching: false }
             : entry
         ));
+        
+        // Show user-friendly error message
+        if (error instanceof Error) {
+          setSheetLinkStatus({
+            type: "error",
+            message: error.message
+          });
+          
+          // Clear the error after a few seconds
+          setTimeout(() => setSheetLinkStatus(null), 5000);
+        }
       }
     }
   };
