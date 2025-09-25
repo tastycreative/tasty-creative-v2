@@ -344,6 +344,49 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
     setNewSpreadsheetUrl(null);
     setStatus({
       type: "info",
+      message: "Checking spreadsheet permissions...",
+    });
+
+    // Permission check: verify user can access the sheet before proceeding
+    try {
+      // Use the same logic as fetchSheetName to check access
+      const accessCheck = await fetch('/api/sheets/get-name', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sheetUrl: spreadsheetUrl })
+      });
+      if (!accessCheck.ok) {
+        const errorData = await accessCheck.json();
+        if (accessCheck.status === 401) {
+          setStatus({
+            type: "error",
+            message: "Authentication expired. Please refresh the page and sign in again."
+          });
+        } else if (accessCheck.status === 403) {
+          setStatus({
+            type: "error",
+            message: "Access denied to this spreadsheet. Please ensure it's shared with you or you have proper permissions."
+          });
+        } else {
+          setStatus({
+            type: "error",
+            message: errorData.error || "Failed to verify sheet access."
+          });
+        }
+        setIsLoading(false);
+        return;
+      }
+    } catch (error) {
+      setStatus({
+        type: "error",
+        message: "Network error during permission check. Please try again."
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    setStatus({
+      type: "info",
       message: "Processing spreadsheet data...",
     });
 
@@ -377,15 +420,6 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
         
         // Clear the form completely to prevent any state carryover
         setSpreadsheetUrl("");
-        setSelectedModel("");
-        setSelectedModelId("");
-
-        console.log('Sheet integration completed:', {
-          newSpreadsheetUrl: result.spreadsheetUrl,
-          fileName: result.fileName,
-          modelName: selectedModel,
-          timestamp: new Date().toISOString()
-        });
 
         // Save the sync spreadsheet to ClientModelSheetLinks
         if (selectedModelId && result.spreadsheetUrl && result.fileName) {
