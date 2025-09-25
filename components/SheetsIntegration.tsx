@@ -374,7 +374,18 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
           message: successMessage,
         });
         setNewSpreadsheetUrl(result.spreadsheetUrl);
+        
+        // Clear the form completely to prevent any state carryover
         setSpreadsheetUrl("");
+        setSelectedModel("");
+        setSelectedModelId("");
+
+        console.log('Sheet integration completed:', {
+          newSpreadsheetUrl: result.spreadsheetUrl,
+          fileName: result.fileName,
+          modelName: selectedModel,
+          timestamp: new Date().toISOString()
+        });
 
         // Save the sync spreadsheet to ClientModelSheetLinks
         if (selectedModelId && result.spreadsheetUrl && result.fileName) {
@@ -715,10 +726,14 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
                     variant="outline"
                     size="lg"
                     onClick={() => {
+                      // Complete state reset to prevent any carryover issues
                       setNewSpreadsheetUrl(null);
                       setStatus(null);
                       setSelectedModel("");
+                      setSelectedModelId("");
                       setSpreadsheetUrl("");
+                      
+                      console.log('State reset for new integration');
                     }}
                     className="border-green-400 dark:border-green-500 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-800"
                   >

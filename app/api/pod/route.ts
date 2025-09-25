@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
 
     //console.log("Session retrieved:", session);
 
+    // Create a fresh OAuth client for each request to avoid any caching issues
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
@@ -58,10 +59,11 @@ export async function POST(request: NextRequest) {
       expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined, // Convert seconds to milliseconds
     });
 
+    // Create fresh Google API clients for each request
     const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
     const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
-    const { sourceUrl, fromType, toType } = await request.json();
+    const { sourceUrl, fromType, toType, modelName } = await request.json();
 
     if (!sourceUrl) {
       return NextResponse.json(
@@ -77,7 +79,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('Conversion:', fromType, '→', toType);
+    console.log('New integration request - Processing:', fromType, '→', toType);
+    console.log('Source URL:', sourceUrl);
+    console.log('Model Name:', modelName);
 
     // Validate and extract spreadsheet ID and GID from source URL
     const sourceSpreadsheetId = extractSpreadsheetId(sourceUrl);
@@ -90,7 +94,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('Processing source spreadsheet:', sourceSpreadsheetId);
+    console.log('Processing source spreadsheet ID:', sourceSpreadsheetId);
     console.log('Source GID:', sourceGid || 'Using default sheet');
 
     // Step 1: Get sheet information and validate access to source spreadsheet
@@ -284,7 +288,9 @@ export async function POST(request: NextRequest) {
 
     // Step 2.6: Create additional sheets and copy data
     try {
+      // Build the source URL fresh for each request to avoid any caching issues
       const sourceSpreadsheetUrl = `https://docs.google.com/spreadsheets/d/${sourceSpreadsheetId}`;
+      console.log('Using source spreadsheet URL for IMPORTRANGE:', sourceSpreadsheetUrl);
 
       // Process sheets in reverse order so the first sheet ends up on top
       for (let i = scheduleSheets.length - 1; i >= 0; i--) {
@@ -294,6 +300,8 @@ export async function POST(request: NextRequest) {
 
         // Keep the same sheet name as the original, but remove trailing periods
         targetSheetName = schedule.name.replace(/\.+$/, ''); // Remove one or more periods at the end
+
+        console.log(`Processing sheet ${i + 1}/${scheduleSheets.length}: "${schedule.name}" -> "${targetSheetName}"`);
 
         // Create duplicate sheets for all schedules
         try {
@@ -345,6 +353,8 @@ export async function POST(request: NextRequest) {
         // Handle data copying based on conversion direction
         if (fromType === 'Scheduler') {
           // POD → Betterfans: Use IMPORTRANGE formulas (existing logic)
+          console.log(`Creating IMPORTRANGE formulas for "${targetSheetName}" using source: ${sourceSpreadsheetUrl}`);
+          
           const importFormulas = [
             // B2: =IMPORTRANGE("url", "Sheet!C12:C") - Source column C
             [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!C12:C")`],
@@ -377,6 +387,9 @@ export async function POST(request: NextRequest) {
             // P2: =IMPORTRANGE("url", "Sheet!T12:T") - Source column T
             [`=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!T12:T")`],
           ];
+
+          // Log the first formula to verify correct source URL
+          console.log(`Sample IMPORTRANGE formula for "${targetSheetName}":`, importFormulas[0]?.[0]);
 
           // Create update requests for IMPORTRANGE formulas
           const formulaRequests = importFormulas
@@ -609,7 +622,7 @@ export async function POST(request: NextRequest) {
         ? 'POD E→Betterfans B, POD D→Betterfans C, POD F→Betterfans D, POD G→Betterfans E, POD I→Betterfans G, POD K→Betterfans I, POD N→Betterfans K, POD M→Betterfans L, POD O→Betterfans M, POD P→Betterfans N, POD R→Betterfans O, POD T→Betterfans P'
         : 'Betterfans B→POD E, Betterfans C→POD D, Betterfans D→POD F, Betterfans E→POD G, Betterfans G→POD I, Betterfans I→POD K, Betterfans K→POD N, Betterfans L→POD M, Betterfans M→POD O, Betterfans N→POD P, Betterfans O→POD R, Betterfans P→POD T, Betterfans S→POD AL, Betterfans T→POD AK, Betterfans U→POD AM';
       
-      return NextResponse.json({
+      const finalResponse = {
         success: true,
         message: processMessage,
         spreadsheetUrl: file.data.webViewLink,
@@ -622,7 +635,17 @@ export async function POST(request: NextRequest) {
         sheetsCount: scheduleSheets.length,
         realTimeSync: isRealTimeSync,
         columnMapping,
+      };
+      
+      console.log('Successfully created spreadsheet integration:', {
+        sourceId: sourceSpreadsheetId,
+        newSpreadsheetUrl: file.data.webViewLink,
+        fileName: file.data.name,
+        modelName: modelName,
+        requestTimestamp: new Date().toISOString()
       });
+
+      return NextResponse.json(finalResponse);
     } catch (error) {
       console.error('Error creating permissions or getting file info:', error);
       return NextResponse.json({ 
