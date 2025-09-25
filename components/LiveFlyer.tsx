@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { v4 as uuidv4 } from "uuid";
 import { useState, FormEvent, ChangeEvent, useEffect, useRef } from "react";
+import { useSession } from "next-auth/react";
 
 import { TIMEZONES } from "@/lib/lib";
 import { toast } from "sonner";
@@ -23,6 +24,7 @@ import { liveFlyerValidation } from "@/schema/zodValidationSchema";
 
 export default function LiveFlyer({ modelName }: { modelName?: string }) {
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const { data: session } = useSession();
 
   // Direct n8n webhook URLs (bypassing Vercel functions)
   const DIRECT_WEBHOOK_URLS = {
@@ -307,9 +309,21 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
         formDataToSend.append("selectedTemplate", selectedTemplate || "");
         formDataToSend.append("datetmz", formData.datetmz || "");
         
+        // Add user session information for direct transfer
+        if (session?.user) {
+          if (session.user.name) {
+            formDataToSend.append("user_name", session.user.name);
+          }
+          if (session.user.email) {
+            formDataToSend.append("user_email", session.user.email);
+          }
+        } else {
+          console.warn("No authenticated session found for direct transfer");
+        }
+        
         // Append image file for direct transfer to n8n
         if (formData.imageFile && formData.customImage) {
-          formDataToSend.append("imageFile", formData.imageFile, formData.imageFile.name);
+          formDataToSend.append("data", formData.imageFile, formData.imageFile.name);
         }
       } else {
         // Existing Vercel proxy format

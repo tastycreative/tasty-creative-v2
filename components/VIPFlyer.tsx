@@ -2,6 +2,7 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
 import ImageCropper from "./ImageCropper";
 import Image from "next/image";
 import ModelsDropdown from "./ModelsDropdown";
@@ -17,6 +18,7 @@ import { vipFlyerValidation } from "@/schema/zodValidationSchema";
 export default function VIPFlyer({modelName}:{modelName?: string}) {
   const searchParams = useSearchParams();
   const reqId = searchParams?.get("reqId") || null;
+  const { data: session } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingImage, setIsFetchingImage] = useState(false);
 
@@ -226,9 +228,21 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
         formDataToSend.append("templatePosition", formData.templatePosition || "");
         formDataToSend.append("selectedTemplate", selectedTemplate || "");
         
+        // Add user session information for direct transfer
+        if (session?.user) {
+          if (session.user.name) {
+            formDataToSend.append("user_name", session.user.name);
+          }
+          if (session.user.email) {
+            formDataToSend.append("user_email", session.user.email);
+          }
+        } else {
+          console.warn("No authenticated session found for direct transfer");
+        }
+        
         // Append image file for direct transfer to n8n
         if (formData.imageFile && formData.customImage) {
-          formDataToSend.append("imageFile", formData.imageFile, formData.imageFile.name);
+          formDataToSend.append("data", formData.imageFile, formData.imageFile.name);
         }
       } else {
         // Existing Vercel proxy format
