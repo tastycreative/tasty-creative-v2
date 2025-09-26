@@ -3778,7 +3778,7 @@ const AddTeamForm = ({
 
   // Filter Users for members based on search term and exclude already selected
   const filteredPodUsers = podUsers
-    .filter((user) => user.role === "POD")
+    .filter((user) => user.role !== "GUEST")
     .filter(
       (user) => !selectedMembers.some((member) => member.userId === user.id)
     )
