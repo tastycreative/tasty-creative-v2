@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     const queryKey = url.searchParams.get('key') || url.searchParams.get('api_key')
     let sessionUserId: string | null = null
 
-    // Accept key via query param or header (fallback to session auth)
+    // Accept key via query param or header
     if ((headerKey && headerKey === API_KEY) || (queryKey && queryKey === API_KEY)) {
       // authorized via key
     } else {
