@@ -8,10 +8,13 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const headerKey = request.headers.get('x-api-key')
+    const url = new URL(request.url)
+    const queryKey = url.searchParams.get('key') || url.searchParams.get('api_key')
     let sessionUserId: string | null = null
 
-    if (headerKey && headerKey === API_KEY) {
-      // ok
+    // Accept key via query param or header (fallback to session auth)
+    if ((headerKey && headerKey === API_KEY) || (queryKey && queryKey === API_KEY)) {
+      // authorized via key
     } else {
       const session = await auth()
       if (!session?.user?.id) {
