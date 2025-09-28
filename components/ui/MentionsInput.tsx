@@ -57,6 +57,7 @@ const MentionsInput: React.FC<MentionsInputProps> = ({
   const [mentions, setMentions] = useState<Array<{ name: string; userId: string; displayStart: number; displayEnd: number }>>([]);
   
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
   const isInternalChange = useRef(false);
 
@@ -97,11 +98,14 @@ const MentionsInput: React.FC<MentionsInputProps> = ({
   useEffect(() => {
     if (!isInternalChange.current) {
       const { display, mentions: foundMentions } = parseStorageValue(value);
-      setDisplayValue(display);
-      setMentions(foundMentions);
+      // Only update if the display value is actually different
+      if (display !== displayValue || JSON.stringify(foundMentions) !== JSON.stringify(mentions)) {
+        setDisplayValue(display);
+        setMentions(foundMentions);
+      }
     }
     isInternalChange.current = false;
-  }, [value, parseStorageValue]);
+  }, [value, parseStorageValue, displayValue, mentions]);
 
   // Notify parent of mention changes
   useEffect(() => {
@@ -123,6 +127,30 @@ const MentionsInput: React.FC<MentionsInputProps> = ({
       onMentionsChange(mentionList);
     }
   }, [value, onMentionsChange]);
+
+  // Synchronize textarea and overlay scrolling
+  useEffect(() => {
+    if (textareaRef.current && overlayRef.current) {
+      const textarea = textareaRef.current;
+      const overlay = overlayRef.current;
+      
+      const syncScroll = () => {
+        overlay.scrollTop = textarea.scrollTop;
+        overlay.scrollLeft = textarea.scrollLeft;
+      };
+      
+      textarea.addEventListener('scroll', syncScroll);
+      textarea.addEventListener('input', syncScroll);
+      
+      // Initial sync
+      syncScroll();
+      
+      return () => {
+        textarea.removeEventListener('scroll', syncScroll);
+        textarea.removeEventListener('input', syncScroll);
+      };
+    }
+  }, []);
 
   // Convert display text back to storage format with mentions
   const convertToStorageFormat = useCallback((displayText: string, currentMentions: Array<{ name: string; userId: string; displayStart: number; displayEnd: number }>) => {
@@ -194,10 +222,6 @@ const MentionsInput: React.FC<MentionsInputProps> = ({
     // Calculate what changed
     const lengthDiff = newText.length - displayValue.length;
     
-    // Check if any mention text appears in the display without proper mention tracking
-    // This happens when mentions are deleted and re-added
-    const cleanedText = newText.replace(/@\[([^\]]+)\]\([^)]+\)/g, '$1');
-    
     // Update mentions positions based on the change
     let updatedMentions = mentions.map(mention => {
       if (cursorPos <= mention.displayStart) {
@@ -224,19 +248,16 @@ const MentionsInput: React.FC<MentionsInputProps> = ({
       return mentionText === mention.name;
     });
     
-    // Use cleaned text for display to avoid duplication
-    const finalDisplayText = cleanedText;
-    
     // Convert back to storage format
-    const storageValue = convertToStorageFormat(finalDisplayText, updatedMentions);
+    const storageValue = convertToStorageFormat(newText, updatedMentions);
     
-    setDisplayValue(finalDisplayText);
+    setDisplayValue(newText);
     setMentions(updatedMentions);
     isInternalChange.current = true;
     onChange(storageValue);
     
     // Check for @ symbol to show suggestions
-    const textBeforeCursor = finalDisplayText.substring(0, Math.min(cursorPos, finalDisplayText.length));
+    const textBeforeCursor = newText.substring(0, Math.min(cursorPos, newText.length));
     const atIndex = textBeforeCursor.lastIndexOf('@');
     
     if (atIndex !== -1 && (atIndex === 0 || /\s/.test(textBeforeCursor[atIndex - 1]))) {
@@ -413,18 +434,30 @@ const MentionsInput: React.FC<MentionsInputProps> = ({
 
   return (
     <div className="relative">
-      <div className="relative">
+      <div className="relative overflow-hidden">
         {/* Highlight layer */}
         <div
-          className={`absolute inset-0 px-3 py-2 pointer-events-none whitespace-pre-wrap break-words overflow-hidden ${className.replace(/bg-\S+/g, '')}`}
+          ref={overlayRef}
+          className={`absolute inset-0 pointer-events-none whitespace-pre-wrap break-words overflow-auto mentions-overlay ${className.replace(/bg-\S+/g, '').replace(/border-\S+/g, '').replace(/focus:\S+/g, '').replace(/hover:\S+/g, '')}`}
           style={{
             fontSize: 'inherit',
-            fontFamily: 'inherit',
-            lineHeight: 'inherit',
+            fontFamily: 'inherit', 
+            lineHeight: '1.5',
+            minHeight: `${rows * 1.5}em`,
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
+            border: 'none',
+            background: 'transparent',
+            padding: '8px 12px', // Match px-3 py-2 from most textareas
+            color: 'inherit', // Use the normal text color
           }}
           aria-hidden="true"
         >
-          {renderHighlightedText()}
+          {displayValue ? renderHighlightedText() : (
+            <span className="text-gray-500 dark:text-gray-400">
+              {placeholder}
+            </span>
+          )}
         </div>
 
         {/* Textarea */}
@@ -433,16 +466,19 @@ const MentionsInput: React.FC<MentionsInputProps> = ({
           value={displayValue}
           onChange={handleTextChange}
           onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          className={`relative resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${className}`}
+          placeholder="" // Remove placeholder since we show it in overlay
+          className={`relative resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent overflow-auto ${className}`}
           rows={rows}
           disabled={disabled}
           autoFocus={autoFocus}
           style={{
             background: 'transparent',
-            color: mentions.length > 0 ? 'transparent' : undefined,
-            caretColor: 'rgb(59 130 246)',
-            WebkitTextFillColor: mentions.length > 0 ? 'transparent' : undefined,
+            color: 'transparent', // Always hide the text
+            caretColor: 'rgb(59 130 246)', // Keep cursor visible
+            WebkitTextFillColor: 'transparent', // Always hide for webkit
+            textShadow: 'none',
+            minHeight: `${rows * 1.5}em`,
+            lineHeight: '1.5',
           }}
         />
       </div>

@@ -606,3 +606,13 @@
     0 4px 6px -2px rgba(0, 0, 0, 0.05),
     0 0 0 1px rgba(99, 102, 241, 0.1);
 }
+
+/* Hide scrollbars for mentions overlay */
+.mentions-overlay::-webkit-scrollbar {
+  display: none;
+}
+
+.mentions-overlay {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

@@ -12,6 +12,7 @@ import type { TaskComment, TaskAttachment } from '@/lib/stores/boardStore';
 import type { PreviewFile } from '@/components/ui/CommentFilePreview';
 import AttachmentViewer from '@/components/ui/AttachmentViewer';
 
+
 interface UserData {
   id: string;
   name?: string | null;
@@ -202,6 +203,93 @@ const formatCommentTime = (dateString: string): { relative: string; full: string
   };
 };
 
+// Helper function for direct S3 upload
+const uploadFileDirectlyToS3 = async (file: File): Promise<TaskAttachment> => {
+  console.log(`🚀 Uploading ${file.name} directly to S3...`);
+  
+  try {
+    // Step 1: Get pre-signed URL from our API
+    const presignResponse = await fetch('/api/upload/s3/presign', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+      }),
+    });
+
+    if (!presignResponse.ok) {
+      const errorData = await presignResponse.json();
+      throw new Error(errorData.error || 'Failed to get pre-signed URL');
+    }
+
+    const { presignedUrl, attachment } = await presignResponse.json();
+    
+    console.log(`📤 Uploading directly to S3: ${file.name} -> ${attachment.s3Key}`);
+    
+    // Step 2: Upload directly to S3 using pre-signed URL
+    const uploadResponse = await fetch(presignedUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type,
+      },
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error(`Direct S3 upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+    }
+
+    // Step 3: Generate signed URL for accessing the file
+    const signedUrlResponse = await fetch('/api/upload/s3/signed-url', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        s3Key: attachment.s3Key,
+      }),
+    });
+
+    if (signedUrlResponse.ok) {
+      const { signedUrl } = await signedUrlResponse.json();
+      attachment.url = signedUrl;
+    } else {
+      console.warn(`Failed to get signed URL for ${attachment.s3Key}, using fallback`);
+      // Use a placeholder that can be resolved server-side
+      attachment.url = `/api/upload/s3/signed-url?key=${encodeURIComponent(attachment.s3Key)}`;
+    }
+
+    console.log(`✅ Successfully uploaded ${file.name} directly to S3`);
+    return attachment;
+    
+  } catch (error) {
+    console.error(`❌ Direct S3 upload failed for ${file.name}:`, error);
+    
+    // Fallback to Vercel function upload
+    console.log(`📤 Falling back to Vercel function upload for ${file.name}...`);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch('/api/upload/s3', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Upload failed');
+    }
+
+    const responseData = await response.json();
+    console.log(`✅ Successfully uploaded ${file.name} via Vercel function (fallback)`);
+    return responseData.attachment;
+  }
+};
+
 export default function TaskComments({ taskId, teamId, currentUser, isViewOnly = false }: TaskCommentsProps) {
   const {
     comments,
@@ -351,7 +439,11 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if ((!newComment.trim() && newCommentPreviewFiles.length === 0) || !currentUser) return;
+    // Allow submission if there's either comment text or attachments
+    const hasComment = newComment.trim().length > 0;
+    const hasAttachments = newCommentPreviewFiles.length > 0;
+    
+    if ((!hasComment && !hasAttachments) || !currentUser) return;
     
     try {
       setIsSubmitting(true);
@@ -360,25 +452,11 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
       
       // Upload preview files to S3 if any
       if (newCommentPreviewFiles.length > 0) {
+        console.log(`🚀 Using direct S3 upload for ${newCommentPreviewFiles.length} files in comment`);
         for (const previewFile of newCommentPreviewFiles) {
           try {
-            const formData = new FormData();
-            formData.append('file', previewFile.file);
-
-            const response = await fetch('/api/upload/s3', {
-              method: 'POST',
-              body: formData,
-            });
-
-            if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.error || 'Upload failed');
-            }
-
-            const responseData = await response.json();
-            const { attachment } = responseData;
+            const attachment = await uploadFileDirectlyToS3(previewFile.file);
             uploadedAttachments.push(attachment);
-            
           } catch (uploadError) {
             console.error(`Failed to upload ${previewFile.name}:`, uploadError);
             // Continue with other files, but notify user
@@ -387,7 +465,8 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
         }
       }
       
-      const commentText = newComment.trim() || ' ';
+      // Use the actual comment text, or empty string if only attachments
+      const commentText = newComment.trim() || '';
       await createTaskComment(taskId, commentText, uploadedAttachments);
       
       // Send mention notifications
@@ -444,7 +523,12 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
   };
 
   const handleUpdateComment = async (commentId: string) => {
-    if (!editContent.trim()) return;
+    // Allow update if there's either comment text or attachments (existing or new)
+    const hasContent = editContent.trim().length > 0;
+    const hasExistingAttachments = editExistingAttachments.length > 0;
+    const hasNewAttachments = editPreviewFiles.length > 0;
+    
+    if (!hasContent && !hasExistingAttachments && !hasNewAttachments) return;
 
     try {
       setIsUpdatingComment(commentId);
@@ -453,25 +537,11 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
       
       // Upload new preview files to S3 if any
       if (editPreviewFiles.length > 0) {
+        console.log(`🚀 Using direct S3 upload for ${editPreviewFiles.length} files in comment edit`);
         for (const previewFile of editPreviewFiles) {
           try {
-            const formData = new FormData();
-            formData.append('file', previewFile.file);
-
-            const response = await fetch('/api/upload/s3', {
-              method: 'POST',
-              body: formData,
-            });
-
-            if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.error || 'Upload failed');
-            }
-
-            const responseData = await response.json();
-            const { attachment } = responseData;
+            const attachment = await uploadFileDirectlyToS3(previewFile.file);
             finalAttachments.push(attachment);
-            
           } catch (uploadError) {
             console.error(`Failed to upload ${previewFile.name}:`, uploadError);
             alert(`Failed to upload ${previewFile.name}. Comment will be updated without this file.`);
@@ -593,7 +663,7 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
                 teamAdmins={teamAdmins}
                 currentUserId={currentUser?.id}
                 placeholder="Add a comment... Use @ to mention team members and admins"
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 min-h-[2.5rem] overflow-y-auto"
                 rows={2}
                 disabled={isSubmitting}
               />
@@ -606,10 +676,10 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
               maxFiles={3}
               maxFileSize={10}
             />
-            <div className="flex justify-end">
+            <div className="flex justify-end pt-2">
               <button
                 type="submit"
-                disabled={(!newComment.trim() && newCommentPreviewFiles.length === 0) || isSubmitting}
+                disabled={(newComment.trim().length === 0 && newCommentPreviewFiles.length === 0) || isSubmitting}
                 className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-md transition-colors"
               >
                 {isSubmitting ? (
@@ -633,7 +703,7 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
           </div>
         ) : (
           comments.map((comment) => (
-            <div key={comment.id} className="flex space-x-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+            <div key={comment.id} className="group flex space-x-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/70 transition-colors">
               <UserProfile user={comment.user} size="sm" showTooltip />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1">
@@ -659,12 +729,12 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
                     </div>
                   </div>
                   {canEditComment(comment) && (
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       {editingCommentId === comment.id ? (
                         <>
                           <button
                             onClick={() => handleUpdateComment(comment.id)}
-                            disabled={!editContent.trim() || isUpdatingComment === comment.id}
+                            disabled={(editContent.trim().length === 0 && editExistingAttachments.length === 0 && editPreviewFiles.length === 0) || isUpdatingComment === comment.id}
                             className="p-1 text-green-600 hover:text-green-700 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
                             title={isUpdatingComment === comment.id ? "Saving..." : "Save changes"}
                           >
@@ -719,7 +789,7 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
                       teamAdmins={teamAdmins}
                       currentUserId={currentUser?.id}
                       placeholder="Edit your comment... Use @ to mention team members and admins"
-                      className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                      className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 min-h-[2.5rem] overflow-y-auto"
                       rows={2}
                       disabled={isUpdatingComment === comment.id}
                       autoFocus

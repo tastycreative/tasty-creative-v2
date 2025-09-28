@@ -40,6 +40,8 @@ model User {
   taskComments               TaskComment[]                 @relation("TaskCommentUser")
   Thread                     Thread[]
   ThreadWatcher              ThreadWatcher[]
+  performedUserActivities    UserActivityHistory[]         @relation("UserActivityActor")
+  receivedUserActivities     UserActivityHistory[]         @relation("UserActivityTarget")
   verificationTokens         VerificationToken[]
 }
 
@@ -251,7 +253,7 @@ model ClientModel {
   updatedAt             DateTime                  @updatedAt
   row_id                String?
   sheetLinks            ClientModelSheetLinks[]
-  contentDetails        ContentDetails[]
+  contentDetails        ContentDetails?
   notifications         Notification[]
   podTeamAssignments    PodTeamClientAssignment[]
 
@@ -305,12 +307,12 @@ model ContentDetails {
   contentOptionsForGames     String?
   createdAt                  DateTime    @default(now())
   updatedAt                  DateTime    @updatedAt
-  clientModelName            String
+  clientModelName            String      @unique
   clientModel                ClientModel @relation(fields: [clientModelName], references: [clientName], onDelete: Cascade)
 }
 
 model ClientModelDetails {
-  id                    String   @id @default(cuid())
+  id                    String               @id @default(cuid())
   full_name             String?
   age                   String?
   birthday              String?
@@ -326,8 +328,8 @@ model ClientModelDetails {
   interests             String?
   personality           String?
   amazon_wishlist       String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
   clothing_items        String?
   content_offered       String?
   custom_min_price      String?
@@ -342,6 +344,41 @@ model ClientModelDetails {
   verbiage_restrictions String?
   wall_restrictions     String?
   calendar_id           String?
+  status                String?
+  onboardingCompleted   Boolean?             @default(false)
+  onboardingProgress    OnboardingProgress[]
+}
+
+model OnboardingList {
+  id          String   @id @default(cuid())
+  stepNumber  Int
+  title       String
+  description String?
+  required    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  progress OnboardingProgress[]
+
+  @@index([stepNumber])
+}
+
+model OnboardingProgress {
+  id                   String    @id @default(cuid())
+  onboardingListId     String
+  clientModelDetailsId String
+  completed            Boolean   @default(false)
+  completedAt          DateTime?
+  notes                String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  OnboardingList     OnboardingList     @relation(fields: [onboardingListId], references: [id], onDelete: Cascade)
+  ClientModelDetails ClientModelDetails @relation(fields: [clientModelDetailsId], references: [id], onDelete: Cascade)
+
+  @@unique([onboardingListId, clientModelDetailsId])
+  @@index([clientModelDetailsId])
+  @@index([onboardingListId])
 }
 
 model PodTeam {
@@ -727,6 +764,28 @@ model ForumAnalytics {
   @@index([date])
 }
 
+model UserActivityHistory {
+  id           String           @id @default(cuid())
+  actorId      String
+  targetUserId String
+  actionType   UserActivityType
+  oldRole      Role?
+  newRole      Role
+  reason       String?
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime         @default(now())
+  actor        User             @relation("UserActivityActor", fields: [actorId], references: [id], onDelete: Cascade)
+  targetUser   User             @relation("UserActivityTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@index([actorId])
+  @@index([targetUserId])
+  @@index([createdAt])
+  @@index([actionType])
+  @@index([oldRole])
+  @@index([newRole])
+}
+
 enum Role {
   USER
   ADMIN
@@ -876,4 +935,14 @@ enum NotificationType {
 enum ForumVoteType {
   UPVOTE
   DOWNVOTE
+}
+
+enum UserActivityType {
+  ROLE_CHANGED
+  ACCOUNT_CREATED
+  ACCOUNT_SUSPENDED
+  ACCOUNT_REACTIVATED
+  ACCOUNT_DELETED
+  PASSWORD_RESET
+  EMAIL_VERIFIED
 }

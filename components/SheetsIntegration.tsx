@@ -111,7 +111,7 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
     }
 
     try {
-      // Use our server-side API to fetch sheet name
+      // Use our server-side API to fetch sheet name with user credentials
       const response = await fetch('/api/sheets/get-name', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -120,7 +120,15 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch sheet information");
+        
+        // Handle authentication errors specifically
+        if (response.status === 401) {
+          throw new Error("Authentication expired. Please refresh the page and sign in again.");
+        } else if (response.status === 403) {
+          throw new Error("Access denied to this spreadsheet. Please ensure it's shared with you or you have proper permissions.");
+        } else {
+          throw new Error(errorData.error || "Failed to fetch sheet information");
+        }
       }
 
       const data = await response.json();
@@ -169,6 +177,17 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
             ? { ...entry, fetchedName: "", isFetching: false }
             : entry
         ));
+        
+        // Show user-friendly error message
+        if (error instanceof Error) {
+          setSheetLinkStatus({
+            type: "error",
+            message: error.message
+          });
+          
+          // Clear the error after a few seconds
+          setTimeout(() => setSheetLinkStatus(null), 5000);
+        }
       }
     }
   };
@@ -325,6 +344,49 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
     setNewSpreadsheetUrl(null);
     setStatus({
       type: "info",
+      message: "Checking spreadsheet permissions...",
+    });
+
+    // Permission check: verify user can access the sheet before proceeding
+    try {
+      // Use the same logic as fetchSheetName to check access
+      const accessCheck = await fetch('/api/sheets/get-name', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sheetUrl: spreadsheetUrl })
+      });
+      if (!accessCheck.ok) {
+        const errorData = await accessCheck.json();
+        if (accessCheck.status === 401) {
+          setStatus({
+            type: "error",
+            message: "Authentication expired. Please refresh the page and sign in again."
+          });
+        } else if (accessCheck.status === 403) {
+          setStatus({
+            type: "error",
+            message: "Access denied to this spreadsheet. Please ensure it's shared with you or you have proper permissions."
+          });
+        } else {
+          setStatus({
+            type: "error",
+            message: errorData.error || "Failed to verify sheet access."
+          });
+        }
+        setIsLoading(false);
+        return;
+      }
+    } catch (error) {
+      setStatus({
+        type: "error",
+        message: "Network error during permission check. Please try again."
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    setStatus({
+      type: "info",
       message: "Processing spreadsheet data...",
     });
 
@@ -355,6 +417,8 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
           message: successMessage,
         });
         setNewSpreadsheetUrl(result.spreadsheetUrl);
+        
+        // Clear the form completely to prevent any state carryover
         setSpreadsheetUrl("");
 
         // Save the sync spreadsheet to ClientModelSheetLinks
@@ -696,10 +760,14 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
                     variant="outline"
                     size="lg"
                     onClick={() => {
+                      // Complete state reset to prevent any carryover issues
                       setNewSpreadsheetUrl(null);
                       setStatus(null);
                       setSelectedModel("");
+                      setSelectedModelId("");
                       setSpreadsheetUrl("");
+                      
+                      console.log('State reset for new integration');
                     }}
                     className="border-green-400 dark:border-green-500 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-800"
                   >

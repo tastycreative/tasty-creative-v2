@@ -73,9 +73,13 @@ export async function POST(request: NextRequest, { params }: CommentsParams) {
     const data = await request.json();
     const { content, attachments } = data;
 
-    if (!taskId || !content?.trim()) {
+    // Allow comment if there's either content or attachments
+    const hasContent = content?.trim()?.length > 0;
+    const hasAttachments = attachments && Array.isArray(attachments) && attachments.length > 0;
+
+    if (!taskId || (!hasContent && !hasAttachments)) {
       return NextResponse.json(
-        { error: "Task ID and content are required" },
+        { error: "Task ID and either content or attachments are required" },
         { status: 400 }
       );
     }
@@ -95,7 +99,7 @@ export async function POST(request: NextRequest, { params }: CommentsParams) {
       data: {
         taskId,
         userId: session.user.id,
-        content: content.trim(),
+        content: content?.trim() || '', // Use empty string if no content
         attachments: attachments && attachments.length > 0 ? attachments : null
       },
       include: {

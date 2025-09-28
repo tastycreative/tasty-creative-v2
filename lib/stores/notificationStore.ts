@@ -20,6 +20,7 @@ interface NotificationState {
   lastFetchTime: number;
   isConnected: boolean;
   connectionType: 'polling' | 'ably' | null;
+  currentUserId: string | null; // Track which user the cached data belongs to
   
   // Actions
   setNotifications: (notifications: Notification[]) => void;
@@ -29,9 +30,11 @@ interface NotificationState {
   setUnreadCount: (count: number) => void;
   setConnectionStatus: (isConnected: boolean, type: 'polling' | 'ably' | null) => void;
   updateLastFetchTime: () => void;
+  setCurrentUser: (userId: string | null) => void; // New method to handle user changes
+  clearUserData: () => void; // New method to clear user-specific data
   
   // Cache helpers
-  shouldRefetch: () => boolean;
+  shouldRefetch: (userId?: string) => boolean; // Updated to check user
   isNotificationCached: (notificationId: string) => boolean;
   getRecentNotifications: (maxAge?: number) => Notification[];
 }
@@ -48,6 +51,7 @@ export const useNotificationStore = create<NotificationState>()(
         lastFetchTime: 0,
         isConnected: false,
         connectionType: null,
+        currentUserId: null,
 
         setNotifications: (notifications) => {
           set((state) => {
@@ -111,9 +115,46 @@ export const useNotificationStore = create<NotificationState>()(
           set({ lastFetchTime: Date.now() });
         },
 
+        setCurrentUser: (userId) => {
+          set((state) => {
+            // If user changed, clear all cached data
+            if (state.currentUserId !== userId) {
+              console.log('🔄 User changed from', state.currentUserId, 'to', userId, '- clearing notification cache');
+              return {
+                currentUserId: userId,
+                notifications: [],
+                unreadCount: 0,
+                lastFetchTime: 0,
+                isConnected: state.isConnected,
+                connectionType: state.connectionType
+              };
+            }
+            return { currentUserId: userId };
+          });
+        },
+
+        clearUserData: () => {
+          set((state) => ({
+            notifications: [],
+            unreadCount: 0,
+            lastFetchTime: 0,
+            currentUserId: null,
+            isConnected: state.isConnected,
+            connectionType: state.connectionType
+          }));
+        },
+
         // Cache helpers
-        shouldRefetch: () => {
-          const { lastFetchTime } = get();
+        shouldRefetch: (userId) => {
+          const { lastFetchTime, currentUserId } = get();
+          
+          // Always refetch if user changed
+          if (userId && currentUserId !== userId) {
+            console.log('🔄 User mismatch detected, forcing refetch');
+            return true;
+          }
+          
+          // Normal cache timeout check
           return Date.now() - lastFetchTime > CACHE_DURATION;
         },
 
@@ -134,7 +175,8 @@ export const useNotificationStore = create<NotificationState>()(
         partialize: (state) => ({
           notifications: state.notifications,
           unreadCount: state.unreadCount,
-          lastFetchTime: state.lastFetchTime
+          lastFetchTime: state.lastFetchTime,
+          currentUserId: state.currentUserId
         }),
         // Don't persist connection status as it's session-specific
       }

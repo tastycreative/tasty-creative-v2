@@ -1270,13 +1270,17 @@ export const useBoardStore = create<BoardStore>()(
         },
         
         createTaskComment: async (taskId: string, content: string, attachments?: TaskAttachment[]) => {
-          if (!taskId || !content.trim()) return;
+          // Allow comment if there's either content or attachments
+          const hasContent = content && content.trim().length > 0;
+          const hasAttachments = attachments && attachments.length > 0;
+          
+          if (!taskId || (!hasContent && !hasAttachments)) return;
           
           try {
             const response = await apiCall<{ success: boolean; comment: TaskComment }>(`/api/tasks/${taskId}/comments`, {
               method: 'POST',
               body: JSON.stringify({ 
-                content: content.trim(),
+                content: content || '', // Send empty string if no content
                 attachments: attachments || []
               })
             });

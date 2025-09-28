@@ -86,13 +86,9 @@ const ColumnSettings = React.memo<ColumnSettingsProps>(({ currentTeamId }) => {
       color: editingColumn.color,
     };
     
-    // If the label changed significantly, generate a new status
-    if (originalColumn.label !== editingColumn.label) {
-      // Create a status based on the label (remove spaces, convert to uppercase, add prefix)
-      const newStatus = `CUSTOM_${editingColumn.label.toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z_]/g, '')}_${Date.now()}`;
-      updateData.status = newStatus;
-      
-    }
+    // Only change status if this is a completely new custom column without a proper status
+    // For existing columns, just update the label without changing the status to avoid breaking task associations
+    // This prevents tasks from disappearing when column names are changed
     
     await updateColumn(editingColumn.id, updateData);
     setEditingColumn(null);

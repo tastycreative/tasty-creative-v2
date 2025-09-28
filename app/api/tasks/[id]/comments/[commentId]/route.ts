@@ -47,9 +47,13 @@ export async function PUT(request: NextRequest, { params }: CommentParams) {
     const data = await request.json();
     const { content, attachments } = data;
 
-    if (!taskId || !commentId || !content?.trim()) {
+    // Allow update if there's either content or attachments
+    const hasContent = content?.trim()?.length > 0;
+    const hasAttachments = attachments && Array.isArray(attachments) && attachments.length > 0;
+
+    if (!taskId || !commentId || (!hasContent && !hasAttachments)) {
       return NextResponse.json(
-        { error: "Task ID, comment ID, and content are required" },
+        { error: "Task ID, comment ID, and either content or attachments are required" },
         { status: 400 }
       );
     }
@@ -103,7 +107,7 @@ export async function PUT(request: NextRequest, { params }: CommentParams) {
     const comment = await (prisma as any).taskComment.update({
       where: { id: commentId },
       data: {
-        content: content.trim(),
+        content: content?.trim() || '', // Use empty string if no content
         attachments: attachments && attachments.length > 0 ? attachments : null
         // updatedAt is automatically handled by @updatedAt decorator
       },
