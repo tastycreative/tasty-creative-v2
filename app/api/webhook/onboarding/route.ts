@@ -35,7 +35,8 @@ export async function POST(request: NextRequest) {
   const urlParams = new URL(request.url).searchParams
   const clientModelDetailsId = body.clientModelDetailsId || urlParams.get('clientModelDetailsId') || urlParams.get('client_id')
   let onboardingListId = body.onboardingListId || urlParams.get('onboardingListId') || urlParams.get('step_id') || urlParams.get('onboardingListId')
-    const completed = typeof body.completed !== 'undefined' ? body.completed : (urlParams.get('completed') ? urlParams.get('completed') === 'true' : true)
+  // Default to false when caller omits `completed` to avoid accidental auto-completion
+  const completed = typeof body.completed !== 'undefined' ? body.completed : (urlParams.get('completed') ? urlParams.get('completed') === 'true' : false)
     const notes = body.notes || urlParams.get('notes') || null
     const createTask = typeof body.createTask !== 'undefined' ? body.createTask : (urlParams.get('createTask') === 'true')
     const taskTeamId = body.taskTeamId || urlParams.get('taskTeamId') || urlParams.get('teamId') || null
