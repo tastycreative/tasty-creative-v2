@@ -83,31 +83,31 @@ const navigationItems = [
         id: "live",
         label: "LIVE",
         icon: Radio,
-        route: "/apps/pod-new/my-models/[modelName]/apps/live",
+        route: "/my-models/[modelName]/apps/live",
       },
       {
         id: "x-ads",
         label: "X ADS",
         icon: Zap,
-        route: "/apps/pod-new/my-models/[modelName]/apps/x-ads",
+        route: "/my-models/[modelName]/apps/x-ads",
       },
       {
         id: "gif-maker",
         label: "GIF MAKER",
         icon: Wand2,
-        route: "/apps/pod-new/my-models/[modelName]/apps/gif-maker",
+        route: "/my-models/[modelName]/apps/gif-maker",
       },
       {
         id: "first-to-tip",
         label: "FIRST TO TIP",
         icon: Trophy,
-        route: "/apps/pod-new/my-models/[modelName]/apps/first-to-tip",
+        route: "/my-models/[modelName]/apps/first-to-tip",
       },
       {
         id: "vip",
         label: "VIP",
         icon: Crown,
-        route: "/apps/pod-new/my-models/[modelName]/apps/vip",
+        route: "/my-models/[modelName]/apps/vip",
       },
     ],
   },
@@ -608,7 +608,7 @@ export function ModelProfileSidebar({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => router.push('/apps/pod-new/my-models')}
+              onClick={() => router.push('/my-models')}
               className="bg-gradient-to-r from-white/60 to-white/40 dark:from-gray-800/60 dark:to-gray-800/40 backdrop-blur-sm border-gray-200/60 dark:border-gray-700/50 hover:bg-gradient-to-r hover:from-red-50/80 hover:to-red-50/60 dark:hover:from-red-900/30 dark:hover:to-red-900/20 transition-all duration-300 hover:border-red-200/60 dark:hover:border-red-700/50 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400"
             >
               <LogOut className="w-4 h-4" />

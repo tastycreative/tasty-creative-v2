@@ -25,14 +25,16 @@ function Card({
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl bg-white/90 dark:bg-slate-900/70 border border-gray-200/50 dark:border-white/10 shadow-sm p-4">
+    <div className="rounded-2xl bg-white/90 dark:bg-slate-900/70 border border-gray-200/50 dark:border-white/10 shadow-sm p-4 overflow-hidden">
       <div className="flex items-center gap-2 mb-3">
         {icon}
-        <div className="text-xs uppercase tracking-wide text-gray-600 dark:text-slate-400">
+        <div className="text-xs uppercase tracking-wide text-gray-600 dark:text-slate-400 truncate">
           {title}
         </div>
       </div>
-      {children}
+      <div className="overflow-hidden">
+        {children}
+      </div>
     </div>
   );
 }
@@ -87,19 +89,29 @@ export default function RightSidebar({ collapsed = false }: RightSidebarProps) {
 
   // Update URL when team selection changes
   const updateURLWithTeam = (teamId: string) => {
-    if (pathname && (pathname.includes('/apps/pod-new/forms') || pathname.includes('/apps/pod-new/board'))) {
+    if (pathname && (pathname.includes('/forms') || pathname.includes('/board'))) {
       const params = new URLSearchParams(searchParams?.toString() || "");
       params.set("team", teamId);
       router.replace(`${pathname}?${params.toString()}`, { scroll: false });
     }
   };
 
-  // Only show sidebar on /apps/pod-new, /apps/pod-new/dashboard, /apps/pod-new/board, and /apps/pod-new/forms routes
+  // Show sidebar on all main POD routes
   const allowedPaths = [
-    "/apps/pod-new",
-    "/apps/pod-new/dashboard",
-    "/apps/pod-new/board",
-    "/apps/pod-new/forms",
+    "/",
+    "/dashboard",
+    "/board",
+    "/forms",
+    "/pod-admin",
+    "/pricing",
+    "/sheets",
+    "/my-models",
+    "/workspace",
+    "/schedule",
+    "/live-stream",
+    "/calendar",
+    "/team",
+    "/settings",
   ];
   const shouldShowSidebar = allowedPaths.includes(pathname || "");
 
@@ -107,22 +119,23 @@ export default function RightSidebar({ collapsed = false }: RightSidebarProps) {
     return null;
   }
 
+
   return (
     <div
       role="complementary"
-      className="hidden xl:block space-y-6 w-[320px] sticky top-24 self-start"
+      className="hidden xl:block space-y-6 w-[320px] sticky top-24 self-start overflow-hidden"
     >
-      <div className="rounded-2xl bg-white/90 dark:bg-slate-900/70 border border-gray-200/50 dark:border-white/10 shadow-sm p-4">
+      <div className="rounded-2xl bg-white/90 dark:bg-slate-900/70 border border-gray-200/50 dark:border-white/10 shadow-sm p-4 overflow-hidden">
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-fuchsia-500 to-purple-600 flex items-center justify-center">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-fuchsia-500 to-purple-600 flex items-center justify-center flex-shrink-0">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
-            <div className="text-sm font-semibold text-gray-800 dark:text-slate-200">
+            <div className="text-sm font-semibold text-gray-800 dark:text-slate-200 truncate">
               {data?.teamName || "Team"}
             </div>
           </div>
-          <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-slate-800/70 border border-gray-200/50 dark:border-white/10" />
+          <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-slate-800/70 border border-gray-200/50 dark:border-white/10 flex-shrink-0" />
         </div>
         <div className="relative">
           <select
@@ -262,7 +275,7 @@ export default function RightSidebar({ collapsed = false }: RightSidebarProps) {
                     {g.name}
                   </div>
                 </div>
-                <span className="inline-flex items-center justify-center w-5 h-5 text-[10px] font-semibold rounded-full bg-emerald-600/30 dark:bg-emerald-600/30 text-emerald-800 dark:text-emerald-200 border border-emerald-500/40 dark:border-emerald-500/30">
+                <span className="inline-flex items-center justify-center w-5 h-5 text-[10px] font-semibold rounded-full bg-emerald-600/30 dark:bg-emerald-600/30 text-emerald-800 dark:text-emerald-200 border border-emerald-500/40 dark:border-emerald-500/30 flex-shrink-0">
                   {g.count}
                 </span>
               </summary>

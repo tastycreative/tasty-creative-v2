@@ -73,7 +73,7 @@ export function ForumNotifications({ userId }: { userId: string }) {
 
   const handleNotificationClick = (notification: ForumNotification) => {
     markAsRead(notification.id);
-    router.push(`/apps/pod-new/my-models/${notification.modelId}/forum/thread/${notification.threadId}`);
+    router.push(`/my-models/${notification.modelId}?tab=forum&thread=${notification.threadId}`);
     setIsOpen(false);
   };
 

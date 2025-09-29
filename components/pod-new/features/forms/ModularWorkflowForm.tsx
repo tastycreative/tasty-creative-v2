@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { usePodStore, useAvailableTeams } from "@/lib/stores/podStore";
+import { useBoardTasks } from "@/lib/stores/boardStore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -182,7 +183,7 @@ const componentModules: ComponentDefinition[] = [
     icon: Calendar,
     color: "from-orange-500 to-red-500",
     recommendedFor: ["normal", "game", "poll", "livestream"],
-    features: ["Scheduling", "Priority"],
+    features: ["Scheduling", "Priority", "Timezone"],
     fields: [
       {
         name: "releaseDate",
@@ -195,6 +196,24 @@ const componentModules: ComponentDefinition[] = [
         label: "Release Time",
         type: "text",
         placeholder: "14:30"
+      },
+      {
+        name: "releaseTimezone",
+        label: "Timezone",
+        type: "select",
+        required: false,
+        options: [
+          { value: "UTC", label: "UTC (GMT+0)" },
+          { value: "EST", label: "EST (GMT-5)" },
+          { value: "CST", label: "CST (GMT-6)" },
+          { value: "MST", label: "MST (GMT-7)" },
+          { value: "PST", label: "PST (GMT-8)" },
+          { value: "GMT", label: "GMT (GMT+0)" },
+          { value: "CET", label: "CET (GMT+1)" },
+          { value: "EET", label: "EET (GMT+2)" },
+          { value: "JST", label: "JST (GMT+9)" },
+          { value: "AEST", label: "AEST (GMT+10)" }
+        ]
       },
       {
         name: "priority",
@@ -397,6 +416,9 @@ interface Model {
 }
 
 export default function ModularWorkflowForm() {
+  const router = useRouter();
+  const { fetchTasks } = useBoardTasks();
+
   const { register, control, handleSubmit, formState: { errors }, setValue, getValues } = useForm<ModularFormData>({
     mode: "onChange",
     defaultValues: {
@@ -486,8 +508,8 @@ export default function ModularWorkflowForm() {
         const data = await response.json();
         if (Array.isArray(data.models)) {
           // Filter out duplicate model names to prevent key conflicts
-          const uniqueModels = data.models.filter((model, index, arr) =>
-            arr.findIndex(m => m.name === model.name) === index
+          const uniqueModels = data.models.filter((model: Model, index: number, arr: Model[]) =>
+            arr.findIndex((m: Model) => m.name === model.name) === index
           );
           setModels(uniqueModels);
         }
@@ -511,6 +533,49 @@ export default function ModularWorkflowForm() {
       setValue("selectedComponents", [...currentComponents, "release"]);
     }
   }, [submissionType, contentStyle, setValue, getValues]);
+
+  // Validate form data
+  const validateFormData = (data: ModularFormData): string[] => {
+    const errors: string[] = [];
+
+    // Required fields validation
+    if (!data.model || data.model === '') {
+      errors.push('Please select a model');
+    }
+
+    if (!data.submissionType) {
+      errors.push('Please select a submission type (OTP or PTR)');
+    }
+
+    if (!data.contentStyle) {
+      errors.push('Please select a content style');
+    }
+
+    // PTR specific validation
+    if (data.submissionType === 'ptr') {
+      if (!data.releaseDate) {
+        errors.push('Release date is required for PTR submissions');
+      }
+    }
+
+    // Component-specific validations
+    if (data.selectedComponents?.includes('pricing')) {
+      if (!data.pricingType) {
+        errors.push('Please select a pricing type');
+      }
+      if (!data.basePrice || data.basePrice === '') {
+        errors.push('Please enter a base price');
+      }
+    }
+
+    if (data.selectedComponents?.includes('release')) {
+      if (!data.priority) {
+        errors.push('Please select a priority level');
+      }
+    }
+
+    return errors;
+  };
 
   const onSubmit = async (data: ModularFormData) => {
     // Validate form data
@@ -554,6 +619,7 @@ export default function ModularWorkflowForm() {
           ...(data.selectedComponents?.includes('release') && {
             releaseDate: data.releaseDate,
             releaseTime: data.releaseTime,
+            releaseTimezone: data.releaseTimezone,
             priority: data.priority
           }),
           ...(data.selectedComponents?.includes('upload') && {
@@ -622,17 +688,32 @@ export default function ModularWorkflowForm() {
       // Show success with task details
       setValidationErrors([]);
 
-      // Reset form after success
+      // Force refresh board tasks to show the new task
+      if (selectedTeamId) {
+        // Force refresh with forceRefresh=true to bypass cache
+        fetchTasks(selectedTeamId, true).then(() => {
+          console.log('✅ Board tasks refreshed after workflow creation');
+        }).catch((e) => {
+          console.log('⚠️ Could not refresh board tasks:', e);
+        });
+      }
+
+      // Reset form after success and optionally navigate to board
       setTimeout(() => {
         setIsSubmitted(false);
         setSubmissionResult(null);
-        // Optionally reset form
+        // Reset form fields
         setValue('caption', '');
         setValue('model', '');
         setValue('driveLink', '');
         setAttachments([]);
         setLocalFiles([]);
-      }, 5000);
+
+        // Navigate to board to see the new task
+        if (selectedTeamId && result.task?.id) {
+          router.push(`/board?team=${selectedTeamId}`);
+        }
+      }, 3000);
 
     } catch (error) {
       console.error('❌ Error submitting workflow:', error);
@@ -1185,7 +1266,7 @@ export default function ModularWorkflowForm() {
                     avoidCollisions={false}
                   >
                     {models.map((model, index) => (
-                      <SelectItem key={model.id || `model-${index}`} value={model.name}>
+                      <SelectItem key={`model-${index}`} value={model.name}>
                         <div className="flex items-center justify-between w-full">
                           <span>{model.name}</span>
                           {model.status && (
@@ -1360,22 +1441,44 @@ export default function ModularWorkflowForm() {
                 )}
 
                 {selectedComponents.includes("release") && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="releaseDate" className="block mb-2 font-medium">Release Date</Label>
-                      <Input
-                        id="releaseDate"
-                        type="date"
-                        {...register("releaseDate")}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="releaseTime" className="block mb-2 font-medium">Release Time</Label>
-                      <Input
-                        id="releaseTime"
-                        type="time"
-                        {...register("releaseTime")}
-                      />
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="releaseDate" className="block mb-2 font-medium">Release Date</Label>
+                        <Input
+                          id="releaseDate"
+                          type="date"
+                          {...register("releaseDate")}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="releaseTime" className="block mb-2 font-medium">Release Time</Label>
+                        <Input
+                          id="releaseTime"
+                          type="time"
+                          {...register("releaseTime")}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="releaseTimezone" className="block mb-2 font-medium">Timezone</Label>
+                        <Select onValueChange={(value) => setValue("releaseTimezone", value)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select timezone..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="UTC">UTC (GMT+0)</SelectItem>
+                            <SelectItem value="EST">EST (GMT-5)</SelectItem>
+                            <SelectItem value="CST">CST (GMT-6)</SelectItem>
+                            <SelectItem value="MST">MST (GMT-7)</SelectItem>
+                            <SelectItem value="PST">PST (GMT-8)</SelectItem>
+                            <SelectItem value="GMT">GMT (GMT+0)</SelectItem>
+                            <SelectItem value="CET">CET (GMT+1)</SelectItem>
+                            <SelectItem value="EET">EET (GMT+2)</SelectItem>
+                            <SelectItem value="JST">JST (GMT+9)</SelectItem>
+                            <SelectItem value="AEST">AEST (GMT+10)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                     <div>
                       <Label htmlFor="priority" className="block mb-2 font-medium">Priority Level</Label>

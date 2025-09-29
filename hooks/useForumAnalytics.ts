@@ -61,6 +61,12 @@ export function useForumAnalytics(modelId: string, timeframe: string = '30') {
       if (!response.ok) {
         throw new Error('Failed to fetch forum analytics');
       }
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error('Authentication required');
+      }
+
       return response.json();
     },
     refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
@@ -76,6 +82,12 @@ export function useForumAnalyticsRealtime(modelId: string, timeframe: string = '
       if (!response.ok) {
         throw new Error('Failed to fetch forum analytics');
       }
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error('Authentication required');
+      }
+
       return response.json();
     },
     refetchInterval: 30 * 1000, // Refetch every 30 seconds for real-time updates

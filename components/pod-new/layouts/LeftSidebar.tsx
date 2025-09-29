@@ -15,6 +15,8 @@ import {
   Users2,
   Zap,
   Kanban,
+  FileText,
+  Shield,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/admin/ThemeToggle";
 
@@ -34,17 +36,17 @@ const navigation: { title: string; items: NavItem[] }[] = [
     items: [
       {
         title: "Dashboard",
-        href: "/apps/pod-new/dashboard",
+        href: "/dashboard",
         icon: LayoutDashboard,
       },
       {
         title: "Board",
-        href: "/apps/pod-new/board",
+        href: "/board",
         icon: Kanban,
       },
       {
         title: "Workspace",
-        href: "/apps/pod-new/workspace",
+        href: "/workspace",
         icon: Briefcase,
       },
     ],
@@ -54,16 +56,27 @@ const navigation: { title: string; items: NavItem[] }[] = [
     items: [
       {
         title: "Schedule Content",
-        href: "/apps/pod-new/schedule",
+        href: "/schedule",
         icon: Calendar,
       },
       {
         title: "Live Stream",
-        href: "/apps/pod-new/live-stream",
+        href: "/live-stream",
         icon: PlayCircle,
         badge: { text: "Live", variant: "success" },
       },
-      { title: "Calendar", href: "/apps/pod-new/calendar", icon: CalendarIcon },
+      { title: "Calendar", href: "/calendar", icon: CalendarIcon },
+    ],
+  },
+  {
+    title: "Workflow",
+    items: [
+      {
+        title: "OTP/PTR",
+        href: "/forms",
+        icon: FileText,
+        badge: { text: "New", variant: "primary" },
+      },
     ],
   },
   {
@@ -71,21 +84,17 @@ const navigation: { title: string; items: NavItem[] }[] = [
     items: [
       {
         title: "My Models",
-        href: "/apps/pod-new/my-models",
+        href: "/my-models",
         icon: Users,
       },
-      { title: "Team", href: "/apps/pod-new/team", icon: Users2 },
-      {
-        title: "OTP-PTR",
-        href: "/apps/pod-new/otp-ptr",
-        icon: Upload,
-      },
+      { title: "Team", href: "/team", icon: Users2 },
     ],
   },
   {
     title: "Settings",
     items: [
-      { title: "Settings", href: "/apps/pod-new/settings", icon: Settings },
+      { title: "Settings", href: "/settings", icon: Settings },
+      { title: "Admin", href: "/pod-admin", icon: Shield },
     ],
   },
 ];

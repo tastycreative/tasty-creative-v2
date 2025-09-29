@@ -4,7 +4,7 @@
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import ImageCropper from "@/components/ImageCropper";
 import Image from "next/image";
-import ModelsDropdown from "@/components/ModelsDropdown";
+import SharedModelsDropdown from "./SharedModelsDropdown";
 import { useSearchParams } from "next/navigation";
 import { POSITIONS } from "@/lib/lib";
 import { v4 as uuidv4 } from "uuid";
@@ -368,7 +368,7 @@ export default function VIPFlyer({modelName}:{modelName?: string}) {
 
                 <form className="grid grid-cols-2 gap-4 space-y-4" onSubmit={handleSubmit}>
                   <div className="col-span-2">
-                    <ModelsDropdown
+                    <SharedModelsDropdown
                       formData={formData}
                       setFormData={setFormData}
                       isLoading={isLoading}

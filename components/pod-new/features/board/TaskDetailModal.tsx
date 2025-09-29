@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Session } from "next-auth";
-import { X, Edit3, Calendar, Clock, Loader2, Gamepad2, BarChart3, Video, FileText, Tag, DollarSign, Upload, ExternalLink, Settings } from "lucide-react";
+import { X, Edit3, Calendar, Clock, Loader2, FileText, Tag, DollarSign, Upload, ExternalLink, Settings, MessageCircle } from "lucide-react";
 import { Task } from "@/lib/stores/boardStore";
 import { formatForTaskDetail, formatDueDate, toLocalDateTimeString, utcNow } from "@/lib/dateUtils";
 import UserDropdown from "@/components/UserDropdown";
@@ -433,158 +433,195 @@ export default function TaskDetailModal({
               </div>
             ) : (
               <div className="space-y-8 min-w-0">
-                {/* Description */}
+                {/* Workflow Details - Rich Information Display */}
                 <div className="min-w-0">
-                  <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">
-                    Description
+                  <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6">
+                    Workflow Details
                   </h4>
-                  {selectedTask.description ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none min-w-0">
-                      <p className="text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere">
-                        {linkifyText(selectedTask.description)}
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="text-gray-400 dark:text-gray-500 italic">
-                      No description provided
-                    </p>
-                  )}
-                </div>
 
-                {/* Workflow Information */}
-                {(selectedTask.ModularWorkflow || selectedTask.ContentSubmission) && (
-                  <div className="min-w-0">
-                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">
-                      Workflow Information
-                    </h4>
-
-                    {selectedTask.ModularWorkflow ? (
-                      <div className="space-y-4 p-6 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200/40 dark:border-blue-700/40 rounded-xl shadow-sm backdrop-blur-sm">
-                        {/* Content Style */}
-                        <div className="flex items-start space-x-3">
-                          <div className="flex-shrink-0 mt-0.5">
-                            {selectedTask.ModularWorkflow.contentStyle === 'GAME' && <Gamepad2 className="w-5 h-5 text-purple-600 dark:text-purple-400" />}
-                            {selectedTask.ModularWorkflow.contentStyle === 'POLL' && <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
-                            {selectedTask.ModularWorkflow.contentStyle === 'LIVESTREAM' && <Video className="w-5 h-5 text-red-600 dark:text-red-400" />}
-                            {selectedTask.ModularWorkflow.contentStyle === 'NORMAL' && <FileText className="w-5 h-5 text-gray-600 dark:text-gray-400" />}
+                  {selectedTask.ModularWorkflow ? (
+                    <div className="space-y-6">
+                      {/* Workflow Overview Cards */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Content Type & Model */}
+                        <div className="p-4 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200/50 dark:border-blue-700/50">
+                          <div className="flex items-center gap-3 mb-3">
+                            <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                            <h5 className="font-semibold text-blue-900 dark:text-blue-100">Content Details</h5>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                              Modular Workflow: {selectedTask.ModularWorkflow.contentStyle} Content for {selectedTask.ModularWorkflow.modelName}
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600 dark:text-gray-400">Type:</span>
+                              <span className="font-medium text-blue-800 dark:text-blue-200 uppercase">
+                                {selectedTask.ModularWorkflow.submissionType}
+                              </span>
                             </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              Submission Type: {selectedTask.ModularWorkflow.submissionType}
+                            <div className="flex justify-between">
+                              <span className="text-gray-600 dark:text-gray-400">Style:</span>
+                              <span className="font-medium text-blue-800 dark:text-blue-200 capitalize">
+                                {selectedTask.ModularWorkflow.contentStyle}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600 dark:text-gray-400">Model:</span>
+                              <span className="font-medium text-blue-800 dark:text-blue-200">
+                                {selectedTask.ModularWorkflow.modelName}
+                              </span>
                             </div>
                           </div>
                         </div>
 
-                        {/* Selected Components */}
-                        {selectedTask.ModularWorkflow.selectedComponents && selectedTask.ModularWorkflow.selectedComponents.length > 0 && (
-                          <div>
-                            <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              Components: {selectedTask.ModularWorkflow.selectedComponents.join(', ')}
+                        {/* Workflow Priority & Status */}
+                        <div className="p-4 bg-gradient-to-r from-purple-50/80 to-pink-50/80 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200/50 dark:border-purple-700/50">
+                          <div className="flex items-center gap-3 mb-3">
+                            <Tag className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                            <h5 className="font-semibold text-purple-900 dark:text-purple-100">Workflow Status</h5>
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600 dark:text-gray-400">Priority:</span>
+                              <span className="font-medium text-purple-800 dark:text-purple-200 flex items-center gap-1">
+                                {selectedTask.ModularWorkflow.priority === 'URGENT' ? '🚨' :
+                                 selectedTask.ModularWorkflow.priority === 'HIGH' ? '🔴' :
+                                 selectedTask.ModularWorkflow.priority === 'NORMAL' ? '🟡' : '🟢'}
+                                {selectedTask.ModularWorkflow.priority}
+                              </span>
                             </div>
-                            <div className="flex flex-wrap gap-2">
-                              {selectedTask.ModularWorkflow.selectedComponents.map((component) => (
-                                <div key={component} className="flex items-center space-x-1.5 px-3 py-1.5 bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-600/50 rounded-lg shadow-sm backdrop-blur-sm transition-all duration-200 hover:shadow-md">
-                                  {component === 'PRICING' && <DollarSign className="w-3 h-3 text-green-600 dark:text-green-400" />}
-                                  {component === 'UPLOAD' && <Upload className="w-3 h-3 text-indigo-600 dark:text-indigo-400" />}
-                                  {component === 'RELEASE' && <Calendar className="w-3 h-3 text-orange-600 dark:text-orange-400" />}
-                                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300">{component}</span>
-                                </div>
-                              ))}
+                            <div className="flex justify-between">
+                              <span className="text-gray-600 dark:text-gray-400">Status:</span>
+                              <span className="font-medium text-purple-800 dark:text-purple-200 capitalize">
+                                {selectedTask.ModularWorkflow.status?.replace('_', ' ') || 'In Progress'}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600 dark:text-gray-400">Created:</span>
+                              <span className="font-medium text-purple-800 dark:text-purple-200">
+                                {new Date(selectedTask.ModularWorkflow.createdAt).toLocaleDateString()}
+                              </span>
                             </div>
                           </div>
-                        )}
-
-                        {/* Component Data */}
-                        {selectedTask.ModularWorkflow.componentData && Object.keys(selectedTask.ModularWorkflow.componentData).length > 0 && (
-                          <div>
-                            <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              Component Data:
-                            </div>
-                            <div className="bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200/50 dark:border-gray-700/50 rounded-md p-3 font-mono text-xs">
-                              {Object.entries(selectedTask.ModularWorkflow.componentData).map(([key, value]) => (
-                                <div key={key} className="text-gray-600 dark:text-gray-400">
-                                  <span className="text-gray-800 dark:text-gray-200">{key}:</span> {JSON.stringify(value)}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Drive Link */}
-                        {selectedTask.ModularWorkflow.driveLink && (
-                          <div className="flex items-center space-x-2">
-                            <ExternalLink className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Google Drive:</span>
-                            <a
-                              href={selectedTask.ModularWorkflow.driveLink}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline text-sm truncate"
-                            >
-                              {selectedTask.ModularWorkflow.driveLink}
-                            </a>
-                          </div>
-                        )}
+                        </div>
                       </div>
-                    ) : selectedTask.ContentSubmission ? (
-                      <div className="space-y-3 p-6 bg-gradient-to-br from-amber-50/80 to-orange-50/80 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200/40 dark:border-amber-700/40 rounded-xl shadow-sm backdrop-blur-sm">
-                        {/* Legacy Content Submission */}
-                        <div className="flex items-start space-x-3">
-                          <Tag className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                              Legacy {selectedTask.ContentSubmission.submissionType} - {selectedTask.ContentSubmission.modelName}
-                            </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              Priority: {selectedTask.ContentSubmission.priority}
-                            </div>
+
+                      {/* Content Description */}
+                      {selectedTask.ModularWorkflow.contentDescription && (
+                        <div className="p-4 bg-gradient-to-r from-green-50/80 to-emerald-50/80 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200/50 dark:border-green-700/50">
+                          <div className="flex items-center gap-3 mb-3">
+                            <MessageCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+                            <h5 className="font-semibold text-green-900 dark:text-green-100">Description</h5>
+                          </div>
+                          <div className="text-sm text-green-800 dark:text-green-200 leading-relaxed">
+                            {selectedTask.ModularWorkflow.contentDescription}
                           </div>
                         </div>
+                      )}
 
-                        {/* Release Information */}
-                        {(selectedTask.ContentSubmission.releaseDate || selectedTask.ContentSubmission.releaseTime) && (
-                          <div className="flex items-center space-x-2">
-                            <Calendar className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Release:</span>
-                            <span className="text-sm text-gray-600 dark:text-gray-400">
-                              {selectedTask.ContentSubmission.releaseDate} {selectedTask.ContentSubmission.releaseTime}
-                            </span>
+                      {/* Component Features */}
+                      {selectedTask.ModularWorkflow.selectedComponents && selectedTask.ModularWorkflow.selectedComponents.length > 0 && (
+                        <div className="p-4 bg-gradient-to-r from-orange-50/80 to-amber-50/80 dark:from-orange-900/20 dark:to-amber-900/20 rounded-lg border border-orange-200/50 dark:border-orange-700/50">
+                          <div className="flex items-center gap-3 mb-3">
+                            <Settings className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                            <h5 className="font-semibold text-orange-900 dark:text-orange-100">Workflow Components</h5>
                           </div>
-                        )}
+                          <div className="flex flex-wrap gap-2">
+                            {selectedTask.ModularWorkflow.selectedComponents.map((component) => {
+                              const componentInfo = selectedTask.ModularWorkflow?.componentData;
+                              let displayValue = '';
 
-                        {/* Minimum Price */}
-                        {selectedTask.ContentSubmission.minimumPrice && (
-                          <div className="flex items-center space-x-2">
-                            <DollarSign className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Minimum Price:</span>
-                            <span className="text-sm text-gray-600 dark:text-gray-400">
-                              {selectedTask.ContentSubmission.minimumPrice}
-                            </span>
+                              if (component === 'pricing' && componentInfo?.basePrice) {
+                                displayValue = `$${componentInfo.basePrice}`;
+                              } else if (component === 'release' && componentInfo?.releaseDate) {
+                                displayValue = new Date(componentInfo.releaseDate).toLocaleDateString();
+                              }
+
+                              return (
+                                <div key={component} className="flex items-center space-x-1.5 px-3 py-1.5 bg-white/90 dark:bg-gray-800/90 border border-orange-200/50 dark:border-orange-600/50 rounded-md shadow-sm">
+                                  {component === 'pricing' && <DollarSign className="w-4 h-4 text-green-600 dark:text-green-400" />}
+                                  {component === 'upload' && <Upload className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />}
+                                  {component === 'release' && <Calendar className="w-4 h-4 text-orange-600 dark:text-orange-400" />}
+                                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 capitalize">
+                                    {component}
+                                  </span>
+                                  {displayValue && (
+                                    <span className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+                                      {displayValue}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
-                        )}
+                        </div>
+                      )}
 
-                        {/* Drive Link */}
+                      {/* Drive Assets */}
+                      {selectedTask.ModularWorkflow.driveLink && (
+                        <div className="p-4 bg-gradient-to-r from-cyan-50/80 to-sky-50/80 dark:from-cyan-900/20 dark:to-sky-900/20 rounded-lg border border-cyan-200/50 dark:border-cyan-700/50">
+                          <div className="flex items-center gap-3 mb-3">
+                            <ExternalLink className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                            <h5 className="font-semibold text-cyan-900 dark:text-cyan-100">Assets & Resources</h5>
+                          </div>
+                          <a
+                            href={selectedTask.ModularWorkflow.driveLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition-colors duration-200 text-sm font-medium"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            Open Google Drive Folder
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  ) : selectedTask.ContentSubmission ? (
+                    <div className="space-y-4">
+                      {/* Legacy Content Submission */}
+                      <div className="p-4 bg-gradient-to-r from-amber-50/80 to-orange-50/80 dark:from-amber-900/20 dark:to-orange-900/20 rounded-lg border border-amber-200/50 dark:border-amber-700/50">
+                        <div className="flex items-center gap-3 mb-3">
+                          <Tag className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                          <h5 className="font-semibold text-amber-900 dark:text-amber-100">Legacy Submission</h5>
+                        </div>
+                        <div className="space-y-2 text-sm text-amber-800 dark:text-amber-200">
+                          <div className="flex justify-between">
+                            <span className="text-amber-600 dark:text-amber-400">Type:</span>
+                            <span className="font-medium">{selectedTask.ContentSubmission.submissionType}</span>
+                          </div>
+                          {selectedTask.ContentSubmission.minimumPrice && (
+                            <div className="flex justify-between">
+                              <span className="text-amber-600 dark:text-amber-400">Price:</span>
+                              <span className="font-medium">${selectedTask.ContentSubmission.minimumPrice}</span>
+                            </div>
+                          )}
+                          {selectedTask.ContentSubmission.releaseDate && (
+                            <div className="flex justify-between">
+                              <span className="text-amber-600 dark:text-amber-400">Release:</span>
+                              <span className="font-medium">
+                                {selectedTask.ContentSubmission.releaseDate} {selectedTask.ContentSubmission.releaseTime}
+                              </span>
+                            </div>
+                          )}
+                        </div>
                         {selectedTask.ContentSubmission.driveLink && (
-                          <div className="flex items-center space-x-2">
-                            <ExternalLink className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Google Drive:</span>
+                          <div className="mt-3">
                             <a
                               href={selectedTask.ContentSubmission.driveLink}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline text-sm truncate"
+                              className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-md transition-colors duration-200 text-sm"
                             >
-                              {selectedTask.ContentSubmission.driveLink}
+                              <ExternalLink className="w-3 h-3" />
+                              Drive Folder
                             </a>
                           </div>
                         )}
                       </div>
-                    ) : null}
-                  </div>
-                )}
+                    </div>
+                  ) : (
+                    <div className="text-gray-400 dark:text-gray-500 italic bg-gray-50/50 dark:bg-gray-800/50 rounded-lg p-4 border border-gray-200/50 dark:border-gray-700/50">
+                      No workflow details available
+                    </div>
+                  )}
+                </div>
 
                 {/* Attachments */}
                 <div className="min-w-0">

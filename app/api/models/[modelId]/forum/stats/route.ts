@@ -37,7 +37,7 @@ export async function GET(
       // Total posts in threads for this model
       prisma.post.count({
         where: {
-          thread: {
+          Thread: {
             modelId,
           },
         },

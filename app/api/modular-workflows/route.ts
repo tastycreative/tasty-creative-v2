@@ -5,11 +5,34 @@ import { publishNotification } from '@/lib/ably';
 import { sendOTPPTRTaskNotificationEmail } from '@/lib/email';
 import { generateTaskUrl } from '@/lib/taskUtils';
 
+// Enhanced component data types for pricing
+interface PricingComponentData {
+  pricingType?: string;        // The selected content type
+  basePrice?: string;          // The price value
+  pricingItem?: string;        // Which pricing item was selected
+  pricingSource?: 'dynamic' | 'manual';  // Track if price came from DB or manual entry
+}
+
+interface ReleaseComponentData {
+  releaseDate?: string;
+  releaseTime?: string;
+  releaseTimezone?: string;
+  priority?: string;
+}
+
+interface PPVBundleComponentData {
+  originalPollReference?: string;  // Reference to original poll for PPV/Bundle
+}
+
+interface ComponentData extends PricingComponentData, ReleaseComponentData, PPVBundleComponentData {
+  [key: string]: any;
+}
+
 interface ModularWorkflowData {
   submissionType: 'otp' | 'ptr';
-  contentStyle: 'normal' | 'game' | 'poll' | 'livestream';
+  contentStyle: 'normal' | 'poll' | 'game' | 'ppv' | 'bundle';
   selectedComponents: string[];
-  componentData?: Record<string, any>;
+  componentData?: ComponentData;
   workflowTemplate?: string;
 
   // Base fields
@@ -40,41 +63,42 @@ interface WorkflowColumn {
 }
 
 const WORKFLOW_COLUMNS: Record<string, WorkflowColumn[]> = {
-  // Normal WP & Poll Posts Workflow: Wall Post → PG → QA → Deploy
+  // OTP Wall Posts: Standard team workflow
   'normal': [
-    { label: 'Wall Post Team', status: 'wall_post', position: 0, color: '#3B82F6', description: 'Content sourcing and initial processing' },
-    { label: 'PG Team', status: 'pg_team', position: 1, color: '#8B5CF6', description: 'Caption creation and content enhancement' },
-    { label: 'QA Team', status: 'qa', position: 2, color: '#F59E0B', description: 'Quality assurance and final approval' },
-    { label: 'Deploy', status: 'deploy', position: 3, color: '#10B981', description: 'Content published' }
+    { label: 'Content Team', status: 'content_team', position: 0, color: '#3B82F6', description: 'Model uploads content, content team processes' },
+    { label: 'PGT', status: 'pgt', position: 1, color: '#8B5CF6', description: 'Post Generation Team creates captions' },
+    { label: 'Flyer Team', status: 'flyer_team', position: 2, color: '#EC4899', description: 'Creates GIF previews and visuals' },
+    { label: 'OTP Manager/QA', status: 'otp_manager_qa', position: 3, color: '#F59E0B', description: 'Final approval and quality check' },
+    { label: 'Posted', status: 'posted', position: 4, color: '#10B981', description: 'Published to model account' }
   ],
   'poll': [
-    { label: 'Wall Post Team', status: 'wall_post', position: 0, color: '#3B82F6', description: 'Content sourcing and initial processing' },
-    { label: 'PG Team', status: 'pg_team', position: 1, color: '#8B5CF6', description: 'Caption creation and content enhancement' },
-    { label: 'QA Team', status: 'qa', position: 2, color: '#F59E0B', description: 'Quality assurance and final approval' },
-    { label: 'Deploy', status: 'deploy', position: 3, color: '#10B981', description: 'Content published' }
+    { label: 'Content Team', status: 'content_team', position: 0, color: '#3B82F6', description: 'Poll content processing' },
+    { label: 'PGT', status: 'pgt', position: 1, color: '#8B5CF6', description: 'Poll questions and engagement copy' },
+    { label: 'Flyer Team', status: 'flyer_team', position: 2, color: '#EC4899', description: 'Poll visual design' },
+    { label: 'OTP Manager/QA', status: 'otp_manager_qa', position: 3, color: '#F59E0B', description: 'Poll testing and approval' },
+    { label: 'Posted', status: 'posted', position: 4, color: '#10B981', description: 'Poll published' }
   ],
-  // PPV/Bundle Posts Workflow: Wall Post → PG → Flyer → QA → Deploy
-  'ppv': [
-    { label: 'Wall Post Team', status: 'wall_post', position: 0, color: '#3B82F6', description: 'Poll analysis and PPV setup' },
-    { label: 'PG Team', status: 'pg_team', position: 1, color: '#8B5CF6', description: 'Content linking and captions' },
-    { label: 'Flyer Team', status: 'flyer_team', position: 2, color: '#EC4899', description: 'Promotional graphics with pricing' },
-    { label: 'QA Team', status: 'qa', position: 3, color: '#F59E0B', description: 'Content & pricing review' },
-    { label: 'Deploy', status: 'deploy', position: 4, color: '#10B981', description: 'PPV publication' }
-  ],
-  // Game Posts Workflow: Flyer → PG → QA → Deploy
   'game': [
-    { label: 'Flyer Team', status: 'flyer_team', position: 0, color: '#EC4899', description: 'Game setup and pricing tiers' },
-    { label: 'PG Team', status: 'pg_team', position: 1, color: '#8B5CF6', description: 'Game content and instructions' },
-    { label: 'QA Team', status: 'qa', position: 2, color: '#F59E0B', description: 'Functionality testing' },
-    { label: 'Deploy', status: 'deploy', position: 3, color: '#10B981', description: 'Interactive publication' }
+    { label: 'Content Team', status: 'content_team', position: 0, color: '#3B82F6', description: 'Game content processing' },
+    { label: 'PGT', status: 'pgt', position: 1, color: '#8B5CF6', description: 'Game rules and instructions' },
+    { label: 'Flyer Team', status: 'flyer_team', position: 2, color: '#EC4899', description: 'Game graphics and GIF previews' },
+    { label: 'OTP Manager/QA', status: 'otp_manager_qa', position: 3, color: '#F59E0B', description: 'Game testing and approval' },
+    { label: 'Posted', status: 'posted', position: 4, color: '#10B981', description: 'Game launched' }
   ],
-  // Livestream follows similar pattern to PPV
-  'livestream': [
-    { label: 'Wall Post Team', status: 'wall_post', position: 0, color: '#3B82F6', description: 'Content sourcing and initial processing' },
-    { label: 'PG Team', status: 'pg_team', position: 1, color: '#8B5CF6', description: 'Caption creation and content enhancement' },
-    { label: 'Flyer Team', status: 'flyer_team', position: 2, color: '#EC4899', description: 'Visual design and promotional materials' },
-    { label: 'QA Team', status: 'qa', position: 3, color: '#F59E0B', description: 'Quality assurance and final approval' },
-    { label: 'Deploy', status: 'deploy', position: 4, color: '#10B981', description: 'Content published' }
+  // PTR Content: Model-requested dates (high priority)
+  'ppv': [
+    { label: 'Content Team', status: 'content_team', position: 0, color: '#9333EA', description: 'PPV content processing (PRIORITY)' },
+    { label: 'PGT', status: 'pgt', position: 1, color: '#8B5CF6', description: 'PPV descriptions and pricing copy' },
+    { label: 'Flyer Team', status: 'flyer_team', position: 2, color: '#EC4899', description: 'PPV promotional materials and GIFs' },
+    { label: 'OTP Manager/QA', status: 'otp_manager_qa', position: 3, color: '#F59E0B', description: 'PPV approval and pricing verification' },
+    { label: 'Posted', status: 'posted', position: 4, color: '#10B981', description: 'PPV content released on schedule' }
+  ],
+  'bundle': [
+    { label: 'Content Team', status: 'content_team', position: 0, color: '#EA580C', description: 'Bundle content processing (PRIORITY)' },
+    { label: 'PGT', status: 'pgt', position: 1, color: '#8B5CF6', description: 'Bundle descriptions and collection copy' },
+    { label: 'Flyer Team', status: 'flyer_team', position: 2, color: '#EC4899', description: 'Bundle promotional materials' },
+    { label: 'OTP Manager/QA', status: 'otp_manager_qa', position: 3, color: '#F59E0B', description: 'Bundle approval and content verification' },
+    { label: 'Posted', status: 'posted', position: 4, color: '#10B981', description: 'Bundle released on model date' }
   ]
 };
 
@@ -123,28 +147,13 @@ async function createWorkflowColumns(teamId: string, contentStyle: string): Prom
   console.log('✅ Created', columns.length, 'workflow columns for team:', teamId);
 }
 
-// Helper function to find team by name or create workflow-compatible status
-async function findOrCreateWorkflowTeam(teamName: string): Promise<any> {
-  // Try to find existing team by name
-  const team = await prisma.podTeam.findFirst({
-    where: {
-      name: {
-        contains: teamName.replace(' Team', ''),
-        mode: 'insensitive'
-      }
-    },
-    select: { id: true, name: true, projectPrefix: true }
-  });
-
-  if (team) return team;
-
-  // If no team found, return a mock team structure for workflow compatibility
-  return {
-    id: `workflow_${teamName.toLowerCase().replace(/\s+/g, '_')}`,
-    name: teamName,
-    projectPrefix: teamName.split(' ').map(w => w[0]).join('').toUpperCase()
-  };
+// Helper function to get team assignment (simplified to use existing team)
+function getTeamForWorkflow(): string {
+  // For now, use the existing OTP-PTR team for all workflows
+  // Focus on OTP vs PTR functionality rather than team separation
+  return 'OTP-PTR'; // This will match your existing team name
 }
+
 
 // Function to send notifications for modular workflows with enhanced team support
 async function sendModularWorkflowNotifications({
@@ -421,14 +430,32 @@ export async function POST(request: NextRequest) {
 
     const contentStyleMap = {
       'normal': 'NORMAL',
-      'game': 'GAME',
       'poll': 'POLL',
-      'livestream': 'LIVESTREAM'
+      'game': 'GAME',
+      'ppv': 'PPV',
+      'bundle': 'BUNDLE'
     };
 
     const workflowPriority = priorityMap[data.priority as keyof typeof priorityMap];
     const workflowSubmissionType = data.submissionType.toUpperCase() as 'OTP' | 'PTR';
     const workflowContentStyle = contentStyleMap[data.contentStyle as keyof typeof contentStyleMap];
+
+    // Validate that all mappings succeeded
+    if (!workflowPriority) {
+      console.error('❌ Invalid priority:', data.priority);
+      return NextResponse.json({ error: `Invalid priority: ${data.priority}` }, { status: 400 });
+    }
+
+    if (!workflowContentStyle) {
+      console.error('❌ Invalid contentStyle:', data.contentStyle);
+      return NextResponse.json({ error: `Invalid contentStyle: ${data.contentStyle}. Valid options: ${Object.keys(contentStyleMap).join(', ')}` }, { status: 400 });
+    }
+
+    console.log('✅ Mapped values:', {
+      priority: `${data.priority} → ${workflowPriority}`,
+      submissionType: `${data.submissionType} → ${workflowSubmissionType}`,
+      contentStyle: `${data.contentStyle} → ${workflowContentStyle}`
+    });
 
     // Get workflow columns for this content style
     const workflowColumns = getWorkflowColumns(data.contentStyle);
@@ -436,23 +463,51 @@ export async function POST(request: NextRequest) {
 
     console.log('📋 Workflow columns for', data.contentStyle, ':', workflowColumns.map(col => col.label).join(' → '));
 
-    // Determine primary team from manual assignments or fallback
-    let primaryTeamId = data.teamAssignments?.primaryTeamId || data.teamId;
+    // Simplified team assignment - use existing OTP-PTR team for all workflows
+    const targetTeamName = getTeamForWorkflow();
+    console.log('🎯 Assigning workflow to team:', targetTeamName);
+    console.log('📊 Submission Type:', data.submissionType, '| Content Style:', data.contentStyle);
 
-    // Find the primary team
+    // Find the OTP-PTR team or use manual assignment
     let assignedTeam;
-    if (primaryTeamId) {
+    const fallbackTeamId = data.teamAssignments?.primaryTeamId || data.teamId;
+
+    if (fallbackTeamId) {
+      // Use manually specified team
       assignedTeam = await prisma.podTeam.findUnique({
-        where: { id: primaryTeamId }
+        where: { id: fallbackTeamId }
       });
       if (!assignedTeam) {
-        throw new Error(`Primary team with ID ${primaryTeamId} not found`);
+        throw new Error(`Specified team with ID ${fallbackTeamId} not found`);
       }
+      console.log('✅ Using manually assigned team:', assignedTeam.name);
     } else {
-      // Fallback to finding team by name or create one
-      assignedTeam = await findOrCreateWorkflowTeam('Default Team');
-      primaryTeamId = assignedTeam.id;
+      // Find OTP-PTR team or use first available team
+      assignedTeam = await prisma.podTeam.findFirst({
+        where: {
+          name: {
+            contains: targetTeamName,
+            mode: 'insensitive'
+          },
+          isActive: true
+        }
+      });
+
+      if (!assignedTeam) {
+        // Fallback to first available team
+        assignedTeam = await prisma.podTeam.findFirst({
+          where: { isActive: true },
+          orderBy: { createdAt: 'asc' }
+        });
+        if (!assignedTeam) {
+          throw new Error('No active teams found');
+        }
+        console.log('📍 Using fallback team:', assignedTeam.name);
+      } else {
+        console.log('✅ Found target team:', assignedTeam.name);
+      }
     }
+
 
     // Validate additional teams if provided
     let additionalTeams: any[] = [];
@@ -474,12 +529,81 @@ export async function POST(request: NextRequest) {
     // Create workflow columns in database for this team
     await createWorkflowColumns(assignedTeam.id, data.contentStyle);
 
+    // Get the actual columns from the database for this team
+    const actualColumns = await prisma.boardColumn.findMany({
+      where: {
+        teamId: assignedTeam.id,
+        isActive: true
+      },
+      orderBy: {
+        position: 'asc'
+      }
+    });
+
+    // Use the first actual column's status instead of the theoretical one
+    const firstColumnStatus = actualColumns.length > 0 ? actualColumns[0].status : firstColumn.status;
+    console.log('📋 Using actual first column status:', firstColumnStatus, 'for team:', assignedTeam.name);
+
     console.log('✅ Primary team for workflow:', assignedTeam.name);
     if (additionalTeams.length > 0) {
       console.log('✅ Additional teams:', additionalTeams.map(t => t.name).join(', '));
     }
 
-    // Create modular workflow record
+    // Process pricing data if included
+    let pricingInfo = '';
+    if (data.selectedComponents.includes('pricing') && data.componentData) {
+      const pricingData = data.componentData as PricingComponentData;
+      if (pricingData.pricingType || pricingData.basePrice) {
+        pricingInfo = `\nPricing: ${pricingData.pricingType || 'Custom'} - $${pricingData.basePrice || 'TBD'}`;
+        if (pricingData.pricingSource === 'dynamic') {
+          pricingInfo += ' (from model database)';
+        }
+      }
+    }
+
+    // Process release schedule if included
+    let releaseInfo = '';
+    if (data.selectedComponents.includes('release') && data.componentData) {
+      const releaseData = data.componentData as ReleaseComponentData;
+      if (releaseData.releaseDate) {
+        releaseInfo = `\nRelease: ${releaseData.releaseDate}`;
+        if (releaseData.releaseTime) {
+          releaseInfo += ` at ${releaseData.releaseTime}`;
+        }
+        if (releaseData.releaseTimezone) {
+          releaseInfo += ` (${releaseData.releaseTimezone})`;
+        }
+      }
+    }
+
+    // Process PPV/Bundle specific fields
+    let ppvBundleInfo = '';
+    if ((data.contentStyle === 'ppv' || data.contentStyle === 'bundle') && data.componentData) {
+      const ppvBundleData = data.componentData as PPVBundleComponentData;
+      if (ppvBundleData.originalPollReference) {
+        ppvBundleInfo = `\nOriginal Poll Reference: ${ppvBundleData.originalPollReference}`;
+      }
+    }
+
+    // Log the values being passed to Prisma before creation
+    console.log('🔍 Values being passed to Prisma ModularWorkflow.create:', {
+      submissionType: workflowSubmissionType,
+      contentStyle: workflowContentStyle,
+      priority: workflowPriority,
+      modelName: data.modelName
+    });
+
+    // Validate that workflowContentStyle is not undefined
+    if (!workflowContentStyle) {
+      console.error('❌ workflowContentStyle is undefined after mapping!');
+      console.error('Original contentStyle:', data.contentStyle);
+      console.error('ContentStyleMap:', contentStyleMap);
+      return NextResponse.json({
+        error: `ContentStyle mapping failed. Received: '${data.contentStyle}', Expected one of: ${Object.keys(contentStyleMap).join(', ')}`
+      }, { status: 400 });
+    }
+
+    // Create modular workflow record with enhanced pricing data
     const workflow = await (prisma as any).modularWorkflow.create({
       data: {
         id: `mw_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
@@ -494,6 +618,8 @@ export async function POST(request: NextRequest) {
         contentDescription: data.contentDescription,
         attachments: data.attachments || [],
         estimatedDuration: data.estimatedDuration,
+        releaseTimezone: data.selectedComponents.includes('release') && data.componentData ?
+          (data.componentData as ReleaseComponentData).releaseTimezone : null,
         teamAssignments: {
           primaryTeamId: assignedTeam.id,
           additionalTeamIds: data.teamAssignments?.additionalTeamIds || [],
@@ -504,7 +630,18 @@ export async function POST(request: NextRequest) {
           contentStyle: data.contentStyle,
           components: data.selectedComponents,
           workflowColumns: workflowColumns,
-          currentStep: 0
+          currentStep: 0,
+          // Store pricing metadata for analytics
+          pricingMetadata: data.selectedComponents.includes('pricing') ? {
+            pricingType: (data.componentData as PricingComponentData)?.pricingType,
+            basePrice: (data.componentData as PricingComponentData)?.basePrice,
+            pricingSource: (data.componentData as PricingComponentData)?.pricingSource,
+            pricingItem: (data.componentData as PricingComponentData)?.pricingItem
+          } : null,
+          // Store PPV/Bundle metadata
+          ppvBundleMetadata: (data.contentStyle === 'ppv' || data.contentStyle === 'bundle') ? {
+            originalPollReference: (data.componentData as PPVBundleComponentData)?.originalPollReference
+          } : null
         },
         createdById: session.user.id!,
         teamId: assignedTeam.id,
@@ -525,48 +662,66 @@ export async function POST(request: NextRequest) {
 
     const taskPriority = taskPriorityMap[workflowPriority as keyof typeof taskPriorityMap];
 
-    // Build enhanced task description with modular context
+    // Build enhanced task description with modular context and pricing info
     let taskDescription = `Modular Workflow: ${data.contentStyle.toUpperCase()} Content for ${data.modelName}\n\n`;
-    taskDescription += `Components: ${data.selectedComponents.join(', ')}\n\n`;
-    taskDescription += `${data.contentDescription}\n\n`;
-    taskDescription += `Google Drive: ${data.driveLink}`;
+    taskDescription += `Components: ${data.selectedComponents.join(', ')}\n`;
 
-    if (data.componentData && Object.keys(data.componentData).length > 0) {
-      taskDescription += `\n\n--- Component Data ---`;
-      Object.entries(data.componentData).forEach(([key, value]) => {
-        taskDescription += `\n${key}: ${value}`;
-      });
+    // Add pricing information to task description
+    if (pricingInfo) {
+      taskDescription += pricingInfo + '\n';
     }
+
+    // Add release information to task description
+    if (releaseInfo) {
+      taskDescription += releaseInfo + '\n';
+    }
+
+    // Add PPV/Bundle reference information
+    if (ppvBundleInfo) {
+      taskDescription += ppvBundleInfo + '\n';
+    }
+
+    // Add the user's description if provided
+    if (data.contentDescription && data.contentDescription.trim()) {
+      taskDescription += `\n${data.contentDescription}\n`;
+    }
+
+    taskDescription += `\nGoogle Drive: ${data.driveLink}`;
 
     // Create the task automatically with modular context and workflow-based status
     const task = await prisma.task.create({
       data: {
         title: `${workflowSubmissionType} ${data.contentStyle.toUpperCase()} - ${data.modelName}`,
         description: taskDescription,
-        status: firstColumn.status, // Use first workflow column status
+        status: firstColumnStatus, // Use actual column status from database
         priority: taskPriority as any,
         podTeamId: assignedTeam.id,
         assignedTo: null,
         createdById: session.user.id!,
-        attachments: data.attachments || [],
-        // Store modular workflow data
-        selectedComponents: data.selectedComponents,
-        componentData: data.componentData || {}
+        attachments: data.attachments || []
+        // Note: selectedComponents and componentData are stored in ModularWorkflow, not Task
       }
-    } as any);
+    });
 
     console.log('📋 Task created:', task.id, 'for team:', assignedTeam.name);
 
-    // Link task to workflow
-    const updatedWorkflow = await (prisma as any).modularWorkflow.update({
-      where: { id: workflow.id },
-      data: {
-        taskId: task.id,
-        status: 'TASK_CREATED',
-        processedAt: new Date(),
-        updatedAt: new Date()
-      }
-    });
+    // Link task to workflow (if ModularWorkflow model exists in schema)
+    let updatedWorkflow = workflow; // Default to original workflow
+    try {
+      updatedWorkflow = await (prisma as any).modularWorkflow.update({
+        where: { id: workflow.id },
+        data: {
+          taskId: task.id,
+          status: 'TASK_CREATED',
+          processedAt: new Date(),
+          updatedAt: new Date()
+        }
+      });
+      console.log('✅ Workflow linked to task:', updatedWorkflow.id);
+    } catch (linkError) {
+      console.warn('⚠️ Could not link workflow to task (ModularWorkflow model may not exist):', linkError);
+      // Continue without linking - the task was still created successfully
+    }
 
     // Create task activity history
     await (prisma as any).taskActivityHistory.create({
@@ -598,12 +753,23 @@ export async function POST(request: NextRequest) {
       selectedComponents: data.selectedComponents
     });
 
+    // Log pricing data if present for debugging
+    if (data.selectedComponents.includes('pricing') && data.componentData) {
+      console.log('💰 Pricing data saved:', {
+        pricingType: (data.componentData as PricingComponentData).pricingType,
+        basePrice: (data.componentData as PricingComponentData).basePrice,
+        pricingSource: (data.componentData as PricingComponentData).pricingSource,
+        pricingItem: (data.componentData as PricingComponentData).pricingItem
+      });
+    }
+
     return NextResponse.json({
       success: true,
       workflow: {
         id: workflow.id,
         contentStyle: data.contentStyle,
         selectedComponents: data.selectedComponents,
+        componentData: data.componentData,
         status: updatedWorkflow.status,
         createdAt: workflow.createdAt
       },
@@ -611,7 +777,8 @@ export async function POST(request: NextRequest) {
         id: task.id,
         title: task.title,
         teamName: assignedTeam.name,
-        priority: task.priority
+        priority: task.priority,
+        description: taskDescription
       },
       message: 'Modular workflow processed and task created successfully'
     });

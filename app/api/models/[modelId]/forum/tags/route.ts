@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
 const createTagSchema = z.object({
@@ -14,21 +14,25 @@ export async function GET(
   { params }: { params: Promise<{ modelId: string }> }
 ) {
   try {
+    const session = await auth();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
     const { modelId } = await params;
-    const tags = await prisma.tag.findMany({
+    const tags = await prisma.forumTag.findMany({
       where: {
         modelId: modelId,
       },
       include: {
         _count: {
           select: {
-            threadTags: true,
+            threads: true,
           },
         },
       },
       orderBy: [
         {
-          threadTags: {
+          threads: {
             _count: "desc",
           },
         },
@@ -43,7 +47,7 @@ export async function GET(
         id: tag.id,
         name: tag.name,
         color: tag.color,
-        threadCount: tag._count.threadTags,
+        threadCount: tag._count.threads,
         createdAt: tag.createdAt,
       })),
     });
@@ -93,11 +97,14 @@ export async function POST(
 
     const { name, color = "#6366F1" } = validation.data;
 
-    // Check if tag with this name already exists for this model
-    const existingTag = await prisma.tag.findUnique({
+    // Create slug from name
+    const slug = name.toLowerCase().trim().replace(/\s+/g, '-');
+
+    // Check if tag with this slug already exists for this model
+    const existingTag = await prisma.forumTag.findUnique({
       where: {
-        name_modelId: {
-          name: name.toLowerCase().trim(),
+        modelId_slug: {
+          slug: slug,
           modelId: modelId,
         },
       },
@@ -110,9 +117,10 @@ export async function POST(
       );
     }
 
-    const tag = await prisma.tag.create({
+    const tag = await prisma.forumTag.create({
       data: {
-        name: name.toLowerCase().trim(),
+        name: name.trim(),
+        slug: slug,
         color,
         modelId: modelId,
       },

@@ -14,7 +14,7 @@ import BoardHeader from './BoardHeader';
 import BoardFilters from './BoardFilters';
 import BoardSkeleton from './BoardSkeleton';
 import BoardGrid from './BoardGrid';
-import TaskDetailModal from './TaskDetailModal';
+import EnhancedTaskDetailModal from './EnhancedTaskDetailModal';
 import NewTaskModal from './NewTaskModal';
 
 // Utility function to make links clickable
@@ -860,7 +860,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
       {/* Task Detail Modal */}
       {selectedTask && (
-        <TaskDetailModal
+        <EnhancedTaskDetailModal
           selectedTask={selectedTask}
           isEditingTask={isEditingTask}
           editingTaskData={editingTaskData}

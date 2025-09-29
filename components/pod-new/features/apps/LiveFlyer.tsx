@@ -7,7 +7,7 @@ import { useState, FormEvent, ChangeEvent, useEffect, useRef } from "react";
 
 import { TIMEZONES } from "@/lib/lib";
 import { toast } from "sonner";
-import ModelsDropdown from "@/components/ModelsDropdown";
+import SharedModelsDropdown from "./SharedModelsDropdown";
 import {
   Select,
   SelectContent,
@@ -515,7 +515,7 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
 
             <form onSubmit={handleSubmit} className="relative grid grid-cols-2 gap-4">
               <div className="col-span-2">
-                <ModelsDropdown
+                <SharedModelsDropdown
                   formData={formData}
                   setFormData={setFormData}
                   isLoading={isLoading}

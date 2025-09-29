@@ -312,7 +312,7 @@ model ContentDetails {
 }
 
 model ClientModelDetails {
-  id                    String               @id @default(cuid())
+  id                    String   @id @default(cuid())
   full_name             String?
   age                   String?
   birthday              String?
@@ -328,8 +328,8 @@ model ClientModelDetails {
   interests             String?
   personality           String?
   amazon_wishlist       String?
-  createdAt             DateTime             @default(now())
-  updatedAt             DateTime             @updatedAt
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
   clothing_items        String?
   content_offered       String?
   custom_min_price      String?
@@ -344,41 +344,6 @@ model ClientModelDetails {
   verbiage_restrictions String?
   wall_restrictions     String?
   calendar_id           String?
-  status                String?
-  onboardingCompleted   Boolean?             @default(false)
-  onboardingProgress    OnboardingProgress[]
-}
-
-model OnboardingList {
-  id          String   @id @default(cuid())
-  stepNumber  Int
-  title       String
-  description String?
-  required    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  progress OnboardingProgress[]
-
-  @@index([stepNumber])
-}
-
-model OnboardingProgress {
-  id                   String    @id @default(cuid())
-  onboardingListId     String
-  clientModelDetailsId String
-  completed            Boolean   @default(false)
-  completedAt          DateTime?
-  notes                String?
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
-
-  OnboardingList     OnboardingList     @relation(fields: [onboardingListId], references: [id], onDelete: Cascade)
-  ClientModelDetails ClientModelDetails @relation(fields: [clientModelDetailsId], references: [id], onDelete: Cascade)
-
-  @@unique([onboardingListId, clientModelDetailsId])
-  @@index([clientModelDetailsId])
-  @@index([onboardingListId])
 }
 
 model PodTeam {
@@ -521,6 +486,7 @@ model ModularWorkflow {
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
   processedAt        DateTime?
+  releaseTimezone    String?
   createdBy          User               @relation("ModularWorkflowCreator", fields: [createdById], references: [id])
   task               Task?              @relation("ModularWorkflowTask", fields: [taskId], references: [id])
   notifications      Notification[]
@@ -867,6 +833,8 @@ enum ContentStyle {
   GAME
   POLL
   LIVESTREAM
+  PPV
+  BUNDLE
 }
 
 enum WorkflowStatus {

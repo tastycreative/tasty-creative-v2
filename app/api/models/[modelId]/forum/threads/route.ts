@@ -46,7 +46,7 @@ export async function GET(
     const where: any = {
       modelId,
       ...(query.category && query.category !== "all" && {
-        category: {
+        ForumCategory: {
           key: query.category.toUpperCase() as "GENERAL" | "QA" | "BUGS" | "SHOWCASE" | "RELEASES",
         },
       }),
@@ -54,7 +54,7 @@ export async function GET(
         OR: [
           { title: { contains: query.search, mode: "insensitive" } },
           {
-            posts: {
+            Post: {
               some: {
                 content_md: { contains: query.search, mode: "insensitive" },
               },
@@ -99,7 +99,7 @@ export async function GET(
     const threads = await prisma.thread.findMany({
       where: { ...where, ...cursorCondition },
       include: {
-        author: {
+        User: {
           select: {
             id: true,
             username: true,
@@ -108,7 +108,7 @@ export async function GET(
             role: true,
           },
         },
-        category: {
+        ForumCategory: {
           select: {
             id: true,
             key: true,
@@ -117,11 +117,11 @@ export async function GET(
         },
         _count: {
           select: {
-            posts: true,
-            watchers: true,
+            Post: true,
+            ThreadWatcher: true,
           },
         },
-        watchers: {
+        ThreadWatcher: {
           where: { userId: session.user.id },
           select: { id: true },
         },
@@ -139,21 +139,21 @@ export async function GET(
       id: thread.id,
       modelId: thread.modelId,
       title: thread.title,
-      categoryKey: thread.category.key.toLowerCase(),
+      categoryKey: thread.ForumCategory.key.toLowerCase(),
       author: {
-        id: thread.author.id,
-        username: thread.author.username,
-        name: thread.author.name,
-        image: thread.author.image,
-        role: thread.author.role,
+        id: thread.User.id,
+        username: thread.User.username,
+        name: thread.User.name,
+        image: thread.User.image,
+        role: thread.User.role,
       },
       pinned: thread.pinned,
       locked: thread.locked,
       solved: thread.solved,
       views: thread.views,
-      postCount: thread._count.posts,
-      watcherCount: thread._count.watchers,
-      watching: thread.watchers.length > 0,
+      postCount: thread._count.Post,
+      watcherCount: thread._count.ThreadWatcher,
+      watching: thread.ThreadWatcher.length > 0,
       lastActivity: thread.updatedAt.toISOString(),
       createdAt: thread.createdAt.toISOString(),
     }));

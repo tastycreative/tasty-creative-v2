@@ -25,8 +25,12 @@ export function useModerateThread() {
       );
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to moderate thread");
+        throw new Error("Failed to moderate thread");
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error('Authentication required');
       }
 
       return response.json();

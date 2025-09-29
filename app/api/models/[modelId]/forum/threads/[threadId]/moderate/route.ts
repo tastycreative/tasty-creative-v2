@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
 const moderateSchema = z.object({
@@ -10,7 +10,7 @@ const moderateSchema = z.object({
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { modelId: string; threadId: string } }
+  { params }: { params: Promise<{ modelId: string; threadId: string }> }
 ) {
   try {
     const session = await auth();
@@ -29,6 +29,7 @@ export async function POST(
     }
 
     const { action, reason } = validation.data;
+    const { modelId, threadId } = await params;
 
     // Check if user has moderation permissions
     const user = await prisma.user.findUnique({
@@ -47,8 +48,8 @@ export async function POST(
     // Check if thread exists
     const thread = await prisma.thread.findFirst({
       where: {
-        id: params.threadId,
-        modelId: params.modelId,
+        id: threadId,
+        modelId: modelId,
       },
     });
 
@@ -90,10 +91,10 @@ export async function POST(
     // Update thread and create moderation log
     const [updatedThread, moderationLog] = await prisma.$transaction([
       prisma.thread.update({
-        where: { id: params.threadId },
+        where: { id: threadId },
         data: updateData,
         include: {
-          author: {
+          User: {
             select: {
               id: true,
               username: true,
@@ -101,10 +102,10 @@ export async function POST(
               role: true,
             },
           },
-          category: true,
+          ForumCategory: true,
           _count: {
             select: {
-              posts: true,
+              Post: true,
             },
           },
         },
@@ -112,14 +113,14 @@ export async function POST(
       prisma.moderationLog.create({
         data: {
           actorId: session.user.id,
-          action: action.toUpperCase(),
+          action: action.toUpperCase() as any,
           targetType: "THREAD",
-          targetId: params.threadId,
+          targetId: threadId,
           reason: reason || `User ${actionDescription}`,
-          metadata: {
-            modelId: params.modelId,
-            threadTitle: thread.title,
-          },
+          // metadata: {
+          //   modelId: modelId,
+          //   threadTitle: thread.title,
+          // },
         },
       }),
     ]);
@@ -132,9 +133,9 @@ export async function POST(
         pinned: updatedThread.pinned,
         locked: updatedThread.locked,
         solved: updatedThread.solved,
-        author: updatedThread.author,
-        category: updatedThread.category,
-        postCount: updatedThread._count.posts,
+        author: updatedThread.User,
+        category: updatedThread.ForumCategory,
+        postCount: updatedThread._count.Post,
         createdAt: updatedThread.createdAt,
         updatedAt: updatedThread.updatedAt,
       },
@@ -155,8 +156,8 @@ export async function POST(
 
 // Get moderation history for a thread
 export async function GET(
-  req: NextRequest,
-  { params }: { params: { modelId: string; threadId: string } }
+  _req: NextRequest,
+  { params }: { params: Promise<{ modelId: string; threadId: string }> }
 ) {
   try {
     const session = await auth();
@@ -164,13 +165,15 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { threadId } = await params;
+
     const logs = await prisma.moderationLog.findMany({
       where: {
-        targetId: params.threadId,
+        targetId: threadId,
         targetType: "THREAD",
       },
       include: {
-        actor: {
+        User: {
           select: {
             id: true,
             username: true,
@@ -189,9 +192,9 @@ export async function GET(
         id: log.id,
         action: log.action,
         reason: log.reason,
-        actor: log.actor,
+        actor: log.User,
         createdAt: log.createdAt,
-        metadata: log.metadata,
+        // metadata: log.metadata || {},
       })),
     });
   } catch (error) {

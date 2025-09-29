@@ -31,7 +31,12 @@ export function useForumTags(modelId: string) {
       if (!response.ok) {
         throw new Error("Failed to fetch tags");
       }
-      
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error('Authentication required');
+      }
+
       return response.json();
     },
     enabled: !!modelId,
@@ -53,8 +58,12 @@ export function useCreateTag() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to create tag");
+        throw new Error("Failed to create tag");
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error('Authentication required');
       }
 
       return response.json();
@@ -83,7 +92,12 @@ export function useThreadTags(modelId: string, threadId: string) {
       if (!response.ok) {
         throw new Error("Failed to fetch thread tags");
       }
-      
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error('Authentication required');
+      }
+
       return response.json();
     },
     enabled: !!modelId && !!threadId,
@@ -108,8 +122,12 @@ export function useUpdateThreadTags() {
       );
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to update thread tags");
+        throw new Error("Failed to update thread tags");
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error('Authentication required');
       }
 
       return response.json();
@@ -149,7 +167,12 @@ export function useSearchThreadsByTags(modelId: string, tagIds: string[]) {
       if (!response.ok) {
         throw new Error("Failed to search threads by tags");
       }
-      
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error('Authentication required');
+      }
+
       return response.json();
     },
     enabled: !!modelId && tagIds.length > 0,

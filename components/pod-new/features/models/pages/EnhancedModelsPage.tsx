@@ -178,16 +178,6 @@ const PageHeader = ({
 }: PageHeaderProps) => {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-      <div className="space-y-1">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-          My Models
-          <div className="w-2 h-2 bg-primary-500 rounded-full animate-pulse" />
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Manage and track your model performance
-        </p>
-      </div>
-
       <div className="flex items-center gap-3">
         {onRefresh && (
           <RefreshButton isLoading={isLoading} onClick={onRefresh} size="md" />
@@ -287,17 +277,22 @@ const EnhancedModelsPage = ({
   );
 
   // Get the store setter
-  const setSelectedModel = useSelectedModelStore((state) => state.setSelectedModel);
+  const setSelectedModel = useSelectedModelStore(
+    (state) => state.setSelectedModel
+  );
 
   // Memoized event handlers
-  const handleModelClick = useCallback((model: ModelDetails) => {
-    // Save the model data to Zustand store before navigation
-    setSelectedModel(model);
-    
-    // Navigate using display name so the detail page can normalize
-    const encoded = encodeURIComponent(model.name);
-    window.location.href = `/apps/pod-new/my-models/${encoded}`;
-  }, [setSelectedModel]);
+  const handleModelClick = useCallback(
+    (model: ModelDetails) => {
+      // Save the model data to Zustand store before navigation
+      setSelectedModel(model);
+
+      // Navigate using display name so the detail page can normalize
+      const encoded = encodeURIComponent(model.name);
+      window.location.href = `/my-models/${encoded}`;
+    },
+    [setSelectedModel]
+  );
 
   const handleAddModel = useCallback(() => {
     // Add model logic would go here

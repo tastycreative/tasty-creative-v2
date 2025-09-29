@@ -394,7 +394,7 @@ const ThreadList: React.FC<{
   };
 
   const handleThreadClick = (threadId: string) => {
-    router.push(`/apps/pod-new/my-models/${modelId}/forum/thread/${threadId}`);
+    router.push(`/my-models/${modelId}/forum/thread/${threadId}`);
   };
 
   return (

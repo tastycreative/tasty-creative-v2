@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from "uuid";
 import { useState, FormEvent, ChangeEvent, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import ModelsDropdown from "@/components/ModelsDropdown";
+import SharedModelsDropdown from "./SharedModelsDropdown";
 import { DateTime } from "luxon";
 import ServerOffline from "@/components/ServerOffline";
 import ImageCropper from "@/components/ImageCropper";
@@ -26,6 +26,19 @@ export default function FTTFlyer({ modelName }: { modelName?: string }) {
     const checkAuth = async () => {
       try {
         const res = await fetch("/api/google/check-auth");
+
+        // Check if response is ok and content-type is JSON
+        if (!res.ok) {
+          setIsLoading(false);
+          return;
+        }
+
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          setIsLoading(false);
+          return;
+        }
+
         const data = await res.json();
 
         if (!data.authenticated) {
@@ -36,6 +49,18 @@ export default function FTTFlyer({ modelName }: { modelName?: string }) {
           const authRes = await fetch(
             `/api/google/auth?tab=${encodeURIComponent(currentTab)}`
           );
+
+          if (!authRes.ok) {
+            setIsLoading(false);
+            return;
+          }
+
+          const authContentType = authRes.headers.get("content-type");
+          if (!authContentType || !authContentType.includes("application/json")) {
+            setIsLoading(false);
+            return;
+          }
+
           const authData = await authRes.json();
 
           if (authData.authUrl) {
@@ -53,6 +78,7 @@ export default function FTTFlyer({ modelName }: { modelName?: string }) {
         }
       } catch (error) {
         console.error("Authentication check failed", error);
+        setIsLoading(false);
       }
     };
 
@@ -217,12 +243,17 @@ export default function FTTFlyer({ modelName }: { modelName?: string }) {
     try {
       const response = await fetch("/api/google-drive/list");
       if (response.ok) {
-        setIsAuthenticated(true);
-        const data = await response.json();
-        if (data.files) {
-          setGoogleFiles(data.files);
-          setCurrentFolder(data.currentFolder || null);
-          setParentFolder(data.parentFolder || null);
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          setIsAuthenticated(true);
+          const data = await response.json();
+          if (data.files) {
+            setGoogleFiles(data.files);
+            setCurrentFolder(data.currentFolder || null);
+            setParentFolder(data.parentFolder || null);
+          }
+        } else {
+          setIsAuthenticated(false);
         }
       } else {
         setIsAuthenticated(false);
@@ -453,7 +484,7 @@ export default function FTTFlyer({ modelName }: { modelName?: string }) {
               </div>
               <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <ModelsDropdown
+                  <SharedModelsDropdown
                     formData={formData}
                     setFormData={setFormData}
                     isLoading={isLoading}

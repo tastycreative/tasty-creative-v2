@@ -54,6 +54,12 @@ async function fetchForumStats(modelId: string): Promise<ForumStats> {
   if (!response.ok) {
     throw new Error('Failed to fetch forum stats');
   }
+
+  const contentType = response.headers.get("content-type");
+  if (!contentType || !contentType.includes("application/json")) {
+    throw new Error('Authentication required');
+  }
+
   return response.json();
 }
 
@@ -62,6 +68,12 @@ async function fetchForumCategories(modelId: string): Promise<ForumCategory[]> {
   if (!response.ok) {
     throw new Error('Failed to fetch categories');
   }
+
+  const contentType = response.headers.get("content-type");
+  if (!contentType || !contentType.includes("application/json")) {
+    throw new Error('Authentication required');
+  }
+
   return response.json();
 }
 
@@ -86,6 +98,12 @@ async function fetchForumThreads(
   if (!response.ok) {
     throw new Error('Failed to fetch threads');
   }
+
+  const contentType = response.headers.get("content-type");
+  if (!contentType || !contentType.includes("application/json")) {
+    throw new Error('Authentication required');
+  }
+
   return response.json();
 }
 
@@ -143,6 +161,12 @@ export function useCreateThread(modelId: string) {
       if (!response.ok) {
         throw new Error('Failed to create thread');
       }
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error('Authentication required');
+      }
+
       return response.json();
     },
     onSuccess: () => {
@@ -170,6 +194,12 @@ export function useCreatePost(modelId: string, threadId: string) {
       if (!response.ok) {
         throw new Error('Failed to create post');
       }
+
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error('Authentication required');
+      }
+
       return response.json();
     },
     onSuccess: () => {

@@ -21,7 +21,7 @@ export async function GET(
       include: {
         _count: {
           select: {
-            threads: true,
+            Thread: true,
           },
         },
       },
@@ -36,7 +36,7 @@ export async function GET(
       modelId: category.modelId,
       key: category.key.toLowerCase(),
       name: category.name,
-      threadCount: category._count.threads,
+      threadCount: category._count.Thread,
     }));
 
     return NextResponse.json(transformedCategories);
