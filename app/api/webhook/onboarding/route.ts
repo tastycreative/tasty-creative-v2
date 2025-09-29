@@ -45,12 +45,24 @@ export async function POST(request: NextRequest) {
 
     const clientDetails: any = await prisma.clientModelDetails.findUnique({ where: { id: clientModelDetailsId } })
 
-    // createdBy fallback: system@app.com -> ADMIN -> any user
-    let creator: any = await prisma.user.findUnique({ where: { email: 'system@app.com' } })
-    if (!creator) creator = await prisma.user.findFirst({ where: { role: 'ADMIN' } })
-    if (!creator) creator = await prisma.user.findFirst({})
-    if (!creator || !creator.id) {
-      return NextResponse.json({ success: false, error: 'No user available to create task' }, { status: 500 })
+    // Prefer a specific system user id when available, otherwise fall back to system@app.com.
+    // Use the provided id so tasks are consistently created by the same system account.
+    const SYSTEM_USER_ID = 'cmg4sw3ai0000l204y0ltt8lx'
+    let creator: any = await prisma.user.findUnique({ where: { id: SYSTEM_USER_ID } })
+    if (!creator) {
+      creator = await prisma.user.findUnique({ where: { email: 'system@app.com' } })
+    }
+    if (!creator) {
+      // Create a minimal system user record with the provided id if missing.
+      // Note: explicitly setting the id relies on Prisma allowing client-specified ids (cuid strings are allowed).
+      creator = await prisma.user.create({
+        data: {
+          id: SYSTEM_USER_ID,
+          email: 'system@app.com',
+          name: 'System',
+          role: 'GUEST'
+        }
+      })
     }
 
   const baseName = clientDetails?.full_name || clientDetails?.client_name || clientModelDetailsId
@@ -72,7 +84,7 @@ export async function POST(request: NextRequest) {
         podTeamId: onboardingTeam.id,
         assignedTo: null,
         createdById: creator.id,
-        attachments: [{ clientModelDetailsId }]
+  // No attachments for onboarding tasks
       } as any
     })
 
