@@ -1,96 +1,72 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/auth'
+import { createTaskActivity } from '@/lib/taskActivityHelper'
 
-const API_KEY = process.env.ONBOARD_API_KEY
-
+// Minimal onboarding webhook: only creates an automatic task assigned to the "Onboarding" team.
 export async function POST(request: NextRequest) {
   try {
     let body: any = {}
-    let rawBody = ''
     try {
-      rawBody = await request.text()
-      if (rawBody && rawBody.trim().length > 0) {
-        try {
-          body = JSON.parse(rawBody)
-        } catch (e) {
-          console.error('Failed to parse JSON body, rawBody:', rawBody)
-          body = {}
-        }
-      } else {
-        body = {}
-      }
+      const raw = await request.text()
+      body = raw && raw.trim().length > 0 ? JSON.parse(raw) : {}
     } catch (e) {
-      console.error('Error reading request body:', e)
       body = {}
     }
-  // Authentication disabled for now (accept unauthenticated requests).
-  // If you want API key or session auth, re-enable the checks here.
-  const headerKey = request.headers.get('x-api-key')
-  const url = new URL(request.url)
-  const queryKey = url.searchParams.get('key') || url.searchParams.get('api_key')
-  let sessionUserId: string | null = null
 
-    // allow passing params either in JSON body or as query params
-  const urlParams = new URL(request.url).searchParams
-  const clientModelDetailsId = body.clientModelDetailsId || urlParams.get('clientModelDetailsId') || urlParams.get('client_id')
-  let onboardingListId = body.onboardingListId || urlParams.get('onboardingListId') || urlParams.get('step_id') || urlParams.get('onboardingListId')
-  // Default to false when caller omits `completed` to avoid accidental auto-completion
-  const completed = typeof body.completed !== 'undefined' ? body.completed : (urlParams.get('completed') ? urlParams.get('completed') === 'true' : false)
-    const notes = body.notes || urlParams.get('notes') || null
+    const urlParams = new URL(request.url).searchParams
+    const clientModelDetailsId = body.clientModelDetailsId || urlParams.get('clientModelDetailsId') || urlParams.get('client_id')
     const createTask = typeof body.createTask !== 'undefined' ? body.createTask : (urlParams.get('createTask') === 'true')
-    const taskTeamId = body.taskTeamId || urlParams.get('taskTeamId') || urlParams.get('teamId') || null
     const taskTitle = body.taskTitle || urlParams.get('taskTitle') || null
     const taskDescription = body.taskDescription || urlParams.get('taskDescription') || null
-    const createdById = body.createdById || urlParams.get('createdById') || null
 
     if (!clientModelDetailsId) {
       return NextResponse.json({ error: 'Missing clientModelDetailsId (body or query)' }, { status: 400 })
     }
 
-    // If onboardingListId is not provided, pick the next required step for this client
-    let onboardingStep: any = null
-    if (!onboardingListId) {
-      const requiredSteps: any[] = await (prisma as any).onboardingList.findMany({ where: { required: true }, orderBy: { stepNumber: 'asc' } })
-      if (!requiredSteps || requiredSteps.length === 0) {
-        // No onboarding steps defined; mark onboardingCompleted = false and return
-        await (prisma as any).clientModelDetails.update({ where: { id: clientModelDetailsId }, data: { onboardingCompleted: false } })
-        return NextResponse.json({ error: 'No onboarding steps defined' }, { status: 400 })
-      }
-
-      // find completed progress for this client
-      const progressForClient: any[] = await (prisma as any).onboardingProgress.findMany({ where: { clientModelDetailsId }, select: { onboardingListId: true, completed: true } })
-      const completedSet = new Set(progressForClient.filter(p => p.completed).map(p => p.onboardingListId))
-
-      const nextStep = requiredSteps.find(s => !completedSet.has(s.id))
-      if (!nextStep) {
-        // all required steps already completed
-        await (prisma as any).clientModelDetails.update({ where: { id: clientModelDetailsId }, data: { onboardingCompleted: true } })
-        return NextResponse.json({ success: true, message: 'Onboarding already completed' })
-      }
-
-      onboardingStep = nextStep
-      onboardingListId = onboardingStep.id
-    } else {
-      onboardingStep = await (prisma as any).onboardingList.findUnique({ where: { id: onboardingListId } })
+    if (!createTask) {
+      return NextResponse.json({ success: true, message: 'createTask not set; webhook is no-op' })
     }
 
-    // Note: webhook no longer creates or updates OnboardingProgress rows.
-    // It will only compute the next required step and current completion status.
-    const requiredSteps: any[] = await (prisma as any).onboardingList.findMany({ where: { required: true }, select: { id: true } })
-    const requiredIds = requiredSteps.map((s: any) => s.id)
-    let completedCount = 0
-    if (requiredIds.length > 0) {
-      completedCount = await (prisma as any).onboardingProgress.count({ where: { clientModelDetailsId, onboardingListId: { in: requiredIds }, completed: true } })
+    const onboardingTeam = await prisma.podTeam.findFirst({ where: { name: 'Onboarding' }, select: { id: true } })
+    if (!onboardingTeam) {
+      return NextResponse.json({ success: false, error: 'Onboarding team not found' }, { status: 500 })
     }
-    const allDone = requiredIds.length > 0 ? completedCount >= requiredIds.length : false
 
-    // update client flag based on existing progress rows
-    await (prisma as any).clientModelDetails.update({ where: { id: clientModelDetailsId }, data: { onboardingCompleted: allDone } })
+    const clientDetails: any = await prisma.clientModelDetails.findUnique({ where: { id: clientModelDetailsId } })
 
-    return NextResponse.json({ success: true, onboardingStep, onboardingCompleted: allDone })
-  } catch (error) {
-    console.error('Onboarding webhook error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    // createdBy fallback: system@app.com -> ADMIN -> any user
+    let creator: any = await prisma.user.findUnique({ where: { email: 'system@app.com' } })
+    if (!creator) creator = await prisma.user.findFirst({ where: { role: 'ADMIN' } })
+    if (!creator) creator = await prisma.user.findFirst({})
+    if (!creator || !creator.id) {
+      return NextResponse.json({ success: false, error: 'No user available to create task' }, { status: 500 })
+    }
+
+    const title = taskTitle || `Onboarding task for ${clientDetails?.full_name || clientDetails?.client_name || clientModelDetailsId}`
+    let description = taskDescription || `Automatic onboarding task created for clientModelDetailsId=${clientModelDetailsId}`
+    if (!taskDescription && clientDetails) {
+      description += `\n\nClient: ${clientDetails.full_name || clientDetails.client_name || ''}`
+      if ((clientDetails as any).model_name) description += ` (${(clientDetails as any).model_name})`
+    }
+
+    const task = await prisma.task.create({
+      data: {
+        title,
+        description,
+        status: 'NOT_STARTED',
+        priority: 'MEDIUM',
+        podTeamId: onboardingTeam.id,
+        assignedTo: null,
+        createdById: creator.id,
+        attachments: [{ clientModelDetailsId }]
+      } as any
+    })
+
+    await createTaskActivity({ taskId: task.id, userId: creator.id, actionType: 'CREATED', description: `Automatic onboarding task created for clientModelDetailsId=${clientModelDetailsId}` })
+
+    return NextResponse.json({ success: true, task: { id: task.id, title: task.title } })
+  } catch (err) {
+    console.error('Onboarding webhook error', err)
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
   }
 }
