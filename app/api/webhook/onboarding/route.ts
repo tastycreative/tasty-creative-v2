@@ -15,7 +15,18 @@ export async function POST(request: NextRequest) {
 
     const urlParams = new URL(request.url).searchParams
     const clientModelDetailsId = body.clientModelDetailsId || urlParams.get('clientModelDetailsId') || urlParams.get('client_id')
-    const createTask = typeof body.createTask !== 'undefined' ? body.createTask : (urlParams.get('createTask') === 'true')
+    // robust createTask parsing: accept boolean, numeric, and common truthy strings
+    const rawCreateTask = typeof body.createTask !== 'undefined' ? body.createTask : urlParams.get('createTask')
+    function parseCreateTask(v: any) {
+      if (v === true || v === 1) return true
+      if (v === false || v === 0) return false
+      if (typeof v === 'string') {
+        const s = v.trim().toLowerCase()
+        return ['1', 'true', 'yes', 'y', 'on'].includes(s)
+      }
+      return Boolean(v)
+    }
+    const createTask = parseCreateTask(rawCreateTask)
     const taskTitle = body.taskTitle || urlParams.get('taskTitle') || null
     const taskDescription = body.taskDescription || urlParams.get('taskDescription') || null
 
@@ -42,7 +53,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'No user available to create task' }, { status: 500 })
     }
 
-    const title = taskTitle || `Onboarding task for ${clientDetails?.full_name || clientDetails?.client_name || clientModelDetailsId}`
+  const baseName = clientDetails?.full_name || clientDetails?.client_name || clientModelDetailsId
+  const modelName = (clientDetails as any)?.model_name
+  const title = taskTitle || `Onboarding task for ${baseName}${modelName ? ` (${modelName})` : ''}`
     let description = taskDescription || `Automatic onboarding task created for clientModelDetailsId=${clientModelDetailsId}`
     if (!taskDescription && clientDetails) {
       description += `\n\nClient: ${clientDetails.full_name || clientDetails.client_name || ''}`
