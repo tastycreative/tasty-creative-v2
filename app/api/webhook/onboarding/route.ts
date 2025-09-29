@@ -55,7 +55,8 @@ export async function POST(request: NextRequest) {
 
   const baseName = clientDetails?.full_name || clientDetails?.client_name || clientModelDetailsId
   const modelName = (clientDetails as any)?.model_name
-  const title = taskTitle || `Onboarding task for ${baseName}${modelName ? ` (${modelName})` : ''}`
+  // Default title: full_name + ( model_name if existing) - ONBOARDING
+  const title = taskTitle || `${baseName}${modelName ? ` (${modelName})` : ''} - ONBOARDING`
     let description = taskDescription || `Automatic onboarding task created for clientModelDetailsId=${clientModelDetailsId}`
     if (!taskDescription && clientDetails) {
       description += `\n\nClient: ${clientDetails.full_name || clientDetails.client_name || ''}`
