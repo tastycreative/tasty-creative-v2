@@ -62,8 +62,24 @@ export default function TestOnboardingPage() {
             {(!data.steps || data.steps.length === 0) && <li>No onboarding steps found</li>}
             {(data.steps || []).map((entry: any) => (
               <li key={entry.onboardingList.id} style={{ marginBottom: 8 }}>
-                <strong>{entry.onboardingList.stepNumber ?? '?' }.</strong> {entry.onboardingList.title}
-                <div>completed: {String(entry.progress.completed)} {entry.progress.completedAt ? `at ${entry.progress.completedAt}` : ''}</div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input type="checkbox" checked={!!entry.progress.completed} onChange={async (e) => {
+                    const next = e.target.checked
+                    setLoading(true)
+                    try {
+                      const res = await fetch(`/api/onboarding/toggle`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ clientModelDetailsId: clientId, onboardingListId: entry.onboardingList.id, completed: next }) })
+                      const json = await res.json()
+                      setMessage(JSON.stringify(json))
+                      await fetchStatus()
+                    } catch (err) {
+                      setMessage('Toggle failed')
+                    } finally {
+                      setLoading(false)
+                    }
+                  }} />
+                  <strong>{entry.onboardingList.stepNumber ?? '?' }.</strong>
+                  <span>{entry.onboardingList.title}</span>
+                </label>
                 {entry.progress.notes && <div>notes: {entry.progress.notes}</div>}
               </li>
             ))}
