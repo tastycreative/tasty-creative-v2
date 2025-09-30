@@ -1,91 +1,98 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { auth } from '@/auth'
+import { createTaskActivity } from '@/lib/taskActivityHelper'
 
-const API_KEY = process.env.ONBOARD_API_KEY
-
+// Minimal onboarding webhook: only creates an automatic task assigned to the "Onboarding" team.
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const headerKey = request.headers.get('x-api-key')
-    const url = new URL(request.url)
-    const queryKey = url.searchParams.get('key') || url.searchParams.get('api_key')
-    let sessionUserId: string | null = null
+    let body: any = {}
+    try {
+      const raw = await request.text()
+      body = raw && raw.trim().length > 0 ? JSON.parse(raw) : {}
+    } catch (e) {
+      body = {}
+    }
 
-    // Accept key via query param or header
-    if ((headerKey && headerKey === API_KEY) || (queryKey && queryKey === API_KEY)) {
-      // authorized via key
-    } else {
-      const session = await auth()
-      if (!session?.user?.id) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const urlParams = new URL(request.url).searchParams
+    const clientModelDetailsId = body.clientModelDetailsId || urlParams.get('clientModelDetailsId') || urlParams.get('client_id')
+    // robust createTask parsing: accept boolean, numeric, and common truthy strings
+    const rawCreateTask = typeof body.createTask !== 'undefined' ? body.createTask : urlParams.get('createTask')
+    function parseCreateTask(v: any) {
+      if (v === true || v === 1) return true
+      if (v === false || v === 0) return false
+      if (typeof v === 'string') {
+        const s = v.trim().toLowerCase()
+        return ['1', 'true', 'yes', 'y', 'on'].includes(s)
       }
-      sessionUserId = session.user.id
+      return Boolean(v)
+    }
+    const createTask = parseCreateTask(rawCreateTask)
+    const taskTitle = body.taskTitle || urlParams.get('taskTitle') || null
+    const taskDescription = body.taskDescription || urlParams.get('taskDescription') || null
+
+    if (!clientModelDetailsId) {
+      return NextResponse.json({ error: 'Missing clientModelDetailsId (body or query)' }, { status: 400 })
     }
 
-    const {
-      clientModelDetailsId,
-      onboardingListId,
-      completed = true,
-      notes,
-      createTask = false,
-      taskTeamId,
-      taskTitle,
-      taskDescription,
-      createdById
-    } = body
-
-    if (!clientModelDetailsId || !onboardingListId) {
-      return NextResponse.json({ error: 'Missing ids' }, { status: 400 })
+    if (!createTask) {
+      return NextResponse.json({ success: true, message: 'createTask not set; webhook is no-op' })
     }
 
-    const now = new Date()
+    const onboardingTeam = await prisma.podTeam.findFirst({ where: { name: 'Onboarding' }, select: { id: true } })
+    if (!onboardingTeam) {
+      return NextResponse.json({ success: false, error: 'Onboarding team not found' }, { status: 500 })
+    }
 
-    const upsert = await (prisma as any).onboardingProgress.upsert({
-      where: { onboardingListId_clientModelDetailsId: { onboardingListId, clientModelDetailsId } },
-      update: { completed, completedAt: completed ? now : null, notes },
-      create: { onboardingListId, clientModelDetailsId, completed, completedAt: completed ? now : null, notes }
-    })
+    const clientDetails: any = await prisma.clientModelDetails.findUnique({ where: { id: clientModelDetailsId } })
 
-    const requiredSteps: any[] = await (prisma as any).onboardingList.findMany({ where: { required: true }, select: { id: true } })
-    const requiredIds = requiredSteps.map((s: any) => s.id)
-    const completedCount = await (prisma as any).onboardingProgress.count({ where: { clientModelDetailsId, onboardingListId: { in: requiredIds }, completed: true } })
-    const allDone = completedCount >= requiredIds.length
-
-    await (prisma as any).clientModelDetails.update({ where: { id: clientModelDetailsId }, data: { onboardingCompleted: allDone } })
-
-    let task: any = null
-    if (createTask && taskTeamId && (createdById || sessionUserId)) {
-      const creatorId = createdById || sessionUserId!
-      const title = taskTitle || `Onboarding step: ${onboardingListId}`
-      const description = taskDescription || `Automatic task for onboarding step ${onboardingListId}`
-
-      task = await (prisma as any).task.create({
+    // Prefer a specific system user id when available, otherwise fall back to system@app.com.
+    // Use the provided id so tasks are consistently created by the same system account.
+    const SYSTEM_USER_ID = 'cmg4sw3ai0000l204y0ltt8lx'
+    let creator: any = await prisma.user.findUnique({ where: { id: SYSTEM_USER_ID } })
+    if (!creator) {
+      creator = await prisma.user.findUnique({ where: { email: 'system@app.com' } })
+    }
+    if (!creator) {
+      // Create a minimal system user record with the provided id if missing.
+      // Note: explicitly setting the id relies on Prisma allowing client-specified ids (cuid strings are allowed).
+      creator = await prisma.user.create({
         data: {
-          title,
-          description,
-          status: 'NOT_STARTED',
-          priority: 'MEDIUM',
-          podTeamId: taskTeamId,
-          assignedTo: null,
-          createdById: creatorId,
-          attachments: null
-        }
-      } as any)
-
-      await (prisma as any).taskActivityHistory.create({
-        data: {
-          taskId: task.id,
-          userId: creatorId,
-          actionType: 'CREATED',
-          description: `Task automatically created from onboarding webhook for client ${clientModelDetailsId}`
+          id: SYSTEM_USER_ID,
+          email: 'system@app.com',
+          name: 'System',
+          role: 'GUEST'
         }
       })
     }
 
-    return NextResponse.json({ success: true, upsert, onboardingCompleted: allDone, task })
-  } catch (error) {
-    console.error('Onboarding webhook error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  const baseName = clientDetails?.full_name || clientDetails?.client_name || clientModelDetailsId
+  const modelName = (clientDetails as any)?.model_name
+  // Default title: full_name + ( model_name if existing) - ONBOARDING - clientModelDetailsId
+  const title = taskTitle || `${baseName}${modelName ? ` (${modelName})` : ''} - ONBOARDING - ${clientModelDetailsId}`
+    let description = taskDescription || `Automatic onboarding task created for clientModelDetailsId=${clientModelDetailsId}`
+    if (!taskDescription && clientDetails) {
+      description += `\n\nClient: ${clientDetails.full_name || clientDetails.client_name || ''}`
+      if ((clientDetails as any).model_name) description += ` (${(clientDetails as any).model_name})`
+    }
+
+    const task = await prisma.task.create({
+      data: {
+        title,
+        description,
+        status: 'NOT_STARTED',
+        priority: 'MEDIUM',
+        podTeamId: onboardingTeam.id,
+        assignedTo: null,
+        createdById: creator.id,
+  // No attachments for onboarding tasks
+      } as any
+    })
+
+    await createTaskActivity({ taskId: task.id, userId: creator.id, actionType: 'CREATED', description: `Automatic onboarding task created for clientModelDetailsId=${clientModelDetailsId}` })
+
+    return NextResponse.json({ success: true, task: { id: task.id, title: task.title, taskNumber: task.taskNumber } })
+  } catch (err) {
+    console.error('Onboarding webhook error', err)
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
   }
 }

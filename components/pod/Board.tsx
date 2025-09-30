@@ -16,6 +16,7 @@ import BoardSkeleton from './BoardSkeleton';
 import BoardGrid from './BoardGrid';
 import TaskDetailModal from './TaskDetailModal';
 import NewTaskModal from './NewTaskModal';
+import OnboardingTaskModal from './OnboardingTaskModal';
 
 // Utility function to make links clickable
 const linkifyText = (text: string) => {
@@ -260,48 +261,11 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     }, [currentTeamId, fetchTasks])
   });
 
-  // Initialize team from URL parameters on component mount
-  useEffect(() => {
-    const teamParam = searchParams?.get('team');
-    if (teamParam && teamParam !== currentTeamId) {
-      // Extract team row number from team-N format
-      const teamRowMatch = teamParam.match(/^team-(\d+)$/);
-      if (teamRowMatch) {
-        const teamRow = parseInt(teamRowMatch[1]);
-        // Only trigger if it's a valid team row and different from current
-        if (teamRow >= 1 && teamRow <= availableTeams.length) {
-          onTeamChange(teamRow);
-        }
-      }
-    } else if (!teamParam && currentTeamId) {
-      // If no team in URL but we have a current team, update the URL
-      const params = new URLSearchParams(searchParams?.toString() || '');
-      params.set('team', currentTeamId);
-      router.push(`?${params.toString()}`, { scroll: false });
-    }
-  }, [searchParams, currentTeamId, availableTeams.length, onTeamChange, router]);
-
-  // Sync URL when teamId prop changes (handles initial load and external team changes)
-  useEffect(() => {
-    const teamParam = searchParams?.get('team');
-    if (teamId && teamId !== teamParam) {
-      const params = new URLSearchParams(searchParams?.toString() || '');
-      params.set('team', teamId);
-      router.push(`?${params.toString()}`, { scroll: false });
-    }
-  }, [teamId, searchParams, router]);
 
   // Handle team change with immediate UI update
   const handleTeamChange = (newTeamRow: number) => {
-    const newTeamId = `team-${newTeamRow}`;
-    setCurrentTeamId(newTeamId);
     setShowNewTaskForm(null);
     onTeamChange(newTeamRow);
-    
-    // Update URL parameters to include team
-    const params = new URLSearchParams(searchParams?.toString() || '');
-    params.set('team', newTeamId);
-    router.push(`?${params.toString()}`);
   };
 
   // Task management functions
@@ -332,7 +296,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   // Task detail and editing functions
   const openTaskDetail = (task: Task) => {
-    // Only update URL - the useEffect will handle state updates
+    // Update URL for both onboarding and regular tasks for consistency
     const params = new URLSearchParams(searchParams?.toString() || '');
     // Use podTeam.projectPrefix-taskNumber if available, otherwise fall back to task ID
     const taskIdentifier = (task.podTeam?.projectPrefix && task.taskNumber) 
@@ -343,7 +307,20 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   };
 
   const closeTaskDetail = () => {
-    // Only update URL - the useEffect will handle state clearing
+    // For Onboarding team, clear state AND update URL to remove task param
+    if (teamName === "Onboarding") {
+      setSelectedTask(null);
+      setIsEditingTask(false);
+      setEditingTaskData({});
+      // Also remove task param from URL for onboarding
+      const params = new URLSearchParams(searchParams?.toString() || '');
+      params.delete('task');
+      const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+      router.push(newUrl);
+      return;
+    }
+    
+    // For other teams, update URL - the useEffect will handle state clearing
     const params = new URLSearchParams(searchParams?.toString() || '');
     params.delete('task');
     const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
@@ -836,7 +813,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       />
 
       {/* Task Detail Modal */}
-      {selectedTask && (
+      {selectedTask && teamName !== "Onboarding" && (
         <TaskDetailModal
           selectedTask={selectedTask}
           isEditingTask={isEditingTask}
@@ -855,6 +832,16 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           onUpdateTaskStatus={updateTaskStatusInModal}
           onAutoSaveAttachments={autoSaveAttachments}
           getColumnConfig={getColumnConfig}
+        />
+      )}
+
+      {/* Onboarding Task Modal */}
+      {selectedTask && teamName === "Onboarding" && (
+        <OnboardingTaskModal
+          task={selectedTask}
+          isOpen={!!selectedTask}
+          onClose={closeTaskDetail}
+          session={session}
         />
       )}
 

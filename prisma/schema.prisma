@@ -314,6 +314,7 @@ model ContentDetails {
 model ClientModelDetails {
   id                    String   @id @default(cuid())
   full_name             String?
+  model_name            String?
   age                   String?
   birthday              String?
   height                String?
