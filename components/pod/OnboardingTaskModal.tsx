@@ -1,13 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   X,
   Edit3,
   Calendar,
   Clock,
-  CheckCircle2,
-  Circle,
   ChevronDown,
   ChevronUp,
   User,
@@ -96,6 +94,9 @@ export default function OnboardingTaskModal({ task, isOpen, onClose, session }: 
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  
+  // Ref to track last fetched ID to prevent duplicate fetches
+  const lastFetchedId = useRef<string>("");
 
   const completedCount = checklist.filter((c) => c.completed).length;
   const totalCount = checklist.length;
@@ -123,22 +124,20 @@ export default function OnboardingTaskModal({ task, isOpen, onClose, session }: 
 
   async function toggleStep(onboardingListId: string, next: boolean) {
     if (!clientId) return;
-    setLoading(true);
-    setMessage("");
+    // Don't set global loading state for checklist updates
     try {
       const res = await fetch(`/api/onboarding/toggle`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clientModelDetailsId: clientId, onboardingListId, completed: next }) });
       const json = await res.json();
-      setMessage(JSON.stringify(json));
+      // Only update the specific step that was toggled, don't refetch all data
       if (data && Array.isArray(data.steps)) {
         const newSteps = data.steps.map((s: any) => (s.onboardingList?.id === onboardingListId ? { ...s, progress: { ...s.progress, completed: next, completedAt: next ? new Date().toISOString() : null } } : s));
         setData({ ...data, steps: newSteps });
       }
-      await fetchStatus();
+      setMessage(""); // Clear any previous error messages
     } catch (err) {
-      setMessage("Toggle failed");
-    } finally {
-      setLoading(false);
+      setMessage("Failed to update checklist item");
     }
+    // Removed setLoading(false) and fetchStatus() call
   }
 
   function handleChecklistToggleLocal(id: number) {
@@ -152,33 +151,59 @@ export default function OnboardingTaskModal({ task, isOpen, onClose, session }: 
       const titleParts = task.title.split(' - ');
       let extractedClientId = '';
       
+      console.log('🔍 Auto-fetch Debug - Title:', task.title);
+      console.log('🔍 Auto-fetch Debug - Title parts:', titleParts);
+      
       if (titleParts.length >= 3) {
         // Check if second-to-last part is "ONBOARDING" and get the last part
         if (titleParts[titleParts.length - 2] === 'ONBOARDING') {
           extractedClientId = titleParts[titleParts.length - 1];
+          console.log('✅ Auto-fetch Debug - Extracted ID:', extractedClientId);
         }
       }
       
-      if (extractedClientId && extractedClientId !== clientId) {
+      // Only fetch if we have an ID and haven't fetched this ID yet
+      if (extractedClientId && extractedClientId !== lastFetchedId.current) {
+        console.log('🚀 Auto-fetch Debug - Starting fetch for:', extractedClientId);
+        lastFetchedId.current = extractedClientId;
         setClientId(extractedClientId);
         setLoading(true);
         setMessage("");
+        setData(null); // Clear previous data
         
         fetch(`/api/test-onboarding/status?clientModelDetailsId=${encodeURIComponent(extractedClientId)}`)
-          .then(res => res.json())
+          .then(res => {
+            console.log('📡 Auto-fetch Debug - Response status:', res.status);
+            return res.json();
+          })
           .then(json => {
+            console.log('📊 Auto-fetch Debug - Response data:', json);
             setData(json);
             setMessage("");
           })
-          .catch(() => {
+          .catch((error) => {
+            console.error('❌ Auto-fetch Debug - Fetch error:', error);
             setMessage("Failed to fetch status");
           })
           .finally(() => {
             setLoading(false);
           });
+      } else if (!extractedClientId) {
+        console.log('⚠️ Auto-fetch Debug - No client ID found in title');
+      } else {
+        console.log('ℹ️ Auto-fetch Debug - Already fetched this ID:', extractedClientId);
       }
     }
-  }, [isOpen, task, clientId]);
+    
+    // Reset when modal closes
+    if (!isOpen) {
+      lastFetchedId.current = "";
+      setData(null);
+      setClientId("");
+      setLoading(false);
+      setMessage("");
+    }
+  }, [isOpen, task?.id, task?.title]);
 
   if (!isOpen) return null;
 
@@ -364,9 +389,8 @@ export default function OnboardingTaskModal({ task, isOpen, onClose, session }: 
                                 setData(copy);
                                 try {
                                   await toggleStep(step.id, next);
-                                  await fetchStatus();
                                 } catch (err) {
-                                  await fetchStatus();
+                                  console.error('Failed to toggle step:', err);
                                 }
                               }
                             }}
@@ -382,11 +406,18 @@ export default function OnboardingTaskModal({ task, isOpen, onClose, session }: 
                                   copy.steps[idx] = copy.steps[idx] || { onboardingList: step, progress: {} };
                                   copy.steps[idx].progress.completed = next;
                                   setData(copy);
-                                  toggleStep(step.id, next).then(fetchStatus).catch(() => fetchStatus());
+                                  toggleStep(step.id, next).catch((err) => console.error('Failed to toggle step:', err));
                                 }
                               }}
+                              className="rounded border-gray-300 text-green-600 focus:ring-green-500 focus:ring-offset-0 focus:ring-2 accent-green-600"
                             />
-                            <span className="text-sm flex-1">{step.stepNumber}. {step.title}</span>
+                            <span className={`text-sm flex-1 transition-all duration-200 ${
+                              isCompleted 
+                                ? "text-gray-500 dark:text-gray-500 line-through" 
+                                : "text-gray-700 dark:text-gray-300"
+                            }`}>
+                              {step.stepNumber}. {step.title}
+                            </span>
                           </div>
                         );
                       }
@@ -394,10 +425,22 @@ export default function OnboardingTaskModal({ task, isOpen, onClose, session }: 
                       const item = entry;
                       return (
                         <div key={item.id} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer group" onClick={() => handleChecklistToggleLocal(item.id)}>
-                          <button className={`flex-shrink-0 transition-all ${item.completed ? "text-green-500 dark:text-green-400" : "text-gray-400 dark:text-gray-500 group-hover:text-blue-500 dark:group-hover:text-blue-400"}`}>
-                            {item.completed ? <CheckCircle2 className="h-5 w-5" /> : <Circle className="h-5 w-5" />}
-                          </button>
-                          <span className={`text-sm flex-1 transition-all ${item.completed ? "text-gray-500 dark:text-gray-500 line-through" : "text-gray-700 dark:text-gray-300"}`}>{item.title}</span>
+                          <input
+                            type="checkbox"
+                            checked={item.completed}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              handleChecklistToggleLocal(item.id);
+                            }}
+                            className="rounded border-gray-300 text-green-600 focus:ring-green-500 focus:ring-offset-0 focus:ring-2 accent-green-600"
+                          />
+                          <span className={`text-sm flex-1 transition-all duration-200 ${
+                            item.completed 
+                              ? "text-gray-500 dark:text-gray-500 line-through" 
+                              : "text-gray-700 dark:text-gray-300"
+                          }`}>
+                            {item.title}
+                          </span>
                         </div>
                       );
                     })}
