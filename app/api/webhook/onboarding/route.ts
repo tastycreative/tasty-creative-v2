@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
 
     await createTaskActivity({ taskId: task.id, userId: creator.id, actionType: 'CREATED', description: `Automatic onboarding task created for clientModelDetailsId=${clientModelDetailsId}` })
 
-    return NextResponse.json({ success: true, task: { id: task.id, title: task.title } })
+    return NextResponse.json({ success: true, task: { id: task.id, title: task.title, taskNumber: task.taskNumber } })
   } catch (err) {
     console.error('Onboarding webhook error', err)
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
