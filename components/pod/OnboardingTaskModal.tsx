@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import {
   X,
   Edit3,
@@ -22,6 +22,7 @@ import { Session } from "next-auth";
 import TaskComments from "./TaskComments";
 import { formatForTaskDetail, formatDueDate } from "@/lib/dateUtils";
 import UserProfile from "@/components/ui/UserProfile";
+import { useOnboardingData, useOnboardingActions, useOnboardingUI } from "@/lib/stores/onboardingStore";
 
 const defaultChecklist = [
   { id: 1, title: "Explain sexting scripts", description: "", completed: false },
@@ -83,127 +84,66 @@ interface OnboardingTaskModalProps {
 }
 
 export default function OnboardingTaskModal({ task, isOpen, onClose, session }: OnboardingTaskModalProps) {
-  const [checklist, setChecklist] = useState(defaultChecklist);
   const [withCheckbox] = useState(true);
-  const [showDetails, setShowDetails] = useState(true);
-  const [showChecklist, setShowChecklist] = useState(true);
   const [isEditingTask, setIsEditingTask] = useState(false);
-
-  // live data
   const [clientId, setClientId] = useState<string>("");
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   
-  // Ref to track last fetched ID to prevent duplicate fetches
-  const lastFetchedId = useRef<string>("");
-
-  const completedCount = checklist.filter((c) => c.completed).length;
-  const totalCount = checklist.length;
-  const completionPercentage = (completedCount / Math.max(1, totalCount)) * 100;
+  // Zustand store hooks
+  const { data, isLoading, currentClientId } = useOnboardingData();
+  const { fetchOnboardingData, updateOnboardingStep, setCurrentClientId, clearCurrentData } = useOnboardingActions();
+  const { showDetails, showChecklist, setShowDetails, setShowChecklist } = useOnboardingUI();
 
   const liveSteps = data?.steps ?? null;
   const liveCompletedCount = liveSteps ? liveSteps.filter((s: any) => s.progress?.completed).length : 0;
   const liveTotalCount = liveSteps ? liveSteps.length : 0;
   const liveCompletionPercentage = liveSteps ? (liveCompletedCount / Math.max(1, liveTotalCount)) * 100 : 0;
+  
+  // Fallback to default checklist when no live data
+  const completedCount = defaultChecklist.filter((c) => c.completed).length;
+  const totalCount = defaultChecklist.length;
+  const completionPercentage = (completedCount / Math.max(1, totalCount)) * 100;
 
-  async function fetchStatus() {
-    if (!clientId) return;
-    setLoading(true);
-    setMessage("");
-    try {
-      const res = await fetch(`/api/test-onboarding/status?clientModelDetailsId=${encodeURIComponent(clientId)}`);
-      const json = await res.json();
-      setData(json);
-    } catch (e) {
-      setMessage("Failed to fetch status");
-    } finally {
-      setLoading(false);
-    }
+
+  // Remove old toggleStep function - now handled by Zustand store
+
+  function handleChecklistToggleLocal() {
+    // This is for the default checklist fallback only (when no live data is available)
+    // In practice, this won't be used when connected to the Zustand store
   }
 
-  async function toggleStep(onboardingListId: string, next: boolean) {
-    if (!clientId) return;
-    // Don't set global loading state for checklist updates
-    try {
-      const res = await fetch(`/api/onboarding/toggle`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ clientModelDetailsId: clientId, onboardingListId, completed: next }) });
-      const json = await res.json();
-      // Only update the specific step that was toggled, don't refetch all data
-      if (data && Array.isArray(data.steps)) {
-        const newSteps = data.steps.map((s: any) => (s.onboardingList?.id === onboardingListId ? { ...s, progress: { ...s.progress, completed: next, completedAt: next ? new Date().toISOString() : null } } : s));
-        setData({ ...data, steps: newSteps });
-      }
-      setMessage(""); // Clear any previous error messages
-    } catch (err) {
-      setMessage("Failed to update checklist item");
-    }
-    // Removed setLoading(false) and fetchStatus() call
-  }
-
-  function handleChecklistToggleLocal(id: number) {
-    setChecklist((prev) => prev.map((item) => (item.id === id ? { ...item, completed: !item.completed } : item)));
-  }
-
-  // Extract clientModelDetailsId from task title and auto-fetch on modal open
+  // Extract clientModelDetailsId from task title and auto-fetch on modal open using Zustand
   useEffect(() => {
     if (isOpen && task) {
       // Extract from title (format: "Name - ONBOARDING - clientModelDetailsId")
       const titleParts = task.title.split(' - ');
       let extractedClientId = '';
       
-      console.log('🔍 Auto-fetch Debug - Title:', task.title);
-      console.log('🔍 Auto-fetch Debug - Title parts:', titleParts);
-      
       if (titleParts.length >= 3) {
         // Check if second-to-last part is "ONBOARDING" and get the last part
         if (titleParts[titleParts.length - 2] === 'ONBOARDING') {
           extractedClientId = titleParts[titleParts.length - 1];
-          console.log('✅ Auto-fetch Debug - Extracted ID:', extractedClientId);
         }
       }
       
-      // Only fetch if we have an ID and haven't fetched this ID yet
-      if (extractedClientId && extractedClientId !== lastFetchedId.current) {
-        console.log('🚀 Auto-fetch Debug - Starting fetch for:', extractedClientId);
-        lastFetchedId.current = extractedClientId;
+      // Only fetch if we have an ID and it's different from current
+      if (extractedClientId && extractedClientId !== currentClientId) {
         setClientId(extractedClientId);
-        setLoading(true);
+        setCurrentClientId(extractedClientId);
+        fetchOnboardingData(extractedClientId);
         setMessage("");
-        setData(null); // Clear previous data
-        
-        fetch(`/api/test-onboarding/status?clientModelDetailsId=${encodeURIComponent(extractedClientId)}`)
-          .then(res => {
-            console.log('📡 Auto-fetch Debug - Response status:', res.status);
-            return res.json();
-          })
-          .then(json => {
-            console.log('📊 Auto-fetch Debug - Response data:', json);
-            setData(json);
-            setMessage("");
-          })
-          .catch((error) => {
-            console.error('❌ Auto-fetch Debug - Fetch error:', error);
-            setMessage("Failed to fetch status");
-          })
-          .finally(() => {
-            setLoading(false);
-          });
       } else if (!extractedClientId) {
-        console.log('⚠️ Auto-fetch Debug - No client ID found in title');
-      } else {
-        console.log('ℹ️ Auto-fetch Debug - Already fetched this ID:', extractedClientId);
+        setMessage("No client ID found in task title");
       }
     }
     
     // Reset when modal closes
     if (!isOpen) {
-      lastFetchedId.current = "";
-      setData(null);
+      clearCurrentData();
       setClientId("");
-      setLoading(false);
       setMessage("");
     }
-  }, [isOpen, task?.id, task?.title]);
+  }, [isOpen, task?.id, task?.title, currentClientId, setCurrentClientId, fetchOnboardingData, clearCurrentData]);
 
   if (!isOpen) return null;
 
@@ -277,7 +217,7 @@ export default function OnboardingTaskModal({ task, isOpen, onClose, session }: 
                 <div className="space-y-4">
                   <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Client Information</h4>
 
-                  {loading ? (
+                  {isLoading ? (
                     // Skeleton loader for client information
                     <div className="space-y-4">
                       {[1, 2, 3, 4, 5].map((i) => (
@@ -361,16 +301,34 @@ export default function OnboardingTaskModal({ task, isOpen, onClose, session }: 
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Onboarding Checklist</h4>
-                    <div className="flex items-center space-x-3">
-                      <span className="text-sm text-gray-500 dark:text-gray-400">{liveTotalCount ? `${liveCompletedCount} of ${liveTotalCount} completed` : `${completedCount} of ${totalCount} completed`}</span>
-                      <div className="w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-300" style={{ width: `${liveTotalCount ? liveCompletionPercentage : completionPercentage}%` }} />
+                    {isLoading ? (
+                      <div className="flex items-center space-x-3">
+                        <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                        <div className="w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="flex items-center space-x-3">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">{liveTotalCount ? `${liveCompletedCount} of ${liveTotalCount} completed` : `${completedCount} of ${totalCount} completed`}</span>
+                        <div className="w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                          <div className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-300" style={{ width: `${liveTotalCount ? liveCompletionPercentage : completionPercentage}%` }} />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="space-y-2">
-                    {(data?.steps ?? checklist).map((entry: any, idx: number) => {
+                  {isLoading ? (
+                    // Skeleton loader for checklist
+                    <div className="space-y-2">
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                        <div key={i} className="flex items-center space-x-3 p-3 rounded-lg">
+                          <div className="h-4 w-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                          <div className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {(data?.steps ?? defaultChecklist).map((entry: any) => {
                       if (entry.onboardingList) {
                         const step = entry.onboardingList;
                         const prog = entry.progress || { completed: false };
@@ -383,30 +341,18 @@ export default function OnboardingTaskModal({ task, isOpen, onClose, session }: 
                               if ((e.target as HTMLElement).tagName === 'INPUT') return;
                               if (clientId) {
                                 const next = !isCompleted;
-                                const copy = JSON.parse(JSON.stringify(data || { steps: [] }));
-                                copy.steps[idx] = copy.steps[idx] || { onboardingList: step, progress: {} };
-                                copy.steps[idx].progress.completed = next;
-                                setData(copy);
-                                try {
-                                  await toggleStep(step.id, next);
-                                } catch (err) {
-                                  console.error('Failed to toggle step:', err);
-                                }
+                                await updateOnboardingStep(step.id, next);
                               }
                             }}
                           >
                             <input
                               type="checkbox"
                               checked={isCompleted}
-                              onChange={(e) => {
+                              onChange={async (e) => {
                                 e.stopPropagation();
                                 if (clientId) {
                                   const next = e.target.checked;
-                                  const copy = JSON.parse(JSON.stringify(data || { steps: [] }));
-                                  copy.steps[idx] = copy.steps[idx] || { onboardingList: step, progress: {} };
-                                  copy.steps[idx].progress.completed = next;
-                                  setData(copy);
-                                  toggleStep(step.id, next).catch((err) => console.error('Failed to toggle step:', err));
+                                  await updateOnboardingStep(step.id, next);
                                 }
                               }}
                               className="rounded border-gray-300 text-green-600 focus:ring-green-500 focus:ring-offset-0 focus:ring-2 accent-green-600"
@@ -424,13 +370,13 @@ export default function OnboardingTaskModal({ task, isOpen, onClose, session }: 
 
                       const item = entry;
                       return (
-                        <div key={item.id} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer group" onClick={() => handleChecklistToggleLocal(item.id)}>
+                        <div key={item.id} className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer group" onClick={handleChecklistToggleLocal}>
                           <input
                             type="checkbox"
                             checked={item.completed}
                             onChange={(e) => {
                               e.stopPropagation();
-                              handleChecklistToggleLocal(item.id);
+                              handleChecklistToggleLocal();
                             }}
                             className="rounded border-gray-300 text-green-600 focus:ring-green-500 focus:ring-offset-0 focus:ring-2 accent-green-600"
                           />
@@ -444,7 +390,8 @@ export default function OnboardingTaskModal({ task, isOpen, onClose, session }: 
                         </div>
                       );
                     })}
-                  </div>
+                    </div>
+                  )}
                 </div>
               )}
 
