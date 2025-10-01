@@ -11,11 +11,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    // Fetch all pod teams from database with new schema
+    const isAdminOrModerator = session.user.role === 'ADMIN' || session.user.role === 'MODERATOR';
+
+    // Build the query based on user role
+    const whereCondition: any = {
+      isActive: true
+    };
+
+    // For non-admin/moderator users, only show teams they're members of
+    if (!isAdminOrModerator) {
+      whereCondition.members = {
+        some: {
+          userId: session.user.id
+        }
+      };
+    }
+
+    // Fetch pod teams from database with security filtering
     const podTeams = await prisma.podTeam.findMany({
-      where: {
-        isActive: true
-      },
+      where: whereCondition,
       include: {
         createdBy: {
           select: {

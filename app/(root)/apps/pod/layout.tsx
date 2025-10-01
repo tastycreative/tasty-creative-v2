@@ -19,6 +19,7 @@ import {
   TeamSelectorSkeleton,
   Skeleton,
 } from "@/components/ui/skeleton";
+import NoTeamSelected from "@/components/pod/NoTeamSelected";
 
 // Dynamic import for SheetViewer
 const SheetViewer = dynamic(() => import("@/components/SheetViewer"), {
@@ -343,9 +344,10 @@ export default function PodLayout({ children }: PodLayoutProps) {
 
         {/* Main Dashboard Layout */}
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
-          {/* Sidebar - Hidden when admin, board, creator, my-models, or otp-ptr tab is active */}
+          {/* Sidebar - Hidden when admin, board, sheets, creator, my-models, or otp-ptr tab is active */}
           {activeTab !== "admin" &&
             activeTab !== "board" &&
+            activeTab !== "sheets" &&
             activeTab !== "creator" &&
             activeTab !== "my-models" &&
             activeTab !== "otp-ptr" && (
@@ -739,18 +741,25 @@ export default function PodLayout({ children }: PodLayoutProps) {
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6 text-center">
-                    <span className="text-gray-500 dark:text-gray-400">
-                      No team data available
-                    </span>
-                  </div>
+                  // Show loading while teams are being fetched initially
+                  isLoadingTeams ? (
+                    <NoTeamSelected variant="loading" />
+                  ) : availableTeams.length === 0 ? (
+                    <NoTeamSelected variant="no-projects" />
+                  ) : (
+                    <NoTeamSelected 
+                      variant="no-teams" 
+                      title="No Team Data Available"
+                      description="There's no data available for the selected team. Please try selecting a different team or contact an administrator."
+                    />
+                  )
                 )}
               </div>
             )}
 
           {/* Main Content */}
           <div
-            className={`${activeTab === "admin" || activeTab === "board" || activeTab === "creator" || activeTab === "my-models" || activeTab === "otp-ptr" ? "w-full" : "flex-1"} space-y-6`}
+            className={`${activeTab === "admin" || activeTab === "board" || activeTab === "sheets" || activeTab === "creator" || activeTab === "my-models" || activeTab === "otp-ptr" ? "w-full" : "flex-1"} space-y-6`}
           >
             {viewMode === "sheet" && selectedSheet ? (
               <Suspense

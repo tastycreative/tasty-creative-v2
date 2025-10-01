@@ -17,6 +17,7 @@ import BoardGrid from './BoardGrid';
 import TaskDetailModal from './TaskDetailModal';
 import NewTaskModal from './NewTaskModal';
 import OnboardingTaskModal from './OnboardingTaskModal';
+import NoTeamSelected from './NoTeamSelected';
 
 // Utility function to make links clickable
 const linkifyText = (text: string) => {
@@ -261,6 +262,43 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     }, [currentTeamId, fetchTasks])
   });
 
+  // Check if user is part of the team (member or admin)
+  const isUserInTeam = useCallback(() => {
+    if (!session?.user) return false;
+    
+    // ADMIN and MODERATOR can access all teams
+    if (session.user.role === 'ADMIN' || session.user.role === 'MODERATOR') {
+      return true;
+    }
+    
+    const userId = session.user.id;
+    const userEmail = session.user.email;
+    
+    // Check if user is in team members
+    const isMember = teamMembers.some(member => 
+      member.id === userId || member.email === userEmail
+    );
+    
+    // Check if user is in team admins
+    const isAdmin = teamAdmins.some(admin => 
+      admin.id === userId || admin.email === userEmail
+    );
+    
+    return isMember || isAdmin;
+  }, [session?.user, teamMembers, teamAdmins]);
+
+  // Check if user has access to this team
+  const hasTeamAccess = useMemo(() => {
+    if (!session?.user) return false;
+    
+    // ADMIN and MODERATOR can access all teams
+    if (session.user.role === 'ADMIN' || session.user.role === 'MODERATOR') {
+      return true;
+    }
+    
+    // For regular users, check if they're members of the team
+    return isUserInTeam();
+  }, [session?.user, isUserInTeam]);
 
   // Handle team change with immediate UI update
   const handleTeamChange = (newTeamRow: number) => {
@@ -271,6 +309,12 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   // Task management functions
   const handleCreateTask = async (status: Task['status']) => {
     if (!newTaskData.title.trim()) return;
+    
+    // Security check: ensure user has access to this team
+    if (!hasTeamAccess) {
+      console.error('Unauthorized: User cannot create tasks for this team');
+      return;
+    }
 
     try {
       await createTask(newTaskData, status);
@@ -282,6 +326,12 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   const handleDeleteTask = async (taskId: string) => {
     if (!confirm('Are you sure you want to delete this task?')) return;
+    
+    // Security check: ensure user has access to this team
+    if (!hasTeamAccess) {
+      console.error('Unauthorized: User cannot delete tasks for this team');
+      return;
+    }
 
     try {
       await deleteTask(taskId);
@@ -361,6 +411,12 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   const saveTaskChanges = async () => {
     if (!selectedTask) return;
+    
+    // Security check: ensure user has access to this team
+    if (!hasTeamAccess) {
+      console.error('Unauthorized: User cannot save task changes for this team');
+      return;
+    }
 
     try {
       setIsSaving(true);
@@ -408,6 +464,12 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   const createTaskFromModal = async () => {
     if (!newTaskData.title.trim() || !newTaskStatus) return;
+    
+    // Security check: ensure user has access to this team
+    if (!hasTeamAccess) {
+      console.error('Unauthorized: User cannot create tasks for this team');
+      return;
+    }
 
     try {
       await createTask(newTaskData, newTaskStatus);
@@ -434,26 +496,6 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     
     return false;
   };
-
-  // Check if user is part of the team (member or admin)
-  const isUserInTeam = useCallback(() => {
-    if (!session?.user) return false;
-    
-    const userId = session.user.id;
-    const userEmail = session.user.email;
-    
-    // Check if user is in team members
-    const isMember = teamMembers.some(member => 
-      member.id === userId || member.email === userEmail
-    );
-    
-    // Check if user is in team admins
-    const isAdmin = teamAdmins.some(admin => 
-      admin.id === userId || admin.email === userEmail
-    );
-    
-    return isMember || isAdmin;
-  }, [session?.user, teamMembers, teamAdmins]);
 
   const canEditTask = (task: Task) => {
     if (!session?.user) return false;
@@ -724,6 +766,24 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   };
 
   const filteredAndSortedTasks = sortTasks(filterTasks(tasks));
+
+  // Show unauthorized message if user doesn't have access to this team
+  if (!hasTeamAccess && !isLoadingTeamMembers) {
+    return (
+      <div className="space-y-6">
+        <BoardHeader
+          teamName={teamName}
+          availableTeams={availableTeams}
+          selectedRow={selectedRow}
+          onTeamChange={handleTeamChange}
+          totalTasks={0}
+          filteredTasksCount={0}
+          isLoading={false}
+        />
+        <NoTeamSelected variant="no-access" />
+      </div>
+    );
+  }
 
   // Using Luxon dateUtils now instead of local formatDate function
 
