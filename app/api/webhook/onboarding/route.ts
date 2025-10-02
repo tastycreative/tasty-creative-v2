@@ -3,6 +3,15 @@ import { prisma } from '@/lib/prisma'
 import { createTaskActivity } from '@/lib/taskActivityHelper'
 
 // Minimal onboarding webhook: only creates an automatic task assigned to the "Onboarding" team.
+// Accepts JSON body with:
+// {
+//   "clientModelDetailsId": "string", // Required
+//   "createTask": boolean, // Required
+//   "taskTitle": "string", // Optional
+//   "taskDescription": "string", // Optional  
+//   "clientOnlyFansAlbum": "string", // Optional URL
+//   "clientSocialAlbums": "string" // Optional URL
+// }
 export async function POST(request: NextRequest) {
   try {
     let body: any = {}
@@ -29,6 +38,8 @@ export async function POST(request: NextRequest) {
     const createTask = parseCreateTask(rawCreateTask)
     const taskTitle = body.taskTitle || urlParams.get('taskTitle') || null
     const taskDescription = body.taskDescription || urlParams.get('taskDescription') || null
+    const clientOnlyFansAlbum = body.clientOnlyFansAlbum || urlParams.get('clientOnlyFansAlbum') || null
+    const clientSocialAlbums = body.clientSocialAlbums || urlParams.get('clientSocialAlbums') || null
 
     if (!clientModelDetailsId) {
       return NextResponse.json({ error: 'Missing clientModelDetailsId (body or query)' }, { status: 400 })
@@ -73,6 +84,17 @@ export async function POST(request: NextRequest) {
     if (!taskDescription && clientDetails) {
       description += `\n\nClient: ${clientDetails.full_name || clientDetails.client_name || ''}`
       if ((clientDetails as any).model_name) description += ` (${(clientDetails as any).model_name})`
+    }
+
+    // Add album URLs to description if provided
+    if (clientOnlyFansAlbum || clientSocialAlbums) {
+      description += '\n\n**Album Links:**'
+      if (clientOnlyFansAlbum) {
+        description += `\n• Client OnlyFans Album: ${clientOnlyFansAlbum}`
+      }
+      if (clientSocialAlbums) {
+        description += `\n• Client Social Albums: ${clientSocialAlbums}`
+      }
     }
 
     const task = await prisma.task.create({
