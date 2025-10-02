@@ -40,8 +40,35 @@ const defaultChecklist = [
 ];
 
 const linkifyText = (text: string) => {
+  // First handle markdown links [text](url)
+  const markdownLinkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  let processedText = text;
+  const markdownLinks: { text: string; url: string; placeholder: string }[] = [];
+  
+  // Replace markdown links with placeholders and store them
+  let match;
+  let counter = 0;
+  while ((match = markdownLinkRegex.exec(text)) !== null) {
+    const placeholder = `__MARKDOWN_LINK_${counter}__`;
+    markdownLinks.push({ text: match[1], url: match[2], placeholder });
+    processedText = processedText.replace(match[0], placeholder);
+    counter++;
+  }
+  
+  // Then handle plain URLs
   const urlRegex = /(https?:\/\/[^\s]+)/g;
-  return text.split(urlRegex).map((part: string, index: number) => {
+  return processedText.split(/(__MARKDOWN_LINK_\d+__|https?:\/\/[^\s]+)/g).map((part: string, index: number) => {
+    // Check if it's a markdown link placeholder
+    const markdownLink = markdownLinks.find(link => link.placeholder === part);
+    if (markdownLink) {
+      return (
+        <a key={index} href={markdownLink.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline transition-colors">
+          {markdownLink.text}
+        </a>
+      );
+    }
+    
+    // Check if it's a plain URL
     if (urlRegex.test(part)) {
       return (
         <a key={index} href={part} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline transition-colors">
@@ -49,6 +76,7 @@ const linkifyText = (text: string) => {
         </a>
       );
     }
+    
     return part;
   });
 };

@@ -94,14 +94,19 @@ export async function POST(request: NextRequest) {
       if ((clientDetails as any).model_name) description += ` (${(clientDetails as any).model_name})`
     }
 
-    // Add album URLs to description if provided
-    if (clientOnlyFansAlbum || clientSocialAlbums) {
-      description += '\n\n**Album Links:**'
+    // Add album URLs and calendar link to description if provided
+    const calendarId = (clientDetails as any)?.calendar_id
+    if (clientOnlyFansAlbum || clientSocialAlbums || calendarId) {
+      description += '\n\n**Links:**'
       if (clientOnlyFansAlbum) {
-        description += `\n• Client OnlyFans Album: ${clientOnlyFansAlbum}`
+        description += `\n• [Client OnlyFans Album](${clientOnlyFansAlbum})`
       }
       if (clientSocialAlbums) {
-        description += `\n• Client Social Albums: ${clientSocialAlbums}`
+        description += `\n• [Client Social Albums](${clientSocialAlbums})`
+      }
+      if (calendarId) {
+        const calendarUrl = `https://calendar.google.com/calendar/embed?src=${encodeURIComponent(calendarId)}`
+        description += `\n• [Google Calendar Birthday](${calendarUrl})`
       }
     }
 
