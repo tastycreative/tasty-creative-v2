@@ -76,15 +76,19 @@ export async function POST(request: NextRequest) {
       })
     }
 
-  const fullName = clientDetails?.full_name || clientDetails?.client_name || clientModelDetailsId
+  const fullName = clientDetails?.full_name || clientDetails?.client_name
   const modelName = (clientDetails as any)?.model_name
   
-  // Title format: model_name (full_name) if model_name exists, otherwise just full_name
+  // Title format: model_name (full_name) - ONBOARDING - clientModelDetailsId if model_name exists
+  // Otherwise: full_name - ONBOARDING - clientModelDetailsId
   let displayName: string
-  if (modelName) {
+  if (modelName && fullName) {
     displayName = `${modelName} (${fullName})`
-  } else {
+  } else if (fullName) {
     displayName = fullName
+  } else {
+    // Fallback to clientModelDetailsId if no name data available
+    displayName = clientModelDetailsId
   }
   
   const title = taskTitle || `${displayName} - ONBOARDING - ${clientModelDetailsId}`
