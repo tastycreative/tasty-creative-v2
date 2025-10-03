@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { usePodStore, useAvailableTeams } from "@/lib/stores/podStore";
+import NoTeamSelected from "@/components/pod/NoTeamSelected";
 
 // Dynamic import for better performance
 const Board = dynamic(() => import("@/components/pod/Board"), {
@@ -24,7 +25,7 @@ export default function BoardPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { selectedTeamId, setSelectedTeamId } = usePodStore();
-  const { teams: availableTeams } = useAvailableTeams();
+  const { teams: availableTeams, loading: isLoadingTeams } = useAvailableTeams();
 
   // Initialize team from URL parameter
   useEffect(() => {
@@ -62,11 +63,16 @@ export default function BoardPage() {
   };
 
   if (!selectedTeamId || !currentTeam) {
-    return (
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6 text-center">
-        <p className="text-gray-700 dark:text-gray-300">Please select a team to view the board.</p>
-      </div>
-    );
+    // Show loading while teams are being fetched initially
+    if (isLoadingTeams) {
+      return <NoTeamSelected variant="loading" />;
+    }
+    // If done loading and no teams available, show no-projects message
+    if (availableTeams.length === 0) {
+      return <NoTeamSelected variant="no-projects" />;
+    }
+    // If user has teams but none selected, show select message
+    return <NoTeamSelected variant="select" />;
   }
 
   return (
