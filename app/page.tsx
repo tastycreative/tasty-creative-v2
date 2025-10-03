@@ -2,17 +2,11 @@ import { auth, signOut } from "@/auth";
 import TastyCreativeLanding from "@/components/LandingPage";
 import { ThemeToggle } from "@/components/admin/ThemeToggle";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
 import React from "react";
 
 const HomePage = async () => {
   const session = await auth();
-
-  // Redirect authenticated users to dashboard
-  if (session) {
-    redirect("/dashboard");
-  }
 
   return (
     <div className="relative bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen transition-colors">

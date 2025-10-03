@@ -93,7 +93,7 @@ export default function PodLayout({ children }: PodLayoutProps) {
     { id: "sheets", label: "Sheets Integration", href: "/sheets" },
     { id: "board", label: "Board", href: "/board" },
     { id: "pricing", label: "Pricing Guide", href: "/pricing" },
-    { id: "forms", label: "OTP/PTR", href: "/forms" },
+    { id: "forms", label: "Gallery", href: "/gallery" },
     { id: "admin", label: "Admin", href: "/pod-admin" },
   ];
 
