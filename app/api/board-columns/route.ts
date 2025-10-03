@@ -52,49 +52,60 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // If no columns exist, create default columns
+    // If no columns exist, create workflow-based default columns for new teams
     if (columns.length === 0) {
-      const defaultColumns = [
+      const workflowColumns = [
         {
-          id: `col_default_not_started_${Date.now()}`,
+          id: `${teamId}-wall_post`,
           teamId,
-          label: 'Not Started',
-          status: 'NOT_STARTED',
+          label: 'Wall Post Team',
+          status: 'wall_post',
           position: 0,
-          color: '#6B7280',
-          isDefault: true,
-          isActive: true,
-          updatedAt: new Date(),
-        },
-        {
-          id: `col_default_in_progress_${Date.now() + 1}`,
-          teamId,
-          label: 'In Progress',
-          status: 'IN_PROGRESS',
-          position: 1,
           color: '#3B82F6',
           isDefault: true,
           isActive: true,
           updatedAt: new Date(),
         },
         {
-          id: `col_default_completed_${Date.now() + 2}`,
+          id: `${teamId}-pg_team`,
           teamId,
-          label: 'Completed',
-          status: 'COMPLETED',
-          position: 2,
-          color: '#10B981',
+          label: 'PG Team',
+          status: 'pg_team',
+          position: 1,
+          color: '#8B5CF6',
           isDefault: true,
           isActive: true,
           updatedAt: new Date(),
         },
         {
-          id: `col_default_cancelled_${Date.now() + 3}`,
+          id: `${teamId}-flyer_team`,
           teamId,
-          label: 'Cancelled',
-          status: 'CANCELLED',
+          label: 'Flyer Team',
+          status: 'flyer_team',
+          position: 2,
+          color: '#EC4899',
+          isDefault: true,
+          isActive: true,
+          updatedAt: new Date(),
+        },
+        {
+          id: `${teamId}-qa`,
+          teamId,
+          label: 'QA Team',
+          status: 'qa',
           position: 3,
-          color: '#EF4444',
+          color: '#F59E0B',
+          isDefault: true,
+          isActive: true,
+          updatedAt: new Date(),
+        },
+        {
+          id: `${teamId}-deploy`,
+          teamId,
+          label: 'Deploy',
+          status: 'deploy',
+          position: 4,
+          color: '#10B981',
           isDefault: true,
           isActive: true,
           updatedAt: new Date(),
@@ -102,7 +113,7 @@ export async function GET(request: NextRequest) {
       ];
 
       const createdColumns = await prisma.boardColumn.createMany({
-        data: defaultColumns,
+        data: workflowColumns,
         skipDuplicates: true,
       });
 

@@ -39,7 +39,7 @@ interface NotificationState {
   getRecentNotifications: (maxAge?: number) => Notification[];
 }
 
-const CACHE_DURATION = 2 * 60 * 1000; // 2 minutes cache
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes cache
 const MAX_NOTIFICATIONS = 100; // Keep only latest 100 notifications
 
 export const useNotificationStore = create<NotificationState>()(

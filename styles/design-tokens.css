@@ -1,0 +1,330 @@
+/**
+ * POD Models Design Tokens
+ * Design system foundation for pod-new dashboard
+ */
+
+@layer base {
+  :root {
+    /* ==========================================
+     * COLOR TOKENS - Radix UI Inspired Scale
+     * ========================================== */
+    
+    /* Primary Brand Colors (Pink/Rose) */
+    --color-primary-50: #fdf2f8;
+    --color-primary-100: #fce7f3;
+    --color-primary-200: #fbcfe8;
+    --color-primary-300: #f9a8d4;
+    --color-primary-400: #f472b6;
+    --color-primary-500: #ec4899;   /* Main brand color */
+    --color-primary-600: #db2777;
+    --color-primary-700: #be185d;
+    --color-primary-800: #9d174d;
+    --color-primary-900: #831843;
+    --color-primary-950: #500724;
+
+    /* Semantic Colors */
+    --color-success-50: #ecfdf5;
+    --color-success-100: #d1fae5;
+    --color-success-200: #a7f3d0;
+    --color-success-300: #6ee7b7;
+    --color-success-400: #34d399;
+    --color-success-500: #10b981;   /* Active status */
+    --color-success-600: #059669;
+    --color-success-700: #047857;
+    --color-success-800: #065f46;
+    --color-success-900: #064e3b;
+
+    --color-warning-50: #fffbeb;
+    --color-warning-100: #fef3c7;
+    --color-warning-200: #fde68a;
+    --color-warning-300: #fcd34d;
+    --color-warning-400: #fbbf24;
+    --color-warning-500: #f59e0b;   /* Attention needed */
+    --color-warning-600: #d97706;
+    --color-warning-700: #b45309;
+    --color-warning-800: #92400e;
+    --color-warning-900: #78350f;
+
+    --color-error-50: #fef2f2;
+    --color-error-100: #fee2e2;
+    --color-error-200: #fecaca;
+    --color-error-300: #fca5a5;
+    --color-error-400: #f87171;
+    --color-error-500: #ef4444;   /* Dropped status, errors */
+    --color-error-600: #dc2626;
+    --color-error-700: #b91c1c;
+    --color-error-800: #991b1b;
+    --color-error-900: #7f1d1d;
+
+    --color-info-50: #eff6ff;
+    --color-info-100: #dbeafe;
+    --color-info-200: #bfdbfe;
+    --color-info-300: #93c5fd;
+    --color-info-400: #60a5fa;
+    --color-info-500: #3b82f6;   /* Neutral info, links */
+    --color-info-600: #2563eb;
+    --color-info-700: #1d4ed8;
+    --color-info-800: #1e40af;
+    --color-info-900: #1e3a8a;
+
+    /* Neutral Grays (12-step scale) */
+    --color-gray-50: #f9fafb;
+    --color-gray-100: #f3f4f6;
+    --color-gray-200: #e5e7eb;
+    --color-gray-300: #d1d5db;
+    --color-gray-400: #9ca3af;
+    --color-gray-500: #6b7280;
+    --color-gray-600: #4b5563;
+    --color-gray-700: #374151;
+    --color-gray-800: #1f2937;
+    --color-gray-900: #111827;
+    --color-gray-950: #030712;
+
+    /* Dark mode colors */
+    --color-dark-bg: #0f0f23;
+    --color-dark-surface: #1a1a2e;
+    --color-dark-surface-hover: #16213e;
+    --color-dark-border: #252550;
+    --color-dark-text: #e2e8f0;
+    --color-dark-text-muted: #94a3b8;
+
+    /* ==========================================
+     * TYPOGRAPHY TOKENS
+     * ========================================== */
+    
+    /* Font Families */
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'SF Mono', 'Monaco', 'Roboto Mono', monospace;
+    
+    /* Font Sizes */
+    --text-xs: 0.75rem;      /* 12px */
+    --text-sm: 0.875rem;     /* 14px */
+    --text-base: 1rem;       /* 16px */
+    --text-lg: 1.125rem;     /* 18px */
+    --text-xl: 1.25rem;      /* 20px */
+    --text-2xl: 1.5rem;      /* 24px */
+    --text-3xl: 1.875rem;    /* 30px */
+    --text-4xl: 2.25rem;     /* 36px */
+    
+    /* Line Heights */
+    --leading-tight: 1.25;
+    --leading-normal: 1.5;
+    --leading-relaxed: 1.625;
+    
+    /* Font Weights */
+    --font-normal: 400;
+    --font-medium: 500;
+    --font-semibold: 600;
+    --font-bold: 700;
+
+    /* ==========================================
+     * SPACING TOKENS
+     * ========================================== */
+    
+    --space-0: 0;
+    --space-px: 1px;
+    --space-0-5: 0.125rem;   /* 2px */
+    --space-1: 0.25rem;      /* 4px */
+    --space-1-5: 0.375rem;   /* 6px */
+    --space-2: 0.5rem;       /* 8px */
+    --space-2-5: 0.625rem;   /* 10px */
+    --space-3: 0.75rem;      /* 12px */
+    --space-3-5: 0.875rem;   /* 14px */
+    --space-4: 1rem;         /* 16px */
+    --space-5: 1.25rem;      /* 20px */
+    --space-6: 1.5rem;       /* 24px */
+    --space-7: 1.75rem;      /* 28px */
+    --space-8: 2rem;         /* 32px */
+    --space-9: 2.25rem;      /* 36px */
+    --space-10: 2.5rem;      /* 40px */
+    --space-11: 2.75rem;     /* 44px */
+    --space-12: 3rem;        /* 48px */
+    --space-14: 3.5rem;      /* 56px */
+    --space-16: 4rem;        /* 64px */
+    --space-20: 5rem;        /* 80px */
+    --space-24: 6rem;        /* 96px */
+    --space-32: 8rem;        /* 128px */
+
+    /* ==========================================
+     * RADIUS TOKENS
+     * ========================================== */
+    
+    --radius-none: 0;
+    --radius-sm: 0.125rem;    /* 2px */
+    --radius-base: 0.25rem;   /* 4px */
+    --radius-md: 0.375rem;    /* 6px */
+    --radius-lg: 0.5rem;      /* 8px */
+    --radius-xl: 0.75rem;     /* 12px */
+    --radius-2xl: 1rem;       /* 16px */
+    --radius-3xl: 1.5rem;     /* 24px */
+    --radius-full: 9999px;
+
+    /* ==========================================
+     * SHADOW TOKENS
+     * ========================================== */
+    
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-base: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+    
+    /* Card shadows with brand color */
+    --shadow-primary: 0 4px 14px 0 rgb(236 72 153 / 0.15);
+    --shadow-primary-lg: 0 10px 25px -3px rgb(236 72 153 / 0.2), 0 4px 6px -4px rgb(236 72 153 / 0.1);
+
+    /* ==========================================
+     * ANIMATION TOKENS
+     * ========================================== */
+    
+    /* Durations */
+    --duration-75: 75ms;
+    --duration-100: 100ms;
+    --duration-150: 150ms;
+    --duration-200: 200ms;
+    --duration-300: 300ms;
+    --duration-500: 500ms;
+    --duration-700: 700ms;
+    --duration-1000: 1000ms;
+    
+    /* Easing curves */
+    --ease-linear: linear;
+    --ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-bounce: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* ==========================================
+     * BREAKPOINT TOKENS (for JS usage)
+     * ========================================== */
+    
+    --breakpoint-sm: 640px;
+    --breakpoint-md: 768px;
+    --breakpoint-lg: 1024px;
+    --breakpoint-xl: 1280px;
+    --breakpoint-2xl: 1536px;
+
+    /* ==========================================
+     * Z-INDEX SCALE
+     * ========================================== */
+    
+    --z-dropdown: 1000;
+    --z-sticky: 1020;
+    --z-fixed: 1030;
+    --z-modal-backdrop: 1040;
+    --z-modal: 1050;
+    --z-popover: 1060;
+    --z-tooltip: 1070;
+    --z-toast: 1080;
+  }
+
+  /* ==========================================
+   * DARK MODE OVERRIDES
+   * ========================================== */
+  
+  @media (prefers-color-scheme: dark) {
+    :root {
+      /* Override key colors for dark mode */
+      --color-gray-50: var(--color-gray-950);
+      --color-gray-100: var(--color-gray-900);
+      --color-gray-900: var(--color-gray-100);
+      --color-gray-950: var(--color-gray-50);
+    }
+  }
+
+  [data-theme="dark"] {
+    /* Explicit dark mode class overrides */
+    --color-gray-50: var(--color-dark-bg);
+    --color-gray-100: var(--color-dark-surface);
+    --color-gray-200: var(--color-dark-surface-hover);
+    --color-gray-300: var(--color-dark-border);
+    --color-gray-800: var(--color-dark-text-muted);
+    --color-gray-900: var(--color-dark-text);
+  }
+
+  /* ==========================================
+   * REDUCED MOTION SUPPORT
+   * ========================================== */
+  
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --duration-75: 0ms;
+      --duration-100: 0ms;
+      --duration-150: 0ms;
+      --duration-200: 0ms;
+      --duration-300: 0ms;
+      --duration-500: 0ms;
+      --duration-700: 0ms;
+      --duration-1000: 0ms;
+    }
+  }
+}
+
+/* ==========================================
+ * UTILITY CLASSES FOR DESIGN TOKENS
+ * ========================================== */
+
+@layer utilities {
+  /* Custom shadow utilities */
+  .shadow-primary {
+    box-shadow: var(--shadow-primary);
+  }
+  
+  .shadow-primary-lg {
+    box-shadow: var(--shadow-primary-lg);
+  }
+
+  /* Custom transition utilities */
+  .transition-smooth {
+    transition-duration: var(--duration-200);
+    transition-timing-function: var(--ease-smooth);
+  }
+  
+  .transition-bounce {
+    transition-duration: var(--duration-300);
+    transition-timing-function: var(--ease-bounce);
+  }
+
+  /* Shimmer animation */
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+  
+  .animate-shimmer {
+    animation: shimmer 2s infinite;
+  }
+
+  /* Touch-friendly minimum sizes */
+  .touch-target {
+    min-height: var(--space-11); /* 44px - iOS/Android minimum */
+    min-width: var(--space-11);
+  }
+
+  /* Focus styles for accessibility */
+  .focus-ring {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-primary-500), 0 0 0 4px var(--color-background);
+  }
+  
+  .focus-ring:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-primary-500), 0 0 0 4px var(--color-background);
+  }
+  
+  .focus-ring-dark {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-primary-400), 0 0 0 4px var(--color-gray-900);
+  }
+  
+  .focus-ring-dark:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--color-primary-400), 0 0 0 4px var(--color-gray-900);
+  }
+}

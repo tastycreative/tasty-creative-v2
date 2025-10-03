@@ -8,7 +8,7 @@ import { sendVerificationEmail } from "@/lib/email";
 import { AuthError } from "next-auth";
 
 export async function signInWithGoogle() {
-  await signIn("google", { redirectTo: "/" });
+  await signIn("google", { redirectTo: "/dashboard" });
 }
 
 export async function signInWithCredentials(formData: FormData) {
@@ -19,7 +19,7 @@ export async function signInWithCredentials(formData: FormData) {
     await signIn("credentials", {
       email,
       password,
-      redirectTo: "/",
+      redirectTo: "/dashboard",
     });
   } catch (error) {
     if (error instanceof AuthError) {
