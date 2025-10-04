@@ -198,8 +198,8 @@ export default function PrivacyPolicyPage() {
                   If you have any questions about this Privacy Policy or our data practices, please contact us at:
                 </p>
                 <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
-                  <p><strong>Email:</strong> privacy@tastycreative.com</p>
-                  <p><strong>Address:</strong> Tasty Creative, [Your Business Address]</p>
+                  <p><strong>Email:</strong> tasty4459@gmail.com</p>
+                  <p><strong>Address:</strong> Tasty Creative, United States, LA</p>
                 </div>
               </div>
             </section>
