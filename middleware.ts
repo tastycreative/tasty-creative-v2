@@ -131,7 +131,7 @@ export function middleware(request: NextRequest) {
     path.startsWith("/api/notifications") ||
     path.startsWith("/api/users");
 
-  const publicPaths = ["/"];
+  const publicPaths = ["/", "/privacy-policy", "/terms-of-service"];
   const isPublic = publicPaths.includes(path);
 
   // ✅ Allow access to public pages

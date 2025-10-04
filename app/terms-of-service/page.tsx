@@ -256,7 +256,7 @@ export default function TermsOfServicePage() {
               </h2>
               <div className="text-gray-700 dark:text-gray-300 space-y-4">
                 <p>
-                  These Terms shall be governed by and construed in accordance with the laws of [Your Jurisdiction], 
+                  These Terms shall be governed by and construed in accordance with the laws of California, United States, 
                   without regard to its conflict of law provisions. Any disputes arising from these Terms or 
                   the Service shall be resolved through binding arbitration.
                 </p>
@@ -285,9 +285,8 @@ export default function TermsOfServicePage() {
                   If you have any questions about these Terms of Service, please contact us:
                 </p>
                 <div className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
-                  <p><strong>Email:</strong> legal@tastycreative.com</p>
-                  <p><strong>Support:</strong> support@tastycreative.com</p>
-                  <p><strong>Address:</strong> Tasty Creative, [Your Business Address]</p>
+                  <p><strong>Email:</strong> tasty4459@gmail.com</p>
+                  <p><strong>Address:</strong> Tasty Creative, United States, LA</p>
                 </div>
               </div>
             </section>
