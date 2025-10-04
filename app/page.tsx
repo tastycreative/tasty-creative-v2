@@ -67,27 +67,6 @@ const HomePage = async () => {
         )}
       </div>
 
-      {/* Footer with legal links */}
-      <div className="absolute bottom-6 left-6 z-50">
-        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm px-4 py-2 rounded-xl border border-pink-200 dark:border-pink-500/30 shadow-lg">
-          <div className="flex items-center gap-4 text-xs text-gray-600 dark:text-gray-300">
-            <Link 
-              href="/privacy-policy" 
-              className="hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
-            >
-              Privacy Policy
-            </Link>
-            <span className="text-gray-400">•</span>
-            <Link 
-              href="/terms-of-service" 
-              className="hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
-            >
-              Terms of Service
-            </Link>
-          </div>
-        </div>
-      </div>
-
     </div>
   );
 };
