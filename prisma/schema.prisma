@@ -314,7 +314,6 @@ model ContentDetails {
 model ClientModelDetails {
   id                    String   @id @default(cuid())
   full_name             String?
-  model_name            String?
   age                   String?
   birthday              String?
   height                String?
@@ -345,6 +344,40 @@ model ClientModelDetails {
   verbiage_restrictions String?
   wall_restrictions     String?
   calendar_id           String?
+  onboardingCompleted   Boolean?             @default(false)
+  status                String?
+  model_name            String?
+  onboardingProgress    OnboardingProgress[]
+}
+
+model OnboardingList {
+  id          String               @id @default(cuid())
+  stepNumber  Int
+  title       String
+  description String?
+  required    Boolean              @default(true)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  progress    OnboardingProgress[]
+
+  @@index([stepNumber])
+}
+
+model OnboardingProgress {
+  id                   String             @id @default(cuid())
+  onboardingListId     String
+  clientModelDetailsId String
+  completed            Boolean            @default(false)
+  completedAt          DateTime?
+  notes                String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  ClientModelDetails   ClientModelDetails @relation(fields: [clientModelDetailsId], references: [id], onDelete: Cascade)
+  OnboardingList       OnboardingList     @relation(fields: [onboardingListId], references: [id], onDelete: Cascade)
+
+  @@unique([onboardingListId, clientModelDetailsId])
+  @@index([clientModelDetailsId])
+  @@index([onboardingListId])
 }
 
 model PodTeam {
