@@ -2,11 +2,28 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { AttachmentType } from "@prisma/client";
 
 const createPostSchema = z.object({
   content: z.string().min(1).max(50000),
   parentPostId: z.string().optional(),
+  attachments: z.array(z.object({
+    id: z.string(),
+    url: z.string(),
+    filename: z.string(),
+    type: z.string(),
+    size: z.number(),
+  })).optional(),
 });
+
+// Helper function to map file type to AttachmentType enum
+function getAttachmentType(type: string): AttachmentType {
+  const lowerType = type.toLowerCase();
+  if (lowerType.startsWith('image/')) return AttachmentType.IMAGE;
+  if (lowerType.startsWith('video/')) return AttachmentType.VIDEO;
+  if (lowerType.includes('pdf') || lowerType.includes('document')) return AttachmentType.DOCUMENT;
+  return AttachmentType.OTHER;
+}
 
 // POST /api/models/[modelId]/forum/threads/[threadId]/posts
 export async function POST(
@@ -33,7 +50,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { content } = createPostSchema.parse(body);
+    const { content, attachments } = createPostSchema.parse(body);
     const { modelId, threadId } = await params;
 
     // Verify thread exists and is not locked
@@ -59,6 +76,17 @@ export async function POST(
         authorId: session.user.id,
         content_md: content,
         content_html: content, // TODO: Process markdown to HTML
+        ...(attachments && attachments.length > 0 && {
+          attachments: {
+            create: attachments.map((att) => ({
+              id: att.id,
+              url: att.url,
+              filename: att.filename,
+              type: getAttachmentType(att.type),
+              size: att.size,
+            })),
+          },
+        }),
       },
       include: {
         author: {
@@ -70,6 +98,7 @@ export async function POST(
             role: true,
           },
         },
+        attachments: true,
       },
     });
 
@@ -87,6 +116,13 @@ export async function POST(
         author: post.author,
         createdAt: post.createdAt.toISOString(),
         reactions: [],
+        attachments: post.attachments?.map((att) => ({
+          id: att.id,
+          url: att.url,
+          filename: att.filename,
+          type: att.type,
+          size: att.size,
+        })) || [],
       },
       { status: 201 }
     );

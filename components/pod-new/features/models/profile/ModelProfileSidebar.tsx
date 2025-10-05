@@ -36,6 +36,11 @@ import {
   Trophy,
   Crown,
   User,
+  Calendar,
+  Rocket,
+  Share2,
+  Globe,
+  ArrowLeft,
 } from "lucide-react";
 import { ExtendedModelDetails } from "@/lib/mock-data/model-profile";
 import { cn } from "@/lib/utils";
@@ -44,6 +49,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/admin/ThemeToggle";
 import { useCreatorsDB } from "@/lib/hooks/useCreatorsDB";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatDistanceToNow } from "date-fns";
 
 interface ModelProfileSidebarProps {
   modelData: ExtendedModelDetails;
@@ -263,6 +269,17 @@ export function ModelProfileSidebar({
           </>
         ) : (
           <>
+            {/* Back Button - Primary Navigation */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push('/my-models')}
+              className="mb-4 -ml-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Models
+            </Button>
+
             {/* Hero Profile Card */}
             <div className="relative group overflow-hidden bg-white dark:bg-transparent rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm">
               {/* Background Pattern */}
@@ -338,50 +355,61 @@ export function ModelProfileSidebar({
               </div>
             </div>
 
-            {/* Quick Stats */}
-            <div className="grid grid-cols-2 gap-6 mt-10">
-              <div className="relative group overflow-hidden bg-white dark:bg-transparent rounded-xl border border-gray-200/60 dark:border-gray-700/50 backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:shadow-lg">
+            {/* Real Stats - Launch Date & Social Platforms */}
+            <div className="space-y-4 mt-10">
+              {/* Launch Date Card */}
+              <div className="relative group overflow-hidden bg-white dark:bg-transparent rounded-xl border border-gray-200/60 dark:border-gray-700/50 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-lg">
                 <div className="absolute inset-0 opacity-[0.03] dark:opacity-0">
                   <div className="absolute top-0 right-0 w-8 h-8 bg-white rounded-full -translate-y-4 translate-x-4"></div>
                 </div>
                 <div className="relative p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="p-1 bg-gradient-to-r from-emerald-500 to-green-500 rounded-lg">
-                      <DollarSign className="w-3 h-3 text-white" />
+                    <div className="p-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
+                      <Calendar className="w-3 h-3 text-white" />
                     </div>
                     <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide">
-                      Monthly
+                      Launched
                     </span>
                   </div>
-                  <p className="text-base font-black text-gray-900 dark:text-white truncate">
-                    ${formatNumber(modelData.analytics.revenue.thisMonth)}
+                  <p className="text-base font-black text-gray-900 dark:text-white break-words">
+                    {dbCreator?.launchDate
+                      ? formatDistanceToNow(new Date(dbCreator.launchDate), {
+                          addSuffix: true,
+                        })
+                      : "Recently"}
                   </p>
-                  <p className="text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium">
-                    <TrendingUp className="w-3 h-3" />+
-                    {modelData.analytics.revenue.trend}%
+                  <p className="text-xs text-purple-600 dark:text-purple-400 flex items-center gap-1 font-medium mt-1">
+                    <Rocket className="w-3 h-3" />
+                    {modelData.status === "active" ? "Active" : "Inactive"}
                   </p>
                 </div>
               </div>
 
-              <div className="relative group overflow-hidden bg-white dark:bg-transparent rounded-xl border border-gray-200/60 dark:border-gray-700/50 backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:shadow-lg">
+              {/* Social Platforms Card */}
+              <div className="relative group overflow-hidden bg-white dark:bg-transparent rounded-xl border border-gray-200/60 dark:border-gray-700/50 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-lg">
                 <div className="absolute inset-0 opacity-[0.03] dark:opacity-0">
                   <div className="absolute top-0 right-0 w-8 h-8 bg-white rounded-full -translate-y-4 translate-x-4"></div>
                 </div>
                 <div className="relative p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="p-1 bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg">
-                      <Users className="w-3 h-3 text-white" />
+                    <div className="p-1 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg">
+                      <Share2 className="w-3 h-3 text-white" />
                     </div>
                     <span className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide">
-                      Subs
+                      Platforms
                     </span>
                   </div>
-                  <p className="text-base font-black text-gray-900 dark:text-white truncate">
-                    {formatNumber(modelData.analytics.subscribers.total)}
+                  <p className="text-base font-black text-gray-900 dark:text-white break-words">
+                    {[
+                      dbCreator?.instagram,
+                      dbCreator?.twitter,
+                      dbCreator?.tiktok,
+                    ].filter(Boolean).length || 0}{" "}
+                    Connected
                   </p>
-                  <p className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1 font-medium">
-                    <TrendingUp className="w-3 h-3" />+
-                    {modelData.analytics.subscribers.trend}%
+                  <p className="text-xs text-blue-600 dark:text-blue-400 flex items-center gap-1 font-medium mt-1">
+                    <Globe className="w-3 h-3" />
+                    Social presence
                   </p>
                 </div>
               </div>
@@ -601,20 +629,8 @@ export function ModelProfileSidebar({
 
       {/* Footer */}
       <SidebarFooter className="p-6">
-        {/* Theme Toggle and Action Buttons */}
-        <div className="flex items-center justify-between gap-4">
-          <ThemeToggle />
-          <div className="flex gap-3 flex-1 justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push('/my-models')}
-              className="bg-gradient-to-r from-white/60 to-white/40 dark:from-gray-800/60 dark:to-gray-800/40 backdrop-blur-sm border-gray-200/60 dark:border-gray-700/50 hover:bg-gradient-to-r hover:from-red-50/80 hover:to-red-50/60 dark:hover:from-red-900/30 dark:hover:to-red-900/20 transition-all duration-300 hover:border-red-200/60 dark:hover:border-red-700/50 text-gray-600 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400"
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
+        {/* Theme Toggle - Settings Only */}
+        <ThemeToggle />
       </SidebarFooter>
     </Sidebar>
   );

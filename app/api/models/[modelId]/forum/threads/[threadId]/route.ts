@@ -50,6 +50,7 @@ export async function GET(
               },
             },
             reactions: true,
+            attachments: true,
           },
           orderBy: {
             createdAt: "asc",
@@ -109,6 +110,13 @@ export async function GET(
           }
           return acc;
         }, [] as { type: string; count: number }[]),
+        attachments: post.attachments?.map((att) => ({
+          id: att.id,
+          url: att.url,
+          filename: att.filename,
+          type: att.type,
+          size: att.size,
+        })) || [],
       })),
     };
 
