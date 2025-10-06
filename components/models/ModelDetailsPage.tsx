@@ -10,7 +10,7 @@ const getImageUrl = (model: any): string => {
   const imageUrl = model?.profileImage || model?.profile;
   
   if (!imageUrl) {
-    return '/placeholder-image.jpg';
+    return 'null';
   }
   
   // Check if it's a Google Drive URL that needs proxying

@@ -113,6 +113,7 @@ export interface LoadingStates {
 export interface PodStore {
   // State
   selectedTeamId: string | null;
+  selectedRow: number | null;  // For backward compatibility with row-based components
   activeTab: 'dashboard' | 'sheets' | 'board' | 'admin' | 'pricing';
   
   // Data
@@ -146,6 +147,7 @@ export interface PodStore {
   
   // Actions
   setSelectedTeamId: (teamId: string | null) => void;
+  setSelectedRow: (row: number | null) => void;
   setActiveTab: (tab: 'dashboard' | 'sheets' | 'board' | 'admin' | 'pricing') => void;
   
   // Data fetching with caching
@@ -237,6 +239,7 @@ export const usePodStore = create<PodStore>()(
       (set, get) => ({
         // Initial state - will be overridden by persisted value
         selectedTeamId: null, // Default fallback if no persisted value exists
+        selectedRow: null, // For backward compatibility with row-based components
         activeTab: 'dashboard',
         
         podData: null,
@@ -275,7 +278,12 @@ export const usePodStore = create<PodStore>()(
           console.log(`🔄 setSelectedTeamId called:`, { oldTeamId: get().selectedTeamId, newTeamId: teamId });
           set({ selectedTeamId: teamId });
         },
-          
+
+        setSelectedRow: (row) => {
+          console.log(`🔄 setSelectedRow called:`, { oldRow: get().selectedRow, newRow: row });
+          set({ selectedRow: row });
+        },
+
         setActiveTab: (tab) =>
           set({ activeTab: tab }),
         

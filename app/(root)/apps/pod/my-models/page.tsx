@@ -26,7 +26,7 @@ export default function MyModelsPage() {
   const [userAssignedCreators, setUserAssignedCreators] = useState<string[]>(
     []
   );
-  
+
   // Combined loading state - true if either models or assignments are loading
   const isLoading = isLoadingModels || isLoadingAssignments;
 
@@ -95,10 +95,7 @@ export default function MyModelsPage() {
                 }
               }
             } catch (error) {
-              console.error(
-                `Error fetching data for team ${team.id}:`,
-                error
-              );
+              console.error(`Error fetching data for team ${team.id}:`, error);
             }
           }
         }
@@ -132,13 +129,6 @@ export default function MyModelsPage() {
 
   // Filter models based on user permissions
   const accessibleModels = useMemo(() => {
-    console.log("🔍 My Models Debug:", {
-      sessionUser: session?.user,
-      userAssignedCreators,
-      allModelsCount: allModels.length,
-      allModelNames: allModels.map((m) => m.name),
-    });
-
     if (!session?.user) return [];
 
     // If user is admin, show all models
