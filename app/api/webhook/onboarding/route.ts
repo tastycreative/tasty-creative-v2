@@ -10,7 +10,8 @@ import { createTaskActivity } from '@/lib/taskActivityHelper'
 //   "taskTitle": "string", // Optional
 //   "taskDescription": "string", // Optional  
 //   "clientOnlyFansAlbum": "string", // Optional URL
-//   "clientSocialAlbums": "string" // Optional URL
+//   "clientSocialAlbums": "string", // Optional URL
+//   "clientCustomSheet": "string" // Optional URL
 // }
 export async function POST(request: NextRequest) {
   try {
@@ -40,6 +41,7 @@ export async function POST(request: NextRequest) {
     const taskDescription = body.taskDescription || urlParams.get('taskDescription') || null
     const clientOnlyFansAlbum = body.clientOnlyFansAlbum || urlParams.get('clientOnlyFansAlbum') || null
     const clientSocialAlbums = body.clientSocialAlbums || urlParams.get('clientSocialAlbums') || null
+    const clientCustomSheet = body.clientCustomSheet || urlParams.get('clientCustomSheet') || null
 
     if (!clientModelDetailsId) {
       return NextResponse.json({ error: 'Missing clientModelDetailsId (body or query)' }, { status: 400 })
@@ -99,13 +101,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Add album URLs to description if provided
-    if (clientOnlyFansAlbum || clientSocialAlbums) {
+    if (clientOnlyFansAlbum || clientSocialAlbums || clientCustomSheet) {
       description += '\n\n**Links:**'
       if (clientOnlyFansAlbum) {
         description += `\n• [Client OnlyFans Album](${clientOnlyFansAlbum})`
       }
       if (clientSocialAlbums) {
         description += `\n• [Client Social Albums](${clientSocialAlbums})`
+      }
+      if (clientCustomSheet) {
+        description += `\n• [Client Custom Sheet](${clientCustomSheet})`
       }
     }
 
