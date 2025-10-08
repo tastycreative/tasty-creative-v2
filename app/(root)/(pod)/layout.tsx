@@ -82,6 +82,7 @@ export default function PodLayout({ children }: PodLayoutProps) {
     if (pathname.includes("/board")) return "board";
     if (pathname.includes("/pricing")) return "pricing";
     if (pathname.includes("/forms")) return "forms";
+    if (pathname.includes("/generative-ai")) return "generative-ai";
     if (pathname.includes("/pod-admin")) return "admin";
     return "dashboard";
   };
@@ -94,6 +95,7 @@ export default function PodLayout({ children }: PodLayoutProps) {
     { id: "board", label: "Board", href: "/board" },
     { id: "pricing", label: "Pricing Guide", href: "/pricing" },
     { id: "forms", label: "Gallery", href: "/gallery" },
+    { id: "generative-ai", label: "Generative AI", href: "/generative-ai/voice" },
     { id: "admin", label: "Admin", href: "/pod-admin" },
   ];
 

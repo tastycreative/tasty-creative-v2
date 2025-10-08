@@ -17,17 +17,32 @@ import {
   Kanban,
   FileText,
   Shield,
+  Sparkles,
+  Mic,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/admin/ThemeToggle";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+
+type SubNavItem = {
+  title: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+};
 
 type NavItem = {
   title: string;
-  href: string;
+  href?: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: {
     text: string;
     variant?: "primary" | "secondary" | "success" | "warning" | "alert";
   } | null;
+  subItems?: SubNavItem[];
 };
 
 const navigation: { title: string; items: NavItem[] }[] = [
@@ -48,6 +63,17 @@ const navigation: { title: string; items: NavItem[] }[] = [
         title: "Workspace",
         href: "/workspace",
         icon: Briefcase,
+      },
+      {
+        title: "Generative AI",
+        icon: Sparkles,
+        subItems: [
+          {
+            title: "Voice Generator",
+            href: "/generative-ai/voice",
+            icon: Mic,
+          },
+        ],
       },
     ],
   },
@@ -161,11 +187,71 @@ export default function LeftSidebar({ collapsed = false }: LeftSidebarProps) {
             </div>
             <ul className="space-y-1">
               {section.items.map((item) => {
+                // Check if this item has sub-items (accordion)
+                if (item.subItems && item.subItems.length > 0) {
+                  const isAnySubItemActive = item.subItems.some(
+                    (subItem) => pathname === subItem.href || pathname?.startsWith(subItem.href + "/")
+                  );
+
+                  return (
+                    <li key={item.title}>
+                      <Accordion type="single" collapsible defaultValue={isAnySubItemActive ? item.title : undefined}>
+                        <AccordionItem value={item.title} className="border-none">
+                          <AccordionTrigger
+                            className={`group relative flex items-center justify-between px-3.5 py-2.75 rounded-xl transition-all duration-200 hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900 [&[data-state=open]>svg]:rotate-180 ${
+                              isAnySubItemActive
+                                ? "bg-gradient-to-r from-indigo-500/30 to-purple-500/20 dark:from-indigo-500/30 dark:to-purple-500/20 text-white dark:text-white ring-1 ring-inset ring-indigo-400/40 shadow-lg shadow-indigo-500/10"
+                                : "text-slate-600 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-white/[0.08] hover:text-slate-800 dark:hover:text-white"
+                            }`}
+                          >
+                            <div className="flex items-center gap-4">
+                              <item.icon
+                                className={`w-5 h-5 shrink-0 transition-colors ${
+                                  isAnySubItemActive
+                                    ? "text-indigo-300 dark:text-indigo-300"
+                                    : "text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200"
+                                }`}
+                              />
+                              <span className={`text-sm truncate ${isAnySubItemActive ? "font-medium" : ""}`}>
+                                {item.title}
+                              </span>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="pb-1 pt-2 px-2">
+                            <ul className="space-y-1">
+                              {item.subItems.map((subItem) => {
+                                const isSubItemActive = pathname === subItem.href;
+                                return (
+                                  <li key={subItem.title}>
+                                    <Link
+                                      href={subItem.href}
+                                      aria-current={isSubItemActive ? "page" : undefined}
+                                      className={`group relative flex items-center gap-3 px-3.5 py-2.5 ml-9 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900 ${
+                                        isSubItemActive
+                                          ? "bg-indigo-500/20 dark:bg-indigo-500/20 text-indigo-200 dark:text-indigo-200"
+                                          : "text-slate-500 dark:text-slate-400 hover:bg-slate-100/60 dark:hover:bg-white/[0.05] hover:text-slate-700 dark:hover:text-slate-200"
+                                      }`}
+                                    >
+                                      <subItem.icon className="w-4 h-4 shrink-0" />
+                                      <span className="text-sm truncate">{subItem.title}</span>
+                                    </Link>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                    </li>
+                  );
+                }
+
+                // Regular nav item (no sub-items)
                 const isActive = pathname === item.href;
                 return (
                   <li key={item.title}>
                     <Link
-                      href={item.href}
+                      href={item.href!}
                       aria-current={isActive ? "page" : undefined}
                       className={`group relative flex items-center gap-4 px-3.5 py-2.75 rounded-xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900 ${
                         isActive

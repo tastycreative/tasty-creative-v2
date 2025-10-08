@@ -33,6 +33,7 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
     "/gallery",
     "/gif-maker",
     "/sheets",
+    "/generative-ai",
   ];
 
   console.log("pathname", pathname);

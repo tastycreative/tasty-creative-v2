@@ -387,8 +387,8 @@ const GalleryContent = () => {
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
               className={`h-12 px-4 rounded-2xl transition-all duration-200 ${
-                showFilters 
-                  ? "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 border-gray-900 dark:border-gray-100" 
+                showFilters
+                  ? "bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 border-gray-900 dark:border-gray-100"
                   : "border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
               }`}
             >

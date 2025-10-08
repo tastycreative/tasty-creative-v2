@@ -618,7 +618,7 @@ export async function POST(request: NextRequest) {
         contentDescription: data.contentDescription,
         attachments: data.attachments || [],
         estimatedDuration: data.estimatedDuration,
-        releaseTimezone: data.selectedComponents.includes('release') && data.componentData ?
+        timezone: data.selectedComponents.includes('release') && data.componentData ?
           (data.componentData as ReleaseComponentData).releaseTimezone : null,
         teamAssignments: {
           primaryTeamId: assignedTeam.id,
