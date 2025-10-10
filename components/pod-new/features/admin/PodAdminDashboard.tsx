@@ -1463,22 +1463,38 @@ const PodAdminDashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6">
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600"></div>
-            <span className="text-pink-700 dark:text-purple-300">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900 p-6">
+        <div className="relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 shadow-xl backdrop-blur-sm p-6">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05] pointer-events-none">
+            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]"></div>
+          </div>
+
+          <div className="relative flex items-center space-x-3 mb-6">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600 dark:border-pink-400"></div>
+            <span className="text-gray-700 dark:text-gray-300 font-medium">
               Loading admin dashboard...
             </span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
+
+          <div className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { gradient: 'from-pink-50 to-pink-100' },
+              { gradient: 'from-emerald-50 to-emerald-100' },
+              { gradient: 'from-blue-50 to-blue-100' },
+              { gradient: 'from-green-50 to-emerald-100' }
+            ].map((item, i) => (
               <div
                 key={i}
-                className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 animate-pulse"
+                className={`relative group overflow-hidden bg-gradient-to-br ${item.gradient} dark:from-gray-800/20 dark:to-gray-700/30 p-6 rounded-2xl border border-white/50 dark:border-gray-700/50 shadow-sm`}
               >
-                <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded mb-2"></div>
-                <div className="h-8 bg-gray-200 dark:bg-gray-600 rounded"></div>
+                <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-16 translate-x-16"></div>
+                </div>
+                <div className="relative space-y-3 animate-pulse">
+                  <div className="h-3 bg-gray-300/50 dark:bg-gray-600/50 rounded w-24"></div>
+                  <div className="h-8 bg-gray-300/50 dark:bg-gray-600/50 rounded w-16"></div>
+                </div>
               </div>
             ))}
           </div>
@@ -1510,7 +1526,7 @@ const PodAdminDashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900 p-6 space-y-6">
       {/* Success Message */}
       {successMessage && (
         <div className="fixed top-4 right-4 z-50 max-w-sm w-full animate-in slide-in-from-right-full duration-300">
@@ -1624,23 +1640,35 @@ const PodAdminDashboard = () => {
           <>
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              <div className="bg-pink-50 dark:bg-pink-900/20 p-4 rounded-lg border border-pink-200 dark:border-pink-500/30">
-                <div className="flex items-center justify-between">
+              <div className="relative group overflow-hidden bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/30 p-6 rounded-2xl border border-white/50 dark:border-gray-700/50 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-black/10 dark:hover:shadow-black/25">
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-16 translate-x-16"></div>
+                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-12 -translate-x-12"></div>
+                </div>
+                <div className="relative flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-purple-700 dark:text-purple-300 mb-1">
+                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wide mb-2">
                       Users
                     </p>
-                    <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                    <p className="text-3xl font-black text-gray-900 dark:text-white">
                       {stats.totalUsers}
                     </p>
                   </div>
-                  <Users className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+                  <div className="p-3 bg-gradient-to-br from-pink-500/10 to-purple-500/10 dark:from-pink-400/20 dark:to-purple-400/20 rounded-xl border border-pink-200/50 dark:border-pink-500/30">
+                    <Users className="h-6 w-6 text-pink-600 dark:text-pink-400" />
+                  </div>
                 </div>
               </div>
-              <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-lg border border-emerald-200 dark:border-emerald-500/30">
-                <div className="flex items-center justify-between">
+              <div className="relative group overflow-hidden bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/30 p-6 rounded-2xl border border-white/50 dark:border-gray-700/50 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-black/10 dark:hover:shadow-black/25">
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-16 translate-x-16"></div>
+                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-12 -translate-x-12"></div>
+                </div>
+                <div className="relative flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-pink-700 dark:text-pink-300 mb-1">
+                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wide mb-2">
                       Total Teams
                     </p>
                     <p className="text-2xl font-bold text-emerald-900 dark:text-emerald-100">
@@ -1650,54 +1678,72 @@ const PodAdminDashboard = () => {
                   <Database className="h-8 w-8 text-pink-600 dark:text-pink-400" />
                 </div>
               </div>
-              <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-500/30">
-                <div className="flex items-center justify-between">
+              <div className="relative group overflow-hidden bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/30 p-6 rounded-2xl border border-white/50 dark:border-gray-700/50 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-black/10 dark:hover:shadow-black/25">
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-16 translate-x-16"></div>
+                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-12 -translate-x-12"></div>
+                </div>
+                <div className="relative flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-pink-700 dark:text-purple-300 mb-1">
+                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wide mb-2">
                       Total Members
                     </p>
-                    <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                    <p className="text-3xl font-black text-gray-900 dark:text-white">
                       {teams.reduce(
                         (acc, team) => acc + team.members.length,
                         0
                       )}
                     </p>
                   </div>
-                  <Activity className="h-8 w-8 text-pink-600 dark:text-purple-400" />
+                  <div className="p-3 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 dark:from-blue-400/20 dark:to-cyan-400/20 rounded-xl border border-blue-200/50 dark:border-blue-500/30">
+                    <Activity className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  </div>
                 </div>
               </div>
-              <div
-                className={`p-4 rounded-lg border ${getStatusBgColor(stats.systemStatus)}`}
-              >
-                <div className="flex items-center justify-between">
+              <div className={`relative group overflow-hidden p-6 rounded-2xl border border-white/50 dark:border-gray-700/50 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-black/10 dark:hover:shadow-black/25 ${
+                stats.systemStatus === "healthy"
+                  ? "bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-800/30"
+                  : stats.systemStatus === "warning"
+                    ? "bg-gradient-to-br from-yellow-50 to-amber-100 dark:from-yellow-900/20 dark:to-amber-800/30"
+                    : "bg-gradient-to-br from-red-50 to-rose-100 dark:from-red-900/20 dark:to-rose-800/30"
+              }`}>
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-16 translate-x-16"></div>
+                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-12 -translate-x-12"></div>
+                </div>
+                <div className="relative flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wide mb-2">
                       System Status
                     </p>
-                    <p
-                      className={`text-2xl font-bold capitalize ${getStatusColor(stats.systemStatus)}`}
-                    >
+                    <p className="text-3xl font-black text-gray-900 dark:text-white capitalize">
                       {stats.systemStatus}
                     </p>
                   </div>
-                  <div
-                    className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                  <div className={`p-3 rounded-xl border ${
+                    stats.systemStatus === "healthy"
+                      ? "bg-gradient-to-br from-green-500/10 to-emerald-500/10 dark:from-green-400/20 dark:to-emerald-400/20 border-green-200/50 dark:border-green-500/30"
+                      : stats.systemStatus === "warning"
+                        ? "bg-gradient-to-br from-yellow-500/10 to-amber-500/10 dark:from-yellow-400/20 dark:to-amber-400/20 border-yellow-200/50 dark:border-yellow-500/30"
+                        : "bg-gradient-to-br from-red-500/10 to-rose-500/10 dark:from-red-400/20 dark:to-rose-400/20 border-red-200/50 dark:border-red-500/30"
+                  }`}>
+                    <div className={`h-6 w-6 rounded-full flex items-center justify-center ${
                       stats.systemStatus === "healthy"
-                        ? "bg-pink-200 dark:bg-pink-800"
+                        ? "text-green-600 dark:text-green-400"
                         : stats.systemStatus === "warning"
-                          ? "bg-yellow-200 dark:bg-yellow-800"
-                          : "bg-red-200 dark:bg-red-800"
-                    }`}
-                  >
-                    <div
-                      className={`h-4 w-4 rounded-full ${
+                          ? "text-yellow-600 dark:text-yellow-400"
+                          : "text-red-600 dark:text-red-400"
+                    }`}>
+                      <div className={`h-3 w-3 rounded-full ${
                         stats.systemStatus === "healthy"
-                          ? "bg-pink-600"
+                          ? "bg-green-600"
                           : stats.systemStatus === "warning"
                             ? "bg-yellow-600"
                             : "bg-red-600"
-                      }`}
-                    ></div>
+                      }`}></div>
+                    </div>
                   </div>
                 </div>
               </div>

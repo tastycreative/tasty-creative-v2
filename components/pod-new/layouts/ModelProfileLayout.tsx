@@ -8,6 +8,7 @@ import { ModelProfileSidebar } from "../features/models/profile/ModelProfileSide
 import { ModelInformationTab } from "../features/models/profile/tabs/ModelInformationTab";
 import ModelForumTab from "../features/models/profile/tabs/ModelForumTab";
 import ModelGalleryTab from "../features/models/profile/tabs/ModelGalleryTab";
+import { ModelAssetsTab } from "../features/models/tabs/ModelAssetsTab";
 
 interface ModelProfileLayoutProps {
   modelData: ExtendedModelDetails;
@@ -42,14 +43,7 @@ export function ModelProfileLayout({
           />
         );
       case "assets":
-        return (
-          <div className="p-8">
-            <h2 className="text-2xl font-bold mb-4">Assets</h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              Assets management coming soon...
-            </p>
-          </div>
-        );
+        return <ModelAssetsTab modelName={creatorName || modelData.name} />;
       case "chatters":
         return (
           <div className="p-8">

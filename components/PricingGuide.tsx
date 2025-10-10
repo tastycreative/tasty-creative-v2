@@ -526,16 +526,21 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
     <div className="space-y-6">
       <div className="max-w-5xl mx-auto">
         {/* Main Content Card */}
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div className="relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 shadow-xl backdrop-blur-sm">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05] pointer-events-none">
+            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]"></div>
+          </div>
+
           {/* Header */}
-          <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+          <div className="relative p-6 border-b border-gray-200/50 dark:border-gray-700/50">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-600 rounded-lg">
-                  <Sparkles className="h-5 w-5 text-white" />
+                <div className="p-3 bg-gradient-to-br from-pink-500/10 to-purple-500/10 dark:from-pink-400/20 dark:to-purple-400/20 rounded-xl border border-pink-200/50 dark:border-pink-500/30">
+                  <Sparkles className="h-5 w-5 text-pink-600 dark:text-pink-400" />
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  <h3 className="text-lg font-black bg-gradient-to-r from-gray-900 via-pink-600 to-purple-600 dark:from-gray-100 dark:via-pink-400 dark:to-purple-400 bg-clip-text text-transparent">
                     Pricing Guide {isAdmin && <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full ml-2">Admin</span>}
                   </h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -573,7 +578,7 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
           </div>
 
           {/* Creator Headers & Search - All screens */}
-          <div className="px-6 py-4 bg-gray-50/50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-800">
+          <div className="relative px-6 py-4 bg-gray-50/50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-800">
             <div className="flex items-end justify-between gap-4">
               {/* Search bar */}
               <div className="relative max-w-md w-full flex-1">

@@ -55,32 +55,44 @@ const StatsCard = ({
 }: StatsCardProps) => {
   const colorClasses = {
     primary: {
-      bg: "bg-gradient-to-br from-pink-100/70 to-purple-100/70 dark:from-white/5 dark:to-white/5",
-      border: "border-pink-200 dark:border-purple-500/30",
+      bg: "bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/30",
+      border: "border-white/50 dark:border-gray-700/50",
       icon: "text-pink-600 dark:text-pink-400",
+      iconBg: "bg-gradient-to-br from-pink-500/10 to-purple-500/10 dark:from-pink-400/20 dark:to-purple-400/20",
+      iconBorder: "border-pink-200/50 dark:border-pink-500/30",
       text: "text-gray-900 dark:text-white",
       bar: "bg-pink-500",
+      pattern: "rgba(236,72,153,0.3)",
     },
     success: {
-      bg: "bg-gradient-to-br from-emerald-100/70 to-teal-100/70 dark:from-white/5 dark:to-white/5",
-      border: "border-emerald-200 dark:border-emerald-500/30",
+      bg: "bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/30",
+      border: "border-white/50 dark:border-gray-700/50",
       icon: "text-emerald-600 dark:text-emerald-400",
+      iconBg: "bg-gradient-to-br from-emerald-500/10 to-teal-500/10 dark:from-emerald-400/20 dark:to-teal-400/20",
+      iconBorder: "border-emerald-200/50 dark:border-emerald-500/30",
       text: "text-gray-900 dark:text-white",
       bar: "bg-emerald-500",
+      pattern: "rgba(16,185,129,0.3)",
     },
     warning: {
-      bg: "bg-gradient-to-br from-amber-100/70 to-orange-100/70 dark:from-white/5 dark:to-white/5",
-      border: "border-amber-200 dark:border-orange-500/30",
-      icon: "text-orange-600 dark:text-orange-400",
+      bg: "bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/30",
+      border: "border-white/50 dark:border-gray-700/50",
+      icon: "text-amber-600 dark:text-amber-400",
+      iconBg: "bg-gradient-to-br from-amber-500/10 to-orange-500/10 dark:from-amber-400/20 dark:to-orange-400/20",
+      iconBorder: "border-amber-200/50 dark:border-amber-500/30",
       text: "text-gray-900 dark:text-white",
-      bar: "bg-orange-500",
+      bar: "bg-amber-500",
+      pattern: "rgba(245,158,11,0.3)",
     },
     info: {
-      bg: "bg-gradient-to-br from-sky-100/70 to-blue-100/70 dark:from-white/5 dark:to-white/5",
-      border: "border-sky-200 dark:border-sky-500/30",
-      icon: "text-sky-600 dark:text-sky-400",
+      bg: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/30",
+      border: "border-white/50 dark:border-gray-700/50",
+      icon: "text-blue-600 dark:text-blue-400",
+      iconBg: "bg-gradient-to-br from-blue-500/10 to-sky-500/10 dark:from-blue-400/20 dark:to-sky-400/20",
+      iconBorder: "border-blue-200/50 dark:border-blue-500/30",
       text: "text-gray-900 dark:text-white",
-      bar: "bg-sky-500",
+      bar: "bg-blue-500",
+      pattern: "rgba(59,130,246,0.3)",
     },
   };
 
@@ -89,25 +101,32 @@ const StatsCard = ({
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-2xl border backdrop-blur-md transition-all duration-200 hover:shadow-xl",
+        "relative group overflow-hidden rounded-2xl border transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-black/10 dark:hover:shadow-black/25",
         classes.bg,
         classes.border
       )}
     >
-      <div className="p-6">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-16 translate-x-16"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-12 -translate-x-12"></div>
+      </div>
+
+      <div className="relative p-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <p className="text-sm font-medium text-gray-600 dark:text-gray-200">
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
               {title}
             </p>
-            <p className={cn("text-3xl font-bold", classes.text)}>
+            <p className={cn("text-3xl font-black", classes.text)}>
               {typeof value === "number" ? value.toLocaleString() : value}
             </p>
           </div>
           <div
             className={cn(
-              "p-3 rounded-xl bg-white/80 dark:bg-white/10 border",
-              classes.border
+              "p-3 rounded-xl border",
+              classes.iconBg,
+              classes.iconBorder
             )}
           >
             <Icon className={cn("w-6 h-6", classes.icon)} />

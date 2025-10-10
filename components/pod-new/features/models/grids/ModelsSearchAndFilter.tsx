@@ -62,15 +62,7 @@ const SearchInput = ({
   }, [onChange]);
 
   return (
-    <div
-      className={cn(
-        "relative transition-all duration-200",
-        isFocused
-          ? "ring-2 ring-primary-500 ring-offset-2 ring-offset-background"
-          : "",
-        className
-      )}
-    >
+    <div className={cn("relative transition-all duration-200", className)}>
       <div className="relative">
         <Search
           className={cn(
@@ -80,7 +72,7 @@ const SearchInput = ({
           )}
         />
         <input
-          type="search"
+          type="text"
           value={localValue}
           onChange={(e) => setLocalValue(e.target.value)}
           onFocus={() => setIsFocused(true)}
@@ -335,32 +327,37 @@ const AdvancedFilters = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div
-        className="absolute top-4 right-4 w-96 max-w-[calc(100vw-2rem)] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700"
+        className="w-96 max-w-full relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl shadow-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05] pointer-events-none">
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]"></div>
+        </div>
+
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            <Filter className="w-5 h-5" />
+        <div className="relative flex items-center justify-between p-4 border-b border-gray-200/50 dark:border-gray-700/50">
+          <h3 className="text-lg font-black bg-gradient-to-r from-gray-900 via-pink-600 to-purple-600 dark:from-gray-100 dark:via-pink-400 dark:to-purple-400 bg-clip-text text-transparent flex items-center gap-2">
+            <Filter className="w-5 h-5 text-pink-600 dark:text-pink-400" />
             Advanced Filters
           </h3>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors touch-target"
+            className="p-2 hover:bg-white/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors touch-target"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Filters Content */}
-        <div className="p-4 space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto">
+        <div className="relative p-4 space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto">
           {/* Status Filter */}
           <div className="space-y-3">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="text-sm font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
               Model Status
             </label>
             <div className="space-y-2">
@@ -393,7 +390,7 @@ const AdvancedFilters = ({
 
           {/* Revenue Range */}
           <div className="space-y-3">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="text-sm font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
               Monthly Revenue Range
             </label>
             <div className="space-y-2">
@@ -423,7 +420,7 @@ const AdvancedFilters = ({
 
           {/* Social Media Filter */}
           <div className="space-y-3">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label className="text-sm font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
               Social Media Presence
             </label>
             <div className="space-y-2">
@@ -458,7 +455,7 @@ const AdvancedFilters = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="relative flex items-center gap-3 p-4 border-t border-gray-200/50 dark:border-gray-700/50">
           <button
             onClick={() => {
               onFiltersChange({
@@ -473,13 +470,13 @@ const AdvancedFilters = ({
                 },
               });
             }}
-            className="px-3 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+            className="px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
           >
             Clear All
           </button>
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white text-sm font-medium rounded-lg transition-colors"
+            className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-sm font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
           >
             Apply Filters
           </button>

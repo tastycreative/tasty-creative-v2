@@ -115,10 +115,7 @@ export default function PodLayout({ children }: PodLayoutProps) {
 
   // Calculate actual sidebar visibility based on store state
   const showLeftSidebar = shouldShowLeftSidebar && !leftSidebarCollapsed;
-  // Force right sidebar to show on admin page, otherwise use store state
-  const showRightSidebar = pathname === "/pod-admin"
-    ? shouldShowRightSidebar
-    : shouldShowRightSidebar && !rightSidebarCollapsed;
+  const showRightSidebar = shouldShowRightSidebar && !rightSidebarCollapsed;
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-200">

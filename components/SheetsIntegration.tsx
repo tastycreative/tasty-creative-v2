@@ -516,27 +516,36 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
   };
 
   return (
-    <Card className="border border-pink-200 dark:border-pink-500/30 shadow-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm relative group overflow-hidden">
-      {/* Animated background effect */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 dark:via-pink-900/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+    <Card className="relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 shadow-xl backdrop-blur-sm">
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05] pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]"></div>
+      </div>
+      {/* Decorative Patterns */}
+      <div className="absolute top-0 right-0 w-64 h-64 bg-white dark:bg-white/5 rounded-full -translate-y-32 translate-x-32 opacity-[0.03]"></div>
+      <div className="absolute bottom-0 left-0 w-48 h-48 bg-white dark:bg-white/5 rounded-full translate-y-24 -translate-x-24 opacity-[0.03]"></div>
 
-      <CardHeader className="bg-gradient-to-r from-pink-50/50 to-rose-50/50 dark:from-pink-900/30 dark:to-rose-900/30 border-b border-pink-200 dark:border-pink-500/30 relative">
-        <CardTitle className="text-gray-900 dark:text-gray-100 font-bold flex items-center text-xl">
-          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center mr-3">
-            <FileSpreadsheet className="h-4 w-4 text-white" />
+      <CardHeader className="relative p-6 border-b border-gray-200/50 dark:border-gray-700/50">
+        <CardTitle className="flex items-center">
+          <div className="p-3 bg-gradient-to-br from-pink-500/10 to-purple-500/10 dark:from-pink-400/20 dark:to-purple-400/20 rounded-xl border border-pink-200/50 dark:border-pink-500/30">
+            <FileSpreadsheet className="h-5 w-5 text-pink-600 dark:text-pink-400" />
           </div>
-          Google Sheets Integration
+          <div className="ml-3">
+            <h3 className="text-lg font-black bg-gradient-to-r from-gray-900 via-pink-600 to-purple-600 dark:from-gray-100 dark:via-pink-400 dark:to-purple-400 bg-clip-text text-transparent">
+              Google Sheets Integration
+            </h3>
+          </div>
         </CardTitle>
       </CardHeader>
 
       {/* Model Selection */}
-      <div className="px-8 py-6 bg-gradient-to-r from-blue-50/50 to-cyan-50/50 dark:from-blue-900/20 dark:to-cyan-900/20 border-b border-blue-200 dark:border-blue-500/30">
+      <div className="relative px-8 py-6 bg-gray-50/50 dark:bg-gray-900/50 border-b border-gray-100 dark:border-gray-800">
         <div className="space-y-4">
           <label
             htmlFor="model-selection"
-            className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center"
+            className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center uppercase tracking-wide"
           >
-            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 mr-2"></div>
+            <div className="h-2 w-2 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 mr-2"></div>
             Select Model
           </label>
           <div className="relative">
@@ -561,7 +570,7 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
 
       {/* Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="px-8 py-4 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="relative px-8 py-4 bg-white/50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="sync" className="flex items-center space-x-2">
               <ArrowLeftRight className="h-4 w-4" />
@@ -577,11 +586,11 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
         {/* Sheet Sync Tab */}
         <TabsContent value="sync" className="mt-0">
           {/* Conversion Selector */}
-          <div className="px-8 py-6 bg-gradient-to-r from-purple-50/50 to-indigo-50/50 dark:from-purple-900/20 dark:to-indigo-900/20 border-b border-purple-200 dark:border-purple-500/30">
+          <div className="relative px-8 py-6 bg-gradient-to-r from-gray-50/50 to-white/50 dark:from-gray-900/20 dark:to-gray-800/20 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-center space-x-4">
               {/* From Type */}
-              <div className="px-4 py-3 bg-white dark:bg-gray-700 border-2 border-purple-300 dark:border-purple-600 rounded-lg min-w-[180px] text-center">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <div className="px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-lg min-w-[180px] text-center">
+                <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                   {fromType}
                 </span>
               </div>
@@ -590,7 +599,7 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
               <button
                 type="button"
                 onClick={handleSwapTypes}
-                className="p-3 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
+                className="p-3 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-110"
               >
                 <ArrowLeftRight
                   className="h-5 w-5 transition-transform duration-300"
@@ -599,8 +608,8 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
               </button>
 
               {/* To Type */}
-              <div className="px-4 py-3 bg-white dark:bg-gray-700 border-2 border-purple-300 dark:border-purple-600 rounded-lg min-w-[180px] text-center">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <div className="px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-lg min-w-[180px] text-center">
+                <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">
                   {toType}
                 </span>
               </div>
@@ -608,9 +617,9 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
 
             {/* Conversion Direction Indicator */}
             <div className="mt-4 text-center">
-              <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">
-                Converting from <span className="font-bold">{fromType}</span> to{" "}
-                <span className="font-bold">{toType}</span>
+              <p className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                Converting from <span className="font-bold text-pink-600 dark:text-pink-400">{fromType}</span> to{" "}
+                <span className="font-bold text-purple-600 dark:text-purple-400">{toType}</span>
               </p>
             </div>
           </div>
@@ -621,9 +630,9 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
           <div className="space-y-3">
             <label
               htmlFor="spreadsheet-url"
-              className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center"
+              className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center uppercase tracking-wide"
             >
-              <div className="h-2 w-2 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 mr-2"></div>
+              <div className="h-2 w-2 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 mr-2"></div>
               Source Spreadsheet URL
             </label>
             <Input
@@ -816,24 +825,24 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
         </form>
 
         {/* Info Section */}
-        <div className="mt-8 p-6 bg-gradient-to-r from-pink-50/50 to-rose-50/50 dark:from-pink-900/30 dark:to-rose-900/30 rounded-xl border border-pink-200 dark:border-pink-500/30 shadow-sm">
+        <div className="mt-8 p-6 bg-gray-50/80 dark:bg-gray-800/80 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
           <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center text-lg">
-            <div className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mr-3">
+            <div className="h-6 w-6 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center mr-3">
               <span className="text-white text-xs">?</span>
             </div>
             How it works:
           </h3>
           <div className="space-y-4 text-sm text-gray-600 dark:text-gray-300">
             <p className="flex items-center">
-              <span className="text-pink-500 dark:text-pink-400 mr-2">•</span>{" "}
+              <span className="text-pink-600 dark:text-pink-400 mr-2">•</span>{" "}
               Automatically detects all Schedule #1 sheets in your spreadsheet
             </p>
             <p className="flex items-center">
-              <span className="text-pink-500 dark:text-pink-400 mr-2">•</span>{" "}
+              <span className="text-purple-600 dark:text-purple-400 mr-2">•</span>{" "}
               Creates a copy of the destination template for each sheet
             </p>
             <p className="flex items-center">
-              <span className="text-purple-500 dark:text-purple-400 mr-2">
+              <span className="text-blue-600 dark:text-blue-400 mr-2">
                 •
               </span>{" "}
               Maps columns with intelligent data transformation
@@ -874,8 +883,8 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
                   <div className="flex items-start space-x-3">
                     {/* Sheet URL/Name Input */}
                     <div className="flex-1">
-                      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center mb-2">
-                        <div className="h-2 w-2 rounded-full bg-gradient-to-r from-orange-500 to-red-500 mr-2"></div>
+                      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center mb-2 uppercase tracking-wide">
+                        <div className="h-2 w-2 rounded-full bg-gradient-to-r from-pink-500 to-purple-500 mr-2"></div>
                         Sheet URL
                       </label>
                       <div className="flex items-center space-x-2">
@@ -934,8 +943,8 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
 
                     {/* Sheet Type Selection */}
                     <div className="w-48">
-                      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center mb-2">
-                        <div className="h-2 w-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 mr-2"></div>
+                      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center mb-2 uppercase tracking-wide">
+                        <div className="h-2 w-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 mr-2"></div>
                         Sheet Type
                       </label>
                       <Select value={entry.type} onValueChange={(value) => updateSheetType(entry.id, value)}>
