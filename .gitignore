@@ -46,3 +46,12 @@ next-env.d.ts
 /lib/generated/prisma
 .claude
 .serena
+
+# Session reports and temporary files
+SESSION_REPORT_*.md
+cookies.txt
+
+# Root-level screenshots and images (temporary)
+/*.jpeg
+/*.jpg
+/*.png
