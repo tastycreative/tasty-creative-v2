@@ -12,6 +12,9 @@ import {
   useAvailableTeams,
 } from "@/lib/stores/podStore";
 import { useLayoutStore, useResponsiveLayout } from "@/lib/stores/layoutStore";
+import { useWelcomeModal } from "@/hooks/useWelcomeModal";
+import { WelcomeToPodNewModal } from "@/components/pod-new/shared/WelcomeToPodNewModal";
+import { WhatsNewButton } from "@/components/pod-new/shared/WhatsNewButton";
 
 interface PodLayoutProps {
   children: React.ReactNode;
@@ -36,6 +39,15 @@ export default function PodLayout({ children }: PodLayoutProps) {
 
   // Responsive layout hook
   const { isMobile, isTablet } = useResponsiveLayout();
+
+  // Welcome modal state
+  const {
+    isOpen: isWelcomeModalOpen,
+    hasViewed: hasViewedWelcome,
+    openModal: openWelcomeModal,
+    closeModal: closeWelcomeModal,
+    markAsDismissed: dismissWelcomeModal,
+  } = useWelcomeModal();
 
   // Check if this is a model profile page that should be full-screen
   const isModelProfilePage = pathname?.includes('/my-models/') && pathname?.split('/').length > 4;
@@ -163,6 +175,12 @@ export default function PodLayout({ children }: PodLayoutProps) {
 
         {/* Layout Controls - Show on all pages */}
         <div className="flex items-center gap-2 ml-4">
+            {/* What's New Button */}
+            <WhatsNewButton
+              onClick={openWelcomeModal}
+              showBadge={!hasViewedWelcome}
+            />
+
             <div className="h-4 w-px bg-gray-300 dark:bg-gray-600" />
 
             {/* Left Sidebar Toggle */}
@@ -244,6 +262,13 @@ export default function PodLayout({ children }: PodLayoutProps) {
           )}
         </div>
       </div>
+
+      {/* Welcome Modal */}
+      <WelcomeToPodNewModal
+        isOpen={isWelcomeModalOpen}
+        onClose={closeWelcomeModal}
+        onDismiss={dismissWelcomeModal}
+      />
     </div>
   );
 }
