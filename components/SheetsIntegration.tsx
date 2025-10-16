@@ -44,8 +44,10 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
   const [fromType, setFromType] = useState("Scheduler");
   const [toType, setToType] = useState("Betterfans Sheet");
   const [status, setStatus] = useState<{
-    type: "success" | "error" | "info";
+    type: "success" | "error" | "info" | "warning";
     message: string;
+    retryAttempt?: number;
+    maxRetries?: number;
   } | null>(null);
   const [newSpreadsheetUrl, setNewSpreadsheetUrl] = useState<string | null>(
     null
@@ -390,6 +392,47 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
       message: "Processing spreadsheet data...",
     });
 
+    // Set up polling for quota retry updates as a fallback since SSE might not work reliably
+    let pollInterval: NodeJS.Timeout | null = null;
+    let pollCount = 0;
+    const maxPollAttempts = 60; // Poll for up to 5 minutes (60 * 5s = 5min)
+    
+    const startPolling = () => {
+      pollInterval = setInterval(async () => {
+        pollCount++;
+        
+        // Stop polling after max attempts or if request completes
+        if (pollCount >= maxPollAttempts || !isLoading) {
+          if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+          }
+          return;
+        }
+        
+        // Show appropriate messages during long operations
+        if (pollCount === 6 && status?.type === "info") { // After 30 seconds
+          setStatus({
+            type: "info",
+            message: "Processing sheets... This may take a moment if there are many sheets to process.",
+          });
+        } else if (pollCount === 12 && status?.type === "info") { // After 1 minute
+          setStatus({
+            type: "warning",
+            message: "Processing is taking longer than usual. This may be due to Google Sheets quota limits. Retrying automatically...",
+          });
+        } else if (pollCount === 24 && (status?.type === "info" || status?.type === "warning")) { // After 2 minutes
+          setStatus({
+            type: "warning",
+            message: "Still processing... Google Sheets quota limits detected. The system is automatically retrying. Please wait...",
+          });
+        }
+      }, 5000); // Poll every 5 seconds
+    };
+    
+    // Start polling after a short delay
+    setTimeout(startPolling, 10000); // Start after 10 seconds
+
     try {
       const response = await fetch("/api/pod", {
         method: "POST",
@@ -512,6 +555,10 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
       });
     } finally {
       setIsLoading(false);
+      // Clean up polling
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
     }
   };
 
@@ -678,7 +725,9 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
                   ? "bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border-green-300 dark:border-green-600 shadow-lg shadow-green-100 dark:shadow-green-900/20"
                   : status.type === "error"
                     ? "bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/30 dark:to-pink-900/30 border-red-300 dark:border-red-600 shadow-lg shadow-red-100 dark:shadow-red-900/20"
-                    : "bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-blue-300 dark:border-blue-600 shadow-lg shadow-blue-100 dark:shadow-blue-900/20"
+                    : status.type === "warning"
+                      ? "bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 border-yellow-300 dark:border-yellow-600 shadow-lg shadow-yellow-100 dark:shadow-yellow-900/20"
+                      : "bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-blue-300 dark:border-blue-600 shadow-lg shadow-blue-100 dark:shadow-blue-900/20"
               }`}
             >
               <div className="flex items-start space-x-4">
@@ -691,6 +740,10 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
                     <div className="h-8 w-8 rounded-full bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center">
                       <AlertCircle className="h-4 w-4 text-white" />
                     </div>
+                  ) : status.type === "warning" ? (
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-yellow-500 to-orange-600 flex items-center justify-center">
+                      <Loader2 className="h-4 w-4 text-white animate-spin" />
+                    </div>
                   ) : (
                     <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
                       <Loader2 className="h-4 w-4 text-white animate-spin" />
@@ -698,17 +751,34 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
                   )}
                 </div>
                 <div className="flex-1">
-                  <p
-                    className={`text-sm font-medium ${
-                      status.type === "success"
-                        ? "text-green-800 dark:text-green-200"
-                        : status.type === "error"
-                          ? "text-red-800 dark:text-red-200"
-                          : "text-blue-800 dark:text-blue-200"
-                    }`}
-                  >
-                    {status.message}
-                  </p>
+                  <div>
+                    <p
+                      className={`text-sm font-medium ${
+                        status.type === "success"
+                          ? "text-green-800 dark:text-green-200"
+                          : status.type === "error"
+                            ? "text-red-800 dark:text-red-200"
+                            : status.type === "warning"
+                              ? "text-yellow-800 dark:text-yellow-200"
+                              : "text-blue-800 dark:text-blue-200"
+                      }`}
+                    >
+                      {status.message}
+                    </p>
+                    {status.type === "warning" && status.retryAttempt && status.maxRetries && (
+                      <div className="mt-2">
+                        <div className="w-full bg-yellow-200 dark:bg-yellow-800 rounded-full h-2">
+                          <div 
+                            className="bg-yellow-600 dark:bg-yellow-400 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${(status.retryAttempt / status.maxRetries) * 100}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                          This usually resolves within a minute. Please wait while we retry...
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
