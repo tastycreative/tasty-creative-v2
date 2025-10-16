@@ -20,6 +20,7 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
     "/gallery",
     "/gif-maker",
     "/sheets",
+    "/schedule", // Schedule page with self-contained layout
   ];
 
   const podRoutesWithSubpaths = [
