@@ -22,6 +22,7 @@ model User {
   accounts                   Account[]
   assignedBoardColumnsByUser BoardColumnMemberAssignment[] @relation("BoardColumnAssignedBy")
   assignedBoardColumns       BoardColumnMemberAssignment[] @relation("BoardColumnAssignedUser")
+  chatbotConversations       ChatbotConversation[]
   ContentSubmission          ContentSubmission[]
   ForumComment               ForumComment[]
   ForumVote                  ForumVote[]
@@ -347,6 +348,9 @@ model ClientModelDetails {
   onboardingCompleted   Boolean?             @default(false)
   status                String?
   model_name            String?
+  clientCustomSheet     String?
+  clientOnlyFansAlbum   String?
+  clientSocialAlbums    String?
   onboardingProgress    OnboardingProgress[]
 }
 
@@ -749,6 +753,7 @@ model ModularWorkflow {
   createdAt          DateTime           @default(now())
   updatedAt          DateTime
   processedAt        DateTime?
+  timezone           String?
   User               User               @relation(fields: [createdById], references: [id])
   Task               Task?              @relation(fields: [taskId], references: [id])
   Notification       Notification[]
@@ -783,6 +788,20 @@ model UserActivityHistory {
   @@index([actionType])
   @@index([oldRole])
   @@index([newRole])
+}
+
+model ChatbotConversation {
+  id        String   @id @default(cuid())
+  userId    String
+  sessionId String
+  messages  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([createdAt])
 }
 
 enum Role {
@@ -926,6 +945,7 @@ enum ContentStyle {
   GAME
   POLL
   LIVESTREAM
+  BUNDLE
 }
 
 enum WorkflowStatus {
