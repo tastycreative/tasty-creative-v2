@@ -125,13 +125,18 @@ const ChatBot: React.FC = () => {
     if (!sessionId) return;
     
     try {
-      await fetch('/api/chatbot', {
+      console.log('🗑️ Starting new conversation - deleting current session:', sessionId);
+      
+      const response = await fetch('/api/chatbot', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ sessionId }),
       });
+      
+      const result = await response.json();
+      console.log('✅ Conversation deletion response:', result);
       
       // Reset state
       setSessionId(null);

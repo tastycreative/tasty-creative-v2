@@ -860,16 +860,22 @@ export async function DELETE(request: NextRequest) {
 
     // Delete the conversation from database
     try {
-      await prisma.chatbotConversation.deleteMany({
-        where: {
-          userId: session.user.id!,
-          sessionId: sessionId
-        }
-      });
+      console.log('🗑️ Would delete conversation from database (DISABLED FOR DATA COLLECTION):', { userId: session.user.id, sessionId });
+      
+      // COMMENTED OUT FOR DATA COLLECTION - GATHERING CONVERSATIONS FOR OPTIMIZATION
+      // const deleteResult = await prisma.chatbotConversation.deleteMany({
+      //   where: {
+      //     userId: session.user.id!,
+      //     sessionId: sessionId
+      //   }
+      // });
+      
+      console.log('✅ Conversation deletion skipped for data collection');
       
       return NextResponse.json({
         success: true,
-        message: "Conversation deleted successfully"
+        message: "Conversation cleared (deletion disabled for data collection)",
+        deletedCount: 0
       });
     } catch (dbError) {
       console.error('Database error during deletion:', dbError);
