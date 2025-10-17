@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { google } from 'googleapis';
+import { auth } from '@/auth';
 
 // Function to extract spreadsheet ID from URL
 function extractSpreadsheetId(url: string): string | null {
@@ -8,6 +10,19 @@ function extractSpreadsheetId(url: string): string | null {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth();
+
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
+    if (!session.accessToken) {
+      return NextResponse.json(
+        { error: "Not authenticated. No access token." },
+        { status: 401 }
+      );
+    }
+
     const { sheetUrl } = await request.json();
     
     if (!sheetUrl) {
@@ -25,54 +40,68 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Use the server-side Google API key
-    const apiKey = process.env.AUTH_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json(
-        { error: 'Google API key not configured' },
-        { status: 500 }
-      );
-    }
-
-    // Fetch sheet metadata from Google Sheets API
-    const response = await fetch(
-      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?key=${apiKey}&fields=properties.title`
+    // Use the user's OAuth credentials instead of server API key
+    const oauth2Client = new google.auth.OAuth2(
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI
     );
 
-    if (!response.ok) {
-      if (response.status === 403) {
+    oauth2Client.setCredentials({
+      access_token: session.accessToken,
+      refresh_token: session.refreshToken,
+      expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
+    });
+
+    const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
+
+    try {
+      // Fetch sheet metadata using user's credentials
+      const response = await sheets.spreadsheets.get({
+        spreadsheetId,
+        fields: 'properties.title'
+      });
+
+      const sheetName = response.data.properties?.title;
+
+      if (!sheetName) {
         return NextResponse.json(
-          { error: 'Access denied to this spreadsheet. Please check permissions.' },
+          { error: 'Could not retrieve sheet name' },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        sheetName,
+        spreadsheetId
+      });
+
+    } catch (googleError: any) {
+      console.error('Google Sheets API error:', googleError);
+      
+      if (googleError.code === 403) {
+        return NextResponse.json(
+          { error: 'Access denied to this spreadsheet. Please check permissions or ensure the sheet is shared with you.' },
           { status: 403 }
         );
-      } else if (response.status === 404) {
+      } else if (googleError.code === 404) {
         return NextResponse.json(
           { error: 'Spreadsheet not found or is private.' },
           { status: 404 }
         );
+      } else if (googleError.code === 401) {
+        return NextResponse.json(
+          { error: 'GoogleAuthExpired' }, // This matches the error handling in SheetsIntegration
+          { status: 401 }
+        );
       } else {
         return NextResponse.json(
           { error: 'Failed to fetch sheet information' },
-          { status: response.status }
+          { status: 500 }
         );
       }
     }
-
-    const data = await response.json();
-    const sheetName = data.properties?.title;
-
-    if (!sheetName) {
-      return NextResponse.json(
-        { error: 'Could not retrieve sheet name' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({
-      success: true,
-      sheetName,
-      spreadsheetId
-    });
 
   } catch (error) {
     console.error('Error fetching sheet name:', error);

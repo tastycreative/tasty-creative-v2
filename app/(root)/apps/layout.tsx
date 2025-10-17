@@ -34,7 +34,7 @@ export default function AppsLayout({
           //exit={{ opacity: 0, x: -20 }}
           //transition={{ duration: 0.3 }}
           onClick={handleBack}
-          className="fixed top-4 left-4 z-50 group flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-full shadow-lg hover:shadow-xl transition-all duration-300 border border-pink-200/50 dark:border-pink-500/30 hover:border-pink-300/60 dark:hover:border-pink-400/50"
+          className="fixed top-4 left-4 z-10 group flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-full shadow-lg hover:shadow-xl transition-all duration-300 border border-pink-200/50 dark:border-pink-500/30 hover:border-pink-300/60 dark:hover:border-pink-400/50"
         >
           <ChevronLeft className="w-5 h-5 transition-transform group-hover:-translate-x-1" />
           <span className="font-medium text-gray-700 dark:text-gray-200">

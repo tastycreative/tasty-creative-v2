@@ -1,0 +1,580 @@
+"use client";
+
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import { toast } from 'sonner';
+import UserProfile from '@/components/ui/UserProfile';
+import { useSession } from 'next-auth/react';
+import { useNotificationStore } from '@/lib/stores/notificationStore';
+
+// Pure Ably notification context - no EventSource/SSE logic
+
+interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+  data?: any;
+}
+
+interface NotificationContextType {
+  notifications: Notification[];
+  unreadCount: number;
+  isConnected: boolean;
+  connectionType: 'polling' | 'ably' | null;
+  lastUpdated: number;
+  markAsRead: (notificationId: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  refetch: () => Promise<void>;
+  subscribeToTaskUpdates: (teamId: string, onTaskUpdate: (payload: any) => void) => void;
+  unsubscribeFromTaskUpdates: (teamId: string) => void;
+  broadcastTaskUpdate: (update: any, teamId: string) => Promise<boolean>;
+}
+
+const NotificationContext = createContext<NotificationContextType | null>(null);
+
+export function NotificationProvider({ children }: { children: React.ReactNode }) {
+  // Early SSR guard - prevent any client-side code from running on server
+  if (typeof window === 'undefined') {
+    // Return minimal provider for SSR
+    return (
+      <NotificationContext.Provider
+        value={{
+          notifications: [],
+          unreadCount: 0,
+          isConnected: false,
+          connectionType: null,
+          lastUpdated: Date.now(),
+          markAsRead: async () => {},
+          markAllAsRead: async () => {},
+          refetch: async () => {},
+          subscribeToTaskUpdates: () => {},
+          unsubscribeFromTaskUpdates: () => {},
+          broadcastTaskUpdate: async () => false,
+        }}
+      >
+        {children}
+      </NotificationContext.Provider>
+    );
+  }
+
+  // Use Zustand store for state management and caching
+  const {
+    notifications,
+    unreadCount,
+    isConnected,
+    connectionType,
+    setNotifications,
+    addNotification,
+    markAsRead: storeMarkAsRead,
+    markAllAsRead: storeMarkAllAsRead,
+    setUnreadCount,
+    setConnectionStatus,
+    updateLastFetchTime,
+    shouldRefetch,
+    setCurrentUser,
+    clearUserData
+  } = useNotificationStore();
+
+  const [lastUpdated, setLastUpdated] = useState(Date.now());
+  const ablyClientRef = useRef<any>(null); // Store Ably client reference
+  const previousNotificationIds = useRef<Set<string>>(new Set());
+  const initialLoadCompletedRef = useRef<boolean>(false);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+  const reconnectAttempts = useRef(0);
+  const maxReconnectAttempts = 5;
+  const isConnectingRef = useRef<boolean>(false);
+  const isFetchingRef = useRef<boolean>(false);
+  const lastFetchTimeRef = useRef<number>(0);
+  
+  // Get session for authentication
+  const { data: session, status } = useSession();
+
+  // Declare connectToAblyStream function
+  const connectToAblyStream = useRef<() => void>();
+
+  const showNotificationToast = (notification: Notification) => {
+    const data = notification.data || {};
+    
+    console.log('🔔 showNotificationToast called with:', notification);
+    
+    // Extract user info from notification data - try different user profile fields
+    let triggerUserProfile = data.movedByUser || data.mentionerUser || data.commenterUser || data.createdByUser || null;
+    
+    // For TASK_ASSIGNED notifications, create a profile object from assignedBy data if we don't have one
+    if (!triggerUserProfile && notification.type === 'TASK_ASSIGNED' && data.assignedBy && data.assignedById) {
+      triggerUserProfile = {
+        id: data.assignedById,
+        name: data.assignedBy,
+        email: data.assignedByEmail || '', // This might not be available, but we'll provide a fallback
+        image: null // We don't have the image, so it will show initials
+      };
+    }
+    const triggerUserName = triggerUserProfile?.name || data.movedBy || data.mentionerName || data.commenterName || data.userWhoLinked || data.createdBy || data.assignedBy || 'Someone';
+    const taskTitle = data.taskTitle || data.taskUrl?.split('task=')[1] || '';
+    const taskUrl = data.taskUrl;
+    
+    console.log('🔔 Toast data:', { triggerUserProfile, triggerUserName, taskTitle, taskUrl, type: notification.type });
+    
+    // Create summary based on notification type
+    let summary = '';
+    let action = '';
+    
+    switch (notification.type) {
+      case 'TASK_STATUS_CHANGED':
+        action = `moved "${taskTitle}" to ${data.newColumn || 'a new column'}`;
+        summary = `Task moved to ${data.newColumn || 'new status'}`;
+        break;
+      case 'TASK_MENTION':
+        action = `mentioned you in "${taskTitle}"`;
+        summary = 'You were mentioned in a comment';
+        break;
+      case 'TASK_COMMENT_ADDED':
+        action = `commented on "${taskTitle}"`;
+        summary = 'New comment on task';
+        break;
+      case 'TASK_ASSIGNED':
+        // Use the actual notification message for OTP-PTR team assignments
+        if (data.submissionType && data.teamName) {
+          action = `created a new ${data.submissionType.toUpperCase()} task "${taskTitle}" for your team`;
+          summary = `New ${data.submissionType.toUpperCase()} task assigned to ${data.teamName}`;
+        } else {
+          // Use the actual notification message which includes the assigner's name
+          action = notification.message;
+          summary = 'Task assigned to you';
+        }
+        break;
+      case 'POD_TEAM_ADDED':
+      case 'POD_TEAM_CLIENT_ASSIGNED':
+      case 'POD_TEAM_MEMBER_JOINED':
+        action = 'added you to a team';
+        summary = notification.message;
+        break;
+      default:
+        action = notification.message;
+        summary = notification.title;
+    }
+
+    console.log('🔔 Final toast content:', { action, summary });
+
+    // Show toast with click handler
+    toast(
+      <div className="flex items-start space-x-3 cursor-pointer max-w-sm" onClick={() => handleToastClick(taskUrl, notification)}>
+        {triggerUserProfile ? (
+          <UserProfile 
+            user={{
+              id: triggerUserProfile.id,
+              name: triggerUserProfile.name,
+              email: triggerUserProfile.email,
+              image: triggerUserProfile.image
+            }}
+            size="sm"
+            className="flex-shrink-0"
+          />
+        ) : (
+          <div className="flex-shrink-0 w-6 h-6 bg-gradient-to-r from-pink-400 to-purple-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+            {triggerUserName.charAt(0).toUpperCase()}
+          </div>
+        )}
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+            {triggerUserName}
+          </p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 break-words leading-tight">
+            {action}
+          </p>
+        </div>
+      </div>,
+      {
+        duration: 6000,
+        position: 'bottom-right',
+        style: {
+          maxWidth: '400px',
+          width: 'auto',
+        },
+      }
+    );
+    
+    console.log('🔔 Toast called successfully');
+  };
+
+  const handleToastClick = (taskUrl?: string, notification?: Notification) => {
+    if (taskUrl) {
+      window.location.href = taskUrl;
+    } else if (notification?.data?.taskId) {
+      // Fallback: construct URL from task ID
+      const teamParam = notification.data.teamId ? `team=${notification.data.teamId}&` : '';
+      window.location.href = `/apps/pod/board?${teamParam}task=${notification.data.taskId}`;
+    }
+  };
+
+  const refetch = async () => {
+    const currentUserId = session?.user?.id;
+    
+    // Check cache first - reduce API calls significantly
+    if (!shouldRefetch(currentUserId)) {
+      console.log('💾 Using cached notifications, skipping API call');
+      return;
+    }
+
+    // Prevent duplicate simultaneous fetches
+    if (isFetchingRef.current) {
+      console.log('🚫 Already fetching notifications, skipping duplicate request');
+      return;
+    }
+
+    // Rate limiting - don't fetch more than once every 2 seconds
+    const now = Date.now();
+    if (now - lastFetchTimeRef.current < 2000) {
+      console.log('🚫 Rate limiting: Last fetch was too recent, skipping');
+      return;
+    }
+
+    try {
+      isFetchingRef.current = true;
+      lastFetchTimeRef.current = now;
+
+      console.log('📡 Fetching notifications from API...');
+      const res = await fetch('/api/notifications/in-app?all=true', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        const newNotifications = data.notifications || [];
+        
+        // Ensure we track the current user for these notifications
+        if (currentUserId) {
+          setCurrentUser(currentUserId);
+        }
+        
+        // Check for new notifications and show toast
+        // Only show toasts if this is not the initial load
+        if (initialLoadCompletedRef.current) {
+          const newOnes = newNotifications.filter((notif: Notification) => 
+            !previousNotificationIds.current.has(notif.id)
+          );
+          
+          console.log('🔔 New notifications detected during refetch:', newOnes.length);
+          
+          newOnes.forEach((notif: Notification) => {
+            console.log('🔔 Showing toast for newly fetched:', notif.title);
+            showNotificationToast(notif);
+          });
+        } else {
+          console.log('🔔 First load, not showing toasts for', newNotifications.length, 'notifications');
+          initialLoadCompletedRef.current = true;
+        }
+        
+        // Update the set of seen notification IDs
+        previousNotificationIds.current = new Set(newNotifications.map((n: Notification) => n.id));
+        
+        // Update Zustand store (with caching)
+        setNotifications(newNotifications);
+        const newUnreadCount = data.count || 0;
+        setUnreadCount(newUnreadCount);
+        updateLastFetchTime();
+        setLastUpdated(Date.now());
+        
+        console.log('📊 Notifications updated and cached for user:', currentUserId, {
+          total: newNotifications.length,
+          unread: newUnreadCount,
+          timestamp: new Date().toLocaleString()
+        });
+      }
+    } catch (err) {
+      console.error('❌ Error fetching notifications:', err);
+      // swallow network errors silently to avoid noisy logs
+    } finally {
+      isFetchingRef.current = false; // Always reset fetching flag
+    }
+  };
+
+  const markAsRead = async (notificationId: string) => {
+    // Update store immediately for instant UI feedback
+    storeMarkAsRead(notificationId);
+    
+    try {
+      await fetch('/api/notifications/mark-read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ notificationId }),
+      });
+      console.log('✅ Marked notification as read:', notificationId);
+    } catch (err) {
+      console.error('❌ Failed to mark as read:', err);
+      // Could implement rollback here if needed
+    }
+    // No need to refetch - store is already updated
+  };
+
+  const markAllAsRead = async () => {
+    // Update store immediately for instant UI feedback
+    storeMarkAllAsRead();
+    
+    try {
+      await fetch('/api/notifications/mark-read', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ markAll: true }),
+      });
+      console.log('✅ Marked all notifications as read');
+    } catch (err) {
+      console.error('❌ Failed to mark all as read:', err);
+      // Could implement rollback here if needed
+    }
+    // No need to refetch - store is already updated
+  };
+
+  // No-op realtime subscription API to keep callers working until a new
+  // realtime implementation is added.
+  function subscribeToTaskUpdates(_teamId: string, _onTaskUpdate: (p: any) => void) {
+  // intentionally left blank — use refetch() for updates
+  }
+
+  function unsubscribeFromTaskUpdates(_teamId: string) {
+    // no-op
+  }
+
+  async function broadcastTaskUpdate(_update: any, _teamId: string): Promise<boolean> {
+    // no-op broadcast
+    return false;
+  }
+
+  // Establish Ably real-time connection
+  useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') {
+      console.log('❌ Running on server, skipping Ably connection');
+      return;
+    }
+
+    console.log('🚀 NotificationContext useEffect triggered');
+    console.log('🔐 Auth status:', status, 'Session:', !!session?.user);
+    
+    // Wait for authentication to be resolved
+    if (status === 'loading') {
+      console.log('⏳ Auth loading, waiting...');
+      return;
+    }
+    
+    if (status === 'unauthenticated' || !session?.user) {
+      console.log('❌ User not authenticated, skipping Ably connection');
+      return;
+    }
+    
+    console.log('✅ User authenticated, proceeding with Ably connection for:', session.user.email);
+    
+    // Define the connection function
+    connectToAblyStream.current = async () => {
+      // Prevent multiple simultaneous connection attempts
+      if (isConnectingRef.current) {
+        console.log('🚫 Already connecting, skipping duplicate connection attempt');
+        return;
+      }
+      
+      console.log('🔗 Connecting to Ably notification stream...');
+      isConnectingRef.current = true;
+      
+      try {
+        // Import Ably dynamically to avoid SSR issues
+        if (typeof window === 'undefined') {
+          console.log('❌ Cannot import Ably on server side');
+          return;
+        }
+
+        const Ably = (await import('ably')).default;
+        
+        console.log('🚀 Creating Ably client connection...');
+        
+        const ably = new Ably.Realtime({
+          authUrl: '/api/notifications/ably-token',
+          authMethod: 'POST'
+        });
+
+        console.log('📡 Ably client created, waiting for connection...');
+
+        ably.connection.on('connected', () => {
+          console.log('✅ Ably connection established');
+          setConnectionStatus(true, 'ably');
+          reconnectAttempts.current = 0;
+          isConnectingRef.current = false;
+          
+          // Clear any existing reconnect timeout
+          if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
+          }
+          
+          console.log('🎯 Ably Connection established successfully');
+          
+          // Initial fetch of notifications
+          refetch();
+        });
+
+        // Subscribe to user's notification channel
+        const userId = session?.user?.id;
+        if (userId) {
+          const channelName = `user:${userId}:notifications`;
+          console.log('🔗 Subscribing to channel:', channelName);
+          
+          const channel = ably.channels.get(channelName);
+          
+          await channel.subscribe('notification', (message) => {
+            try {
+              console.log('📬 Received Ably notification:', message);
+              
+              const notificationData = message.data?.data || message.data;
+              
+              if (notificationData) {
+                const notification = notificationData;
+                
+                // Double-check that this notification is for the current user
+                // (Should already be guaranteed by channel subscription, but extra safety)
+                const currentUserId = session?.user?.id;
+                const notificationUserId = notification.userId || notification.data?.userId;
+                
+                if (currentUserId && notificationUserId && notificationUserId !== currentUserId) {
+                  console.log('🚫 Ignoring notification for different user:', notificationUserId, 'vs', currentUserId);
+                  return;
+                }
+                
+                // Check if this is a new notification
+                if (!previousNotificationIds.current.has(notification.id)) {
+                  console.log('🔔 New Ably notification received:', notification.title);
+                  showNotificationToast(notification);
+                  
+                  // Add to seen notifications
+                  previousNotificationIds.current.add(notification.id);
+                  
+                  // Update Zustand store directly
+                  addNotification(notification);
+                  setLastUpdated(Date.now());
+                } else {
+                  console.log('🔔 Duplicate notification ignored:', notification.title);
+                }
+              }
+            } catch (error) {
+              console.error('❌ Error processing Ably notification:', error);
+            }
+          });
+          
+          console.log('✅ Subscribed to Ably notifications for user:', userId);
+        }
+
+        ably.connection.on('failed', (error) => {
+          console.error('❌ Ably connection failed:', error);
+          setConnectionStatus(false, null);
+          isConnectingRef.current = false;
+          
+          // Attempt to reconnect with exponential backoff
+          if (reconnectAttempts.current < maxReconnectAttempts) {
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
+            console.log(`🔄 Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts})`);
+            
+            reconnectTimeoutRef.current = setTimeout(() => {
+              reconnectAttempts.current++;
+              connectToAblyStream.current?.();
+            }, delay);
+          }
+        });
+
+        ably.connection.on('disconnected', () => {
+          console.warn('⚠️ Ably connection disconnected');
+          setConnectionStatus(false, null);
+        });
+
+        // Store Ably client reference for connection management
+        ablyClientRef.current = ably;
+        
+      } catch (error) {
+        console.error('❌ Failed to create Ably connection:', error);
+        setConnectionStatus(false, null);
+        isConnectingRef.current = false;
+      }
+    };
+
+    // Start Ably connection
+    connectToAblyStream.current?.();
+
+    // Cleanup function
+    return () => {
+      console.log('🧹 Cleaning up Ably notification connection...');
+      
+      // Reset flags
+      isConnectingRef.current = false;
+      
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      
+      if (ablyClientRef.current) {
+        // Close Ably connection
+        try {
+          ablyClientRef.current.connection.close();
+        } catch (error) {
+          console.log('Error closing Ably connection:', error);
+        }
+        ablyClientRef.current = null;
+      }
+      
+      setConnectionStatus(false, null);
+    };
+  }, [status, session?.user?.id]);
+
+  // Handle user changes - clear cache when user switches
+  useEffect(() => {
+    const currentUserId = session?.user?.id;
+    
+    if (status === 'authenticated' && currentUserId) {
+      console.log('👤 Setting current user for notifications:', currentUserId);
+      setCurrentUser(currentUserId);
+      
+      // Clear previous notification IDs when user changes
+      previousNotificationIds.current = new Set();
+      initialLoadCompletedRef.current = false;
+    } else if (status === 'unauthenticated') {
+      console.log('👤 User logged out, clearing notification cache');
+      clearUserData();
+      previousNotificationIds.current = new Set();
+      initialLoadCompletedRef.current = false;
+    }
+  }, [status, session?.user?.id, setCurrentUser, clearUserData]);
+
+
+
+
+
+  // Initial fetch when component mounts
+  useEffect(() => {
+    // Initial fetch will happen when Ably stream connects
+    // This ensures we don't double-fetch
+  }, []);
+
+  return (
+    <NotificationContext.Provider
+      value={{
+        notifications,
+        unreadCount,
+  isConnected,
+  connectionType,
+        lastUpdated,
+        markAsRead,
+        markAllAsRead,
+        refetch,
+        subscribeToTaskUpdates,
+        unsubscribeFromTaskUpdates,
+        broadcastTaskUpdate,
+      }}
+    >
+      {children}
+    </NotificationContext.Provider>
+  );
+}
+
+export function useNotifications() {
+  const context = useContext(NotificationContext);
+  if (!context) {
+    throw new Error('useNotifications must be used within a NotificationProvider');
+  }
+  return context;
+}

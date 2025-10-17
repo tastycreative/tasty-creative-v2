@@ -107,7 +107,8 @@ export async function GET(request: NextRequest) {
         id: `team-member-${teamRow}-${index}`,
         name: email.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), // Format email as name
         email: email,
-        role: 'POD'
+        role: 'POD',
+        image: null // Google Sheets team members don't have profile images
       }));
 
       return NextResponse.json({

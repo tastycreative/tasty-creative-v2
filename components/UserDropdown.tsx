@@ -8,6 +8,7 @@ interface User {
   name: string | null;
   email: string;
   role: string;
+  image?: string | null;
 }
 
 interface UserDropdownProps {
@@ -58,9 +59,9 @@ export default function UserDropdown({
         let response;
         
         if (teamId) {
-          // If teamId is provided, use team-specific endpoint
-          const queryParam = searchTerm.length >= 2 ? searchTerm : '';
-          response = await fetch(`/api/users/team?teamId=${encodeURIComponent(teamId)}&q=${encodeURIComponent(queryParam)}`);
+          // If teamId is provided, use team members endpoint (for database team IDs)
+          const queryParam = searchTerm.length >= 2 ? `&q=${encodeURIComponent(searchTerm)}` : '';
+          response = await fetch(`/api/pod/teams/${encodeURIComponent(teamId)}/members${queryParam ? `?${queryParam.substring(1)}` : ''}`);
         } else {
           // Fallback to original behavior for non-team contexts
           const queryParam = searchTerm.length >= 2 ? searchTerm : 'POD_USERS_ALL';
@@ -70,7 +71,23 @@ export default function UserDropdown({
         if (response.ok) {
           const result = await response.json();
           if (result.success) {
-            setUsers(result.users);
+            if (teamId && result.members) {
+              // For team members endpoint, combine members and admins
+              const allUsers = [...(result.members || []), ...(result.admins || [])];
+              
+              // Filter by search term if provided
+              const filteredUsers = searchTerm.length >= 2 
+                ? allUsers.filter(user => 
+                    user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+                  )
+                : allUsers;
+              
+              setUsers(filteredUsers);
+            } else {
+              // For regular user search endpoint
+              setUsers(result.users || []);
+            }
           }
         }
       } catch (error) {
@@ -134,7 +151,8 @@ export default function UserDropdown({
             id: '',
             name: displayName,
             email: value,
-            role: 'POD'
+            role: 'POD',
+            image: null
           });
         };
         
@@ -187,10 +205,18 @@ export default function UserDropdown({
           <div className="flex items-center space-x-3 flex-1">
             {selectedUser ? (
               <>
-                <div className="w-6 h-6 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs font-medium">
-                    {selectedUser.name?.charAt(0) || selectedUser.email?.charAt(0) || 'U'}
-                  </span>
+                <div className="w-6 h-6 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-blue-400 to-blue-600">
+                  {selectedUser.image ? (
+                    <img 
+                      src={selectedUser.image} 
+                      alt={selectedUser.name || selectedUser.email}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-white text-xs font-medium">
+                      {selectedUser.name?.charAt(0) || selectedUser.email?.charAt(0) || 'U'}
+                    </span>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
@@ -252,7 +278,7 @@ export default function UserDropdown({
               <div className="p-4 text-center">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto"></div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                  {searchTerm.length >= 2 ? 'Searching...' : 'Loading POD users...'}
+                  {searchTerm.length >= 2 ? 'Searching...' : teamId ? 'Loading team members...' : 'Loading POD users...'}
                 </p>
               </div>
             ) : users.length > 0 ? (
@@ -263,10 +289,18 @@ export default function UserDropdown({
                     onClick={() => handleUserSelect(user)}
                     className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center space-x-3"
                   >
-                    <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center">
-                      <span className="text-white text-sm font-medium">
-                        {user.name?.charAt(0) || user.email?.charAt(0) || 'U'}
-                      </span>
+                    <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-purple-400 to-purple-600">
+                      {user.image ? (
+                        <img 
+                          src={user.image} 
+                          alt={user.name || user.email}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-white text-sm font-medium">
+                          {user.name?.charAt(0) || user.email?.charAt(0) || 'U'}
+                        </span>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
@@ -285,7 +319,7 @@ export default function UserDropdown({
             ) : searchTerm.length >= 2 ? (
               <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                 <User className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No POD users found</p>
+                <p className="text-sm">{teamId ? 'No team members found' : 'No POD users found'}</p>
                 <p className="text-xs">Try a different search term</p>
               </div>
             ) : (

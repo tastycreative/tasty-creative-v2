@@ -976,11 +976,18 @@ const PodComponent = () => {
                   </div>
                 </div>
               ) : (
-                <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6 text-center">
-                  <span className="text-gray-500 dark:text-gray-400">
-                    No team data available
-                  </span>
-                </div>
+                // Show loading while teams are being fetched initially
+                isLoadingTeams ? (
+                  <NoTeamSelected variant="loading" />
+                ) : availableTeams.length === 0 ? (
+                  <NoTeamSelected variant="no-projects" />
+                ) : (
+                  <NoTeamSelected 
+                    variant="no-teams" 
+                    title="No Team Data Available"
+                    description="There's no data available for the selected team. Please try selecting a different team or contact an administrator."
+                  />
+                )
               )}
             </div>
           )}
@@ -1019,43 +1026,36 @@ const PodComponent = () => {
                         />
                       )
                     ) : (
-                      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6 text-center">
-                        <span className="text-gray-500 dark:text-gray-400">
-                          Select a team to view workflow
-                        </span>
-                      </div>
+                      // Show loading while teams are being fetched initially
+                      isLoadingTeams ? (
+                        <NoTeamSelected variant="loading" />
+                      ) : availableTeams.length === 0 ? (
+                        <NoTeamSelected variant="no-projects" />
+                      ) : (
+                        <NoTeamSelected 
+                          variant="select" 
+                          title="Select a Team"
+                          description="Choose a team from the sidebar to view the workflow dashboard."
+                        />
+                      )
                     )}
                   </>
                 )}
 
                 {activeTab === "sheets" && (
-                  <>
-                    {!podData ? (
-                      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6">
-                        <div className="flex items-center space-x-3">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600"></div>
-                          <span className="text-gray-700 dark:text-gray-300">
-                            Loading team data for sheets integration...
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
-                      <SheetsIntegration
-                        onSpreadsheetCreated={handleSpreadsheetCreated}
-                        onSheetCreated={() => {
-                          if (
-                            podData?.creators &&
-                            podData.creators.length > 0
-                          ) {
-                            const creatorNames = podData.creators.map(
-                              (creator) => creator.name
-                            );
-                            fetchDriveSheets(creatorNames, true);
-                          }
-                        }}
-                      />
-                    )}
-                  </>
+                  <SheetsIntegration
+                    onSpreadsheetCreated={handleSpreadsheetCreated}
+                    onSheetCreated={() => {
+                      // Optional: Enhanced functionality when team data is available
+                      if (
+                        podData?.creators &&
+                        podData.creators.length > 0
+                      ) {
+                        const creatorNames = podData.creators.map(creator => creator.name);
+                        fetchDriveSheets(creatorNames, true);
+                      }
+                    }}
+                  />
                 )}
 
                 {activeTab === "board" && (

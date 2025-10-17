@@ -56,10 +56,15 @@ export default function UserProfile({
   const config = sizeConfig[size];
   const displayName = user.name || user.email?.split('@')[0] || 'User';
   const initials = user.name?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || 'U';
+
   
+  // Separate ring classes from other classes
+  const ringClasses = className.split(' ').filter(cls => cls.includes('ring')).join(' ');
+  const otherClasses = className.split(' ').filter(cls => !cls.includes('ring')).join(' ');
+
   const profileElement = (
     <div 
-      className={`relative ${config.container} ${onClick ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''} ${className}`}
+      className={`relative ${config.container} ${onClick ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''} ${otherClasses}`}
       onClick={onClick}
       title={showTooltip ? displayName : undefined}
     >
@@ -69,10 +74,10 @@ export default function UserProfile({
           alt={displayName}
           width={size === 'xs' ? 16 : size === 'sm' ? 24 : size === 'md' ? 32 : size === 'lg' ? 40 : 48}
           height={size === 'xs' ? 16 : size === 'sm' ? 24 : size === 'md' ? 32 : size === 'lg' ? 40 : 48}
-          className={`${config.container} rounded-full object-cover ${config.border} border-white dark:border-gray-800 shadow-sm`}
+          className={`w-full h-full rounded-full object-cover shadow-sm ${ringClasses}`}
         />
       ) : (
-        <div className={`${config.container} bg-gradient-to-br from-slate-400 to-slate-600 rounded-full flex items-center justify-center ${config.border} border-white dark:border-gray-800 shadow-sm`}>
+        <div className={`w-full h-full bg-gradient-to-br from-slate-400 to-slate-600 rounded-full flex items-center justify-center shadow-sm ${ringClasses}`}>
           <span className={`text-white font-semibold ${config.text}`}>
             {initials}
           </span>

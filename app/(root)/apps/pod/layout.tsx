@@ -19,6 +19,7 @@ import {
   TeamSelectorSkeleton,
   Skeleton,
 } from "@/components/ui/skeleton";
+import NoTeamSelected from "@/components/pod/NoTeamSelected";
 
 // Dynamic import for SheetViewer
 const SheetViewer = dynamic(() => import("@/components/SheetViewer"), {
@@ -88,10 +89,10 @@ export default function PodLayout({ children }: PodLayoutProps) {
       return "dashboard";
     if (pathname.includes("/apps/pod/sheets")) return "sheets";
     if (pathname.includes("/apps/pod/board")) return "board";
+    if (pathname.includes("/apps/pod/otp-ptr")) return "otp-ptr";
     if (pathname.includes("/apps/pod/admin")) return "admin";
     if (pathname.includes("/apps/pod/pricing")) return "pricing";
     if (pathname.includes("/apps/pod/my-models")) return "my-models";
-    if (pathname.includes("/apps/pod/otp-ptr")) return "otp-ptr";
     if (pathname.includes("/apps/pod/creator")) return "creator";
     return "dashboard";
   };
@@ -293,6 +294,17 @@ export default function PodLayout({ children }: PodLayoutProps) {
                 Board
               </Link>
               <Link
+                href="/apps/pod/otp-ptr"
+                prefetch={true}
+                className={`py-3 sm:py-4 px-3 sm:px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
+                  activeTab === "otp-ptr"
+                    ? "border-pink-500 text-pink-600 dark:text-pink-400"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                }`}
+              >
+                OTP-PTR
+              </Link>
+              <Link
                 href="/apps/pod/pricing"
                 prefetch={true}
                 className={`py-3 sm:py-4 px-3 sm:px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
@@ -316,17 +328,6 @@ export default function PodLayout({ children }: PodLayoutProps) {
                 <span className="sm:hidden">Models</span>
                 <span className="hidden sm:inline">My Models</span>
               </Link>
-              <Link
-                href="/apps/pod/otp-ptr"
-                prefetch={true}
-                className={`py-3 sm:py-4 px-3 sm:px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap ${
-                  activeTab === "otp-ptr"
-                    ? "border-pink-500 text-pink-600 dark:text-pink-400"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-                }`}
-              >
-                OTP-PTR
-              </Link>
               {session?.user?.role === "ADMIN" && (
                 <Link
                   href="/apps/pod/admin"
@@ -346,9 +347,10 @@ export default function PodLayout({ children }: PodLayoutProps) {
 
         {/* Main Dashboard Layout */}
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
-          {/* Sidebar - Hidden when admin, board, creator, my-models, or otp-ptr tab is active */}
+          {/* Sidebar - Hidden when admin, board, sheets, creator, my-models, or otp-ptr tab is active */}
           {activeTab !== "admin" &&
             activeTab !== "board" &&
+            activeTab !== "sheets" &&
             activeTab !== "creator" &&
             activeTab !== "my-models" &&
             activeTab !== "otp-ptr" && (
@@ -740,18 +742,25 @@ export default function PodLayout({ children }: PodLayoutProps) {
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6 text-center">
-                    <span className="text-gray-500 dark:text-gray-400">
-                      No team data available
-                    </span>
-                  </div>
+                  // Show loading while teams are being fetched initially
+                  isLoadingTeams ? (
+                    <NoTeamSelected variant="loading" />
+                  ) : availableTeams.length === 0 ? (
+                    <NoTeamSelected variant="no-projects" />
+                  ) : (
+                    <NoTeamSelected 
+                      variant="no-teams" 
+                      title="No Team Data Available"
+                      description="There's no data available for the selected team. Please try selecting a different team or contact an administrator."
+                    />
+                  )
                 )}
               </div>
             )}
 
           {/* Main Content */}
           <div
-            className={`${activeTab === "admin" || activeTab === "board" || activeTab === "creator" || activeTab === "my-models" || activeTab === "otp-ptr" ? "w-full" : "flex-1"} space-y-6`}
+            className={`${activeTab === "admin" || activeTab === "board" || activeTab === "sheets" || activeTab === "creator" || activeTab === "my-models" || activeTab === "otp-ptr" ? "w-full" : "flex-1"} space-y-6`}
           >
             {viewMode === "sheet" && selectedSheet ? (
               <Suspense

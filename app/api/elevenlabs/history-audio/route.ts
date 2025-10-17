@@ -27,6 +27,15 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`ElevenLabs API error (${response.status}):`, errorText);
+      
+      if (response.status === 400) {
+        throw new Error('Invalid history item ID. This audio may no longer be available in ElevenLabs history.');
+      } else if (response.status === 404) {
+        throw new Error('Audio not found in ElevenLabs history. It may have been deleted or expired.');
+      }
+      
       throw new Error(`Failed to fetch history audio: ${response.status}`);
     }
 

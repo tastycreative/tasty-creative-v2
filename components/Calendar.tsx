@@ -35,7 +35,12 @@ import {
   DialogTitle,
   DialogClose,
 } from "./ui/dialog";
-import { formatDateTime } from "@/lib/utils";
+import {
+  formatForDisplay,
+  toUtc,
+  utcNowDateTime,
+} from "@/lib/dateUtils";
+import { DateTime } from 'luxon';
 
 const Calendar = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -47,6 +52,42 @@ const Calendar = () => {
   const [isEventDetailOpen, setIsEventDetailOpen] = useState(false);
   const [calendarError, setCalendarError] = useState("");
   const [isCalendarLoading, setIsCalendarLoading] = useState(false);
+  const [userTimezone, setUserTimezone] = useState<string>(
+    DateTime.local().zoneName
+  );
+
+  // Helper function to format date in user's timezone using Luxon
+  const formatDateInUserTimezone = (dateString: string, isAllDay = false) => {
+    if (isAllDay) {
+      // For all-day events, parse as date only in user's timezone to avoid shifting
+      const dt = DateTime.fromISO(dateString, { zone: userTimezone });
+      return dt.toLocaleString({
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    }
+    // For timed events, convert from UTC to user's timezone
+    return formatForDisplay(dateString, 'datetime', userTimezone);
+  };
+
+  // Helper function to get time string in user's timezone using Luxon
+  const getTimeStringInUserTimezone = (dateString: string) => {
+    const dt = DateTime.fromISO(dateString).setZone(userTimezone);
+    return dt.toLocaleString(DateTime.TIME_SIMPLE);
+  };
+
+  // Helper function to parse event date properly for calendar positioning
+  const parseEventDate = (dateString: string, isAllDay: boolean) => {
+    if (isAllDay) {
+      // For all-day events, parse in user's timezone to keep the date stable
+      return DateTime.fromISO(dateString, { zone: userTimezone });
+    } else {
+      // For timed events, parse as UTC then convert to user's timezone
+      return DateTime.fromISO(dateString, { zone: 'utc' }).setZone(userTimezone);
+    }
+  };
 
   const handleViewEventDetails = async (eventId: string) => {
     try {
@@ -79,14 +120,10 @@ const Calendar = () => {
       setIsCalendarLoading(true);
       setCalendarError("");
 
-      const startDate = new Date(selectedDate);
-      startDate.setDate(1); // First day of month
-      startDate.setHours(0, 0, 0, 0); // Start of day
-
-      const endDate = new Date(selectedDate);
-      endDate.setMonth(endDate.getMonth() + 1);
-      endDate.setDate(0); // Last day of month
-      endDate.setHours(23, 59, 59, 999); // End of day
+      // Use Luxon for proper month calculation in user's timezone
+      const currentMonth = DateTime.fromJSDate(selectedDate).setZone(userTimezone);
+      const startDate = currentMonth.startOf('month').toJSDate();
+      const endDate = currentMonth.endOf('month').toJSDate();
 
       try {
         // Always use the public calendar API without checking authentication
@@ -108,7 +145,7 @@ const Calendar = () => {
     };
 
     loadCalendarEventsForMonth();
-  }, [selectedDate]);
+  }, [selectedDate, userTimezone]);
 
   const renderMeetingLinks = (
     conferenceData: EventConferenceData | undefined
@@ -170,9 +207,9 @@ const Calendar = () => {
             </Button>
 
             <h3 className="text-gray-800 dark:text-gray-200 text-lg font-semibold">
-              {selectedDate.toLocaleString("default", {
+              {DateTime.fromJSDate(selectedDate).setZone(userTimezone).toLocaleString({
                 month: "long",
-                year: "numeric",
+                year: "numeric"
               })}
             </h3>
 
@@ -200,19 +237,14 @@ const Calendar = () => {
 
             {(() => {
               const days = [];
-              const date = new Date(
-                selectedDate.getFullYear(),
-                selectedDate.getMonth(),
-                1
-              );
-              const lastDay = new Date(
-                selectedDate.getFullYear(),
-                selectedDate.getMonth() + 1,
-                0
-              ).getDate();
+              // Use Luxon for proper month calculations in user's timezone
+              const monthStart = DateTime.fromJSDate(selectedDate).setZone(userTimezone).startOf('month');
+              const monthEnd = monthStart.endOf('month');
+              const startDay = monthStart.weekday % 7; // Convert Luxon's 1-7 to JS 0-6
+              const lastDay = monthEnd.day;
 
               // Add empty cells for days before the first day of the month
-              for (let i = 0; i < date.getDay(); i++) {
+              for (let i = 0; i < startDay; i++) {
                 days.push(
                   <div
                     key={`empty-${i}`}
@@ -223,22 +255,20 @@ const Calendar = () => {
 
               // Add cells for each day of the month
               for (let i = 1; i <= lastDay; i++) {
-                const currentDate = new Date(
-                  selectedDate.getFullYear(),
-                  selectedDate.getMonth(),
-                  i
-                );
-                // Get events for this day
+                const currentDate = monthStart.set({ day: i });
+                
+                // Get events for this day using proper Luxon date comparison
                 const dayEvents = calendarEvents.filter((event) => {
-                  const eventDateString =
-                    event.start.dateTime || event.start.date;
+                  const eventDateString = event.start.dateTime || event.start.date;
                   if (!eventDateString) return false;
 
-                  const eventDate = new Date(eventDateString);
+                  const isAllDay = !!event.start.date;
+                  const eventDate = parseEventDate(eventDateString, isAllDay);
+                  
                   return (
-                    eventDate.getDate() === i &&
-                    eventDate.getMonth() === currentDate.getMonth() &&
-                    eventDate.getFullYear() === currentDate.getFullYear()
+                    eventDate.day === i &&
+                    eventDate.month === currentDate.month &&
+                    eventDate.year === currentDate.year
                   );
                 });
 
@@ -301,26 +331,24 @@ const Calendar = () => {
                   if (!dateAStr) return 1; // Put items with no date at the end
                   if (!dateBStr) return -1; // Put items with no date at the end
 
-                  const dateA = new Date(dateAStr);
-                  const dateB = new Date(dateBStr);
-                  return dateA.getTime() - dateB.getTime();
+                  // Use Luxon for proper date comparison
+                  const dateA = DateTime.fromISO(dateAStr);
+                  const dateB = DateTime.fromISO(dateBStr);
+                  return dateA.toMillis() - dateB.toMillis();
                 })
                 .map((event, index) => {
                   // Safely handle dates
                   const eventDateStr = event.start.dateTime || event.start.date;
                   if (!eventDateStr) return null; // Skip events with no date
 
-                  const eventDate = new Date(eventDateStr);
                   const isAllDay = !!event.start.date;
-                  const isPast = eventDate < new Date();
+                  const eventDate = parseEventDate(eventDateStr, isAllDay);
+                  const isPast = eventDate < utcNowDateTime().setZone(userTimezone);
 
                   // Get time of day or "All day"
                   const timeStr = isAllDay
                     ? "All day"
-                    : eventDate.toLocaleTimeString("en-US", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      });
+                    : getTimeStringInUserTimezone(eventDateStr);
 
                   return (
                     <button
@@ -339,12 +367,10 @@ const Calendar = () => {
                         {/* Date box */}
                         <div className="min-w-14 w-14 bg-pink-100 dark:bg-pink-800/40 border border-pink-200 dark:border-pink-500/30 rounded text-center p-1 mr-3">
                           <div className="text-xs text-gray-600 dark:text-gray-300">
-                            {eventDate.toLocaleDateString("en-US", {
-                              month: "short",
-                            })}
+                            {eventDate.toLocaleString({ month: "short" })}
                           </div>
                           <div className="text-xl font-bold text-gray-800 dark:text-gray-200">
-                            {eventDate.getDate()}
+                            {eventDate.day}
                           </div>
                         </div>
 
@@ -516,7 +542,7 @@ const Calendar = () => {
                         {selectedEvent.start.date ? (
                           // All-day event
                           <p className="text-gray-800 dark:text-gray-200 text-lg">
-                            {formatDateTime(selectedEvent.start.date, true)}
+                            {formatDateInUserTimezone(selectedEvent.start.date, true)}
                             {selectedEvent.end &&
                               selectedEvent.end.date &&
                               new Date(
@@ -528,7 +554,7 @@ const Calendar = () => {
                                 <>
                                   {" "}
                                   to{" "}
-                                  {formatDateTime(selectedEvent.end.date, true)}
+                                  {formatDateInUserTimezone(selectedEvent.end.date, true)}
                                 </>
                               )}
                             <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full border border-blue-200">
@@ -538,17 +564,20 @@ const Calendar = () => {
                         ) : (
                           // Timed event
                           <p className="text-gray-800 dark:text-gray-200 text-lg">
-                            {formatDateTime(selectedEvent.start.dateTime)}
+                            {selectedEvent.start.dateTime && formatDateInUserTimezone(selectedEvent.start.dateTime)}
                             {selectedEvent.end &&
                               selectedEvent.end.dateTime && (
                                 <>
                                   {" "}
                                   to{" "}
-                                  {formatDateTime(selectedEvent.end.dateTime)}
+                                  {formatDateInUserTimezone(selectedEvent.end.dateTime)}
                                 </>
                               )}
                           </p>
                         )}
+                        <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                          Timezone: {userTimezone}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -582,7 +611,7 @@ const Calendar = () => {
                               <iframe
                                 src={embedUrl}
                                 className="absolute top-0 left-0 w-full h-full"
-                                frameBorder="0"
+                                style={{ border: 0 }}
                                 allowFullScreen
                                 title="Google Drive File Preview"
                               ></iframe>

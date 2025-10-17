@@ -27,7 +27,6 @@ interface BoardGridProps {
   onSetShowNewTaskForm: (status: string | null) => void;
   onSetNewTaskData: (data: Partial<NewTaskData>) => void;
   onCreateTask: (status: Task["status"]) => void;
-  formatDate: (dateString: string | null) => string | null;
   getColumnConfig: () => Array<[string, any]>;
   getTasksForStatus: (status: Task["status"]) => Task[];
   getGridClasses: () => string;
@@ -54,7 +53,6 @@ export default function BoardGrid({
   onSetShowNewTaskForm,
   onSetNewTaskData,
   onCreateTask,
-  formatDate,
   getColumnConfig,
   getTasksForStatus,
   getGridClasses,
@@ -115,7 +113,6 @@ export default function BoardGrid({
                 onSetShowNewTaskForm={onSetShowNewTaskForm}
                 onSetNewTaskData={onSetNewTaskData}
                 onCreateTask={onCreateTask}
-                formatDate={formatDate}
                 isMobile={true}
                 isLastColumn={index === getColumnConfig().length - 1}
               />
@@ -156,7 +153,6 @@ export default function BoardGrid({
                 onSetShowNewTaskForm={onSetShowNewTaskForm}
                 onSetNewTaskData={onSetNewTaskData}
                 onCreateTask={onCreateTask}
-                formatDate={formatDate}
                 isMobile={false}
                 isLastColumn={index === getColumnConfig().length - 1}
                 includeHeader={true}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { PrismaClient } from '@prisma/client';
 import { trackTaskChanges, createTaskActivity } from '@/lib/taskActivityHelper';
+import { parseUserDate } from '@/lib/dateUtils';
 
 const prisma = new PrismaClient();
 
@@ -29,10 +30,11 @@ export async function POST(request: NextRequest) {
         priority: priority || 'MEDIUM',
         status: status || 'NOT_STARTED',
         assignedTo: assignedTo || null,
-        dueDate: dueDate ? new Date(dueDate) : null,
+        dueDate: dueDate ? parseUserDate(dueDate)?.toJSDate() : null,
         attachments: attachments || null,
         podTeamId: teamId, // Use podTeamId instead of teamId
         createdById: session.user.id,
+        // taskNumber will be auto-incremented by the database
       } as any,
       include: {
         createdBy: {
@@ -40,6 +42,14 @@ export async function POST(request: NextRequest) {
             id: true,
             name: true,
             email: true,
+            image: true,
+          },
+        },
+        podTeam: {
+          select: {
+            id: true,
+            name: true,
+            projectPrefix: true,
           },
         },
       },
@@ -62,6 +72,7 @@ export async function POST(request: NextRequest) {
           id: true,
           name: true,
           email: true,
+          image: true,
         },
       });
     }
@@ -113,6 +124,14 @@ export async function GET(request: NextRequest) {
             id: true,
             name: true,
             email: true,
+            image: true,
+          },
+        },
+        podTeam: {
+          select: {
+            id: true,
+            name: true,
+            projectPrefix: true,
           },
         },
       },
@@ -134,6 +153,7 @@ export async function GET(request: NextRequest) {
               id: true,
               name: true,
               email: true,
+              image: true,
             },
           });
         }
@@ -208,7 +228,7 @@ export async function PUT(request: NextRequest) {
     if (priority !== undefined) updateData.priority = priority;
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
-    if (dueDate !== undefined) updateData.dueDate = dueDate ? new Date(dueDate) : null;
+    if (dueDate !== undefined) updateData.dueDate = dueDate ? parseUserDate(dueDate)?.toJSDate() : null;
     if (attachments !== undefined) updateData.attachments = attachments;
 
     console.log('PUT /api/tasks - Update data being sent to Prisma:', updateData);
@@ -222,6 +242,7 @@ export async function PUT(request: NextRequest) {
             id: true,
             name: true,
             email: true,
+            image: true,
           },
         },
       },
@@ -246,6 +267,7 @@ export async function PUT(request: NextRequest) {
           id: true,
           name: true,
           email: true,
+          image: true,
         },
       });
     }

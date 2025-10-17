@@ -4,12 +4,104 @@ import React, { useState, useEffect } from 'react';
 import { Send, MessageSquare, Loader2, AlertCircle, Edit2, Trash2, Check, X } from 'lucide-react';
 import UserProfile from '@/components/ui/UserProfile';
 import CommentFilePreview from '@/components/ui/CommentFilePreview';
+import MentionsInput, { type MentionUser, type Mention } from '@/components/ui/MentionsInput';
+import { formatForDisplay, formatForTaskDetail } from '@/lib/dateUtils';
 import { useTaskComments } from '@/lib/stores/boardStore';
+import { useNotifications } from '@/contexts/NotificationContext';
 import type { TaskComment, TaskAttachment } from '@/lib/stores/boardStore';
 import type { PreviewFile } from '@/components/ui/CommentFilePreview';
+import AttachmentViewer from '@/components/ui/AttachmentViewer';
 
 
-import AttachmentViewer from "@/components/ui/AttachmentViewer";
+interface UserData {
+  id: string;
+  name?: string | null;
+  email: string | null;
+  image?: string | null;
+}
+
+// Hover card component for mentions
+const MentionHoverCard = ({ userId, userName, children }: { 
+  userId: string; 
+  userName: string; 
+  children: React.ReactNode;
+}) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchUserData = async () => {
+    if (isLoading || userData) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/users/${userId}`);
+      if (response.ok) {
+        const user = await response.json();
+        setUserData(user);
+      }
+    } catch (error) {
+      console.error('Failed to fetch user data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div 
+      className="relative inline-block"
+      onMouseEnter={() => {
+        setIsVisible(true);
+        fetchUserData();
+      }}
+      onMouseLeave={() => setIsVisible(false)}
+    >
+      {children}
+      
+      {isVisible && (
+        <div 
+          className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 min-w-[200px]"
+          style={{ pointerEvents: 'none' }}
+        >
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+            <div className="w-2 h-2 bg-white dark:bg-gray-800 border-r border-b border-gray-200 dark:border-gray-700 transform rotate-45"></div>
+          </div>
+          
+          {isLoading ? (
+            <div className="flex items-center justify-center py-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+            </div>
+          ) : userData ? (
+            <div className="flex items-center space-x-3">
+              <UserProfile user={userData} size="md" />
+              <div className="flex-1">
+                <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                  {userData.name || userData.email?.split('@')[0] || 'User'}
+                </p>
+                {userData.name && userData.email && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {userData.email}
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gray-300 dark:bg-gray-600 rounded-full flex items-center justify-center">
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                  {userName.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                {userName}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Utility function to make links clickable
 const linkifyText = (text: string) => {
@@ -32,6 +124,60 @@ const linkifyText = (text: string) => {
   });
 };
 
+// Utility function to render text with clean mentions and clickable links
+const renderTextWithMentionsAndLinks = (text: string) => {
+  if (!text) return null;
+
+  // First, process mentions - convert @[Name](id) to clean display with hover
+  const mentionRegex = /@\[([^\]]+)\]\(([^)]+)\)/g;
+  const parts = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = mentionRegex.exec(text)) !== null) {
+    // Add text before mention (with links processed)
+    if (match.index > lastIndex) {
+      const beforeText = text.substring(lastIndex, match.index);
+      const beforeParts = linkifyText(beforeText);
+      parts.push(...beforeParts.map((part, i) => ({ key: `before-${lastIndex}-${i}`, content: part })));
+    }
+
+    // Add the interactive mention with user ID
+    const mentionName = match[1];
+    const userId = match[2];
+    parts.push({
+      key: `mention-${match.index}`,
+      content: (
+        <MentionHoverCard userId={userId} userName={mentionName}>
+          <span className="text-blue-600 dark:text-blue-400 font-medium cursor-pointer hover:text-blue-800 dark:hover:text-blue-300 transition-colors">
+            {mentionName}
+          </span>
+        </MentionHoverCard>
+      )
+    });
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text (with links processed)
+  if (lastIndex < text.length) {
+    const remainingText = text.substring(lastIndex);
+    const remainingParts = linkifyText(remainingText);
+    parts.push(...remainingParts.map((part, i) => ({ key: `remaining-${lastIndex}-${i}`, content: part })));
+  }
+
+  // If no mentions were found, just process links
+  if (parts.length === 0) {
+    return linkifyText(text);
+  }
+
+  return parts.map((part, index) => (
+    <React.Fragment key={part.key || index}>
+      {part.content}
+    </React.Fragment>
+  ));
+};
+
 interface CommentUser {
   id: string;
   name?: string | null;
@@ -41,27 +187,110 @@ interface CommentUser {
 
 interface TaskCommentsProps {
   taskId: string;
+  teamId?: string;
   currentUser?: CommentUser | null;
+  isViewOnly?: boolean;
 }
 
-const formatTimeAgo = (dateString: string) => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-  if (diffInSeconds < 60) return 'now';
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-  
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    ...(date.getFullYear() !== now.getFullYear() && { year: 'numeric' })
-  });
+/**
+ * Format comment timestamp using Luxon helpers
+ * Shows smart relative time (e.g., "2 hours ago", "3 days ago") with tooltip showing full date
+ */
+const formatCommentTime = (dateString: string): { relative: string; full: string } => {
+  return {
+    relative: formatForDisplay(dateString, 'relative'),
+    full: formatForTaskDetail(dateString)
+  };
 };
 
-export default function TaskComments({ taskId, currentUser }: TaskCommentsProps) {
+// Helper function for direct S3 upload
+const uploadFileDirectlyToS3 = async (file: File): Promise<TaskAttachment> => {
+  console.log(`🚀 Uploading ${file.name} directly to S3...`);
+  
+  try {
+    // Step 1: Get pre-signed URL from our API
+    const presignResponse = await fetch('/api/upload/s3/presign', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+      }),
+    });
+
+    if (!presignResponse.ok) {
+      const errorData = await presignResponse.json();
+      throw new Error(errorData.error || 'Failed to get pre-signed URL');
+    }
+
+    const { presignedUrl, attachment } = await presignResponse.json();
+    
+    console.log(`📤 Uploading directly to S3: ${file.name} -> ${attachment.s3Key}`);
+    
+    // Step 2: Upload directly to S3 using pre-signed URL
+    const uploadResponse = await fetch(presignedUrl, {
+      method: 'PUT',
+      body: file,
+      headers: {
+        'Content-Type': file.type,
+      },
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error(`Direct S3 upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+    }
+
+    // Step 3: Generate signed URL for accessing the file
+    const signedUrlResponse = await fetch('/api/upload/s3/signed-url', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        s3Key: attachment.s3Key,
+      }),
+    });
+
+    if (signedUrlResponse.ok) {
+      const { signedUrl } = await signedUrlResponse.json();
+      attachment.url = signedUrl;
+    } else {
+      console.warn(`Failed to get signed URL for ${attachment.s3Key}, using fallback`);
+      // Use a placeholder that can be resolved server-side
+      attachment.url = `/api/upload/s3/signed-url?key=${encodeURIComponent(attachment.s3Key)}`;
+    }
+
+    console.log(`✅ Successfully uploaded ${file.name} directly to S3`);
+    return attachment;
+    
+  } catch (error) {
+    console.error(`❌ Direct S3 upload failed for ${file.name}:`, error);
+    
+    // Fallback to Vercel function upload
+    console.log(`📤 Falling back to Vercel function upload for ${file.name}...`);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch('/api/upload/s3', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Upload failed');
+    }
+
+    const responseData = await response.json();
+    console.log(`✅ Successfully uploaded ${file.name} via Vercel function (fallback)`);
+    return responseData.attachment;
+  }
+};
+
+export default function TaskComments({ taskId, teamId, currentUser, isViewOnly = false }: TaskCommentsProps) {
   const {
     comments,
     isLoading,
@@ -71,8 +300,12 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
     updateTaskComment,
     deleteTaskComment,
   } = useTaskComments(taskId);
+
+  // Subscribe to real-time notifications for comment updates
+  const { notifications } = useNotifications();
   
   const [newComment, setNewComment] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0); // Add refresh key for force updates
   const [newCommentPreviewFiles, setNewCommentPreviewFiles] = useState<PreviewFile[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
@@ -82,16 +315,135 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
   const [isDeletingComment, setIsDeletingComment] = useState<string | null>(null);
   const [isUpdatingComment, setIsUpdatingComment] = useState<string | null>(null);
 
+  // New state for mentions
+  const [teamMembers, setTeamMembers] = useState<MentionUser[]>([]);
+  const [teamAdmins, setTeamAdmins] = useState<MentionUser[]>([]);
+  const [newCommentMentions, setNewCommentMentions] = useState<Mention[]>([]);
+  const [editCommentMentions, setEditCommentMentions] = useState<Mention[]>([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+
+  // Fetch team members and admins
+  useEffect(() => {
+    const fetchTeamMembers = async () => {
+      if (!teamId) {
+        return;
+      }
+      
+      setIsLoadingMembers(true);
+      try {
+        const response = await fetch(`/api/pod/teams/${teamId}/members`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            if (data.members) {
+              setTeamMembers(data.members);
+            }
+            if (data.admins) {
+              setTeamAdmins(data.admins);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch team members:', error);
+      } finally {
+        setIsLoadingMembers(false);
+      }
+    };
+
+    fetchTeamMembers();
+  }, [teamId]);
+
   useEffect(() => {
     if (taskId) {
       fetchTaskComments(taskId);
     }
   }, [taskId, fetchTaskComments]);
 
+  // Listen for real-time comment notifications and refresh comments
+  useEffect(() => {
+    if (!taskId) return;
+
+    // Check recent notifications for comment-related activity on this task
+    const recentCommentNotifications = notifications.filter(notification => {
+      const isCommentNotification = [
+        'TASK_COMMENT_ADDED',
+        'TASK_COMMENT_UPDATED', 
+        'TASK_COMMENT_DELETED'
+      ].includes(notification.type);
+      
+      const isThisTask = notification.data?.taskId === taskId;
+      const isRecent = new Date(notification.createdAt).getTime() > Date.now() - 5000; // Last 5 seconds
+      
+      return isCommentNotification && isThisTask && isRecent;
+    });
+
+    if (recentCommentNotifications.length > 0) {
+      // Force component re-render
+      setRefreshKey(prev => prev + 1);
+      
+      // Add a small delay to ensure the comment is saved to database
+      setTimeout(async () => {
+        try {
+          await fetchTaskComments(taskId, true); // Force refresh to bypass cache
+        } catch (error) {
+          console.error('Error refreshing comments:', error);
+        }
+      }, 500); // 500ms delay
+    }
+  }, [notifications, taskId, fetchTaskComments]);
+
+  // Send comment notifications to team members
+  const sendCommentNotifications = async (commentId?: string, action: string = 'ADDED') => {
+    if (!teamId) return;
+
+    try {
+      await fetch('/api/notifications/comment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          taskId,
+          commentId,
+          action,
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to send comment notifications:', error);
+    }
+  };
+
+  // Send mention notifications
+  const sendMentionNotifications = async (mentions: Mention[], commentContent: string, taskTitle?: string) => {
+    if (mentions.length === 0) return;
+
+    try {
+      await fetch('/api/notifications/mention', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mentionedUserIds: mentions.map(m => m.userId),
+          taskId,
+          commentContent,
+          taskTitle,
+          teamId,
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to send mention notifications:', error);
+    }
+  };
+
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if ((!newComment.trim() && newCommentPreviewFiles.length === 0) || !currentUser) return;
+    // Allow submission if there's either comment text or attachments
+    const hasComment = newComment.trim().length > 0;
+    const hasAttachments = newCommentPreviewFiles.length > 0;
+    
+    if ((!hasComment && !hasAttachments) || !currentUser) return;
     
     try {
       setIsSubmitting(true);
@@ -100,25 +452,11 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
       
       // Upload preview files to S3 if any
       if (newCommentPreviewFiles.length > 0) {
+        console.log(`🚀 Using direct S3 upload for ${newCommentPreviewFiles.length} files in comment`);
         for (const previewFile of newCommentPreviewFiles) {
           try {
-            const formData = new FormData();
-            formData.append('file', previewFile.file);
-
-            const response = await fetch('/api/upload/s3', {
-              method: 'POST',
-              body: formData,
-            });
-
-            if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.error || 'Upload failed');
-            }
-
-            const responseData = await response.json();
-            const { attachment } = responseData;
+            const attachment = await uploadFileDirectlyToS3(previewFile.file);
             uploadedAttachments.push(attachment);
-            
           } catch (uploadError) {
             console.error(`Failed to upload ${previewFile.name}:`, uploadError);
             // Continue with other files, but notify user
@@ -127,9 +465,24 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
         }
       }
       
-      await createTaskComment(taskId, newComment.trim() || ' ', uploadedAttachments);
+      // Use the actual comment text, or empty string if only attachments
+      const commentText = newComment.trim() || '';
+      await createTaskComment(taskId, commentText, uploadedAttachments);
+      
+      // Send mention notifications
+      if (newCommentMentions.length > 0) {
+        await sendMentionNotifications(newCommentMentions, commentText);
+      }
+
+      // Send comment notifications to team members (for real-time updates)
+      // Add a small delay to ensure comment is saved to database first
+      setTimeout(() => {
+        sendCommentNotifications(undefined, 'ADDED');
+      }, 200);
+      
       setNewComment('');
       setNewCommentPreviewFiles([]);
+      setNewCommentMentions([]);
       
       // Clean up preview URLs
       newCommentPreviewFiles.forEach(file => {
@@ -151,6 +504,7 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
     setEditContent(comment.content);
     setEditExistingAttachments(comment.attachments || []);
     setEditPreviewFiles([]);
+    setEditCommentMentions([]);
   };
 
   const handleCancelEdit = () => {
@@ -158,6 +512,7 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
     setEditContent('');
     setEditExistingAttachments([]);
     setEditPreviewFiles([]);
+    setEditCommentMentions([]);
     
     // Clean up preview URLs
     editPreviewFiles.forEach(file => {
@@ -168,7 +523,12 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
   };
 
   const handleUpdateComment = async (commentId: string) => {
-    if (!editContent.trim()) return;
+    // Allow update if there's either comment text or attachments (existing or new)
+    const hasContent = editContent.trim().length > 0;
+    const hasExistingAttachments = editExistingAttachments.length > 0;
+    const hasNewAttachments = editPreviewFiles.length > 0;
+    
+    if (!hasContent && !hasExistingAttachments && !hasNewAttachments) return;
 
     try {
       setIsUpdatingComment(commentId);
@@ -177,25 +537,11 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
       
       // Upload new preview files to S3 if any
       if (editPreviewFiles.length > 0) {
+        console.log(`🚀 Using direct S3 upload for ${editPreviewFiles.length} files in comment edit`);
         for (const previewFile of editPreviewFiles) {
           try {
-            const formData = new FormData();
-            formData.append('file', previewFile.file);
-
-            const response = await fetch('/api/upload/s3', {
-              method: 'POST',
-              body: formData,
-            });
-
-            if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.error || 'Upload failed');
-            }
-
-            const responseData = await response.json();
-            const { attachment } = responseData;
+            const attachment = await uploadFileDirectlyToS3(previewFile.file);
             finalAttachments.push(attachment);
-            
           } catch (uploadError) {
             console.error(`Failed to upload ${previewFile.name}:`, uploadError);
             alert(`Failed to upload ${previewFile.name}. Comment will be updated without this file.`);
@@ -203,11 +549,22 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
         }
       }
       
-      await updateTaskComment(taskId, commentId, editContent.trim(), finalAttachments);
+      const commentText = editContent.trim();
+      await updateTaskComment(taskId, commentId, commentText, finalAttachments);
+      
+      // Send mention notifications for edited comments
+      if (editCommentMentions.length > 0) {
+        await sendMentionNotifications(editCommentMentions, commentText);
+      }
+
+      // Send comment update notifications to team members
+      await sendCommentNotifications(commentId, 'UPDATED');
+      
       setEditingCommentId(null);
       setEditContent('');
       setEditExistingAttachments([]);
       setEditPreviewFiles([]);
+      setEditCommentMentions([]);
       
       // Clean up preview URLs
       editPreviewFiles.forEach(file => {
@@ -229,6 +586,9 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
     try {
       setIsDeletingComment(commentId);
       await deleteTaskComment(taskId, commentId);
+      
+      // Send comment deletion notifications to team members
+      await sendCommentNotifications(commentId, 'DELETED');
     } catch (error) {
       console.error('Error deleting comment:', error);
     } finally {
@@ -241,7 +601,7 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
   };
 
   const canEditComment = (comment: TaskComment) => {
-    return currentUser && currentUser.id === comment.user.id;
+    return currentUser && currentUser.id === comment.user.id && !isViewOnly;
   };
 
   if (isLoading) {
@@ -280,17 +640,30 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
         </div>
       )}
 
+      {/* View-only message */}
+      {isViewOnly && (
+        <div className="p-3 bg-amber-50/50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
+          <p className="text-sm text-amber-700 dark:text-amber-300">
+            🔒 You can view comments but cannot add or edit them. Only team members and admins can interact with comments.
+          </p>
+        </div>
+      )}
+
       {/* New Comment Form */}
-      {currentUser && (
+      {currentUser && !isViewOnly && (
         <form onSubmit={handleSubmitComment} className="space-y-3">
           <div className="flex space-x-3">
             <UserProfile user={currentUser} size="sm" />
-            <div className="flex-1">
-              <textarea
+            <div className="flex-1 relative">
+              <MentionsInput
                 value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Add a comment..."
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+                onChange={setNewComment}
+                onMentionsChange={setNewCommentMentions}
+                teamMembers={teamMembers}
+                teamAdmins={teamAdmins}
+                currentUserId={currentUser?.id}
+                placeholder="Add a comment... Use @ to mention team members and admins"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 min-h-[2.5rem] overflow-y-auto"
                 rows={2}
                 disabled={isSubmitting}
               />
@@ -303,10 +676,10 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
               maxFiles={3}
               maxFileSize={10}
             />
-            <div className="flex justify-end">
+            <div className="flex justify-end pt-2">
               <button
                 type="submit"
-                disabled={(!newComment.trim() && newCommentPreviewFiles.length === 0) || isSubmitting}
+                disabled={(newComment.trim().length === 0 && newCommentPreviewFiles.length === 0) || isSubmitting}
                 className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-md transition-colors"
               >
                 {isSubmitting ? (
@@ -322,7 +695,7 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
       )}
 
       {/* Comments List */}
-      <div className="space-y-4">
+      <div className="space-y-4" key={refreshKey}>
         {comments.length === 0 ? (
           <div className="text-center py-8 text-gray-500 dark:text-gray-400">
             <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -330,7 +703,7 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
           </div>
         ) : (
           comments.map((comment) => (
-            <div key={comment.id} className="flex space-x-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+            <div key={comment.id} className="group flex space-x-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800/70 transition-colors">
               <UserProfile user={comment.user} size="sm" showTooltip />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1">
@@ -338,17 +711,30 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
                     <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       {comment.user.name || comment.user.email?.split('@')[0]}
                     </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {formatTimeAgo(comment.createdAt)}
-                    </span>
+                    <div className="flex items-center space-x-1">
+                      <span 
+                        className="text-xs text-gray-500 dark:text-gray-400 cursor-help"
+                        title={formatCommentTime(comment.createdAt).full}
+                      >
+                        {formatCommentTime(comment.createdAt).relative}
+                      </span>
+                      {comment.updatedAt !== comment.createdAt && (
+                        <span 
+                          className="text-xs text-gray-400 dark:text-gray-500 italic cursor-help"
+                          title={`Last edited: ${formatCommentTime(comment.updatedAt).full}`}
+                        >
+                          (edited)
+                        </span>
+                      )}
+                    </div>
                   </div>
                   {canEditComment(comment) && (
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       {editingCommentId === comment.id ? (
                         <>
                           <button
                             onClick={() => handleUpdateComment(comment.id)}
-                            disabled={!editContent.trim() || isUpdatingComment === comment.id}
+                            disabled={(editContent.trim().length === 0 && editExistingAttachments.length === 0 && editPreviewFiles.length === 0) || isUpdatingComment === comment.id}
                             className="p-1 text-green-600 hover:text-green-700 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
                             title={isUpdatingComment === comment.id ? "Saving..." : "Save changes"}
                           >
@@ -395,12 +781,17 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
                 </div>
                 {editingCommentId === comment.id ? (
                   <div className="space-y-3">
-                    <textarea
+                    <MentionsInput
                       value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      disabled={isUpdatingComment === comment.id}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      onChange={setEditContent}
+                      onMentionsChange={setEditCommentMentions}
+                      teamMembers={teamMembers}
+                      teamAdmins={teamAdmins}
+                      currentUserId={currentUser?.id}
+                      placeholder="Edit your comment... Use @ to mention team members and admins"
+                      className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 min-h-[2.5rem] overflow-y-auto"
                       rows={2}
+                      disabled={isUpdatingComment === comment.id}
                       autoFocus
                     />
                     
@@ -441,7 +832,7 @@ export default function TaskComments({ taskId, currentUser }: TaskCommentsProps)
                 ) : (
                   <div className="space-y-2">
                     <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
-                      {linkifyText(comment.content)}
+                      {renderTextWithMentionsAndLinks(comment.content)}
                     </p>
                     
                     {/* Comment Attachments */}

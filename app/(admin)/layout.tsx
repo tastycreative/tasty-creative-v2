@@ -16,16 +16,18 @@ export default function AdminLayout({
       </div>
 
       {/* Flex container for sidebar and main content */}
-      <div className="flex min-h-screen">
-        <AdminSidebar />
+      <div className="flex justify-center min-h-screen">
+        <div className="flex min-h-screen w-full max-w-[1600px]">
+          <AdminSidebar />
 
-        {/* Main Content */}
-        <div className="flex-1 transition-all duration-300">
-          <main className="min-h-screen">
-            <PermissionGoogle apiEndpoint={`/api/forms/list`}>
-              {children}
-            </PermissionGoogle>
-          </main>
+          {/* Main Content */}
+          <div className="flex-1 transition-all duration-300">
+            <main className="min-h-screen">
+              <PermissionGoogle apiEndpoint={`/api/forms/list`}>
+                {children}
+              </PermissionGoogle>
+            </main>
+          </div>
         </div>
       </div>
     </div>

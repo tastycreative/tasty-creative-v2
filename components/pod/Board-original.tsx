@@ -22,7 +22,7 @@ import {
   Settings,
   X
 } from 'lucide-react';
-import { useSocketTasks } from '@/hooks/useSocketTasks';
+import { useTaskUpdates } from '@/hooks/useTaskUpdates';
 import UserDropdown from '@/components/UserDropdown';
 import FileUpload from '@/components/ui/FileUpload';
 import AttachmentViewer from '@/components/ui/AttachmentViewer';
@@ -257,7 +257,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   }, [columns]); // Re-run when columns change
 
   // Real-time task updates with debouncing to prevent rapid updates
-  const { broadcastTaskUpdate } = useSocketTasks({
+  const { broadcastTaskUpdate } = useTaskUpdates({
     teamId: currentTeamId,
     onTaskUpdate: useCallback((update) => {
       console.log('Board received task update:', update);

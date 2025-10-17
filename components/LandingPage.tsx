@@ -203,6 +203,23 @@ const TastyCreativeLanding = ({ session }: { session: any }) => {
               Tasty Creative
             </span>
           </div>
+          
+          {/* Legal Links */}
+          <div className="flex items-center justify-center gap-6 mb-6">
+            <Link 
+              href="/privacy-policy" 
+              className="text-gray-600 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 transition-colors text-sm"
+            >
+              Privacy Policy
+            </Link>
+            <Link 
+              href="/terms-of-service" 
+              className="text-gray-600 dark:text-gray-300 hover:text-pink-600 dark:hover:text-pink-400 transition-colors text-sm"
+            >
+              Terms of Service
+            </Link>
+          </div>
+          
           <p className="text-gray-600 dark:text-gray-300">
             © 2025 Tasty Creative. All rights reserved. Made with ❤️ for creators.
           </p>

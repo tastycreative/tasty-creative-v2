@@ -6,8 +6,9 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   AlertCircle
 } from 'lucide-react';
-import { useSocketTasks } from '@/hooks/useSocketTasks';
+import { useTaskUpdates } from '@/hooks/useTaskUpdates';
 import { useBoardStore, useBoardTasks, useBoardFilters, useBoardTaskActions, useBoardColumns, type Task, type BoardColumn, type NewTaskData } from '@/lib/stores/boardStore';
+import { formatForDisplay, formatForTaskCard, formatDueDate, formatForTaskDetail, toLocalDateTimeString, parseUserDate } from '@/lib/dateUtils';
 import ColumnSettings from './ColumnSettings';
 import BoardHeader from './BoardHeader';
 import BoardFilters from './BoardFilters';
@@ -15,6 +16,8 @@ import BoardSkeleton from './BoardSkeleton';
 import BoardGrid from './BoardGrid';
 import TaskDetailModal from './TaskDetailModal';
 import NewTaskModal from './NewTaskModal';
+import OnboardingTaskModal from './OnboardingTaskModal';
+import NoTeamSelected from './NoTeamSelected';
 
 // Utility function to make links clickable
 const linkifyText = (text: string) => {
@@ -95,6 +98,11 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     columns, isLoadingColumns, showColumnSettings, fetchColumns, setShowColumnSettings 
   } = useBoardColumns();
   
+  // Team membership state
+  const [teamMembers, setTeamMembers] = useState<Array<{id: string, email: string, name?: string}>>([]);
+  const [teamAdmins, setTeamAdmins] = useState<Array<{id: string, email: string, name?: string}>>([]);
+  const [isLoadingTeamMembers, setIsLoadingTeamMembers] = useState(false);
+  
   // UI State from store
   const draggedTask = useBoardStore(state => state.draggedTask);
   const showNewTaskForm = useBoardStore(state => state.showNewTaskForm);
@@ -118,6 +126,30 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   // Local state for minimum skeleton display time
   const [showMinimumSkeleton, setShowMinimumSkeleton] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Fetch team members and admins
+  const fetchTeamMembers = useCallback(async (teamId: string) => {
+    if (!teamId) return;
+    
+    try {
+      setIsLoadingTeamMembers(true);
+      const response = await fetch(`/api/pod/teams/${teamId}/members`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setTeamMembers(data.members || []);
+          setTeamAdmins(data.admins || []);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch team members:', error);
+      setTeamMembers([]);
+      setTeamAdmins([]);
+    } finally {
+      setIsLoadingTeamMembers(false);
+    }
+  }, []);
 
   // Effect to ensure skeleton shows for minimum time
   useEffect(() => {
@@ -144,25 +176,37 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     const timeoutId = setTimeout(() => {
       fetchTasks(teamId);
       fetchColumns(teamId);
+      fetchTeamMembers(teamId);
     }, 100);
 
     return () => clearTimeout(timeoutId);
-  }, [teamId, currentTeamId, setCurrentTeamId, fetchTasks, fetchColumns]);
+  }, [teamId, currentTeamId, setCurrentTeamId, fetchTasks, fetchColumns, fetchTeamMembers]);
 
   // Handle URL parameter for task sharing - URL is the single source of truth
   useEffect(() => {
     const taskParam = searchParams?.get('task');
     
     if (taskParam && tasks.length > 0) {
-      // URL has a task parameter - ensure task is selected
-      const task = tasks.find(t => t.id === taskParam);
-      if (task && (!selectedTask || selectedTask.id !== taskParam)) {
+      // URL has a task parameter - find task by ID or podTeam.projectPrefix-taskNumber
+      let task: Task | undefined;
+      
+      // Check if taskParam looks like projectPrefix-taskNumber format
+      if (taskParam.includes('-') && /^[A-Z0-9]{3,5}-\d+$/.test(taskParam)) {
+        const [projectPrefix, taskNumberStr] = taskParam.split('-');
+        const taskNumber = parseInt(taskNumberStr, 10);
+        task = tasks.find(t => t.podTeam?.projectPrefix === projectPrefix && t.taskNumber === taskNumber);
+      } else {
+        // Fall back to finding by task ID
+        task = tasks.find(t => t.id === taskParam);
+      }
+      
+      if (task && (!selectedTask || selectedTask.id !== task.id)) {
         setSelectedTask(task);
         setEditingTaskData({
           title: task.title,
           description: task.description || '',
           priority: task.priority,
-          dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
+          dueDate: task.dueDate ? toLocalDateTimeString(task.dueDate).split('T')[0] : '',
           assignedTo: task.assignedTo || '',
           attachments: task.attachments || []
         });
@@ -205,9 +249,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   }, [columns]);
 
   // Real-time task updates with debouncing
-  const { broadcastTaskUpdate } = useSocketTasks({
+  const { broadcastTaskUpdate } = useTaskUpdates({
     teamId: currentTeamId,
-    onTaskUpdate: useCallback((update) => {
+    onTaskUpdate: useCallback((update: any) => {
       const timeoutId = setTimeout(() => {
         if (update.type === 'TASK_UPDATED' || update.type === 'TASK_CREATED' || update.type === 'TASK_DELETED') {
           fetchTasks(currentTeamId, true);
@@ -218,10 +262,46 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     }, [currentTeamId, fetchTasks])
   });
 
+  // Check if user is part of the team (member or admin)
+  const isUserInTeam = useCallback(() => {
+    if (!session?.user) return false;
+    
+    // ADMIN and MODERATOR can access all teams
+    if (session.user.role === 'ADMIN' || session.user.role === 'MODERATOR') {
+      return true;
+    }
+    
+    const userId = session.user.id;
+    const userEmail = session.user.email;
+    
+    // Check if user is in team members
+    const isMember = teamMembers.some(member => 
+      member.id === userId || member.email === userEmail
+    );
+    
+    // Check if user is in team admins
+    const isAdmin = teamAdmins.some(admin => 
+      admin.id === userId || admin.email === userEmail
+    );
+    
+    return isMember || isAdmin;
+  }, [session?.user, teamMembers, teamAdmins]);
+
+  // Check if user has access to this team
+  const hasTeamAccess = useMemo(() => {
+    if (!session?.user) return false;
+    
+    // ADMIN and MODERATOR can access all teams
+    if (session.user.role === 'ADMIN' || session.user.role === 'MODERATOR') {
+      return true;
+    }
+    
+    // For regular users, check if they're members of the team
+    return isUserInTeam();
+  }, [session?.user, isUserInTeam]);
+
   // Handle team change with immediate UI update
   const handleTeamChange = (newTeamRow: number) => {
-    const newTeamId = `team-${newTeamRow}`;
-    setCurrentTeamId(newTeamId);
     setShowNewTaskForm(null);
     onTeamChange(newTeamRow);
   };
@@ -229,6 +309,12 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   // Task management functions
   const handleCreateTask = async (status: Task['status']) => {
     if (!newTaskData.title.trim()) return;
+    
+    // Security check: ensure user has access to this team
+    if (!hasTeamAccess) {
+      console.error('Unauthorized: User cannot create tasks for this team');
+      return;
+    }
 
     try {
       await createTask(newTaskData, status);
@@ -240,6 +326,12 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   const handleDeleteTask = async (taskId: string) => {
     if (!confirm('Are you sure you want to delete this task?')) return;
+    
+    // Security check: ensure user has access to this team
+    if (!hasTeamAccess) {
+      console.error('Unauthorized: User cannot delete tasks for this team');
+      return;
+    }
 
     try {
       await deleteTask(taskId);
@@ -254,14 +346,31 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   // Task detail and editing functions
   const openTaskDetail = (task: Task) => {
-    // Only update URL - the useEffect will handle state updates
+    // Update URL for both onboarding and regular tasks for consistency
     const params = new URLSearchParams(searchParams?.toString() || '');
-    params.set('task', task.id);
+    // Use podTeam.projectPrefix-taskNumber if available, otherwise fall back to task ID
+    const taskIdentifier = (task.podTeam?.projectPrefix && task.taskNumber) 
+      ? `${task.podTeam.projectPrefix}-${task.taskNumber}` 
+      : task.id;
+    params.set('task', taskIdentifier);
     router.push(`?${params.toString()}`);
   };
 
   const closeTaskDetail = () => {
-    // Only update URL - the useEffect will handle state clearing
+    // For Onboarding team, clear state AND update URL to remove task param
+    if (teamName === "Onboarding") {
+      setSelectedTask(null);
+      setIsEditingTask(false);
+      setEditingTaskData({});
+      // Also remove task param from URL for onboarding
+      const params = new URLSearchParams(searchParams?.toString() || '');
+      params.delete('task');
+      const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
+      router.push(newUrl);
+      return;
+    }
+    
+    // For other teams, update URL - the useEffect will handle state clearing
     const params = new URLSearchParams(searchParams?.toString() || '');
     params.delete('task');
     const newUrl = params.toString() ? `?${params.toString()}` : window.location.pathname;
@@ -279,7 +388,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         title: selectedTask.title,
         description: selectedTask.description || '',
         priority: selectedTask.priority,
-        dueDate: selectedTask.dueDate ? selectedTask.dueDate.split('T')[0] : '',
+        dueDate: selectedTask.dueDate ? toLocalDateTimeString(selectedTask.dueDate).split('T')[0] : '',
         assignedTo: selectedTask.assignedTo || '',
         attachments: selectedTask.attachments || []
       });
@@ -302,13 +411,20 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   const saveTaskChanges = async () => {
     if (!selectedTask) return;
+    
+    // Security check: ensure user has access to this team
+    if (!hasTeamAccess) {
+      console.error('Unauthorized: User cannot save task changes for this team');
+      return;
+    }
 
     try {
+      setIsSaving(true);
       const updates = {
         title: editingTaskData.title,
         description: editingTaskData.description,
         priority: editingTaskData.priority,
-        dueDate: editingTaskData.dueDate ? new Date(editingTaskData.dueDate).toISOString() : null,
+        dueDate: editingTaskData.dueDate ? parseUserDate(editingTaskData.dueDate)?.toISO() : null,
         assignedTo: editingTaskData.assignedTo || null,
         attachments: editingTaskData.attachments || [],
       };
@@ -319,8 +435,12 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         taskId: selectedTask.id,
         data: { ...selectedTask, ...updates }
       });
+      setIsEditingTask(false);
+      setEditingTaskData({});
     } catch (error) {
       console.error('Error updating task:', error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -344,6 +464,12 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   const createTaskFromModal = async () => {
     if (!newTaskData.title.trim() || !newTaskStatus) return;
+    
+    // Security check: ensure user has access to this team
+    if (!hasTeamAccess) {
+      console.error('Unauthorized: User cannot create tasks for this team');
+      return;
+    }
 
     try {
       await createTask(newTaskData, newTaskStatus);
@@ -374,8 +500,13 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   const canEditTask = (task: Task) => {
     if (!session?.user) return false;
     
+    // Global admins can always edit
     if (session.user.role === 'ADMIN') return true;
     
+    // Team members and team admins can edit tasks
+    if (isUserInTeam()) return true;
+    
+    // Task assignees can edit their assigned tasks
     if (task.assignedTo === session.user.id || 
         task.assignedTo === session.user.email ||
         task.assignedUser?.id === session.user.id ||
@@ -431,14 +562,74 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     e.dataTransfer.dropEffect = 'move';
   };
 
-  const handleDrop = (e: React.DragEvent, newStatus: Task['status']) => {
+  const handleDrop = async (e: React.DragEvent, newStatus: Task['status']) => {
     e.preventDefault();
     
     if (!draggedTask || draggedTask.status === newStatus) {
       return;
     }
 
-    updateTaskStatus(draggedTask.id, newStatus);
+    // Store the old status for notification purposes
+    const oldStatus = draggedTask.status;
+
+    // Update the task status first
+    await updateTaskStatus(draggedTask.id, newStatus);
+
+    // Send notifications to assigned members
+    await sendColumnNotifications(draggedTask, oldStatus, newStatus);
+  };
+
+  // Function to send notifications to column members
+  const sendColumnNotifications = async (task: Task, oldStatus: Task['status'], newStatus: Task['status']) => {
+    try {
+      // Find the target column to get assigned members
+      const targetColumn = columns.find(column => column.status === newStatus);
+      
+      if (!targetColumn || !targetColumn.assignedMembers || targetColumn.assignedMembers.length === 0) {
+        return;
+      }
+
+      // Get source column name for better logging
+      const sourceColumn = columns.find(col => col.status === oldStatus);
+
+      // Prepare notification data
+      const notificationData = {
+        taskId: task.id,
+        taskTitle: task.title,
+        taskDescription: task.description || '',
+        assignedTo: task.assignedTo || 'Unassigned',
+        priority: task.priority,
+        oldColumn: sourceColumn?.label || oldStatus,
+        newColumn: targetColumn.label,
+        teamId: teamId,
+        teamName: teamName,
+        movedBy: session?.user?.name || 'Unknown User',
+        movedById: session?.user?.id || '',
+        assignedMembers: targetColumn.assignedMembers.map(assignment => ({
+          userId: assignment.userId,
+          userEmail: assignment.user.email,
+          userName: assignment.user.name
+        }))
+      };
+
+  // sending column movement notification payload
+
+      // Send notifications via API
+      const response = await fetch('/api/notifications/column-movement', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(notificationData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ Failed to send column notifications:', errorData);
+      }
+    } catch (error) {
+      console.error('❌ Error sending column notifications:', error);
+    }
   };
 
   const getTasksForStatus = (status: Task['status']) => {
@@ -576,19 +767,25 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   const filteredAndSortedTasks = sortTasks(filterTasks(tasks));
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return null;
-    
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
-    } catch {
-      return null;
-    }
-  };
+  // Show unauthorized message if user doesn't have access to this team
+  if (!hasTeamAccess && !isLoadingTeamMembers) {
+    return (
+      <div className="space-y-6">
+        <BoardHeader
+          teamName={teamName}
+          availableTeams={availableTeams}
+          selectedRow={selectedRow}
+          onTeamChange={handleTeamChange}
+          totalTasks={0}
+          filteredTasksCount={0}
+          isLoading={false}
+        />
+        <NoTeamSelected variant="no-access" />
+      </div>
+    );
+  }
+
+  // Using Luxon dateUtils now instead of local formatDate function
 
   if (showMinimumSkeleton || (isLoading && tasks.length === 0) || isLoadingColumns) {
     return (
@@ -669,7 +866,6 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         onSetShowNewTaskForm={setShowNewTaskForm}
         onSetNewTaskData={setNewTaskData}
         onCreateTask={handleCreateTask}
-        formatDate={formatDate}
         getColumnConfig={getColumnConfig}
         getTasksForStatus={getTasksForStatus}
         getGridClasses={getGridClasses}
@@ -677,13 +873,17 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       />
 
       {/* Task Detail Modal */}
-      {selectedTask && (
+      {selectedTask && teamName !== "Onboarding" && (
         <TaskDetailModal
           selectedTask={selectedTask}
           isEditingTask={isEditingTask}
           editingTaskData={editingTaskData}
           session={session}
           canEditTask={canEditTask}
+          isUserInTeam={isUserInTeam()}
+          teamMembers={teamMembers}
+          teamAdmins={teamAdmins}
+          isSaving={isSaving}
           onClose={closeTaskDetail}
           onStartEditing={startEditingTask}
           onCancelEditing={cancelEditingTask}
@@ -692,6 +892,16 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           onUpdateTaskStatus={updateTaskStatusInModal}
           onAutoSaveAttachments={autoSaveAttachments}
           getColumnConfig={getColumnConfig}
+        />
+      )}
+
+      {/* Onboarding Task Modal */}
+      {selectedTask && teamName === "Onboarding" && (
+        <OnboardingTaskModal
+          task={selectedTask}
+          isOpen={!!selectedTask}
+          onClose={closeTaskDetail}
+          session={session}
         />
       )}
 

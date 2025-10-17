@@ -29,10 +29,19 @@ import {
   UserMinus,
   Check,
   AlertTriangle,
+  Target,
+  Bell,
 } from "lucide-react";
 import { updateUserRole } from "@/app/actions/admin";
 import { Role } from "@prisma/client";
 import { useSession } from "next-auth/react";
+import {
+  formatForDisplay,
+  parseUserDate,
+  formatDueDate,
+  utcNow,
+  utcNowDateTime
+} from "@/lib/dateUtils";
 
 interface AdminStats {
   totalUsers: number;
@@ -47,6 +56,7 @@ interface TeamMember {
   role: string;
   email?: string;
   image?: string;
+  userId?: string; // The actual User ID for database operations
 }
 
 interface Task {
@@ -63,6 +73,7 @@ interface Team {
   id: string;
   name: string;
   description?: string;
+  projectPrefix?: string;
   members: TeamMember[];
   tasks: Task[];
   sheetUrl?: string;
@@ -120,7 +131,7 @@ const PodAdminDashboard = () => {
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [memberSearchQuery, setMemberSearchQuery] = useState("");
-  const [selectedPodUser, setSelectedPodUser] = useState<SystemUser | null>(
+  const [selectedUser, setSelectedUser] = useState<SystemUser | null>(
     null
   );
   const [showUserDropdown, setShowUserDropdown] = useState(false);
@@ -128,11 +139,15 @@ const PodAdminDashboard = () => {
   const [editingTeamNameValue, setEditingTeamNameValue] = useState("");
   const [updatingTeamName, setUpdatingTeamName] = useState<string | null>(null);
   const [teamNameSuccess, setTeamNameSuccess] = useState<string | null>(null);
+  const [editingTeamPrefix, setEditingTeamPrefix] = useState<string | null>(null);
+  const [editingTeamPrefixValue, setEditingTeamPrefixValue] = useState("");
+  const [updatingTeamPrefix, setUpdatingTeamPrefix] = useState<string | null>(null);
+  const [teamPrefixSuccess, setTeamPrefixSuccess] = useState<string | null>(null);
   const [showTeamMenu, setShowTeamMenu] = useState<string | null>(null);
   const [showMembersModal, setShowMembersModal] = useState<string | null>(null);
   const [showTasksModal, setShowTasksModal] = useState<string | null>(null);
   const [editingMember, setEditingMember] = useState<string | null>(null);
-  const [podUsers, setPodUsers] = useState<SystemUser[]>([]);
+  const [availableUsers, setAvailableUsers] = useState<SystemUser[]>([]);
   const [editingTask, setEditingTask] = useState<string | null>(null);
   const [showAddTaskForm, setShowAddTaskForm] = useState<string | null>(null);
   const [showRemoveMemberConfirm, setShowRemoveMemberConfirm] = useState<{
@@ -159,6 +174,17 @@ const PodAdminDashboard = () => {
   const [updatingCreators, setUpdatingCreators] = useState<string | null>(null);
   const [creatorsSuccess, setCreatorsSuccess] = useState<string | null>(null);
   const [availableCreators, setAvailableCreators] = useState<string[]>([]);
+
+  // Column assignments state
+  const [showColumnAssignments, setShowColumnAssignments] = useState<string | null>(null);
+  const [teamColumns, setTeamColumns] = useState<any[]>([]);
+  const [loadingColumns, setLoadingColumns] = useState(false);
+  const [showAssignMemberModal, setShowAssignMemberModal] = useState<{
+    columnId: string;
+    columnLabel: string;
+    teamId: string;
+  } | null>(null);
+  const [assigningMember, setAssigningMember] = useState(false);
 
 
   // Close dropdown when clicking outside
@@ -218,10 +244,11 @@ const PodAdminDashboard = () => {
       (task) => task.status === "in-progress"
     ).length;
     const overdueTasks = team.tasks.filter(
-      (task) =>
-        task.dueDate &&
-        new Date(task.dueDate) < new Date() &&
-        task.status !== "completed"
+      (task) => {
+        if (!task.dueDate) return false;
+        const dueDateTime = parseUserDate(task.dueDate);
+        return dueDateTime && dueDateTime.diffNow().milliseconds < 0 && task.status !== "completed";
+      }
     ).length;
 
     return { totalTasks, completedTasks, inProgressTasks, overdueTasks };
@@ -270,6 +297,7 @@ const PodAdminDashboard = () => {
               id: teamId,
               name: dbTeam.name,
               description: dbTeam.description || `Team: ${dbTeam.name}`,
+              projectPrefix: dbTeam.projectPrefix,
               members: teamMembers,
               tasks: dbTasks,
               sheetUrl,
@@ -398,7 +426,7 @@ const PodAdminDashboard = () => {
           priority: task.priority.toLowerCase() as "low" | "medium" | "high",
           assignedTo: task.assignedTo || "",
           dueDate: task.dueDate
-            ? new Date(task.dueDate).toISOString().split("T")[0]
+            ? formatForDisplay(task.dueDate, 'date')
             : "",
         }));
       }
@@ -441,17 +469,18 @@ const PodAdminDashboard = () => {
       const filteredUsers = result.users.filter((user: SystemUser) =>
         ["GUEST", "USER", "POD"].includes(user.role)
       );
-      const podOnlyUsers = result.users.filter(
-        (user: SystemUser) => user.role === "POD"
+      // Include all users except GUEST for team member selection
+      const eligibleUsers = result.users.filter(
+        (user: SystemUser) => user.role !== "GUEST"
       );
 
       setUsers(filteredUsers);
-      setPodUsers(podOnlyUsers);
+      setAvailableUsers(eligibleUsers);
 
-      // Update stats with POD users count
+      // Update stats with eligible users count
       setStats((prevStats) => ({
         ...prevStats,
-        totalUsers: podOnlyUsers.length,
+        totalUsers: eligibleUsers.length,
       }));
     } catch (err) {
       console.error("Error fetching users:", err);
@@ -471,9 +500,9 @@ const PodAdminDashboard = () => {
       if (!team) return;
 
       // Try to find user by email first (more reliable), then by ID
-      let user = podUsers.find((u) => u.email === data.userEmail);
+      let user = availableUsers.find((u: SystemUser) => u.email === data.userEmail);
       if (!user) {
-        user = podUsers.find((u) => u.id === data.userId);
+        user = availableUsers.find((u: SystemUser) => u.id === data.userId);
         console.warn('User not found by email, falling back to ID lookup:', { 
           searchEmail: data.userEmail, 
           foundUser: user ? { id: user.id, email: user.email, name: user.name } : null 
@@ -549,7 +578,7 @@ const PodAdminDashboard = () => {
     users: { userId: string; role: string; userEmail?: string; userName?: string }[]
   ) => {
     console.log('🔍 addMultipleMembersToTeam - Received data:', { teamId, users });
-    console.log('🔍 addMultipleMembersToTeam - Current podUsers:', podUsers.map(u => ({ id: u.id, email: u.email, name: u.name })));
+    console.log('🔍 addMultipleMembersToTeam - Current availableUsers:', availableUsers.map((u: SystemUser) => ({ id: u.id, email: u.email, name: u.name })));
     
     try {
       const team = teams.find((t) => t.id === teamId);
@@ -560,9 +589,9 @@ const PodAdminDashboard = () => {
           console.log('🔍 Processing user data:', userData);
           
           // Try to find user by email first (more reliable), then by ID
-          let user = podUsers.find((u) => u.email === userData.userEmail);
+          let user = availableUsers.find((u: SystemUser) => u.email === userData.userEmail);
           if (!user) {
-            user = podUsers.find((u) => u.id === userData.userId);
+            user = availableUsers.find((u: SystemUser) => u.id === userData.userId);
             console.warn('User not found by email, falling back to ID lookup:', { 
               searchEmail: userData.userEmail, 
               searchId: userData.userId,
@@ -857,7 +886,7 @@ const PodAdminDashboard = () => {
           description: newTaskData.description.trim() || null,
           priority: newTaskData.priority.toUpperCase(),
           assignedTo: newTaskData.assignedTo || null,
-          dueDate: newTaskData.dueDate || null,
+          dueDate: newTaskData.dueDate ? parseUserDate(newTaskData.dueDate)?.toISO() : null,
           teamId,
           teamName: team.name,
         }),
@@ -886,7 +915,7 @@ const PodAdminDashboard = () => {
             | "high",
           assignedTo: result.task.assignedTo || "",
           dueDate: result.task.dueDate
-            ? new Date(result.task.dueDate).toISOString().split("T")[0]
+            ? formatForDisplay(result.task.dueDate, 'date')
             : "",
         };
 
@@ -1030,8 +1059,8 @@ const PodAdminDashboard = () => {
     }
   };
 
-  // Fetch POD users separately for member dropdown
-  const fetchPodUsers = async () => {
+  // Fetch available users (all except GUEST) for member dropdown
+  const fetchAvailableUsers = async () => {
     try {
       const response = await fetch("/api/admin/users");
       if (!response.ok) {
@@ -1039,12 +1068,12 @@ const PodAdminDashboard = () => {
       }
 
       const result = await response.json();
-      const podOnlyUsers = result.users.filter(
-        (user: SystemUser) => user.role === "POD"
+      const eligibleUsers = result.users.filter(
+        (user: SystemUser) => user.role !== "GUEST"
       );
-      setPodUsers(podOnlyUsers);
+      setAvailableUsers(eligibleUsers);
     } catch (err) {
-      console.error("Error fetching POD users:", err);
+      console.error("Error fetching available users:", err);
     }
   };
 
@@ -1112,9 +1141,70 @@ const PodAdminDashboard = () => {
     }
   };
 
+  // Team prefix update function
+  const updateTeamPrefix = async (teamId: string, newPrefix: string) => {
+    if (!newPrefix.trim()) return;
+
+    // Validate prefix format (3-5 characters, alphanumeric)
+    const prefix = newPrefix.trim().toUpperCase();
+    if (!/^[A-Z0-9]{3,5}$/.test(prefix)) {
+      alert("Project prefix must be 3-5 characters long and contain only letters and numbers.");
+      return;
+    }
+
+    setUpdatingTeamPrefix(teamId);
+    try {
+      // Update database via teams API
+      const response = await fetch(`/api/pod/teams/${teamId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          projectPrefix: prefix,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update team prefix in database");
+      }
+
+      console.log("Successfully updated team prefix in database");
+
+      // Update team in local state
+      setTeams((prev) =>
+        prev.map((team) =>
+          team.id === teamId ? { ...team, projectPrefix: prefix } : team
+        )
+      );
+
+      setTeamPrefixSuccess(teamId);
+      setTimeout(() => setTeamPrefixSuccess(null), 3000);
+    } catch (err) {
+      console.error("Error updating team prefix:", err);
+      // Revert local state on error
+      setTeams((prev) =>
+        prev.map((team) =>
+          team.id === teamId ? { ...team, projectPrefix: editingTeamPrefixValue } : team
+        )
+      );
+
+      // Show error to user
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to update team prefix";
+      alert(`Error: ${errorMessage}`);
+    } finally {
+      setUpdatingTeamPrefix(null);
+      setEditingTeamPrefix(null);
+      setEditingTeamPrefixValue("");
+    }
+  };
+
   // Add Team function
   const handleAddTeam = async (data: {
     teamName: string;
+    projectPrefix: string;
     creators: string[];
     members?: { userId: string; role: string }[];
   }) => {
@@ -1127,6 +1217,7 @@ const PodAdminDashboard = () => {
         },
         body: JSON.stringify({
           name: data.teamName.trim(),
+          projectPrefix: data.projectPrefix.trim().toUpperCase(),
           description: `Team created via admin dashboard`,
         }),
       });
@@ -1299,6 +1390,77 @@ const PodAdminDashboard = () => {
     return matchesSearch;
   });
 
+  // Column management functions
+  const fetchTeamColumns = async (teamId: string) => {
+    setLoadingColumns(true);
+    try {
+      const response = await fetch(`/api/board-columns?teamId=${teamId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTeamColumns(data.columns || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch team columns:', error);
+    } finally {
+      setLoadingColumns(false);
+    }
+  };
+
+  const assignMemberToColumn = async (columnId: string, userId: string, teamId: string) => {
+    setAssigningMember(true);
+    try {
+      const response = await fetch('/api/board-column-assignments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ columnId, userId, teamId })
+      });
+      
+      if (response.ok) {
+        // Refresh columns data
+        await fetchTeamColumns(teamId);
+        setSuccessMessage('Member assigned to column successfully');
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to assign member');
+      }
+    } catch (error) {
+      console.error('Failed to assign member:', error);
+      alert(`Error: ${error instanceof Error ? error.message : 'Failed to assign member'}`);
+    } finally {
+      setAssigningMember(false);
+      setShowAssignMemberModal(null);
+    }
+  };
+
+  const removeMemberFromColumn = async (assignmentId: string, teamId: string) => {
+    try {
+      const response = await fetch(`/api/board-column-assignments?assignmentId=${assignmentId}&teamId=${teamId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        // Refresh columns data
+        await fetchTeamColumns(teamId);
+        setSuccessMessage('Member removed from column successfully');
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } else {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to remove member');
+      }
+    } catch (error) {
+      console.error('Failed to remove member:', error);
+      alert(`Error: ${error instanceof Error ? error.message : 'Failed to remove member'}`);
+    }
+  };
+
+  // Effect to fetch columns when team is selected
+  useEffect(() => {
+    if (showColumnAssignments) {
+      fetchTeamColumns(showColumnAssignments);
+    }
+  }, [showColumnAssignments]);
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -1425,6 +1587,8 @@ const PodAdminDashboard = () => {
               <span className="hidden sm:inline">Team Management</span>
               <span className="sm:hidden">Teams</span>
             </button>
+            {/* User Management temporarily disabled */}
+            {/*
             <button
               onClick={() => {
                 setActiveView("users");
@@ -1439,6 +1603,7 @@ const PodAdminDashboard = () => {
               <span className="hidden sm:inline">User Management</span>
               <span className="sm:hidden">Users</span>
             </button>
+            */}
           </div>
         </div>
 
@@ -1451,7 +1616,7 @@ const PodAdminDashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">
-                      POD Users
+                      Users
                     </p>
                     <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
                       {stats.totalUsers}
@@ -1531,7 +1696,7 @@ const PodAdminDashboard = () => {
         {/* Team Management View */}
         {activeView === "teams" && (
           <div className="space-y-6">
-            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+            <div className="flex flex-col space-y-4 lg:flex-row lg:items-center lg:justify-between lg:space-y-0">
               <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
                 <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
                   Team Management
@@ -1541,15 +1706,15 @@ const PodAdminDashboard = () => {
                 </span>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
-                <div className="relative flex-1 xl:flex-initial">
+              <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                <div className="relative flex-1 lg:flex-initial">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
                     type="text"
                     placeholder="Search teams..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10 pr-4 py-2 w-full xl:w-64 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="pl-10 pr-4 py-2 w-full lg:w-64 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
                 </div>
 
@@ -1564,14 +1729,14 @@ const PodAdminDashboard = () => {
             </div>
 
             {/* Teams Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6">
               {filteredTeams.map((team) => {
                 const stats = getTeamStats(team);
 
                 return (
                   <div
                     key={team.id}
-                    className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 hover:shadow-lg transition-shadow"
+                    className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-6 hover:shadow-lg transition-shadow"
                   >
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
@@ -1634,6 +1799,98 @@ const PodAdminDashboard = () => {
                               <Edit className="h-4 w-4" />
                             </button>
                             {teamNameSuccess === team.id && (
+                              <span className="text-green-600 dark:text-green-400 text-sm">
+                                ✓ Updated
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Project Prefix Section */}
+                        {editingTeamPrefix === team.id ? (
+                          <div className="flex items-center space-x-2 mb-3">
+                            <input
+                              type="text"
+                              value={editingTeamPrefixValue}
+                              onChange={(e) => {
+                                // Convert to uppercase and limit to 5 characters
+                                const value = e.target.value.toUpperCase().slice(0, 5);
+                                // Only allow alphanumeric characters
+                                if (/^[A-Z0-9]*$/.test(value)) {
+                                  setEditingTeamPrefixValue(value);
+                                }
+                              }}
+                              placeholder="e.g. ABC"
+                              className="px-2 py-1 text-sm font-mono border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 w-20"
+                              maxLength={5}
+                              autoFocus
+                            />
+                            <button
+                              onClick={() =>
+                                updateTeamPrefix(team.id, editingTeamPrefixValue)
+                              }
+                              disabled={
+                                !editingTeamPrefixValue.trim() ||
+                                editingTeamPrefixValue.length < 3 ||
+                                updatingTeamPrefix === team.id
+                              }
+                              className="p-1 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded disabled:opacity-50"
+                            >
+                              {updatingTeamPrefix === team.id ? (
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                              ) : (
+                                <Save className="h-4 w-4" />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingTeamPrefix(null);
+                                setEditingTeamPrefixValue("");
+                              }}
+                              className="p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center space-x-2 mb-2">
+                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                              Project Prefix:
+                            </span>
+                            {team.projectPrefix ? (
+                              <>
+                                <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-mono rounded">
+                                  {team.projectPrefix}
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    setEditingTeamPrefix(team.id);
+                                    setEditingTeamPrefixValue(team.projectPrefix || "");
+                                  }}
+                                  className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                  title="Edit project prefix"
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <span className="px-2 py-1 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-xs rounded">
+                                  None
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    setEditingTeamPrefix(team.id);
+                                    setEditingTeamPrefixValue("");
+                                  }}
+                                  className="p-1 text-blue-500 hover:text-blue-700 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded"
+                                  title="Add project prefix"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </button>
+                              </>
+                            )}
+                            {teamPrefixSuccess === team.id && (
                               <span className="text-green-600 dark:text-green-400 text-sm">
                                 ✓ Updated
                               </span>
@@ -1750,45 +2007,49 @@ const PodAdminDashboard = () => {
                               </div>
                             </div>
                           ) : (
-                            <div className="flex items-center space-x-2">
-                              <Star className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                Creators:
-                              </span>
-                              {team.creators && team.creators.length > 0 ? (
-                                <div className="flex flex-wrap gap-1 flex-1">
-                                  {team.creators.map((creator, index) => (
-                                    <span
-                                      key={index}
-                                      className="inline-flex items-center px-2 py-1 bg-purple-100 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-500/30 rounded-full text-xs font-medium text-purple-700 dark:text-purple-300"
-                                    >
-                                      {creator}
-                                    </span>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="inline-flex items-center px-2 py-1 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-500 dark:text-gray-400">
-                                  No creators assigned
-                                </div>
-                              )}
-                              <button
-                                onClick={() => {
-                                  setEditingCreators(team.id);
-                                  setEditingCreatorsValue(team.creators || []);
-                                  if (availableCreators.length === 0) {
-                                    fetchAvailableCreators();
-                                  }
-                                }}
-                                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                                title="Edit creators"
-                              >
-                                <Edit className="h-3 w-3" />
-                              </button>
-                              {creatorsSuccess === team.id && (
-                                <span className="text-green-600 dark:text-green-400 text-xs animate-pulse">
-                                  ✓ Updated
+                            <div className="flex items-start space-x-2">
+                              <Star className="h-4 w-4 text-gray-500 dark:text-gray-400 flex-shrink-0 mt-0.5" />
+                              <div className="flex-1 min-w-0">
+                                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 block mb-1">
+                                  Creators:
                                 </span>
-                              )}
+                                {team.creators && team.creators.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {team.creators.map((creator, index) => (
+                                      <span
+                                        key={index}
+                                        className="inline-flex items-center px-2 py-1 bg-purple-100 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-500/30 rounded-full text-xs font-medium text-purple-700 dark:text-purple-300"
+                                      >
+                                        {creator}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="inline-flex items-center px-2 py-1 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full text-xs text-gray-500 dark:text-gray-400">
+                                    No creators assigned
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex items-center space-x-1 flex-shrink-0">
+                                <button
+                                  onClick={() => {
+                                    setEditingCreators(team.id);
+                                    setEditingCreatorsValue(team.creators || []);
+                                    if (availableCreators.length === 0) {
+                                      fetchAvailableCreators();
+                                    }
+                                  }}
+                                  className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                                  title="Edit creators"
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </button>
+                                {creatorsSuccess === team.id && (
+                                  <span className="text-green-600 dark:text-green-400 text-xs animate-pulse">
+                                    ✓ Updated
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -1856,7 +2117,8 @@ const PodAdminDashboard = () => {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 mb-4">
+                    {/* Action Buttons - Responsive Layout */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-3 mb-4">
                       <button
                         onClick={() => setShowMembersModal(team.id)}
                         className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-left cursor-pointer"
@@ -1878,6 +2140,26 @@ const PodAdminDashboard = () => {
                           <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
                             {stats.totalTasks} Tasks
                           </span>
+                        </div>
+                      </button>
+
+                      {/* Column Assignments Button - Responsive */}
+                      <button
+                        onClick={() => setShowColumnAssignments(team.id)}
+                        className="group bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-800/30 dark:hover:to-pink-800/30 rounded-xl p-3 sm:p-4 transition-all duration-300 text-left cursor-pointer border border-purple-200 dark:border-purple-500/30 hover:border-purple-300 dark:hover:border-purple-400/50 hover:shadow-lg transform hover:scale-[1.02] sm:col-span-2 lg:col-span-1 xl:col-span-2 2xl:col-span-1"
+                      >
+                        <div className="flex items-center space-x-2 sm:space-x-3">
+                          <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
+                            <Target className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <span className="text-xs sm:text-sm font-bold text-purple-700 dark:text-purple-300 block truncate">
+                              Notifications
+                            </span>
+                            <span className="text-xs text-purple-600 dark:text-purple-400 truncate block">
+                              Column alerts setup
+                            </span>
+                          </div>
                         </div>
                       </button>
                     </div>
@@ -1912,6 +2194,7 @@ const PodAdminDashboard = () => {
                       </div>
                     )}
 
+                    {/* Progress Bar */}
                     {stats.totalTasks > 0 && (
                       <div className="mb-4">
                         <div className="flex items-center justify-between mb-2">
@@ -1936,6 +2219,7 @@ const PodAdminDashboard = () => {
                       </div>
                     )}
 
+                    {/* Team Footer - Members and Status Icons */}
                     <div className="flex items-center justify-between">
                       <div className="flex -space-x-2">
                         {team.members.slice(0, 3).map((member) => (
@@ -1945,11 +2229,11 @@ const PodAdminDashboard = () => {
                                 src={`/api/image-proxy?url=${encodeURIComponent(member.image)}`}
                                 alt={member.name || ""}
                                 title={member.name || ""}
-                                className="w-8 h-8 rounded-full object-cover border-2 border-white dark:border-gray-800 shadow-sm"
+                                className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover border-2 border-white dark:border-gray-800 shadow-sm"
                               />
                             ) : (
                               <div 
-                                className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 flex items-center justify-center text-white font-semibold text-sm border-2 border-white dark:border-gray-800 shadow-sm"
+                                className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-slate-400 to-slate-600 flex items-center justify-center text-white font-semibold text-xs sm:text-sm border-2 border-white dark:border-gray-800 shadow-sm"
                                 title={member.name || ""}
                               >
                                 {(member.name || member.email || "U").charAt(0).toUpperCase()}
@@ -1958,7 +2242,7 @@ const PodAdminDashboard = () => {
                           </div>
                         ))}
                         {team.members.length > 3 && (
-                          <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-gray-600 dark:text-gray-300 text-xs font-medium border-2 border-white dark:border-gray-800">
+                          <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-gray-600 dark:text-gray-300 text-xs font-medium border-2 border-white dark:border-gray-800">
                             +{team.members.length - 3}
                           </div>
                         )}
@@ -2297,7 +2581,7 @@ const PodAdminDashboard = () => {
                                   assignedTo: session?.user?.email || "",
                                 }));
                               }
-                              if (!podUsers.length) fetchUsers();
+                              if (!availableUsers.length) fetchUsers();
                             }}
                             className="flex items-center justify-center space-x-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors text-sm flex-1 sm:flex-none"
                           >
@@ -2684,9 +2968,7 @@ const PodAdminDashboard = () => {
                                         <div className="flex items-center space-x-1 text-xs text-gray-500 dark:text-gray-400">
                                           <Calendar className="h-3 w-3 flex-shrink-0" />
                                           <span>
-                                            {new Date(
-                                              task.dueDate
-                                            ).toLocaleDateString()}
+                                            {formatForDisplay(task.dueDate, 'short')}
                                           </span>
                                         </div>
                                       ) : (
@@ -2748,7 +3030,8 @@ const PodAdminDashboard = () => {
           </div>
         )}
 
-        {/* User Management View */}
+        {/* User Management View - Temporarily Disabled */}
+        {/*
         {activeView === "users" && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -2765,7 +3048,6 @@ const PodAdminDashboard = () => {
               </button>
             </div>
 
-            {/* Search Section */}
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="flex-1">
@@ -2813,7 +3095,6 @@ const PodAdminDashboard = () => {
                 </div>
               </div>
 
-              {/* Results Count */}
               {!isUsersLoading && (
                 <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                   <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -2871,7 +3152,6 @@ const PodAdminDashboard = () => {
             {!isUsersLoading &&
               (() => {
                 const filteredUsers = users.filter((user) => {
-                  // Filter by search query
                   const matchesSearch =
                     userSearchQuery === "" ||
                     user.name
@@ -2884,7 +3164,6 @@ const PodAdminDashboard = () => {
                       .toLowerCase()
                       .includes(userSearchQuery.toLowerCase());
 
-                  // Filter by role
                   const matchesRole =
                     userRoleFilter === "all" || user.role === userRoleFilter;
 
@@ -2953,6 +3232,7 @@ const PodAdminDashboard = () => {
             )}
           </div>
         )}
+        */}
       </div>
 
       {/* Add Team Form Modal */}
@@ -2971,11 +3251,14 @@ const PodAdminDashboard = () => {
           onSubmit={(users) =>
             addMultipleMembersToTeam(showAddMemberForm, users)
           }
-          podUsers={podUsers}
+          availableUsers={availableUsers}
           existingMembers={
             teams.find((t) => t.id === showAddMemberForm)?.members || []
           }
-          onRefreshUsers={fetchUsers}
+          onRefreshUsers={async () => {
+            await fetchUsers();
+            await fetchAvailableUsers();
+          }}
         />
       )}
 
@@ -2995,6 +3278,301 @@ const PodAdminDashboard = () => {
           memberName={showRemoveMemberConfirm.memberName}
           teamName={showRemoveMemberConfirm.teamName}
         />
+      )}
+
+      {/* Column Assignment Modal */}
+      {showColumnAssignments && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+            {/* Modern Header */}
+            <div className="bg-gradient-to-r from-purple-500 to-pink-500 px-8 py-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                    <Target className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-bold text-white">
+                      Notification Settings
+                    </h3>
+                    <p className="text-purple-100 text-sm">
+                      Set up who gets notified when tasks move between columns
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowColumnAssignments(null)}
+                  className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                >
+                  <X className="h-6 w-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-8 overflow-y-auto max-h-[calc(90vh-140px)]">
+              {loadingColumns ? (
+                <div className="space-y-6">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="animate-pulse">
+                      <div className="bg-gradient-to-r from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 h-32 rounded-2xl"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : teamColumns.length === 0 ? (
+                <div className="text-center py-20">
+                  <div className="w-24 h-24 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                    <Target className="h-12 w-12 text-purple-500" />
+                  </div>
+                  <h4 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">
+                    No Board Columns
+                  </h4>
+                  <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto leading-relaxed">
+                    This team doesn't have any board columns set up yet. Create a board first to manage column notifications.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid gap-6">
+                  {teamColumns.map((column: any) => (
+                    <div
+                      key={column.id}
+                      className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-700 dark:to-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-600 hover:shadow-lg transition-all duration-300"
+                      style={{ 
+                        boxShadow: `0 0 0 2px ${column.color}15`,
+                        borderLeftColor: column.color,
+                        borderLeftWidth: '6px'
+                      }}
+                    >
+                      {/* Column Header */}
+                      <div className="flex items-start justify-between mb-6">
+                        <div className="flex items-center space-x-4">
+                          <div 
+                            className="w-4 h-4 rounded-full shadow-sm"
+                            style={{ backgroundColor: column.color }}
+                          />
+                          <div>
+                            <h4 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                              {column.label}
+                            </h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center space-x-3 mt-1">
+                              <span>Column {column.position + 1}</span>
+                              <span>•</span>
+                              <span className="capitalize">{column.status}</span>
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <button
+                          onClick={() => setShowAssignMemberModal({
+                            columnId: column.id,
+                            columnLabel: column.label,
+                            teamId: showColumnAssignments
+                          })}
+                          className="group flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                        >
+                          <UserPlus className="h-5 w-5" />
+                          <span>Add Person</span>
+                        </button>
+                      </div>
+                      
+                      {/* Notification Members */}
+                      {column.assignedMembers && column.assignedMembers.length > 0 ? (
+                        <div className="space-y-4">
+                          <div className="flex items-center space-x-3 mb-4">
+                            <div className="w-8 h-8 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                              <Bell className="h-4 w-4 text-green-600 dark:text-green-400" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-gray-900 dark:text-gray-100">
+                                {column.assignedMembers.length} {column.assignedMembers.length === 1 ? 'Person' : 'People'} Getting Notified
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                They'll be alerted when tasks move to this column
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="grid gap-3">
+                            {column.assignedMembers.map((assignment: any) => (
+                              <div
+                                key={assignment.id}
+                                className="group flex items-center justify-between p-4 bg-white dark:bg-gray-600 rounded-xl border border-gray-200 dark:border-gray-500 hover:shadow-md transition-all duration-200"
+                              >
+                                <div className="flex items-center space-x-4">
+                                  {assignment.user.image ? (
+                                    <img
+                                      src={`/api/image-proxy?url=${encodeURIComponent(assignment.user.image)}`}
+                                      alt={assignment.user.name}
+                                      className="w-12 h-12 rounded-full object-cover border-3 border-gray-200 dark:border-gray-500"
+                                    />
+                                  ) : (
+                                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm shadow-md">
+                                      {assignment.user.name?.charAt(0).toUpperCase() || '?'}
+                                    </div>
+                                  )}
+                                  <div>
+                                    <div className="font-semibold text-gray-900 dark:text-gray-100">
+                                      {assignment.user.name}
+                                    </div>
+                                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                                      {assignment.user.email}
+                                    </div>
+                                    <div className="text-xs text-gray-400 dark:text-gray-500 flex items-center space-x-1 mt-1">
+                                      <span>Added by</span>
+                                      <span className="font-medium">{assignment.assignedBy.name}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <button
+                                  onClick={() => removeMemberFromColumn(assignment.id, showColumnAssignments!)}
+                                  className="p-3 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all duration-200 opacity-0 group-hover:opacity-100"
+                                  title="Remove from notifications"
+                                >
+                                  <X className="h-5 w-5" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-12 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-2xl bg-gray-50/50 dark:bg-gray-700/50">
+                          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <Bell className="h-8 w-8 text-gray-400" />
+                          </div>
+                          <h5 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            No Notifications Set
+                          </h5>
+                          <p className="text-gray-500 dark:text-gray-400 text-sm max-w-xs mx-auto">
+                            Add team members to get notified when tasks move to this column
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Member Assignment Modal */}
+      {showAssignMemberModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-500 to-purple-500 px-6 py-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                    <UserPlus className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">
+                      Add to {showAssignMemberModal.columnLabel}
+                    </h3>
+                    <p className="text-blue-100 text-sm">
+                      Choose who gets notified
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowAssignMemberModal(null)}
+                  className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            
+            {/* Member List */}
+            <div className="p-6">
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {(() => {
+                  const selectedTeam = teams.find(t => t.id === showColumnAssignments);
+                  if (!selectedTeam) return (
+                    <div className="text-center py-12">
+                      <p className="text-gray-500 dark:text-gray-400">No team selected</p>
+                    </div>
+                  );
+                  
+                  const assignedUserIds = teamColumns
+                    .find((c: any) => c.id === showAssignMemberModal.columnId)
+                    ?.assignedMembers?.map((a: any) => a.userId) || [];
+                    
+                  const availableMembers = selectedTeam.members.filter(
+                    member => !assignedUserIds.includes(member.id)
+                  );
+                  
+                  if (availableMembers.length === 0) {
+                    return (
+                      <div className="text-center py-16">
+                        <div className="w-20 h-20 bg-gradient-to-br from-green-100 to-blue-100 dark:from-green-900/30 dark:to-blue-900/30 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                          <UserPlus className="h-10 w-10 text-green-500" />
+                        </div>
+                        <h4 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">
+                          Everyone's Already Added!
+                        </h4>
+                        <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+                          All team members are already getting notifications for this column.
+                        </p>
+                      </div>
+                    );
+                  }
+                  
+                  return availableMembers.map((member) => (
+                    <button
+                      key={member.id}
+                      onClick={() =>
+                        assignMemberToColumn(
+                          showAssignMemberModal.columnId,
+                          member.userId || member.id, // Use userId when available, fallback to id
+                          showAssignMemberModal.teamId
+                        )
+                      }
+                      disabled={assigningMember}
+                      className="group w-full flex items-center space-x-4 p-4 bg-gradient-to-r from-gray-50 to-white dark:from-gray-700 dark:to-gray-800 hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-900/20 dark:hover:to-purple-900/20 rounded-2xl border-2 border-transparent hover:border-blue-200 dark:hover:border-blue-500/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+                    >
+                      {member.image ? (
+                        <img
+                          src={`/api/image-proxy?url=${encodeURIComponent(member.image)}`}
+                          alt={member.name}
+                          className="w-14 h-14 rounded-full object-cover border-3 border-gray-200 dark:border-gray-600 group-hover:border-blue-300 dark:group-hover:border-blue-500 transition-colors"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                          {member.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="flex-1 text-left">
+                        <div className="font-bold text-gray-900 dark:text-gray-100 text-lg">
+                          {member.name}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {member.email}
+                        </div>
+                        <div className="text-xs text-blue-600 dark:text-blue-400 font-semibold mt-1 px-2 py-1 bg-blue-50 dark:bg-blue-900/30 rounded-full inline-block">
+                          {member.role}
+                        </div>
+                      </div>
+                      {assigningMember ? (
+                        <div className="flex items-center space-x-2">
+                          <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent"></div>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Adding...</span>
+                        </div>
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 flex items-center justify-center group-hover:from-blue-200 group-hover:to-purple-200 dark:group-hover:from-blue-800/50 dark:group-hover:to-purple-800/50 transition-all">
+                          <Bell className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        </div>
+                      )}
+                    </button>
+                  ));
+                })()}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -3154,7 +3732,7 @@ const UserRoleCard: React.FC<UserRoleCardProps> = ({ user, onRoleUpdate }) => {
       {/* User Details */}
       <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-          <span>Joined {new Date(user.createdAt).toLocaleDateString()}</span>
+          <span>Joined {formatForDisplay(user.createdAt, 'short')}</span>
           <span>ID: {user.id.slice(0, 8)}...</span>
         </div>
       </div>
@@ -3173,6 +3751,7 @@ const AddTeamForm = ({
   onClose: () => void;
   onSubmit: (data: {
     teamName: string;
+    projectPrefix: string;
     creators: string[];
     members?: { userId: string; role: string }[];
   }) => void;
@@ -3180,6 +3759,7 @@ const AddTeamForm = ({
 }) => {
   const [formData, setFormData] = useState({
     teamName: "",
+    projectPrefix: "",
   });
   const [selectedCreators, setSelectedCreators] = useState<string[]>([]);
   const [availableCreators, setAvailableCreators] = useState<{id: string; name: string}[]>([]);
@@ -3191,17 +3771,14 @@ const AddTeamForm = ({
   >([]);
   const [membersSearchTerm, setMembersSearchTerm] = useState("");
 
-  const MAX_CREATORS = 3;
-  const MAX_MEMBERS = 5; // Optional team members limit
-
   // Filter creators based on search term
   const filteredCreators = availableCreators.filter((creator) =>
     creator.name.toLowerCase().includes(creatorsSearchTerm.toLowerCase())
   );
 
-  // Filter POD users for members based on search term and exclude already selected
+  // Filter Users for members based on search term and exclude already selected
   const filteredPodUsers = podUsers
-    .filter((user) => user.role === "POD")
+    .filter((user) => user.role !== "GUEST")
     .filter(
       (user) => !selectedMembers.some((member) => member.userId === user.id)
     )
@@ -3216,18 +3793,15 @@ const AddTeamForm = ({
     setSelectedCreators((prev) => {
       if (prev.includes(creatorName)) {
         return prev.filter((c) => c !== creatorName);
-      } else if (prev.length < MAX_CREATORS) {
+      } else {
         return [...prev, creatorName];
       }
-      return prev;
     });
   };
 
   // Handle member selection
   const handleMemberAdd = (userId: string, role: string) => {
-    if (selectedMembers.length < MAX_MEMBERS) {
-      setSelectedMembers((prev) => [...prev, { userId, role }]);
-    }
+    setSelectedMembers((prev) => [...prev, { userId, role }]);
   };
 
   // Handle member removal
@@ -3291,7 +3865,7 @@ const AddTeamForm = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.teamName.trim()) return;
+    if (!formData.teamName.trim() || !formData.projectPrefix.trim()) return;
 
     setIsSubmitting(true);
     try {
@@ -3302,6 +3876,7 @@ const AddTeamForm = ({
       });
       setFormData({
         teamName: "",
+        projectPrefix: "",
       });
       setSelectedCreators([]);
       setSelectedMembers([]);
@@ -3321,7 +3896,7 @@ const AddTeamForm = ({
     );
   };
 
-  const isFormValid = formData.teamName.trim();
+  const isFormValid = formData.teamName.trim() && formData.projectPrefix.trim();
 
   if (!isOpen) return null;
 
@@ -3366,6 +3941,26 @@ const AddTeamForm = ({
               />
             </div>
 
+            {/* Project Prefix */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                Project Prefix <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.projectPrefix}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, projectPrefix: e.target.value.toUpperCase() }))
+                }
+                placeholder="e.g., JKL, ABC, PRJ"
+                maxLength={5}
+                className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                3-5 character identifier for task prefixes (e.g., JKL-1, JKL-2)
+              </p>
+            </div>
+
           </div>
 
           {/* Creators Assignment Section */}
@@ -3380,11 +3975,11 @@ const AddTeamForm = ({
             <div>
               <div className="flex items-center justify-between mb-4">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Assign Creators (Optional - Max {MAX_CREATORS})
+                  Assign Creators (Optional)
                 </label>
                 <div className="flex items-center space-x-3">
                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {selectedCreators.length}/{MAX_CREATORS} selected
+                    {selectedCreators.length} selected
                   </div>
                   {!isLoadingCreators && (
                     <button
@@ -3398,16 +3993,6 @@ const AddTeamForm = ({
                   )}
                 </div>
               </div>
-
-              {/* Selection Limit Warning */}
-              {selectedCreators.length >= MAX_CREATORS && (
-                <div className="mb-3 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-500/30 rounded-lg">
-                  <p className="text-sm text-amber-800 dark:text-amber-300">
-                    Maximum of {MAX_CREATORS} creators can be assigned to a
-                    team.
-                  </p>
-                </div>
-              )}
 
               {/* Creators Search */}
               <div className="mb-4">
@@ -3434,15 +4019,11 @@ const AddTeamForm = ({
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 max-h-80 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-6 bg-gray-50 dark:bg-gray-800">
                   {filteredCreators.map((creator) => {
                     const isSelected = selectedCreators.includes(creator.name);
-                    const canSelect =
-                      selectedCreators.length < MAX_CREATORS || isSelected;
 
                     return (
                       <label
                         key={creator.id}
                         className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-all duration-200 ${
-                          !canSelect ? "opacity-50 cursor-not-allowed" : ""
-                        } ${
                           isSelected
                             ? "bg-purple-100 dark:bg-purple-900/30 border-2 border-purple-300 dark:border-purple-500 shadow-md"
                             : "bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 hover:border-purple-200 dark:hover:border-purple-400"
@@ -3451,10 +4032,7 @@ const AddTeamForm = ({
                         <input
                           type="checkbox"
                           checked={isSelected}
-                          onChange={() =>
-                            canSelect && handleCreatorToggle(creator.name)
-                          }
-                          disabled={!canSelect}
+                          onChange={() => handleCreatorToggle(creator.name)}
                           className="h-5 w-5 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
                         />
                         <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate flex-1">
@@ -3523,10 +4101,10 @@ const AddTeamForm = ({
             <div>
               <div className="flex items-center justify-between mb-4">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Select POD Users (Max {MAX_MEMBERS})
+                  Select Users
                 </label>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
-                  {selectedMembers.length}/{MAX_MEMBERS} selected
+                  {selectedMembers.length} selected
                 </div>
               </div>
 
@@ -3534,14 +4112,14 @@ const AddTeamForm = ({
               <div className="mb-4">
                 <input
                   type="text"
-                  placeholder="Search POD users by name or email..."
+                  placeholder="Search users by name or email..."
                   value={membersSearchTerm}
                   onChange={(e) => setMembersSearchTerm(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 />
               </div>
 
-              {/* Available POD Users */}
+              {/* Available Users */}
               {filteredPodUsers.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-4 bg-white dark:bg-gray-700">
                   {filteredPodUsers.map((user) => (
@@ -3560,16 +4138,12 @@ const AddTeamForm = ({
                       <div className="flex items-center space-x-2">
                         <select
                           onChange={(e) => {
-                            if (
-                              e.target.value &&
-                              selectedMembers.length < MAX_MEMBERS
-                            ) {
+                            if (e.target.value) {
                               handleMemberAdd(user.id, e.target.value);
                               e.target.value = "";
                             }
                           }}
                           className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                          disabled={selectedMembers.length >= MAX_MEMBERS}
                         >
                           <option value="">Add as...</option>
                           <option value="LEADER">Leader</option>
@@ -3584,10 +4158,8 @@ const AddTeamForm = ({
                 <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-6 bg-gray-50 dark:bg-gray-800 text-center">
                   <p className="text-gray-500 dark:text-gray-400 text-sm">
                     {podUsers.filter((u) => u.role === "POD").length === 0
-                      ? "No POD users available"
-                      : selectedMembers.length >= MAX_MEMBERS
-                        ? "Maximum number of members selected"
-                        : `No POD users match "${membersSearchTerm}"`}
+                      ? "No Users available"
+                      : `No Users match "${membersSearchTerm}"`}
                   </p>
                 </div>
               )}
@@ -3658,14 +4230,14 @@ const AddMemberForm = ({
   isOpen,
   onClose,
   onSubmit,
-  podUsers,
+  availableUsers: eligibleUsers,
   existingMembers,
   onRefreshUsers,
 }: {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (users: { userId: string; role: string; userEmail?: string; userName?: string }[]) => void;
-  podUsers: SystemUser[];
+  availableUsers: SystemUser[];
   existingMembers: TeamMember[];
   onRefreshUsers: () => void;
 }) => {
@@ -3677,10 +4249,8 @@ const AddMemberForm = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const MAX_SELECTIONS = 3;
-
-  // Filter available users (POD users not already in team)
-  const availableUsers = podUsers.filter(
+  // Filter available users (all except GUEST, not already in team)
+  const availableUsers = eligibleUsers.filter(
     (user) =>
       user.email && // Only show users with valid email addresses
       !existingMembers.some((member) => member.email === user.email) &&
@@ -3714,16 +4284,13 @@ const AddMemberForm = ({
         });
         return prev.filter((u) => u.id !== user.id);
       } else {
-        // Add user if under limit
-        if (prev.length < MAX_SELECTIONS) {
-          // Set default role for new user
-          setUserRoles((prevRoles) => ({
-            ...prevRoles,
-            [user.id]: "Member",
-          }));
-          return [...prev, user];
-        }
-        return prev;
+        // Add user
+        // Set default role for new user
+        setUserRoles((prevRoles) => ({
+          ...prevRoles,
+          [user.id]: "Member",
+        }));
+        return [...prev, user];
       }
     });
   };
@@ -3741,8 +4308,6 @@ const AddMemberForm = ({
   const isUserSelected = (user: SystemUser) => {
     return selectedUsers.some((u) => u.id === user.id);
   };
-
-  const canSelectMore = selectedUsers.length < MAX_SELECTIONS;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -3810,14 +4375,14 @@ const AddMemberForm = ({
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Search POD Users
+                Search Users
               </label>
               <button
                 type="button"
                 onClick={handleRefresh}
                 disabled={isRefreshing}
                 className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Refresh POD users list"
+                title="Refresh Users list"
               >
                 <svg
                   className={`h-3 w-3 ${isRefreshing ? "animate-spin" : ""}`}
@@ -3851,44 +4416,33 @@ const AddMemberForm = ({
           <div className="mb-4 flex-1 min-h-0">
             <div className="flex items-center justify-between mb-2">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Select Users (Max {MAX_SELECTIONS})
+                Select Users
               </label>
               <div className="flex items-center space-x-3 text-xs text-gray-500 dark:text-gray-400">
                 <span>
-                  {selectedUsers.length}/{MAX_SELECTIONS} selected
+                  {selectedUsers.length} selected
                 </span>
                 <span>•</span>
                 <span>{availableUsers.length} available</span>
               </div>
             </div>
 
-            {/* Selection Limit Warning */}
-            {selectedUsers.length >= MAX_SELECTIONS && (
-              <div className="mb-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-500/30 rounded-lg">
-                <p className="text-sm text-amber-800 dark:text-amber-300">
-                  Maximum of {MAX_SELECTIONS} members can be selected at once.
-                </p>
-              </div>
-            )}
-
             <div className="border border-gray-300 dark:border-gray-600 rounded-lg max-h-40 overflow-y-auto">
               {availableUsers.length > 0 ? (
                 availableUsers.map((user) => {
                   const selected = isUserSelected(user);
-                  const canSelect = canSelectMore || selected;
 
                   return (
                     <label
                       key={user.id}
                       className={`flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border-b border-gray-200 dark:border-gray-600 last:border-b-0 cursor-pointer ${
-                        !canSelect ? "opacity-50 cursor-not-allowed" : ""
-                      } ${selected ? "bg-purple-50 dark:bg-purple-900/30" : ""}`}
+                        selected ? "bg-purple-50 dark:bg-purple-900/30" : ""
+                      }`}
                     >
                       <input
                         type="checkbox"
                         checked={selected}
-                        onChange={() => canSelect && handleUserToggle(user)}
-                        disabled={!canSelect}
+                        onChange={() => handleUserToggle(user)}
                         className="mr-3 h-4 w-4 text-purple-600 border-gray-300 dark:border-gray-600 rounded focus:ring-purple-500 focus:ring-2"
                       />
 
@@ -3927,7 +4481,7 @@ const AddMemberForm = ({
                 <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                   {searchQuery
                     ? "No users match your search"
-                    : "No POD users available"}
+                    : "No Users available"}
                 </div>
               )}
             </div>

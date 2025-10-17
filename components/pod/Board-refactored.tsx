@@ -3,7 +3,7 @@
 import React, { useEffect, useCallback, useState } from "react";
 import { Session } from "next-auth";
 import { Clock, CheckCircle2, XCircle, Play, AlertCircle } from "lucide-react";
-import { useSocketTasks } from "@/hooks/useSocketTasks";
+import { useTaskUpdates } from "@/hooks/useTaskUpdates";
 import {
   useBoardStore,
   useBoardTasks,
@@ -214,7 +214,7 @@ export default function Board({
   }, [columns]);
 
   // Real-time task updates with debouncing
-  const { broadcastTaskUpdate } = useSocketTasks({
+  const { broadcastTaskUpdate } = useTaskUpdates({
     teamId: currentTeamId,
     onTaskUpdate: useCallback(
       (update) => {

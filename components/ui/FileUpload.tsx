@@ -27,6 +27,8 @@ interface FileUploadProps {
   uploadOnSubmit?: boolean; // If true, files are only uploaded when explicitly triggered
   localFiles?: LocalFilePreview[]; // Local files waiting to be uploaded
   onLocalFilesChange?: (files: LocalFilePreview[]) => void;
+  // Direct S3 upload option
+  useDirectS3Upload?: boolean; // If true, upload directly to S3 using pre-signed URLs
 }
 
 export default function FileUpload({
@@ -39,7 +41,8 @@ export default function FileUpload({
   disableAutoSave = false,
   uploadOnSubmit = false,
   localFiles = [],
-  onLocalFilesChange
+  onLocalFilesChange,
+  useDirectS3Upload = true // Default to true for direct S3 upload
 }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -92,6 +95,17 @@ export default function FileUpload({
       const newLocalFiles: LocalFilePreview[] = [];
       
       for (const file of files) {
+        // Check if this file is already in localFiles to prevent duplicates
+        const fileKey = `${file.name}-${file.size}-${file.lastModified}`;
+        const isDuplicate = localFiles.some(localFile => 
+          `${localFile.name}-${localFile.size}-${localFile.file.lastModified}` === fileKey
+        );
+        
+        if (isDuplicate) {
+          console.log(`File ${file.name} is already added, skipping duplicate`);
+          continue;
+        }
+        
         const id = `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const previewUrl = URL.createObjectURL(file);
         
@@ -105,14 +119,16 @@ export default function FileUpload({
         });
       }
 
-      if (onLocalFilesChange) {
+      if (newLocalFiles.length > 0 && onLocalFilesChange) {
         onLocalFilesChange([...localFiles, ...newLocalFiles]);
       }
       
       if (newLocalFiles.length === 1) {
         toast.success(`Added ${newLocalFiles[0].name} for upload`);
-      } else {
+      } else if (newLocalFiles.length > 1) {
         toast.success(`Added ${newLocalFiles.length} files for upload`);
+      } else {
+        toast.info('No new files added (duplicates detected)');
       }
     }
   }, [attachments, localFiles, onLocalFilesChange, maxFiles, maxFileSize, acceptedTypes, uploadOnSubmit]);
@@ -433,8 +449,8 @@ export default function FileUpload({
   );
 }
 
-// Function to upload all local files (for use with uploadOnSubmit mode)
-export const uploadAllLocalFiles = async (
+// Function to upload directly to S3 using pre-signed URLs
+export const uploadAllLocalFilesDirect = async (
   localFiles: LocalFilePreview[],
   attachments: TaskAttachment[],
   onAttachmentsChange: (attachments: TaskAttachment[]) => void,
@@ -442,11 +458,156 @@ export const uploadAllLocalFiles = async (
 ): Promise<TaskAttachment[]> => {
   if (localFiles.length === 0) return [];
   
+  console.log('🚀 Using direct S3 upload (bypassing Vercel functions)');
+  
+  // Remove duplicates based on file name, size, and last modified date
+  const uniqueFiles: LocalFilePreview[] = [];
+  const seenFiles = new Set<string>();
+  
+  for (const localFile of localFiles) {
+    const fileKey = `${localFile.name}-${localFile.size}-${localFile.file.lastModified}`;
+    if (!seenFiles.has(fileKey)) {
+      seenFiles.add(fileKey);
+      uniqueFiles.push(localFile);
+    } else {
+      console.log(`Skipping duplicate file: ${localFile.name}`);
+    }
+  }
+  
   const newAttachments: TaskAttachment[] = [];
   const failedUploads: string[] = [];
 
-  for (const localFile of localFiles) {
+  for (const localFile of uniqueFiles) {
     try {
+      console.log(`Getting pre-signed URL for: ${localFile.name} (${localFile.size} bytes)`);
+      
+      // Step 1: Get pre-signed URL from our API
+      const presignResponse = await fetch('/api/upload/s3/presign', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileName: localFile.name,
+          fileType: localFile.type,
+          fileSize: localFile.size,
+        }),
+      });
+
+      if (!presignResponse.ok) {
+        const errorData = await presignResponse.json();
+        throw new Error(errorData.error || 'Failed to get pre-signed URL');
+      }
+
+      const { presignedUrl, attachment } = await presignResponse.json();
+      
+      console.log(`Uploading directly to S3: ${localFile.name} -> ${attachment.s3Key}`);
+      
+      // Step 2: Upload directly to S3 using pre-signed URL
+      const uploadResponse = await fetch(presignedUrl, {
+        method: 'PUT',
+        body: localFile.file,
+        headers: {
+          'Content-Type': localFile.type,
+        },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error(`Direct S3 upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+      }
+
+      // Step 3: Generate signed URL for accessing the file
+      const signedUrlResponse = await fetch('/api/upload/s3/signed-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          s3Key: attachment.s3Key,
+        }),
+      });
+
+      if (signedUrlResponse.ok) {
+        const { signedUrl } = await signedUrlResponse.json();
+        attachment.url = signedUrl;
+      } else {
+        console.warn(`Failed to get signed URL for ${attachment.s3Key}, using S3 key as fallback`);
+        attachment.url = `s3://${process.env.AWS_S3_BUCKET}/${attachment.s3Key}`;
+      }
+
+      newAttachments.push(attachment);
+      console.log(`✅ Successfully uploaded directly to S3: ${localFile.name}`);
+      
+    } catch (error) {
+      console.error(`❌ Failed to upload ${localFile.name}:`, error);
+      failedUploads.push(localFile.name);
+    }
+  }
+
+  // Clean up all blob URLs
+  localFiles.forEach(localFile => {
+    URL.revokeObjectURL(localFile.previewUrl);
+  });
+
+  // Update attachments and clear local files
+  const updatedAttachments = [...attachments, ...newAttachments];
+  onAttachmentsChange(updatedAttachments);
+  if (onLocalFilesChange) {
+    onLocalFilesChange([]);
+  }
+
+  if (failedUploads.length > 0) {
+    const errorMessage = `Failed to upload: ${failedUploads.join(', ')}`;
+    toast.error(errorMessage);
+  }
+
+  return newAttachments;
+};
+
+// Function to upload all local files (for use with uploadOnSubmit mode)
+export const uploadAllLocalFiles = async (
+  localFiles: LocalFilePreview[],
+  attachments: TaskAttachment[],
+  onAttachmentsChange: (attachments: TaskAttachment[]) => void,
+  onLocalFilesChange?: (files: LocalFilePreview[]) => void,
+  useDirectS3Upload?: boolean
+): Promise<TaskAttachment[]> => {
+  if (localFiles.length === 0) return [];
+  
+  // Use direct S3 upload if enabled (default: true)
+  if (useDirectS3Upload !== false) {
+    return await uploadAllLocalFilesDirect(
+      localFiles, 
+      attachments, 
+      onAttachmentsChange, 
+      onLocalFilesChange
+    );
+  }
+  
+  // Fallback to Vercel function upload
+  console.log('📤 Using Vercel function upload (fallback)');
+  
+  // Remove duplicates based on file name, size, and last modified date
+  const uniqueFiles: LocalFilePreview[] = [];
+  const seenFiles = new Set<string>();
+  
+  for (const localFile of localFiles) {
+    const fileKey = `${localFile.name}-${localFile.size}-${localFile.file.lastModified}`;
+    if (!seenFiles.has(fileKey)) {
+      seenFiles.add(fileKey);
+      uniqueFiles.push(localFile);
+    } else {
+      console.log(`Skipping duplicate file: ${localFile.name}`);
+    }
+  }
+  
+  const newAttachments: TaskAttachment[] = [];
+  const failedUploads: string[] = [];
+
+  for (const localFile of uniqueFiles) {
+    try {
+      console.log(`Uploading file via Vercel: ${localFile.name} (${localFile.size} bytes)`);
+      
       const formData = new FormData();
       formData.append('file', localFile.file);
 
@@ -463,6 +624,7 @@ export const uploadAllLocalFiles = async (
       const responseData = await response.json();
       const { attachment } = responseData;
       newAttachments.push(attachment);
+      console.log(`Successfully uploaded via Vercel: ${localFile.name} -> S3 key: ${attachment.s3Key}`);
       
     } catch (error) {
       console.error(`Failed to upload ${localFile.name}:`, error);

@@ -3,6 +3,7 @@ import Google from "next-auth/providers/google";
 import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
+import { utcNow } from "@/lib/dateUtils";
 import bcrypt from "bcryptjs";
 
 // TODO: Define a more specific type for the token object
@@ -218,6 +219,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.id as string;
         session.user.role = token.role as Role;
         session.user.emailVerified = token.emailVerified as Date | null;
+        session.user.image = token.picture as string | null;
       }
       // Add custom properties to session from token
       session.accessToken = token.accessToken as string | undefined;
@@ -271,7 +273,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const updates: Record<string, any> = {};
 
         if (!(user as { emailVerified?: Date | null }).emailVerified) {
-          updates.emailVerified = new Date();
+          updates.emailVerified = utcNow();
         }
 
         if (

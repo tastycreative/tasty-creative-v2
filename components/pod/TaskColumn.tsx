@@ -34,7 +34,6 @@ interface TaskColumnProps {
   onSetShowNewTaskForm: (status: string | null) => void;
   onSetNewTaskData: (data: Partial<NewTaskData>) => void;
   onCreateTask: (status: Task["status"]) => void;
-  formatDate: (dateString: string | null) => string | null;
   isMobile?: boolean;
   isLastColumn?: boolean;
   includeHeader?: boolean;
@@ -61,7 +60,6 @@ export default function TaskColumn({
   onSetShowNewTaskForm,
   onSetNewTaskData,
   onCreateTask,
-  formatDate,
   isMobile = false,
   isLastColumn = false,
   includeHeader = false,
@@ -217,7 +215,6 @@ export default function TaskColumn({
               onDragEnd={onDragEnd}
               onTaskClick={onTaskClick}
               onDeleteTask={onDeleteTask}
-              formatDate={formatDate}
               isMobile={isMobile}
             />
           ))}

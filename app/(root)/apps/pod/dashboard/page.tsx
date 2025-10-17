@@ -7,9 +7,11 @@ import {
   usePodData, 
   useTasks, 
   usePricingPreview,
-  usePodStore 
+  usePodStore,
+  useAvailableTeams 
 } from "@/lib/stores/podStore";
 import { usePricingRotation } from "@/lib/hooks/usePricingRotation";
+import NoTeamSelected from "@/components/pod/NoTeamSelected";
 
 // Dynamic import for better performance
 const WorkflowDashboard = dynamic(() => import("@/components/WorkflowDashboard"), {
@@ -21,6 +23,7 @@ export default function DashboardPage() {
   const { selectedTeamId } = usePodStore();
   const { podData, loading: isLoading } = usePodData();
   const { tasks, loading: isTasksLoading, fetchTasks } = useTasks();
+  const { teams: availableTeams, loading: isLoadingTeams } = useAvailableTeams();
   const { 
     preview: pricingPreview, 
     fetchPricingPreview
@@ -67,12 +70,19 @@ export default function DashboardPage() {
   }
 
   if (!podData) {
-    return (
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-lg p-6 text-center">
-        <span className="text-gray-500 dark:text-gray-400">
-          Select a team to view workflow
-        </span>
-      </div>
+    // Show loading while teams are being fetched initially
+    if (isLoadingTeams) {
+      return <NoTeamSelected variant="loading" />;
+    }
+    // Show no-projects if user has no teams, otherwise show select message
+    return availableTeams.length === 0 ? (
+      <NoTeamSelected variant="no-projects" />
+    ) : (
+      <NoTeamSelected 
+        variant="select" 
+        title="Select a Team"
+        description="Choose a team from the sidebar to view the workflow dashboard."
+      />
     );
   }
 

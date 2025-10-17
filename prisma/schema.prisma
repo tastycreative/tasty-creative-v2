@@ -8,28 +8,44 @@ datasource db {
 }
 
 model User {
-  id                   String                    @id @default(cuid())
-  email                String                    @unique
-  emailVerified        DateTime?
-  name                 String?
-  image                String?
-  role                 Role                      @default(GUEST)
-  createdAt            DateTime                  @default(now())
-  updatedAt            DateTime                  @updatedAt
-  password             String?
-  lastAccessedAt       DateTime?                 @default(now())
-  username             String?                   @unique
-  accounts             Account[]
-  ContentSubmission    ContentSubmission[]
-  pageViews            PageView[]
-  createdPodTeams      PodTeam[]                 @relation("PodTeamCreator")
-  podClientAssignments PodTeamClientAssignment[] @relation("PodClientAssignedBy")
-  podTeamMemberships   PodTeamMember[]           @relation("PodTeamMemberUser")
-  sessions             Session[]
-  createdTasks         Task[]                    @relation("TaskCreator")
-  taskActivities       TaskActivityHistory[]     @relation("TaskActivityUser")
-  taskComments         TaskComment[]             @relation("TaskCommentUser")
-  verificationTokens   VerificationToken[]
+  id                         String                        @id @default(cuid())
+  email                      String                        @unique
+  emailVerified              DateTime?
+  name                       String?
+  image                      String?
+  role                       Role                          @default(GUEST)
+  createdAt                  DateTime                      @default(now())
+  updatedAt                  DateTime                      @updatedAt
+  password                   String?
+  lastAccessedAt             DateTime?                     @default(now())
+  username                   String?                       @unique
+  accounts                   Account[]
+  assignedBoardColumnsByUser BoardColumnMemberAssignment[] @relation("BoardColumnAssignedBy")
+  assignedBoardColumns       BoardColumnMemberAssignment[] @relation("BoardColumnAssignedUser")
+  chatbotConversations       ChatbotConversation[]
+  ContentSubmission          ContentSubmission[]
+  ForumComment               ForumComment[]
+  ForumVote                  ForumVote[]
+  ModerationLog              ModerationLog[]
+  ModularWorkflow            ModularWorkflow[]
+  notifications              Notification[]
+  pageViews                  PageView[]
+  createdPodTeams            PodTeam[]                     @relation("PodTeamCreator")
+  podClientAssignments       PodTeamClientAssignment[]     @relation("PodClientAssignedBy")
+  podTeamMemberships         PodTeamMember[]               @relation("PodTeamMemberUser")
+  Post                       Post[]
+  PostReaction               PostReaction[]
+  sessions                   Session[]
+  createdTasks               Task[]                        @relation("TaskCreator")
+  taskActivities             TaskActivityHistory[]         @relation("TaskActivityUser")
+  taskComments               TaskComment[]                 @relation("TaskCommentUser")
+  Thread                     Thread[]
+  ThreadWatcher              ThreadWatcher[]
+  performedUserActivities    UserActivityHistory[]         @relation("UserActivityActor")
+  receivedUserActivities     UserActivityHistory[]         @relation("UserActivityTarget")
+  verificationTokens         VerificationToken[]
+  voiceNoteHistory           VoiceNoteHistory[]
+  voiceNoteSales             VoiceNoteSale[]
 }
 
 model Account {
@@ -148,6 +164,54 @@ model VoiceModel {
   @@index([createdAt])
 }
 
+model VoiceNoteHistory {
+  id                String   @id @default(cuid())
+  userId            String
+  elevenLabsHistoryId String // The history_item_id from ElevenLabs
+  voiceId           String
+  voiceName         String
+  accountKey        String  // Which ElevenLabs account was used
+  text              String  @db.Text
+  generatedAt       DateTime
+  createdAt         DateTime @default(now())
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  voiceNoteSale     VoiceNoteSale?
+
+  @@unique([userId, elevenLabsHistoryId])
+  @@index([userId])
+  @@index([elevenLabsHistoryId])
+  @@index([voiceId])
+  @@index([accountKey])
+  @@index([generatedAt])
+  @@index([createdAt])
+}
+
+model VoiceNoteSale {
+  id                  String            @id @default(cuid())
+  userId              String
+  userName            String
+  userEmail           String
+  modelName           String
+  voiceNote           String            @db.Text
+  saleAmount          Float
+  soldDate            DateTime
+  status              String            @default("Completed")
+  generatedDate       DateTime?
+  source              String?           @default("Manual")
+  voiceNoteHistoryId  String?           @unique
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  voiceNoteHistory    VoiceNoteHistory? @relation(fields: [voiceNoteHistoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([modelName])
+  @@index([soldDate])
+  @@index([status])
+  @@index([createdAt])
+  @@index([saleAmount])
+}
+
 model Task {
   id                  String                @id @default(cuid())
   title               String
@@ -164,6 +228,9 @@ model Task {
   contentSubmissionId String?               @unique
   status              String                @default("NOT_STARTED")
   podTeamId           String?
+  taskNumber          Int                   @default(autoincrement())
+  ModularWorkflow     ModularWorkflow?
+  notifications       Notification[]
   ContentSubmission   ContentSubmission?    @relation(fields: [contentSubmissionId], references: [id])
   createdBy           User                  @relation("TaskCreator", fields: [createdById], references: [id])
   podTeam             PodTeam?              @relation(fields: [podTeamId], references: [id])
@@ -175,6 +242,7 @@ model Task {
   @@index([status])
   @@index([assignedToTeam])
   @@index([contentSubmissionId])
+  @@index([taskNumber])
 }
 
 model TaskActivityHistory {
@@ -235,10 +303,9 @@ model ClientModel {
   createdAt             DateTime                  @default(now())
   updatedAt             DateTime                  @updatedAt
   row_id                String?
-  sheetLink             String?
-  spreadsheetName       String?
   sheetLinks            ClientModelSheetLinks[]
-  contentDetails        ContentDetails[]
+  contentDetails        ContentDetails?
+  notifications         Notification[]
   podTeamAssignments    PodTeamClientAssignment[]
 
   @@index([clientName])
@@ -291,12 +358,12 @@ model ContentDetails {
   contentOptionsForGames     String?
   createdAt                  DateTime    @default(now())
   updatedAt                  DateTime    @updatedAt
-  clientModelName            String
+  clientModelName            String      @unique
   clientModel                ClientModel @relation(fields: [clientModelName], references: [clientName], onDelete: Cascade)
 }
 
 model ClientModelDetails {
-  id                    String   @id @default(cuid())
+  id                    String               @id @default(cuid())
   full_name             String?
   age                   String?
   birthday              String?
@@ -312,8 +379,8 @@ model ClientModelDetails {
   interests             String?
   personality           String?
   amazon_wishlist       String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
   clothing_items        String?
   content_offered       String?
   custom_min_price      String?
@@ -327,6 +394,44 @@ model ClientModelDetails {
   mm_restrictions       String?
   verbiage_restrictions String?
   wall_restrictions     String?
+  calendar_id           String?
+  onboardingCompleted   Boolean?             @default(false)
+  status                String?
+  model_name            String?
+  clientCustomSheet     String?
+  clientOnlyFansAlbum   String?
+  clientSocialAlbums    String?
+  onboardingProgress    OnboardingProgress[]
+}
+
+model OnboardingList {
+  id          String               @id @default(cuid())
+  stepNumber  Int
+  title       String
+  description String?
+  required    Boolean              @default(true)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  progress    OnboardingProgress[]
+
+  @@index([stepNumber])
+}
+
+model OnboardingProgress {
+  id                   String             @id @default(cuid())
+  onboardingListId     String
+  clientModelDetailsId String
+  completed            Boolean            @default(false)
+  completedAt          DateTime?
+  notes                String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  ClientModelDetails   ClientModelDetails @relation(fields: [clientModelDetailsId], references: [id], onDelete: Cascade)
+  OnboardingList       OnboardingList     @relation(fields: [onboardingListId], references: [id], onDelete: Cascade)
+
+  @@unique([onboardingListId, clientModelDetailsId])
+  @@index([clientModelDetailsId])
+  @@index([onboardingListId])
 }
 
 model PodTeam {
@@ -337,6 +442,8 @@ model PodTeam {
   isActive        Boolean?                  @default(true)
   name            String                    @unique
   updatedAt       DateTime?                 @updatedAt
+  projectPrefix   String?                   @unique
+  notifications   Notification[]
   createdBy       User?                     @relation("PodTeamCreator", fields: [createdById], references: [id])
   assignedClients PodTeamClientAssignment[]
   members         PodTeamMember[]
@@ -345,6 +452,7 @@ model PodTeam {
   @@index([createdById])
   @@index([isActive])
   @@index([name])
+  @@index([projectPrefix])
 }
 
 model PodTeamMember {
@@ -380,21 +488,39 @@ model PodTeamClientAssignment {
 }
 
 model BoardColumn {
-  id        String   @id
-  teamId    String
-  label     String
-  status    String
-  position  Int
-  color     String   @default("#6B7280")
-  isDefault Boolean  @default(false)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime
+  id              String                        @id
+  teamId          String
+  label           String
+  status          String
+  position        Int
+  color           String                        @default("#6B7280")
+  isDefault       Boolean                       @default(false)
+  isActive        Boolean                       @default(true)
+  createdAt       DateTime                      @default(now())
+  updatedAt       DateTime                      @updatedAt
+  assignedMembers BoardColumnMemberAssignment[]
 
   @@unique([teamId, position])
   @@unique([teamId, status])
   @@index([position])
   @@index([teamId])
+}
+
+model BoardColumnMemberAssignment {
+  id           String      @id @default(cuid())
+  columnId     String
+  userId       String
+  assignedAt   DateTime    @default(now())
+  assignedById String
+  isActive     Boolean     @default(true)
+  assignedBy   User        @relation("BoardColumnAssignedBy", fields: [assignedById], references: [id])
+  column       BoardColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  user         User        @relation("BoardColumnAssignedUser", fields: [userId], references: [id])
+
+  @@unique([columnId, userId])
+  @@index([columnId])
+  @@index([userId])
+  @@index([assignedById])
 }
 
 model ContentSubmission {
@@ -408,13 +534,15 @@ model ContentSubmission {
   status                SubmissionStatus   @default(PENDING)
   createdById           String
   createdAt             DateTime           @default(now())
-  updatedAt             DateTime
+  updatedAt             DateTime           @updatedAt
   processedAt           DateTime?
   notes                 String?
   minimumPrice          String?
   releaseDate           String?
   releaseTime           String?
+  timezone              String?
   User                  User               @relation(fields: [createdById], references: [id])
+  notifications         Notification[]
   Task                  Task?
 
   @@index([createdAt])
@@ -423,6 +551,307 @@ model ContentSubmission {
   @@index([priority])
   @@index([status])
   @@index([submissionType])
+}
+
+model Attachment {
+  id       String         @id
+  postId   String
+  url      String
+  filename String
+  type     AttachmentType
+  size     Int
+  Post     Post           @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+}
+
+model ForumCategory {
+  id        String           @id
+  modelId   String
+  key       ForumCategoryKey @default(GENERAL)
+  name      String
+  createdAt DateTime         @default(now())
+  updatedAt DateTime
+  Thread    Thread[]
+
+  @@unique([modelId, key])
+  @@index([modelId])
+}
+
+model ModerationLog {
+  id         String           @id
+  actorId    String
+  targetType ModerationTarget
+  targetId   String
+  action     ModerationAction
+  reason     String?
+  createdAt  DateTime         @default(now())
+  User       User             @relation(fields: [actorId], references: [id])
+
+  @@index([actorId])
+  @@index([createdAt])
+  @@index([targetType, targetId])
+}
+
+model Post {
+  id           String         @id
+  threadId     String
+  authorId     String
+  content_md   String
+  content_html String
+  parentPostId String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime
+  editedAt     DateTime?
+  Attachment   Attachment[]
+  ForumComment ForumComment[]
+  ForumVote    ForumVote[]
+  User         User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  Post         Post?          @relation("PostToPost", fields: [parentPostId], references: [id])
+  other_Post   Post[]         @relation("PostToPost")
+  Thread       Thread         @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  PostReaction PostReaction[]
+
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([parentPostId])
+  @@index([threadId])
+}
+
+model PostReaction {
+  id     String @id
+  postId String
+  userId String
+  emoji  String
+  Post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  User   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId, emoji])
+  @@index([postId])
+  @@index([userId])
+}
+
+model Thread {
+  id             String           @id
+  modelId        String
+  categoryId     String
+  title          String
+  authorId       String
+  pinned         Boolean          @default(false)
+  locked         Boolean          @default(false)
+  solved         Boolean          @default(false)
+  views          Int              @default(0)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime
+  ForumThreadTag ForumThreadTag[]
+  Post           Post[]
+  User           User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  ForumCategory  ForumCategory    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  ThreadWatcher  ThreadWatcher[]
+
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([modelId, categoryId])
+  @@index([pinned])
+  @@index([updatedAt])
+}
+
+model ThreadWatcher {
+  id       String @id
+  userId   String
+  threadId String
+  Thread   Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  User     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, threadId])
+  @@index([threadId])
+  @@index([userId])
+}
+
+model Notification {
+  id                  String             @id @default(cuid())
+  userId              String
+  type                NotificationType
+  title               String
+  message             String
+  isRead              Boolean            @default(false)
+  createdAt           DateTime           @default(now())
+  readAt              DateTime?
+  data                Json?
+  taskId              String?
+  podTeamId           String?
+  contentSubmissionId String?
+  clientModelId       String?
+  modularWorkflowId   String?
+  clientModel         ClientModel?       @relation(fields: [clientModelId], references: [id], onDelete: Cascade)
+  contentSubmission   ContentSubmission? @relation(fields: [contentSubmissionId], references: [id], onDelete: Cascade)
+  ModularWorkflow     ModularWorkflow?   @relation(fields: [modularWorkflowId], references: [id], onDelete: Cascade)
+  podTeam             PodTeam?           @relation(fields: [podTeamId], references: [id], onDelete: Cascade)
+  task                Task?              @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([isRead])
+  @@index([createdAt])
+  @@index([taskId])
+  @@index([podTeamId])
+  @@index([contentSubmissionId])
+  @@index([clientModelId])
+  @@index([modularWorkflowId])
+}
+
+model ForumAnalytics {
+  id      String   @id
+  modelId String
+  metric  String
+  value   Float
+  date    DateTime @default(now())
+
+  @@index([date])
+  @@index([metric])
+  @@index([modelId])
+}
+
+model ForumComment {
+  id        String   @id
+  postId    String
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  User      User     @relation(fields: [authorId], references: [id])
+  Post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@index([postId])
+}
+
+model ForumStats {
+  id           String   @id
+  modelId      String
+  totalThreads Int      @default(0)
+  totalPosts   Int      @default(0)
+  totalUsers   Int      @default(0)
+  activeUsers  Int      @default(0)
+  date         DateTime @default(now())
+
+  @@unique([modelId, date])
+  @@index([date])
+  @@index([modelId])
+}
+
+model ForumTag {
+  id             String           @id
+  modelId        String
+  name           String
+  slug           String
+  color          String?
+  createdAt      DateTime         @default(now())
+  ForumThreadTag ForumThreadTag[]
+
+  @@unique([modelId, slug])
+  @@index([modelId])
+  @@index([slug])
+}
+
+model ForumThreadTag {
+  id        String   @id
+  threadId  String
+  tagId     String
+  createdAt DateTime @default(now())
+  ForumTag  ForumTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  Thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@unique([threadId, tagId])
+  @@index([tagId])
+  @@index([threadId])
+}
+
+model ForumVote {
+  id        String        @id
+  postId    String
+  userId    String
+  voteType  ForumVoteType
+  createdAt DateTime      @default(now())
+  Post      Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  User      User          @relation(fields: [userId], references: [id])
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model ModularWorkflow {
+  id                 String             @id
+  submissionType     SubmissionType
+  contentStyle       ContentStyle
+  selectedComponents Json
+  componentData      Json?
+  workflowTemplate   String?
+  modelName          String
+  priority           SubmissionPriority
+  driveLink          String
+  contentDescription String
+  attachments        Json?
+  estimatedDuration  Int?
+  teamAssignments    Json?
+  createdById        String
+  teamId             String?
+  taskId             String?            @unique
+  status             WorkflowStatus     @default(PENDING)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime
+  processedAt        DateTime?
+  timezone           String?
+  User               User               @relation(fields: [createdById], references: [id])
+  Task               Task?              @relation(fields: [taskId], references: [id])
+  Notification       Notification[]
+
+  @@index([contentStyle])
+  @@index([createdAt])
+  @@index([createdById])
+  @@index([modelName])
+  @@index([priority])
+  @@index([status])
+  @@index([submissionType])
+  @@index([teamId])
+}
+
+model UserActivityHistory {
+  id           String           @id @default(cuid())
+  actorId      String
+  targetUserId String
+  actionType   UserActivityType
+  oldRole      Role?
+  newRole      Role
+  reason       String?
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime         @default(now())
+  actor        User             @relation("UserActivityActor", fields: [actorId], references: [id], onDelete: Cascade)
+  targetUser   User             @relation("UserActivityTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@index([actorId])
+  @@index([targetUserId])
+  @@index([createdAt])
+  @@index([actionType])
+  @@index([oldRole])
+  @@index([newRole])
+}
+
+model ChatbotConversation {
+  id        String   @id @default(cuid())
+  userId    String
+  sessionId String
+  messages  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([createdAt])
 }
 
 enum Role {
@@ -505,4 +934,84 @@ enum PodMemberRole {
   LEADER
   MEMBER
   ADMIN
+}
+
+enum AttachmentType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  OTHER
+}
+
+enum ForumCategoryKey {
+  GENERAL
+  QA
+  BUGS
+  SHOWCASE
+  RELEASES
+}
+
+enum ModerationAction {
+  PIN
+  UNPIN
+  LOCK
+  UNLOCK
+  SOLVE
+  UNSOLVE
+  DELETE
+  RESTORE
+  MOVE_CATEGORY
+  BAN_USER
+  UNBAN_USER
+}
+
+enum ModerationTarget {
+  THREAD
+  POST
+  USER
+}
+
+enum NotificationType {
+  TASK_ASSIGNED
+  TASK_STATUS_CHANGED
+  TASK_COMMENT_ADDED
+  TASK_DUE_DATE_APPROACHING
+  POD_TEAM_ADDED
+  POD_TEAM_CLIENT_ASSIGNED
+  POD_TEAM_MEMBER_JOINED
+  CONTENT_SUBMISSION_STATUS_CHANGED
+  CLIENT_SHEET_LINK_ADDED
+  SYSTEM_NOTIFICATION
+  TASK_MENTION
+}
+
+enum ForumVoteType {
+  UPVOTE
+  DOWNVOTE
+}
+
+enum ContentStyle {
+  NORMAL
+  GAME
+  POLL
+  LIVESTREAM
+  BUNDLE
+}
+
+enum WorkflowStatus {
+  PENDING
+  PROCESSING
+  TASK_CREATED
+  COMPLETED
+  CANCELLED
+}
+
+enum UserActivityType {
+  ROLE_CHANGED
+  ACCOUNT_CREATED
+  ACCOUNT_SUSPENDED
+  ACCOUNT_REACTIVATED
+  ACCOUNT_DELETED
+  PASSWORD_RESET
+  EMAIL_VERIFIED
 }

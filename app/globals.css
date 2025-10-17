@@ -191,12 +191,13 @@
   }
 }
 
-
+/*
 @font-face {
   font-family: "Apple Color Emoji";
   src: url("../fonts/AppleColorEmoji.ttf") format("truetype");
   font-display: swap;
 }
+*/
 
 .emoji-draggable {
   position: absolute;
@@ -464,4 +465,14 @@
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Hide scrollbars for mentions overlay */
+.mentions-overlay::-webkit-scrollbar {
+  display: none;
+}
+
+.mentions-overlay {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

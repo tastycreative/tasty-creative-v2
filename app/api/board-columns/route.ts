@@ -18,10 +18,34 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch columns for the team, ordered by position
-    const columns = await prisma.boardColumn.findMany({
+    const columns = await (prisma as any).boardColumn.findMany({
       where: {
         teamId,
         isActive: true,
+      },
+      include: {
+        assignedMembers: {
+          where: {
+            isActive: true
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true
+              }
+            },
+            assignedBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true
+              }
+            }
+          }
+        }
       },
       orderBy: {
         position: 'asc'
@@ -83,10 +107,34 @@ export async function GET(request: NextRequest) {
       });
 
       // Fetch the newly created columns
-      const newColumns = await prisma.boardColumn.findMany({
+      const newColumns = await (prisma as any).boardColumn.findMany({
         where: {
           teamId,
           isActive: true,
+        },
+        include: {
+          assignedMembers: {
+            where: {
+              isActive: true
+            },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  image: true
+                }
+              },
+              assignedBy: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true
+                }
+              }
+            }
+          }
         },
         orderBy: {
           position: 'asc'
@@ -205,7 +253,7 @@ export async function PUT(request: NextRequest) {
         await prisma.task.updateMany({
           where: {
             status: currentColumn.status,
-            teamId: currentColumn.teamId,
+            podTeamId: currentColumn.teamId,
           },
           data: {
             status: updates.status,

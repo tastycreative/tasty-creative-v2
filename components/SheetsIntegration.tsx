@@ -44,8 +44,10 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
   const [fromType, setFromType] = useState("Scheduler");
   const [toType, setToType] = useState("Betterfans Sheet");
   const [status, setStatus] = useState<{
-    type: "success" | "error" | "info";
+    type: "success" | "error" | "info" | "warning";
     message: string;
+    retryAttempt?: number;
+    maxRetries?: number;
   } | null>(null);
   const [newSpreadsheetUrl, setNewSpreadsheetUrl] = useState<string | null>(
     null
@@ -111,7 +113,7 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
     }
 
     try {
-      // Use our server-side API to fetch sheet name
+      // Use our server-side API to fetch sheet name with user credentials
       const response = await fetch('/api/sheets/get-name', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -120,7 +122,15 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch sheet information");
+        
+        // Handle authentication errors specifically
+        if (response.status === 401) {
+          throw new Error("Authentication expired. Please refresh the page and sign in again.");
+        } else if (response.status === 403) {
+          throw new Error("Access denied to this spreadsheet. Please ensure it's shared with you or you have proper permissions.");
+        } else {
+          throw new Error(errorData.error || "Failed to fetch sheet information");
+        }
       }
 
       const data = await response.json();
@@ -169,6 +179,17 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
             ? { ...entry, fetchedName: "", isFetching: false }
             : entry
         ));
+        
+        // Show user-friendly error message
+        if (error instanceof Error) {
+          setSheetLinkStatus({
+            type: "error",
+            message: error.message
+          });
+          
+          // Clear the error after a few seconds
+          setTimeout(() => setSheetLinkStatus(null), 5000);
+        }
       }
     }
   };
@@ -248,6 +269,27 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
           message: `Successfully saved ${validEntries.length} sheet link(s)!`
         });
         
+        // Send notification emails to POD team members via API
+        if (selectedModel && selectedModelId) {
+          for (const entry of validEntries) {
+            try {
+              await fetch('/api/notifications/sheet-link', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  clientModelId: selectedModelId,
+                  modelName: selectedModel,
+                  sheetName: entry.fetchedName,
+                  sheetUrl: entry.url,
+                  sheetType: entry.type,
+                })
+              });
+            } catch (error) {
+              console.error('Error sending notification for sheet link:', error);
+            }
+          }
+        }
+        
         // Reset form to single empty entry
         setSheetEntries([{
           id: 1,
@@ -304,8 +346,92 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
     setNewSpreadsheetUrl(null);
     setStatus({
       type: "info",
+      message: "Checking spreadsheet permissions...",
+    });
+
+    // Permission check: verify user can access the sheet before proceeding
+    try {
+      // Use the same logic as fetchSheetName to check access
+      const accessCheck = await fetch('/api/sheets/get-name', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sheetUrl: spreadsheetUrl })
+      });
+      if (!accessCheck.ok) {
+        const errorData = await accessCheck.json();
+        if (accessCheck.status === 401) {
+          setStatus({
+            type: "error",
+            message: "Authentication expired. Please refresh the page and sign in again."
+          });
+        } else if (accessCheck.status === 403) {
+          setStatus({
+            type: "error",
+            message: "Access denied to this spreadsheet. Please ensure it's shared with you or you have proper permissions."
+          });
+        } else {
+          setStatus({
+            type: "error",
+            message: errorData.error || "Failed to verify sheet access."
+          });
+        }
+        setIsLoading(false);
+        return;
+      }
+    } catch (error) {
+      setStatus({
+        type: "error",
+        message: "Network error during permission check. Please try again."
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    setStatus({
+      type: "info",
       message: "Processing spreadsheet data...",
     });
+
+    // Set up polling for quota retry updates as a fallback since SSE might not work reliably
+    let pollInterval: NodeJS.Timeout | null = null;
+    let pollCount = 0;
+    const maxPollAttempts = 60; // Poll for up to 5 minutes (60 * 5s = 5min)
+    
+    const startPolling = () => {
+      pollInterval = setInterval(async () => {
+        pollCount++;
+        
+        // Stop polling after max attempts or if request completes
+        if (pollCount >= maxPollAttempts || !isLoading) {
+          if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+          }
+          return;
+        }
+        
+        // Show appropriate messages during long operations
+        if (pollCount === 6 && status?.type === "info") { // After 30 seconds
+          setStatus({
+            type: "info",
+            message: "Processing sheets... This may take a moment if there are many sheets to process.",
+          });
+        } else if (pollCount === 12 && status?.type === "info") { // After 1 minute
+          setStatus({
+            type: "warning",
+            message: "Processing is taking longer than usual. This may be due to Google Sheets quota limits. Retrying automatically...",
+          });
+        } else if (pollCount === 24 && (status?.type === "info" || status?.type === "warning")) { // After 2 minutes
+          setStatus({
+            type: "warning",
+            message: "Still processing... Google Sheets quota limits detected. The system is automatically retrying. Please wait...",
+          });
+        }
+      }, 5000); // Poll every 5 seconds
+    };
+    
+    // Start polling after a short delay
+    setTimeout(startPolling, 10000); // Start after 10 seconds
 
     try {
       const response = await fetch("/api/pod", {
@@ -334,6 +460,8 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
           message: successMessage,
         });
         setNewSpreadsheetUrl(result.spreadsheetUrl);
+        
+        // Clear the form completely to prevent any state carryover
         setSpreadsheetUrl("");
 
         // Save the sync spreadsheet to ClientModelSheetLinks
@@ -353,6 +481,23 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
             
             if (saveResponse.ok) {
               console.log('Sync spreadsheet saved to ClientModelSheetLinks');
+              
+              // Send notification emails to POD team members for sync spreadsheet via API
+              try {
+                await fetch('/api/notifications/sheet-link', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    clientModelId: selectedModelId,
+                    modelName: selectedModel,
+                    sheetName: result.fileName,
+                    sheetUrl: result.spreadsheetUrl,
+                    sheetType: toType,
+                  })
+                });
+              } catch (error) {
+                console.error('Error sending notification for sync spreadsheet:', error);
+              }
             } else {
               console.error('Failed to save sync spreadsheet to ClientModelSheetLinks');
             }
@@ -410,6 +555,10 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
       });
     } finally {
       setIsLoading(false);
+      // Clean up polling
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
     }
   };
 
@@ -576,7 +725,9 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
                   ? "bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border-green-300 dark:border-green-600 shadow-lg shadow-green-100 dark:shadow-green-900/20"
                   : status.type === "error"
                     ? "bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/30 dark:to-pink-900/30 border-red-300 dark:border-red-600 shadow-lg shadow-red-100 dark:shadow-red-900/20"
-                    : "bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-blue-300 dark:border-blue-600 shadow-lg shadow-blue-100 dark:shadow-blue-900/20"
+                    : status.type === "warning"
+                      ? "bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/30 dark:to-orange-900/30 border-yellow-300 dark:border-yellow-600 shadow-lg shadow-yellow-100 dark:shadow-yellow-900/20"
+                      : "bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-blue-300 dark:border-blue-600 shadow-lg shadow-blue-100 dark:shadow-blue-900/20"
               }`}
             >
               <div className="flex items-start space-x-4">
@@ -589,6 +740,10 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
                     <div className="h-8 w-8 rounded-full bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center">
                       <AlertCircle className="h-4 w-4 text-white" />
                     </div>
+                  ) : status.type === "warning" ? (
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-yellow-500 to-orange-600 flex items-center justify-center">
+                      <Loader2 className="h-4 w-4 text-white animate-spin" />
+                    </div>
                   ) : (
                     <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
                       <Loader2 className="h-4 w-4 text-white animate-spin" />
@@ -596,17 +751,34 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
                   )}
                 </div>
                 <div className="flex-1">
-                  <p
-                    className={`text-sm font-medium ${
-                      status.type === "success"
-                        ? "text-green-800 dark:text-green-200"
-                        : status.type === "error"
-                          ? "text-red-800 dark:text-red-200"
-                          : "text-blue-800 dark:text-blue-200"
-                    }`}
-                  >
-                    {status.message}
-                  </p>
+                  <div>
+                    <p
+                      className={`text-sm font-medium ${
+                        status.type === "success"
+                          ? "text-green-800 dark:text-green-200"
+                          : status.type === "error"
+                            ? "text-red-800 dark:text-red-200"
+                            : status.type === "warning"
+                              ? "text-yellow-800 dark:text-yellow-200"
+                              : "text-blue-800 dark:text-blue-200"
+                      }`}
+                    >
+                      {status.message}
+                    </p>
+                    {status.type === "warning" && status.retryAttempt && status.maxRetries && (
+                      <div className="mt-2">
+                        <div className="w-full bg-yellow-200 dark:bg-yellow-800 rounded-full h-2">
+                          <div 
+                            className="bg-yellow-600 dark:bg-yellow-400 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${(status.retryAttempt / status.maxRetries) * 100}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                          This usually resolves within a minute. Please wait while we retry...
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -658,10 +830,14 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
                     variant="outline"
                     size="lg"
                     onClick={() => {
+                      // Complete state reset to prevent any carryover issues
                       setNewSpreadsheetUrl(null);
                       setStatus(null);
                       setSelectedModel("");
+                      setSelectedModelId("");
                       setSpreadsheetUrl("");
+                      
+                      console.log('State reset for new integration');
                     }}
                     className="border-green-400 dark:border-green-500 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-800"
                   >

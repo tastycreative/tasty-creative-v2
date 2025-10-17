@@ -27,6 +27,7 @@ export interface ContentSubmission {
   // PTR-specific fields
   releaseDate?: string;
   releaseTime?: string;
+  timezone?: string;
   minimumPrice?: string;
   createdBy: {
     id: string;
@@ -49,6 +50,7 @@ export interface SubmissionFormData {
   contentDescription: string;
   releaseDate: string;
   releaseTime: string;
+  timezone: string;
   minimumPrice: string;
 }
 
@@ -129,6 +131,7 @@ const initialFormData: SubmissionFormData = {
   contentDescription: '',
   releaseDate: '',
   releaseTime: '',
+  timezone: '',
   minimumPrice: ''
 };
 
