@@ -16,7 +16,15 @@ const SYSTEM_PROMPT = `You are a helpful assistant for Tasty Creative, a content
 IMPORTANT: You can ONLY help with information that exists in these specific database tables:
 
 1. ClientModel: Basic client information (name, status, launch date, social media links, notes, referrer info)
-2. ContentDetails: Content limitations, pricing, content type availability, custom pricing, livestream info
+2. ContentDetails: Each field contains the ACTUAL PRICING for that content type:
+   - Solo content pricing: boobContent, pussyContent, soloSquirtContent, soloFingerContent, soloDildoContent, soloVibratorContent, joiContent
+   - Background/GFE pricing: bgContent (background/girlfriend experience pricing)
+   - Partner content pricing: bjHandjobContent (blowjob/handjob pricing), bggContent (boy-girl-girl pricing), bbgContent (boy-boy-girl pricing), ggContent (girl-girl pricing), analContent, orgyContent
+   - Live content pricing: livestreamContent, openToLivestreams
+   - Custom pricing: customVideoPricing, customCallPricing  
+   - Bundle pricing tiers: bundleContent5_10, bundleContent10_15, bundleContent15_20, bundleContent20_25, bundleContent25_30, bundleContent30Plus
+   - Platform limitations: twitterNudity, onlyFansWallLimitations, flyerCensorshipLimitations
+   - Special content: contentOptionsForGames
 3. ClientModelDetails: Personal details, onboarding progress, background, interests, personality, restrictions
 
 You can help users with:
@@ -27,6 +35,33 @@ You can help users with:
 - Content pricing and availability (including pricing guides, custom video pricing, custom call pricing, bundle pricing)
 - Client personal details and background
 - Birthday information from Google Calendar (upcoming birthdays, specific birthday dates)
+
+IMPORTANT CONTENT PRICING GUIDELINES:
+- Each ContentDetails field contains the ACTUAL PRICE for that content type (e.g., bgContent = "$150" means BG content costs $150)
+- When users ask for specific content pricing (like "bg price", "bbg content"), provide the exact field value from ContentDetails
+- Content type mapping:
+  * "bg" → bgContent field value
+  * "bbg" → bbgContent field value  
+  * "bgg" → bggContent field value
+  * "bj" or "blowjob" or "handjob" → bjHandjobContent field value
+  * "solo squirt" → soloSquirtContent field value
+  * "solo finger" → soloFingerContent field value
+  * "solo dildo" → soloDildoContent field value
+  * "solo vibrator" → soloVibratorContent field value
+  * "boob" → boobContent field value
+  * "pussy" → pussyContent field value
+  * "joi" → joiContent field value
+  * "gg" → ggContent field value
+  * "anal" → analContent field value
+  * "orgy" → orgyContent field value
+  * "livestream" → livestreamContent field value
+  * "custom video" → customVideoPricing field value
+  * "custom call" → customCallPricing field value
+  * "bundle" → bundleContent5_10, bundleContent10_15, etc. field values
+- If a specific content field is null/empty, say "No pricing set for [content type]"
+- If similar content exists, suggest alternatives (e.g., if bgContent is empty but bbgContent has pricing)
+- For pricing guides, list ALL content types with their actual prices from the field values
+- Present prices exactly as stored in the database fields
 
 You CANNOT help with:
 - Technical platform issues
@@ -286,7 +321,25 @@ async function getClientInfo(clientName: string) {
       
       prisma.contentDetails.findFirst({
         where: {
-          clientModelName: { equals: clientName, mode: 'insensitive' }
+          OR: [
+            { clientModelName: { equals: clientName, mode: 'insensitive' } },
+            { 
+              clientModel: {
+                OR: [
+                  { clientName: { equals: clientName, mode: 'insensitive' } },
+                  { name: { equals: clientName, mode: 'insensitive' } }
+                ]
+              }
+            }
+          ]
+        },
+        include: {
+          clientModel: {
+            select: {
+              clientName: true,
+              name: true
+            }
+          }
         }
       }),
       
@@ -427,7 +480,12 @@ export async function POST(request: NextRequest) {
     const needsClientSearch = /\b(client|model|creator)\b/i.test(message) || 
                              /\b(who is|tell me about|find|search)\b/i.test(message) ||
                              /\b(pricing|price|cost|bundle|custom|video|call)\b/i.test(message) ||
+                             /\b(bg|bbg|bgg|gg|bj|handjob|blowjob|anal|orgy|solo|joi|boob|pussy|squirt|finger|dildo|vibrator|twitter|onlyfans|flyer|livestream|bundle|custom|game)\b/i.test(message) ||
                              /\b(her|his|their|them|she|he|this|that)\b/i.test(message);
+    
+    // Extract content type from the message for specific pricing queries
+    const contentTypeMatch = message.match(/\b(bg|bbg|bgg|gg|bj|handjob|blowjob|anal|orgy|boob|pussy|solo(?:\s+(?:squirt|finger|dildo|vibrator))?|joi|livestream|custom(?:\s+(?:video|call))?|bundle|twitter|onlyfans|flyer|game)\b/i);
+    const requestedContentType = contentTypeMatch ? contentTypeMatch[1].toLowerCase().replace(/\s+/g, '') : null;
 
     const needsBirthdayInfo = /\b(birthday|birthdays|upcoming birthday|when.*birthday|when's.*birthday)\b/i.test(message);
     
@@ -497,20 +555,25 @@ export async function POST(request: NextRequest) {
     }
     
     if (needsClientSearch) {
-      // Extract potential client name from the message
-      const clientNameMatch = message.match(/(?:about|find|search|who is|pricing guide of|pricing for|price of|cost of)\s+([a-zA-Z\s]+)/i);
+      // Extract potential client name from the message - prioritize possessive forms
+      const clientNameMatch = message.match(/([a-zA-Z]+)(?:'s|s)\s+(?:pricing|guide|bg|bbg|bgg|gg|bj|handjob|blowjob|anal|orgy|boob|pussy|solo|joi|livestream|custom|bundle|twitter|onlyfans|flyer|game)/i) ||
+                             message.match(/(?:whats?|what's)\s+([a-zA-Z]+)(?:'s|s)\s/i) ||
+                             message.match(/(?:about|find|search|who is|pricing guide of|pricing for|price of|cost of)\s+([a-zA-Z\s]+?)(?:\s+(?:pricing|guide|bg|background|info|information|details)|$)/i);
       
       let potentialClientName = null;
       
       if (clientNameMatch) {
         potentialClientName = clientNameMatch[1].trim();
+        console.log('🎯 Extracted client name from message:', potentialClientName, 'from match:', clientNameMatch[0]);
       } else if (/\b(her|his|their|them|she|he|this|that|all of)\b/i.test(message)) {
         // This is likely a follow-up question - search recent messages for client names
         const recentMessages = existingMessages.slice(-6); // Look at last 6 messages
         for (const msg of recentMessages.reverse()) {
           if (msg.role === 'user') {
             // Look for client names in recent user messages
-            const nameMatch = msg.content.match(/(?:about|find|search|who is|pricing guide of|pricing for|price of|cost of)\s+([a-zA-Z\s]+)/i);
+            const nameMatch = msg.content.match(/([a-zA-Z]+)(?:'s|s)\s+(?:pricing|guide|bg|bbg|bgg|gg|bj|handjob|blowjob|anal|orgy|boob|pussy|solo|joi|livestream|custom|bundle|twitter|onlyfans|flyer|game)/i) ||
+                             msg.content.match(/(?:whats?|what's)\s+([a-zA-Z]+)(?:'s|s)\s/i) ||
+                             msg.content.match(/(?:about|find|search|who is|pricing guide of|pricing for|price of|cost of)\s+([a-zA-Z\s]+?)(?:\s+(?:pricing|guide|bg|background|info|information|details)|$)/i);
             if (nameMatch) {
               potentialClientName = nameMatch[1].trim();
               break;
@@ -527,10 +590,34 @@ export async function POST(request: NextRequest) {
       }
       
       if (potentialClientName) {
+        console.log('🔍 Searching for client:', potentialClientName);
         const clientInfo = await getClientInfo(potentialClientName);
+        console.log('📊 Client info found:', JSON.stringify(clientInfo, null, 2));
         
         if (clientInfo.clientModel || clientInfo.contentDetails || clientInfo.clientModelDetails) {
           contextData = `\n\nRelevant client information found:\n${JSON.stringify(clientInfo, null, 2)}`;
+          console.log('✅ Added client info to context');
+        } else {
+          console.log('❌ No client info found for:', potentialClientName);
+          // Try to find similar client names for suggestions
+          try {
+            const similarClients = await prisma.clientModel.findMany({
+              where: {
+                OR: [
+                  { clientName: { contains: potentialClientName, mode: 'insensitive' } },
+                  { name: { contains: potentialClientName, mode: 'insensitive' } }
+                ]
+              },
+              select: { clientName: true, name: true },
+              take: 5
+            });
+            if (similarClients.length > 0) {
+              contextData = `\n\nNo exact match found for "${potentialClientName}". Similar clients found:\n${JSON.stringify(similarClients, null, 2)}`;
+              console.log('💡 Added similar clients to context');
+            }
+          } catch (error) {
+            console.log('❌ Error searching for similar clients:', error);
+          }
         }
       } else {
         // General search
@@ -556,8 +643,38 @@ export async function POST(request: NextRequest) {
       content: msg.content
     }));
     
+    // Add content type context if detected
+    let contentTypeContext = '';
+    if (requestedContentType) {
+      const fieldMapping = {
+        'bg': 'bgContent',
+        'bbg': 'bbgContent', 
+        'bgg': 'bggContent',
+        'gg': 'ggContent',
+        'bj': 'bjHandjobContent',
+        'handjob': 'bjHandjobContent',
+        'blowjob': 'bjHandjobContent',
+        'boob': 'boobContent',
+        'pussy': 'pussyContent',
+        'joi': 'joiContent',
+        'anal': 'analContent',
+        'orgy': 'orgyContent',
+        'livestream': 'livestreamContent',
+        'customvideo': 'customVideoPricing',
+        'customcall': 'customCallPricing',
+        'bundle': 'bundleContent fields',
+        'solosquirt': 'soloSquirtContent',
+        'solofinger': 'soloFingerContent',
+        'solodildo': 'soloDildoContent',
+        'solovibrator': 'soloVibratorContent'
+      };
+      
+      const fieldName = fieldMapping[requestedContentType] || `${requestedContentType}Content`;
+      contentTypeContext = `\n\nUSER REQUESTED CONTENT TYPE: "${requestedContentType}" - Look for the "${fieldName}" field in ContentDetails and return its exact value as the price. If it's null/empty, mention no pricing is set for this content type.`;
+    }
+    
     const messages = [
-      { role: 'system' as const, content: SYSTEM_PROMPT + contextData },
+      { role: 'system' as const, content: SYSTEM_PROMPT + contextData + contentTypeContext },
       ...contextMessages
     ];
 
