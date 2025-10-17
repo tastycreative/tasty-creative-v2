@@ -281,15 +281,15 @@ const ChatBot: React.FC = () => {
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
-      <Card className={`transition-all duration-300 shadow-2xl ${
+      <Card className={`transition-all gap-2 duration-300 py-0 pb-0 shadow-2xl ${
         isMinimized 
           ? 'w-80 h-16' 
-          : 'w-[420px] h-[700px]'
+          : 'w-[420px] h-[600px]'
       } bg-white dark:bg-gray-900 border border-pink-200 dark:border-pink-900`}>
         
         {/* Header */}
         <CardHeader className={`flex flex-row items-center justify-between bg-pink-600 text-white rounded-t-lg ${
-          isMinimized ? 'p-3' : 'p-6'
+          isMinimized ? 'p-2 px-3' : 'px-4 py-3'
         }`}>
           <CardTitle className={`font-bold flex items-center ${
             isMinimized ? 'text-base' : 'text-xl'
