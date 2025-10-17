@@ -41,17 +41,24 @@ export async function POST(request: NextRequest) {
 
     if (!elevenlabsResponse.ok) {
       const errorData = await elevenlabsResponse.json();
-      throw new Error(errorData.detail || 'Failed to generate voice');
+      console.error('ElevenLabs API error:', errorData);
+      const errorMessage = errorData.detail?.message || errorData.detail || errorData.error || 'Failed to generate voice';
+      throw new Error(errorMessage);
     }
+
+    // Get the history_item_id from response headers
+    const historyItemId = elevenlabsResponse.headers.get('history-item-id');
+    console.log('ElevenLabs history_item_id:', historyItemId);
 
     // Get binary audio data
     const audioArrayBuffer = await elevenlabsResponse.arrayBuffer();
     
-    // Return the audio directly
+    // Return the audio with the history_item_id in headers
     return new NextResponse(audioArrayBuffer, {
       status: 200,
       headers: {
         'Content-Type': 'audio/mpeg',
+        'X-History-Item-Id': historyItemId || '',
       },
     });
   } catch (error: any) {

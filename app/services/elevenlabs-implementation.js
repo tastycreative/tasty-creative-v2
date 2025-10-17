@@ -297,27 +297,12 @@ export const ELEVEN_LABS_MODELS = [
   {
     name: "Multilingual v2",
     id: "eleven_multilingual_v2",
-    description: "Best quality multilingual model",
+    description: "High-quality multilingual model with natural voice",
   },
   {
-    name: "Monolingual v1",
-    id: "eleven_monolingual_v1",
-    description: "Optimized for single language",
-  },
-  {
-    name: "Turbo v2",
-    id: "eleven_turbo_v2",
-    description: "Fastest generation, good quality",
-  },
-  {
-    name: "Enhanced",
-    id: "eleven_enhanced",
-    description: "Best quality for English",
-  },
-  {
-    name: "Multilingual v1",
-    id: "eleven_multilingual_v1",
-    description: "Legacy multilingual model",
+    name: "Eleven v3 (Latest)",
+    id: "eleven_v3",
+    description: "Human-like and expressive speech generation - 70+ languages",
   },
 ];
 

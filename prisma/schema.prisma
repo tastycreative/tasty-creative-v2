@@ -22,6 +22,7 @@ model User {
   accounts                   Account[]
   assignedBoardColumnsByUser BoardColumnMemberAssignment[] @relation("BoardColumnAssignedBy")
   assignedBoardColumns       BoardColumnMemberAssignment[] @relation("BoardColumnAssignedUser")
+  chatbotConversations       ChatbotConversation[]
   ContentSubmission          ContentSubmission[]
   forumComments              ForumComment[]
   forumVotes                 ForumVote[]
@@ -43,6 +44,8 @@ model User {
   performedUserActivities    UserActivityHistory[]         @relation("UserActivityActor")
   receivedUserActivities     UserActivityHistory[]         @relation("UserActivityTarget")
   verificationTokens         VerificationToken[]
+  voiceNoteHistory           VoiceNoteHistory[]
+  voiceNoteSales             VoiceNoteSale[]
 }
 
 model Account {
@@ -159,6 +162,54 @@ model VoiceModel {
   @@index([category])
   @@index([isActive])
   @@index([createdAt])
+}
+
+model VoiceNoteHistory {
+  id                String   @id @default(cuid())
+  userId            String
+  elevenLabsHistoryId String // The history_item_id from ElevenLabs
+  voiceId           String
+  voiceName         String
+  accountKey        String  // Which ElevenLabs account was used
+  text              String  @db.Text
+  generatedAt       DateTime
+  createdAt         DateTime @default(now())
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  voiceNoteSale     VoiceNoteSale?
+
+  @@unique([userId, elevenLabsHistoryId])
+  @@index([userId])
+  @@index([elevenLabsHistoryId])
+  @@index([voiceId])
+  @@index([accountKey])
+  @@index([generatedAt])
+  @@index([createdAt])
+}
+
+model VoiceNoteSale {
+  id                  String            @id @default(cuid())
+  userId              String
+  userName            String
+  userEmail           String
+  modelName           String
+  voiceNote           String            @db.Text
+  saleAmount          Float
+  soldDate            DateTime
+  status              String            @default("Completed")
+  generatedDate       DateTime?
+  source              String?           @default("Manual")
+  voiceNoteHistoryId  String?           @unique
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  voiceNoteHistory    VoiceNoteHistory? @relation(fields: [voiceNoteHistoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([modelName])
+  @@index([soldDate])
+  @@index([status])
+  @@index([createdAt])
+  @@index([saleAmount])
 }
 
 model Task {
@@ -787,6 +838,20 @@ model UserActivityHistory {
   @@index([actionType])
   @@index([oldRole])
   @@index([newRole])
+}
+
+model ChatbotConversation {
+  id        String   @id @default(cuid())
+  userId    String
+  sessionId String
+  messages  Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([createdAt])
 }
 
 enum Role {

@@ -87,6 +87,11 @@ const adminNavItems = [
         description: "Sales summary and metrics",
       },
       {
+        title: "Sales Tracker",
+        href: "/admin/vn-sales/tracker",
+        description: "Track sales by user",
+      },
+      {
         title: "Model's Elevenlabs Accounts",
         href: "/admin/vn-sales/accounts",
         description: "Account management",

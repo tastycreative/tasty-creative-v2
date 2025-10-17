@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import { auth } from '@/auth';
+import { statusEmitter } from './status/route';
 
 // Configuration
 const BETTERFANS_TEMPLATE_ID = '1whNomJu69mIidOJk-9kExphJSWRG7ncMea75EtDlEJY';
@@ -19,6 +20,58 @@ function extractSpreadsheetId(url: string): string | null {
 function extractGid(url: string): string | null {
   const match = url.match(/gid=([0-9]+)/);
   return match ? match[1] : null;
+}
+
+// Helper function to implement retry logic with exponential backoff
+async function retryWithBackoff<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 5,
+  baseDelay: number = 1000,
+  maxDelay: number = 30000
+): Promise<T> {
+  let lastError: any;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      lastError = error;
+      
+      // Check if it's a quota error (429 status code)
+      const isQuotaError = error?.code === 429 || 
+                          error?.status === 429 ||
+                          (error?.message && error.message.includes('Quota exceeded'));
+      
+      if (!isQuotaError || attempt === maxRetries) {
+        throw error;
+      }
+      
+      // Calculate delay with exponential backoff and jitter
+      const delay = Math.min(
+        baseDelay * Math.pow(2, attempt) + Math.random() * 1000,
+        maxDelay
+      );
+      
+      console.log(`Quota exceeded, retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${maxRetries + 1})`);
+      
+      // Emit retry status to frontend
+      try {
+        statusEmitter.broadcast({
+          type: 'quota_retry',
+          attempt: attempt + 1,
+          maxRetries: maxRetries + 1,
+          delay: Math.round(delay),
+          message: `Google Sheets quota reached. Retrying in ${Math.round(delay / 1000)} seconds...`
+        });
+      } catch (emitError) {
+        console.warn('Failed to emit retry status:', emitError);
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError;
 }
 
 export async function POST(request: NextRequest) {
@@ -179,9 +232,11 @@ export async function POST(request: NextRequest) {
         console.log('Testing access to range:', testRange);
         
         try {
-          await sheets.spreadsheets.values.get({
-            spreadsheetId: sourceSpreadsheetId,
-            range: testRange,
+          await retryWithBackoff(async () => {
+            return await sheets.spreadsheets.values.get({
+              spreadsheetId: sourceSpreadsheetId,
+              range: testRange,
+            });
           });
         } catch (rangeError) {
           console.warn(`Could not access range in sheet "${sheet.name}":`, rangeError);
@@ -190,6 +245,16 @@ export async function POST(request: NextRequest) {
       }
 
       console.log('Successfully validated access to source spreadsheet');
+      
+      // Emit success status for sheet validation
+      try {
+        statusEmitter.broadcast({
+          type: 'validation_complete',
+          message: 'Sheet access validated successfully'
+        });
+      } catch (emitError) {
+        console.warn('Failed to emit validation status:', emitError);
+      }
     } catch (error: unknown) {
       console.error('Error reading source spreadsheet:', error);
       
@@ -438,9 +503,11 @@ export async function POST(request: NextRequest) {
           
           try {
             // Check cell R1 to determine sheet type
-            const r1Check = await sheets.spreadsheets.values.get({
-              spreadsheetId: sourceSpreadsheetId,
-              range: `'${schedule.name}'!R1`,
+            const r1Check = await retryWithBackoff(async () => {
+              return await sheets.spreadsheets.values.get({
+                spreadsheetId: sourceSpreadsheetId,
+                range: `'${schedule.name}'!R1`,
+              });
             });
             
             const r1Value = r1Check.data.values?.[0]?.[0] || '';
@@ -479,9 +546,11 @@ export async function POST(request: NextRequest) {
           // Get the data from the source Betterfans sheet
           
           try {
-            const sourceData = await sheets.spreadsheets.values.get({
-              spreadsheetId: sourceSpreadsheetId,
-              range: sourceRange,
+            const sourceData = await retryWithBackoff(async () => {
+              return await sheets.spreadsheets.values.get({
+                spreadsheetId: sourceSpreadsheetId,
+                range: sourceRange,
+              });
             });
             
             const values = sourceData.data.values || [];
@@ -577,6 +646,16 @@ export async function POST(request: NextRequest) {
 
       const processType = fromType === 'Scheduler' ? 'IMPORTRANGE formulas' : 'real data copying';
       console.log(`Successfully set up ${processType} for ${scheduleSheets.length} sheets`);
+      
+      // Emit completion status
+      try {
+        statusEmitter.broadcast({
+          type: 'processing_complete',
+          message: `Successfully processed ${scheduleSheets.length} sheets`
+        });
+      } catch (emitError) {
+        console.warn('Failed to emit completion status:', emitError);
+      }
 
     } catch (error) {
       const processType = fromType === 'Scheduler' ? 'IMPORTRANGE formulas' : 'data copying';
