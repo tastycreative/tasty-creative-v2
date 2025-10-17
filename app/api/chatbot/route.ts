@@ -18,8 +18,7 @@ IMPORTANT: You can ONLY help with information that exists in these specific data
 1. ClientModel: Basic client information (name, status, launch date, social media links, notes, referrer info)
 2. ContentDetails: Each field contains the ACTUAL PRICING for that content type:
    - Solo content pricing: boobContent, pussyContent, soloSquirtContent, soloFingerContent, soloDildoContent, soloVibratorContent, joiContent
-   - Background/GFE pricing: bgContent (background/girlfriend experience pricing)
-   - Partner content pricing: bjHandjobContent (blowjob/handjob pricing), bggContent (boy-girl-girl pricing), bbgContent (boy-boy-girl pricing), ggContent (girl-girl pricing), analContent, orgyContent
+   - Partner content pricing: bgContent, bjHandjobContent (blowjob/handjob pricing), bggContent (boy-girl-girl pricing), bbgContent (boy-boy-girl pricing), ggContent (girl-girl pricing), analContent, orgyContent
    - Live content pricing: livestreamContent, openToLivestreams
    - Custom pricing: customVideoPricing, customCallPricing  
    - Bundle pricing tiers: bundleContent5_10, bundleContent10_15, bundleContent15_20, bundleContent20_25, bundleContent25_30, bundleContent30Plus
@@ -33,6 +32,8 @@ You can help users with:
 - Checking onboarding progress and model details
 - Client social media information
 - Content pricing and availability (including pricing guides, custom video pricing, custom call pricing, bundle pricing)
+- Video call availability and pricing (this is part of ContentDetails.customCallPricing)
+- Live streaming availability and pricing 
 - Client personal details and background
 - Birthday information from Google Calendar (upcoming birthdays, specific birthday dates)
 
@@ -55,13 +56,24 @@ IMPORTANT CONTENT PRICING GUIDELINES:
   * "anal" → analContent field value
   * "orgy" → orgyContent field value
   * "livestream" → livestreamContent field value
-  * "custom video" → customVideoPricing field value
-  * "custom call" → customCallPricing field value
+  * "custom video" → customVideoPricing field value (pricing for custom video content)
+  * "custom call" or "video call" → customCallPricing field value (pricing for live calls/video calls)
   * "bundle" → bundleContent5_10, bundleContent10_15, etc. field values
 - If a specific content field is null/empty, say "No pricing set for [content type]"
 - If similar content exists, suggest alternatives (e.g., if bgContent is empty but bbgContent has pricing)
-- For pricing guides, list ALL content types with their actual prices from the field values
+- For pricing guides, list ALL content types with their actual prices from the ContentDetails field values
+- PRICING GUIDE QUERIES: When users ask for "pricing guide", "all prices", "rates", show comprehensive overview of ALL ContentDetails pricing fields
 - Present prices exactly as stored in the database fields
+- CRITICAL: customVideoPricing and customCallPricing are COMPLETELY DIFFERENT services:
+  * customVideoPricing = pricing for creating custom VIDEO CONTENT (recorded videos made to order)
+  * customCallPricing = pricing for live VIDEO CALLS/PHONE CALLS (real-time interaction)
+- When users ask about "video calls", "calls", "live calls", or "does [client] do video calls" → use customCallPricing field
+- When users ask about "custom videos", "video content", "custom video pricing", or "does [client] do custom videos" → use customVideoPricing field
+- For availability questions (do/does/offer/provide), check if the field has pricing/content to determine availability
+- When interpreting call pricing, look for keywords in the field value:
+  * If customCallPricing contains "NONE" or "NO" → they don't offer calls
+  * If customCallPricing contains pricing info → they do offer calls at that rate
+  * "PRIV LIVE ONLY" means they only do calls on private live platforms, not direct calls
 
 You CANNOT help with:
 - Technical platform issues
@@ -297,8 +309,78 @@ async function getBirthdaysFromCalendar(searchName?: string) {
   }
 }
 
+// AI-powered intent analysis function
+async function analyzeUserIntent(message: string, conversationHistory: any[] = []) {
+  try {
+    // Format conversation history for context
+    const conversationContext = conversationHistory.length > 0 
+      ? `\n\nCONVERSATION HISTORY:\n${conversationHistory.slice(-10).map(msg => 
+          `${msg.role}: "${msg.content}"`
+        ).join('\n')}\n`
+      : '';
+
+    const intentPrompt = `Analyze this user message IN CONTEXT of the conversation and determine their intent. Return a JSON object with these fields:
+
+{
+  "needsClientData": boolean, // true if they're asking about specific client/model information, pricing, content details, availability
+  "needsBirthdayData": boolean, // true if asking about birthdays, birth dates, celebrations
+  "clientName": string | null, // extract the client/model name mentioned OR referenced from conversation context (e.g., "autumn", "sarah")
+  "contentType": string | null, // extract content type: bg, bbg, bgg, gg, bj, handjob, blowjob, anal, orgy, boob, pussy, solo, solosquirt, solofinger, solodildo, solovibrator, joi, livestream, customvideo, customcall, videocall, call, bundle, twitter, onlyfans, flyer, game
+  "queryType": string, // "pricing", "availability", "general_info", "birthday", "other"
+}
+
+${conversationContext}
+
+CURRENT USER MESSAGE: "${message}"
+
+IMPORTANT: ALL PRICING INFORMATION is stored in ContentDetails table. Any query about pricing, costs, rates, pricing guides, financial information, charges, fees, prices, money, or "how much" should have needsClientData=true and queryType="pricing".
+
+Keywords that indicate pricing queries: pricing, price, cost, rate, charge, fee, money, expensive, cheap, guide, all prices, rates, how much, what does [name] charge, financial, payment
+
+Examples:
+
+STANDALONE MESSAGES:
+- "whats autumns bg price" → {"needsClientData": true, "needsBirthdayData": false, "clientName": "autumn", "contentType": "bg", "queryType": "pricing"}
+- "autumn's pricing guide" → {"needsClientData": true, "needsBirthdayData": false, "clientName": "autumn", "contentType": null, "queryType": "pricing"}
+- "does autumn do video calls?" → {"needsClientData": true, "needsBirthdayData": false, "clientName": "autumn", "contentType": "videocall", "queryType": "availability"}
+
+CONTEXT-DEPENDENT MESSAGES:
+If conversation history shows: user: "does autumn do video calls?" assistant: "Yes, Autumn offers video calls..."
+Then: "what's all her pricing guide" → {"needsClientData": true, "needsBirthdayData": false, "clientName": "autumn", "contentType": null, "queryType": "pricing"}
+
+If conversation history shows: user: "tell me about sarah" assistant: "Sarah is a model..."  
+Then: "what are her rates" → {"needsClientData": true, "needsBirthdayData": false, "clientName": "sarah", "contentType": null, "queryType": "pricing"}
+
+If conversation history shows: user: "when's autumn's birthday?" assistant: "Autumn's birthday is..."
+Then: "does she do bg content?" → {"needsClientData": true, "needsBirthdayData": false, "clientName": "autumn", "contentType": "bg", "queryType": "availability"}
+
+Return only the JSON object, no other text.`;
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: intentPrompt }],
+      max_tokens: 200,
+      temperature: 0.1,
+    });
+
+    const response = completion.choices[0]?.message?.content?.trim() || '{}';
+    return JSON.parse(response);
+  } catch (error) {
+    console.error('Error analyzing intent:', error);
+    // Fallback to basic pattern matching
+    return {
+      needsClientData: /\b(client|model|pricing|price|content|bg|bbg|custom|call|video)\b/i.test(message),
+      needsBirthdayData: /\b(birthday|birth)\b/i.test(message),
+      clientName: null,
+      contentType: null,
+      queryType: "other"
+    };
+  }
+}
+
 // Helper function to get specific client information
 async function getClientInfo(clientName: string) {
+  console.log('🔍 getClientInfo called with:', clientName);
   try {
     const [clientModel, contentDetails, clientModelDetails] = await Promise.all([
       prisma.clientModel.findFirst({
@@ -352,6 +434,17 @@ async function getClientInfo(clientName: string) {
         }
       })
     ]);
+
+    console.log('📊 Database query results:');
+    console.log('  clientModel:', clientModel ? `Found: ${clientModel.clientName}` : 'Not found');
+    console.log('  contentDetails:', contentDetails ? `Found for: ${contentDetails.clientModelName}` : 'Not found');
+    console.log('  clientModelDetails:', clientModelDetails ? `Found for: ${clientModelDetails.client_name || clientModelDetails.model_name}` : 'Not found');
+
+    if (contentDetails) {
+      console.log('🔍 ContentDetails fields for debugging:');
+      console.log('  customCallPricing:', contentDetails.customCallPricing);
+      console.log('  customVideoPricing:', contentDetails.customVideoPricing);
+    }
 
     return {
       clientModel,
@@ -476,18 +569,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Analyze the message to determine if we need to search for specific data
-    const needsClientSearch = /\b(client|model|creator)\b/i.test(message) || 
-                             /\b(who is|tell me about|find|search)\b/i.test(message) ||
-                             /\b(pricing|price|cost|bundle|custom|video|call)\b/i.test(message) ||
-                             /\b(bg|bbg|bgg|gg|bj|handjob|blowjob|anal|orgy|solo|joi|boob|pussy|squirt|finger|dildo|vibrator|twitter|onlyfans|flyer|livestream|bundle|custom|game)\b/i.test(message) ||
-                             /\b(her|his|their|them|she|he|this|that)\b/i.test(message);
+    // Use AI to analyze user intent and determine what data to search for
+    const intentAnalysis = await analyzeUserIntent(message, existingMessages);
+    console.log('🧠 AI Intent Analysis:', intentAnalysis);
     
-    // Extract content type from the message for specific pricing queries
-    const contentTypeMatch = message.match(/\b(bg|bbg|bgg|gg|bj|handjob|blowjob|anal|orgy|boob|pussy|solo(?:\s+(?:squirt|finger|dildo|vibrator))?|joi|livestream|custom(?:\s+(?:video|call))?|bundle|twitter|onlyfans|flyer|game)\b/i);
-    const requestedContentType = contentTypeMatch ? contentTypeMatch[1].toLowerCase().replace(/\s+/g, '') : null;
-
-    const needsBirthdayInfo = /\b(birthday|birthdays|upcoming birthday|when.*birthday|when's.*birthday)\b/i.test(message);
+    const needsClientSearch = intentAnalysis.needsClientData;
+    const needsBirthdayInfo = intentAnalysis.needsBirthdayData;
+    const requestedContentType = intentAnalysis.contentType;
     
     console.log('🔍 Message analysis:');
     console.log('📝 Message:', message);
@@ -555,17 +643,10 @@ export async function POST(request: NextRequest) {
     }
     
     if (needsClientSearch) {
-      // Extract potential client name from the message - prioritize possessive forms
-      const clientNameMatch = message.match(/([a-zA-Z]+)(?:'s|s)\s+(?:pricing|guide|bg|bbg|bgg|gg|bj|handjob|blowjob|anal|orgy|boob|pussy|solo|joi|livestream|custom|bundle|twitter|onlyfans|flyer|game)/i) ||
-                             message.match(/(?:whats?|what's)\s+([a-zA-Z]+)(?:'s|s)\s/i) ||
-                             message.match(/(?:about|find|search|who is|pricing guide of|pricing for|price of|cost of)\s+([a-zA-Z\s]+?)(?:\s+(?:pricing|guide|bg|background|info|information|details)|$)/i);
+      let potentialClientName = intentAnalysis.clientName;
       
-      let potentialClientName = null;
-      
-      if (clientNameMatch) {
-        potentialClientName = clientNameMatch[1].trim();
-        console.log('🎯 Extracted client name from message:', potentialClientName, 'from match:', clientNameMatch[0]);
-      } else if (/\b(her|his|their|them|she|he|this|that|all of)\b/i.test(message)) {
+      // If no client name found but query suggests follow-up question, search recent messages
+      if (!potentialClientName && (/\b(her|his|their|them|she|he|this|that|all of)\b/i.test(message) || intentAnalysis.queryType === 'pricing')) {
         // This is likely a follow-up question - search recent messages for client names
         const recentMessages = existingMessages.slice(-6); // Look at last 6 messages
         for (const msg of recentMessages.reverse()) {
@@ -597,6 +678,14 @@ export async function POST(request: NextRequest) {
         if (clientInfo.clientModel || clientInfo.contentDetails || clientInfo.clientModelDetails) {
           contextData = `\n\nRelevant client information found:\n${JSON.stringify(clientInfo, null, 2)}`;
           console.log('✅ Added client info to context');
+          
+          // Debug: Log specific pricing fields
+          if (clientInfo.contentDetails) {
+            console.log('🔍 ContentDetails pricing fields:');
+            console.log('  customVideoPricing:', clientInfo.contentDetails.customVideoPricing);
+            console.log('  customCallPricing:', clientInfo.contentDetails.customCallPricing);
+            console.log('  bgContent:', clientInfo.contentDetails.bgContent);
+          }
         } else {
           console.log('❌ No client info found for:', potentialClientName);
           // Try to find similar client names for suggestions
@@ -643,10 +732,10 @@ export async function POST(request: NextRequest) {
       content: msg.content
     }));
     
-    // Add content type context if detected
+    // Add content type and query context if detected
     let contentTypeContext = '';
     if (requestedContentType) {
-      const fieldMapping = {
+      const fieldMapping: Record<string, string> = {
         'bg': 'bgContent',
         'bbg': 'bbgContent', 
         'bgg': 'bggContent',
@@ -662,6 +751,8 @@ export async function POST(request: NextRequest) {
         'livestream': 'livestreamContent',
         'customvideo': 'customVideoPricing',
         'customcall': 'customCallPricing',
+        'videocall': 'customCallPricing',
+        'call': 'customCallPricing',
         'bundle': 'bundleContent fields',
         'solosquirt': 'soloSquirtContent',
         'solofinger': 'soloFingerContent',
@@ -670,7 +761,15 @@ export async function POST(request: NextRequest) {
       };
       
       const fieldName = fieldMapping[requestedContentType] || `${requestedContentType}Content`;
-      contentTypeContext = `\n\nUSER REQUESTED CONTENT TYPE: "${requestedContentType}" - Look for the "${fieldName}" field in ContentDetails and return its exact value as the price. If it's null/empty, mention no pricing is set for this content type.`;
+      
+      if (intentAnalysis.queryType === 'availability') {
+        contentTypeContext = `\n\nUSER ASKED ABOUT AVAILABILITY: "${requestedContentType}" for client "${intentAnalysis.clientName}" - Check the "${fieldName}" field in ContentDetails. If it has a value (not null/empty), they offer this service. If it's null/empty or contains "NONE"/"NO", they don't offer it. Explain availability clearly.`;
+      } else {
+        contentTypeContext = `\n\nUSER REQUESTED CONTENT TYPE: "${requestedContentType}" - Look for the "${fieldName}" field in ContentDetails and return its exact value as the price. If it's null/empty, mention no pricing is set for this content type.`;
+      }
+    } else if (intentAnalysis.queryType === 'pricing' && !requestedContentType) {
+      // General pricing guide request
+      contentTypeContext = `\n\nUSER REQUESTED PRICING GUIDE - Show a comprehensive overview of ALL pricing fields from ContentDetails. Include all content types that have pricing set, organized by category (solo content, partner content, custom pricing, bundles, etc.). Use the client information from the database search results.`;
     }
     
     const messages = [
