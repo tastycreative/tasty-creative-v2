@@ -605,9 +605,12 @@ const AIVoicePage = () => {
 
       if (isHistorySale && historyItemForSale) {
         // History item sale
+        // Always use voice_name from history item first, as it's stored with the item
+        // This is important when "All Profiles" is selected and availableVoices is empty
         const voiceName =
           historyItemForSale.voice_name ||
-          availableVoices.find((v) => v.voiceId === selectedVoice)?.name ||
+          availableVoices.find((v) => v.voiceId === historyItemForSale.voice_id)?.name ||
+          voiceModels.find((m) => m.voiceId === historyItemForSale.voice_id)?.voiceName ||
           "Unknown Voice";
 
         saleData = {
@@ -624,8 +627,11 @@ const AIVoicePage = () => {
         };
       } else {
         // Generated audio sale
+        // For generated audio, we can use generatedAudio.voiceName which is set during generation
         const voiceName =
+          generatedAudio?.voiceName ||
           availableVoices.find((v) => v.voiceId === selectedVoice)?.name ||
+          voiceModels.find((m) => m.voiceId === selectedVoice)?.voiceName ||
           "Unknown Voice";
 
         saleData = {
