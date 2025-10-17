@@ -14,6 +14,9 @@ import {
   AlertTriangle,
   ArrowRight,
   ShoppingCart,
+  Info,
+  Receipt,
+  BookOpen,
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 import { Alert, AlertTitle, AlertDescription } from "./ui/alert";
@@ -26,6 +29,14 @@ import {
   CardContent,
   CardFooter,
 } from "./ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog";
 import {
   Select,
   SelectTrigger,
@@ -44,6 +55,7 @@ import {
   AccordionContent,
 } from "./ui/accordion";
 import VoiceNoteCard from "./VoiceNoteCard";
+import SubmittedSalesTab from "./SubmittedSalesTab";
 
 import {
   generateVoice,
@@ -91,6 +103,7 @@ interface HistoryItem {
   voice_id: string;
   voice_name?: string;
   date_unix: number;
+  account_key?: string; // Track which API profile was used
 }
 
 interface HistoryAudio {
@@ -103,6 +116,9 @@ interface HistoryAudio {
 type ProfileStatus = "healthy" | "low-credits" | "error";
 
 const AIVoicePage = () => {
+  // Tab state
+  const [activeTab, setActiveTab] = useState<"generation" | "history" | "sales">("generation");
+
   // Dynamic Voice Model Profiles
   const [voiceModels, setVoiceModels] = useState<any[]>([]);
   const [selectedApiKeyProfile, setSelectedApiKeyProfile] =
@@ -141,10 +157,12 @@ const AIVoicePage = () => {
   const [isLoadingHistoryAudio, setIsLoadingHistoryAudio] = useState(false);
   const [historyAudio, setHistoryAudio] = useState<HistoryAudio | null>(null);
   const [historyError, setHistoryError] = useState("");
-  const [showHistory, setShowHistory] = useState(false);
   const [speakerBoost, setSpeakerBoost] = useState(true);
 
   const [audioNo, setAudioNo] = useState<number>(1);
+
+  // Audio tags dialog state
+  const [showAudioTagsDialog, setShowAudioTagsDialog] = useState(false);
 
   // Voice Note Sale states
   const [salePrice, setSalePrice] = useState("");
@@ -211,16 +229,21 @@ const AIVoicePage = () => {
     setSaleSubmitStatus(null);
     setShowSaleSuccess(false);
 
+    // Switch to history tab
+    setActiveTab("history");
+
     // Highlight the sale form
     setSaleFormHighlighted(true);
 
-    // Scroll to the sale form
-    if (saleFormRef.current) {
-      saleFormRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-    }
+    // Scroll to the sale form after a short delay to allow tab switch
+    setTimeout(() => {
+      if (saleFormRef.current) {
+        saleFormRef.current.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }
+    }, 300);
 
     // Remove highlight after 3 seconds
     setTimeout(() => {
@@ -394,25 +417,31 @@ const AIVoicePage = () => {
   };
 
   const loadHistory = async (forceRefresh = false) => {
-    if (!selectedVoice || !selectedApiKeyProfile) return;
+    // Only require API profile, not voice selection - load user's own history
+    if (!selectedApiKeyProfile) return;
 
     try {
       setIsLoadingHistory(true);
       setHistoryError("");
 
-      const result = await fetchHistoryFromElevenLabs(
-        selectedApiKeyProfile,
-        selectedVoice,
-        100,
-        1,
-        forceRefresh
-      );
+      // Fetch user's own voice note history from database
+      // If "all" is selected, don't filter by accountKey to show combined history
+      const url = selectedApiKeyProfile === 'all' 
+        ? '/api/voice-history/list'
+        : `/api/voice-history/list?accountKey=${selectedApiKeyProfile}`;
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch voice history');
+      }
 
+      const result = await response.json();
       setHistoryEntries(result.items || []);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Error loading history:", error);
-      setHistoryError("Failed to load history from ElevenLabs");
+      setHistoryError("Failed to load your voice history");
     } finally {
       setIsLoadingHistory(false);
     }
@@ -472,6 +501,32 @@ const AIVoicePage = () => {
         voiceName: selectedVoiceDetails.name,
       });
       setGenerationStatus("Voice generated successfully!");
+
+      // Save to user's history in database
+      try {
+        // Use the real ElevenLabs history ID if available, otherwise create a fallback
+        const historyId = result.historyItemId || `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        
+        console.log('Saving voice history with ID:', historyId);
+
+        await fetch('/api/voice-history/save', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            elevenLabsHistoryId: historyId,
+            voiceId: selectedVoice,
+            voiceName: selectedVoiceDetails.name,
+            accountKey: selectedApiKeyProfile,
+            text: voiceText,
+            generatedAt: new Date().toISOString(),
+          }),
+        });
+      } catch (saveError) {
+        console.error('Failed to save voice history:', saveError);
+        // Don't fail the whole operation if history save fails
+      }
 
       const balance = await checkApiKeyBalance(selectedApiKeyProfile);
       setApiKeyBalance(balance);
@@ -550,14 +605,12 @@ const AIVoicePage = () => {
 
       if (isHistorySale && historyItemForSale) {
         // History item sale
-        const uniqueSaleId = `${historyItemForSale.history_item_id}-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
         const voiceName =
           historyItemForSale.voice_name ||
           availableVoices.find((v) => v.voiceId === selectedVoice)?.name ||
           "Unknown Voice";
 
         saleData = {
-          id: uniqueSaleId,
           model: voiceName,
           voiceNote: historyItemForSale.text,
           sale: price,
@@ -567,22 +620,22 @@ const AIVoicePage = () => {
             historyItemForSale.date_unix * 1000
           ).toISOString(),
           originalHistoryId: historyItemForSale.history_item_id,
+          source: "AIVoicePage-history",
         };
       } else {
         // Generated audio sale
-        const saleId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         const voiceName =
           availableVoices.find((v) => v.voiceId === selectedVoice)?.name ||
           "Unknown Voice";
 
         saleData = {
-          id: saleId,
           model: voiceName,
           voiceNote: voiceText,
           sale: price,
           soldDate: new Date().toISOString(),
           status: "Completed",
           generatedDate: new Date().toISOString(),
+          source: "AIVoicePage-generated",
         };
       }
 
@@ -640,7 +693,7 @@ const AIVoicePage = () => {
         }
 
         console.log("Sale submitted successfully:", {
-          saleId: saleData.id,
+          saleId: responseData.data?.id || responseData.sale?.id,
           price,
           model: saleData.model,
           isHistorySale,
@@ -660,21 +713,13 @@ const AIVoicePage = () => {
           setSaleSubmitStatus({
             type: "error",
             message:
-              "Authentication required. Please sign in as an admin to submit sales.",
+              "Authentication required. Please sign in to submit sales.",
           });
         } else if (response.status === 403) {
-          if (errorData.error === "GooglePermissionDenied") {
-            setSaleSubmitStatus({
-              type: "error",
-              message:
-                "Google authentication expired. Please refresh the page and sign in again.",
-            });
-          } else {
-            setSaleSubmitStatus({
-              type: "error",
-              message: "Admin access required to submit sales.",
-            });
-          }
+          setSaleSubmitStatus({
+            type: "error",
+            message: "You don't have permission to submit sales.",
+          });
         } else {
           throw new Error(
             errorData.error || "Failed to submit voice note sale"
@@ -685,23 +730,10 @@ const AIVoicePage = () => {
       console.error("Sale submission error:", error);
 
       // Handle specific error messages
-      if (error.message.includes("Access token expired")) {
-        setSaleSubmitStatus({
-          type: "error",
-          message:
-            "Google authentication expired. Please refresh the page and sign in again.",
-        });
-      } else if (error.message.includes("Not authenticated")) {
-        setSaleSubmitStatus({
-          type: "error",
-          message: "Please sign in as an admin to submit sales.",
-        });
-      } else {
-        setSaleSubmitStatus({
-          type: "error",
-          message: error.message || "Failed to submit voice note sale",
-        });
-      }
+      setSaleSubmitStatus({
+        type: "error",
+        message: error.message || "Failed to submit voice note sale. Please try again.",
+      });
     } finally {
       setIsSubmittingSale(false);
     }
@@ -713,8 +745,24 @@ const AIVoicePage = () => {
       setSelectedHistoryItem(historyItem);
       setHistoryError("");
 
+      // Use the account_key from the history item, or fall back to selectedApiKeyProfile
+      // This is important when "all" profiles are selected
+      const profileToUse = historyItem.account_key || selectedApiKeyProfile;
+
+      if (!profileToUse || profileToUse === 'all') {
+        throw new Error('Cannot play audio: No valid API profile associated with this history item');
+      }
+
+      // Check if this looks like a valid ElevenLabs history ID
+      // Local IDs start with "local-" prefix
+      const isLocalId = historyItem.history_item_id.startsWith('local-');
+
+      if (isLocalId) {
+        throw new Error('This voice was generated and saved locally. Audio playback is only available for items synced with ElevenLabs history. Please generate a new voice to get playable audio.');
+      }
+
       const audio = await getHistoryAudio(
-        selectedApiKeyProfile,
+        profileToUse,
         historyItem.history_item_id
       );
       setHistoryAudio(audio);
@@ -731,7 +779,7 @@ const AIVoicePage = () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Error playing history audio:", error);
-      setHistoryError("Failed to load audio from history");
+      setHistoryError(error.message || "Failed to load audio from history");
     } finally {
       setIsLoadingHistoryAudio(false);
     }
@@ -862,6 +910,14 @@ const AIVoicePage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [voiceModels]);
 
+  // Auto-load history when switching to history tab
+  useEffect(() => {
+    if (activeTab === "history" && selectedApiKeyProfile) {
+      loadHistory();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, selectedApiKeyProfile]);
+
   return (
     <div className="min-h-screen bg-white/60 dark:bg-gray-900/80 backdrop-blur-sm p-6 transition-colors">
       <div className="max-w-7xl mx-auto space-y-8">
@@ -875,54 +931,107 @@ const AIVoicePage = () => {
           </p>
         </div>
 
-        {/* Status Guide */}
-        <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-gray-700 dark:text-gray-200">
-              💡 Status Guide
-            </CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400">
-              Understanding account status indicators
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-                <div>
-                  <p className="text-gray-700 dark:text-gray-200 font-medium">
-                    Green - Healthy
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    100,000+ credits remaining
-                  </p>
-                </div>
+        {/* Sub-Tab Navigation */}
+        <div className="flex justify-center">
+          <div className="inline-flex gap-2 p-1 bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-xl">
+            <button
+              onClick={() => setActiveTab("generation")}
+              className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                activeTab === "generation"
+                  ? "bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-md"
+                  : "text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Volume2 size={18} />
+                <span>Voice Generation</span>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
-                <div>
-                  <p className="text-gray-700 dark:text-gray-200 font-medium">
-                    Yellow - Low Credits
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Below 100,000 remaining
-                  </p>
-                </div>
+            </button>
+            <button
+              onClick={() => setActiveTab("history")}
+              className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                activeTab === "history"
+                  ? "bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-md"
+                  : "text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Clock size={18} />
+                <span>History & Sales</span>
+                {historyEntries.length > 0 && (
+                  <span className="ml-1 px-2 py-0.5 bg-pink-500 text-white text-xs rounded-full">
+                    {historyEntries.length}
+                  </span>
+                )}
               </div>
-              <div className="flex items-center gap-3">
-                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                <div>
-                  <p className="text-gray-700 dark:text-gray-200 font-medium">
-                    Red - Problems
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Issues, billing problems, or no credits
-                  </p>
-                </div>
+            </button>
+            <button
+              onClick={() => setActiveTab("sales")}
+              className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                activeTab === "sales"
+                  ? "bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-md"
+                  : "text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Receipt size={18} />
+                <span>Submitted Sales</span>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </button>
+          </div>
+        </div>
+
+        {/* Generation Tab Content */}
+        {activeTab === "generation" && (
+          <>
+            {/* Status Guide */}
+            <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-gray-700 dark:text-gray-200">
+                  💡 Status Guide
+                </CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-400">
+                  Understanding account status indicators
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+                    <div>
+                      <p className="text-gray-700 dark:text-gray-200 font-medium">
+                        Green - Healthy
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        100,000+ credits remaining
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
+                    <div>
+                      <p className="text-gray-700 dark:text-gray-200 font-medium">
+                        Yellow - Low Credits
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Below 100,000 remaining
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <div>
+                      <p className="text-gray-700 dark:text-gray-200 font-medium">
+                        Red - Problems
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Issues, billing problems, or no credits
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
         {/* API Profile & Balance Card */}
         <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
@@ -1078,6 +1187,34 @@ const AIVoicePage = () => {
                       ?.description || ""}
                   </p>
                 </div>
+
+                {/* Audio Tags Button for Eleven v3 */}
+                {selectedModelId === "eleven_v3" && (
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-500/10 dark:to-indigo-500/10 border border-blue-200 dark:border-blue-500/30 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Info size={20} className="text-blue-600 dark:text-blue-400" />
+                        <div>
+                          <p className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                            Audio Tags Available
+                          </p>
+                          <p className="text-xs text-blue-600 dark:text-blue-400">
+                            Use tags to control emotions, delivery, and effects
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowAudioTagsDialog(true)}
+                        className="bg-white dark:bg-gray-700 border-blue-300 dark:border-blue-500/50 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                      >
+                        <BookOpen size={16} className="mr-2" />
+                        View Guide
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -1142,97 +1279,178 @@ const AIVoicePage = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Eleven v3 Model - Only Stability Parameter */}
+                {selectedModelId === "eleven_v3" ? (
                   <div>
                     <div className="flex justify-between items-center mb-3">
-                      <Label className="text-gray-600 dark:text-gray-400 font-medium">
-                        Stability
-                      </Label>
+                      <div className="relative group">
+                        <Label className="text-gray-600 dark:text-gray-400 font-medium underline decoration-dotted cursor-help">
+                          Stability
+                        </Label>
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full left-0 mb-2 w-72 p-3 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                          <p className="font-semibold mb-2">Sets how adventurous the model can be.</p>
+                          <ul className="space-y-1">
+                            <li><span className="font-semibold">• Creative:</span> expressive, varied phrasing and tone, can even sing.</li>
+                            <li><span className="font-semibold">• Natural:</span> conversational balance.</li>
+                            <li><span className="font-semibold">• Robust:</span> precise, stable and predictable.</li>
+                          </ul>
+                          {/* Arrow */}
+                          <div className="absolute top-full left-4 -mt-1 w-2 h-2 bg-gray-900 dark:bg-gray-800 transform rotate-45"></div>
+                        </div>
+                      </div>
                       <span className="text-sm text-pink-600 dark:text-pink-400 font-mono">
-                        {stability.toFixed(2)}
+                        {stability === 0 && "Creative"}
+                        {stability === 0.5 && "Natural"}
+                        {stability === 1 && "Robust"}
+                        {stability !== 0 && stability !== 0.5 && stability !== 1 && `${(stability * 100).toFixed(0)}%`}
                       </span>
                     </div>
                     <Slider
                       value={[stability]}
                       min={0}
                       max={1}
-                      step={0.01}
+                      step={0.5}
                       onValueChange={(value) => setStability(value[0])}
                       className="py-2"
                     />
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                      Higher values make the voice more consistent between
-                      generations
-                    </p>
-                  </div>
-
-                  <div>
-                    <div className="flex justify-between items-center mb-3">
-                      <Label className="text-gray-600 dark:text-gray-400 font-medium">
-                        Similarity
-                      </Label>
-                      <span className="text-sm text-pink-600 dark:text-pink-400 font-mono">
-                        {clarity.toFixed(2)}
-                      </span>
+                    <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400 mt-2">
+                      <span>Creative</span>
+                      <span>Natural</span>
+                      <span>Robust</span>
                     </div>
-                    <Slider
-                      value={[clarity]}
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      onValueChange={(value) => setClarity(value[0])}
-                      className="py-2"
-                    />
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                      Higher values make the voice more similar to the original
-                      voice
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-3">
+                      Choose the balance between creativity and consistency
                     </p>
                   </div>
-
-                  <div>
-                    <div className="flex justify-between items-center mb-3">
-                      <Label className="text-gray-600 dark:text-gray-400 font-medium">
-                        Speed
-                      </Label>
-                      <span className="text-sm text-pink-600 dark:text-pink-400 font-mono">
-                        {speed.toFixed(2)}x
-                      </span>
+                ) : (
+                  /* Other Models - Full Parameters */
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <div className="flex justify-between items-center mb-3">
+                        <div className="relative group">
+                          <Label className="text-gray-600 dark:text-gray-400 font-medium underline decoration-dotted cursor-help">
+                            Stability
+                          </Label>
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full left-0 mb-2 w-80 p-3 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                            <p>Increasing stability will make the voice more consistent between re-generations, but it can also make it sound a bit monotone. On longer text fragments we recommend lowering this value.</p>
+                            {/* Arrow */}
+                            <div className="absolute top-full left-4 -mt-1 w-2 h-2 bg-gray-900 dark:bg-gray-800 transform rotate-45"></div>
+                          </div>
+                        </div>
+                        <span className="text-sm text-pink-600 dark:text-pink-400 font-mono">
+                          {stability.toFixed(2)}
+                        </span>
+                      </div>
+                      <Slider
+                        value={[stability]}
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        onValueChange={(value) => setStability(value[0])}
+                        className="py-2"
+                      />
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                        Higher values make the voice more consistent between
+                        generations
+                      </p>
                     </div>
-                    <Slider
-                      value={[speed]}
-                      min={0.7}
-                      max={1.2}
-                      step={0.01}
-                      onValueChange={(value) => setSpeed(value[0])}
-                      className="py-2"
-                    />
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                      Adjust speaking speed (0.7x slower to 1.2x faster)
-                    </p>
-                  </div>
 
-                  <div>
-                    <div className="flex justify-between items-center mb-3">
-                      <Label className="text-gray-600 dark:text-gray-400 font-medium">
-                        Style Exaggeration
-                      </Label>
-                      <span className="text-sm text-pink-600 dark:text-pink-400 font-mono">
-                        {styleExaggeration.toFixed(2)}
-                      </span>
+                    <div>
+                      <div className="flex justify-between items-center mb-3">
+                        <div className="relative group">
+                          <Label className="text-gray-600 dark:text-gray-400 font-medium underline decoration-dotted cursor-help">
+                            Similarity
+                          </Label>
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full left-0 mb-2 w-80 p-3 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                            <p>High enhancement boosts overall voice clarity and target speaker similarity. Very high values can cause artifacts, so adjusting this setting to find the optimal value is encouraged.</p>
+                            {/* Arrow */}
+                            <div className="absolute top-full left-4 -mt-1 w-2 h-2 bg-gray-900 dark:bg-gray-800 transform rotate-45"></div>
+                          </div>
+                        </div>
+                        <span className="text-sm text-pink-600 dark:text-pink-400 font-mono">
+                          {clarity.toFixed(2)}
+                        </span>
+                      </div>
+                      <Slider
+                        value={[clarity]}
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        onValueChange={(value) => setClarity(value[0])}
+                        className="py-2"
+                      />
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                        Higher values make the voice more similar to the original
+                        voice
+                      </p>
                     </div>
-                    <Slider
-                      value={[styleExaggeration]}
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      onValueChange={(value) => setStyleExaggeration(value[0])}
-                      className="py-2"
-                    />
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                      Higher values emphasize the voice style more strongly
-                    </p>
+
+                    <div>
+                      <div className="flex justify-between items-center mb-3">
+                        <div className="relative group">
+                          <Label className="text-gray-600 dark:text-gray-400 font-medium underline decoration-dotted cursor-help">
+                            Speed
+                          </Label>
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full left-0 mb-2 w-80 p-3 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                            <p className="mb-2">Controls the speed of the generated speech.</p>
+                            <p className="mb-2">Values below 1.0 will slow down the speech, while values above 1.0 will speed it up.</p>
+                            <p>Extreme values may affect the quality of the generated speech.</p>
+                            {/* Arrow */}
+                            <div className="absolute top-full left-4 -mt-1 w-2 h-2 bg-gray-900 dark:bg-gray-800 transform rotate-45"></div>
+                          </div>
+                        </div>
+                        <span className="text-sm text-pink-600 dark:text-pink-400 font-mono">
+                          {speed.toFixed(2)}x
+                        </span>
+                      </div>
+                      <Slider
+                        value={[speed]}
+                        min={0.7}
+                        max={1.2}
+                        step={0.01}
+                        onValueChange={(value) => setSpeed(value[0])}
+                        className="py-2"
+                      />
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                        Adjust speaking speed (0.7x slower to 1.2x faster)
+                      </p>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between items-center mb-3">
+                        <div className="relative group">
+                          <Label className="text-gray-600 dark:text-gray-400 font-medium underline decoration-dotted cursor-help">
+                            Style Exaggeration
+                          </Label>
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full left-0 mb-2 w-80 p-3 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                            <p>High values are recommended if the style of the speech should be exaggerated compared to the uploaded audio. Higher values can lead to more instability in the generated speech. Setting this to 0.0 will greatly increase generation speed and is the default setting.</p>
+                            {/* Arrow */}
+                            <div className="absolute top-full left-4 -mt-1 w-2 h-2 bg-gray-900 dark:bg-gray-800 transform rotate-45"></div>
+                          </div>
+                        </div>
+                        <span className="text-sm text-pink-600 dark:text-pink-400 font-mono">
+                          {styleExaggeration.toFixed(2)}
+                        </span>
+                      </div>
+                      <Slider
+                        value={[styleExaggeration]}
+                        min={0}
+                        max={1}
+                        step={0.01}
+                        onValueChange={(value) => setStyleExaggeration(value[0])}
+                        className="py-2"
+                      />
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+                        Higher values emphasize the voice style more strongly
+                      </p>
+                    </div>
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
 
@@ -1398,9 +1616,122 @@ const AIVoicePage = () => {
                 )}
               </CardContent>
             </Card>
+          </div>
+        </div>
+        </>
+        )}
 
-            {/* Enhanced Voice Note Sale Submission */}
-            {(generatedAudio || historyItemForSale) && (
+        {/* History & Sales Tab Content */}
+        {activeTab === "history" && (
+          <>
+            <div className="space-y-8 max-w-5xl mx-auto">
+              {/* Tab Header Info */}
+              <Card className="bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-500/10 dark:to-rose-500/10 border-pink-200 dark:border-pink-500/30 rounded-xl">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 rounded-full bg-pink-500/20">
+                      <Clock size={24} className="text-pink-600 dark:text-pink-400" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                        History & Sales Management
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
+                        Select an API profile to view your voice generation history and submit sales for voice notes.
+                        {historyEntries.length > 0 ? ` You have ${historyEntries.length} voice generations in your history.` : ''}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* API Profile Selection for History */}
+              <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-gray-700 dark:text-gray-200">
+                    Select API Profile
+                  </CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-400">
+                    Choose which account's history to view, or select "All Profiles" to see everything
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-3">
+                    <Select
+                      value={selectedApiKeyProfile}
+                      onValueChange={setSelectedApiKeyProfile}
+                    >
+                      <SelectTrigger className="bg-white dark:bg-gray-700 border-pink-200 dark:border-pink-500/30 text-gray-700 dark:text-gray-200 rounded-lg flex-1">
+                        <SelectValue placeholder="Select API profile" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white dark:bg-gray-800 border-pink-200 dark:border-pink-500/30 text-gray-700 dark:text-gray-200">
+                        <SelectItem value="all">
+                          <div className="flex items-center gap-2 py-1">
+                            <span className="font-semibold">All Profiles</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">(Combined history)</span>
+                          </div>
+                        </SelectItem>
+                        <div className="h-px bg-gray-200 dark:bg-gray-600 my-1" />
+                        {voiceModels.map((model) => (
+                          <SelectItem
+                            key={model.accountKey || model.id}
+                            value={model.accountKey || model.id}
+                          >
+                            <div className="flex items-center gap-3 py-1">
+                              <StatusIndicator
+                                status={
+                                  profileStatuses[model.accountKey || model.id] ||
+                                  "error"
+                                }
+                                profileKey={model.accountKey || model.id}
+                              />
+                              <span>{model.accountName || model.voiceName}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-white dark:bg-gray-700 border-pink-200 dark:border-pink-500/30 text-gray-700 dark:text-gray-200 hover:bg-pink-50 dark:hover:bg-gray-600 text-xs"
+                      onClick={checkAllProfileStatuses}
+                      disabled={isCheckingStatuses}
+                    >
+                      {isCheckingStatuses ? (
+                        <Loader2 size={12} className="mr-1 animate-spin" />
+                      ) : (
+                        <RefreshCw size={12} className="mr-1" />
+                      )}
+                      Refresh
+                    </Button>
+                  </div>
+                  {selectedApiKeyProfile === 'all' && (
+                    <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/30 rounded-lg mt-4">
+                      <Info
+                        size={16}
+                        className="text-blue-600 dark:text-blue-400 flex-shrink-0"
+                      />
+                      <p className="text-blue-700 dark:text-blue-300 text-sm">
+                        Showing all {historyEntries.length} voice generations across all profiles
+                      </p>
+                    </div>
+                  )}
+                  {!selectedApiKeyProfile && (
+                    <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/30 rounded-lg mt-4">
+                      <AlertTriangle
+                        size={16}
+                        className="text-yellow-600 dark:text-yellow-400 flex-shrink-0"
+                      />
+                      <p className="text-yellow-700 dark:text-yellow-300 text-sm">
+                        Please select an API profile to view your history
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Voice Note Sale Submission - Always visible in history tab */}
               <Card
                 ref={saleFormRef}
                 className={`bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl transition-all duration-300 ${
@@ -1498,13 +1829,12 @@ const AIVoicePage = () => {
                         className="text-pink-600 dark:text-pink-400"
                       />
                       <span className="text-pink-700 dark:text-pink-300 font-medium">
-                        Admin Required
+                        Sale Submission
                       </span>
                     </div>
                     <p className="text-pink-600 dark:text-pink-300 text-sm">
-                      Voice note sales are saved to Google Sheets and require
-                      admin authentication. If you get an authentication error,
-                      please refresh the page and sign in again.
+                      Voice note sales are saved to the database and tracked in your sales history.
+                      You can view all sales in the Sales Tracker page.
                     </p>
                   </div>
 
@@ -1562,6 +1892,7 @@ const AIVoicePage = () => {
                   </div>
 
                   {/* Voice Note Preview */}
+                  {(generatedAudio || historyItemForSale) ? (
                   <div className="bg-pink-50 dark:bg-gray-800/60 border border-pink-200 dark:border-pink-500/30 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Volume2
@@ -1598,6 +1929,19 @@ const AIVoicePage = () => {
                       </div>
                     )}
                   </div>
+                  ) : (
+                  <div className="bg-yellow-50 dark:bg-yellow-500/10 border border-yellow-200 dark:border-yellow-500/30 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertCircle size={16} className="text-yellow-600 dark:text-yellow-400" />
+                      <span className="text-yellow-700 dark:text-yellow-300 font-medium">
+                        No Voice Note Selected
+                      </span>
+                    </div>
+                    <p className="text-yellow-600 dark:text-yellow-300 text-sm">
+                      Generate a voice note in the Generation tab or select one from your history below to submit a sale.
+                    </p>
+                  </div>
+                  )}
 
                   {/* Status Messages */}
                   {saleSubmitStatus && (
@@ -1688,53 +2032,40 @@ const AIVoicePage = () => {
                   )}
                 </CardContent>
               </Card>
-            )}
 
-            {/* Voice History */}
-            {selectedVoice && (
-              <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
-                <CardHeader className="pb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-gray-700 dark:text-gray-200 flex items-center">
-                        <Clock size={20} className="mr-2" />
-                        Voice History
-                      </CardTitle>
-                      <CardDescription className="text-gray-600 dark:text-gray-400">
-                        Previous generations for this voice
-                      </CardDescription>
-                    </div>
-                    <div className="flex gap-3">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="bg-white dark:bg-gray-700 border-pink-200 dark:border-pink-500/30 text-gray-700 dark:text-gray-200 hover:bg-pink-50 dark:hover:bg-gray-600"
-                        onClick={() => setShowHistory(!showHistory)}
-                      >
-                        {showHistory ? "Hide" : "Show"}
-                      </Button>
-                      {showHistory && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="bg-white dark:bg-gray-700 border-pink-200 dark:border-pink-500/30 text-gray-700 dark:text-gray-200 hover:bg-pink-50 dark:hover:bg-gray-600"
-                          onClick={handleRefreshHistory}
-                          disabled={isLoadingHistory}
-                        >
-                          {isLoadingHistory ? (
-                            <Loader2 size={14} className="mr-1 animate-spin" />
-                          ) : (
-                            <RefreshCw size={14} className="mr-1" />
-                          )}
-                          Refresh
-                        </Button>
-                      )}
-                    </div>
+            {/* Voice History - Show all history for the selected API profile */}
+            <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-gray-700 dark:text-gray-200 flex items-center">
+                      <Clock size={20} className="mr-2" />
+                      Your Voice History
+                    </CardTitle>
+                    <CardDescription className="text-gray-600 dark:text-gray-400">
+                      All voice generations from your account
+                    </CardDescription>
                   </div>
-                </CardHeader>
+                  <div className="flex gap-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="bg-white dark:bg-gray-700 border-pink-200 dark:border-pink-500/30 text-gray-700 dark:text-gray-200 hover:bg-pink-50 dark:hover:bg-gray-600"
+                      onClick={handleRefreshHistory}
+                      disabled={isLoadingHistory}
+                    >
+                      {isLoadingHistory ? (
+                        <Loader2 size={14} className="mr-1 animate-spin" />
+                      ) : (
+                        <RefreshCw size={14} className="mr-1" />
+                      )}
+                      Refresh
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
 
-                {showHistory && (
-                  <CardContent>
+              <CardContent>
                     {historyError && (
                       <Alert
                         variant="destructive"
@@ -1772,6 +2103,13 @@ const AIVoicePage = () => {
                                     </p>
                                   </div>
                                   <div className="flex items-center gap-2">
+                                    {/* Show account key indicator when viewing "All Profiles" */}
+                                    {selectedApiKeyProfile === 'all' && item.account_key && (
+                                      <div className="inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold bg-blue-100 dark:bg-blue-500/20 border border-blue-300 dark:border-blue-500/50 text-blue-700 dark:text-blue-300">
+                                        <Mic size={8} className="mr-1" />
+                                        {voiceModels.find(m => m.accountKey === item.account_key)?.accountName || item.account_key}
+                                      </div>
+                                    )}
                                     {getVoiceParameters(
                                       item.history_item_id
                                     ) && (
@@ -1788,6 +2126,18 @@ const AIVoicePage = () => {
                               </AccordionTrigger>
                               <AccordionContent>
                                 <div className="bg-white/60 dark:bg-gray-800/60 p-4 rounded-lg space-y-4">
+                                  {/* Show account information */}
+                                  {item.account_key && (
+                                    <div className="flex items-center gap-2 pb-2 border-b border-gray-200 dark:border-gray-600">
+                                      <Mic size={14} className="text-blue-600 dark:text-blue-400" />
+                                      <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                                        API Profile:
+                                      </span>
+                                      <span className="text-xs text-blue-600 dark:text-blue-400 font-semibold">
+                                        {voiceModels.find(m => m.accountKey === item.account_key)?.accountName || item.account_key}
+                                      </span>
+                                    </div>
+                                  )}
                                   <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
                                     {item.text}
                                   </p>
@@ -1888,6 +2238,19 @@ const AIVoicePage = () => {
                             </AccordionItem>
                           ))}
                         </Accordion>
+                      ) : !selectedApiKeyProfile ? (
+                        <div className="text-center py-8">
+                          <AlertCircle
+                            size={48}
+                            className="mx-auto mb-3 text-yellow-500 dark:text-yellow-400"
+                          />
+                          <p className="text-gray-600 dark:text-gray-300 mb-1 font-medium">
+                            No API Profile Selected
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            Please select an API profile from the Generation tab to view your history
+                          </p>
+                        </div>
                       ) : (
                         <div className="text-center py-8">
                           <Clock
@@ -1898,15 +2261,13 @@ const AIVoicePage = () => {
                             No history found
                           </p>
                           <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Generate some audio to see it here
+                            Generate some voice notes in the Generation tab to see them here
                           </p>
                         </div>
                       )}
                     </div>
                   </CardContent>
-                )}
               </Card>
-            )}
 
             {/* Voice Note Card */}
             <VoiceNoteCard
@@ -1917,8 +2278,14 @@ const AIVoicePage = () => {
               }
               audioNo={audioNo}
             />
-          </div>
-        </div>
+            </div>
+          </>
+        )}
+
+        {/* Submitted Sales Tab Content */}
+        {activeTab === "sales" && (
+          <SubmittedSalesTab onSaleUpdated={loadVnStats} />
+        )}
 
         {/* Status Section */}
         {generationStatus && !voiceError && (
@@ -1962,6 +2329,129 @@ const AIVoicePage = () => {
           onLoadedData={() => console.log("History audio loaded successfully")}
         />
       )}
+
+      {/* Audio Tags Dialog */}
+      <Dialog open={showAudioTagsDialog} onOpenChange={setShowAudioTagsDialog}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-900">
+          <DialogHeader>
+            <DialogTitle className="text-2xl text-blue-700 dark:text-blue-300 flex items-center">
+              <Info size={24} className="mr-2" />
+              Audio Tags - Eleven v3
+            </DialogTitle>
+            <DialogDescription className="text-blue-600 dark:text-blue-400">
+              Control emotions, delivery, and sound effects with audio tags
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 mt-4">
+            {/* Introduction */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-500/10 dark:to-indigo-500/10 rounded-lg p-4 border border-blue-200 dark:border-blue-500/30">
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-3">
+                Eleven v3 introduces emotional control through audio tags. You can direct voices to laugh, whisper, act sarcastic, or express curiosity among many other styles. Speed is also controlled through audio tags.
+              </p>
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                The voice you choose and its training samples will affect tag effectiveness. Some tags work well with certain voices while others may not. Don't expect a whispering voice to suddenly shout with a <code className="bg-blue-100 dark:bg-blue-900/30 px-1 rounded text-blue-700 dark:text-blue-300">[shout]</code> tag.
+              </p>
+            </div>
+
+            {/* Voice-related tags */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-500/30">
+              <h4 className="font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center">
+                <Mic size={18} className="mr-2 text-blue-600 dark:text-blue-400" />
+                Voice-related
+              </h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">These tags control vocal delivery and emotional expression:</p>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {['[laughs]', '[laughs harder]', '[starts laughing]', '[wheezing]', '[whispers]', '[sighs]', '[exhales]', '[sarcastic]', '[curious]', '[excited]', '[crying]', '[snorts]', '[mischievously]'].map((tag) => (
+                  <code key={tag} className="bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded text-sm text-blue-700 dark:text-blue-300 font-mono">
+                    {tag}
+                  </code>
+                ))}
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-3 italic">
+                💡 These are just examples! Feel free to experiment with other emotions and vocal expressions like [shout], [anxious], [relaxed], etc.
+              </p>
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded p-3 border-l-4 border-blue-400 dark:border-blue-500">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  <span className="font-semibold">Example:</span> <span className="font-mono italic">[whispers] I never knew it could be this way, but I'm glad we're here.</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Sound effects */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-500/30">
+              <h4 className="font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center">
+                <Volume2 size={18} className="mr-2 text-blue-600 dark:text-blue-400" />
+                Sound effects
+              </h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Add environmental sounds and effects:</p>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {['[gunshot]', '[applause]', '[clapping]', '[explosion]', '[swallows]', '[gulps]'].map((tag) => (
+                  <code key={tag} className="bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded text-sm text-blue-700 dark:text-blue-300 font-mono">
+                    {tag}
+                  </code>
+                ))}
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-3 italic">
+                💡 Many more sound effects are available! Try experimenting with tags like [thunder], [door slam], [footsteps], and other sounds.
+              </p>
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded p-3 border-l-4 border-blue-400 dark:border-blue-500">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  <span className="font-semibold">Example:</span> <span className="font-mono italic">[applause] Thank you all for coming tonight! [gunshot] What was that?</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Unique and special */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-500/30">
+              <h4 className="font-semibold text-gray-700 dark:text-gray-200 mb-2 flex items-center">
+                <AlertCircle size={18} className="mr-2 text-blue-600 dark:text-blue-400" />
+                Unique and special
+              </h4>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">Experimental tags for creative applications:</p>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {['[strong X accent]', '[sings]', '[woo]', '[fart]'].map((tag) => (
+                  <code key={tag} className="bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded text-sm text-blue-700 dark:text-blue-300 font-mono">
+                    {tag}
+                  </code>
+                ))}
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-3 italic">
+                💡 ElevenLabs supports many more experimental tags! Don't be afraid to try different accents, sounds, and creative expressions.
+              </p>
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded p-3 border-l-4 border-blue-400 dark:border-blue-500 mb-3">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  <span className="font-semibold">Example:</span> <span className="font-mono italic">[strong French accent] "Zat's life, my friend — you can't control everysing."</span>
+                </p>
+              </div>
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-500/30 rounded p-3">
+                <p className="text-sm text-yellow-800 dark:text-yellow-400 flex items-start">
+                  <AlertTriangle size={16} className="mr-2 mt-0.5 flex-shrink-0" />
+                  Some experimental tags may be less consistent across different voices. Test thoroughly before production use.
+                </p>
+              </div>
+            </div>
+
+            {/* Punctuation */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-500/30">
+              <h4 className="font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                Punctuation
+              </h4>
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">Punctuation significantly affects delivery in v3:</p>
+              <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2 mb-3 ml-4">
+                <li>• <span className="font-semibold">Ellipses (…)</span> add pauses and weight</li>
+                <li>• <span className="font-semibold">Capitalization</span> increases emphasis</li>
+                <li>• <span className="font-semibold">Standard punctuation</span> provides natural speech rhythm</li>
+              </ul>
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded p-3 border-l-4 border-blue-400 dark:border-blue-500">
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  <span className="font-semibold">Example:</span> <span className="font-mono italic">"It was a VERY long day [sigh] … nobody listens anymore."</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -175,6 +175,10 @@ export async function generateVoice(
     // Check if the response is audio data
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.includes("audio")) {
+      // Get the history_item_id from response headers
+      const historyItemId = response.headers.get("x-history-item-id");
+      console.log("Received history_item_id from API:", historyItemId);
+
       // Handle audio blob response
       const audioBlob = await response.blob();
       const audioUrl = URL.createObjectURL(audioBlob);
@@ -184,6 +188,7 @@ export async function generateVoice(
         audioUrl,
         profile: apiKeyProfileKey,
         voiceId: voiceId,
+        historyItemId: historyItemId || null, // Include the history_item_id
       };
     } else {
       // Handle JSON response
