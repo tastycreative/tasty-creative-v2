@@ -95,7 +95,7 @@ export default function PodLayout({ children }: PodLayoutProps) {
     if (pathname.includes("/pricing")) return "pricing";
     if (pathname.includes("/forms")) return "forms";
     if (pathname.includes("/generative-ai")) return "generative-ai";
-    if (pathname.includes("/pod-admin")) return "admin";
+    if (pathname.includes("/pod-admin")) return "pod-admin";
     return "dashboard";
   };
 
@@ -108,7 +108,7 @@ export default function PodLayout({ children }: PodLayoutProps) {
     { id: "pricing", label: "Pricing Guide", href: "/pricing" },
     { id: "forms", label: "Gallery", href: "/gallery" },
     { id: "generative-ai", label: "Generative AI", href: "/generative-ai/voice" },
-    { id: "admin", label: "Admin", href: "/pod-admin" },
+    { id: "pod-admin", label: "POD-Admin", href: "/pod-admin" },
   ];
 
   // For model profile pages, render completely full-screen without any parent layout

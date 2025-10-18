@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useSession } from "next-auth/react";
 
 interface Message {
   id: string;
@@ -28,6 +29,8 @@ interface Message {
 }
 
 const ChatBot: React.FC = () => {
+  const { data: session, status } = useSession();
+  const isAuthenticated = status === "authenticated" && !!session?.user;
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -265,6 +268,10 @@ const ChatBot: React.FC = () => {
     </div>
   );
 
+  if (!isAuthenticated) {
+    return null;
+  }
+
   if (!isOpen) {
     return (
       <div className="fixed bottom-6 right-6 z-50">
@@ -281,11 +288,11 @@ const ChatBot: React.FC = () => {
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
-      <Card className={`transition-all gap-2 duration-300 py-0 pb-0 shadow-2xl ${
+  <Card className={`transition-all gap-2 duration-300 py-0 pb-0 shadow-2xl overflow-hidden isolate backdrop-blur-none ${
         isMinimized 
           ? 'w-80 h-16' 
           : 'w-[420px] h-[600px]'
-      } bg-white dark:bg-gray-900 border border-pink-200 dark:border-pink-900`}>
+  } !bg-[oklch(1_0_0)] dark:!bg-[oklch(0.205_0_0)] border border-pink-200 dark:border-pink-900`}>
         
         {/* Header */}
         <CardHeader className={`flex flex-row items-center justify-between bg-pink-600 text-white rounded-t-lg ${
@@ -336,8 +343,8 @@ const ChatBot: React.FC = () => {
           <>
 
             {/* Messages */}
-            <CardContent className="p-0 flex-1 flex flex-col h-[560px]">
-              <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
+            <CardContent className="p-0 flex-1 flex flex-col h-[560px] bg-[oklch(1_0_0)] dark:bg-[oklch(0.205_0_0)]">
+              <ScrollArea ref={scrollAreaRef} className="flex-1 p-4 bg-[oklch(1_0_0)] dark:bg-[oklch(0.205_0_0)]">
                 <div className="space-y-4">
                   {isInitialLoading ? (
                     <MessageSkeleton />

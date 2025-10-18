@@ -177,7 +177,7 @@ export default function OnboardingTaskModal({ task, isOpen, onClose, session }: 
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center p-2 sm:p-4 z-[10000] overflow-y-auto">
-      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-5xl border border-gray-200 dark:border-gray-700 my-4 sm:my-8">
+      <div className="rounded-xl shadow-2xl w-full max-w-5xl border my-4 sm:my-8 overflow-hidden isolate backdrop-blur-none bg-[oklch(1_0_0)] dark:bg-[oklch(0.205_0_0)] border-gray-200 dark:border-gray-700">
         <div className="relative px-4 sm:px-8 py-4 sm:py-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-start justify-between">
             <div className="space-y-3">
@@ -232,7 +232,7 @@ export default function OnboardingTaskModal({ task, isOpen, onClose, session }: 
         </div>
 
         <div className="flex flex-col lg:flex-row">
-          <div className="flex-1 p-4 sm:p-8">
+          <div className="flex-1 p-4 sm:p-8 bg-[oklch(1_0_0)] dark:bg-[oklch(0.205_0_0)]">
             <div className="space-y-8">
               <div>
                 <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">Description</h4>
@@ -495,7 +495,7 @@ export default function OnboardingTaskModal({ task, isOpen, onClose, session }: 
             </div>
           </div>
 
-          <div className="w-full lg:w-80 lg:max-w-80 lg:flex-shrink-0 bg-gray-50/50 dark:bg-gray-800/30 border-t lg:border-t-0 lg:border-l border-gray-200/50 dark:border-gray-700/50 p-4 sm:p-6">
+          <div className="w-full lg:w-80 lg:max-w-80 lg:flex-shrink-0 bg-gray-50 dark:bg-gray-800 border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700 p-4 sm:p-6">
             <div className="space-y-4 sm:space-y-6 min-w-0">
               {/* Status */}
               <div>

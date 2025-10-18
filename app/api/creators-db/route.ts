@@ -39,11 +39,12 @@ export async function GET(request: Request) {
     const clientModels = await prisma.clientModel.findMany({
       where: whereCondition,
       include: {
-        contentDetails: true
+        // ContentDetails is a 1:1 relation in prisma schema
+        contentDetails: true,
       },
       orderBy: {
-        clientName: 'asc'
-      }
+        clientName: 'asc',
+      },
     });
     
     console.log(`📊 Fetched ${clientModels.length} creators from database`);
@@ -71,7 +72,7 @@ export async function GET(request: Request) {
         }
       }
 
-      return {
+  return {
         id: model.id,
         name: model.clientName,
         guaranteed: model.guaranteed || null, // Using guaranteed field
@@ -88,9 +89,10 @@ export async function GET(request: Request) {
         restrictedTermsEmojis: model.restrictedTermsEmojis,
         notes: model.notes,
         generalNotes: model.generalNotes,
-        row_id: model.row_id, // Add row_id from ClientModel
-        contentDetails: model.contentDetails[0], // Assuming one content detail per model
-        modelDetails: modelDetails // Add the client model details
+  row_id: model.row_id, // Add row_id from ClientModel
+  // Use the singular ContentDetails object (not an array)
+  contentDetails: model.contentDetails,
+  modelDetails: modelDetails, // Add the client model details
       };
     }));
 
@@ -146,12 +148,13 @@ export async function GET(request: Request) {
     // Populate pricing data for each creator - include ALL content details columns
     clientModels.forEach((model: any) => {
       const creatorName = model.clientName;
-      const content = model.contentDetails[0];
+      // ContentDetails is a singular object
+      const content = model.contentDetails;
       
       // Always create pricing entries, even if content is null/empty
       
       // Content Price Ranges group (Group 1)
-      (pricingGroups[0].pricing as any)[creatorName] = {
+  (pricingGroups[0].pricing as any)[creatorName] = {
         'Boob Content': content?.boobContent || '',
         'Pussy Content': content?.pussyContent || '',
         'Solo Squirt Content': content?.soloSquirtContent || '',
@@ -170,13 +173,13 @@ export async function GET(request: Request) {
       };
 
       // Custom Content group (Group 2)
-      (pricingGroups[1].pricing as any)[creatorName] = {
+  (pricingGroups[1].pricing as any)[creatorName] = {
         'Custom Video Pricing': content?.customVideoPricing || '',
         'Custom Call Pricing': content?.customCallPricing || ''
       };
 
       // Bundle Contents group (Group 3)
-      (pricingGroups[2].pricing as any)[creatorName] = {
+  (pricingGroups[2].pricing as any)[creatorName] = {
         '$5-10 Bundle Content': content?.bundleContent5_10 || '',
         '$10-15 Bundle Content': content?.bundleContent10_15 || '',
         '$15-20 Bundle Content': content?.bundleContent15_20 || '',

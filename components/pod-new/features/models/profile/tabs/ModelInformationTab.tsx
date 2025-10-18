@@ -72,6 +72,7 @@ export function ModelInformationTab({
   const runtimeContext = dbCreator
     ? { ...dbCreator, pricingData: dbPricing }
     : undefined;
+  console.log("Runtime Context:", runtimeContext);
 
   // Show skeleton while loading initial creator context
   if (!runtimeContext) {
@@ -320,6 +321,39 @@ export function ModelInformationTab({
       | undefined;
     return pricing || {};
   })();
+
+  // Helper: get a pricing group and resolved row for current creator
+  const getPricingGroup = (groupId: string): {
+    group?: { id: string; groupName: string; items: { id: string; name: string; description?: string }[]; pricing: Record<string, Record<string, string>> };
+    row?: Record<string, string>;
+  } => {
+    const groups = (runtimeContext as any)?.pricingData as
+      | Array<{
+          id: string;
+          groupName: string;
+          items: { id: string; name: string; description?: string }[];
+          pricing: Record<string, Record<string, string>>;
+        }>
+      | undefined;
+    const group = groups?.find((g) => g.id === groupId);
+    if (!group) return {};
+    const creatorKey = (
+      (runtimeContext as any)?.contentDetails?.clientModelName ||
+      (runtimeContext as any)?.name ||
+      modelData?.name ||
+      ""
+    ).trim();
+    const row = (group.pricing as any)?.[creatorKey] as
+      | Record<string, string>
+      | undefined;
+    return { group, row };
+  };
+
+  const { group: contentRangesGroup, row: contentRangesRow } =
+    getPricingGroup("content-price-ranges");
+  const { group: bundleGroup, row: bundleRow } = getPricingGroup(
+    "bundle-contents"
+  );
 
   // Analytics guards (render graceful fallbacks when data is missing)
   const analytics = modelData?.analytics;
@@ -810,7 +844,7 @@ export function ModelInformationTab({
               </div>
             </div>
 
-            {/* Collapsible: Content Availability Matrix */}
+            {/* Collapsible: Content Price Ranges */}
             <div className="relative group overflow-hidden bg-gradient-to-br from-white via-purple-50/30 to-blue-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-blue-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm">
               <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
                 <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full -translate-y-10 translate-x-10 blur-2xl"></div>
@@ -824,38 +858,46 @@ export function ModelInformationTab({
                     >
                       <div className="flex items-center gap-2">
                         <Grid className="h-4 w-4" />
-                        <span>Content Availability Matrix</span>
+                        <span>Content Price Ranges</span>
                       </div>
                       <ChevronDown className="h-4 w-4" />
                     </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="mt-3">
                     <div className="grid gap-2 text-sm">
-                      {Object.entries({
-                        "Boob Content":
-                          runtimeContext?.contentDetails?.boobContent,
-                        "Pussy Content":
-                          runtimeContext?.contentDetails?.pussyContent,
-                        "Solo Squirt Content":
-                          runtimeContext?.contentDetails?.soloSquirtContent,
-                        "Solo Dildo Content":
-                          runtimeContext?.contentDetails?.soloDildoContent,
-                        "JOI Content":
-                          runtimeContext?.contentDetails?.joiContent,
-                        "BG Content": runtimeContext?.contentDetails?.bgContent,
-                        "Anal Content":
-                          runtimeContext?.contentDetails?.analContent,
-                      }).map(([label, value]) => (
-                        <div
-                          key={label}
-                          className="flex justify-between items-center py-1 border-b border-border/50 last:border-0"
-                        >
-                          <span className="text-muted-foreground">{label}</span>
-                          <span className="font-medium">
-                            {normalizePriceLabel((value as string) || "")}
-                          </span>
-                        </div>
-                      ))}
+                      {contentRangesGroup && contentRangesGroup.items?.length ? (
+                        contentRangesGroup.items.map((item) => {
+                          const label = item.name;
+                          const raw = contentRangesRow?.[label] ?? "";
+                          const value = normalizePriceLabel(raw);
+                          return (
+                            <div
+                              key={item.id}
+                              className="flex justify-between items-center py-1 border-b border-border/50 last:border-0"
+                            >
+                              <span className="text-muted-foreground">{label}</span>
+                              <span className="font-medium">{value}</span>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        // Fallback to a minimal subset from contentDetails if group data missing
+                        Object.entries({
+                          "Boob Content": runtimeContext?.contentDetails?.boobContent,
+                          "Pussy Content": runtimeContext?.contentDetails?.pussyContent,
+                          "Anal Content": runtimeContext?.contentDetails?.analContent,
+                        }).map(([label, value]) => (
+                          <div
+                            key={label}
+                            className="flex justify-between items-center py-1 border-b border-border/50 last:border-0"
+                          >
+                            <span className="text-muted-foreground">{label}</span>
+                            <span className="font-medium">
+                              {normalizePriceLabel((value as string) || "")}
+                            </span>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </CollapsibleContent>
                 </Collapsible>
@@ -894,6 +936,13 @@ export function ModelInformationTab({
                             "N/A"}
                         </span>
                       </div>
+                      <div className="flex justify-between">
+                        <span>Flyer Censorship</span>
+                        <span className="text-rose-600 font-medium">
+                          {runtimeContext?.contentDetails?.flyerCensorshipLimitations ||
+                            "N/A"}
+                        </span>
+                      </div>
                       <div className="flex justify-between items-center">
                         <span>Live Streams</span>
                         <Badge
@@ -926,47 +975,71 @@ export function ModelInformationTab({
                     >
                       <div className="flex items-center gap-2">
                         <Package className="h-4 w-4" />
-                        <span>Bundle Pricing Details</span>
+                        <span>Bundle Contents</span>
                       </div>
                       <ChevronDown className="h-4 w-4" />
                     </Button>
                   </CollapsibleTrigger>
                   <CollapsibleContent className="mt-3">
                     <div className="grid gap-2">
-                      {[
-                        "$5-10 Bundle Content",
-                        "$10-15 Bundle Content",
-                        "$15-20 Bundle Content",
-                        "$20-25 Bundle Content",
-                        "$25-30 Bundle Content",
-                        "$30+ Bundle Content",
-                      ].map((range) => {
-                        const content = bundlePricingSource[range] ?? "N/A";
-                        const isNA = content === "N/A";
-                        return (
-                          <div
-                            key={range}
-                            className={cn(
-                              "p-3 rounded-md border",
-                              isNA
-                                ? "opacity-60 border-border/50"
-                                : "border-border/80"
-                            )}
-                          >
-                            <div className="flex justify-between items-center">
-                              <span className="font-medium text-sm">
-                                {range}
-                              </span>
-                              <Badge
-                                variant={isNA ? "secondary" : "default"}
-                                className="text-xs"
-                              >
-                                {content}
-                              </Badge>
+                      {bundleGroup && bundleGroup.items?.length ? (
+                        bundleGroup.items.map((item) => {
+                          const label = item.name;
+                          const content = bundleRow?.[label] ?? "N/A";
+                          const isNA = !content || content.trim() === "" || content === "N/A";
+                          return (
+                            <div
+                              key={item.id}
+                              className={cn(
+                                "p-3 rounded-md border",
+                                isNA ? "opacity-60 border-border/50" : "border-border/80"
+                              )}
+                            >
+                              <div className="flex justify-between items-center">
+                                <span className="font-medium text-sm">{label}</span>
+                                <Badge
+                                  variant={isNA ? "secondary" : "default"}
+                                  className="text-xs"
+                                >
+                                  {isNA ? "N/A" : content}
+                                </Badge>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })
+                      ) : (
+                        // Fallback to known ranges if group missing
+                        [
+                          "$5-10 Bundle Content",
+                          "$10-15 Bundle Content",
+                          "$15-20 Bundle Content",
+                          "$20-25 Bundle Content",
+                          "$25-30 Bundle Content",
+                          "$30+ Bundle Content",
+                        ].map((range) => {
+                          const content = (bundlePricingSource as any)[range] ?? "N/A";
+                          const isNA = content === "N/A";
+                          return (
+                            <div
+                              key={range}
+                              className={cn(
+                                "p-3 rounded-md border",
+                                isNA ? "opacity-60 border-border/50" : "border-border/80"
+                              )}
+                            >
+                              <div className="flex justify-between items-center">
+                                <span className="font-medium text-sm">{range}</span>
+                                <Badge
+                                  variant={isNA ? "secondary" : "default"}
+                                  className="text-xs"
+                                >
+                                  {content}
+                                </Badge>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
                   </CollapsibleContent>
                 </Collapsible>

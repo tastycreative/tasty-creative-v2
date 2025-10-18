@@ -120,7 +120,7 @@ const navigation: { title: string; items: NavItem[] }[] = [
     title: "Settings",
     items: [
       { title: "Settings", href: "/settings", icon: Settings },
-      { title: "Admin", href: "/pod-admin", icon: Shield },
+      { title: "Admin", href: "/admin", icon: Shield },
     ],
   },
 ];

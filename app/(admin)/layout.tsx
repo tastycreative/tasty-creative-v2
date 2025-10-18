@@ -22,11 +22,7 @@ export default function AdminLayout({
 
           {/* Main Content */}
           <div className="flex-1 transition-all duration-300">
-            <main className="min-h-screen">
-              <PermissionGoogle apiEndpoint={`/api/forms/list`}>
-                {children}
-              </PermissionGoogle>
-            </main>
+            <main className="min-h-screen">{children}</main>
           </div>
         </div>
       </div>
