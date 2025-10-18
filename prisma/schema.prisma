@@ -24,10 +24,10 @@ model User {
   assignedBoardColumns       BoardColumnMemberAssignment[] @relation("BoardColumnAssignedUser")
   chatbotConversations       ChatbotConversation[]
   ContentSubmission          ContentSubmission[]
-  ForumComment               ForumComment[]
-  ForumVote                  ForumVote[]
+  forumComments              ForumComment[]
+  forumVotes                 ForumVote[]
   ModerationLog              ModerationLog[]
-  ModularWorkflow            ModularWorkflow[]
+  ModularWorkflow            ModularWorkflow[]             @relation("ModularWorkflowCreator")
   notifications              Notification[]
   pageViews                  PageView[]
   createdPodTeams            PodTeam[]                     @relation("PodTeamCreator")
@@ -229,7 +229,7 @@ model Task {
   status              String                @default("NOT_STARTED")
   podTeamId           String?
   taskNumber          Int                   @default(autoincrement())
-  ModularWorkflow     ModularWorkflow?
+  ModularWorkflow     ModularWorkflow?      @relation("ModularWorkflowTask")
   notifications       Notification[]
   ContentSubmission   ContentSubmission?    @relation(fields: [contentSubmissionId], references: [id])
   createdBy           User                  @relation("TaskCreator", fields: [createdById], references: [id])
@@ -395,12 +395,12 @@ model ClientModelDetails {
   verbiage_restrictions String?
   wall_restrictions     String?
   calendar_id           String?
+  clientOnlyFansAlbum   String?
+  clientSocialAlbums    String?
+  clientCustomSheet     String?
   onboardingCompleted   Boolean?             @default(false)
   status                String?
   model_name            String?
-  clientCustomSheet     String?
-  clientOnlyFansAlbum   String?
-  clientSocialAlbums    String?
   onboardingProgress    OnboardingProgress[]
 }
 
@@ -553,6 +553,42 @@ model ContentSubmission {
   @@index([submissionType])
 }
 
+model ModularWorkflow {
+  id                 String             @id @default(cuid())
+  submissionType     SubmissionType
+  contentStyle       ContentStyle
+  selectedComponents Json
+  componentData      Json?
+  workflowTemplate   String?
+  modelName          String
+  priority           SubmissionPriority
+  driveLink          String
+  contentDescription String
+  attachments        Json?
+  estimatedDuration  Int?
+  teamAssignments    Json?
+  createdById        String
+  teamId             String?
+  taskId             String?            @unique
+  status             WorkflowStatus     @default(PENDING)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  processedAt        DateTime?
+  timezone           String?
+  createdBy          User               @relation("ModularWorkflowCreator", fields: [createdById], references: [id])
+  task               Task?              @relation("ModularWorkflowTask", fields: [taskId], references: [id])
+  notifications      Notification[]
+
+  @@index([createdAt])
+  @@index([createdById])
+  @@index([modelName])
+  @@index([priority])
+  @@index([status])
+  @@index([submissionType])
+  @@index([contentStyle])
+  @@index([teamId])
+}
+
 model Attachment {
   id       String         @id
   postId   String
@@ -594,23 +630,23 @@ model ModerationLog {
 }
 
 model Post {
-  id           String         @id
-  threadId     String
-  authorId     String
-  content_md   String
-  content_html String
-  parentPostId String?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime
-  editedAt     DateTime?
-  Attachment   Attachment[]
-  ForumComment ForumComment[]
-  ForumVote    ForumVote[]
-  User         User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  Post         Post?          @relation("PostToPost", fields: [parentPostId], references: [id])
-  other_Post   Post[]         @relation("PostToPost")
-  Thread       Thread         @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  PostReaction PostReaction[]
+  id            String         @id
+  threadId      String
+  authorId      String
+  content_md    String
+  content_html  String
+  parentPostId  String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime
+  editedAt      DateTime?
+  Attachment    Attachment[]
+  forumComments ForumComment[]
+  forumVotes    ForumVote[]
+  User          User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  Post          Post?          @relation("PostToPost", fields: [parentPostId], references: [id])
+  other_Post    Post[]         @relation("PostToPost")
+  Thread        Thread         @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  PostReaction  PostReaction[]
 
   @@index([authorId])
   @@index([createdAt])
@@ -632,22 +668,22 @@ model PostReaction {
 }
 
 model Thread {
-  id             String           @id
-  modelId        String
-  categoryId     String
-  title          String
-  authorId       String
-  pinned         Boolean          @default(false)
-  locked         Boolean          @default(false)
-  solved         Boolean          @default(false)
-  views          Int              @default(0)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime
-  ForumThreadTag ForumThreadTag[]
-  Post           Post[]
-  User           User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  ForumCategory  ForumCategory    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  ThreadWatcher  ThreadWatcher[]
+  id              String           @id
+  modelId         String
+  categoryId      String
+  title           String
+  authorId        String
+  pinned          Boolean          @default(false)
+  locked          Boolean          @default(false)
+  solved          Boolean          @default(false)
+  views           Int              @default(0)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime
+  forumThreadTags ForumThreadTag[]
+  Post            Post[]
+  User            User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  ForumCategory   ForumCategory    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  ThreadWatcher   ThreadWatcher[]
 
   @@index([authorId])
   @@index([createdAt])
@@ -701,34 +737,63 @@ model Notification {
   @@index([modularWorkflowId])
 }
 
-model ForumAnalytics {
-  id      String   @id
-  modelId String
-  metric  String
-  value   Float
-  date    DateTime @default(now())
-
-  @@index([date])
-  @@index([metric])
-  @@index([modelId])
-}
-
 model ForumComment {
-  id        String   @id
+  id        String   @id @default(cuid())
   postId    String
   authorId  String
   content   String
   createdAt DateTime @default(now())
-  updatedAt DateTime
-  User      User     @relation(fields: [authorId], references: [id])
-  Post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  updatedAt DateTime @updatedAt
+  author    User     @relation(fields: [authorId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 
-  @@index([authorId])
   @@index([postId])
+  @@index([authorId])
+}
+
+model ForumVote {
+  id        String        @id @default(cuid())
+  postId    String
+  userId    String
+  voteType  ForumVoteType
+  createdAt DateTime      @default(now())
+  post      Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id])
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model ForumTag {
+  id        String           @id @default(cuid())
+  modelId   String
+  name      String
+  slug      String
+  color     String?
+  createdAt DateTime         @default(now())
+  threads   ForumThreadTag[]
+
+  @@unique([modelId, slug])
+  @@index([modelId])
+  @@index([slug])
+}
+
+model ForumThreadTag {
+  id        String   @id @default(cuid())
+  threadId  String
+  tagId     String
+  createdAt DateTime @default(now())
+  tag       ForumTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@unique([threadId, tagId])
+  @@index([threadId])
+  @@index([tagId])
 }
 
 model ForumStats {
-  id           String   @id
+  id           String   @id @default(cuid())
   modelId      String
   totalThreads Int      @default(0)
   totalPosts   Int      @default(0)
@@ -737,85 +802,20 @@ model ForumStats {
   date         DateTime @default(now())
 
   @@unique([modelId, date])
+  @@index([modelId])
   @@index([date])
+}
+
+model ForumAnalytics {
+  id      String   @id @default(cuid())
+  modelId String
+  metric  String
+  value   Float
+  date    DateTime @default(now())
+
   @@index([modelId])
-}
-
-model ForumTag {
-  id             String           @id
-  modelId        String
-  name           String
-  slug           String
-  color          String?
-  createdAt      DateTime         @default(now())
-  ForumThreadTag ForumThreadTag[]
-
-  @@unique([modelId, slug])
-  @@index([modelId])
-  @@index([slug])
-}
-
-model ForumThreadTag {
-  id        String   @id
-  threadId  String
-  tagId     String
-  createdAt DateTime @default(now())
-  ForumTag  ForumTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
-  Thread    Thread   @relation(fields: [threadId], references: [id], onDelete: Cascade)
-
-  @@unique([threadId, tagId])
-  @@index([tagId])
-  @@index([threadId])
-}
-
-model ForumVote {
-  id        String        @id
-  postId    String
-  userId    String
-  voteType  ForumVoteType
-  createdAt DateTime      @default(now())
-  Post      Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
-  User      User          @relation(fields: [userId], references: [id])
-
-  @@unique([postId, userId])
-  @@index([postId])
-  @@index([userId])
-}
-
-model ModularWorkflow {
-  id                 String             @id
-  submissionType     SubmissionType
-  contentStyle       ContentStyle
-  selectedComponents Json
-  componentData      Json?
-  workflowTemplate   String?
-  modelName          String
-  priority           SubmissionPriority
-  driveLink          String
-  contentDescription String
-  attachments        Json?
-  estimatedDuration  Int?
-  teamAssignments    Json?
-  createdById        String
-  teamId             String?
-  taskId             String?            @unique
-  status             WorkflowStatus     @default(PENDING)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime
-  processedAt        DateTime?
-  timezone           String?
-  User               User               @relation(fields: [createdById], references: [id])
-  Task               Task?              @relation(fields: [taskId], references: [id])
-  Notification       Notification[]
-
-  @@index([contentStyle])
-  @@index([createdAt])
-  @@index([createdById])
-  @@index([modelName])
-  @@index([priority])
-  @@index([status])
-  @@index([submissionType])
-  @@index([teamId])
+  @@index([metric])
+  @@index([date])
 }
 
 model UserActivityHistory {
@@ -930,6 +930,22 @@ enum SubmissionType {
   PTR
 }
 
+enum ContentStyle {
+  NORMAL
+  GAME
+  POLL
+  LIVESTREAM
+  BUNDLE
+}
+
+enum WorkflowStatus {
+  PENDING
+  PROCESSING
+  TASK_CREATED
+  COMPLETED
+  CANCELLED
+}
+
 enum PodMemberRole {
   LEADER
   MEMBER
@@ -988,22 +1004,6 @@ enum NotificationType {
 enum ForumVoteType {
   UPVOTE
   DOWNVOTE
-}
-
-enum ContentStyle {
-  NORMAL
-  GAME
-  POLL
-  LIVESTREAM
-  BUNDLE
-}
-
-enum WorkflowStatus {
-  PENDING
-  PROCESSING
-  TASK_CREATED
-  COMPLETED
-  CANCELLED
 }
 
 enum UserActivityType {

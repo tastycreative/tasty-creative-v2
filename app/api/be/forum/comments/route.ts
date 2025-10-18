@@ -2,12 +2,16 @@
 
 import { NextRequest } from "next/server";
 import { auth } from "../../../../../auth";
+import { ForumComment } from "../../../../lib/forum-api";
 
-const BACKEND_URL = process.env.BACKEND_API_URL || "http://localhost:3000";
+// Import mock posts data from posts route (in real implementation this would be database)
+// For now, create a simple reference to the mock data
+declare global {
+  var mockPosts: any[] | undefined;
+  var nextCommentId: number | undefined;
+}
 
 export async function POST(request: NextRequest) {
-  const backendUrl = `${BACKEND_URL}/forum/comments`;
-
   try {
     // Get session information
     const session = await auth();
@@ -28,32 +32,31 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     
-    const fetchRes = await fetch(backendUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        // Pass user information to backend
-        "x-user-id": session.user.id,
-        "x-user-email": user.email || session.user.email || "",
-        "x-user-name": user.name || session.user.name || "",
-        "x-user-username": user.username, // Pass the actual username from Prisma
+    // Create new comment
+    const newComment: ForumComment = {
+      id: global.nextCommentId || 100, // Use a high starting number to avoid conflicts
+      content: body.content,
+      author: {
+        id: parseInt(session.user.id.slice(-3), 36), // Generate a numeric ID from string ID
+        username: user.username,
+        avatar: user.username.substring(0, 2).toUpperCase()
       },
-      body: JSON.stringify(body),
-    });
+      upvotes: 0,
+      downvotes: 0,
+      score: 0,
+      timestamp: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
 
-    if (!fetchRes.ok) {
-      const errorData = await fetchRes.json().catch(() => ({}));
-      return new Response(JSON.stringify(errorData), {
-        status: fetchRes.status,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+    global.nextCommentId = (global.nextCommentId || 100) + 1;
 
-    const data = await fetchRes.json();
-    return Response.json(data);
+    // In a real implementation, you would add the comment to the database
+    // For now, we'll just return the comment (the frontend handles adding it to the UI)
+    
+    return Response.json(newComment);
   } catch (err) {
-    console.error("Forum comment creation proxy error:", err);
+    console.error("Forum comment creation error:", err);
     return new Response("Failed to create forum comment", { status: 500 });
   }
 }

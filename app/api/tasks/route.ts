@@ -134,6 +134,20 @@ export async function GET(request: NextRequest) {
             projectPrefix: true,
           },
         },
+        ModularWorkflow: {
+          select: {
+            id: true,
+            submissionType: true,
+            contentStyle: true,
+            selectedComponents: true,
+            componentData: true,
+            modelName: true,
+            priority: true,
+            driveLink: true,
+            status: true,
+            createdAt: true,
+          },
+        },
       },
       orderBy: {
         createdAt: 'desc',

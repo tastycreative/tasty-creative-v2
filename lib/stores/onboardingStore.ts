@@ -61,6 +61,9 @@ export interface ClientModelDetails {
   amazon_wishlist: string | null;
   tone_language: string | null;
   calendar_id: string | null;
+  clientOnlyFansAlbum: string | null;
+  clientSocialAlbums: string | null;
+  clientCustomSheet: string | null;
   onboardingCompleted: boolean;
   status: string | null;
   createdAt: string;

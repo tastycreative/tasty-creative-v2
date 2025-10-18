@@ -45,6 +45,33 @@ export interface Task {
     name: string | null;
     email: string | null;
   } | null;
+  // Modular Workflow information
+  ModularWorkflow?: {
+    id: string;
+    submissionType: 'OTP' | 'PTR';
+    contentStyle: 'NORMAL' | 'GAME' | 'POLL' | 'LIVESTREAM';
+    selectedComponents: string[];
+    componentData: Record<string, any> | null;
+    modelName: string;
+    priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+    driveLink: string;
+    status: string;
+    createdAt: string;
+  } | null;
+  // Content Submission information (legacy OTP/PTR)
+  ContentSubmission?: {
+    id: string;
+    submissionType: 'OTP' | 'PTR';
+    modelName: string;
+    priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+    driveLink: string;
+    contentDescription: string;
+    status: string;
+    createdAt: string;
+    releaseDate?: string | null;
+    releaseTime?: string | null;
+    minimumPrice?: string | null;
+  } | null;
 }
 
 // Cache configuration
@@ -65,6 +92,7 @@ export interface APIError {
 export type PriorityFilter = 'ALL' | 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 export type AssigneeFilter = 'ALL' | 'ASSIGNED' | 'UNASSIGNED' | 'MY_TASKS';
 export type DueDateFilter = 'ALL' | 'OVERDUE' | 'TODAY' | 'WEEK';
+export type WorkflowFilter = 'ALL' | 'NORMAL' | 'GAME' | 'POLL' | 'LIVESTREAM' | 'LEGACY';
 export type SortField = 'createdAt' | 'updatedAt' | 'dueDate' | 'priority' | 'title';
 export type SortOrder = 'asc' | 'desc';
 
@@ -212,6 +240,7 @@ export interface BoardStore {
   priorityFilter: PriorityFilter;
   assigneeFilter: AssigneeFilter;
   dueDateFilter: DueDateFilter;
+  workflowFilter: WorkflowFilter;
   sortBy: SortField;
   sortOrder: SortOrder;
   showFilters: boolean;
@@ -244,6 +273,7 @@ export interface BoardStore {
   setPriorityFilter: (filter: PriorityFilter) => void;
   setAssigneeFilter: (filter: AssigneeFilter) => void;
   setDueDateFilter: (filter: DueDateFilter) => void;
+  setWorkflowFilter: (filter: WorkflowFilter) => void;
   setSortBy: (field: SortField) => void;
   setSortOrder: (order: SortOrder) => void;
   setShowFilters: (show: boolean) => void;
@@ -385,6 +415,7 @@ export const useBoardStore = create<BoardStore>()(
         priorityFilter: 'ALL',
         assigneeFilter: 'ALL',
         dueDateFilter: 'ALL',
+        workflowFilter: 'ALL',
         sortBy: 'updatedAt',
         sortOrder: 'desc',
         showFilters: false,
@@ -865,6 +896,7 @@ export const useBoardStore = create<BoardStore>()(
         setPriorityFilter: (filter) => set({ priorityFilter: filter }),
         setAssigneeFilter: (filter) => set({ assigneeFilter: filter }),
         setDueDateFilter: (filter) => set({ dueDateFilter: filter }),
+        setWorkflowFilter: (filter) => set({ workflowFilter: filter }),
         setSortBy: (field) => set({ sortBy: field }),
         setSortOrder: (order) => set({ sortOrder: order }),
         setShowFilters: (show) => set({ showFilters: show }),
@@ -1425,6 +1457,7 @@ export const useBoardStore = create<BoardStore>()(
           priorityFilter: state.priorityFilter,
           assigneeFilter: state.assigneeFilter,
           dueDateFilter: state.dueDateFilter,
+          workflowFilter: state.workflowFilter,
           sortBy: state.sortBy,
           sortOrder: state.sortOrder,
           showFilters: state.showFilters,
@@ -1455,23 +1488,26 @@ export const useBoardFilters = () => {
   const priorityFilter = useBoardStore((state) => state.priorityFilter);
   const assigneeFilter = useBoardStore((state) => state.assigneeFilter);
   const dueDateFilter = useBoardStore((state) => state.dueDateFilter);
+  const workflowFilter = useBoardStore((state) => state.workflowFilter);
   const sortBy = useBoardStore((state) => state.sortBy);
   const sortOrder = useBoardStore((state) => state.sortOrder);
   const showFilters = useBoardStore((state) => state.showFilters);
-  
+
   const setSearchTerm = useBoardStore((state) => state.setSearchTerm);
   const setPriorityFilter = useBoardStore((state) => state.setPriorityFilter);
   const setAssigneeFilter = useBoardStore((state) => state.setAssigneeFilter);
   const setDueDateFilter = useBoardStore((state) => state.setDueDateFilter);
+  const setWorkflowFilter = useBoardStore((state) => state.setWorkflowFilter);
   const setSortBy = useBoardStore((state) => state.setSortBy);
   const setSortOrder = useBoardStore((state) => state.setSortOrder);
   const setShowFilters = useBoardStore((state) => state.setShowFilters);
-  
+
   return {
     searchTerm,
     priorityFilter,
     assigneeFilter,
     dueDateFilter,
+    workflowFilter,
     sortBy,
     sortOrder,
     showFilters,
@@ -1479,6 +1515,7 @@ export const useBoardFilters = () => {
     setPriorityFilter,
     setAssigneeFilter,
     setDueDateFilter,
+    setWorkflowFilter,
     setSortBy,
     setSortOrder,
     setShowFilters,

@@ -3,11 +3,11 @@ import { useState } from "react";
 import { Calendar, User, Instagram, Twitter, MoreVertical, TrendingUp, Users } from "lucide-react";
 
 // Helper function to get the appropriate image URL
-const getImageUrl = (model: ModelDetails): string => {
+const getImageUrl = (model: ModelDetails): string | null => {
   const imageUrl = model.profileImage || model.profile;
   
   if (!imageUrl) {
-    return '/placeholder-image.jpg';
+    return null;
   }
   
   // Check if it's a Google Drive URL that needs proxying
@@ -42,20 +42,25 @@ function ImageWithFallback({ model }: { model: ModelDetails }) {
         <div
           className="absolute inset-0 bg-cover bg-center blur-2xl opacity-40 scale-110"
           style={{
-            backgroundImage: `url(${getImageUrl(model)})`,
+            backgroundImage: getImageUrl(model) ? `url(${getImageUrl(model)})` : 'none',
           }}
           onError={() => setBackgroundError(true)}
         />
       )}
       {/* Circular image container */}
       <div className="relative w-24 h-24 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 p-1 flex items-center justify-center z-10 shadow-2xl shadow-pink-500/25">
-        <img
-          src={getImageUrl(model)}
-          alt={model.name}
-          className="w-full h-full object-cover rounded-full"
-          loading="lazy"
-          onError={() => setImageError(true)}
-        />
+        {getImageUrl(model) ? (
+          <img
+            src={getImageUrl(model)}
+            alt={model.name}
+            className="w-full h-full object-cover rounded-full"
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <div className="w-full h-full rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+            <User className="w-8 h-8 text-gray-500 dark:text-gray-400" />
+          </div>
+        )}
       </div>
     </div>
   );

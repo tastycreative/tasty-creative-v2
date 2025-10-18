@@ -19,20 +19,20 @@ import React, {
 } from "react";
 import { Film } from "lucide-react";
 
-import { VaultPicker } from "../video-editor/VaultPicker";
 import { CanvasTimeline } from "./canvas-timeline";
 import { TextOverlayComponent } from "./text-overlay";
 import { BlurOverlayComponent } from "./blur-overlay";
 import { ImageOverlayComponent } from "./image-overlay";
 import { TemplateImages, UploadedVideos, UploadedImages } from "./assets";
 import { UploadZone } from "./upload";
-import { VaultSection } from "./vault";
 import { KeyboardShortcutsModal, TimelineToolbar, SearchBar } from "./ui";
-import Timeline from "./timeline/Timeline";
 import ProgressModal from "./ui/ProgressModal";
 import PlayerComponent from "./PlayerComponent";
 import PlayerControls from "./PlayerControls";
 import { ThemeToggle } from "../admin/ThemeToggle";
+
+// Gallery theme
+import { GalleryTheme } from "./theme/GalleryTheme";
 
 // Custom hooks for performance optimization
 import { useTimeline } from "./hooks/useTimeline";
@@ -63,7 +63,6 @@ const GifVideoEditor: React.FC = memo(() => {
     playerRef,
     setCurrentFrame,
     setSelectedClip,
-    setSelectedBlurOverlay,
     setTextOverlays,
     getNextAvailableRow,
     addClip,
@@ -83,17 +82,13 @@ const GifVideoEditor: React.FC = memo(() => {
     videoLayout,
     layerAssignments,
     setVideoLayout,
-    assignClipToLayer,
     assignClipToLayerWithAutoFit,
     getClipLayer,
     getMaxLayers,
-    getLayerClips,
     // Transform functions
     updateClipTransform,
-    resetClipTransform,
     getClipTransform,
     // Auto-fit functions
-    autoFitClip,
     setAutoFit,
     getAutoFit,
     // Selection actions
@@ -120,14 +115,6 @@ const GifVideoEditor: React.FC = memo(() => {
     "HIGH"
   );
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
-
-  // Model selection state (like in VideoEditor)
-  const [formData, setFormData] = useState<{ model?: string }>({
-    model: "",
-  });
-  const [modelType, setModelType] = useState<"FREE" | "PAID">("FREE");
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [isVaultOpen, setIsVaultOpen] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [activeMediaTab, setActiveMediaTab] = useState<"videos" | "images">(
     "videos"
@@ -166,35 +153,6 @@ const GifVideoEditor: React.FC = memo(() => {
     },
     [handleFileUploadWrapper]
   );
-
-  // Remove functions are now provided by useFileUpload hook
-
-  /**
-   * Open vault to select model assets
-   */
-  const handleOpenVault = () => {
-    if (!formData.model) {
-      alert("Please select a model first");
-      return;
-    }
-    setIsVaultOpen(true);
-  };
-
-  // Memoized vault media selection handler
-  const handleVaultMediaSelected = useCallback(
-    (files: File[]) => {
-      handleFileUploadWrapper(files);
-    },
-    [handleFileUploadWrapper]
-  );
-
-  /**
-   * Get formatted model value for VaultPicker
-   */
-  const getFinalModelValue = () => {
-    if (!formData.model || formData.model.trim() === "") return "";
-    return `${formData.model.toUpperCase()}_${modelType}`;
-  };
 
   // Timeline manipulation functions are now handled by useTimeline hook
 
@@ -369,14 +327,58 @@ const GifVideoEditor: React.FC = memo(() => {
 
   // Frame updates now handled by PlayerControls component
 
-  // Cleanup uploaded video URLs on unmount
+  // Cleanup all blob URLs on component unmount
+  // Using refs to capture current state without causing re-renders
+  const uploadedVideosRef = useRef(uploadedVideos);
+  const uploadedImagesRef = useRef(uploadedImages);
+  const clipsRef = useRef(clips);
+
+  // Update refs when data changes
+  useEffect(() => {
+    uploadedVideosRef.current = uploadedVideos;
+  }, [uploadedVideos]);
+
+  useEffect(() => {
+    uploadedImagesRef.current = uploadedImages;
+  }, [uploadedImages]);
+
+  useEffect(() => {
+    clipsRef.current = clips;
+  }, [clips]);
+
+  // Cleanup all blob URLs only on component unmount
   useEffect(() => {
     return () => {
-      uploadedVideos.forEach((video) => {
-        URL.revokeObjectURL(video.url);
+      // Clean up uploaded videos
+      uploadedVideosRef.current.forEach((video) => {
+        try {
+          URL.revokeObjectURL(video.url);
+        } catch (error) {
+          console.warn("Failed to revoke video URL:", error);
+        }
+      });
+
+      // Clean up uploaded images
+      uploadedImagesRef.current.forEach((image) => {
+        try {
+          URL.revokeObjectURL(image.url);
+        } catch (error) {
+          console.warn("Failed to revoke image URL:", error);
+        }
+      });
+
+      // Clean up clips with blob URLs
+      clipsRef.current.forEach((clip) => {
+        if (clip.src && clip.src.startsWith("blob:")) {
+          try {
+            URL.revokeObjectURL(clip.src);
+          } catch (error) {
+            console.warn("Failed to revoke clip URL:", error);
+          }
+        }
       });
     };
-  }, [uploadedVideos]);
+  }, []); // Empty dependency array - only runs on mount/unmount
 
   // Render mobile view message if on a mobile device
   if (isMobile) {
@@ -394,26 +396,29 @@ const GifVideoEditor: React.FC = memo(() => {
 
   // Main render
   return (
-    <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-slate-900 dark:to-slate-800 text-gray-900 dark:text-white overflow-hidden">
+    <div className={`flex h-screen ${GalleryTheme.background.full} text-gray-900 dark:text-white overflow-hidden`}>
       {/* Left Sidebar - Modern Media Library */}
-      <div className="w-80 bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-700 border-r border-gray-200/60 dark:border-slate-600/50 flex flex-col shadow-xl">
+      <div className={`w-80 ${GalleryTheme.sidebar.full} border-r ${GalleryTheme.border.full} flex flex-col shadow-xl relative overflow-hidden`}>
         {/* Modern Header with Glass Morphism */}
         <div className="relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-gray-200/30 dark:border-slate-700/30">
           {/* Gradient Background Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-50/20 via-purple-50/20 to-emerald-50/20 dark:from-blue-900/10 dark:via-purple-900/10 dark:to-emerald-900/10"></div>
+          <div className={`absolute inset-0 ${GalleryTheme.pattern.radial} ${GalleryTheme.pattern.opacity}`}></div>
+
+          {/* Decorative elements */}
+          <div className={GalleryTheme.decorative.topRight}></div>
 
           {/* Header Content */}
           <div className="relative p-5 pb-3">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-emerald-500 flex items-center justify-center shadow-lg">
+                <div className={`w-8 h-8 rounded-xl ${GalleryTheme.iconBox.gradient} flex items-center justify-center shadow-lg`}>
                   <Film className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                  <h2 className={`text-lg font-bold ${GalleryTheme.title.full}`}>
                     Media Library
                   </h2>
-                  <p className="text-xs text-gray-500 dark:text-slate-400 -mt-0.5">
+                  <p className={`text-xs ${GalleryTheme.text.secondary} -mt-0.5`}>
                     Manage your assets
                   </p>
                 </div>
@@ -428,8 +433,8 @@ const GifVideoEditor: React.FC = memo(() => {
               <button
                 className={`relative flex-1 px-4 py-2.5 text-sm font-semibold transition-all duration-300 rounded-lg ${
                   activeMediaTab === "videos"
-                    ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-lg shadow-blue-500/20 dark:shadow-blue-400/20"
-                    : "text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50"
+                    ? GalleryTheme.tab.active
+                    : GalleryTheme.tab.inactive
                 }`}
                 onClick={() => setActiveMediaTab("videos")}
               >
@@ -438,14 +443,14 @@ const GifVideoEditor: React.FC = memo(() => {
                   Videos
                 </span>
                 {activeMediaTab === "videos" && (
-                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
+                  <div className={`absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-6 h-0.5 ${GalleryTheme.tab.indicator} rounded-full`}></div>
                 )}
               </button>
               <button
                 className={`relative flex-1 px-4 py-2.5 text-sm font-semibold transition-all duration-300 rounded-lg ${
                   activeMediaTab === "images"
-                    ? "bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-lg shadow-emerald-500/20 dark:shadow-emerald-400/20"
-                    : "text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50"
+                    ? GalleryTheme.tab.active
+                    : GalleryTheme.tab.inactive
                 }`}
                 onClick={() => setActiveMediaTab("images")}
               >
@@ -466,7 +471,7 @@ const GifVideoEditor: React.FC = memo(() => {
                   Images
                 </span>
                 {activeMediaTab === "images" && (
-                  <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-6 h-0.5 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full"></div>
+                  <div className={`absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-6 h-0.5 ${GalleryTheme.tab.indicator} rounded-full`}></div>
                 )}
               </button>
             </div>
@@ -474,21 +479,11 @@ const GifVideoEditor: React.FC = memo(() => {
         </div>
 
         {/* Modern Content Area */}
-        <div className="flex-1 overflow-y-auto bg-gradient-to-b from-gray-50/50 to-white dark:from-slate-800/50 dark:to-slate-900">
+        <div className="flex-1 overflow-y-auto bg-gradient-to-b from-pink-50/20 via-purple-50/10 to-white dark:from-gray-800/50 dark:to-gray-900">
           <div className="p-6 space-y-6">
             {activeMediaTab === "videos" && (
               <>
                 <SearchBar placeholder="Search videos..." />
-
-                {/* <VaultSection
-                  formData={formData}
-                  setFormData={setFormData}
-                  modelType={modelType}
-                  setModelType={setModelType}
-                  fieldErrors={fieldErrors}
-                  setFieldErrors={setFieldErrors}
-                  onOpenVault={handleOpenVault}
-                /> */}
 
                 <UploadZone
                   isDragOver={isDragOver}
@@ -545,7 +540,7 @@ const GifVideoEditor: React.FC = memo(() => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
         {/* Video Preview Area */}
-        <div className="flex-1 bg-gray-200 dark:bg-slate-900 relative overflow-hidden">
+        <div className={`flex-1 ${GalleryTheme.background.full} relative overflow-hidden`}>
           {/* Full-screen player container */}
           <div className="absolute inset-0">
             {/* Optimized Player Component */}
@@ -683,12 +678,12 @@ const GifVideoEditor: React.FC = memo(() => {
             {clips.length === 0 &&
               textOverlays.length === 0 &&
               blurOverlays.length === 0 && (
-                <div className="absolute inset-0 flex items-center justify-center bg-gray-100/50 dark:bg-slate-800/50">
-                  <div className="text-center text-gray-600 dark:text-slate-400">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-200 dark:bg-slate-700 flex items-center justify-center">
-                      <Film className="w-8 h-8" />
+                <div className="absolute inset-0 flex items-center justify-center bg-white/50 dark:bg-gray-900/50">
+                  <div className={`text-center ${GalleryTheme.text.secondary}`}>
+                    <div className={`w-16 h-16 mx-auto mb-4 rounded-full ${GalleryTheme.iconBox.pink} flex items-center justify-center`}>
+                      <Film className="w-8 h-8 text-pink-600 dark:text-pink-400" />
                     </div>
-                    <p className="text-lg font-medium mb-2">No content yet</p>
+                    <p className={`text-lg font-medium mb-2 ${GalleryTheme.text.primary}`}>No content yet</p>
                     <p className="text-sm">
                       Add videos, images, or text to get started
                     </p>
@@ -699,9 +694,9 @@ const GifVideoEditor: React.FC = memo(() => {
         </div>
 
         {/* Timeline Section */}
-        <div className="bg-gray-100 dark:bg-slate-900 border-t border-gray-200 dark:border-slate-700 flex flex-col max-h-[45vh] min-h-[20rem]">
+        <div className={`${GalleryTheme.timeline.background} border-t ${GalleryTheme.timeline.border} flex flex-col max-h-[45vh] min-h-[20rem]`}>
           {/* Sticky Timeline Toolbar */}
-          <div className="sticky top-0 z-10 bg-gray-100 dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700">
+          <div className={`sticky top-0 z-10 ${GalleryTheme.timeline.toolbar} border-b ${GalleryTheme.timeline.border}`}>
             <TimelineToolbar
             selectedClipId={selectedClipId}
             selectedBlurOverlayId={selectedBlurOverlayId}
@@ -741,7 +736,7 @@ const GifVideoEditor: React.FC = memo(() => {
             />
             
             {/* Preview quality toggle */}
-            <div className="px-3 py-2 border-t border-gray-200 dark:border-slate-700 flex items-center gap-3 text-xs text-gray-600 dark:text-slate-300">
+            <div className={`px-3 py-2 border-t ${GalleryTheme.timeline.border} flex items-center gap-3 text-xs ${GalleryTheme.text.secondary}`}>
             <span>Preview quality:</span>
             <div className="flex bg-gray-100 dark:bg-slate-800 rounded-md p-1 gap-1">
               <button
@@ -799,13 +794,6 @@ const GifVideoEditor: React.FC = memo(() => {
           </div>
         </div>
       </div>
-
-      <VaultPicker
-        isOpen={isVaultOpen}
-        onClose={() => setIsVaultOpen(false)}
-        onMediaSelected={handleVaultMediaSelected}
-        combinedModel={getFinalModelValue()}
-      />
 
       <KeyboardShortcutsModal
         isOpen={showShortcuts}

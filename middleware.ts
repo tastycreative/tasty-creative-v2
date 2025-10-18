@@ -124,10 +124,11 @@ export function middleware(request: NextRequest) {
   const isAuthPage = authPages.some((page) => path.startsWith(page));
   const isVerifyPage = path.startsWith("/verify-email");
   const isApiAuth =
-    path.startsWith("/api/auth") || 
-    path.startsWith("/api/webhook") || 
+    path.startsWith("/api/auth") ||
+    path.startsWith("/api/webhook") ||
     path.startsWith("/api/hubstaff") ||
     path.startsWith("/api/media-proxy") ||
+    path.startsWith("/api/gallery-db") ||
     path.startsWith("/api/notifications") ||
     path.startsWith("/api/users");
 
