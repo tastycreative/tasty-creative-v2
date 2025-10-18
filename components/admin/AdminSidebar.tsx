@@ -92,6 +92,11 @@ const adminNavItems = [
         description: "Track sales by user",
       },
       {
+        title: "Generation Tracker",
+        href: "/admin/vn-sales/generations",
+        description: "Monitor user voice generations",
+      },
+      {
         title: "Model's Elevenlabs Accounts",
         href: "/admin/vn-sales/accounts",
         description: "Account management",

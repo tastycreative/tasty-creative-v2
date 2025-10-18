@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import {
   Card,
   CardContent,
@@ -19,6 +19,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Users,
   User,
@@ -41,6 +48,15 @@ import {
   Award,
   Clock,
   Zap,
+  MoreVertical,
+  Copy,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  Flag,
+  LineChart,
 } from "lucide-react";
 
 interface UserSale {
@@ -80,11 +96,65 @@ export default function SalesTrackerPage() {
   const [filteredSales, setFilteredSales] = useState<UserSale[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sortBy, setSortBy] = useState<"date" | "price" | "user">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [dateFilter, setDateFilter] = useState<"all" | "today" | "week" | "month">("all");
   const [modelFilter, setModelFilter] = useState<string>("all");
   const [availableModels, setAvailableModels] = useState<string[]>([]);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  
+  // Expandable sales state
+  const [expandedSales, setExpandedSales] = useState<Set<string>>(new Set());
+  
+  // Date range state
+  const [customDateRange, setCustomDateRange] = useState({ start: "", end: "" });
+  
+  // Chart visibility
+  const [showChart, setShowChart] = useState(true);
+  
+  // Mobile view detection
+  const [isMobileView, setIsMobileView] = useState(false);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1); // Reset to first page on search
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Mobile detection
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Helper function to get color for sale amount
+  const getSaleColor = (amount: number) => {
+    if (amount < 10) return "bg-yellow-100 text-yellow-700 dark:bg-yellow-500/20 dark:text-yellow-300";
+    if (amount < 50) return "bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300";
+    return "bg-gradient-to-r from-blue-500 to-purple-500 text-white";
+  };
+
+  // Helper function to toggle expanded sale
+  const toggleExpanded = (saleId: string) => {
+    const newExpanded = new Set(expandedSales);
+    if (newExpanded.has(saleId)) {
+      newExpanded.delete(saleId);
+    } else {
+      newExpanded.add(saleId);
+    }
+    setExpandedSales(newExpanded);
+  };
 
   // Load all sales data
   const loadSalesData = useCallback(async () => {
@@ -206,13 +276,25 @@ export default function SalesTrackerPage() {
       });
     }
     
-    // Search filter
-    if (searchQuery) {
+    // Custom date range filter
+    if (customDateRange.start) {
+      filtered = filtered.filter(sale => 
+        new Date(sale.soldDate) >= new Date(customDateRange.start)
+      );
+    }
+    if (customDateRange.end) {
+      filtered = filtered.filter(sale => 
+        new Date(sale.soldDate) <= new Date(customDateRange.end)
+      );
+    }
+    
+    // Search filter (use debounced search)
+    if (debouncedSearch) {
       filtered = filtered.filter(sale =>
-        sale.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        sale.voiceNote.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        sale.userName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        sale.userEmail.toLowerCase().includes(searchQuery.toLowerCase())
+        sale.model.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        sale.voiceNote.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        sale.userName.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        sale.userEmail.toLowerCase().includes(debouncedSearch.toLowerCase())
       );
     }
     
@@ -234,12 +316,48 @@ export default function SalesTrackerPage() {
     });
     
     setFilteredSales(filtered);
-  }, [sales, selectedUser, searchQuery, sortBy, sortOrder, dateFilter, modelFilter]);
+  }, [sales, selectedUser, debouncedSearch, sortBy, sortOrder, dateFilter, modelFilter, customDateRange]);
 
   // Load data on mount
   useEffect(() => {
     loadSalesData();
   }, [loadSalesData]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredSales.length / itemsPerPage);
+  const paginatedSales = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredSales.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredSales, currentPage, itemsPerPage]);
+
+  // Revenue chart data (last 7 days)
+  const chartData = useMemo(() => {
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (6 - i));
+      return {
+        date: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        revenue: 0,
+        sales: 0,
+      };
+    });
+
+    filteredSales.forEach(sale => {
+      const saleDate = new Date(sale.soldDate);
+      const daysDiff = Math.floor((new Date().getTime() - saleDate.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysDiff < 7) {
+        const index = 6 - daysDiff;
+        if (index >= 0 && index < 7) {
+          last7Days[index].revenue += sale.sale;
+          last7Days[index].sales += 1;
+        }
+      }
+    });
+
+    return last7Days;
+  }, [filteredSales]);
+
+  const maxChartRevenue = Math.max(...chartData.map(d => d.revenue), 1);
 
   // Calculate overall stats
   const overallStats = {
@@ -444,6 +562,71 @@ export default function SalesTrackerPage() {
         </div>
       )}
 
+      {/* Revenue Trend Chart */}
+      {selectedUser === "all" && showChart && (
+        <Card className="border border-gray-200 dark:border-gray-600 shadow-sm bg-white dark:bg-gray-800">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <LineChart className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                Revenue Trend (Last 7 Days)
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowChart(false)}
+              >
+                <ChevronUp className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {chartData.map((day, index) => (
+                <div key={index} className="flex items-center gap-3">
+                  <div className="text-xs font-medium text-gray-600 dark:text-gray-400 w-16">
+                    {day.date}
+                  </div>
+                  <div className="flex-1">
+                    <div className="h-8 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden relative">
+                      <div
+                        className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg transition-all duration-500"
+                        style={{ width: `${(day.revenue / maxChartRevenue) * 100}%` }}
+                      />
+                      {day.revenue > 0 && (
+                        <div className="absolute inset-0 flex items-center px-3 text-xs font-semibold text-white">
+                          {formatCurrency(day.revenue)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 w-16 text-right">
+                    {day.sales} {day.sales === 1 ? 'sale' : 'sales'}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {chartData.every(d => d.revenue === 0) && (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                No sales data in the last 7 days
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {!showChart && selectedUser === "all" && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowChart(true)}
+          className="w-full"
+        >
+          <ChevronDown className="h-4 w-4 mr-2" />
+          Show Revenue Trend Chart
+        </Button>
+      )}
+
       {/* User Selection & Filters */}
       <Card className="border border-gray-200 dark:border-gray-600 shadow-sm bg-white dark:bg-gray-800">
         <CardHeader>
@@ -453,7 +636,7 @@ export default function SalesTrackerPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
             {/* User Selection */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -535,6 +718,40 @@ export default function SalesTrackerPage() {
               </Select>
             </div>
 
+            {/* Custom Date Range - Start */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                From Date
+              </label>
+              <Input
+                type="date"
+                value={customDateRange.start}
+                onChange={(e) => {
+                  setCustomDateRange({ ...customDateRange, start: e.target.value });
+                  setDateFilter("all");
+                }}
+                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+              />
+            </div>
+
+            {/* Custom Date Range - End */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-1">
+                <Calendar className="h-3 w-3" />
+                To Date
+              </label>
+              <Input
+                type="date"
+                value={customDateRange.end}
+                onChange={(e) => {
+                  setCustomDateRange({ ...customDateRange, end: e.target.value });
+                  setDateFilter("all");
+                }}
+                className="bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
+              />
+            </div>
+
             {/* Model Filter */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -580,8 +797,10 @@ export default function SalesTrackerPage() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
 
-            {/* Search */}
+          {/* Search Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Search
@@ -594,8 +813,27 @@ export default function SalesTrackerPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600"
                 />
+                {searchQuery !== debouncedSearch && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <Loader2 size={14} className="animate-spin text-purple-500" />
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* Clear Custom Dates Button */}
+            {(customDateRange.start || customDateRange.end) && (
+              <div className="space-y-2 flex items-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCustomDateRange({ start: "", end: "" })}
+                  className="w-full dark:border-gray-600 dark:text-gray-300"
+                >
+                  Clear Custom Dates
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between pt-2">
@@ -671,24 +909,50 @@ export default function SalesTrackerPage() {
         </Card>
       )}
 
-      {/* Sales Table */}
+      {/* Sales Records with Pagination */}
       <Card className="border border-gray-200 dark:border-gray-600 shadow-sm bg-white dark:bg-gray-800">
         <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-800 dark:to-gray-700 border-b border-gray-200 dark:border-gray-600">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-2">
             <CardTitle className="text-gray-900 dark:text-gray-100 font-bold flex items-center">
               <FileText className="h-5 w-5 mr-2 text-blue-500" />
               Sales Records ({filteredSales.length})
             </CardTitle>
-            <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-              <Calendar className="h-4 w-4 mr-1" />
-              Last updated: {new Date().toLocaleTimeString()}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                <Calendar className="h-4 w-4 mr-1" />
+                Last updated: {new Date().toLocaleTimeString()}
+              </div>
+              <Select value={itemsPerPage.toString()} onValueChange={(value) => {
+                setItemsPerPage(Number(value));
+                setCurrentPage(1);
+              }}>
+                <SelectTrigger className="w-[110px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10 / page</SelectItem>
+                  <SelectItem value="25">25 / page</SelectItem>
+                  <SelectItem value="50">50 / page</SelectItem>
+                  <SelectItem value="100">100 / page</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-6">
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center gap-4 p-4 rounded-lg border">
+                  <Skeleton className="h-16 w-16 rounded" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-1/3" />
+                    <Skeleton className="h-3 w-1/2" />
+                    <Skeleton className="h-3 w-2/3" />
+                  </div>
+                  <Skeleton className="h-12 w-24" />
+                </div>
+              ))}
             </div>
           ) : filteredSales.length === 0 ? (
             <div className="text-center py-12">
@@ -699,60 +963,176 @@ export default function SalesTrackerPage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {filteredSales.map((sale) => (
-                <div
-                  key={sale.id}
-                  className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-500 transition-all"
-                >
-                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                        <span className="font-medium text-gray-900 dark:text-gray-100">
-                          {sale.userName}
-                        </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {sale.userEmail}
-                        </span>
-                      </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-300">
-                        <span className="font-medium">Model:</span> {sale.model}
-                      </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        {truncateText(sale.voiceNote, 100)}
-                      </div>
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-                        <span className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {formatDate(sale.soldDate)}
-                        </span>
-                        {sale.source && (
-                          <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">
-                            {sale.source}
-                          </span>
-                        )}
-                        <span className={`px-2 py-1 rounded ${
-                          sale.status === "Completed"
-                            ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
-                            : "bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300"
-                        }`}>
-                          {sale.status}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                        {formatCurrency(sale.sale)}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Sale Amount
+            <>
+              <div className="space-y-3">
+                {paginatedSales.map((sale) => (
+                  <div
+                    key={sale.id}
+                    className="bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-500 transition-all overflow-hidden"
+                  >
+                    <div className="p-4">
+                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                            <span className="font-medium text-gray-900 dark:text-gray-100">
+                              {sale.userName}
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              {sale.userEmail}
+                            </span>
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-300">
+                            <span className="font-medium">Model:</span> {sale.model}
+                          </div>
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
+                            {expandedSales.has(sale.id) 
+                              ? sale.voiceNote 
+                              : truncateText(sale.voiceNote, 100)}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-3 text-xs">
+                            <span className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+                              <Clock className="h-3 w-3" />
+                              {formatDate(sale.soldDate)}
+                            </span>
+                            {sale.source && (
+                              <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">
+                                {sale.source}
+                              </span>
+                            )}
+                            <span className={`px-2 py-1 rounded ${
+                              sale.status === "Completed"
+                                ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+                                : "bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300"
+                            }`}>
+                              {sale.status}
+                            </span>
+                            {sale.voiceNote.length > 100 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => toggleExpanded(sale.id)}
+                                className="h-6 text-xs text-purple-600 dark:text-purple-400"
+                              >
+                                {expandedSales.has(sale.id) ? (
+                                  <>
+                                    <ChevronUp className="h-3 w-3 mr-1" />
+                                    Show Less
+                                  </>
+                                ) : (
+                                  <>
+                                    <ChevronDown className="h-3 w-3 mr-1" />
+                                    Show More
+                                  </>
+                                )}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <div className={`text-2xl font-bold px-3 py-1 rounded-lg ${getSaleColor(sale.sale)}`}>
+                              {formatCurrency(sale.sale)}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              Sale Amount
+                            </div>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MoreVertical size={16} />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => toggleExpanded(sale.id)}>
+                                <Eye size={14} className="mr-2" />
+                                {expandedSales.has(sale.id) ? 'Hide Details' : 'View Details'}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                const text = `${sale.userName} - ${sale.model}\n${formatCurrency(sale.sale)} - ${formatDate(sale.soldDate)}\n${sale.voiceNote}`;
+                                navigator.clipboard.writeText(text);
+                              }}>
+                                <Copy size={14} className="mr-2" />
+                                Copy Info
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                setSelectedUser(sale.userId);
+                              }}>
+                                <User size={14} className="mr-2" />
+                                Filter by User
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                setModelFilter(sale.model);
+                              }}>
+                                <Zap size={14} className="mr-2" />
+                                Filter by Model
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
                     </div>
                   </div>
+                ))}
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Showing {((currentPage - 1) * itemsPerPage) + 1} to{' '}
+                    {Math.min(currentPage * itemsPerPage, filteredSales.length)} of{' '}
+                    {filteredSales.length} results
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft size={16} className="mr-1" />
+                      Previous
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+                        return (
+                          <Button
+                            key={pageNum}
+                            variant={currentPage === pageNum ? "default" : "outline"}
+                            size="sm"
+                            className="w-8 h-8 p-0"
+                            onClick={() => setCurrentPage(pageNum)}
+                          >
+                            {pageNum}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                      <ChevronRight size={16} className="ml-1" />
+                    </Button>
+                  </div>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

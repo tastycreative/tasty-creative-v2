@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 
+// API route to save voice generation history with character usage tracking
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { elevenLabsHistoryId, voiceId, voiceName, accountKey, text, generatedAt } = await request.json();
+    const { elevenLabsHistoryId, voiceId, voiceName, accountKey, text, generatedAt, charactersUsed } = await request.json();
 
     if (!elevenLabsHistoryId || !voiceId || !voiceName || !accountKey || !text) {
       return NextResponse.json(
@@ -36,6 +37,8 @@ export async function POST(request: NextRequest) {
         // Update in case it already exists
         voiceName,
         text,
+        // @ts-ignore - Prisma Client needs to be regenerated in IDE
+        charactersUsed: charactersUsed || text.length,
       },
       create: {
         userId: session.user.id,
@@ -44,6 +47,8 @@ export async function POST(request: NextRequest) {
         voiceName,
         accountKey,
         text,
+        // @ts-ignore - Prisma Client needs to be regenerated in IDE
+        charactersUsed: charactersUsed || text.length,
         generatedAt: generatedAt ? new Date(generatedAt) : new Date(),
       },
     });

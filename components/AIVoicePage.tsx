@@ -104,6 +104,7 @@ interface HistoryItem {
   voice_name?: string;
   date_unix: number;
   account_key?: string; // Track which API profile was used
+  characters_used?: number; // Track how many characters were used
 }
 
 interface HistoryAudio {
@@ -520,6 +521,7 @@ const AIVoicePage = () => {
             voiceName: selectedVoiceDetails.name,
             accountKey: selectedApiKeyProfile,
             text: voiceText,
+            charactersUsed: voiceText.length, // Track character count used
             generatedAt: new Date().toISOString(),
           }),
         });
@@ -2116,6 +2118,13 @@ const AIVoicePage = () => {
                                         {voiceModels.find(m => m.accountKey === item.account_key)?.accountName || item.account_key}
                                       </div>
                                     )}
+                                    {/* Show credits usage */}
+                                    {item.characters_used && (
+                                      <div className="inline-flex items-center rounded-full px-2 py-1 text-xs font-semibold bg-green-100 dark:bg-green-500/20 border border-green-300 dark:border-green-500/50 text-green-700 dark:text-green-300">
+                                        <span className="font-mono">{item.characters_used.toLocaleString()}</span>
+                                        <span className="ml-1">credits</span>
+                                      </div>
+                                    )}
                                     {getVoiceParameters(
                                       item.history_item_id
                                     ) && (
@@ -2147,10 +2156,18 @@ const AIVoicePage = () => {
                                   <p className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed">
                                     {item.text}
                                   </p>
-                                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                                    Generated:{" "}
-                                    {formatDate(item.date_unix * 1000)}
-                                  </p>
+                                  <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
+                                    <span>
+                                      Generated:{" "}
+                                      {formatDate(item.date_unix * 1000)}
+                                    </span>
+                                    {item.characters_used && (
+                                      <span className="inline-flex items-center px-2 py-1 rounded bg-green-50 dark:bg-green-500/10 text-green-700 dark:text-green-300 font-semibold">
+                                        <span className="font-mono">{item.characters_used.toLocaleString()}</span>
+                                        <span className="ml-1">credits used</span>
+                                      </span>
+                                    )}
+                                  </div>
 
                                   <div className="flex flex-wrap gap-2">
                                     <Button

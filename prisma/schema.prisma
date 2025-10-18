@@ -172,6 +172,7 @@ model VoiceNoteHistory {
   voiceName         String
   accountKey        String  // Which ElevenLabs account was used
   text              String  @db.Text
+  charactersUsed    Int?     // Number of characters used for this generation
   generatedAt       DateTime
   createdAt         DateTime @default(now())
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)

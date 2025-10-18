@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
         voice_name: item.voiceName,
         date_unix: Math.floor(item.generatedAt.getTime() / 1000),
         account_key: item.accountKey, // Include account key to show which profile was used
+        characters_used: item.charactersUsed || item.text.length, // Include character count
       })),
       pagination: {
         pageIndex: 1,
