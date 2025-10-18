@@ -44,6 +44,7 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 import VoiceNoteCard from "@/components/VoiceNoteCard";
+import SubmittedSalesTab from "@/components/SubmittedSalesTab";
 
 import {
   generateVoice,
@@ -101,6 +102,9 @@ interface HistoryAudio {
 type ProfileStatus = "healthy" | "low-credits" | "error";
 
 const AIVoiceGenerator = () => {
+  // Tab state
+  const [activeTab, setActiveTab] = useState<"generation" | "history" | "sales">("generation");
+
   // State management (keeping all original state)
   const [voiceModels, setVoiceModels] = useState<any[]>([]);
   const [selectedApiKeyProfile, setSelectedApiKeyProfile] = useState<string>("");
@@ -251,14 +255,30 @@ const AIVoiceGenerator = () => {
   };
 
   const loadHistory = async (forceRefresh = false) => {
-    if (!selectedVoice || !selectedApiKeyProfile) return;
+    // Only require API profile - load user's own history from database
+    if (!selectedApiKeyProfile) return;
+
     try {
       setIsLoadingHistory(true);
       setHistoryError("");
-      const result = await fetchHistoryFromElevenLabs(selectedApiKeyProfile, selectedVoice, 100, 1, forceRefresh);
+
+      // Fetch user's own voice note history from database
+      // If "all" is selected, don't filter by accountKey to show combined history
+      const url = selectedApiKeyProfile === 'all'
+        ? '/api/voice-history/list'
+        : `/api/voice-history/list?accountKey=${selectedApiKeyProfile}`;
+
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch voice history');
+      }
+
+      const result = await response.json();
       setHistoryEntries(result.items || []);
     } catch (error: any) {
-      setHistoryError("Failed to load history from ElevenLabs");
+      console.error("Error loading history:", error);
+      setHistoryError("Failed to load your voice history");
     } finally {
       setIsLoadingHistory(false);
     }
@@ -290,6 +310,33 @@ const AIVoiceGenerator = () => {
       const result = await generateVoice(selectedApiKeyProfile, selectedVoice, voiceText, selectedModelId, { stability, clarity, speed, styleExaggeration, speakerBoost });
       setGeneratedAudio({ ...result, voiceName: selectedVoiceDetails.name });
       setGenerationStatus("Voice generated successfully!");
+
+      // Save to user's history in database
+      try {
+        // Use the real ElevenLabs history ID if available, otherwise create a fallback
+        const historyId = result.historyItemId || `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+        console.log('Saving voice history with ID:', historyId);
+
+        await fetch('/api/voice-history/save', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            elevenLabsHistoryId: historyId,
+            voiceId: selectedVoice,
+            voiceName: selectedVoiceDetails.name,
+            accountKey: selectedApiKeyProfile,
+            text: voiceText,
+            generatedAt: new Date().toISOString(),
+          }),
+        });
+      } catch (saveError) {
+        console.error('Failed to save voice history:', saveError);
+        // Don't fail the whole operation if history save fails
+      }
+
       const balance = await checkApiKeyBalance(selectedApiKeyProfile);
       setApiKeyBalance(balance);
       const errorMessage = balance?.error || "";
@@ -561,6 +608,57 @@ const AIVoiceGenerator = () => {
         </div>
       </div>
 
+      {/* Tab Navigation */}
+      <div className="flex items-center justify-center gap-4 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm border border-slate-200/50 dark:border-white/10 rounded-2xl p-2">
+        <button
+          onClick={() => setActiveTab("generation")}
+          className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+            activeTab === "generation"
+              ? "bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-md"
+              : "text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Volume2 size={18} />
+            <span>Generation</span>
+          </div>
+        </button>
+        <button
+          onClick={() => setActiveTab("history")}
+          className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+            activeTab === "history"
+              ? "bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-md"
+              : "text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <Clock size={18} />
+            <span>History</span>
+            {historyEntries.length > 0 && (
+              <span className="ml-1 px-2 py-0.5 bg-pink-500 text-white text-xs rounded-full">
+                {historyEntries.length}
+              </span>
+            )}
+          </div>
+        </button>
+        <button
+          onClick={() => setActiveTab("sales")}
+          className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+            activeTab === "sales"
+              ? "bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-md"
+              : "text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <DollarSign size={18} />
+            <span>Sales</span>
+          </div>
+        </button>
+      </div>
+
+      {/* Generation Tab Content */}
+      {activeTab === "generation" && (
+        <>
       {/* API Profile & Balance Card */}
       <Card className="bg-white/80 dark:bg-slate-900/70 backdrop-blur-sm border-slate-200/50 dark:border-white/10 rounded-2xl shadow-sm">
         <CardContent className="p-6">
@@ -573,6 +671,11 @@ const AIVoiceGenerator = () => {
                     <SelectValue placeholder="Select API profile" />
                   </SelectTrigger>
                   <SelectContent className="bg-white dark:bg-gray-800 border-slate-200/50 dark:border-white/10">
+                    <SelectItem value="all">
+                      <div className="flex items-center gap-3 py-1">
+                        <span className="font-semibold">All Profiles</span>
+                      </div>
+                    </SelectItem>
                     {voiceModels.map((model) => (
                       <SelectItem key={model.accountKey || model.id} value={model.accountKey || model.id}>
                         <div className="flex items-center gap-3 py-1">
@@ -963,6 +1066,13 @@ const AIVoiceGenerator = () => {
             </div>
           </CardContent>
         </Card>
+      )}
+        </>
+      )}
+
+      {/* Sales Tab Content */}
+      {activeTab === "sales" && (
+        <SubmittedSalesTab onSaleUpdated={loadVnStats} />
       )}
 
       {/* Audio Elements */}
