@@ -1,7 +1,7 @@
-// React hooks for forum functionality
+// React hooks for forum functionality using React Query
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   forumAPI, 
   transformers, 
@@ -15,282 +15,328 @@ import {
 } from '../lib/forum-api';
 
 export const useForumPosts = (options: GetPostsOptions = {}) => {
-  const [posts, setPosts] = useState<FrontendForumPost[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [total, setTotal] = useState(0);
-
-  // Destructure options to individual dependencies to avoid object recreation issues
-  const { categoryId, modelName, generalOnly, sortBy, page, limit, search } = options;
-
-  const fetchPosts = useCallback(async () => {
-    console.log('Fetching posts with options:', { categoryId, modelName, generalOnly, sortBy, page, limit, search });
-    try {
-      setLoading(true);
-      setError(null);
-      const requestOptions = {
-        categoryId,
-        modelName,
-        generalOnly,
-        sortBy,
-        page,
-        limit,
-        search,
-      };
-      const response = await forumAPI.getAllPosts(requestOptions);
+  const queryKey = ['forum', 'posts', options];
+  
+  const {
+    data,
+    isLoading: loading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey,
+    queryFn: async () => {
+      console.log('Fetching posts with options:', options);
+      const response = await forumAPI.getAllPosts(options);
       console.log('Raw API response:', response);
       const transformedPosts = response.posts.map(transformers.postToFrontend);
       console.log('Transformed posts:', transformedPosts);
-      setPosts(transformedPosts);
-      setTotal(response.total);
-    } catch (err) {
-      console.error('Error fetching posts:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch posts');
-    } finally {
-      setLoading(false);
-    }
-  }, [categoryId, modelName, generalOnly, sortBy, page, limit, search]);
+      return {
+        posts: transformedPosts,
+        total: response.total
+      };
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: false,
+  });
 
-  useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
-
-  const refetch = () => {
-    fetchPosts();
+  return { 
+    posts: data?.posts || [], 
+    total: data?.total || 0, 
+    loading, 
+    error: error?.message || null, 
+    refetch 
   };
-
-  return { posts, loading, error, total, refetch };
 };
 
 export const useForumCategories = () => {
-  const [categories, setCategories] = useState<ForumCategory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: categories = [],
+    isLoading: loading,
+    error
+  } = useQuery({
+    queryKey: ['forum', 'categories'],
+    queryFn: () => forumAPI.getAllCategories(),
+    staleTime: 1000 * 60 * 10, // 10 minutes (categories don't change often)
+    refetchOnWindowFocus: false,
+  });
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await forumAPI.getAllCategories();
-        setCategories(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch categories');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCategories();
-  }, []);
-
-  return { categories, loading, error };
+  return { 
+    categories, 
+    loading, 
+    error: error?.message || null 
+  };
 };
 
 export const useForumStats = () => {
-  const [stats, setStats] = useState<ForumStats | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: stats,
+    isLoading: loading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['forum', 'stats'],
+    queryFn: () => forumAPI.getForumStats(),
+    staleTime: 1000 * 60 * 2, // 2 minutes
+    refetchOnWindowFocus: false,
+  });
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await forumAPI.getForumStats();
-        setStats(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch stats');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, []);
-
-  const refetch = async () => {
-    try {
-      const data = await forumAPI.getForumStats();
-      setStats(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch stats');
-    }
+  return { 
+    stats: stats || null, 
+    loading, 
+    error: error?.message || null, 
+    refetch 
   };
-
-  return { stats, loading, error, refetch };
 };
 
 export const useForumPost = (postId: number | null) => {
-  const [post, setPost] = useState<FrontendForumPost | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: post,
+    isLoading: loading,
+    error
+  } = useQuery({
+    queryKey: ['forum', 'post', postId],
+    queryFn: async () => {
+      if (!postId) return null;
+      const data = await forumAPI.getPostById(postId);
+      return transformers.postToFrontend(data);
+    },
+    enabled: !!postId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: false,
+  });
 
-  useEffect(() => {
-    if (!postId) return;
-
-    const fetchPost = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await forumAPI.getPostById(postId);
-        const transformedPost = transformers.postToFrontend(data);
-        setPost(transformedPost);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch post');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPost();
-  }, [postId]);
-
-  return { post, loading, error };
+  return { 
+    post: post || null, 
+    loading, 
+    error: error?.message || null 
+  };
 };
 
 export const useForumActions = () => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const queryClient = useQueryClient();
 
-  const createPost = async (postData: CreatePostDto): Promise<FrontendForumPost | null> => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await forumAPI.createPost(postData);
-      return transformers.postToFrontend(response);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create post');
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  };
+  const createPostMutation = useMutation({
+    mutationFn: (postData: CreatePostDto) => forumAPI.createPost(postData),
+    onSuccess: (newPost) => {
+      // Transform and add to cache
+      const transformedPost = transformers.postToFrontend(newPost);
+      
+      // Invalidate posts queries to refetch
+      queryClient.invalidateQueries({ queryKey: ['forum', 'posts'] });
+      
+      // Optionally add the new post to existing queries (optimistic update)
+      queryClient.setQueriesData(
+        { queryKey: ['forum', 'posts'] },
+        (oldData: any) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            posts: [transformedPost, ...oldData.posts],
+            total: oldData.total + 1
+          };
+        }
+      );
+    },
+  });
 
-  const createComment = async (commentData: CreateCommentDto): Promise<FrontendForumComment | null> => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await forumAPI.createComment(commentData);
-      return transformers.commentToFrontend(response);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create comment');
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  };
+  const createCommentMutation = useMutation({
+    mutationFn: (commentData: CreateCommentDto) => forumAPI.createComment(commentData),
+    onSuccess: () => {
+      // Invalidate posts queries to refetch updated comment counts
+      queryClient.invalidateQueries({ queryKey: ['forum', 'posts'] });
+    },
+  });
 
-  const vote = async (voteData: {
-    type: 'upvote' | 'downvote';
-    target: 'post' | 'comment';
-    postId?: number;
-    commentId?: number;
-  }): Promise<{ success: boolean; newScore?: number }> => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await forumAPI.vote(voteData);
-      return { success: true, newScore: response.newScore };
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to vote');
-      return { success: false };
-    } finally {
-      setLoading(false);
-    }
-  };
+  const voteMutation = useMutation({
+    mutationFn: (voteData: {
+      type: 'upvote' | 'downvote';
+      target: 'post' | 'comment';
+      postId?: number;
+      commentId?: number;
+    }) => forumAPI.vote(voteData),
+    onSuccess: () => {
+      // Invalidate posts and user votes to refetch
+      queryClient.invalidateQueries({ queryKey: ['forum', 'posts'] });
+      queryClient.invalidateQueries({ queryKey: ['forum', 'userVotes'] });
+    },
+  });
 
-  const deletePost = async (postId: number): Promise<boolean> => {
-    try {
-      setLoading(true);
-      setError(null);
-      await forumAPI.deletePost(postId);
-      return true;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete post');
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
+  const deletePostMutation = useMutation({
+    mutationFn: (postId: number) => forumAPI.deletePost(postId),
+    onSuccess: (_, postId) => {
+      // Remove from cache and invalidate
+      queryClient.setQueriesData(
+        { queryKey: ['forum', 'posts'] },
+        (oldData: any) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            posts: oldData.posts.filter((post: FrontendForumPost) => post.id !== postId.toString()),
+            total: oldData.total - 1
+          };
+        }
+      );
+      queryClient.invalidateQueries({ queryKey: ['forum', 'posts'] });
+    },
+  });
 
-  const deleteComment = async (commentId: number): Promise<boolean> => {
-    try {
-      setLoading(true);
-      setError(null);
-      await forumAPI.deleteComment(commentId);
-      return true;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete comment');
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
+  const deleteCommentMutation = useMutation({
+    mutationFn: (commentId: number) => forumAPI.deleteComment(commentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['forum', 'posts'] });
+    },
+  });
 
-  const seedForumData = async (): Promise<boolean> => {
-    try {
-      setLoading(true);
-      setError(null);
-      await forumAPI.seedForumData();
-      return true;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to seed forum data');
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
+  const seedForumDataMutation = useMutation({
+    mutationFn: () => forumAPI.seedForumData(),
+    onSuccess: () => {
+      // Invalidate all forum data
+      queryClient.invalidateQueries({ queryKey: ['forum'] });
+    },
+  });
 
   return {
-    createPost,
-    createComment,
-    vote,
-    deletePost,
-    deleteComment,
-    seedForumData,
-    loading,
-    error,
+    createPost: createPostMutation.mutateAsync,
+    createComment: createCommentMutation.mutateAsync,
+    vote: async (voteData: any) => {
+      try {
+        const response = await voteMutation.mutateAsync(voteData);
+        return { success: true, newScore: response.newScore };
+      } catch {
+        return { success: false };
+      }
+    },
+    deletePost: async (postId: number) => {
+      try {
+        await deletePostMutation.mutateAsync(postId);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    deleteComment: async (commentId: number) => {
+      try {
+        await deleteCommentMutation.mutateAsync(commentId);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    seedForumData: async () => {
+      try {
+        await seedForumDataMutation.mutateAsync();
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    loading: createPostMutation.isPending || 
+             createCommentMutation.isPending || 
+             voteMutation.isPending || 
+             deletePostMutation.isPending || 
+             deleteCommentMutation.isPending || 
+             seedForumDataMutation.isPending,
+    error: createPostMutation.error?.message || 
+           createCommentMutation.error?.message || 
+           voteMutation.error?.message || 
+           deletePostMutation.error?.message || 
+           deleteCommentMutation.error?.message || 
+           seedForumDataMutation.error?.message || 
+           null,
   };
 };
 
-// Custom hook for managing votes with optimistic updates
+// Custom hook for managing votes with optimistic updates using React Query
 export const useVoteManager = () => {
-  const [userVotes, setUserVotes] = useState<Record<string, 'up' | 'down' | null>>({});
-  const [optimisticScores, setOptimisticScores] = useState<Record<string, { upvotes: number; downvotes: number }>>({});
-  const [votesLoaded, setVotesLoaded] = useState(false);
+  const queryClient = useQueryClient();
   const { vote } = useForumActions();
 
-  // Load user votes on mount
-  useEffect(() => {
-    const loadUserVotes = async () => {
-      try {
-        const { postVotes, commentVotes } = await forumAPI.getUserVotes();
-        
-        const voteMap: Record<string, 'up' | 'down' | null> = {};
-        
-        // Map post votes
-        postVotes.forEach(({ postId, type }) => {
-          voteMap[postId.toString()] = type === 'upvote' ? 'up' : 'down';
-        });
-        
-        // Map comment votes  
-        commentVotes.forEach(({ commentId, type }) => {
-          voteMap[`comment-${commentId}`] = type === 'upvote' ? 'up' : 'down';
-        });
-        
-        setUserVotes(voteMap);
-        setVotesLoaded(true);
-      } catch (error) {
-        console.error('Failed to load user votes:', error);
-        setVotesLoaded(true); // Still mark as loaded to avoid infinite loading
+  // Load user votes using React Query
+  const {
+    data: userVotesData,
+    isLoading
+  } = useQuery({
+    queryKey: ['forum', 'userVotes'],
+    queryFn: async () => {
+      const { postVotes, commentVotes } = await forumAPI.getUserVotes();
+      
+      const voteMap: Record<string, 'up' | 'down' | null> = {};
+      
+      // Map post votes
+      postVotes.forEach(({ postId, type }) => {
+        voteMap[postId.toString()] = type === 'upvote' ? 'up' : 'down';
+      });
+      
+      // Map comment votes  
+      commentVotes.forEach(({ commentId, type }) => {
+        voteMap[`comment-${commentId}`] = type === 'upvote' ? 'up' : 'down';
+      });
+      
+      return voteMap;
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: false,
+  });
+
+  const userVotes = userVotesData || {};
+  const votesLoaded = !isLoading;
+
+  const voteMutation = useMutation({
+    mutationFn: async (voteData: {
+      itemId: string;
+      voteType: 'up' | 'down';
+      target: 'post' | 'comment';
+      numericId: number;
+      currentUpvotes?: number;
+      currentDownvotes?: number;
+    }) => {
+      const apiVoteData = {
+        type: voteData.voteType === 'up' ? 'upvote' as const : 'downvote' as const,
+        target: voteData.target,
+        ...(voteData.target === 'post' 
+          ? { postId: voteData.numericId } 
+          : { commentId: voteData.numericId }
+        ),
+      };
+      
+      return await vote(apiVoteData);
+    },
+    onMutate: async (voteData) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['forum', 'userVotes'] });
+      
+      // Snapshot the previous value
+      const previousUserVotes = queryClient.getQueryData(['forum', 'userVotes']);
+      
+      // Optimistically update user votes
+      const currentVote = userVotes[voteData.itemId];
+      const newVote = currentVote === voteData.voteType ? null : voteData.voteType;
+      
+      queryClient.setQueryData(['forum', 'userVotes'], (old: any) => ({
+        ...old,
+        [voteData.itemId]: newVote,
+      }));
+      
+      // Return a context with the previous and new values
+      return { previousUserVotes, voteData };
+    },
+    onError: (err, voteData, context) => {
+      // Revert the optimistic update
+      if (context?.previousUserVotes) {
+        queryClient.setQueryData(['forum', 'userVotes'], context.previousUserVotes);
       }
-    };
+    },
+    onSuccess: () => {
+      // Invalidate posts to refetch updated scores
+      queryClient.invalidateQueries({ queryKey: ['forum', 'posts'] });
+    },
+    onSettled: () => {
+      // Refetch user votes to ensure consistency
+      queryClient.invalidateQueries({ queryKey: ['forum', 'userVotes'] });
+    },
+  });
 
-    loadUserVotes();
-  }, []);
-
-  const handleVote = useCallback(async (
+  const handleVote = async (
     itemId: string,
     voteType: 'up' | 'down',
     target: 'post' | 'comment',
@@ -298,85 +344,26 @@ export const useVoteManager = () => {
     currentUpvotes: number = 0,
     currentDownvotes: number = 0
   ) => {
-    const currentVote = userVotes[itemId];
-    
-    // Determine the new vote state
-    const newVote = currentVote === voteType ? null : voteType;
-    
-    // Calculate optimistic score changes
-    let upvoteDelta = 0;
-    let downvoteDelta = 0;
-    
-    if (currentVote === 'up' && newVote !== 'up') {
-      upvoteDelta = -1; // Remove upvote
-    }
-    if (currentVote === 'down' && newVote !== 'down') {
-      downvoteDelta = -1; // Remove downvote
-    }
-    if (newVote === 'up' && currentVote !== 'up') {
-      upvoteDelta = 1; // Add upvote
-    }
-    if (newVote === 'down' && currentVote !== 'down') {
-      downvoteDelta = 1; // Add downvote
-    }
-    
-    // Apply optimistic updates
-    setUserVotes(prev => ({
-      ...prev,
-      [itemId]: newVote,
-    }));
-    
-    setOptimisticScores(prev => ({
-      ...prev,
-      [itemId]: {
-        upvotes: (prev[itemId]?.upvotes ?? currentUpvotes) + upvoteDelta,
-        downvotes: (prev[itemId]?.downvotes ?? currentDownvotes) + downvoteDelta,
-      },
-    }));
-
-    // Always make API call - the backend handles vote removal vs creation/update
-    const voteData = {
-      type: voteType === 'up' ? 'upvote' as const : 'downvote' as const,
+    await voteMutation.mutateAsync({
+      itemId,
+      voteType,
       target,
-      ...(target === 'post' ? { postId: numericId } : { commentId: numericId }),
-    };
+      numericId,
+      currentUpvotes,
+      currentDownvotes,
+    });
+  };
 
-    try {
-      const result = await vote(voteData);
-      if (!result.success) {
-        // Revert optimistic updates on error
-        setUserVotes(prev => ({
-          ...prev,
-          [itemId]: currentVote,
-        }));
-        setOptimisticScores(prev => ({
-          ...prev,
-          [itemId]: {
-            upvotes: currentUpvotes,
-            downvotes: currentDownvotes,
-          },
-        }));
-      }
-    } catch {
-      // Revert optimistic updates on error
-      setUserVotes(prev => ({
-        ...prev,
-        [itemId]: currentVote,
-      }));
-      setOptimisticScores(prev => ({
-        ...prev,
-        [itemId]: {
-          upvotes: currentUpvotes,
-          downvotes: currentDownvotes,
-        },
-      }));
-    }
-  }, [vote, userVotes]);
+  // For display scores, we'll rely on the actual post data from the posts query
+  // since React Query handles the cache updates automatically
+  const getDisplayScores = (itemId: string, originalUpvotes: number, originalDownvotes: number) => {
+    return { upvotes: originalUpvotes, downvotes: originalDownvotes };
+  };
 
-  const getDisplayScores = useCallback((itemId: string, originalUpvotes: number, originalDownvotes: number) => {
-    const optimistic = optimisticScores[itemId];
-    return optimistic || { upvotes: originalUpvotes, downvotes: originalDownvotes };
-  }, [optimisticScores]);
-
-  return { userVotes, handleVote, getDisplayScores, votesLoaded };
+  return { 
+    userVotes, 
+    handleVote, 
+    getDisplayScores, 
+    votesLoaded: votesLoaded 
+  };
 };

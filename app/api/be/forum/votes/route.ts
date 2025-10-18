@@ -3,15 +3,14 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/auth";
 
-const BACKEND_URL = process.env.BACKEND_API_URL || "http://localhost:3000";
+// Mock user votes storage (in real implementation this would be in database)
+const userVotes = new Map<string, Map<string, 'upvote' | 'downvote'>>();
 
 export async function POST(request: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) {
     return new Response("Unauthorized", { status: 401 });
   }
-
-  const backendUrl = `${BACKEND_URL}/forum/votes`;
 
   try {
     // Import and get user data from Prisma to get the username
@@ -26,32 +25,40 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    const { type, target, postId, commentId } = body;
     
-    const fetchRes = await fetch(backendUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        "x-user-id": session.user.id,
-        "x-user-email": user.email || session.user.email || "",
-        "x-user-name": user.name || session.user.name || "",
-        "x-user-username": user.username, // Pass the actual username from Prisma
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!fetchRes.ok) {
-      const errorData = await fetchRes.json().catch(() => ({}));
-      return new Response(JSON.stringify(errorData), {
-        status: fetchRes.status,
-        headers: { "Content-Type": "application/json" },
-      });
+    // Get or create user votes map
+    if (!userVotes.has(session.user.id)) {
+      userVotes.set(session.user.id, new Map());
+    }
+    const userVoteMap = userVotes.get(session.user.id)!;
+    
+    // Generate vote key
+    const voteKey = target === 'post' ? `post_${postId}` : `comment_${commentId}`;
+    
+    // Check existing vote
+    const existingVote = userVoteMap.get(voteKey);
+    const isSameVote = existingVote === type;
+    
+    // Toggle vote logic
+    if (isSameVote) {
+      // Remove vote if same type
+      userVoteMap.delete(voteKey);
+    } else {
+      // Set new vote
+      userVoteMap.set(voteKey, type as 'upvote' | 'downvote');
     }
 
-    const data = await fetchRes.json();
-    return Response.json(data);
+    // In a real implementation, you would update the database here
+    // For now, we'll just return a mock response
+    const newScore = Math.floor(Math.random() * 100); // Mock new score
+
+    return Response.json({
+      message: isSameVote ? "Vote removed" : "Vote recorded",
+      newScore
+    });
   } catch (err) {
-    console.error("Forum vote proxy error:", err);
+    console.error("Forum vote error:", err);
     return new Response("Failed to process forum vote", { status: 500 });
   }
 }

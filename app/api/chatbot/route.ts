@@ -63,6 +63,11 @@ IMPORTANT CONTENT PRICING GUIDELINES:
 - If similar content exists, suggest alternatives (e.g., if bgContent is empty but bbgContent has pricing)
 - For pricing guides, list ALL content types with their actual prices from the ContentDetails field values
 - PRICING GUIDE QUERIES: When users ask for "pricing guide", "all prices", "rates", show comprehensive overview of ALL ContentDetails pricing fields
+- FORMAT RESPONSES: Use markdown formatting for better readability:
+  * Use **bold** for pricing amounts and important info
+  * Use bullet points for lists
+  * Use headers (##) to organize pricing categories
+  * Use backticks for field names (e.g. bgContent)
 - Present prices exactly as stored in the database fields
 - CRITICAL: customVideoPricing and customCallPricing are COMPLETELY DIFFERENT services:
   * customVideoPricing = pricing for creating custom VIDEO CONTENT (recorded videos made to order)
@@ -351,6 +356,9 @@ Then: "what's all her pricing guide" → {"needsClientData": true, "needsBirthda
 If conversation history shows: user: "tell me about sarah" assistant: "Sarah is a model..."  
 Then: "what are her rates" → {"needsClientData": true, "needsBirthdayData": false, "clientName": "sarah", "contentType": null, "queryType": "pricing"}
 
+If conversation history shows: user: "tell me about bri" assistant: "Bri is a model..."
+Then: "when's her birthday?" → {"needsClientData": false, "needsBirthdayData": true, "clientName": "bri", "contentType": null, "queryType": "birthday"}
+
 If conversation history shows: user: "when's autumn's birthday?" assistant: "Autumn's birthday is..."
 Then: "does she do bg content?" → {"needsClientData": true, "needsBirthdayData": false, "clientName": "autumn", "contentType": "bg", "queryType": "availability"}
 
@@ -587,22 +595,29 @@ export async function POST(request: NextRequest) {
     if (needsBirthdayInfo) {
       console.log('🎂 Processing birthday query...');
       
-      // Try to extract a specific name from the query
-      let searchName = null;
+      // Use AI-extracted client name first, then fall back to pattern matching
+      let searchName = intentAnalysis.clientName;
+      console.log('🧠 AI extracted client name for birthday:', searchName);
       
-      // Check for specific name patterns
-      const namePatterns = [
-        /when.*is ([a-zA-Z\s]+)'?s?\s*birthday/i,  // "when is Sarah's birthday"
-        /when.*'s ([a-zA-Z\s]+)'?s?\s*birthday/i,  // "when's Sarah's birthday"  
-        /([a-zA-Z\s]+)'?s?\s*birthday/i,           // "Sarah's birthday"
-        /birthday.*of ([a-zA-Z\s]+)/i               // "birthday of Sarah"
-      ];
-      
-      for (const pattern of namePatterns) {
-        const match = message.match(pattern);
-        if (match && match[1]) {
-          searchName = match[1].trim();
-          break;
+      // If AI didn't extract a name, try pattern matching as fallback
+      if (!searchName) {
+        console.log('🔍 No AI-extracted name, trying pattern matching...');
+        
+        // Check for specific name patterns
+        const namePatterns = [
+          /when.*is ([a-zA-Z\s]+)'?s?\s*birthday/i,  // "when is Sarah's birthday"
+          /when.*'s ([a-zA-Z\s]+)'?s?\s*birthday/i,  // "when's Sarah's birthday"  
+          /([a-zA-Z\s]+)'?s?\s*birthday/i,           // "Sarah's birthday"
+          /birthday.*of ([a-zA-Z\s]+)/i               // "birthday of Sarah"
+        ];
+        
+        for (const pattern of namePatterns) {
+          const match = message.match(pattern);
+          if (match && match[1]) {
+            searchName = match[1].trim();
+            console.log('✅ Found name from pattern:', searchName);
+            break;
+          }
         }
       }
       
@@ -630,7 +645,7 @@ export async function POST(request: NextRequest) {
         }
       }
       
-      console.log('🔍 Search name extracted:', searchName);
+      console.log('🔍 Final search name for birthday calendar:', searchName);
       
       const birthdayData = await getBirthdaysFromCalendar(searchName);
       if (birthdayData.birthdays) {
@@ -845,16 +860,22 @@ export async function DELETE(request: NextRequest) {
 
     // Delete the conversation from database
     try {
-      await prisma.chatbotConversation.deleteMany({
-        where: {
-          userId: session.user.id!,
-          sessionId: sessionId
-        }
-      });
+      console.log('🗑️ Would delete conversation from database (DISABLED FOR DATA COLLECTION):', { userId: session.user.id, sessionId });
+      
+      // COMMENTED OUT FOR DATA COLLECTION - GATHERING CONVERSATIONS FOR OPTIMIZATION
+      // const deleteResult = await prisma.chatbotConversation.deleteMany({
+      //   where: {
+      //     userId: session.user.id!,
+      //     sessionId: sessionId
+      //   }
+      // });
+      
+      console.log('✅ Conversation deletion skipped for data collection');
       
       return NextResponse.json({
         success: true,
-        message: "Conversation deleted successfully"
+        message: "Conversation cleared (deletion disabled for data collection)",
+        deletedCount: 0
       });
     } catch (dbError) {
       console.error('Database error during deletion:', dbError);

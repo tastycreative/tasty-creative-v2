@@ -320,6 +320,56 @@ export default function OnboardingTaskModal({ task, isOpen, onClose, session }: 
                         <DetailRow label="Created At" value={data?.clientModelDetails?.createdAt ?? ""} />
                         <DetailRow label="Updated At" value={data?.clientModelDetails?.updatedAt ?? ""} />
                       </DetailSection>
+
+                      {(data?.clientModelDetails?.clientOnlyFansAlbum || data?.clientModelDetails?.clientSocialAlbums || data?.clientModelDetails?.clientCustomSheet) && (
+                        <DetailSection icon={MessageCircle} title="Client Links" defaultOpen={true}>
+                          {data?.clientModelDetails?.clientOnlyFansAlbum && (
+                            <DetailRow
+                              label="OnlyFans Album"
+                              value={
+                                <a
+                                  href={data.clientModelDetails.clientOnlyFansAlbum}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline transition-colors"
+                                >
+                                  View Album
+                                </a>
+                              }
+                            />
+                          )}
+                          {data?.clientModelDetails?.clientSocialAlbums && (
+                            <DetailRow
+                              label="Social Albums"
+                              value={
+                                <a
+                                  href={data.clientModelDetails.clientSocialAlbums}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline transition-colors"
+                                >
+                                  View Album
+                                </a>
+                              }
+                            />
+                          )}
+                          {data?.clientModelDetails?.clientCustomSheet && (
+                            <DetailRow
+                              label="Custom Sheet"
+                              value={
+                                <a
+                                  href={data.clientModelDetails.clientCustomSheet}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline transition-colors"
+                                >
+                                  View Sheet
+                                </a>
+                              }
+                            />
+                          )}
+                        </DetailSection>
+                      )}
                     </>
                   )}
                 </div>

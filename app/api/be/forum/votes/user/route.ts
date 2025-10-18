@@ -3,15 +3,11 @@
 import { NextRequest } from "next/server";
 import { auth } from "@/auth";
 
-const BACKEND_URL = process.env.BACKEND_API_URL || "http://localhost:3000";
-
 export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
     return new Response("Unauthorized", { status: 401 });
   }
-
-  const backendUrl = `${BACKEND_URL}/forum/votes/user`;
 
   try {
     // Import and get user data from Prisma to get the username
@@ -25,30 +21,16 @@ export async function GET() {
       return new Response("Username not found", { status: 400 });
     }
 
-    const fetchRes = await fetch(backendUrl, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        "x-user-id": session.user.id,
-        "x-user-email": user.email || session.user.email || "",
-        "x-user-name": user.name || session.user.name || "",
-        "x-user-username": user.username, // Pass the actual username from Prisma
-      },
-    });
+    // Mock user votes data - in real implementation this would come from database
+    // For now, return empty arrays since user hasn't voted on anything yet
+    const userVotesData = {
+      postVotes: [] as Array<{ postId: number; type: "upvote" | "downvote" }>,
+      commentVotes: [] as Array<{ commentId: number; type: "upvote" | "downvote" }>
+    };
 
-    if (!fetchRes.ok) {
-      const errorData = await fetchRes.json().catch(() => ({}));
-      return new Response(JSON.stringify(errorData), {
-        status: fetchRes.status,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const data = await fetchRes.json();
-    return Response.json(data);
+    return Response.json(userVotesData);
   } catch (err) {
-    console.error("Forum get user votes proxy error:", err);
+    console.error("Forum get user votes error:", err);
     return new Response("Failed to get user votes", { status: 500 });
   }
 }

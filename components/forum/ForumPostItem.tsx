@@ -6,7 +6,6 @@ import {
   ArrowDown,
   MessageSquare,
   Share,
-  Bookmark,
   MoreHorizontal,
   Award,
   Pin,
@@ -176,12 +175,6 @@ export function ForumPostItem({
                   title="Share post"
                 >
                   <Share className="w-4 h-4" />
-                </button>
-                <button 
-                  onClick={(e) => e.stopPropagation()}
-                  className="p-1 rounded-lg text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-pink-50 dark:hover:bg-gray-700 transition-all"
-                >
-                  <Bookmark className="w-4 h-4" />
                 </button>
                 <button 
                   onClick={(e) => e.stopPropagation()}

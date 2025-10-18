@@ -17,6 +17,8 @@ import {
   RotateCcw,
   Trash2,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface Message {
   id: string;
@@ -123,13 +125,18 @@ const ChatBot: React.FC = () => {
     if (!sessionId) return;
     
     try {
-      await fetch('/api/chatbot', {
+      console.log('🗑️ Starting new conversation - deleting current session:', sessionId);
+      
+      const response = await fetch('/api/chatbot', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ sessionId }),
       });
+      
+      const result = await response.json();
+      console.log('✅ Conversation deletion response:', result);
       
       // Reset state
       setSessionId(null);
@@ -274,15 +281,15 @@ const ChatBot: React.FC = () => {
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
-      <Card className={`transition-all duration-300 shadow-2xl ${
+      <Card className={`transition-all gap-2 duration-300 py-0 pb-0 shadow-2xl ${
         isMinimized 
           ? 'w-80 h-16' 
-          : 'w-[420px] h-[700px]'
+          : 'w-[420px] h-[600px]'
       } bg-white dark:bg-gray-900 border border-pink-200 dark:border-pink-900`}>
         
         {/* Header */}
         <CardHeader className={`flex flex-row items-center justify-between bg-pink-600 text-white rounded-t-lg ${
-          isMinimized ? 'p-3' : 'p-6'
+          isMinimized ? 'p-2 px-3' : 'px-4 py-3'
         }`}>
           <CardTitle className={`font-bold flex items-center ${
             isMinimized ? 'text-base' : 'text-xl'
@@ -356,7 +363,26 @@ const ChatBot: React.FC = () => {
                                 <User className="h-4 w-4 mt-0.5 flex-shrink-0 text-pink-100" />
                               )}
                               <div className="flex-1">
-                                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                                <div className="text-sm prose prose-sm max-w-none">
+                                  <ReactMarkdown 
+                                    remarkPlugins={[remarkGfm]}
+                                    components={{
+                                      p: ({children}) => <p className="mb-2 last:mb-0">{children}</p>,
+                                      ul: ({children}) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+                                      ol: ({children}) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+                                      li: ({children}) => <li className="text-sm">{children}</li>,
+                                      strong: ({children}) => <strong className="font-semibold">{children}</strong>,
+                                      em: ({children}) => <em className="italic">{children}</em>,
+                                      code: ({children}) => <code className="bg-pink-100 dark:bg-pink-900/30 px-1 py-0.5 rounded text-xs font-mono">{children}</code>,
+                                      pre: ({children}) => <pre className="bg-pink-100 dark:bg-pink-900/30 p-2 rounded text-xs font-mono overflow-x-auto mb-2">{children}</pre>,
+                                      h1: ({children}) => <h1 className="text-base font-bold mb-2">{children}</h1>,
+                                      h2: ({children}) => <h2 className="text-sm font-semibold mb-2">{children}</h2>,
+                                      h3: ({children}) => <h3 className="text-sm font-medium mb-1">{children}</h3>,
+                                    }}
+                                  >
+                                    {message.content}
+                                  </ReactMarkdown>
+                                </div>
                                 <span className={`text-xs mt-1 block ${
                                   message.type === 'user' 
                                     ? 'text-pink-100' 
