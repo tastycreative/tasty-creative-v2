@@ -92,7 +92,7 @@ const ModelsDropdownList: React.FC<ModelsDropdownListProps> = ({
           placeholder={isLoading ? "Loading models..." : error ? "Error loading models" : placeholder} 
         />
       </SelectTrigger>
-      <SelectContent className="rounded-lg border shadow-lg bg-white dark:bg-gray-900">
+      <SelectContent className="rounded-lg border shadow-lg !bg-[oklch(1_0_0)] dark:!bg-[oklch(0.205_0_0)] z-50">
         {isLoading ? (
           <SelectItem value="loading" disabled className="text-sm py-2.5">
             <div className="flex items-center gap-2">
