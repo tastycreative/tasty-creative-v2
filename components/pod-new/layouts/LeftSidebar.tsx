@@ -452,6 +452,12 @@ export default function LeftSidebar({ collapsed = false }: LeftSidebarProps) {
                 }
 
                 // Regular nav item (no sub-items)
+                
+                // Hide Admin nav item if user is not ADMIN
+                if (item.title === "Admin" && session?.user?.role !== "ADMIN") {
+                  return null;
+                }
+                
                 const isActive = pathname === item.href;
                 return (
                   <li key={item.title}>

@@ -31,6 +31,8 @@ interface Message {
 const ChatBot: React.FC = () => {
   const { data: session, status } = useSession();
   const isAuthenticated = status === "authenticated" && !!session?.user;
+  const userRole = (session?.user as any)?.role;
+  const isGuest = typeof userRole === 'string' && userRole.toUpperCase() === 'GUEST';
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -268,7 +270,7 @@ const ChatBot: React.FC = () => {
     </div>
   );
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || isGuest) {
     return null;
   }
 

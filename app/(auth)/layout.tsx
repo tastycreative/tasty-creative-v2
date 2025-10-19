@@ -1,5 +1,7 @@
 import Floating3DObjects from "@/components/3DFloatingObjects";
 import type { Metadata } from "next";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: {
@@ -29,8 +31,15 @@ export default function AuthLayout({
             </p>
           </div>
 
-          {/* Auth Form Content */}
-          {children}
+          {/* Auth Form Content (temporarily disabled) */}
+          {/* {children} */}
+
+          {/* Single provider sign-in */}
+          <div className="mt-6">
+            <Button asChild className="w-full">
+              <Link href="/api/auth/signin/google">Sign in with Google</Link>
+            </Button>
+          </div>
         </div>
       </div>
 
