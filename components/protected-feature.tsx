@@ -62,7 +62,7 @@ export function ProtectedFeature({
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
             Guest Access Restricted
           </h3>
-          <p className="text-gray-500 dark:text-gray-400 mb-4">
+          <p className="text-gray-500 dark:text-gray-400">
             This feature is not available for guest users. Wait or contact an Admin/Moderator to elevate your access.
           </p>
            <p className="text-gray-500 dark:text-gray-400 mb-4">
