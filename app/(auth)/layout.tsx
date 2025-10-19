@@ -31,12 +31,12 @@ export default function AuthLayout({
           {/* Sign In Card */}
           <Card className="shadow-lg border">
             <CardHeader className="text-center pb-4">
-              <div className="flex justify-center mb-4">
+              <div className="flex justify-center ">
                 <Image
-                  src="/tasty-logo.png"
+                  src="/tasty-new.png"
                   alt="Tasty Creative Logo"
-                  width={48}
-                  height={48}
+                  width={74}
+                  height={85}
                 />
               </div>
               <CardTitle className="text-2xl font-bold text-foreground">
@@ -88,14 +88,14 @@ export default function AuthLayout({
                   <p className="text-xs text-muted-foreground">
                     By continuing, you agree to our{" "}
                     <a
-                      href="#"
+                      href="/terms-of-service"
                       className="font-medium underline underline-offset-4 hover:text-primary"
                     >
                       Terms of Service
                     </a>{" "}
                     and{" "}
                     <a
-                      href="#"
+                      href="/privacy-policy"
                       className="font-medium underline underline-offset-4 hover:text-primary"
                     >
                       Privacy Policy
