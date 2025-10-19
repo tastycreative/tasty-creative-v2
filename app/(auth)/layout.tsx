@@ -1,6 +1,5 @@
 import Floating3DObjects from "@/components/3DFloatingObjects";
 import type { Metadata } from "next";
-import Image from "next/image";
 
 export const metadata: Metadata = {
   title: {

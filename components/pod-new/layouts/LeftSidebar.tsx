@@ -199,7 +199,6 @@ export default function LeftSidebar({ collapsed = false }: LeftSidebarProps) {
   };
 
   const accessibleTeams = getAccessibleTeams();
-  const hasTeamAccess = accessibleTeams.length > 0;
 
   const handleTeamSelect = (teamId: string) => {
     router.push(`/board?team=${teamId}`);
@@ -299,10 +298,7 @@ export default function LeftSidebar({ collapsed = false }: LeftSidebarProps) {
               {section.items.map((item) => {
                 // Check if this is the team accordion item
                 if (item.isTeamAccordion) {
-                  // Only show Board accordion if user has access to at least one team
-                  if (!hasTeamAccess && !teamsLoading) {
-                    return null; // Hide Board accordion completely
-                  }
+                  // Always show Board accordion, even if user has no team access
                   
                   const isAnyTeamActive = pathname === "/board" || pathname?.startsWith("/board?");
                   const shouldAutoExpand = !teamsLoading && accessibleTeams.length > 0;
