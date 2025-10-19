@@ -83,11 +83,9 @@ export default function BoardSkeleton({
                 </div>
                 <div className="flex flex-col">
                   <h2 className="text-xl sm:text-2xl font-black tracking-tight bg-gradient-to-r from-gray-900 via-pink-600 to-purple-600 dark:from-gray-100 dark:via-pink-400 dark:to-purple-400 bg-clip-text text-transparent">
-                    Task Board
+                    {teamName}
                   </h2>
                   <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mt-2">
-                    <span className="font-medium">{teamName}</span>
-                    <span className="hidden sm:inline">•</span>
                     <div className="flex items-center space-x-2">
                       <div className="animate-spin rounded-full h-3 w-3 border border-blue-500 border-t-transparent"></div>
                       <span className="text-xs">Loading...</span>
@@ -97,6 +95,20 @@ export default function BoardSkeleton({
               </div>
             </div>
 
+          </div>
+
+          {/* Tabs Skeleton */}
+          <div className="mt-6 border-b border-gray-200/50 dark:border-gray-700/50">
+            <nav className="flex space-x-8">
+              <div className="flex items-center gap-2 py-2 px-1 border-b-2 border-transparent">
+                <div className="w-4 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+                <div className="w-16 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+              </div>
+              <div className="flex items-center gap-2 py-2 px-1 border-b-2 border-pink-500">
+                <div className="w-4 h-4 bg-pink-300 dark:bg-pink-600 rounded animate-pulse"></div>
+                <div className="w-12 h-4 bg-pink-300 dark:bg-pink-600 rounded animate-pulse"></div>
+              </div>
+            </nav>
           </div>
         </div>
       </div>

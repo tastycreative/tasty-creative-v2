@@ -104,7 +104,7 @@ export default function PodLayout({ children }: PodLayoutProps) {
   const tabItems = [
     { id: "dashboard", label: "Dashboard", href: "/dashboard" },
     { id: "sheets", label: "Sheets Integration", href: "/sheets" },
-    { id: "board", label: "Board", href: "/board" },
+    // { id: "board", label: "Board", href: "/board" },
     { id: "pricing", label: "Pricing Guide", href: "/pricing" },
     { id: "forms", label: "Gallery", href: "/gallery" },
     { id: "generative-ai", label: "Generative AI", href: "/generative-ai/voice" },

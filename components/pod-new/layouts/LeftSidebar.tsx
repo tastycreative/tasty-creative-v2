@@ -133,6 +133,10 @@ const navigation: { title: string; items: NavItem[] }[] = [
       { title: "Admin", href: "/admin", icon: Shield },
     ],
   },
+  {
+    title: "Account",
+    items: [],
+  },
 ];
 
 function Badge({
@@ -378,7 +382,7 @@ export default function LeftSidebar({ collapsed = false }: LeftSidebarProps) {
                                 ) : accessibleTeams.length > 0 ? (
                                   accessibleTeams.map((team) => {
                                     const isTeamActive =
-                                      currentTeamId === team.id;
+                                      pathname === "/board" && currentTeamId === team.id;
                                     return (
                                       <li key={team.id}>
                                         <button
@@ -551,55 +555,47 @@ export default function LeftSidebar({ collapsed = false }: LeftSidebarProps) {
                   );
                 })}
               </ul>
-              {/* Add User Profile and Theme Toggle to Settings section */}
-              {section.title === "Settings" && (
+              {/* Add User Profile and Theme Toggle to Account section */}
+              {section.title === "Account" && session?.user && (
                 <>
-                  {/* User Profile Section - Above Theme */}
-                  {session?.user && (
-                    <div className="mt-3 px-2">
-                      <div className="px-2 py-1">
-                        <h3 className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                          Account
-                        </h3>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="group relative flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 text-slate-600 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-white/[0.08] hover:text-slate-800 dark:hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900">
-                          {session.user.image ? (
-                            <Image
-                              src={session.user.image}
-                              alt={session.user.name || "User avatar"}
-                              width={20}
-                              height={20}
-                              className="w-5 h-5 rounded-full shrink-0"
-                            />
-                          ) : (
-                            <User className="w-5 h-5 shrink-0 text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200" />
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium truncate">
-                              {session.user.name || session.user.email}
-                            </div>
-                            {session.user.name && session.user.email && (
-                              <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                                {session.user.email}
-                              </div>
-                            )}
+                  <div className="mt-3 px-2">
+                    <div className="space-y-1">
+                      <div className="group relative flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 text-slate-600 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-white/[0.08] hover:text-slate-800 dark:hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900">
+                        {session.user.image ? (
+                          <Image
+                            src={session.user.image}
+                            alt={session.user.name || "User avatar"}
+                            width={20}
+                            height={20}
+                            className="w-5 h-5 rounded-full shrink-0"
+                          />
+                        ) : (
+                          <User className="w-5 h-5 shrink-0 text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium truncate">
+                            {session.user.name || session.user.email}
                           </div>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              signOut();
-                            }}
-                            className="p-1 rounded-md transition-colors hover:bg-red-500/90  text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                            title="Sign out"
-                          >
-                            <LogOut className="w-4 h-4" />
-                          </button>
+                          {session.user.name && session.user.email && (
+                            <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                              {session.user.email}
+                            </div>
+                          )}
                         </div>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            signOut();
+                          }}
+                          className="p-1 rounded-md transition-colors hover:bg-red-500/90  text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                          title="Sign out"
+                        >
+                          <LogOut className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
-                  )}
+                  </div>
 
                   <div className="mt-3 px-3.5">
                     <div className="flex items-center justify-between">

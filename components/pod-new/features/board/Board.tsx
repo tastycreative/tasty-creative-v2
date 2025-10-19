@@ -10,8 +10,9 @@ import { useTaskUpdates } from '@/hooks/useTaskUpdates';
 import { useBoardStore, useBoardTasks, useBoardFilters, useBoardTaskActions, useBoardColumns, type Task, type BoardColumn, type NewTaskData } from '@/lib/stores/boardStore';
 import { formatForDisplay, formatForTaskCard, formatDueDate, formatForTaskDetail, toLocalDateTimeString, parseUserDate } from '@/lib/dateUtils';
 import ColumnSettings from './ColumnSettings';
-import BoardHeader from './BoardHeader';
+import BoardHeader, { TabType } from './BoardHeader';
 import BoardFilters from './BoardFilters';
+import Summary from './Summary';
 import BoardSkeleton from './BoardSkeleton';
 import BoardGrid from './BoardGrid';
 import EnhancedTaskDetailModal from './EnhancedTaskDetailModal';
@@ -96,6 +97,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   const [teamMembers, setTeamMembers] = useState<Array<{id: string, email: string, name?: string}>>([]);
   const [teamAdmins, setTeamAdmins] = useState<Array<{id: string, email: string, name?: string}>>([]);
   const [isLoadingTeamMembers, setIsLoadingTeamMembers] = useState(false);
+  
+  // Tab state
+  const [activeTab, setActiveTab] = useState<TabType>('board');
   
   // UI State from store
   const draggedTask = useBoardStore(state => state.draggedTask);
@@ -819,9 +823,23 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         totalTasks={tasks.length}
         filteredTasksCount={filteredAndSortedTasks.length}
         isLoading={isLoading}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
       />
 
-      {/* Search, Filter, and Sort Controls */}
+      {/* Render Summary or Board based on active tab */}
+      {activeTab === 'summary' ? (
+        <Summary
+          teamName={teamName}
+          totalTasks={tasks.length}
+          filteredTasksCount={filteredAndSortedTasks.length}
+          tasks={tasks}
+          teamMembers={teamMembers}
+          columns={columns}
+        />
+      ) : (
+        <>
+          {/* Search, Filter, and Sort Controls */}
       <BoardFilters
         searchTerm={searchTerm}
         priorityFilter={priorityFilter}
@@ -926,8 +944,10 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         onCreateTask={createTaskFromModal}
       />
 
-      {/* Column Settings Modal */}
-      <ColumnSettings currentTeamId={currentTeamId} />
+          {/* Column Settings Modal */}
+          <ColumnSettings currentTeamId={currentTeamId} />
+        </>
+      )}
     </div>
   );
 }

@@ -1,21 +1,46 @@
 "use client";
 
-import React from "react";
-import { KanbanSquare } from "lucide-react";
+import React, { useState } from "react";
+import { KanbanSquare, BarChart3 } from "lucide-react";
 
 interface BoardHeaderProps {
   teamName: string;
   totalTasks: number;
   filteredTasksCount: number;
   isLoading: boolean;
+  activeTab?: TabType;
+  onTabChange?: (tab: TabType) => void;
 }
+
+export type TabType = 'board' | 'summary';
 
 export default function BoardHeader({
   teamName,
   totalTasks,
   filteredTasksCount,
   isLoading,
+  activeTab = 'board',
+  onTabChange,
 }: BoardHeaderProps) {
+  const handleTabChange = (tab: TabType) => {
+    if (onTabChange) {
+      onTabChange(tab);
+    }
+  };
+
+  const tabs = [
+    {
+      id: 'summary' as TabType,
+      label: 'Summary',
+      icon: BarChart3,
+    },
+    {
+      id: 'board' as TabType,
+      label: 'Board',
+      icon: KanbanSquare,
+    },
+  ];
+
   return (
     <div className="relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 shadow-lg backdrop-blur-sm">
       {/* Background Pattern */}
@@ -32,11 +57,9 @@ export default function BoardHeader({
               </div>
               <div className="flex flex-col">
                 <h2 className="text-xl sm:text-2xl font-black tracking-tight bg-gradient-to-r from-gray-900 via-pink-600 to-purple-600 dark:from-gray-100 dark:via-pink-400 dark:to-purple-400 bg-clip-text text-transparent">
-                  Task Board
+                  {teamName}
                 </h2>
                 <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mt-2">
-                  <span className="font-medium">{teamName}</span>
-                  <span className="hidden sm:inline">•</span>
                   <span>
                     {filteredTasksCount} of {totalTasks} tasks
                   </span>
@@ -53,7 +76,30 @@ export default function BoardHeader({
               </div>
             </div>
           </div>
+        </div>
 
+        {/* Tabs */}
+        <div className="mt-6 border-b border-gray-200/50 dark:border-gray-700/50">
+          <nav className="flex space-x-8">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => handleTabChange(tab.id)}
+                  className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    isActive
+                      ? 'border-pink-500 text-pink-600 dark:text-pink-400'
+                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </nav>
         </div>
       </div>
     </div>
