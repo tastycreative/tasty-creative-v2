@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { usePodData, useDriveSheets } from "@/lib/stores/podStore";
 
 const SheetsIntegration = dynamic(
-  () => import("@/components/pod-new/features/integrations/SheetsIntegration"),
+  () => import("@/components/SheetsIntegration"),
   {
     loading: () => (
       <div className="bg-slate-900/70 border border-white/10 rounded-lg p-6">
@@ -20,53 +20,54 @@ const SheetsIntegration = dynamic(
 );
 
 export default function PodNewSheetsPage() {
-  const { podData } = usePodData();
-  const { fetchDriveSheets } = useDriveSheets();
+  // const { podData } = usePodData();
+  // const { fetchDriveSheets } = useDriveSheets();
 
-  const handleSpreadsheetCreated = () => {
-    if (podData?.creators && podData.creators.length > 0) {
-      const creatorNames = podData.creators.map((creator) => creator.name);
-      fetchDriveSheets(creatorNames, true);
-    }
-  };
+  // const handleSpreadsheetCreated = () => {
+  //   if (podData?.creators && podData.creators.length > 0) {
+  //     const creatorNames = podData.creators.map((creator) => creator.name);
+  //     fetchDriveSheets(creatorNames, true);
+  //   }
+  // };
 
-  if (!podData) {
-    return (
-      <div className="bg-slate-900/70 border border-white/10 rounded-lg p-6">
-        <div className="flex items-center space-x-3">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-500"></div>
-          <span className="text-slate-200">
-            Loading team data for sheets integration...
-          </span>
-        </div>
-      </div>
-    );
-  }
+  // if (!podData) {
+  //   return (
+  //     <div className="bg-slate-900/70 border border-white/10 rounded-lg p-6">
+  //       <div className="flex items-center space-x-3">
+  //         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-500"></div>
+  //         <span className="text-slate-200">
+  //           Loading team data for sheets integration...
+  //         </span>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
-    <Suspense
-      fallback={
-        <div className="bg-slate-900/70 border border-white/10 rounded-lg p-6">
-          <div className="flex items-center space-x-3">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-500"></div>
-            <span className="text-slate-200">
-              Loading sheets integration...
-            </span>
-          </div>
-        </div>
-      }
-    >
-      <SheetsIntegration
-        onSpreadsheetCreated={handleSpreadsheetCreated}
-        onSheetCreated={() => {
-          if (podData?.creators && podData.creators.length > 0) {
-            const creatorNames = podData.creators.map(
-              (creator) => creator.name
-            );
-            fetchDriveSheets(creatorNames, true);
-          }
-        }}
-      />
-    </Suspense>
+    // <Suspense
+    //   fallback={
+    //     <div className="bg-slate-900/70 border border-white/10 rounded-lg p-6">
+    //       <div className="flex items-center space-x-3">
+    //         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-500"></div>
+    //         <span className="text-slate-200">
+    //           Loading sheets integration...
+    //         </span>
+    //       </div>
+    //     </div>
+    //   }
+    // >
+    //   <SheetsIntegration
+    //     onSpreadsheetCreated={handleSpreadsheetCreated}
+    //     onSheetCreated={() => {
+    //       if (podData?.creators && podData.creators.length > 0) {
+    //         const creatorNames = podData.creators.map(
+    //           (creator) => creator.name
+    //         );
+    //         fetchDriveSheets(creatorNames, true);
+    //       }
+    //     }}
+    //   />
+    // </Suspense>
+    <SheetsIntegration />
   );
 }

@@ -591,7 +591,7 @@ export default function LeftSidebar({ collapsed = false }: LeftSidebarProps) {
                               e.stopPropagation();
                               signOut();
                             }}
-                            className="p-1 rounded-md transition-colors hover:bg-slate-200/80 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                            className="p-1 rounded-md transition-colors hover:bg-red-500/90  text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
                             title="Sign out"
                           >
                             <LogOut className="w-4 h-4" />
