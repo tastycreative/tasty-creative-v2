@@ -1,8 +1,9 @@
 "use client";
 
-import React, { Suspense } from "react";
+import React, { Suspense, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import { usePodStore, useAvailableTeams } from "@/lib/stores/podStore";
 
 // Dynamic import for better performance
@@ -20,8 +21,21 @@ const Board = dynamic(() => import("@/components/pod-new/features/board/Board"),
 
 export default function BoardPage() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
   const { selectedTeamId, setSelectedTeamId } = usePodStore();
   const { teams: availableTeams } = useAvailableTeams();
+
+  // Listen for URL parameter changes and update the selected team
+  useEffect(() => {
+    const teamParam = searchParams?.get('team');
+    if (teamParam && teamParam !== selectedTeamId && availableTeams.length > 0) {
+      // Check if the team ID exists in available teams
+      const teamExists = availableTeams.find(team => team.id === teamParam);
+      if (teamExists) {
+        setSelectedTeamId(teamParam);
+      }
+    }
+  }, [searchParams, selectedTeamId, availableTeams, setSelectedTeamId]);
 
   // Convert team options to match Board component expectations
   const teamOptions = availableTeams.map((team, index) => ({

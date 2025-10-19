@@ -40,19 +40,13 @@ const linkifyText = (text: string) => {
   });
 };
 
-interface TeamOption {
-  row: number;
-  name: string;
-  label: string;
-}
-
 interface BoardProps {
   teamId: string;
   teamName: string;
   session: Session | null;
-  availableTeams: TeamOption[];
-  onTeamChange: (teamRow: number) => void;
-  selectedRow: number;
+  availableTeams: Array<{ row: number; name: string; label: string; }>; // Keep for backward compatibility
+  onTeamChange: (teamRow: number) => void; // Keep for backward compatibility  
+  selectedRow: number; // Keep for backward compatibility
 }
 
 const statusConfig = {
@@ -262,49 +256,12 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     }, [currentTeamId, fetchTasks])
   });
 
-  // Initialize team from URL parameters on component mount
-  useEffect(() => {
-    const teamParam = searchParams?.get('team');
-    if (teamParam && teamParam !== currentTeamId) {
-      // Extract team row number from team-N format
-      const teamRowMatch = teamParam.match(/^team-(\d+)$/);
-      if (teamRowMatch) {
-        const teamRow = parseInt(teamRowMatch[1]);
-        // Only trigger if it's a valid team row and different from current
-        if (teamRow >= 1 && teamRow <= availableTeams.length) {
-          onTeamChange(teamRow);
-        }
-      }
-    } else if (!teamParam && currentTeamId) {
-      // If no team in URL but we have a current team, update the URL
-      const params = new URLSearchParams(searchParams?.toString() || '');
-      params.set('team', currentTeamId);
-      router.push(`?${params.toString()}`, { scroll: false });
-    }
-  }, [searchParams, currentTeamId, availableTeams.length, onTeamChange, router]);
+  // Removed URL parameter detection - team selection now handled by parent component
+  // The parent component (BoardPage) handles URL parameter changes and updates the teamId prop
 
-  // Sync URL when teamId prop changes (handles initial load and external team changes)
-  useEffect(() => {
-    const teamParam = searchParams?.get('team');
-    if (teamId && teamId !== teamParam) {
-      const params = new URLSearchParams(searchParams?.toString() || '');
-      params.set('team', teamId);
-      router.push(`?${params.toString()}`, { scroll: false });
-    }
-  }, [teamId, searchParams, router]);
+  // Removed automatic URL sync - team selection now handled exclusively via LeftSidebar
 
-  // Handle team change with immediate UI update
-  const handleTeamChange = (newTeamRow: number) => {
-    const newTeamId = `team-${newTeamRow}`;
-    setCurrentTeamId(newTeamId);
-    setShowNewTaskForm(null);
-    onTeamChange(newTeamRow);
-    
-    // Update URL parameters to include team
-    const params = new URLSearchParams(searchParams?.toString() || '');
-    params.set('team', newTeamId);
-    router.push(`?${params.toString()}`);
-  };
+  // Removed handleTeamChange function - team selection now handled via LeftSidebar
 
   // Task management functions
   const handleCreateTask = async (status: Task['status']) => {
@@ -832,9 +789,6 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       <div className="space-y-6">
         <BoardHeader
           teamName={teamName}
-          availableTeams={availableTeams}
-          selectedRow={selectedRow}
-          onTeamChange={handleTeamChange}
           totalTasks={0}
           filteredTasksCount={0}
           isLoading={false}
@@ -850,9 +804,6 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     return (
       <BoardSkeleton
         teamName={teamName}
-        availableTeams={availableTeams}
-        selectedRow={selectedRow}
-        onTeamChange={handleTeamChange}
         getColumnConfig={getColumnConfig}
         getGridClasses={getGridClasses}
         getGridStyles={getGridStyles}
@@ -865,9 +816,6 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       {/* Board Header */}
       <BoardHeader
         teamName={teamName}
-        availableTeams={availableTeams}
-        selectedRow={selectedRow}
-        onTeamChange={handleTeamChange}
         totalTasks={tasks.length}
         filteredTasksCount={filteredAndSortedTasks.length}
         isLoading={isLoading}

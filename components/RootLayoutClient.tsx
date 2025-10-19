@@ -20,6 +20,8 @@ export function RootLayoutClient({ children }: { children: React.ReactNode }) {
     "/gallery",
     "/gif-maker",
     "/sheets",
+    "/team",
+    "live-stream",
     "/schedule", // Schedule page with self-contained layout
   ];
 

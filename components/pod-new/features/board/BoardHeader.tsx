@@ -1,20 +1,10 @@
 "use client";
 
 import React from "react";
-import { Session } from "next-auth";
 import { KanbanSquare } from "lucide-react";
-
-interface TeamOption {
-  row: number;
-  name: string;
-  label: string;
-}
 
 interface BoardHeaderProps {
   teamName: string;
-  availableTeams: TeamOption[];
-  selectedRow: number;
-  onTeamChange: (teamRow: number) => void;
   totalTasks: number;
   filteredTasksCount: number;
   isLoading: boolean;
@@ -22,9 +12,6 @@ interface BoardHeaderProps {
 
 export default function BoardHeader({
   teamName,
-  availableTeams,
-  selectedRow,
-  onTeamChange,
   totalTasks,
   filteredTasksCount,
   isLoading,
@@ -67,35 +54,6 @@ export default function BoardHeader({
             </div>
           </div>
 
-          {/* Team Selector - Mobile Responsive */}
-          <div className="relative w-full sm:w-auto">
-            <div className="flex items-center space-x-2 sm:space-x-3 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/50 rounded-lg px-3 sm:px-4 py-2 shadow-sm hover:shadow-md transition-all">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
-                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
-                  Team
-                </span>
-              </div>
-              <div className="h-4 w-px bg-gray-300 dark:bg-gray-600"></div>
-              <select
-                value={selectedRow}
-                onChange={(e) => onTeamChange(Number(e.target.value))}
-                className="bg-transparent border-none outline-none text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors appearance-none pr-6 min-w-0 flex-1"
-                style={{
-                  backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
-                  backgroundPosition: "right 0.5rem center",
-                  backgroundRepeat: "no-repeat",
-                  backgroundSize: "1rem 1rem",
-                }}
-              >
-                {availableTeams.map((team) => (
-                  <option key={team.row} value={team.row}>
-                    {team.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
         </div>
       </div>
     </div>
