@@ -65,6 +65,9 @@ export function ProtectedFeature({
           <p className="text-gray-500 dark:text-gray-400 mb-4">
             This feature is not available for guest users. Wait or contact an Admin/Moderator to elevate your access.
           </p>
+           <p className="text-gray-500 dark:text-gray-400 mb-4">
+            Relogin after access has been elevated.
+          </p>
           <button
             onClick={handleGoogleSignIn}
             className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
