@@ -4,13 +4,15 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAdminUsers, useAdminUsersActions } from "@/hooks/useAdminUsers";
 import { UserRoleForm } from "@/components/admin/UserRoleForm";
-import { BulkRoleEditor } from "@/components/admin/BulkRoleEditor";
 import { ActivityHistoryTable } from "@/components/admin/ActivityHistoryTable";
 import { formatForDisplay } from "@/lib/dateUtils";
 import { Role } from "@prisma/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { UserListSkeleton } from "@/components/ui/skeleton";
+import { updateUserRole } from "@/app/actions/admin";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Search,
   Users,
@@ -26,6 +28,8 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
+  Check,
+  X,
 } from "lucide-react";
 
 interface AdminUsersClientProps {
@@ -40,6 +44,7 @@ export function AdminUsersClient({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { invalidateUsers } = useAdminUsersActions();
+  const queryClient = useQueryClient();
   
   const [activeTab, setActiveTab] = useState<"users" | "history">("users");
   const [searchTerm, setSearchTerm] = useState(searchParams?.get("search") || "");
@@ -47,6 +52,11 @@ export function AdminUsersClient({
   const [page, setPage] = useState(parseInt(searchParams?.get("page") || "1"));
   const [pageSize, setPageSize] = useState(searchParams?.get("limit") || "10");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
+  
+  // Bulk selection state
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+  const [bulkRole, setBulkRole] = useState<Role>("USER");
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
 
   // Debounced search - only reset page when search actually changes
   useEffect(() => {
@@ -130,6 +140,59 @@ export function AdminUsersClient({
     refetch();
   };
 
+  // Bulk selection handlers
+  const toggleUserSelection = (userId: string) => {
+    const newSelected = new Set(selectedUserIds);
+    if (newSelected.has(userId)) {
+      newSelected.delete(userId);
+    } else {
+      newSelected.add(userId);
+    }
+    setSelectedUserIds(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedUserIds.size === users.length) {
+      setSelectedUserIds(new Set());
+    } else {
+      setSelectedUserIds(new Set(users.map(u => u.id)));
+    }
+  };
+
+  const handleBulkRoleUpdate = async () => {
+    if (selectedUserIds.size === 0) return;
+    
+    setIsBulkUpdating(true);
+    try {
+      // Update all selected users
+      await Promise.all(
+        Array.from(selectedUserIds).map(userId =>
+          updateUserRole(userId, bulkRole)
+        )
+      );
+      
+      // Refresh the users list
+      await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      await queryClient.refetchQueries({ queryKey: ['admin-users'] });
+      
+      // Clear selection
+      setSelectedUserIds(new Set());
+    } catch (error) {
+      console.error("Failed to update roles:", error);
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
+  const cancelBulkEdit = () => {
+    setSelectedUserIds(new Set());
+  };
+
+  // Clear selection when page changes
+  useEffect(() => {
+    setSelectedUserIds(new Set());
+  }, [page, debouncedSearchTerm, selectedRole]);
+
   return (
     <div className="space-y-6">
       {/* Tab Navigation */}
@@ -180,7 +243,6 @@ export function AdminUsersClient({
                   />
                 </div>
                 <div className="flex gap-3">
-                  <BulkRoleEditor users={users} />
                   <select
                     value={selectedRole}
                     onChange={(e) => setSelectedRole(e.target.value)}
@@ -217,6 +279,60 @@ export function AdminUsersClient({
               </div>
             </CardContent>
           </Card>
+
+          {/* Bulk Actions Bar - Appears when users are selected */}
+          {selectedUserIds.size > 0 && (
+            <Card className="border-2 border-pink-500 dark:border-pink-400 shadow-lg bg-white dark:bg-gray-800 sticky top-4 z-10">
+              <CardContent className="p-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 px-3 py-1.5 rounded-lg font-semibold text-sm">
+                        {selectedUserIds.size} user{selectedUserIds.size !== 1 ? 's' : ''} selected
+                      </div>
+                    </div>
+                    <div className="h-6 w-px bg-gray-300 dark:bg-gray-600"></div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">Change role to:</span>
+                      <select
+                        value={bulkRole}
+                        onChange={(e) => setBulkRole(e.target.value as Role)}
+                        disabled={isBulkUpdating}
+                        className="px-3 py-1.5 text-sm border border-pink-200 dark:border-pink-500/30 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:opacity-50"
+                      >
+                        <option value="GUEST">Guest</option>
+                        <option value="USER">User</option>
+                        <option value="POD">POD</option>
+                        <option value="SWD">SWD</option>
+                        <option value="MODERATOR">Moderator</option>
+                        <option value="ADMIN">Admin</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={handleBulkRoleUpdate}
+                      disabled={isBulkUpdating}
+                      size="sm"
+                      className="bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white"
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                      {isBulkUpdating ? 'Updating...' : 'Apply Changes'}
+                    </Button>
+                    <Button
+                      onClick={cancelBulkEdit}
+                      disabled={isBulkUpdating}
+                      variant="outline"
+                      size="sm"
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Enhanced Users Table */}
           <Card className="border border-pink-200 dark:border-pink-500/30 shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 bg-white dark:bg-gray-800">
@@ -276,6 +392,14 @@ export function AdminUsersClient({
                       className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-300"
                     >
                       <div className="flex items-start space-x-4">
+                        {/* Checkbox */}
+                        <input
+                          type="checkbox"
+                          checked={selectedUserIds.has(user.id)}
+                          onChange={() => toggleUserSelection(user.id)}
+                          disabled={user.id === sessionUserId}
+                          className="mt-3 h-4 w-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
                         {user.image ? (
                           // eslint-disable-next-line @next/next/no-img-element
                           <img
@@ -344,6 +468,14 @@ export function AdminUsersClient({
                   <table className="w-full min-w-[800px]">
                     <thead className="bg-gray-50 dark:bg-gray-900">
                       <tr className="border-b border-pink-200 dark:border-pink-500/30">
+                        <th className="px-4 py-4 text-left w-[50px]">
+                          <input
+                            type="checkbox"
+                            checked={users.length > 0 && selectedUserIds.size === users.length}
+                            onChange={toggleSelectAll}
+                            className="h-4 w-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500"
+                          />
+                        </th>
                         <th className="px-4 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider w-[200px]">
                           User Details
                         </th>
@@ -367,6 +499,15 @@ export function AdminUsersClient({
                         key={user.id}
                         className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-300 group"
                       >
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={selectedUserIds.has(user.id)}
+                            onChange={() => toggleUserSelection(user.id)}
+                            disabled={user.id === sessionUserId}
+                            className="h-4 w-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                          />
+                        </td>
                         <td className="px-4 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             {user.image ? (
