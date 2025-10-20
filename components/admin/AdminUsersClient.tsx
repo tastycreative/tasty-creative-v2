@@ -113,7 +113,7 @@ export function AdminUsersClient({
     router.push(newURL, { scroll: false });
   }, [router, searchParams]);
 
-  // Sync URL when individual params change (not when queryParams object changes)
+  // Sync URL when individual params change (not when queryParams object changes)/
   useEffect(() => {
     updateURL({
       page: page,
