@@ -22,12 +22,12 @@ const PodAdminDashboard = dynamic(() => import("@/components/pod-new/features/ad
 export default function AdminPage() {
   const { data: session } = useSession();
 
-  if (session?.user?.role !== "ADMIN") {
+  if (session?.user?.role !== "ADMIN" && session?.user?.role !== "MODERATOR") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900 p-6">
         <div className="relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-red-200/60 dark:border-red-700/60 shadow-xl backdrop-blur-sm p-6 text-center">
           <div className="text-red-600 dark:text-red-400">
-            <p>Access denied. Admin role required.</p>
+            <p>Access denied. Admin or Moderator role required.</p>
           </div>
         </div>
       </div>

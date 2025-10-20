@@ -15,6 +15,7 @@ import { useLayoutStore, useResponsiveLayout } from "@/lib/stores/layoutStore";
 import { useWelcomeModal } from "@/hooks/useWelcomeModal";
 import { WelcomeToPodNewModal } from "@/components/pod-new/shared/WelcomeToPodNewModal";
 import { WhatsNewButton } from "@/components/pod-new/shared/WhatsNewButton";
+import { useSession } from "next-auth/react";
 
 interface PodLayoutProps {
   children: React.ReactNode;
@@ -22,6 +23,7 @@ interface PodLayoutProps {
 
 export default function PodLayout({ children }: PodLayoutProps) {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const { selectedRow, selectedTeamId, setSelectedTeamId } = usePodStore();
   const { fetchPodData } = usePodData();
   const { teams, loading: isLoadingTeams, fetchAvailableTeams } = useAvailableTeams();
@@ -108,7 +110,10 @@ export default function PodLayout({ children }: PodLayoutProps) {
     { id: "pricing", label: "Pricing Guide", href: "/pricing" },
     { id: "forms", label: "Gallery", href: "/gallery" },
     { id: "generative-ai", label: "Generative AI", href: "/generative-ai/voice" },
-    { id: "pod-admin", label: "POD-Admin", href: "/pod-admin" },
+    // Only show POD-Admin to ADMIN and MODERATOR users
+    ...(session?.user?.role === "ADMIN" || session?.user?.role === "MODERATOR" 
+      ? [{ id: "pod-admin", label: "POD-Admin", href: "/pod-admin" }] 
+      : []),
   ];
 
   // For model profile pages, render completely full-screen without any parent layout
