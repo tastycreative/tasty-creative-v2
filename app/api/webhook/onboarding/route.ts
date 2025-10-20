@@ -11,7 +11,8 @@ import { createTaskActivity } from '@/lib/taskActivityHelper'
 //   "taskDescription": "string", // Optional  
 //   "clientOnlyFansAlbum": "string", // Optional URL
 //   "clientSocialAlbums": "string", // Optional URL
-//   "clientCustomSheet": "string" // Optional URL
+//   "clientCustomSheet": "string", // Optional URL
+//   "launchesPod": "string" // Optional URL - Launches (POD) link
 // }
 export async function POST(request: NextRequest) {
   try {
@@ -42,6 +43,7 @@ export async function POST(request: NextRequest) {
     const clientOnlyFansAlbum = body.clientOnlyFansAlbum || urlParams.get('clientOnlyFansAlbum') || null
     const clientSocialAlbums = body.clientSocialAlbums || urlParams.get('clientSocialAlbums') || null
     const clientCustomSheet = body.clientCustomSheet || urlParams.get('clientCustomSheet') || null
+    const launchesPod = body.launchesPod || urlParams.get('launchesPod') || null
 
     if (!clientModelDetailsId) {
       return NextResponse.json({ error: 'Missing clientModelDetailsId (body or query)' }, { status: 400 })
@@ -101,7 +103,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Add album URLs to description if provided
-    if (clientOnlyFansAlbum || clientSocialAlbums || clientCustomSheet) {
+    if (clientOnlyFansAlbum || clientSocialAlbums || clientCustomSheet || launchesPod) {
       description += '\n\n**Links:**'
       if (clientOnlyFansAlbum) {
         description += `\n• [Client OnlyFans Album](${clientOnlyFansAlbum})`
@@ -111,6 +113,9 @@ export async function POST(request: NextRequest) {
       }
       if (clientCustomSheet) {
         description += `\n• [Client Custom Sheet](${clientCustomSheet})`
+      }
+      if (launchesPod) {
+        description += `\n• [Launches (POD)](${launchesPod})`
       }
     }
 
