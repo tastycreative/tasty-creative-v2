@@ -2,7 +2,9 @@
 // components/FontSelector.tsx
 import { useEffect, useState, useRef } from "react";
 
-const GOOGLE_FONTS_API = `https://www.googleapis.com/webfonts/v1/webfonts?key=AIzaSyB3qd-MPRPLUc2YUD0k0KI7_ITG0KvhXeE&sort=popularity`;
+const GOOGLE_FONTS_API_KEY = process.env.GOOGLE_API_KEY;
+
+const GOOGLE_FONTS_API = `https://www.googleapis.com/webfonts/v1/webfonts?key=${GOOGLE_FONTS_API_KEY}&sort=popularity`;
 
 export default function FontSelector({
   selectedFont,
