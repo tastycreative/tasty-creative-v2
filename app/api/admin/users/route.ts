@@ -11,13 +11,8 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    // Fetch users with only GUEST, USER, and POD roles (same pattern as admin/users page)
+    // Fetch all users (filtering will be done on frontend)
     const users = await prisma.user.findMany({
-      where: {
-        role: {
-          in: ['GUEST', 'USER', 'POD']
-        }
-      },
       select: {
         id: true,
         email: true,

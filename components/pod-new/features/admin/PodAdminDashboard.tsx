@@ -123,7 +123,7 @@ const PodAdminDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [userRoleFilter, setUserRoleFilter] = useState<
-    "all" | "POD" | "USER" | "GUEST"
+    "all" | "POD" | "USER" | "ADMIN" | "MODERATOR" | "SWD"
 >("all");
   const [filterStatus, setFilterStatus] = useState<
     "all" | "active" | "completed"
@@ -467,7 +467,7 @@ const PodAdminDashboard = () => {
 
       const result = await response.json();
       const filteredUsers = result.users.filter((user: SystemUser) =>
-        ["GUEST", "USER", "POD"].includes(user.role)
+        ["USER", "POD", "ADMIN", "MODERATOR", "SWD"].includes(user.role)
       );
       // Include all users except GUEST for team member selection
       const eligibleUsers = result.users.filter(
@@ -3187,7 +3187,7 @@ const PodAdminDashboard = () => {
                       value={userRoleFilter}
                       onChange={(e) =>
                         setUserRoleFilter(
-                          e.target.value as "all" | "POD" | "USER" | "GUEST"
+                          e.target.value as "all" | "POD" | "USER" | "ADMIN" | "MODERATOR" | "SWD"
                         )
                       }
                       className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm"
@@ -3195,7 +3195,9 @@ const PodAdminDashboard = () => {
                       <option value="all">All Roles</option>
                       <option value="POD">POD</option>
                       <option value="USER">USER</option>
-                      <option value="GUEST">GUEST</option>
+                      <option value="ADMIN">ADMIN</option>
+                      <option value="MODERATOR">MODERATOR</option>
+                      <option value="SWD">SWD</option>
                     </select>
                   </div>
                   {(userSearchQuery || userRoleFilter !== "all") && (
@@ -3896,7 +3898,7 @@ const AddTeamForm = ({
 
   // Filter Users for members based on search term and exclude already selected
   const filteredPodUsers = podUsers
-    .filter((user) => user.role === "POD")
+    .filter((user) => user.role !== "GUEST")
     .filter(
       (user) => !selectedMembers.some((member) => member.userId === user.id)
     )
@@ -4275,7 +4277,7 @@ const AddTeamForm = ({
               ) : (
                 <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-6 bg-gray-50 dark:bg-gray-800 text-center">
                   <p className="text-gray-500 dark:text-gray-400 text-sm">
-                    {podUsers.filter((u) => u.role === "POD").length === 0
+                    {podUsers.filter((u) => u.role !== "GUEST").length === 0
                       ? "No Users available"
                       : `No Users match "${membersSearchTerm}"`}
                   </p>
@@ -4372,12 +4374,10 @@ const AddMemberForm = ({
     (user) =>
       user.email && // Only show users with valid email addresses
       !existingMembers.some((member) => member.email === user.email) &&
-      (user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (searchQuery === "" || 
+        user.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         user.email?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
-
-  console.log(`🔍 AddMemberForm - Existing members emails:`, existingMembers.map(m => m.email));
-  console.log(`🔍 AddMemberForm - Available users (${availableUsers.length}):`, availableUsers.map(u => u.email));
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -4478,7 +4478,7 @@ const AddMemberForm = ({
       <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-lg mx-4 max-h-[80vh] overflow-hidden flex flex-col">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-            Add Team Member
+            Add Team Members
           </h3>
           <button
             onClick={onClose}
