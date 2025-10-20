@@ -1,7 +1,7 @@
 // services/pod-new/api.ts
 
 export type TeamOption = { row: number; name: string; label: string };
-export type TeamMember = { id: string; name: string; role: string };
+export type TeamMember = { id: string; name: string; role: string; image?: string };
 export type Creator = { id: string; name: string };
 export type SheetLink = { id?: string; name: string; url: string };
 

@@ -182,10 +182,23 @@ export default function RightSidebar({ collapsed = false }: RightSidebarProps) {
           )}
           {(data?.teamMembers || []).map((m, i) => (
             <div key={m.name} className="flex items-center gap-3">
+              {m.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={m.image}
+                  alt={m.name || "Team member"}
+                  className="w-7 h-7 rounded-full object-cover border border-gray-200 dark:border-slate-700"
+                  onError={(e) => {
+                    // Fallback to icon if image fails to load
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                  }}
+                />
+              ) : null}
               <div
-                className={`w-7 h-7 rounded-full text-white text-xs font-medium flex items-center justify-center ${["bg-rose-500", "bg-violet-500", "bg-cyan-500", "bg-emerald-500", "bg-orange-500"][i % 5]}`}
+                className={`w-7 h-7 rounded-full text-white flex items-center justify-center ${m.image ? 'hidden' : ''} ${["bg-rose-500", "bg-violet-500", "bg-cyan-500", "bg-emerald-500", "bg-orange-500"][i % 5]}`}
               >
-                {m.name?.charAt(0) || "?"}
+                <User className="w-4 h-4" />
               </div>
               <div className="min-w-0">
                 <div className="text-sm text-gray-900 dark:text-white truncate">
