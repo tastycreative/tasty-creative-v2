@@ -1,5 +1,4 @@
 import { auth } from "@/auth";
-import { BulkRoleEditor } from "@/components/admin/BulkRoleEditor";
 import { AdminUsersClient } from "@/components/admin/AdminUsersClient";
 import { prisma } from "@/lib/prisma";
 import { utcNowDateTime, toUtc } from "@/lib/dateUtils";
@@ -15,21 +14,8 @@ import {
   TrendingUp,
 } from "lucide-react";
 
-type User = {
-  id: string;
-  email: string | null;
-  name: string | null;
-  role: string;
-  image: string | null;
-  createdAt: Date;
-  emailVerified: Date | null;
-};
 
-export default async function AdminUsersPage({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
-}) {
+export default async function AdminUsersPage() {
   const session = await auth();
 
   // Check if user is admin
@@ -37,72 +23,44 @@ export default async function AdminUsersPage({
     redirect("/unauthorized");
   }
 
-  // Get all users for stats (we still need total counts for the cards)
-  const allUsers = await prisma.user.findMany({
-    select: {
-      role: true,
-      createdAt: true,
-    },
-  });
+  // Default fallback values for when database is unavailable
+  let totalUsers = 0;
+  let adminCount = 0;
+  let moderatorCount = 0;
+  let userCount = 0;
+  let swdCount = 0;
+  let guestCount = 0;
+  let growthRate = 0;
 
-  const totalUsers = allUsers.length;
-  const adminCount = allUsers.filter((u) => u.role === "ADMIN").length;
-  const moderatorCount = allUsers.filter((u) => u.role === "MODERATOR").length;
-  const userCount = allUsers.filter((u) => u.role === "USER").length;
-  const swdCount = allUsers.filter((u) => u.role === "SWD").length;
-  const guestCount = allUsers.filter((u) => u.role === "GUEST").length;
+  try {
+    // Get all users for stats (we still need total counts for the cards)
+    const allUsers = await prisma.user.findMany({
+      select: {
+        role: true,
+        createdAt: true,
+      },
+    });
 
-  // Get initial page of users for SSR
-  const page = parseInt((searchParams.page as string) || "1");
-  const limit = (searchParams.limit as string) || "10";
-  const search = (searchParams.search as string) || "";
-  const roleFilter = (searchParams.role as string) || "";
+    totalUsers = allUsers.length;
+    adminCount = allUsers.filter((u) => u.role === "ADMIN").length;
+    moderatorCount = allUsers.filter((u) => u.role === "MODERATOR").length;
+    userCount = allUsers.filter((u) => u.role === "USER").length;
+    swdCount = allUsers.filter((u) => u.role === "SWD").length;
+    guestCount = allUsers.filter((u) => u.role === "GUEST").length;
 
-  // Build where clause
-  const where: any = {};
-  if (search) {
-    where.OR = [
-      { name: { contains: search, mode: "insensitive" } },
-      { email: { contains: search, mode: "insensitive" } },
-      { role: { contains: search, mode: "insensitive" } },
-    ];
+    // Calculate growth metrics using UTC
+    const now = utcNowDateTime();
+    const lastMonth = now.minus({ months: 1 });
+    const thisMonthUsers = allUsers.filter(
+      (u) => toUtc(u.createdAt) >= lastMonth
+    ).length;
+    growthRate =
+      totalUsers > 0 ? Math.round((thisMonthUsers / totalUsers) * 100) : 0;
+  } catch (error) {
+    console.error("Database connection error in AdminUsersPage:", error);
+    // Use fallback values (already initialized above)
+    // This allows the page to still render with 0 values when DB is down
   }
-  if (roleFilter && roleFilter !== "all") {
-    where.role = roleFilter;
-  }
-
-  const pageSize = limit === "all" ? undefined : parseInt(limit);
-  const offset = pageSize ? (page - 1) * pageSize : 0;
-
-  const users: User[] = await prisma.user.findMany({
-    where,
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      role: true,
-      image: true,
-      createdAt: true,
-      emailVerified: true,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-    skip: offset,
-    take: pageSize,
-  });
-
-  const filteredCount = await prisma.user.count({ where });
-  const totalPages = pageSize ? Math.ceil(filteredCount / pageSize) : 1;
-
-  // Calculate growth metrics using UTC
-  const now = utcNowDateTime();
-  const lastMonth = now.minus({ months: 1 });
-  const thisMonthUsers = users.filter(
-    (u) => toUtc(u.createdAt) >= lastMonth
-  ).length;
-  const growthRate =
-    totalUsers > 0 ? Math.round((thisMonthUsers / totalUsers) * 100) : 0;
 
   return (
     <div className="min-h-screen p-6 space-y-6 bg-gradient-to-br from-gray-50 via-white to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -121,7 +79,6 @@ export default async function AdminUsersPage({
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3">
-            <BulkRoleEditor users={users} />
             <button className="inline-flex items-center justify-center px-4 py-2 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 rounded-lg transition-all duration-300 shadow-sm hover:shadow-md hover:-translate-y-0.5">
               <Download className="h-4 w-4 mr-2" />
               Export
@@ -287,25 +244,7 @@ export default async function AdminUsersPage({
 
       {/* Client Component with Tabs */}
       <AdminUsersClient
-        initialUsers={users}
-        initialPagination={{
-          page,
-          limit,
-          totalUsers: filteredCount,
-          totalPages,
-          hasNextPage: pageSize ? page < totalPages : false,
-          hasPrevPage: page > 1,
-          showing: users.length,
-        }}
-        initialSearch={search}
-        initialRoleFilter={roleFilter}
         totalUsers={totalUsers}
-        adminCount={adminCount}
-        moderatorCount={moderatorCount}
-        userCount={userCount}
-        swdCount={swdCount}
-        guestCount={guestCount}
-        growthRate={growthRate}
         sessionUserId={session.user.id}
       />
     </div>

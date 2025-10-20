@@ -1,15 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useActivityHistory, useActivityHistoryActions } from "@/hooks/useActivityHistory";
 import {
   History,
   Search,
   Filter,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   User,
   Shield,
   UserCheck,
   Pencil,
+  Briefcase,
   Calendar,
   Clock,
   ArrowRight,
@@ -18,6 +23,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ActivityHistorySkeleton } from "@/components/ui/skeleton";
 
 // Timezone-aware date formatting
 const formatActivityDate = (dateString: string) => {
@@ -70,79 +76,103 @@ const formatFullDateTime = (dateString: string) => {
   }).format(date);
 };
 
-interface UserActivityData {
-  id: string;
-  actionType: string;
-  oldRole: string | null;
-  newRole: string;
-  reason: string | null;
-  createdAt: string;
-  actor: {
-    id: string;
-    name: string | null;
-    email: string;
-    image: string | null;
-  };
-  targetUser: {
-    id: string;
-    name: string | null;
-    email: string;
-    image: string | null;
-  };
-}
 
 interface ActivityHistoryTableProps {
   className?: string;
 }
 
 export function ActivityHistoryTable({ className = "" }: ActivityHistoryTableProps) {
-  const [activities, setActivities] = useState<UserActivityData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState("ALL");
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { invalidateActivities } = useActivityHistoryActions();
+  
+  const [searchTerm, setSearchTerm] = useState(searchParams?.get("search") || "");
+  const [filterType, setFilterType] = useState(searchParams?.get("actionType") || "ALL");
+  const [page, setPage] = useState(parseInt(searchParams?.get("page") || "1"));
+  const [pageSize, setPageSize] = useState(searchParams?.get("limit") || "10");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
 
-  const fetchActivities = async (pageNum: number = 1, isLoadMore: boolean = false) => {
-    try {
-      if (!isLoadMore) setLoading(true);
-      
-      const params = new URLSearchParams({
-        page: pageNum.toString(),
-        limit: "50"
-      });
+  // Debounced search - only reset page when search actually changes
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
 
-      if (filterType !== "ALL") {
-        params.append("actionType", filterType);
-      }
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
 
-      const response = await fetch(`/api/admin/user-activity-history?${params}`);
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch activity history");
-      }
-
-      const data = await response.json();
-      
-      if (isLoadMore) {
-        setActivities(prev => [...prev, ...data.activities]);
-      } else {
-        setActivities(data.activities);
-      }
-      
-      setHasMore(data.pagination.hasMore);
-      setPage(pageNum);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load data");
-    } finally {
-      setLoading(false);
+  // Reset to first page when search term or filter changes (but not on initial load)
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
     }
+    setPage(1);
+  }, [debouncedSearchTerm, filterType]);
+
+  // Query parameters for API
+  const queryParams = useMemo(() => ({
+    page,
+    limit: pageSize,
+    search: debouncedSearchTerm,
+    actionType: filterType,
+  }), [page, pageSize, debouncedSearchTerm, filterType]);
+
+  // Use TanStack Query for data fetching
+  const { 
+    activities, 
+    pagination, 
+    isLoading, 
+    isError, 
+    error, 
+    isFetching, 
+    isRefetching,
+    refetch 
+  } = useActivityHistory(queryParams);
+
+  // Update URL params
+  const updateURL = useCallback((newParams: Partial<typeof queryParams>) => {
+    const urlParams = new URLSearchParams(searchParams?.toString() || "");
+    
+    Object.entries(newParams).forEach(([key, value]) => {
+      if (value && value !== "ALL" && value !== "1" && value !== "10") {
+        urlParams.set(key, value.toString());
+      } else {
+        urlParams.delete(key);
+      }
+    });
+
+    const newURL = `${window.location.pathname}${urlParams.toString() ? `?${urlParams.toString()}` : ''}`;
+    router.push(newURL, { scroll: false });
+  }, [router, searchParams]);
+
+  // Sync URL when individual params change
+  useEffect(() => {
+    updateURL({
+      page: page,
+      limit: pageSize,
+      search: debouncedSearchTerm,
+      actionType: filterType,
+    });
+  }, [page, pageSize, debouncedSearchTerm, filterType, updateURL]);
+
+  // Handle pagination
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
   };
 
-  useEffect(() => {
-    fetchActivities(1, false);
-  }, [filterType]);
+  // Handle page size change
+  const handlePageSizeChange = (newLimit: string) => {
+    setPageSize(newLimit);
+    setPage(1); // Reset to first page
+  };
+
+  // Handle manual refresh
+  const handleRefresh = () => {
+    invalidateActivities();
+    refetch();
+  };
 
   const getRoleIcon = (role: string) => {
     switch (role) {
@@ -152,6 +182,8 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
         return <UserCheck className="h-3 w-3" />;
       case "SWD":
         return <Pencil className="h-3 w-3" />;
+      case "POD":
+        return <Briefcase className="h-3 w-3" />;
       default:
         return <User className="h-3 w-3" />;
     }
@@ -189,38 +221,6 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
     }
   };
 
-  const filteredActivities = activities.filter(activity => {
-    if (!searchTerm) return true;
-    
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      activity.actor.name?.toLowerCase().includes(searchLower) ||
-      activity.actor.email.toLowerCase().includes(searchLower) ||
-      activity.targetUser.name?.toLowerCase().includes(searchLower) ||
-      activity.targetUser.email.toLowerCase().includes(searchLower) ||
-      activity.reason?.toLowerCase().includes(searchLower)
-    );
-  });
-
-  if (error) {
-    return (
-      <Card className="border-red-200 dark:border-red-500/30">
-        <CardContent className="p-6 text-center">
-          <div className="text-red-600 dark:text-red-400 mb-2">
-            Error loading activity history
-          </div>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{error}</p>
-          <button 
-            onClick={() => fetchActivities(1, false)}
-            className="inline-flex items-center px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Retry
-          </button>
-        </CardContent>
-      </Card>
-    );
-  }
 
   return (
     <div className={`${className} max-w-full overflow-hidden`}>
@@ -231,7 +231,8 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
             <div>
               <CardTitle className="text-gray-900 dark:text-gray-100 font-bold flex items-center">
                 <History className="h-5 w-5 mr-2 text-pink-500" />
-                User Activity History ({filteredActivities.length})
+                User Activity History {pagination ? `(${pagination.showing} of ${pagination.totalActivities})` : ''}
+                {(isLoading || isFetching) && <RefreshCw className="h-4 w-4 ml-2 animate-spin" />}
               </CardTitle>
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 Track all user role changes and administrative actions
@@ -257,7 +258,8 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value)}
-                  className="appearance-none px-3 py-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-pink-200 dark:border-pink-500/30 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm min-w-[140px]"
+                  disabled={isLoading}
+                  className="appearance-none px-3 py-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-pink-200 dark:border-pink-500/30 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm min-w-[140px] disabled:opacity-50"
                 >
                   <option value="ALL">All Activities</option>
                   <option value="ROLE_CHANGED">Role Changes</option>
@@ -268,13 +270,27 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
                 <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
               </div>
 
+              {/* Page Size Selector */}
+              <select
+                value={pageSize}
+                onChange={(e) => handlePageSizeChange(e.target.value)}
+                disabled={isLoading}
+                className="inline-flex items-center px-3 py-2 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-pink-200 dark:border-pink-500/30 rounded-lg transition-all duration-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 min-w-[100px] disabled:opacity-50 text-sm"
+              >
+                <option value="10">10 per page</option>
+                <option value="20">20 per page</option>
+                <option value="50">50 per page</option>
+                <option value="100">100 per page</option>
+                <option value="all">Show All</option>
+              </select>
+
               {/* Refresh Button */}
               <button 
-                onClick={() => fetchActivities(1, false)}
+                onClick={handleRefresh}
                 className="inline-flex items-center justify-center px-3 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg transition-all text-sm font-medium"
-                disabled={loading}
+                disabled={isRefetching}
               >
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
               </button>
             </div>
           </div>
@@ -297,7 +313,8 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
                   <select
                     value={filterType}
                     onChange={(e) => setFilterType(e.target.value)}
-                    className="w-full xs:w-auto appearance-none px-3 sm:px-4 py-2.5 sm:py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-pink-200 dark:border-pink-500/30 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm sm:text-base"
+                    disabled={isLoading}
+                    className="w-full xs:w-auto appearance-none px-3 sm:px-4 py-2.5 sm:py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-pink-200 dark:border-pink-500/30 rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-pink-500 text-sm sm:text-base disabled:opacity-50"
                   >
                     <option value="ALL">All Activities</option>
                     <option value="ROLE_CHANGED">Role Changes</option>
@@ -308,11 +325,11 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
                   <ChevronDown className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                 </div>
                 <button 
-                  onClick={() => fetchActivities(1, false)}
+                  onClick={handleRefresh}
                   className="inline-flex items-center justify-center px-3 sm:px-4 py-2.5 sm:py-3 bg-pink-500 hover:bg-pink-600 text-white rounded-lg transition-all text-sm sm:text-base font-medium"
-                  disabled={loading}
+                  disabled={isRefetching}
                 >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
                   <span className="hidden xs:inline">Refresh</span>
                   <span className="xs:hidden">↻</span>
                 </button>
@@ -321,23 +338,42 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {loading ? (
-            <div className="p-6 text-center">
-              <div className="flex items-center justify-center">
-                <RefreshCw className="h-6 w-6 animate-spin text-pink-500 mr-2" />
-                Loading activity history...
+          {isError ? (
+            <div className="p-8 text-center">
+              <div className="text-red-500 dark:text-red-400 mb-2">
+                <RefreshCw className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <h3 className="text-lg font-medium">Error loading activity history</h3>
+                <p className="text-sm mt-2">
+                  {error?.message || "Failed to load activity history. Please try again."}
+                </p>
+                <button
+                  onClick={handleRefresh}
+                  className="mt-4 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors"
+                >
+                  Try Again
+                </button>
               </div>
             </div>
-          ) : filteredActivities.length === 0 ? (
+          ) : isLoading ? (
+            <ActivityHistorySkeleton count={pageSize === "all" ? 20 : Math.min(parseInt(pageSize) || 10, 20)} />
+          ) : activities.length === 0 ? (
             <div className="p-6 text-center text-gray-500 dark:text-gray-400">
-              No activity history found.
+              <div className="text-gray-500 dark:text-gray-400 mb-2">
+                <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <h3 className="text-lg font-medium">No activity history found</h3>
+                <p className="text-sm mt-2">
+                  {debouncedSearchTerm || filterType !== "ALL" 
+                    ? "Try adjusting your search criteria or filters"
+                    : "No activity history matches the current filters"}
+                </p>
+              </div>
             </div>
           ) : (
             <>
               {/* Mobile Card View */}
               <div className="block lg:hidden">
                 <div className="divide-y divide-pink-200 dark:divide-pink-500/30">
-                  {filteredActivities.map((activity) => (
+                  {activities.map((activity) => (
                     <div
                       key={activity.id}
                       className="p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-300"
@@ -504,7 +540,7 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-pink-200 dark:divide-pink-500/30 bg-white dark:bg-gray-800">
-                    {filteredActivities.map((activity) => (
+                    {activities.map((activity) => (
                       <tr
                         key={activity.id}
                         className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-300"
@@ -626,25 +662,90 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
                 </div>
               </div>
 
-              {/* Load More Button */}
-              {hasMore && (
-                <div className="p-4 sm:p-6 text-center border-t border-pink-200 dark:border-pink-500/30">
-                  <button
-                    onClick={() => fetchActivities(page + 1, true)}
-                    disabled={loading}
-                    className="inline-flex items-center px-4 sm:px-6 py-2.5 sm:py-3 bg-pink-500 text-white rounded-lg hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm sm:text-base font-medium w-full sm:w-auto"
-                  >
-                    {loading ? (
-                      <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4 mr-2" />
+              {/* Pagination Controls */}
+              {activities.length > 0 && pagination && (
+                <div className="px-4 py-6 border-t border-pink-200 dark:border-pink-500/30 bg-gray-50 dark:bg-gray-900">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    {/* Page Size Selector */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Show:</span>
+                      <select
+                        value={pageSize}
+                        onChange={(e) => handlePageSizeChange(e.target.value)}
+                        disabled={isLoading}
+                        className="px-3 py-1 text-sm border border-pink-200 dark:border-pink-500/30 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:opacity-50"
+                      >
+                        <option value="10">10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="all">All</option>
+                      </select>
+                      <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Showing {pagination.showing} of {pagination.totalActivities} activities
+                      </span>
+                      <button
+                        onClick={handleRefresh}
+                        disabled={isRefetching}
+                        className="ml-2 p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50"
+                        title="Refresh"
+                      >
+                        <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
+                      </button>
+                    </div>
+
+                    {/* Pagination Buttons */}
+                    {pageSize !== "all" && pagination.totalPages > 1 && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handlePageChange(pagination.page - 1)}
+                          disabled={!pagination.hasPrevPage || isLoading}
+                          className="flex items-center px-3 py-1 text-sm border border-pink-200 dark:border-pink-500/30 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <ChevronLeft className="h-4 w-4 mr-1" />
+                          Previous
+                        </button>
+                        
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                            let pageNum;
+                            if (pagination.totalPages <= 5) {
+                              pageNum = i + 1;
+                            } else if (pagination.page <= 3) {
+                              pageNum = i + 1;
+                            } else if (pagination.page >= pagination.totalPages - 2) {
+                              pageNum = pagination.totalPages - 4 + i;
+                            } else {
+                              pageNum = pagination.page - 2 + i;
+                            }
+
+                            return (
+                              <button
+                                key={pageNum}
+                                onClick={() => handlePageChange(pageNum)}
+                                disabled={isLoading}
+                                className={`px-3 py-1 text-sm rounded transition-colors disabled:opacity-50 ${
+                                  pageNum === pagination.page
+                                    ? "bg-pink-500 text-white"
+                                    : "border border-pink-200 dark:border-pink-500/30 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                }`}
+                              >
+                                {pageNum}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <button
+                          onClick={() => handlePageChange(pagination.page + 1)}
+                          disabled={!pagination.hasNextPage || isLoading}
+                          className="flex items-center px-3 py-1 text-sm border border-pink-200 dark:border-pink-500/30 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          Next
+                          <ChevronRight className="h-4 w-4 ml-1" />
+                        </button>
+                      </div>
                     )}
-                    <span>{loading ? "Loading..." : "Load More Activities"}</span>
-                  </button>
-                  
-                  {/* Activity count info */}
-                  <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                    Showing {filteredActivities.length} of many activities
                   </div>
                 </div>
               )}

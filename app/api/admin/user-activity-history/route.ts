@@ -13,15 +13,31 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '50');
+    const limit = searchParams.get('limit');
+    const search = searchParams.get('search') || '';
     const actorId = searchParams.get('actorId');
     const targetUserId = searchParams.get('targetUserId');
     const actionType = searchParams.get('actionType');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
+    // Validate pagination parameters
+    const pageSize = limit === "all" ? undefined : parseInt(limit || "10");
+    const offset = pageSize ? (page - 1) * pageSize : 0;
+
     // Build where condition
     const where: any = {};
+    
+    // Search filter (search in actor/target user names, emails, and reason)
+    if (search) {
+      where.OR = [
+        { actor: { name: { contains: search, mode: "insensitive" } } },
+        { actor: { email: { contains: search, mode: "insensitive" } } },
+        { targetUser: { name: { contains: search, mode: "insensitive" } } },
+        { targetUser: { email: { contains: search, mode: "insensitive" } } },
+        { reason: { contains: search, mode: "insensitive" } },
+      ];
+    }
     
     if (actorId) {
       where.actorId = actorId;
@@ -31,7 +47,7 @@ export async function GET(request: Request) {
       where.targetUserId = targetUserId;
     }
     
-    if (actionType) {
+    if (actionType && actionType !== 'ALL') {
       where.actionType = actionType;
     }
     
@@ -45,49 +61,75 @@ export async function GET(request: Request) {
       }
     }
 
-    const skip = (page - 1) * limit;
+    try {
+      // Get total count for pagination
+      const totalActivities = await prisma.userActivityHistory.count({ where });
 
-    // Fetch activities with user information
-    const activities = await prisma.userActivityHistory.findMany({
-      where,
-      include: {
-        actor: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
+      // Fetch activities with user information
+      const activities = await prisma.userActivityHistory.findMany({
+        where,
+        include: {
+          actor: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+            }
+          },
+          targetUser: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+            }
           }
         },
-        targetUser: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-          }
+        orderBy: {
+          createdAt: 'desc'
+        },
+        skip: offset,
+        take: pageSize
+      });
+
+      // Calculate pagination info
+      const totalPages = pageSize ? Math.ceil(totalActivities / pageSize) : 1;
+      const hasNextPage = pageSize ? page < totalPages : false;
+      const hasPrevPage = page > 1;
+
+      return NextResponse.json({
+        success: true,
+        activities,
+        pagination: {
+          page,
+          limit: limit || "10",
+          totalActivities,
+          totalPages,
+          hasNextPage,
+          hasPrevPage,
+          showing: activities.length,
         }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      },
-      skip,
-      take: limit
-    });
-
-    // Get total count for pagination
-    const totalCount = await prisma.userActivityHistory.count({ where });
-
-    return NextResponse.json({
-      activities,
-      pagination: {
-        page,
-        limit,
-        totalCount,
-        totalPages: Math.ceil(totalCount / limit),
-        hasMore: page < Math.ceil(totalCount / limit)
-      }
-    });
+      });
+    } catch (dbError) {
+      console.error("Database connection error in activity history API:", dbError);
+      
+      // Return fallback response when database is unavailable
+      return NextResponse.json({
+        success: true,
+        activities: [], // Empty array when DB is down
+        pagination: {
+          page,
+          limit: limit || "10",
+          totalActivities: 0,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPrevPage: false,
+          showing: 0,
+        },
+        error: "Database temporarily unavailable. Please try again later.",
+      });
+    }
 
   } catch (error) {
     console.error('Error fetching user activity history:', error);

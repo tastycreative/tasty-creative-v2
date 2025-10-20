@@ -29,7 +29,6 @@ export async function GET(request: Request) {
       where.OR = [
         { name: { contains: search, mode: "insensitive" } },
         { email: { contains: search, mode: "insensitive" } },
-        { role: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -38,46 +37,66 @@ export async function GET(request: Request) {
       where.role = roleFilter;
     }
 
-    // Get total count for pagination
-    const totalUsers = await prisma.user.count({ where });
+    try {
+      // Get total count for pagination
+      const totalUsers = await prisma.user.count({ where });
 
-    // Fetch users with pagination
-    const users = await prisma.user.findMany({
-      where,
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        image: true,
-        createdAt: true,
-        emailVerified: true,
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-      skip: offset,
-      take: pageSize,
-    });
+      // Fetch users with pagination
+      const users = await prisma.user.findMany({
+        where,
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          image: true,
+          createdAt: true,
+          emailVerified: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+        skip: offset,
+        take: pageSize,
+      });
 
-    // Calculate pagination info
-    const totalPages = pageSize ? Math.ceil(totalUsers / pageSize) : 1;
-    const hasNextPage = pageSize ? page < totalPages : false;
-    const hasPrevPage = page > 1;
+      // Calculate pagination info
+      const totalPages = pageSize ? Math.ceil(totalUsers / pageSize) : 1;
+      const hasNextPage = pageSize ? page < totalPages : false;
+      const hasPrevPage = page > 1;
 
-    return NextResponse.json({ 
-      success: true,
-      users,
-      pagination: {
-        page,
-        limit: limit || "10",
-        totalUsers,
-        totalPages,
-        hasNextPage,
-        hasPrevPage,
-        showing: users.length,
-      }
-    });
+      return NextResponse.json({ 
+        success: true,
+        users,
+        pagination: {
+          page,
+          limit: limit || "10",
+          totalUsers,
+          totalPages,
+          hasNextPage,
+          hasPrevPage,
+          showing: users.length,
+        }
+      });
+    } catch (dbError) {
+      console.error("Database connection error in users API:", dbError);
+      
+      // Return fallback response when database is unavailable
+      return NextResponse.json({ 
+        success: true,
+        users: [], // Empty array when DB is down
+        pagination: {
+          page,
+          limit: limit || "10",
+          totalUsers: 0,
+          totalPages: 1,
+          hasNextPage: false,
+          hasPrevPage: false,
+          showing: 0,
+        },
+        error: "Database temporarily unavailable. Please try again later.",
+      });
+    }
 
   } catch (error) {
     console.error("Error fetching users:", error);

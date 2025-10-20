@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAdminUsers, useAdminUsersActions } from "@/hooks/useAdminUsers";
 import { UserRoleForm } from "@/components/admin/UserRoleForm";
 import { BulkRoleEditor } from "@/components/admin/BulkRoleEditor";
 import { ActivityHistoryTable } from "@/components/admin/ActivityHistoryTable";
@@ -9,167 +10,124 @@ import { formatForDisplay } from "@/lib/dateUtils";
 import { Role } from "@prisma/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { UserListSkeleton } from "@/components/ui/skeleton";
 import {
   Search,
   Users,
-  Filter,
-  Download,
   Shield,
   UserCheck,
   User,
-  Calendar,
   Eye,
   MoreHorizontal,
   Clock,
   Pencil,
+  Briefcase,
   History,
   ChevronLeft,
   ChevronRight,
   RefreshCw,
 } from "lucide-react";
 
-type User = {
-  id: string;
-  email: string | null;
-  name: string | null;
-  role: string;
-  image: string | null;
-  createdAt: Date;
-  emailVerified: Date | null;
-};
-
-interface PaginationInfo {
-  page: number;
-  limit: string;
-  totalUsers: number;
-  totalPages: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
-  showing: number;
-}
-
 interface AdminUsersClientProps {
-  initialUsers: User[];
-  initialPagination: PaginationInfo;
-  initialSearch: string;
-  initialRoleFilter: string;
   totalUsers: number;
-  adminCount: number;
-  moderatorCount: number;
-  userCount: number;
-  swdCount: number;
-  guestCount: number;
-  growthRate: number;
   sessionUserId: string;
 }
 
 export function AdminUsersClient({
-  initialUsers,
-  initialPagination,
-  initialSearch,
-  initialRoleFilter,
   totalUsers,
-  adminCount,
-  moderatorCount,
-  userCount,
-  swdCount,
-  guestCount,
-  growthRate,
   sessionUserId,
 }: AdminUsersClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { invalidateUsers } = useAdminUsersActions();
   
   const [activeTab, setActiveTab] = useState<"users" | "history">("users");
-  const [users, setUsers] = useState<User[]>(initialUsers);
-  const [pagination, setPagination] = useState<PaginationInfo>(initialPagination);
-  const [searchTerm, setSearchTerm] = useState(initialSearch);
-  const [selectedRole, setSelectedRole] = useState(initialRoleFilter || "all");
-  const [pageSize, setPageSize] = useState(initialPagination.limit);
-  const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(searchParams?.get("search") || "");
+  const [selectedRole, setSelectedRole] = useState(searchParams?.get("role") || "all");
+  const [page, setPage] = useState(parseInt(searchParams?.get("page") || "1"));
+  const [pageSize, setPageSize] = useState(searchParams?.get("limit") || "10");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
 
-  // Fetch users from API
-  const fetchUsers = useCallback(async (
-    page: number = 1,
-    limit: string = "10",
-    search: string = "",
-    role: string = "all"
-  ) => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit,
-        ...(search && { search }),
-        ...(role !== "all" && { role }),
-      });
-
-      const response = await fetch(`/api/admin/users?${params}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setUsers(data.users);
-        setPagination(data.pagination);
-      }
-    } catch (error) {
-      console.error("Failed to fetch users:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Update URL params
-  const updateURL = useCallback((params: Record<string, string>) => {
-    const newParams = new URLSearchParams(searchParams.toString());
-    
-    Object.entries(params).forEach(([key, value]) => {
-      if (value && value !== "all" && value !== "1" && value !== "10") {
-        newParams.set(key, value);
-      } else {
-        newParams.delete(key);
-      }
-    });
-
-    const newURL = `${window.location.pathname}${newParams.toString() ? `?${newParams.toString()}` : ''}`;
-    router.push(newURL, { scroll: false });
-  }, [router, searchParams]);
-
-  // Handle search with debounce
+  // Debounced search - only reset page when search actually changes
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      fetchUsers(1, pageSize, searchTerm, selectedRole);
-      updateURL({
-        page: "1",
-        limit: pageSize,
-        search: searchTerm,
-        role: selectedRole,
-      });
+      setDebouncedSearchTerm(searchTerm);
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [searchTerm, selectedRole, pageSize, fetchUsers, updateURL]);
+  }, [searchTerm]);
+
+  // Reset to first page when search term or role filter changes (but not on initial load)
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    setPage(1);
+  }, [debouncedSearchTerm, selectedRole]);
+
+  // Query parameters for API
+  const queryParams = useMemo(() => ({
+    page,
+    limit: pageSize,
+    search: debouncedSearchTerm,
+    role: selectedRole,
+  }), [page, pageSize, debouncedSearchTerm, selectedRole]);
+
+  // Use TanStack Query for data fetching
+  const { 
+    users, 
+    pagination, 
+    isLoading, 
+    isError, 
+    error, 
+    isFetching, 
+    isRefetching,
+    refetch 
+  } = useAdminUsers(queryParams);
+
+  // Update URL params
+  const updateURL = useCallback((newParams: Partial<typeof queryParams>) => {
+    const urlParams = new URLSearchParams(searchParams?.toString() || "");
+    
+    Object.entries(newParams).forEach(([key, value]) => {
+      if (value && value !== "all" && value !== "1" && value !== "10") {
+        urlParams.set(key, value.toString());
+      } else {
+        urlParams.delete(key);
+      }
+    });
+
+    const newURL = `${window.location.pathname}${urlParams.toString() ? `?${urlParams.toString()}` : ''}`;
+    router.push(newURL, { scroll: false });
+  }, [router, searchParams]);
+
+  // Sync URL when individual params change (not when queryParams object changes)
+  useEffect(() => {
+    updateURL({
+      page: page,
+      limit: pageSize,
+      search: debouncedSearchTerm,
+      role: selectedRole,
+    });
+  }, [page, pageSize, debouncedSearchTerm, selectedRole, updateURL]);
 
   // Handle pagination
   const handlePageChange = (newPage: number) => {
-    fetchUsers(newPage, pageSize, searchTerm, selectedRole);
-    updateURL({
-      page: newPage.toString(),
-      limit: pageSize,
-      search: searchTerm,
-      role: selectedRole,
-    });
+    setPage(newPage);
   };
 
   // Handle page size change
   const handlePageSizeChange = (newLimit: string) => {
     setPageSize(newLimit);
-    fetchUsers(1, newLimit, searchTerm, selectedRole);
-    updateURL({
-      page: "1",
-      limit: newLimit,
-      search: searchTerm,
-      role: selectedRole,
-    });
+    setPage(1); // Reset to first page
+  };
+
+  // Handle manual refresh
+  const handleRefresh = () => {
+    invalidateUsers();
+    refetch();
   };
 
   return (
@@ -222,6 +180,7 @@ export function AdminUsersClient({
                   />
                 </div>
                 <div className="flex gap-3">
+                  <BulkRoleEditor users={users} />
                   <select
                     value={selectedRole}
                     onChange={(e) => setSelectedRole(e.target.value)}
@@ -237,7 +196,8 @@ export function AdminUsersClient({
                   <select
                     value={pageSize}
                     onChange={(e) => handlePageSizeChange(e.target.value)}
-                    className="inline-flex items-center px-4 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-pink-200 dark:border-pink-500/30 rounded-lg transition-all duration-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 min-w-[100px]"
+                    disabled={isLoading}
+                    className="inline-flex items-center px-4 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-pink-200 dark:border-pink-500/30 rounded-lg transition-all duration-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 min-w-[100px] disabled:opacity-50"
                   >
                     <option value="10">10 per page</option>
                     <option value="20">20 per page</option>
@@ -245,6 +205,14 @@ export function AdminUsersClient({
                     <option value="100">100 per page</option>
                     <option value="all">Show All</option>
                   </select>
+                  <button
+                    onClick={handleRefresh}
+                    disabled={isRefetching}
+                    className="inline-flex items-center px-4 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-pink-200 dark:border-pink-500/30 rounded-lg transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 disabled:opacity-50"
+                    title="Refresh users"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
+                  </button>
                 </div>
               </div>
             </CardContent>
@@ -256,8 +224,8 @@ export function AdminUsersClient({
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <CardTitle className="text-gray-900 dark:text-gray-100 font-bold flex items-center">
                   <Eye className="h-5 w-5 mr-2 text-pink-500" />
-                  All Users ({pagination.showing} of {pagination.totalUsers})
-                  {loading && <RefreshCw className="h-4 w-4 ml-2 animate-spin" />}
+                  All Users {pagination ? `(${pagination.showing} of ${pagination.totalUsers})` : ''}
+                  {(isLoading || isFetching) && <RefreshCw className="h-4 w-4 ml-2 animate-spin" />}
                 </CardTitle>
                 <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
                   <Clock className="h-4 w-4" />
@@ -267,7 +235,25 @@ export function AdminUsersClient({
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              {users.length === 0 ? (
+              {isError ? (
+                <div className="p-8 text-center">
+                  <div className="text-red-500 dark:text-red-400 mb-2">
+                    <RefreshCw className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <h3 className="text-lg font-medium">Error loading users</h3>
+                    <p className="text-sm mt-2">
+                      {error?.message || "Failed to load users. Please try again."}
+                    </p>
+                    <button
+                      onClick={handleRefresh}
+                      className="mt-4 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                </div>
+              ) : isLoading ? (
+                <UserListSkeleton count={pageSize === "all" ? 20 : Math.min(parseInt(pageSize) || 10, 20)} />
+              ) : users.length === 0 ? (
                 <div className="p-8 text-center">
                   <div className="text-gray-500 dark:text-gray-400 mb-2">
                     <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -327,9 +313,11 @@ export function AdminUsersClient({
                                         ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border-yellow-300 dark:border-yellow-500/30"
                                         : user.role === "SWD"
                                           ? "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-500/30"
-                                          : user.role === "USER"
-                                            ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-300 dark:border-green-500/30"
-                                            : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-500/30"
+                                          : user.role === "POD"
+                                            ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-500/30"
+                                            : user.role === "USER"
+                                              ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-300 dark:border-green-500/30"
+                                              : "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-500/30"
                                   }
                                 `}
                               >
@@ -425,11 +413,13 @@ export function AdminUsersClient({
                                     ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border-yellow-300 dark:border-yellow-500/30 hover:bg-yellow-200 dark:hover:bg-yellow-900/50"
                                     : user.role === "SWD"
                                       ? "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-500/30 hover:bg-purple-200 dark:hover:bg-purple-900/50"
-                                      : user.role === "USER"
-                                        ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-300 dark:border-green-500/30 hover:bg-green-200 dark:hover:bg-green-900/50"
-                                        : user.role === "GUEST"
-                                          ? "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-500/30 hover:bg-gray-200 dark:hover:bg-gray-600"
-                                          : "bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                      : user.role === "POD"
+                                        ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-300 dark:border-blue-500/30 hover:bg-blue-200 dark:hover:bg-blue-900/50"
+                                        : user.role === "USER"
+                                          ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-300 dark:border-green-500/30 hover:bg-green-200 dark:hover:bg-green-900/50"
+                                          : user.role === "GUEST"
+                                            ? "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border-gray-300 dark:border-gray-500/30 hover:bg-gray-200 dark:hover:bg-gray-600"
+                                            : "bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
                               }
                             `}
                           >
@@ -441,6 +431,9 @@ export function AdminUsersClient({
                             )}
                             {user.role === "SWD" && (
                               <Pencil className="h-3 w-3 mr-1 inline" />
+                            )}
+                            {user.role === "POD" && (
+                              <Briefcase className="h-3 w-3 mr-1 inline" />
                             )}
                             {(user.role === "USER" || user.role === "GUEST") && (
                               <User className="h-3 w-3 mr-1 inline" />
@@ -481,7 +474,7 @@ export function AdminUsersClient({
               </div>
 
                   {/* Pagination Controls */}
-                  {users.length > 0 && (
+                  {users.length > 0 && pagination && (
                     <div className="px-4 py-6 border-t border-pink-200 dark:border-pink-500/30 bg-gray-50 dark:bg-gray-900">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         {/* Page Size Selector */}
@@ -490,7 +483,8 @@ export function AdminUsersClient({
                           <select
                             value={pageSize}
                             onChange={(e) => handlePageSizeChange(e.target.value)}
-                            className="px-3 py-1 text-sm border border-pink-200 dark:border-pink-500/30 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                            disabled={isLoading}
+                            className="px-3 py-1 text-sm border border-pink-200 dark:border-pink-500/30 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:opacity-50"
                           >
                             <option value="10">10</option>
                             <option value="20">20</option>
@@ -501,6 +495,14 @@ export function AdminUsersClient({
                           <span className="text-sm text-gray-600 dark:text-gray-400">
                             Showing {pagination.showing} of {pagination.totalUsers} users
                           </span>
+                          <button
+                            onClick={handleRefresh}
+                            disabled={isRefetching}
+                            className="ml-2 p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50"
+                            title="Refresh"
+                          >
+                            <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
+                          </button>
                         </div>
 
                         {/* Pagination Buttons */}
@@ -508,7 +510,7 @@ export function AdminUsersClient({
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => handlePageChange(pagination.page - 1)}
-                              disabled={!pagination.hasPrevPage || loading}
+                              disabled={!pagination.hasPrevPage || isLoading}
                               className="flex items-center px-3 py-1 text-sm border border-pink-200 dark:border-pink-500/30 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                               <ChevronLeft className="h-4 w-4 mr-1" />
@@ -532,8 +534,8 @@ export function AdminUsersClient({
                                   <button
                                     key={pageNum}
                                     onClick={() => handlePageChange(pageNum)}
-                                    disabled={loading}
-                                    className={`px-3 py-1 text-sm rounded transition-colors ${
+                                    disabled={isLoading}
+                                    className={`px-3 py-1 text-sm rounded transition-colors disabled:opacity-50 ${
                                       pageNum === pagination.page
                                         ? "bg-pink-500 text-white"
                                         : "border border-pink-200 dark:border-pink-500/30 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -547,7 +549,7 @@ export function AdminUsersClient({
 
                             <button
                               onClick={() => handlePageChange(pagination.page + 1)}
-                              disabled={!pagination.hasNextPage || loading}
+                              disabled={!pagination.hasNextPage || isLoading}
                               className="flex items-center px-3 py-1 text-sm border border-pink-200 dark:border-pink-500/30 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                               Next

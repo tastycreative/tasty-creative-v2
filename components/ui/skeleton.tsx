@@ -313,4 +313,298 @@ export const WorkflowDashboardSkeleton = () => (
   </div>
 );
 
+// Admin Users Skeleton Components
+export const UserCardSkeleton = () => (
+  <div className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-300">
+    <div className="flex items-start space-x-4">
+      {/* Avatar skeleton */}
+      <Skeleton className="h-12 w-12 rounded-full flex-shrink-0" />
+      
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between">
+          <div className="min-w-0 flex-1">
+            {/* Name skeleton */}
+            <Skeleton className="h-4 w-32 mb-2" />
+            {/* Email skeleton */}
+            <Skeleton className="h-3 w-48 mb-1" />
+            {/* Date skeleton */}
+            <Skeleton className="h-3 w-24" />
+          </div>
+          <div className="flex flex-col items-end space-y-2 ml-2">
+            {/* Role badge skeleton */}
+            <Skeleton className="h-6 w-20 rounded-full" />
+            {/* Edit button skeleton */}
+            <Skeleton className="h-6 w-16" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+export const UserTableRowSkeleton = () => (
+  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-300 group">
+    {/* User Details Column */}
+    <td className="px-4 py-4 whitespace-nowrap">
+      <div className="flex items-center">
+        {/* Avatar skeleton */}
+        <Skeleton className="h-10 w-10 rounded-full mr-3 flex-shrink-0" />
+        <div className="min-w-0 flex-1">
+          {/* Name skeleton */}
+          <Skeleton className="h-4 w-32 mb-1" />
+          {/* ID skeleton */}
+          <Skeleton className="h-3 w-20" />
+        </div>
+      </div>
+    </td>
+    
+    {/* Contact Column */}
+    <td className="px-4 py-4 whitespace-nowrap">
+      <div className="min-w-0">
+        {/* Email skeleton */}
+        <Skeleton className="h-4 w-40 mb-1" />
+        {/* Verification status skeleton */}
+        <Skeleton className="h-3 w-24" />
+      </div>
+    </td>
+    
+    {/* Role Column */}
+    <td className="px-4 py-4 whitespace-nowrap">
+      <Skeleton className="h-6 w-20 rounded-full" />
+    </td>
+    
+    {/* Account Info Column */}
+    <td className="px-4 py-4 whitespace-nowrap">
+      <div className="min-w-0">
+        {/* Date skeleton */}
+        <Skeleton className="h-4 w-24 mb-1" />
+        {/* Day skeleton */}
+        <Skeleton className="h-3 w-16" />
+      </div>
+    </td>
+    
+    {/* Actions Column */}
+    <td className="px-4 py-4 whitespace-nowrap">
+      <div className="flex items-center space-x-1 min-w-0">
+        {/* Edit button skeleton */}
+        <Skeleton className="h-6 w-12" />
+        {/* More button skeleton */}
+        <Skeleton className="h-6 w-6 rounded" />
+      </div>
+    </td>
+  </tr>
+);
+
+export const UserListSkeleton = ({ count = 10 }: { count?: number }) => (
+  <>
+    {/* Mobile Card View Skeleton */}
+    <div className="block lg:hidden">
+      <div className="divide-y divide-pink-200 dark:divide-pink-500/30">
+        {Array.from({ length: count }).map((_, i) => (
+          <UserCardSkeleton key={i} />
+        ))}
+      </div>
+    </div>
+
+    {/* Desktop Table View Skeleton */}
+    <div className="hidden lg:block">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[750px]">
+          <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0">
+            <tr className="border-b border-pink-200 dark:border-pink-500/30">
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider w-[200px]">
+                User Details
+              </th>
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider w-[180px]">
+                Contact
+              </th>
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider w-[140px]">
+                Role & Permissions
+              </th>
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider w-[120px]">
+                Account Info
+              </th>
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider w-[160px]">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-pink-200 dark:divide-pink-500/30 bg-white dark:bg-gray-800">
+            {Array.from({ length: count }).map((_, i) => (
+              <UserTableRowSkeleton key={i} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </>
+);
+
+// Activity History Skeleton Components
+export const ActivityCardSkeleton = () => (
+  <div className="p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-300">
+    <div className="space-y-3">
+      {/* Header: Action Type + Time */}
+      <div className="flex items-start justify-between gap-2">
+        <Skeleton className="h-6 w-24 rounded-full" />
+        <Skeleton className="h-4 w-16" />
+      </div>
+
+      {/* Actor and Target Users */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Actor */}
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2 sm:p-3">
+          <div className="flex items-center mb-1">
+            <Skeleton className="h-3 w-3 mr-1" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+          <div className="flex items-center space-x-2">
+            <Skeleton className="h-6 w-6 sm:h-8 sm:w-8 rounded-full flex-shrink-0" />
+            <div className="min-w-0 flex-1">
+              <Skeleton className="h-3 sm:h-4 w-24 mb-1" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+          </div>
+        </div>
+
+        {/* Target User */}
+        <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-2 sm:p-3">
+          <div className="flex items-center mb-1">
+            <Skeleton className="h-3 w-3 mr-1" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+          <div className="flex items-center space-x-2">
+            <Skeleton className="h-6 w-6 sm:h-8 sm:w-8 rounded-full flex-shrink-0" />
+            <div className="min-w-0 flex-1">
+              <Skeleton className="h-3 sm:h-4 w-24 mb-1" />
+              <Skeleton className="h-3 w-32" />
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Role Change */}
+      <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-2 sm:p-3">
+        <div className="flex items-center mb-2">
+          <Skeleton className="h-3 w-3 mr-1" />
+          <Skeleton className="h-3 w-20" />
+        </div>
+        <div className="flex items-center justify-center space-x-2">
+          <Skeleton className="h-6 w-16 rounded-full" />
+          <Skeleton className="h-3 w-3" />
+          <Skeleton className="h-6 w-16 rounded-full" />
+        </div>
+      </div>
+
+      {/* Timezone info */}
+      <div className="flex items-center justify-center gap-1 pt-1 border-t border-gray-200 dark:border-gray-600">
+        <Skeleton className="h-3 w-3" />
+        <Skeleton className="h-3 w-24" />
+      </div>
+    </div>
+  </div>
+);
+
+export const ActivityTableRowSkeleton = () => (
+  <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-300">
+    {/* Action Type */}
+    <td className="px-2 py-4 whitespace-nowrap">
+      <Skeleton className="h-6 w-20 rounded-full" />
+    </td>
+
+    {/* Actor */}
+    <td className="px-2 py-4">
+      <div className="flex items-center min-w-0">
+        <Skeleton className="h-8 w-8 rounded-full mr-2 flex-shrink-0" />
+        <div className="min-w-0 flex-1">
+          <Skeleton className="h-4 w-24 mb-1" />
+          <Skeleton className="h-3 w-32" />
+        </div>
+      </div>
+    </td>
+
+    {/* Target User */}
+    <td className="px-2 py-4">
+      <div className="flex items-center min-w-0">
+        <Skeleton className="h-8 w-8 rounded-full mr-2 flex-shrink-0" />
+        <div className="min-w-0 flex-1">
+          <Skeleton className="h-4 w-24 mb-1" />
+          <Skeleton className="h-3 w-32" />
+        </div>
+      </div>
+    </td>
+
+    {/* Role Change */}
+    <td className="px-2 py-4">
+      <div className="flex items-center space-x-1 min-w-0">
+        <Skeleton className="h-6 w-12 rounded-full flex-shrink-0" />
+        <Skeleton className="h-3 w-3 flex-shrink-0" />
+        <Skeleton className="h-6 w-12 rounded-full flex-shrink-0" />
+      </div>
+    </td>
+
+    {/* Reason */}
+    <td className="px-2 py-4">
+      <Skeleton className="h-4 w-20" />
+    </td>
+
+    {/* Date & Time */}
+    <td className="px-2 py-4 whitespace-nowrap">
+      <div className="flex items-center gap-1">
+        <Skeleton className="h-3 w-3 flex-shrink-0" />
+        <Skeleton className="h-4 w-16" />
+      </div>
+      <Skeleton className="h-3 w-24 mt-1" />
+    </td>
+  </tr>
+);
+
+export const ActivityHistorySkeleton = ({ count = 10 }: { count?: number }) => (
+  <>
+    {/* Mobile Card View Skeleton */}
+    <div className="block lg:hidden">
+      <div className="divide-y divide-pink-200 dark:divide-pink-500/30">
+        {Array.from({ length: count }).map((_, i) => (
+          <ActivityCardSkeleton key={i} />
+        ))}
+      </div>
+    </div>
+
+    {/* Desktop Table View Skeleton */}
+    <div className="hidden lg:block overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[750px]">
+          <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0">
+            <tr className="border-b border-pink-200 dark:border-pink-500/30">
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider w-[90px]">
+                Action
+              </th>
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider w-[140px]">
+                Performed By
+              </th>
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider w-[140px]">
+                Target User
+              </th>
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider w-[150px]">
+                Role Change
+              </th>
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider w-[120px]">
+                Reason
+              </th>
+              <th className="px-2 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider w-[130px]">
+                Date & Time
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-pink-200 dark:divide-pink-500/30 bg-white dark:bg-gray-800">
+            {Array.from({ length: count }).map((_, i) => (
+              <ActivityTableRowSkeleton key={i} />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </>
+);
+
 export { Skeleton }
