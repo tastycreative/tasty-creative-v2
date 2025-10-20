@@ -25,7 +25,11 @@ type User = {
   emailVerified: Date | null;
 };
 
-export default async function AdminUsersPage() {
+export default async function AdminUsersPage({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | string[] | undefined };
+}) {
   const session = await auth();
 
   // Check if user is admin
@@ -33,8 +37,45 @@ export default async function AdminUsersPage() {
     redirect("/unauthorized");
   }
 
-  // Fetch all users
+  // Get all users for stats (we still need total counts for the cards)
+  const allUsers = await prisma.user.findMany({
+    select: {
+      role: true,
+      createdAt: true,
+    },
+  });
+
+  const totalUsers = allUsers.length;
+  const adminCount = allUsers.filter((u) => u.role === "ADMIN").length;
+  const moderatorCount = allUsers.filter((u) => u.role === "MODERATOR").length;
+  const userCount = allUsers.filter((u) => u.role === "USER").length;
+  const swdCount = allUsers.filter((u) => u.role === "SWD").length;
+  const guestCount = allUsers.filter((u) => u.role === "GUEST").length;
+
+  // Get initial page of users for SSR
+  const page = parseInt((searchParams.page as string) || "1");
+  const limit = (searchParams.limit as string) || "10";
+  const search = (searchParams.search as string) || "";
+  const roleFilter = (searchParams.role as string) || "";
+
+  // Build where clause
+  const where: any = {};
+  if (search) {
+    where.OR = [
+      { name: { contains: search, mode: "insensitive" } },
+      { email: { contains: search, mode: "insensitive" } },
+      { role: { contains: search, mode: "insensitive" } },
+    ];
+  }
+  if (roleFilter && roleFilter !== "all") {
+    where.role = roleFilter;
+  }
+
+  const pageSize = limit === "all" ? undefined : parseInt(limit);
+  const offset = pageSize ? (page - 1) * pageSize : 0;
+
   const users: User[] = await prisma.user.findMany({
+    where,
     select: {
       id: true,
       email: true,
@@ -47,14 +88,12 @@ export default async function AdminUsersPage() {
     orderBy: {
       createdAt: "desc",
     },
+    skip: offset,
+    take: pageSize,
   });
 
-  const totalUsers = users.length;
-  const adminCount = users.filter((u) => u.role === "ADMIN").length;
-  const moderatorCount = users.filter((u) => u.role === "MODERATOR").length;
-  const userCount = users.filter((u) => u.role === "USER").length;
-  const swdCount = users.filter((u) => u.role === "SWD").length;
-  const guestCount = users.filter((u) => u.role === "GUEST").length;
+  const filteredCount = await prisma.user.count({ where });
+  const totalPages = pageSize ? Math.ceil(filteredCount / pageSize) : 1;
 
   // Calculate growth metrics using UTC
   const now = utcNowDateTime();
@@ -248,7 +287,18 @@ export default async function AdminUsersPage() {
 
       {/* Client Component with Tabs */}
       <AdminUsersClient
-        users={users}
+        initialUsers={users}
+        initialPagination={{
+          page,
+          limit,
+          totalUsers: filteredCount,
+          totalPages,
+          hasNextPage: pageSize ? page < totalPages : false,
+          hasPrevPage: page > 1,
+          showing: users.length,
+        }}
+        initialSearch={search}
+        initialRoleFilter={roleFilter}
         totalUsers={totalUsers}
         adminCount={adminCount}
         moderatorCount={moderatorCount}

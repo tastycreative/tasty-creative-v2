@@ -57,27 +57,28 @@ export function UserRoleForm({
   }
 
   return (
-    <div className="flex items-center space-x-2">
+    <div className="flex items-center space-x-1 min-w-0">
       <select
         value={selectedRole}
         onChange={(e) => setSelectedRole(e.target.value as Role)}
         disabled={isPending}
-        className="block px-3 py-1 text-sm rounded-lg border border-pink-200 dark:border-pink-500/30 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all"
+        className="block px-2 py-1 text-xs rounded border border-pink-200 dark:border-pink-500/30 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-pink-500 focus:border-pink-500 transition-all min-w-[90px] max-w-[120px]"
       >
         <option value="GUEST">Guest</option>
         <option value="USER">User</option>
         <option value="POD">POD</option>
-        <option value="SWD">SWD (Script Writing Department)</option>
+        <option value="SWD">SWD</option>
         <option value="MODERATOR">Moderator</option>
         <option value="ADMIN">Admin</option>
       </select>
       <button
         onClick={handleSubmit}
         disabled={isPending || selectedRole === currentRole}
-        className="inline-flex items-center px-3 py-1 text-sm bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg hover:from-pink-600 hover:to-rose-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+        className="inline-flex items-center px-2 py-1 text-xs bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded hover:from-pink-600 hover:to-rose-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex-shrink-0"
+        title={isPending ? "Saving..." : "Save changes"}
       >
-        <Save className="h-3 w-3 mr-1" />
-        {isPending ? "Saving..." : "Save"}
+        <Save className="h-3 w-3" />
+        <span className="hidden sm:inline ml-1">{isPending ? "..." : "Save"}</span>
       </button>
       <button
         onClick={() => {
@@ -85,10 +86,10 @@ export function UserRoleForm({
           setSelectedRole(currentRole);
         }}
         disabled={isPending}
-        className="inline-flex items-center px-3 py-1 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+        className="inline-flex items-center px-2 py-1 text-xs text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 transition-colors flex-shrink-0"
+        title="Cancel editing"
       >
-        <X className="h-3 w-3 mr-1" />
-        Cancel
+        <X className="h-3 w-3" />
       </button>
     </div>
   );

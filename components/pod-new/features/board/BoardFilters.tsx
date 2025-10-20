@@ -10,6 +10,7 @@ import {
   X,
   Settings,
 } from "lucide-react";
+import { useLayoutStore, useResponsiveLayout } from "@/lib/stores/layoutStore";
 
 type PriorityFilter = "ALL" | "URGENT" | "HIGH" | "MEDIUM" | "LOW";
 type AssigneeFilter = "ALL" | "MY_TASKS" | "ASSIGNED" | "UNASSIGNED";
@@ -61,6 +62,85 @@ export default function BoardFilters({
   setShowFilters,
   setShowColumnSettings,
 }: BoardFiltersProps) {
+  // Use layout store to determine sidebar states
+  useResponsiveLayout(); // Initialize responsive detection
+  const { leftSidebarCollapsed, rightSidebarCollapsed, isMobile, isTablet, focusMode } = useLayoutStore();
+  
+  // Calculate available space
+  const bothSidebarsOpen = !leftSidebarCollapsed && !rightSidebarCollapsed;
+  const oneSidebarOpen = (!leftSidebarCollapsed && rightSidebarCollapsed) || (leftSidebarCollapsed && !rightSidebarCollapsed);
+  const noSidebarsOpen = leftSidebarCollapsed && rightSidebarCollapsed;
+  
+  // Determine responsive classes based on sidebar states
+  const getResponsiveClasses = () => {
+    if (isMobile || focusMode) {
+      return {
+        mainLayout: "flex flex-col space-y-4",
+        searchSection: "flex flex-col space-y-3",
+        searchInput: "w-full",
+        sortSection: "flex-wrap gap-2",
+        buttonSection: "flex-wrap gap-2",
+        filterGrid: "grid-cols-1 gap-3",
+        hideLabels: true,
+        compactButtons: true
+      };
+    }
+    
+    if (isTablet) {
+      return {
+        mainLayout: "flex flex-col space-y-4",
+        searchSection: "flex flex-col sm:flex-row sm:items-center gap-3",
+        searchInput: "w-full sm:max-w-sm",
+        sortSection: "gap-2",
+        buttonSection: "flex-wrap gap-2",
+        filterGrid: bothSidebarsOpen ? "grid-cols-1 sm:grid-cols-2 gap-3" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3",
+        hideLabels: false,
+        compactButtons: false
+      };
+    }
+    
+    // Desktop - Both sidebars open (very cramped space)
+    if (bothSidebarsOpen) {
+      return {
+        mainLayout: "flex flex-col space-y-4", // Always stack vertically when both sidebars open
+        searchSection: "flex flex-col space-y-3", // Always stack vertically when both sidebars open
+        searchInput: "w-full", // Full width when stacked
+        sortSection: "gap-2",
+        buttonSection: "flex-wrap gap-2",
+        filterGrid: "grid-cols-1 xl:grid-cols-2 gap-3", // Only 2 columns at most, and only on very large screens
+        hideLabels: true, // Hide sort label to save space
+        compactButtons: false // Keep button labels but hide other labels
+      };
+    }
+    
+    if (oneSidebarOpen) {
+      return {
+        mainLayout: "flex flex-col xl:flex-row xl:items-center gap-4", // Use xl breakpoint instead of lg
+        searchSection: "flex flex-col md:flex-row md:items-center gap-3",
+        searchInput: "w-full md:max-w-md",
+        sortSection: "gap-2",
+        buttonSection: "flex-wrap gap-2",
+        filterGrid: "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3", // More conservative column count
+        hideLabels: false,
+        compactButtons: false
+      };
+    }
+    
+    // No sidebars open
+    return {
+      mainLayout: "flex flex-col sm:flex-row sm:items-center gap-4",
+      searchSection: "flex flex-col sm:flex-row sm:items-center gap-4",
+      searchInput: "w-full sm:max-w-md",
+      sortSection: "gap-2",
+      buttonSection: "flex-wrap gap-2",
+      filterGrid: "grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4",
+      hideLabels: false,
+      compactButtons: false
+    };
+  };
+  
+  const responsiveClasses = getResponsiveClasses();
+
   const hasActiveFilters =
     priorityFilter !== "ALL" ||
     assigneeFilter !== "ALL" ||
@@ -77,12 +157,12 @@ export default function BoardFilters({
 
   return (
     <div className="bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 border border-gray-200/60 dark:border-gray-700/60 rounded-xl backdrop-blur-sm transition-all duration-200 shadow-sm hover:shadow-md">
-      <div className="p-6 space-y-6">
+      <div className={`${responsiveClasses.compactButtons ? 'p-4 space-y-4' : 'p-6 space-y-6'}`}>
       {/* Search Bar and Filter Toggle */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4 flex-1">
+      <div className={responsiveClasses.mainLayout}>
+        <div className={`${responsiveClasses.searchSection} flex-1`}>
           {/* Search Input */}
-          <div className="relative flex-1 sm:max-w-md">
+          <div className={`relative ${responsiveClasses.searchInput}`}>
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
@@ -102,10 +182,12 @@ export default function BoardFilters({
           </div>
 
           {/* Sort Controls */}
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:block">
-              Sort:
-            </label>
+          <div className={`flex items-center ${responsiveClasses.sortSection}`}>
+            {!responsiveClasses.hideLabels && (
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Sort:
+              </label>
+            )}
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortBy)}
@@ -131,7 +213,7 @@ export default function BoardFilters({
         </div>
 
         {/* Filter Toggle and Clear */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className={`flex items-center ${responsiveClasses.buttonSection}`}>
           {/* Quick My Tasks Filter */}
           <button
             onClick={() =>
@@ -146,12 +228,14 @@ export default function BoardFilters({
             }`}
           >
             <User className="h-4 w-4" />
-            <span className="hidden sm:inline">My Tasks</span>
+            {!responsiveClasses.compactButtons && <span>My Tasks</span>}
           </button>
 
-          <span className="text-sm text-gray-500 dark:text-gray-400 hidden sm:inline">
-            {filteredTasksCount} of {totalTasks} tasks
-          </span>
+          {!responsiveClasses.compactButtons && (
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {filteredTasksCount} of {totalTasks} tasks
+            </span>
+          )}
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center space-x-2 px-4 py-3 h-12 border rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap ${
@@ -161,11 +245,10 @@ export default function BoardFilters({
             }`}
           >
             <Filter className="h-4 w-4" />
-            <span className="hidden sm:inline">Filters</span>
+            {!responsiveClasses.compactButtons && <span>Filters</span>}
             {hasActiveFilters && (
               <span className="ml-1 px-2 py-0.5 text-xs bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-full">
-                <span className="sm:hidden">!</span>
-                <span className="hidden sm:inline">Active</span>
+                {responsiveClasses.compactButtons ? "!" : "Active"}
               </span>
             )}
           </button>
@@ -176,7 +259,7 @@ export default function BoardFilters({
             className="flex items-center space-x-2 px-4 py-3 h-12 border rounded-xl text-sm font-medium border-gray-200 text-gray-600 bg-white dark:border-gray-700 dark:text-gray-400 dark:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200"
           >
             <Settings className="h-4 w-4" />
-            <span className="hidden sm:inline">Columns</span>
+            {!responsiveClasses.compactButtons && <span>Columns</span>}
           </button>
 
           {(searchTerm || hasActiveFilters) && (
@@ -184,8 +267,7 @@ export default function BoardFilters({
               onClick={clearAllFilters}
               className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
             >
-              <span className="sm:hidden">Clear</span>
-              <span className="hidden sm:inline">Clear all</span>
+              {responsiveClasses.compactButtons ? "Clear" : "Clear all"}
             </button>
           )}
         </div>
@@ -194,7 +276,7 @@ export default function BoardFilters({
       {/* Filter Controls */}
       {showFilters && (
         <div className="border-t border-gray-200 dark:border-gray-600 pt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className={`grid ${responsiveClasses.filterGrid}`}>
             {/* Priority Filter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">

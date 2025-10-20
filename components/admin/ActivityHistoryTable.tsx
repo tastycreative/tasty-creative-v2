@@ -223,9 +223,9 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
   }
 
   return (
-    <div className={className}>
+    <div className={`${className} max-w-full overflow-hidden`}>
       {/* Activity History Table with Integrated Search/Filter */}
-      <Card className="border border-pink-200 dark:border-pink-500/30 shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 bg-white dark:bg-gray-800">
+      <Card className="border border-pink-200 dark:border-pink-500/30 shadow-sm overflow-hidden hover:shadow-md transition-all duration-300 bg-white dark:bg-gray-800 max-w-full">
         <CardHeader className="bg-gray-50 dark:bg-gray-900 border-b border-pink-200 dark:border-pink-500/30 p-4 sm:p-6">
           <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
             <div>
@@ -239,7 +239,7 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
             </div>
 
             {/* Compact Filter Controls - Desktop */}
-            <div className="hidden xl:flex items-center gap-3">
+            <div className="hidden lg:flex items-center gap-3">
               {/* Search Input */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
@@ -248,7 +248,7 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
                   placeholder="Search users..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-64 pl-10 pr-4 py-2 bg-white dark:bg-gray-800 border border-pink-200 dark:border-pink-500/30 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all text-sm"
+                  className="w-56 pl-10 pr-4 py-2 bg-white dark:bg-gray-800 border border-pink-200 dark:border-pink-500/30 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all text-sm"
                 />
               </div>
 
@@ -280,7 +280,7 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
           </div>
 
           {/* Mobile Filter Controls */}
-          <div className="xl:hidden mt-4 p-4 bg-white dark:bg-gray-800 rounded-lg border border-pink-200 dark:border-pink-500/30">
+          <div className="lg:hidden mt-4 p-4 bg-white dark:bg-gray-800 rounded-lg border border-pink-200 dark:border-pink-500/30">
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
               <div className="relative flex-1 min-w-0">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 dark:text-gray-500" />
@@ -335,7 +335,7 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
           ) : (
             <>
               {/* Mobile Card View */}
-              <div className="block xl:hidden">
+              <div className="block lg:hidden">
                 <div className="divide-y divide-pink-200 dark:divide-pink-500/30">
                   {filteredActivities.map((activity) => (
                     <div
@@ -478,26 +478,27 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
               </div>
 
               {/* Desktop Table View */}
-              <div className="hidden xl:block overflow-x-auto">
-                <table className="w-full min-w-full">
+              <div className="hidden lg:block overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[750px]">
                   <thead className="bg-gray-50 dark:bg-gray-900 sticky top-0">
                     <tr className="border-b border-pink-200 dark:border-pink-500/30">
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider min-w-[120px]">
+                      <th className="px-2 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider w-[90px]">
                         Action
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider min-w-[180px]">
+                      <th className="px-2 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider w-[140px]">
                         Performed By
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider min-w-[180px]">
+                      <th className="px-2 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider w-[140px]">
                         Target User
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider min-w-[200px]">
+                      <th className="px-2 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider w-[150px]">
                         Role Change
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider min-w-[150px]">
+                      <th className="px-2 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider w-[120px]">
                         Reason
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider min-w-[160px]">
+                      <th className="px-2 py-3 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider w-[130px]">
                         Date & Time
                       </th>
                     </tr>
@@ -509,7 +510,7 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
                         className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-300"
                       >
                         {/* Action Type */}
-                        <td className="px-4 py-4 whitespace-nowrap">
+                        <td className="px-2 py-4 whitespace-nowrap">
                           <Badge
                             variant="secondary"
                             className="bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300 border-pink-300 dark:border-pink-500/30 text-xs"
@@ -519,17 +520,17 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
                         </td>
 
                         {/* Actor */}
-                        <td className="px-4 py-4">
+                        <td className="px-2 py-4">
                           <div className="flex items-center min-w-0">
                             {activity.actor.image ? (
                               <img
-                                className="h-10 w-10 rounded-full object-cover mr-3 border-2 border-pink-200 dark:border-pink-500/30 flex-shrink-0"
+                                className="h-8 w-8 rounded-full object-cover mr-2 border border-pink-200 dark:border-pink-500/30 flex-shrink-0"
                                 src={`/api/image-proxy?url=${encodeURIComponent(activity.actor.image)}`}
                                 alt={activity.actor.name || ""}
                               />
                             ) : (
-                              <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center mr-3 flex-shrink-0">
-                                <User className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                              <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center mr-2 flex-shrink-0">
+                                <User className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                               </div>
                             )}
                             <div className="min-w-0 flex-1">
@@ -544,17 +545,17 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
                         </td>
 
                         {/* Target User */}
-                        <td className="px-4 py-4">
+                        <td className="px-2 py-4">
                           <div className="flex items-center min-w-0">
                             {activity.targetUser.image ? (
                               <img
-                                className="h-10 w-10 rounded-full object-cover mr-3 border-2 border-pink-200 dark:border-pink-500/30 flex-shrink-0"
+                                className="h-8 w-8 rounded-full object-cover mr-2 border border-pink-200 dark:border-pink-500/30 flex-shrink-0"
                                 src={`/api/image-proxy?url=${encodeURIComponent(activity.targetUser.image)}`}
                                 alt={activity.targetUser.name || ""}
                               />
                             ) : (
-                              <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center mr-3 flex-shrink-0">
-                                <User className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                              <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center mr-2 flex-shrink-0">
+                                <User className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                               </div>
                             )}
                             <div className="min-w-0 flex-1">
@@ -569,9 +570,9 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
                         </td>
 
                         {/* Role Change */}
-                        <td className="px-4 py-4">
+                        <td className="px-2 py-4">
                           {activity.actionType === 'ROLE_CHANGED' ? (
-                            <div className="flex items-center space-x-2 min-w-0">
+                            <div className="flex items-center space-x-1 min-w-0">
                               {activity.oldRole && (
                                 <>
                                   <Badge
@@ -579,7 +580,7 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
                                     className={`text-xs font-medium border ${getRoleBadgeStyle(activity.oldRole)} flex items-center gap-1 flex-shrink-0`}
                                   >
                                     {getRoleIcon(activity.oldRole)}
-                                    <span>{activity.oldRole === 'SWD' ? 'Script Writer' : activity.oldRole}</span>
+                                    <span className="hidden xl:inline">{activity.oldRole === 'SWD' ? 'SWD' : activity.oldRole}</span>
                                   </Badge>
                                   <ArrowRight className="h-3 w-3 text-gray-400 flex-shrink-0" />
                                 </>
@@ -589,7 +590,7 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
                                 className={`text-xs font-medium border ${getRoleBadgeStyle(activity.newRole)} flex items-center gap-1 flex-shrink-0`}
                               >
                                 {getRoleIcon(activity.newRole)}
-                                <span>{activity.newRole === 'SWD' ? 'Script Writer' : activity.newRole}</span>
+                                <span className="hidden xl:inline">{activity.newRole === 'SWD' ? 'SWD' : activity.newRole}</span>
                               </Badge>
                             </div>
                           ) : (
@@ -598,10 +599,10 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
                         </td>
 
                         {/* Reason */}
-                        <td className="px-4 py-4">
+                        <td className="px-2 py-4">
                           {activity.reason ? (
-                            <div className="text-sm text-gray-900 dark:text-gray-100 max-w-xs break-words" title={activity.reason}>
-                              <span className="line-clamp-2">{activity.reason}</span>
+                            <div className="text-sm text-gray-900 dark:text-gray-100 max-w-[100px] break-words" title={activity.reason}>
+                              <span className="line-clamp-2 truncate">{activity.reason}</span>
                             </div>
                           ) : (
                             <span className="text-sm text-gray-500 dark:text-gray-400">-</span>
@@ -609,12 +610,12 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
                         </td>
 
                         {/* Date & Time */}
-                        <td className="px-4 py-4 whitespace-nowrap">
+                        <td className="px-2 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900 dark:text-gray-100 flex items-center gap-1" title={formatFullDateTime(activity.createdAt)}>
                             <Globe className="h-3 w-3 text-gray-400 flex-shrink-0" />
-                            <span>{formatActivityDate(activity.createdAt)}</span>
+                            <span className="truncate">{formatActivityDate(activity.createdAt)}</span>
                           </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
                             {Intl.DateTimeFormat().resolvedOptions().timeZone}
                           </div>
                         </td>
@@ -622,6 +623,7 @@ export function ActivityHistoryTable({ className = "" }: ActivityHistoryTablePro
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
 
               {/* Load More Button */}

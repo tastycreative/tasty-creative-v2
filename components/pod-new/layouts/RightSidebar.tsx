@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   ChevronDown,
   Link as LinkIcon,
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { usePodNewSidebarData, usePodNewTeams } from "@/hooks/usePodNewQuery";
 import { usePodStore } from "@/lib/stores/podStore";
+import { useTeams } from "@/hooks/useTeams";
 
 function Card({
   title,
@@ -68,33 +69,55 @@ interface RightSidebarProps {
 
 export default function RightSidebar({ collapsed = false }: RightSidebarProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const selectedRow = usePodStore((s) => s.selectedRow);
+  const selectedTeamId = usePodStore((s) => s.selectedTeamId);
   const setSelectedRow = usePodStore((s) => s.setSelectedRow);
   const setSelectedTeamId = usePodStore((s) => s.setSelectedTeamId);
-  const { data: teams } = usePodNewTeams();
-  const { data, isLoading } = usePodNewSidebarData(selectedRow || 1, true);
-
-  // Initialize with first team if no selection
-  useEffect(() => {
-    if (!selectedRow && teams && teams.length > 0) {
-      setSelectedRow(1);
+  const { data: teamOptions } = usePodNewTeams(); // For row mapping
+  const { teams: teamsWithIds } = useTeams(); // For team IDs
+  
+  // Get current team from URL params
+  const currentTeamIdFromUrl = searchParams?.get("team");
+  
+  // Use the current team from URL or fallback to store
+  const activeTeamId = currentTeamIdFromUrl || selectedTeamId;
+  
+  // Find the row number for the active team by mapping team ID to row
+  let activeTeamRow = selectedRow || 1;
+  if (activeTeamId && teamsWithIds && teamOptions) {
+    // Find the team with the ID
+    const teamWithId = teamsWithIds.find(team => team.id === activeTeamId);
+    if (teamWithId) {
+      // Find the corresponding row by matching team name
+      const teamOption = teamOptions.find(option => option.name === teamWithId.name);
+      if (teamOption) {
+        activeTeamRow = teamOption.row;
+      }
     }
-  }, [selectedRow, teams, setSelectedRow]);
+  }
+  
+  const { data, isLoading } = usePodNewSidebarData(activeTeamRow, true);
+
+  // Sync store with URL params when team changes
+  useEffect(() => {
+    if (currentTeamIdFromUrl && currentTeamIdFromUrl !== selectedTeamId) {
+      setSelectedTeamId(currentTeamIdFromUrl);
+      
+      // Find and set the corresponding row number
+      const teamWithId = teamsWithIds?.find(t => t.id === currentTeamIdFromUrl);
+      if (teamWithId && teamOptions) {
+        const teamOption = teamOptions.find(option => option.name === teamWithId.name);
+        if (teamOption) {
+          setSelectedRow(teamOption.row);
+        }
+      }
+    }
+  }, [currentTeamIdFromUrl, selectedTeamId, teamsWithIds, teamOptions, setSelectedTeamId, setSelectedRow]);
 
   if (collapsed) {
     return null; // Hide completely when collapsed
   }
-
-  // Update URL when team selection changes
-  const updateURLWithTeam = (teamId: string) => {
-    if (pathname && (pathname.includes('/forms') || pathname.includes('/board'))) {
-      const params = new URLSearchParams(searchParams?.toString() || "");
-      params.set("team", teamId);
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-    }
-  };
 
   // Show sidebar on all main POD routes
   const allowedPaths = [
@@ -125,49 +148,20 @@ export default function RightSidebar({ collapsed = false }: RightSidebarProps) {
       role="complementary"
       className="hidden xl:block space-y-6 w-[320px] sticky top-24 self-start overflow-hidden"
     >
+      {/* Team Header - Display Only */}
       <div className="rounded-2xl bg-white/90 dark:bg-slate-900/70 border border-gray-200/50 dark:border-white/10 shadow-sm p-4 overflow-hidden">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-fuchsia-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-              <Sparkles className="w-4 h-4 text-white" />
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-fuchsia-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+            <Sparkles className="w-5 h-5 text-white" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-lg font-bold text-gray-900 dark:text-slate-100 truncate">
+              {data?.teamName || "Select a Team"}
             </div>
-            <div className="text-sm font-semibold text-gray-800 dark:text-slate-200 truncate">
-              {data?.teamName || "Team"}
+            <div className="text-sm text-gray-600 dark:text-slate-400">
+              Team Information
             </div>
           </div>
-          <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-slate-800/70 border border-gray-200/50 dark:border-white/10 flex-shrink-0" />
-        </div>
-        <div className="relative">
-          <select
-            aria-label="Select Team"
-            className="w-full appearance-none px-3 py-2 rounded-lg bg-gray-50 dark:bg-slate-800/70 border border-gray-200/50 dark:border-white/10 text-gray-800 dark:text-slate-200 pr-8"
-            value={selectedRow || 1}
-            onChange={async (e) => {
-              const rowNumber = parseInt(e.target.value);
-              setSelectedRow(rowNumber);
-
-              // Also fetch teams to get the team ID for the selected row
-              try {
-                const teamsResponse = await fetch("/api/pod/teams-db");
-                const { success, teams: dbTeams } = await teamsResponse.json();
-                if (success && dbTeams[rowNumber - 1]) {
-                  const teamId = dbTeams[rowNumber - 1].id;
-                  setSelectedTeamId(teamId);
-                  // Update URL with the new team ID
-                  updateURLWithTeam(teamId);
-                }
-              } catch (error) {
-                console.error("Error syncing team selection:", error);
-              }
-            }}
-          >
-            {(teams || []).map((t) => (
-              <option key={t.row} value={t.row}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-slate-500" />
         </div>
       </div>
 

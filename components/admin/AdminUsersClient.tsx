@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { UserRoleForm } from "@/components/admin/UserRoleForm";
 import { BulkRoleEditor } from "@/components/admin/BulkRoleEditor";
 import { ActivityHistoryTable } from "@/components/admin/ActivityHistoryTable";
@@ -22,6 +23,9 @@ import {
   Clock,
   Pencil,
   History,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
 } from "lucide-react";
 
 type User = {
@@ -34,8 +38,21 @@ type User = {
   emailVerified: Date | null;
 };
 
+interface PaginationInfo {
+  page: number;
+  limit: string;
+  totalUsers: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
+  showing: number;
+}
+
 interface AdminUsersClientProps {
-  users: User[];
+  initialUsers: User[];
+  initialPagination: PaginationInfo;
+  initialSearch: string;
+  initialRoleFilter: string;
   totalUsers: number;
   adminCount: number;
   moderatorCount: number;
@@ -47,7 +64,10 @@ interface AdminUsersClientProps {
 }
 
 export function AdminUsersClient({
-  users,
+  initialUsers,
+  initialPagination,
+  initialSearch,
+  initialRoleFilter,
   totalUsers,
   adminCount,
   moderatorCount,
@@ -57,7 +77,100 @@ export function AdminUsersClient({
   growthRate,
   sessionUserId,
 }: AdminUsersClientProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
   const [activeTab, setActiveTab] = useState<"users" | "history">("users");
+  const [users, setUsers] = useState<User[]>(initialUsers);
+  const [pagination, setPagination] = useState<PaginationInfo>(initialPagination);
+  const [searchTerm, setSearchTerm] = useState(initialSearch);
+  const [selectedRole, setSelectedRole] = useState(initialRoleFilter || "all");
+  const [pageSize, setPageSize] = useState(initialPagination.limit);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch users from API
+  const fetchUsers = useCallback(async (
+    page: number = 1,
+    limit: string = "10",
+    search: string = "",
+    role: string = "all"
+  ) => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit,
+        ...(search && { search }),
+        ...(role !== "all" && { role }),
+      });
+
+      const response = await fetch(`/api/admin/users?${params}`);
+      const data = await response.json();
+
+      if (data.success) {
+        setUsers(data.users);
+        setPagination(data.pagination);
+      }
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Update URL params
+  const updateURL = useCallback((params: Record<string, string>) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+    
+    Object.entries(params).forEach(([key, value]) => {
+      if (value && value !== "all" && value !== "1" && value !== "10") {
+        newParams.set(key, value);
+      } else {
+        newParams.delete(key);
+      }
+    });
+
+    const newURL = `${window.location.pathname}${newParams.toString() ? `?${newParams.toString()}` : ''}`;
+    router.push(newURL, { scroll: false });
+  }, [router, searchParams]);
+
+  // Handle search with debounce
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      fetchUsers(1, pageSize, searchTerm, selectedRole);
+      updateURL({
+        page: "1",
+        limit: pageSize,
+        search: searchTerm,
+        role: selectedRole,
+      });
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, selectedRole, pageSize, fetchUsers, updateURL]);
+
+  // Handle pagination
+  const handlePageChange = (newPage: number) => {
+    fetchUsers(newPage, pageSize, searchTerm, selectedRole);
+    updateURL({
+      page: newPage.toString(),
+      limit: pageSize,
+      search: searchTerm,
+      role: selectedRole,
+    });
+  };
+
+  // Handle page size change
+  const handlePageSizeChange = (newLimit: string) => {
+    setPageSize(newLimit);
+    fetchUsers(1, newLimit, searchTerm, selectedRole);
+    updateURL({
+      page: "1",
+      limit: newLimit,
+      search: searchTerm,
+      role: selectedRole,
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -103,18 +216,35 @@ export function AdminUsersClient({
                   <input
                     type="text"
                     placeholder="Search users by name, email, or role..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 border border-pink-200 dark:border-pink-500/30 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all"
                   />
                 </div>
                 <div className="flex gap-3">
-                  <button className="inline-flex items-center px-4 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-pink-200 dark:border-pink-500/30 rounded-lg transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
-                    <Filter className="h-4 w-4 mr-2" />
-                    Filter by Role
-                  </button>
-                  <button className="inline-flex items-center px-4 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-pink-200 dark:border-pink-500/30 rounded-lg transition-all duration-300 hover:shadow-md hover:-translate-y-0.5">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Date Range
-                  </button>
+                  <select
+                    value={selectedRole}
+                    onChange={(e) => setSelectedRole(e.target.value)}
+                    className="inline-flex items-center px-4 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-pink-200 dark:border-pink-500/30 rounded-lg transition-all duration-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 min-w-[140px]"
+                  >
+                    <option value="all">All Roles</option>
+                    <option value="ADMIN">Admin</option>
+                    <option value="MODERATOR">Moderator</option>
+                    <option value="SWD">Script Writer</option>
+                    <option value="USER">User</option>
+                    <option value="GUEST">Guest</option>
+                  </select>
+                  <select
+                    value={pageSize}
+                    onChange={(e) => handlePageSizeChange(e.target.value)}
+                    className="inline-flex items-center px-4 py-3 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 border border-pink-200 dark:border-pink-500/30 rounded-lg transition-all duration-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 min-w-[100px]"
+                  >
+                    <option value="10">10 per page</option>
+                    <option value="20">20 per page</option>
+                    <option value="50">50 per page</option>
+                    <option value="100">100 per page</option>
+                    <option value="all">Show All</option>
+                  </select>
                 </div>
               </div>
             </CardContent>
@@ -126,7 +256,8 @@ export function AdminUsersClient({
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <CardTitle className="text-gray-900 dark:text-gray-100 font-bold flex items-center">
                   <Eye className="h-5 w-5 mr-2 text-pink-500" />
-                  All Users ({totalUsers})
+                  All Users ({pagination.showing} of {pagination.totalUsers})
+                  {loading && <RefreshCw className="h-4 w-4 ml-2 animate-spin" />}
                 </CardTitle>
                 <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
                   <Clock className="h-4 w-4" />
@@ -136,10 +267,24 @@ export function AdminUsersClient({
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              {/* Mobile Card View */}
-              <div className="block lg:hidden">
-                <div className="divide-y divide-pink-200 dark:divide-pink-500/30">
-                  {users.map((user) => (
+              {users.length === 0 ? (
+                <div className="p-8 text-center">
+                  <div className="text-gray-500 dark:text-gray-400 mb-2">
+                    <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <h3 className="text-lg font-medium">No users found</h3>
+                    <p className="text-sm mt-2">
+                      {searchTerm || selectedRole !== "all" 
+                        ? "Try adjusting your search criteria or filters"
+                        : "No users match the current filters"}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Mobile Card View */}
+                  <div className="block lg:hidden">
+                    <div className="divide-y divide-pink-200 dark:divide-pink-500/30">
+                      {users.map((user) => (
                     <div
                       key={user.id}
                       className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-300"
@@ -206,70 +351,73 @@ export function AdminUsersClient({
               </div>
 
               {/* Desktop Table View */}
-              <div className="hidden lg:block overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 dark:bg-gray-900">
-                    <tr className="border-b border-pink-200 dark:border-pink-500/30">
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                        User Details
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                        Contact
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                        Role & Permissions
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                        Account Info
-                      </th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
+              <div className="hidden lg:block">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[800px]">
+                    <thead className="bg-gray-50 dark:bg-gray-900">
+                      <tr className="border-b border-pink-200 dark:border-pink-500/30">
+                        <th className="px-4 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider w-[200px]">
+                          User Details
+                        </th>
+                        <th className="px-4 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider w-[180px]">
+                          Contact
+                        </th>
+                        <th className="px-4 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider w-[140px]">
+                          Role & Permissions
+                        </th>
+                        <th className="px-4 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider w-[120px]">
+                          Account Info
+                        </th>
+                        <th className="px-4 py-4 text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase tracking-wider w-[160px]">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
                   <tbody className="divide-y divide-pink-200 dark:divide-pink-500/30 bg-white dark:bg-gray-800">
                     {users.map((user) => (
                       <tr
                         key={user.id}
                         className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-300 group"
                       >
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             {user.image ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img
-                                className="h-12 w-12 rounded-full object-cover mr-4 border-2 border-pink-200 dark:border-pink-500/30 group-hover:border-pink-300 dark:group-hover:border-pink-400 transition-all duration-300"
+                                className="h-10 w-10 rounded-full object-cover mr-3 border-2 border-pink-200 dark:border-pink-500/30 group-hover:border-pink-300 dark:group-hover:border-pink-400 transition-all duration-300 flex-shrink-0"
                                 src={`/api/image-proxy?url=${encodeURIComponent(user.image)}`}
                                 alt={user.name || ""}
                               />
                             ) : (
-                              <div className="h-12 w-12 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center mr-4 group-hover:bg-pink-100 dark:group-hover:bg-pink-500/20 transition-all duration-300">
-                                <User className="h-6 w-6 text-gray-500 dark:text-gray-400 group-hover:text-pink-500" />
+                              <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center mr-3 group-hover:bg-pink-100 dark:group-hover:bg-pink-500/20 transition-all duration-300 flex-shrink-0">
+                                <User className="h-5 w-5 text-gray-500 dark:text-gray-400 group-hover:text-pink-500" />
                               </div>
                             )}
-                            <div>
-                              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors">
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors truncate">
                                 {user.name || "No name"}
                               </div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                              <div className="text-xs text-gray-500 dark:text-gray-400 font-mono truncate">
                                 ID: {user.id.slice(0, 8)}...
                               </div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
-                            {user.email}
-                          </div>
-                          <div className={`text-xs ${user.emailVerified ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
-                            {user.emailVerified ? 'Verified Account' : 'Unverified Account'}
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="min-w-0">
+                            <div className="text-sm text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors truncate">
+                              {user.email}
+                            </div>
+                            <div className={`text-xs truncate ${user.emailVerified ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                              {user.emailVerified ? 'Verified' : 'Unverified'}
+                            </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-4 whitespace-nowrap">
                           <Badge
                             variant="secondary"
                             className={`
-                              font-medium border transition-all duration-300 hover:scale-105
+                              font-medium border transition-all duration-300 hover:scale-105 text-xs
                               ${
                                 user.role === "ADMIN"
                                   ? "bg-gradient-to-r from-pink-500 to-rose-500 text-white border-pink-500 hover:from-pink-600 hover:to-rose-600"
@@ -297,26 +445,30 @@ export function AdminUsersClient({
                             {(user.role === "USER" || user.role === "GUEST") && (
                               <User className="h-3 w-3 mr-1 inline" />
                             )}
-                            {user.role === "SWD" ? "Script Writer" : user.role}
+                            <span className="truncate">
+                              {user.role === "SWD" ? "SWD" : user.role}
+                            </span>
                           </Badge>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900 dark:text-gray-100 font-medium">
-                            {formatForDisplay(user.createdAt, 'date')}
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">
-                            {formatForDisplay(user.createdAt, 'EEEE')}
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="min-w-0">
+                            <div className="text-sm text-gray-900 dark:text-gray-100 font-medium truncate">
+                              {formatForDisplay(user.createdAt, 'date')}
+                            </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                              {formatForDisplay(user.createdAt, 'EEEE')}
+                            </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center space-x-2">
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="flex items-center space-x-1 min-w-0">
                             <UserRoleForm
                               userId={user.id}
                               currentRole={user.role as Role}
                               userName={user.name || user.email || "User"}
                               isCurrentUser={user.id === sessionUserId}
                             />
-                            <button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-300 hover:scale-110">
+                            <button className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-300 hover:scale-110 flex-shrink-0">
                               <MoreHorizontal className="h-4 w-4 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300" />
                             </button>
                           </div>
@@ -325,7 +477,89 @@ export function AdminUsersClient({
                     ))}
                   </tbody>
                 </table>
+                </div>
               </div>
+
+                  {/* Pagination Controls */}
+                  {users.length > 0 && (
+                    <div className="px-4 py-6 border-t border-pink-200 dark:border-pink-500/30 bg-gray-50 dark:bg-gray-900">
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        {/* Page Size Selector */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Show:</span>
+                          <select
+                            value={pageSize}
+                            onChange={(e) => handlePageSizeChange(e.target.value)}
+                            className="px-3 py-1 text-sm border border-pink-200 dark:border-pink-500/30 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                          >
+                            <option value="10">10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="all">All</option>
+                          </select>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            Showing {pagination.showing} of {pagination.totalUsers} users
+                          </span>
+                        </div>
+
+                        {/* Pagination Buttons */}
+                        {pageSize !== "all" && pagination.totalPages > 1 && (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handlePageChange(pagination.page - 1)}
+                              disabled={!pagination.hasPrevPage || loading}
+                              className="flex items-center px-3 py-1 text-sm border border-pink-200 dark:border-pink-500/30 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              <ChevronLeft className="h-4 w-4 mr-1" />
+                              Previous
+                            </button>
+                            
+                            <div className="flex items-center gap-1">
+                              {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                                let pageNum;
+                                if (pagination.totalPages <= 5) {
+                                  pageNum = i + 1;
+                                } else if (pagination.page <= 3) {
+                                  pageNum = i + 1;
+                                } else if (pagination.page >= pagination.totalPages - 2) {
+                                  pageNum = pagination.totalPages - 4 + i;
+                                } else {
+                                  pageNum = pagination.page - 2 + i;
+                                }
+
+                                return (
+                                  <button
+                                    key={pageNum}
+                                    onClick={() => handlePageChange(pageNum)}
+                                    disabled={loading}
+                                    className={`px-3 py-1 text-sm rounded transition-colors ${
+                                      pageNum === pagination.page
+                                        ? "bg-pink-500 text-white"
+                                        : "border border-pink-200 dark:border-pink-500/30 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                    }`}
+                                  >
+                                    {pageNum}
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            <button
+                              onClick={() => handlePageChange(pagination.page + 1)}
+                              disabled={!pagination.hasNextPage || loading}
+                              className="flex items-center px-3 py-1 text-sm border border-pink-200 dark:border-pink-500/30 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              Next
+                              <ChevronRight className="h-4 w-4 ml-1" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </CardContent>
           </Card>
         </>

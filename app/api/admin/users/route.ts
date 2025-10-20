@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await auth();
 
@@ -11,8 +11,39 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    // Fetch all users (filtering will be done on frontend)
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = searchParams.get("limit");
+    const search = searchParams.get("search") || "";
+    const roleFilter = searchParams.get("role") || "";
+
+    // Validate pagination parameters
+    const pageSize = limit === "all" ? undefined : parseInt(limit || "10");
+    const offset = pageSize ? (page - 1) * pageSize : 0;
+
+    // Build where clause for filtering
+    const where: any = {};
+    
+    // Search filter
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
+        { role: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    // Role filter
+    if (roleFilter && roleFilter !== "all") {
+      where.role = roleFilter;
+    }
+
+    // Get total count for pagination
+    const totalUsers = await prisma.user.count({ where });
+
+    // Fetch users with pagination
     const users = await prisma.user.findMany({
+      where,
       select: {
         id: true,
         email: true,
@@ -20,15 +51,32 @@ export async function GET() {
         role: true,
         image: true,
         createdAt: true,
+        emailVerified: true,
       },
       orderBy: {
         createdAt: "desc",
       },
+      skip: offset,
+      take: pageSize,
     });
+
+    // Calculate pagination info
+    const totalPages = pageSize ? Math.ceil(totalUsers / pageSize) : 1;
+    const hasNextPage = pageSize ? page < totalPages : false;
+    const hasPrevPage = page > 1;
 
     return NextResponse.json({ 
       success: true,
-      users: users 
+      users,
+      pagination: {
+        page,
+        limit: limit || "10",
+        totalUsers,
+        totalPages,
+        hasNextPage,
+        hasPrevPage,
+        showing: users.length,
+      }
     });
 
   } catch (error) {

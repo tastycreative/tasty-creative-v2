@@ -165,18 +165,18 @@ model VoiceModel {
 }
 
 model VoiceNoteHistory {
-  id                String   @id @default(cuid())
-  userId            String
-  elevenLabsHistoryId String // The history_item_id from ElevenLabs
-  voiceId           String
-  voiceName         String
-  accountKey        String  // Which ElevenLabs account was used
-  text              String  @db.Text
-  charactersUsed    Int?     // Number of characters used for this generation
-  generatedAt       DateTime
-  createdAt         DateTime @default(now())
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  voiceNoteSale     VoiceNoteSale?
+  id                  String         @id @default(cuid())
+  userId              String
+  elevenLabsHistoryId String
+  voiceId             String
+  voiceName           String
+  accountKey          String
+  text                String
+  generatedAt         DateTime
+  createdAt           DateTime       @default(now())
+  charactersUsed      Int?
+  user                User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  voiceNoteSale       VoiceNoteSale?
 
   @@unique([userId, elevenLabsHistoryId])
   @@index([userId])
@@ -188,22 +188,22 @@ model VoiceNoteHistory {
 }
 
 model VoiceNoteSale {
-  id                  String            @id @default(cuid())
-  userId              String
-  userName            String
-  userEmail           String
-  modelName           String
-  voiceNote           String            @db.Text
-  saleAmount          Float
-  soldDate            DateTime
-  status              String            @default("Completed")
-  generatedDate       DateTime?
-  source              String?           @default("Manual")
-  voiceNoteHistoryId  String?           @unique
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
-  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  voiceNoteHistory    VoiceNoteHistory? @relation(fields: [voiceNoteHistoryId], references: [id], onDelete: SetNull)
+  id                 String            @id @default(cuid())
+  userId             String
+  userName           String
+  userEmail          String
+  modelName          String
+  voiceNote          String
+  saleAmount         Float
+  soldDate           DateTime
+  status             String            @default("Completed")
+  generatedDate      DateTime?
+  source             String?           @default("Manual")
+  voiceNoteHistoryId String?           @unique
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  voiceNoteHistory   VoiceNoteHistory? @relation(fields: [voiceNoteHistoryId], references: [id])
 
   @@index([userId])
   @@index([modelName])
@@ -396,12 +396,13 @@ model ClientModelDetails {
   verbiage_restrictions String?
   wall_restrictions     String?
   calendar_id           String?
-  clientOnlyFansAlbum   String?
-  clientSocialAlbums    String?
-  clientCustomSheet     String?
   onboardingCompleted   Boolean?             @default(false)
   status                String?
   model_name            String?
+  clientCustomSheet     String?
+  clientOnlyFansAlbum   String?
+  clientSocialAlbums    String?
+  launchesPod           String?
   onboardingProgress    OnboardingProgress[]
 }
 
