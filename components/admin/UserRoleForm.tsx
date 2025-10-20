@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { updateUserRole } from "@/app/actions/admin";
 import { Edit2, Save, X } from "lucide-react";
 import { notifyRoleChange } from "@/lib/session-sync";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Role = "GUEST" | "USER" | "MODERATOR" | "ADMIN" | "SWD" | "POD";
 
@@ -22,6 +23,7 @@ export function UserRoleForm({
   const [isEditing, setIsEditing] = useState(false);
   const [selectedRole, setSelectedRole] = useState(currentRole);
   const [isPending, startTransition] = useTransition();
+  const queryClient = useQueryClient();
 
   const handleSubmit = () => {
     startTransition(async () => {
@@ -33,6 +35,10 @@ export function UserRoleForm({
         if (result.roleChangeNotification) {
           notifyRoleChange(result.roleChangeNotification);
         }
+
+        // Invalidate and refetch all admin-users queries to immediately reflect the change
+        await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+        await queryClient.refetchQueries({ queryKey: ['admin-users'] });
       } catch (error) {
         console.error("Failed to update role:", error);
         // Optionally show an error toast here
