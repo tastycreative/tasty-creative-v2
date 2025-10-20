@@ -452,8 +452,8 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
       if (response.ok) {
         const successMessage =
           result.scheduleSheets && result.sheetsCount > 1
-            ? `Successfully processed ${result.sheetsCount} Schedule #1 sheets with real-time sync!`
-            : `Successfully set up real-time sync for your spreadsheet!`;
+            ? `Successfully processed ${result.sheetsCount} Schedule #1 sheets with real-time sync! Created in model folder: ${selectedModel}`
+            : `Successfully set up real-time sync for your spreadsheet! Created in model folder: ${selectedModel}`;
 
         setStatus({
           type: "success",
@@ -916,6 +916,12 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
                 •
               </span>{" "}
               Maps columns with intelligent data transformation
+            </p>
+            <p className="flex items-center">
+              <span className="text-green-600 dark:text-green-400 mr-2">
+                •
+              </span>{" "}
+              Creates a dedicated folder for each model to organize sheets
             </p>
           </div>
         </div>

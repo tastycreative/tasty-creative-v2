@@ -22,6 +22,42 @@ function extractGid(url: string): string | null {
   return match ? match[1] : null;
 }
 
+// Helper function to find or create a model-specific folder
+async function findOrCreateModelFolder(drive: any, modelName: string, parentFolderId: string): Promise<string> {
+  try {
+    // First, search for existing folder with the model name
+    const searchResponse = await drive.files.list({
+      q: `name='${modelName}' and parents in '${parentFolderId}' and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+      fields: 'files(id, name)',
+    });
+
+    const existingFolder = searchResponse.data.files?.[0];
+    
+    if (existingFolder?.id) {
+      console.log(`Found existing folder for model "${modelName}": ${existingFolder.id}`);
+      return existingFolder.id;
+    }
+
+    // If folder doesn't exist, create it
+    console.log(`Creating new folder for model "${modelName}" in parent folder ${parentFolderId}`);
+    const createResponse = await drive.files.create({
+      requestBody: {
+        name: modelName,
+        mimeType: 'application/vnd.google-apps.folder',
+        parents: [parentFolderId],
+      },
+      fields: 'id, name',
+    });
+
+    const newFolderId = createResponse.data.id;
+    console.log(`Created new folder for model "${modelName}": ${newFolderId}`);
+    return newFolderId;
+  } catch (error) {
+    console.error(`Error finding/creating folder for model "${modelName}":`, error);
+    throw new Error(`Failed to create folder for model: ${modelName}`);
+  }
+}
+
 // Helper function to implement retry logic with exponential backoff
 async function retryWithBackoff<T>(
   operation: () => Promise<T>,
@@ -128,6 +164,13 @@ export async function POST(request: NextRequest) {
     if (!fromType || !toType) {
       return NextResponse.json(
         { error: 'Conversion direction (fromType and toType) is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!modelName) {
+      return NextResponse.json(
+        { error: 'Model name is required for creating model-specific folders' },
         { status: 400 }
       );
     }
@@ -282,6 +325,10 @@ export async function POST(request: NextRequest) {
     const templateGid = toType === 'Betterfans Sheet' ? BETTERFANS_TEMPLATE_GID : POD_TEMPLATE_GID;
     
     try {
+      // Step 2a: Find or create model-specific folder
+      const modelFolderId = await findOrCreateModelFolder(drive, modelName, SHARED_FOLDER_ID);
+      console.log(`Using model folder ID: ${modelFolderId} for model: ${modelName}`);
+      
       // Create a more descriptive filename using the source spreadsheet name
       const currentDate = new Date();
       const dateStr = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD format
@@ -297,12 +344,12 @@ export async function POST(request: NextRequest) {
         fileId: templateId,
         requestBody: {
           name: newFileName,
-          parents: [SHARED_FOLDER_ID], // Place the file in the shared folder
+          parents: [modelFolderId], // Place the file in the model-specific folder
         },
       });
 
       newSpreadsheetId = copyResponse.data.id!;
-      console.log('Created copy with ID:', newSpreadsheetId);
+      console.log('Created copy with ID:', newSpreadsheetId, 'in model folder:', modelFolderId);
     } catch (error: unknown) {
       console.error('Error creating copy:', error);
       
@@ -714,6 +761,8 @@ export async function POST(request: NextRequest) {
         sheetsCount: scheduleSheets.length,
         realTimeSync: isRealTimeSync,
         columnMapping,
+        modelName: modelName,
+        folderStructure: `Created in model-specific folder: ${modelName}`,
       };
       
       console.log('Successfully created spreadsheet integration:', {
@@ -721,6 +770,7 @@ export async function POST(request: NextRequest) {
         newSpreadsheetUrl: file.data.webViewLink,
         fileName: file.data.name,
         modelName: modelName,
+        folderStructure: `Model-specific folder: ${modelName}`,
         requestTimestamp: new Date().toISOString()
       });
 
