@@ -36,7 +36,7 @@ import {
   User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCreatorsDB } from "@/lib/hooks/useCreatorsDB";
+import { useCreator } from "@/hooks/useCreatorsQuery";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface ModelInformationTabProps {
@@ -63,9 +63,10 @@ export function ModelInformationTab({
     }).format(amount);
   };
 
-  // Fetch live creator context by name
+  // Fetch live creator context by name using TanStack Query
   const resolvedCreatorName = creatorName || modelData?.name;
-  const { data: dbData } = useCreatorsDB(resolvedCreatorName);
+  const creatorQuery = useCreator(resolvedCreatorName);
+  const dbData = creatorQuery.data;
   const dbCreator = dbData?.creators?.[0];
   const dbPricing = dbData?.pricingData || [];
 
@@ -87,7 +88,7 @@ export function ModelInformationTab({
   }
 
   // Show skeleton while loading initial creator context
-  if (!runtimeContext) {
+  if (creatorQuery.isLoading || !runtimeContext) {
     return (
       <div className="min-h-full bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-blue-900/20">
         <div className="max-w-7xl mx-auto p-6 space-y-6">

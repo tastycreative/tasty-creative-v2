@@ -53,7 +53,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/admin/ThemeToggle";
-import { useCreatorsDB } from "@/lib/hooks/useCreatorsDB";
+import { useAllCreators, useCreator } from "@/hooks/useCreatorsQuery";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 
@@ -272,19 +272,22 @@ export function ModelProfileSidebar({
     [creatorName, modelData?.name]
   );
 
-  // Fetch all creators for the dropdown (only fetch once, not dependent on assignedCreators)
-  const { data: allCreatorsData, loading: isLoadingAllCreators } = useCreatorsDB();
+  // Fetch all creators for the dropdown using TanStack Query
+  const allCreatorsQuery = useAllCreators();
   const allCreators = React.useMemo(() => {
-    const creators = allCreatorsData?.creators || [];
+    const creators = allCreatorsQuery.data?.creators || [];
     console.log(`Total creators loaded: ${creators.length}`);
     if (creators.length > 0) {
       console.log('First few creators:', creators.slice(0, 3).map(c => ({ name: c.name, referrer: c.referrerName })));
     }
     return creators;
-  }, [allCreatorsData?.creators]);
+  }, [allCreatorsQuery.data?.creators]);
 
-  // Fetch current creator to derive profileLink image when available
-  const { data: dbData, loading: isLoadingCreator } = useCreatorsDB(resolvedCreatorName);
+  // Fetch current creator to derive profileLink image when available using TanStack Query
+  const currentCreatorQuery = useCreator(resolvedCreatorName);
+  const dbData = currentCreatorQuery.data;
+  const isLoadingCreator = currentCreatorQuery.isLoading;
+  const isLoadingAllCreators = allCreatorsQuery.isLoading;
 
   // Filter creators based on debounced search query (name only)
   const filteredCreators = React.useMemo(() => {
