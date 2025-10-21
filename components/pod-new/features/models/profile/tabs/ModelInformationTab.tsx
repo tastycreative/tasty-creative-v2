@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Image from "next/image";
 import { ExtendedModelDetails } from "@/lib/mock-data/model-profile";
 import { Badge } from "@/components/ui/badge";
@@ -37,11 +37,16 @@ import {
   Edit2,
   Check,
   X as XIcon,
+  Camera,
+  Upload,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCreator } from "@/hooks/useCreatorsQuery";
+import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 
 interface ModelInformationTabProps {
   modelData: ExtendedModelDetails;
@@ -62,8 +67,11 @@ export function ModelInformationTab({
   creatorName,
 }: ModelInformationTabProps) {
   const { data: session } = useSession();
+  const queryClient = useQueryClient();
   const [editingCell, setEditingCell] = useState<EditingState | null>(null);
   const [updateStatus, setUpdateStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'MODERATOR';
   const formatNumber = (num: number) => {
@@ -217,9 +225,11 @@ export function ModelInformationTab({
   }
 
   // Derive profile image URL (supports Google Drive links)
+  // Prioritize fresh database data from runtimeContext over potentially stale modelData
   const profileImageUrl = (() => {
+    const dbProfileLink = dbCreator?.profileLink;
     const url =
-      modelData.profileImage || (runtimeContext as any)?.profileLink || "";
+      dbProfileLink || (runtimeContext as any)?.profileLink || modelData.profileImage || "";
     if (!url) return null;
     if (url.includes("drive.google.com")) {
       try {
@@ -457,6 +467,70 @@ export function ModelInformationTab({
     }
   };
 
+  const handleProfileImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !isAdmin) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file');
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB');
+      return;
+    }
+
+    setUploadingImage(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('creatorName', resolvedCreatorName || '');
+
+      console.log('📤 Uploading profile image for:', resolvedCreatorName);
+
+      const response = await fetch('/api/creators-db/update-profile-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upload profile image');
+      }
+
+      const result = await response.json();
+      console.log('✅ Profile image updated successfully:', result);
+
+      toast.success('Profile image updated successfully!');
+      
+      // Invalidate all creator queries to update both tab and sidebar
+      queryClient.invalidateQueries({ queryKey: ['creators'] });
+      
+      // Also specifically refetch current creator query
+      creatorQuery.refetch();
+
+    } catch (error) {
+      console.error('❌ Error uploading profile image:', error);
+      toast.error('Failed to upload profile image. Please try again.');
+    } finally {
+      setUploadingImage(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleProfileImageClick = () => {
+    if (isAdmin && fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
   const { group: contentRangesGroup, row: contentRangesRow } =
     getPricingGroup("content-price-ranges");
   const { group: bundleGroup, row: bundleRow } = getPricingGroup(
@@ -487,7 +561,7 @@ export function ModelInformationTab({
 
           <div className="relative p-8">
             <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6">
-              <div className="relative">
+              <div className="relative group/avatar">
                 <div className="p-1 bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500 rounded-2xl">
                   {profileImageUrl ? (
                     <Image
@@ -506,6 +580,33 @@ export function ModelInformationTab({
                     </div>
                   )}
                 </div>
+                
+                {/* Profile Image Upload Button - Only for Admins/Moderators */}
+                {isAdmin && (
+                  <>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleProfileImageUpload}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={handleProfileImageClick}
+                      disabled={uploadingImage}
+                      className="absolute -bottom-2 -right-2 p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all duration-200 opacity-0 group-hover/avatar:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Upload new profile image"
+                    >
+                      {uploadingImage ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Camera className="w-4 h-4" />
+                      )}
+                    </button>
+                  </>
+                )}
+                
+                {/* Performance Score Badge */}
                 <div className="absolute -top-2 -right-2">
                   <div
                     className={cn(
