@@ -74,6 +74,18 @@ export function ModelInformationTab({
     : undefined;
   console.log("Runtime Context:", runtimeContext);
 
+  // Get the actual status from database
+  const actualStatus = dbCreator?.status?.toLowerCase() === 'active' ? 'active' : 'dropped';
+  
+  // Debug status for ModelInformationTab
+  if (modelData.name === "Alaya") {
+    console.log(`ModelInformationTab "${modelData.name}":`, {
+      modelDataStatus: modelData.status,
+      dbCreatorStatus: dbCreator?.status,
+      actualStatus: actualStatus,
+    });
+  }
+
   // Show skeleton while loading initial creator context
   if (!runtimeContext) {
     return (
@@ -439,12 +451,12 @@ export function ModelInformationTab({
                     )}
                     <Badge
                       variant={
-                        modelData.status === "active" ? "default" : "secondary"
+                        actualStatus === "active" ? "default" : "secondary"
                       }
                     >
-                      {modelData.status === "active"
+                      {actualStatus === "active"
                         ? "🟢 Active"
-                        : "⚫ Dropped"}
+                        : "🔴 Dropped"}
                     </Badge>
                   </div>
                   {/* Context: Guaranteed and Metadata */}

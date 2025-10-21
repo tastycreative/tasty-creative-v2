@@ -17,6 +17,12 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Info,
   Image as ImageIcon,
   MessageCircle,
@@ -26,6 +32,7 @@ import {
   Star,
   ChevronDown,
   ChevronRight,
+  Check,
   Radio,
   Zap,
   Wand2,
@@ -216,6 +223,16 @@ export function ModelProfileSidebar({
   const params = useParams();
   const [expandedApps, setExpandedApps] = useState(!!currentAppRoute);
   const [imageError, setImageError] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // Handle model selection
+  const handleModelSelect = (selectedCreator: any) => {
+    const encodedName = encodeURIComponent(selectedCreator.name);
+    const currentTab = activeTab || 'information';
+    const newUrl = `/my-models/${encodedName}${currentTab !== 'information' ? `?tab=${currentTab}` : ''}`;
+    router.push(newUrl);
+    setIsDropdownOpen(false);
+  };
 
   // Auto-expand apps section when on an app route
   React.useEffect(() => {
@@ -225,14 +242,19 @@ export function ModelProfileSidebar({
   }, [currentAppRoute]);
 
 
-  // Fetch creator to derive profileLink image when available
+  // Fetch all creators for the dropdown
+  const { data: allCreatorsData, loading: isLoadingAllCreators } = useCreatorsDB();
+  const allCreators = allCreatorsData?.creators || [];
+
+  // Fetch current creator to derive profileLink image when available
   const resolvedCreatorName = creatorName || modelData?.name;
   const { data: dbData, loading: isLoadingCreator } =
     useCreatorsDB(resolvedCreatorName);
   const dbCreator = dbData?.creators?.[0];
 
-  const profileImageUrl = (() => {
-    const url = modelData.profileImage || (dbCreator as any)?.profileLink || "";
+  // Helper function to get profile image URL
+  const getProfileImageUrl = (creator: any) => {
+    const url = modelData.profileImage || creator?.profileLink || "";
     if (!url) return null;
     if (url.includes("drive.google.com")) {
       try {
@@ -252,7 +274,18 @@ export function ModelProfileSidebar({
       }
     }
     return url;
-  })();
+  };
+
+  const profileImageUrl = getProfileImageUrl(dbCreator);
+
+  // Debug current model status
+  if (modelData.name === "Alaya") {
+    console.log(`Current model "${modelData.name}":`, {
+      modelDataStatus: modelData.status,
+      dbCreatorStatus: dbCreator?.status,
+      dbCreatorStatusLower: dbCreator?.status?.toLowerCase(),
+    });
+  }
 
   return (
     <Sidebar
@@ -279,64 +312,149 @@ export function ModelProfileSidebar({
               <span className="text-xs sm:text-sm">Back to Models</span>
             </Button>
 
-            {/* Hero Profile Card */}
-            <div className="relative group overflow-hidden bg-white dark:bg-transparent rounded-xl sm:rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm">
-              {/* Background Pattern */}
-              <div className="absolute inset-0 opacity-[0.02] dark:opacity-0">
-                <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full -translate-y-6 translate-x-6 sm:-translate-y-8 sm:translate-x-8 blur-2xl"></div>
-                <div className="absolute bottom-0 left-0 w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full translate-y-4 -translate-x-4 sm:translate-y-6 sm:-translate-x-6 blur-xl"></div>
-              </div>
-
-              <div className="relative p-3 sm:p-4">
-                <div className="flex items-center space-x-2 sm:space-x-3">
-                  <div className="relative">
-                    <div className="p-0.5 bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500 rounded-full">
-                      {profileImageUrl && !imageError ? (
-                        <Image
-                          src={profileImageUrl}
-                          alt={modelData.name}
-                          width={50}
-                          height={50}
-                          className="sm:w-[60px] sm:h-[60px] rounded-full object-cover"
-                          onError={() => setImageError(true)}
-                        />
-                      ) : (
-                        <div className="w-[50px] h-[50px] sm:w-[60px] sm:h-[60px] rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center">
-                          <User className="w-5 h-5 sm:w-6 sm:h-6 text-gray-500 dark:text-gray-400" />
-                        </div>
-                      )}
-                    </div>
-                    <div
-                      className={cn(
-                        "absolute -bottom-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 border-white shadow-lg",
-                        modelData.status === "active"
-                          ? "bg-gradient-to-r from-emerald-400 to-green-500"
-                          : "bg-gradient-to-r from-red-400 to-red-500"
-                      )}
-                    />
+            {/* Model Selector Dropdown */}
+            <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+              <DropdownMenuTrigger asChild>
+                <div className="relative group overflow-hidden bg-white dark:bg-transparent rounded-xl sm:rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
+                  {/* Background Pattern */}
+                  <div className="absolute inset-0 opacity-[0.02] dark:opacity-0">
+                    <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full -translate-y-6 translate-x-6 sm:-translate-y-8 sm:translate-x-8 blur-2xl"></div>
+                    <div className="absolute bottom-0 left-0 w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full translate-y-4 -translate-x-4 sm:translate-y-6 sm:-translate-x-6 blur-xl"></div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-black text-base sm:text-lg truncate">
-                      <span className="bg-gradient-to-r from-gray-900 via-pink-600 to-purple-600 dark:from-pink-100 dark:via-pink-400 dark:to-purple-400 bg-clip-text text-transparent">
-                        {modelData.name}
-                      </span>
-                    </h3>
-                    <p className="text-xs sm:text-sm text-muted-foreground truncate font-medium">
-                      {modelData.profile.location}
-                    </p>
-                    <div className="flex items-center gap-1 sm:gap-1.5 mt-1 flex-wrap">
-                      
-                      {modelData.profile.verificationStatus === "verified" && (
-                        <Badge className="text-xs bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0 shadow-sm">
-                          <Star className="w-3 h-3 mr-1 fill-current" />
-                          Verified
-                        </Badge>
-                      )}
+
+                  <div className="relative p-3 sm:p-4">
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+                      <div className="relative">
+                        <div className="p-0.5 bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500 rounded-full">
+                          {profileImageUrl && !imageError ? (
+                            <Image
+                              src={profileImageUrl}
+                              alt={modelData.name}
+                              width={50}
+                              height={50}
+                              className="w-[50px] h-[50px] sm:w-[60px] sm:h-[60px] rounded-full object-cover"
+                              onError={() => setImageError(true)}
+                            />
+                          ) : (
+                            <div className="w-[50px] h-[50px] sm:w-[60px] sm:h-[60px] rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center">
+                              <User className="w-5 h-5 sm:w-6 sm:h-6 text-gray-500 dark:text-gray-400" />
+                            </div>
+                          )}
+                        </div>
+                        <div
+                          className={cn(
+                            "absolute -bottom-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 border-white shadow-lg",
+                            // Use database status if available, fallback to modelData.status
+                            dbCreator?.status?.toLowerCase() === 'active'
+                              ? "bg-gradient-to-r from-emerald-400 to-green-500"
+                              : "bg-gradient-to-r from-red-400 to-red-500"
+                          )}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-black text-base sm:text-lg truncate">
+                          <span className="bg-gradient-to-r from-gray-900 via-pink-600 to-purple-600 dark:from-pink-100 dark:via-pink-400 dark:to-purple-400 bg-clip-text text-transparent">
+                            {modelData.name}
+                          </span>
+                        </h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground truncate font-medium">
+                          {modelData.profile.location}
+                        </p>
+                        <div className="flex items-center gap-1 sm:gap-1.5 mt-1 flex-wrap">
+                          {modelData.profile.verificationStatus === "verified" && (
+                            <Badge className="text-xs bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0 shadow-sm">
+                              <Star className="w-3 h-3 mr-1 fill-current" />
+                              Verified
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <ChevronDown className={cn(
+                        "w-4 h-4 text-muted-foreground transition-transform duration-200",
+                        isDropdownOpen && "rotate-180"
+                      )} />
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent 
+                className="w-80 max-h-96 overflow-y-auto"
+                align="start"
+              >
+                {isLoadingAllCreators ? (
+                  <div className="p-4 text-center text-muted-foreground">
+                    Loading models...
+                  </div>
+                ) : allCreators.length > 0 ? (
+                  <>
+                    {allCreators.map((creator, index) => {
+                      const creatorImageUrl = getProfileImageUrl(creator);
+                      const isCurrentModel = creator.name === modelData.name;
+                      
+                      // Normalize status to handle different API responses (Active/Dropped, active/dropped, etc.)
+                      const normalizedStatus = creator.status?.toLowerCase() === 'active' ? 'active' : 'dropped';
+                      
+                      // Debug for this specific case
+                      if (creator.name === "Alaya") {
+                        console.log(`Alaya status: "${creator.status}" -> normalized: "${normalizedStatus}"`);
+                      }
+                      
+                      return (
+                        <DropdownMenuItem
+                          key={creator.id || index}
+                          onClick={() => handleModelSelect(creator)}
+                          className="p-3 focus:bg-gray-50 dark:focus:bg-gray-800"
+                        >
+                          <div className="flex items-center space-x-3 w-full">
+                            <div className="relative">
+                              <div className="p-0.5 bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500 rounded-full">
+                                {creatorImageUrl ? (
+                                  <Image
+                                    src={creatorImageUrl}
+                                    alt={creator.name}
+                                    width={40}
+                                    height={40}
+                                    className="w-[40px] h-[40px] rounded-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-[40px] h-[40px] rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center">
+                                    <User className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                                  </div>
+                                )}
+                              </div>
+                              <div
+                                className={cn(
+                                  "absolute -bottom-1 -right-1 w-3 h-3 rounded-full border-2 border-white shadow-lg",
+                                  // Use the normalized status
+                                  normalizedStatus === "active"
+                                    ? "bg-gradient-to-r from-emerald-400 to-green-500"
+                                    : "bg-gradient-to-r from-red-400 to-red-500"
+                                )}
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-sm truncate">
+                                {creator.name}
+                              </div>
+                              <div className="text-xs text-muted-foreground truncate">
+                                {normalizedStatus === "active" ? "Active" : "Dropped"}
+                              </div>
+                            </div>
+                            {isCurrentModel && (
+                              <Check className="w-4 h-4 text-primary" />
+                            )}
+                          </div>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </>
+                ) : (
+                  <div className="p-4 text-center text-muted-foreground">
+                    No models found
+                  </div>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Real Stats - Launch Date & Social Platforms */}
             <div className="space-y-3 sm:space-y-4 mt-6 sm:mt-10">
