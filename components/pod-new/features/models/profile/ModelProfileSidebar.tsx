@@ -33,6 +33,8 @@ import {
   ChevronDown,
   ChevronRight,
   Check,
+  Search,
+  X,
   Radio,
   Zap,
   Wand2,
@@ -49,6 +51,7 @@ import { ExtendedModelDetails } from "@/lib/mock-data/model-profile";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/admin/ThemeToggle";
 import { useCreatorsDB } from "@/lib/hooks/useCreatorsDB";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -224,6 +227,8 @@ export function ModelProfileSidebar({
   const [expandedApps, setExpandedApps] = useState(!!currentAppRoute);
   const [imageError, setImageError] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
 
   // Handle model selection
   const handleModelSelect = (selectedCreator: any) => {
@@ -232,7 +237,26 @@ export function ModelProfileSidebar({
     const newUrl = `/my-models/${encodedName}${currentTab !== 'information' ? `?tab=${currentTab}` : ''}`;
     router.push(newUrl);
     setIsDropdownOpen(false);
+    setSearchQuery(""); // Clear search when selecting a model
   };
+
+  // Handle dropdown open/close
+  const handleDropdownOpenChange = (open: boolean) => {
+    setIsDropdownOpen(open);
+    if (!open) {
+      setSearchQuery(""); // Clear search when dropdown closes
+      setDebouncedSearchQuery(""); // Clear debounced search too
+    }
+  };
+
+  // Debounce search query to improve performance
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 150); // 150ms debounce
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Auto-expand apps section when on an app route
   React.useEffect(() => {
@@ -242,18 +266,63 @@ export function ModelProfileSidebar({
   }, [currentAppRoute]);
 
 
-  // Fetch all creators for the dropdown
+  // Memoize creator name to prevent unnecessary refetches
+  const resolvedCreatorName = React.useMemo(() => 
+    creatorName || modelData?.name, 
+    [creatorName, modelData?.name]
+  );
+
+  // Fetch all creators for the dropdown (only fetch once, not dependent on assignedCreators)
   const { data: allCreatorsData, loading: isLoadingAllCreators } = useCreatorsDB();
-  const allCreators = allCreatorsData?.creators || [];
+  const allCreators = React.useMemo(() => {
+    const creators = allCreatorsData?.creators || [];
+    console.log(`Total creators loaded: ${creators.length}`);
+    if (creators.length > 0) {
+      console.log('First few creators:', creators.slice(0, 3).map(c => ({ name: c.name, referrer: c.referrerName })));
+    }
+    return creators;
+  }, [allCreatorsData?.creators]);
 
   // Fetch current creator to derive profileLink image when available
-  const resolvedCreatorName = creatorName || modelData?.name;
-  const { data: dbData, loading: isLoadingCreator } =
-    useCreatorsDB(resolvedCreatorName);
-  const dbCreator = dbData?.creators?.[0];
+  const { data: dbData, loading: isLoadingCreator } = useCreatorsDB(resolvedCreatorName);
+
+  // Filter creators based on debounced search query (name only)
+  const filteredCreators = React.useMemo(() => {
+    if (!debouncedSearchQuery.trim()) return allCreators;
+    
+    const query = debouncedSearchQuery.toLowerCase().trim();
+    const filtered = allCreators.filter(creator => {
+      // Search only by name
+      const creatorName = (creator.name || '').toLowerCase();
+      const nameMatch = creatorName.includes(query);
+      
+      // Debug logging for search issues
+      if (query === "bri") {
+        console.log(`Search Debug for "${creator.name}":`, {
+          query,
+          creatorName,
+          nameMatch,
+          originalName: creator.name,
+        });
+      }
+      
+      return nameMatch;
+    });
+    
+    console.log(`Search "${query}" returned ${filtered.length} results out of ${allCreators.length} total`);
+    if (query === "bri") {
+      console.log('Filtered results for "bri":', filtered.map(c => c.name));
+    }
+    return filtered;
+  }, [allCreators, debouncedSearchQuery]);
+  // Memoize dbCreator to prevent unnecessary recalculations
+  const dbCreator = React.useMemo(() => 
+    dbData?.creators?.[0], 
+    [dbData?.creators]
+  );
 
   // Helper function to get profile image URL
-  const getProfileImageUrl = (creator: any) => {
+  const getProfileImageUrl = React.useCallback((creator: any) => {
     const url = modelData.profileImage || creator?.profileLink || "";
     if (!url) return null;
     if (url.includes("drive.google.com")) {
@@ -274,9 +343,13 @@ export function ModelProfileSidebar({
       }
     }
     return url;
-  };
+  }, [modelData.profileImage]);
 
-  const profileImageUrl = getProfileImageUrl(dbCreator);
+  // Memoize profile image URL to prevent unnecessary recalculations
+  const profileImageUrl = React.useMemo(() => 
+    getProfileImageUrl(dbCreator), 
+    [getProfileImageUrl, dbCreator]
+  );
 
   // Debug current model status
   if (modelData.name === "Alaya") {
@@ -313,7 +386,7 @@ export function ModelProfileSidebar({
             </Button>
 
             {/* Model Selector Dropdown */}
-            <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+            <DropdownMenu open={isDropdownOpen} onOpenChange={handleDropdownOpenChange}>
               <DropdownMenuTrigger asChild>
                 <div className="relative group overflow-hidden bg-white dark:bg-transparent rounded-xl sm:rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-colors">
                   {/* Background Pattern */}
@@ -378,16 +451,64 @@ export function ModelProfileSidebar({
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent 
-                className="w-80 max-h-96 overflow-y-auto"
+                className="w-80 max-h-96 overflow-hidden"
                 align="start"
               >
-                {isLoadingAllCreators ? (
-                  <div className="p-4 text-center text-muted-foreground">
-                    Loading models...
+                {/* Search Input */}
+                <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        // Prevent dropdown from closing when typing
+                        e.stopPropagation();
+                        if (e.key === 'Escape') {
+                          setSearchQuery("");
+                          setDebouncedSearchQuery("");
+                        }
+                      }}
+                      onClick={(e) => {
+                        // Prevent dropdown from closing when clicking input
+                        e.stopPropagation();
+                      }}
+                      className="pl-10 pr-10 h-9"
+                      autoFocus={false}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSearchQuery("");
+                          setDebouncedSearchQuery("");
+                        }}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
-                ) : allCreators.length > 0 ? (
-                  <>
-                    {allCreators.map((creator, index) => {
+                </div>
+
+                {/* Scrollable Content */}
+                <div className="max-h-80 overflow-y-auto">
+                  {isLoadingAllCreators ? (
+                    <div className="p-4 text-center text-muted-foreground">
+                      Loading models...
+                    </div>
+                  ) : filteredCreators.length > 0 ? (
+                    <>
+                      {/* Debug: Show search info */}
+                      {debouncedSearchQuery && (
+                        <div className="p-2 text-xs text-muted-foreground bg-muted/30 border-b">
+                          Showing {filteredCreators.length} results for "{debouncedSearchQuery}"
+                        </div>
+                      )}
+                      {filteredCreators.map((creator, index) => {
                       const creatorImageUrl = getProfileImageUrl(creator);
                       const isCurrentModel = creator.name === modelData.name;
                       
@@ -403,7 +524,12 @@ export function ModelProfileSidebar({
                         <DropdownMenuItem
                           key={creator.id || index}
                           onClick={() => handleModelSelect(creator)}
-                          className="p-3 focus:bg-gray-50 dark:focus:bg-gray-800"
+                          className="p-3 focus:bg-gray-50 dark:focus:bg-gray-800 cursor-pointer"
+                          onSelect={(event) => {
+                            // Prevent default behavior that might interfere with search
+                            event.preventDefault();
+                            handleModelSelect(creator);
+                          }}
                         >
                           <div className="flex items-center space-x-3 w-full">
                             <div className="relative">
@@ -450,9 +576,27 @@ export function ModelProfileSidebar({
                   </>
                 ) : (
                   <div className="p-4 text-center text-muted-foreground">
-                    No models found
+                    {debouncedSearchQuery.trim() ? (
+                      <div className="space-y-2">
+                        <p>No models found for "{debouncedSearchQuery}"</p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSearchQuery("");
+                            setDebouncedSearchQuery("");
+                          }}
+                          className="text-xs"
+                        >
+                          Clear search
+                        </Button>
+                      </div>
+                    ) : (
+                      "No models found"
+                    )}
                   </div>
                 )}
+                </div>
               </DropdownMenuContent>
             </DropdownMenu>
 
