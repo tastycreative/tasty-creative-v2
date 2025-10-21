@@ -20,6 +20,10 @@ export default function SignIn() {
             alt="Tasty Creative Logo"
             width={64}
             height={75}
+            priority
+            quality={85}
+            sizes="64px"
+            className="h-auto w-auto"
           />
         </div>
         <CardTitle className="text-2xl font-bold text-foreground">

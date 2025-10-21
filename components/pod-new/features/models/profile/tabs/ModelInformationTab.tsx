@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { ExtendedModelDetails } from "@/lib/mock-data/model-profile";
 import { Badge } from "@/components/ui/badge";
@@ -34,20 +34,38 @@ import {
   Package,
   ChevronDown,
   User,
+  Edit2,
+  Check,
+  X as XIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCreator } from "@/hooks/useCreatorsQuery";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSession } from "next-auth/react";
 
 interface ModelInformationTabProps {
   modelData: ExtendedModelDetails;
   creatorName?: string;
 }
 
+interface EditingState {
+  creatorName: string;
+  itemName: string;
+  originalValue: string;
+  newValue: string;
+  creatorRowNumber?: number;
+  creatorRowId?: string;
+}
+
 export function ModelInformationTab({
   modelData,
   creatorName,
 }: ModelInformationTabProps) {
+  const { data: session } = useSession();
+  const [editingCell, setEditingCell] = useState<EditingState | null>(null);
+  const [updateStatus, setUpdateStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  
+  const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'MODERATOR';
   const formatNumber = (num: number) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
     if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
@@ -315,16 +333,14 @@ export function ModelInformationTab({
   ].filter((link) => link.username);
 
   // Derived values from runtimeContext
-  const standardRange = normalizePriceLabel(
-    runtimeContext?.contentDetails?.boobContent || ""
-  );
+  // const standardRange = normalizePriceLabel(
+  //   runtimeContext?.contentDetails?.boobContent || ""
+  // );
   const customVideo = runtimeContext?.contentDetails?.customVideoPricing || "";
   const customCall = runtimeContext?.contentDetails?.customCallPricing || "";
-  const customVideoPretty = customVideo
-    ? `${formatUsdFlexible(customVideo)} • ${customVideo.replace(/^[^a-zA-Z]+/, "").replace(/\$/, "")}`
-    : "N/A";
-  const customCallPretty =
-    !customCall || /none at all/i.test(customCall) ? "Not offered" : customCall;
+  // Use raw values directly - show exactly what was typed
+  const customVideoPretty = customVideo || "N/A";
+  const customCallPretty = customCall || "Not offered";
 
   const bundlePricingSource: Record<string, string> = (() => {
     const group = (runtimeContext as any)?.pricingData?.find(
@@ -367,6 +383,78 @@ export function ModelInformationTab({
       | Record<string, string>
       | undefined;
     return { group, row };
+  };
+
+  const handleEditStart = (creatorName: string, itemName: string, currentValue: string, creatorRowNumber?: number, creatorRowId?: string) => {
+    setEditingCell({
+      creatorName,
+      itemName,
+      originalValue: currentValue,
+      newValue: currentValue === '—' ? '' : currentValue,
+      creatorRowNumber,
+      creatorRowId
+    });
+  };
+
+  const handleEditCancel = () => {
+    setEditingCell(null);
+  };
+
+  const handleEditValueChange = (value: string) => {
+    if (editingCell) {
+      setEditingCell({ ...editingCell, newValue: value });
+    }
+  };
+
+  const handleEditSave = async () => {
+    if (!editingCell || !isAdmin) return;
+
+    try {
+      setUpdateStatus(null);
+      
+      console.log('💾 Updating price in Prisma DB:', {
+        creatorName: editingCell.creatorName,
+        itemName: editingCell.itemName,
+        newPrice: editingCell.newValue
+      });
+      
+      const response = await fetch('/api/creators-db/update-pricing', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          creatorName: editingCell.creatorName,
+          itemName: editingCell.itemName,
+          newPrice: editingCell.newValue,
+          rowId: editingCell.creatorRowId
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update price in database');
+      }
+
+      const result = await response.json();
+      console.log('✅ Price updated in database:', result);
+
+      setUpdateStatus({ type: 'success', message: 'Price updated successfully!' });
+      setEditingCell(null);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setUpdateStatus(null), 3000);
+      
+      // Refetch creator data to update the UI
+      creatorQuery.refetch();
+      
+    } catch (error) {
+      console.error('❌ Error updating price in database:', error);
+      setUpdateStatus({ type: 'error', message: 'Failed to update price. Please try again.' });
+      
+      // Clear error message after 5 seconds
+      setTimeout(() => setUpdateStatus(null), 5000);
+    }
   };
 
   const { group: contentRangesGroup, row: contentRangesRow } =
@@ -829,34 +917,156 @@ export function ModelInformationTab({
                     <span className="bg-gradient-to-r from-gray-900 via-emerald-600 to-green-600 dark:from-pink-100 dark:via-emerald-400 dark:to-green-400 bg-clip-text text-transparent">
                       Core Pricing
                     </span>
+                    {isAdmin && <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full ml-2">Admin</span>}
                   </h2>
+                  {updateStatus && (
+                    <p className={`text-xs mt-1 ${
+                      updateStatus.type === 'success' 
+                        ? 'text-green-600 dark:text-green-400' 
+                        : 'text-red-600 dark:text-red-400'
+                    }`}>
+                      {updateStatus.message}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center">
+                  {/* <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">
                       Standard Content
                     </span>
-                    <span className="font-semibold">{standardRange}</span>
-                  </div>
+                    {isAdmin && editingCell && editingCell.creatorName === (resolvedCreatorName || '') && editingCell.itemName === 'Standard Content' ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          value={editingCell.newValue}
+                          onChange={(e) => handleEditValueChange(e.target.value)}
+                          className="w-32 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleEditSave();
+                            if (e.key === 'Escape') handleEditCancel();
+                          }}
+                        />
+                        <button 
+                          onClick={handleEditSave}
+                          className="p-1 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+                        >
+                          <Check className="h-3 w-3" />
+                        </button>
+                        <button 
+                          onClick={handleEditCancel}
+                          className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                        >
+                          <XIcon className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : isAdmin ? (
+                      <div className="group/price relative">
+                        <div className="font-semibold group-hover/price:bg-gray-50 dark:group-hover/price:bg-gray-700 px-2 py-1 rounded cursor-pointer"
+                             onClick={() => handleEditStart(resolvedCreatorName || '', 'Standard Content', standardRange)}>
+                          {standardRange}
+                        </div>
+                        <Edit2 className="absolute -top-1 -right-1 h-3 w-3 text-gray-400 opacity-0 group-hover/price:opacity-100 transition-opacity" />
+                      </div>
+                    ) : (
+                      <span className="font-semibold">{standardRange}</span>
+                    )}
+                  </div> */}
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">
                       Custom Videos
                     </span>
-                    <span className="font-semibold">{customVideoPretty}</span>
+                    {isAdmin && editingCell && editingCell.creatorName === (resolvedCreatorName || '') && editingCell.itemName === 'Custom Videos' ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          value={editingCell.newValue}
+                          onChange={(e) => handleEditValueChange(e.target.value)}
+                          className="w-32 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleEditSave();
+                            if (e.key === 'Escape') handleEditCancel();
+                          }}
+                        />
+                        <button 
+                          onClick={handleEditSave}
+                          className="p-1 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+                        >
+                          <Check className="h-3 w-3" />
+                        </button>
+                        <button 
+                          onClick={handleEditCancel}
+                          className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                        >
+                          <XIcon className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : isAdmin ? (
+                      <div className="group/price relative">
+                        <div className="font-semibold group-hover/price:bg-gray-50 dark:group-hover/price:bg-gray-700 px-2 py-1 rounded cursor-pointer"
+                             onClick={() => handleEditStart(resolvedCreatorName || '', 'Custom Videos', customVideoPretty)}>
+                          {customVideoPretty}
+                        </div>
+                        <Edit2 className="absolute -top-1 -right-1 h-3 w-3 text-gray-400 opacity-0 group-hover/price:opacity-100 transition-opacity" />
+                      </div>
+                    ) : (
+                      <span className="font-semibold">{customVideoPretty}</span>
+                    )}
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">
                       Custom Calls
                     </span>
-                    <span
-                      className={cn(
-                        "font-semibold",
-                        customCallPretty === "Not offered" &&
-                          "text-red-600 dark:text-red-400"
-                      )}
-                    >
-                      {customCallPretty}
-                    </span>
+                    {isAdmin && editingCell && editingCell.creatorName === (resolvedCreatorName || '') && editingCell.itemName === 'Custom Calls' ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          value={editingCell.newValue}
+                          onChange={(e) => handleEditValueChange(e.target.value)}
+                          className="w-32 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                          autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleEditSave();
+                            if (e.key === 'Escape') handleEditCancel();
+                          }}
+                        />
+                        <button 
+                          onClick={handleEditSave}
+                          className="p-1 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+                        >
+                          <Check className="h-3 w-3" />
+                        </button>
+                        <button 
+                          onClick={handleEditCancel}
+                          className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                        >
+                          <XIcon className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : isAdmin ? (
+                      <div className="group/price relative">
+                        <div className={cn(
+                          "font-semibold group-hover/price:bg-gray-50 dark:group-hover/price:bg-gray-700 px-2 py-1 rounded cursor-pointer",
+                          customCallPretty === "Not offered" &&
+                            "text-red-600 dark:text-red-400"
+                        )}
+                             onClick={() => handleEditStart(resolvedCreatorName || '', 'Custom Calls', customCallPretty)}>
+                          {customCallPretty}
+                        </div>
+                        <Edit2 className="absolute -top-1 -right-1 h-3 w-3 text-gray-400 opacity-0 group-hover/price:opacity-100 transition-opacity" />
+                      </div>
+                    ) : (
+                      <span
+                        className={cn(
+                          "font-semibold",
+                          customCallPretty === "Not offered" &&
+                            "text-red-600 dark:text-red-400"
+                        )}
+                      >
+                        {customCallPretty}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -894,7 +1104,43 @@ export function ModelInformationTab({
                               className="flex justify-between items-center py-1 border-b border-border/50 last:border-0"
                             >
                               <span className="text-muted-foreground">{label}</span>
-                              <span className="font-medium">{value}</span>
+                              {isAdmin && editingCell && editingCell.creatorName === (resolvedCreatorName || '') && editingCell.itemName === label ? (
+                                <div className="flex items-center gap-1">
+                                  <input
+                                    type="text"
+                                    value={editingCell.newValue}
+                                    onChange={(e) => handleEditValueChange(e.target.value)}
+                                    className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                                    autoFocus
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') handleEditSave();
+                                      if (e.key === 'Escape') handleEditCancel();
+                                    }}
+                                  />
+                                  <button 
+                                    onClick={handleEditSave}
+                                    className="p-1 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+                                  >
+                                    <Check className="h-3 w-3" />
+                                  </button>
+                                  <button 
+                                    onClick={handleEditCancel}
+                                    className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                                  >
+                                    <XIcon className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ) : isAdmin ? (
+                                <div className="group/price relative">
+                                  <div className="font-medium group-hover/price:bg-gray-50 dark:group-hover/price:bg-gray-700 px-2 py-1 rounded cursor-pointer"
+                                       onClick={() => handleEditStart(resolvedCreatorName || '', label, value)}>
+                                    {value}
+                                  </div>
+                                  <Edit2 className="absolute -top-1 -right-1 h-3 w-3 text-gray-400 opacity-0 group-hover/price:opacity-100 transition-opacity" />
+                                </div>
+                              ) : (
+                                <span className="font-medium">{value}</span>
+                              )}
                             </div>
                           );
                         })
@@ -910,9 +1156,45 @@ export function ModelInformationTab({
                             className="flex justify-between items-center py-1 border-b border-border/50 last:border-0"
                           >
                             <span className="text-muted-foreground">{label}</span>
-                            <span className="font-medium">
-                              {normalizePriceLabel((value as string) || "")}
-                            </span>
+                            {isAdmin && editingCell && editingCell.creatorName === (resolvedCreatorName || '') && editingCell.itemName === label ? (
+                              <div className="flex items-center gap-1">
+                                <input
+                                  type="text"
+                                  value={editingCell.newValue}
+                                  onChange={(e) => handleEditValueChange(e.target.value)}
+                                  className="w-20 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                                  autoFocus
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleEditSave();
+                                    if (e.key === 'Escape') handleEditCancel();
+                                  }}
+                                />
+                                <button 
+                                  onClick={handleEditSave}
+                                  className="p-1 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+                                >
+                                  <Check className="h-3 w-3" />
+                                </button>
+                                <button 
+                                  onClick={handleEditCancel}
+                                  className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                                >
+                                  <XIcon className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ) : isAdmin ? (
+                              <div className="group/price relative">
+                                <div className="font-medium group-hover/price:bg-gray-50 dark:group-hover/price:bg-gray-700 px-2 py-1 rounded cursor-pointer"
+                                     onClick={() => handleEditStart(resolvedCreatorName || '', label, normalizePriceLabel((value as string) || ""))}>
+                                  {normalizePriceLabel((value as string) || "")}
+                                </div>
+                                <Edit2 className="absolute -top-1 -right-1 h-3 w-3 text-gray-400 opacity-0 group-hover/price:opacity-100 transition-opacity" />
+                              </div>
+                            ) : (
+                              <span className="font-medium">
+                                {normalizePriceLabel((value as string) || "")}
+                              </span>
+                            )}
                           </div>
                         ))
                       )}

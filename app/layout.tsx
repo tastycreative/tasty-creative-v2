@@ -20,7 +20,19 @@ export const metadata: Metadata = {
   title: "Tasty Creative",
   description: "Crafting Digital Experiences Beyond Imagination",
   icons: {
-    icon: "/tasty-new.png",
+    icon: [
+      {
+        url: "/tasty-new.png",
+        sizes: "32x32",
+        type: "image/png",
+      },
+      {
+        url: "/tasty-new.png", 
+        sizes: "16x16",
+        type: "image/png",
+      }
+    ],
+    apple: "/tasty-new.png",
   },
 };
 

@@ -4,6 +4,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { ChevronDown, Search, X, Sparkles, Edit2, Check, X as XIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { usePodStore } from "@/lib/stores/podStore";
+import ModelsDropdownList from "@/components/ModelsDropdownList";
 
 interface PricingItem {
   id: string;
@@ -237,6 +238,8 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [pricingData, setPricingData] = useState<PricingGroup[]>([]);
   const [displayCreators, setDisplayCreators] = useState<Creator[]>([]);
+  const [allCreators, setAllCreators] = useState<Creator[]>([]);
+  const [selectedCreator, setSelectedCreator] = useState<string>("all");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingCell, setEditingCell] = useState<EditingState | null>(null);
@@ -295,6 +298,7 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
         if (creators.length > 0) {
           // Use assigned creators from props
           setDisplayCreators(creators);
+          setAllCreators(creators);
           console.log("✅ Using assigned creators from props:", creators);
         } else if (dbCreatorData && dbCreatorData.length > 0) {
           // Convert database creators to match expected format only if no props provided
@@ -304,6 +308,7 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
             rowNumber: index + 1
           }));
           setDisplayCreators(formattedCreators);
+          setAllCreators(formattedCreators);
           console.log("✅ Set display creators from database:", formattedCreators);
         }
       } catch (err) {
@@ -318,15 +323,32 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
     loadData();
   }, [creators]);
 
-  // Get assigned creators (show all assigned creators, even if no pricing data)
+  // Handle creator selection
+  const handleCreatorSelection = (creatorName: string) => {
+    setSelectedCreator(creatorName);
+    if (creatorName === "all") {
+      setDisplayCreators(allCreators.slice(0, 3));
+    } else {
+      const selectedCreatorObj = allCreators.find(c => c.name === creatorName);
+      setDisplayCreators(selectedCreatorObj ? [selectedCreatorObj] : []);
+    }
+  };
+
+  // Get available creators for display
   const availableCreators = useMemo(() => {
     console.log("Available creators calculation:", {
-      creators: creators,
+      selectedCreator,
       displayCreators: displayCreators,
+      allCreators: allCreators,
       pricingData: pricingData,
     });
 
-    // If creators prop is provided (from PodComponent), merge with displayCreators to get row numbers
+    if (selectedCreator !== "all") {
+      // Show only the selected creator
+      return displayCreators;
+    }
+
+    // If showing all creators, use the existing logic
     if (creators.length > 0) {
       console.log("Using creators prop:", creators);
       
@@ -369,7 +391,7 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
 
     console.log("Final available creators:", result);
     return result;
-  }, [creators, displayCreators, pricingData]);
+  }, [selectedCreator, creators, displayCreators, allCreators, pricingData]);
 
   // Filter pricing data based on search query
   const filteredPricingData = useMemo(() => {
@@ -598,6 +620,16 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
                     <X className="h-4 w-4" />
                   </button>
                 )}
+              </div>
+              
+              {/* Model Selection Dropdown */}
+              <div className="min-w-[200px]">
+                <ModelsDropdownList
+                  value={selectedCreator === "all" ? "" : selectedCreator}
+                  onValueChange={(value) => handleCreatorSelection(value || "all")}
+                  placeholder="All Models"
+                  className="w-full py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500/50 transition-all duration-200"
+                />
               </div>
               {/* Creator header (single column) */}
               {loading ? (

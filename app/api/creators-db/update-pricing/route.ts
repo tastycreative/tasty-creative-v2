@@ -4,6 +4,46 @@ import { auth } from '@/auth';
 
 // Helper function to update Google Sheets via n8n webhook
 async function updateGoogleSheet(itemName: string, newPrice: string, rowId: string | null, creatorName: string) {
+  // Map UI item names to Google Sheets column names
+  const sheetColumnMapping: Record<string, string> = {
+    // Core Pricing section mappings - use sheet column names
+    'Standard Content': 'Boob Content',
+    'Custom Videos': 'Custom Video Pricing',
+    'Custom Calls': 'Custom Call Pricing',
+    
+    // Content Price Ranges group - these should match exactly
+    'Boob Content': 'Boob Content',
+    'Pussy Content': 'Pussy Content',
+    'Solo Squirt Content': 'Solo Squirt Content',
+    'Solo Finger Content': 'Solo Finger Content',
+    'Solo Dildo Content': 'Solo Dildo Content',
+    'Solo Vibrator Content': 'Solo Vibrator Content',
+    'JOI Content': 'JOI Content',
+    'BG Content': 'BG Content',
+    'BJ/Handjob Content': 'BJ/Handjob Content',
+    'BGG Content': 'BGG Content',
+    'BBG Content': 'BBG Content',
+    'Orgy Content': 'Orgy Content',
+    'GG Content': 'GG Content',
+    'Anal Content': 'Anal Content',
+    'Livestream Content': 'Livestream Content',
+    
+    // Custom Content group - use sheet column names
+    'Custom Video Pricing': 'Custom Video Pricing',
+    'Custom Call Pricing': 'Custom Call Pricing',
+    
+    // Bundle Contents group - use sheet column names
+    '$5-10 Bundle Content': '$5-10 Bundle Content',
+    '$10-15 Bundle Content': '$10-15 Bundle Content',
+    '$15-20 Bundle Content': '$15-20 Bundle Content',
+    '$20-25 Bundle Content': '$20-25 Bundle Content',
+    '$25-30 Bundle Content': '$25-30 Bundle Content',
+    '$30+ Bundle Content': '$30+ Bundle Content',
+    'Content Options For Games': 'Content Options For Games'
+  };
+  
+  // Use the sheet column name for the webhook
+  const sheetColumnName = sheetColumnMapping[itemName] || itemName;
   try {
     const GOOGLE_DRIVE_SHEET_MODEL_NAMES = process.env.GOOGLE_DRIVE_SHEET_MODEL_NAMES;
     
@@ -14,7 +54,8 @@ async function updateGoogleSheet(itemName: string, newPrice: string, rowId: stri
     
     console.log('🔍 Google Sheets webhook update attempt:', {
       creatorName: creatorName,
-      itemName: itemName,
+      uiItemName: itemName,
+      sheetColumnName: sheetColumnName,
       newPrice: newPrice,
       rowId: rowId
     });
@@ -29,10 +70,10 @@ async function updateGoogleSheet(itemName: string, newPrice: string, rowId: stri
     const webhookData = {
       spreadsheetId: GOOGLE_DRIVE_SHEET_MODEL_NAMES,
       creatorName: creatorName,
-      itemName: itemName,
+      itemName: sheetColumnName, // Use the mapped sheet column name
       newPrice: newPrice,
       rowId: rowId,
-      range: `${itemName}${rowId}`,
+      range: `${sheetColumnName}${rowId}`, // Use the mapped sheet column name
       timestamp: new Date().toISOString()
     };
 
@@ -49,7 +90,7 @@ async function updateGoogleSheet(itemName: string, newPrice: string, rowId: stri
     }
 
     const result = await response.json();
-    console.log(`✅ Updated Google Sheet via webhook - Range: ${itemName}${rowId}, Value: ${newPrice}`, result);
+    console.log(`✅ Updated Google Sheet via webhook - Range: ${sheetColumnName}${rowId}, Value: ${newPrice}`, result);
     
   } catch (error) {
     console.error('❌ Error updating Google Sheet via webhook:', error);
@@ -103,22 +144,29 @@ export async function POST(request: Request) {
     // Use the row_id from the request (which comes from ClientModel via zustand)
     const actualRowId = rowId || clientModel.row_id;
 
-    // Get or create content details
-    let contentDetails = clientModel.contentDetails[0];
-    
-    if (!contentDetails) {
-      console.log('📝 Creating new ContentDetails record for:', creatorName);
-      contentDetails = await prisma.contentDetails.create({
-        data: {
-          clientModelName: clientModel.clientName
-        }
-      });
-    }
+    // Get or create content details using upsert to handle existing records
+    console.log('📝 Getting or creating ContentDetails record for:', creatorName);
+    const contentDetails = await prisma.contentDetails.upsert({
+      where: {
+        clientModelName: clientModel.clientName
+      },
+      update: {
+        // No updates needed during upsert, we'll update the specific field later
+      },
+      create: {
+        clientModelName: clientModel.clientName
+      }
+    });
 
     console.log('📊 Updating pricing for item:', itemName);
 
     // Map item names to database fields - updated for new grouping structure
     const fieldMapping: Record<string, string> = {
+      // Core Pricing section mappings
+      'Standard Content': 'boobContent',
+      'Custom Videos': 'customVideoPricing',
+      'Custom Calls': 'customCallPricing',
+      
       // Content Price Ranges group
       'Boob Content': 'boobContent',
       'Pussy Content': 'pussyContent',
