@@ -23,11 +23,7 @@ import {
   Smartphone,
   Images as Gallery,
   MessageSquare,
-  TrendingUp,
-  Users,
-  DollarSign,
   Star,
-  LogOut,
   ChevronDown,
   ChevronRight,
   Radio,
@@ -228,11 +224,6 @@ export function ModelProfileSidebar({
     }
   }, [currentAppRoute]);
 
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-    return num.toString();
-  };
 
   // Fetch creator to derive profileLink image when available
   const resolvedCreatorName = creatorName || modelData?.name;
@@ -282,75 +273,59 @@ export function ModelProfileSidebar({
               variant="ghost"
               size="sm"
               onClick={() => router.push('/my-models')}
-              className="mb-4 -ml-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+              className="mb-3 sm:mb-4 -ml-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Models
+              <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              <span className="text-xs sm:text-sm">Back to Models</span>
             </Button>
 
             {/* Hero Profile Card */}
-            <div className="relative group overflow-hidden bg-white dark:bg-transparent rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm">
+            <div className="relative group overflow-hidden bg-white dark:bg-transparent rounded-xl sm:rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm">
               {/* Background Pattern */}
               <div className="absolute inset-0 opacity-[0.02] dark:opacity-0">
-                <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full -translate-y-8 translate-x-8 blur-2xl"></div>
-                <div className="absolute bottom-0 left-0 w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full translate-y-6 -translate-x-6 blur-xl"></div>
+                <div className="absolute top-0 right-0 w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full -translate-y-6 translate-x-6 sm:-translate-y-8 sm:translate-x-8 blur-2xl"></div>
+                <div className="absolute bottom-0 left-0 w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full translate-y-4 -translate-x-4 sm:translate-y-6 sm:-translate-x-6 blur-xl"></div>
               </div>
 
-              <div className="relative p-4">
-                <div className="flex items-center space-x-3">
+              <div className="relative p-3 sm:p-4">
+                <div className="flex items-center space-x-2 sm:space-x-3">
                   <div className="relative">
                     <div className="p-0.5 bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500 rounded-full">
                       {profileImageUrl && !imageError ? (
                         <Image
                           src={profileImageUrl}
                           alt={modelData.name}
-                          width={60}
-                          height={60}
-                          className="rounded-full object-cover"
+                          width={50}
+                          height={50}
+                          className="sm:w-[60px] sm:h-[60px] rounded-full object-cover"
                           onError={() => setImageError(true)}
                         />
                       ) : (
-                        <div className="w-[60px] h-[60px] rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center">
-                          <User className="w-6 h-6 text-gray-500 dark:text-gray-400" />
+                        <div className="w-[50px] h-[50px] sm:w-[60px] sm:h-[60px] rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center">
+                          <User className="w-5 h-5 sm:w-6 sm:h-6 text-gray-500 dark:text-gray-400" />
                         </div>
                       )}
                     </div>
                     <div
                       className={cn(
-                        "absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white shadow-lg",
+                        "absolute -bottom-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 rounded-full border-2 border-white shadow-lg",
                         modelData.status === "active"
                           ? "bg-gradient-to-r from-emerald-400 to-green-500"
-                          : "bg-gray-400"
+                          : "bg-gradient-to-r from-red-400 to-red-500"
                       )}
                     />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-black text-lg truncate">
+                    <h3 className="font-black text-base sm:text-lg truncate">
                       <span className="bg-gradient-to-r from-gray-900 via-pink-600 to-purple-600 dark:from-pink-100 dark:via-pink-400 dark:to-purple-400 bg-clip-text text-transparent">
                         {modelData.name}
                       </span>
                     </h3>
-                    <p className="text-sm text-muted-foreground truncate font-medium">
+                    <p className="text-xs sm:text-sm text-muted-foreground truncate font-medium">
                       {modelData.profile.location}
                     </p>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <Badge
-                        variant={
-                          modelData.status === "active"
-                            ? "default"
-                            : "secondary"
-                        }
-                        className={cn(
-                          "text-xs border-0 shadow-sm",
-                          modelData.status === "active"
-                            ? "bg-gradient-to-r from-emerald-500 to-green-500 text-white"
-                            : "bg-gray-400 text-white"
-                        )}
-                      >
-                        {modelData.status === "active"
-                          ? "🟢 Active"
-                          : "⚫ Dropped"}
-                      </Badge>
+                    <div className="flex items-center gap-1 sm:gap-1.5 mt-1 flex-wrap">
+                      
                       {modelData.profile.verificationStatus === "verified" && (
                         <Badge className="text-xs bg-gradient-to-r from-blue-500 to-purple-500 text-white border-0 shadow-sm">
                           <Star className="w-3 h-3 mr-1 fill-current" />
@@ -364,13 +339,13 @@ export function ModelProfileSidebar({
             </div>
 
             {/* Real Stats - Launch Date & Social Platforms */}
-            <div className="space-y-4 mt-10">
+            <div className="space-y-3 sm:space-y-4 mt-6 sm:mt-10">
               {/* Launch Date Card */}
               <div className="relative group overflow-hidden bg-white dark:bg-transparent rounded-xl border border-gray-200/60 dark:border-gray-700/50 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-lg">
                 <div className="absolute inset-0 opacity-[0.03] dark:opacity-0">
                   <div className="absolute top-0 right-0 w-8 h-8 bg-white rounded-full -translate-y-4 translate-x-4"></div>
                 </div>
-                <div className="relative p-4">
+                <div className="relative p-3 sm:p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="p-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
                       <Calendar className="w-3 h-3 text-white" />
@@ -379,12 +354,12 @@ export function ModelProfileSidebar({
                       Launched
                     </span>
                   </div>
-                  <p className="text-base font-black text-gray-900 dark:text-white break-words">
+                  <p className="text-sm sm:text-base font-black text-gray-900 dark:text-white break-words">
                     {formatDateDistanceSafely(dbCreator?.launchDate)}
                   </p>
                   <p className="text-xs text-purple-600 dark:text-purple-400 flex items-center gap-1 font-medium mt-1">
                     <Rocket className="w-3 h-3" />
-                    {modelData.status === "active" ? "Active" : "Inactive"}
+                    Launch date
                   </p>
                 </div>
               </div>
@@ -394,7 +369,7 @@ export function ModelProfileSidebar({
                 <div className="absolute inset-0 opacity-[0.03] dark:opacity-0">
                   <div className="absolute top-0 right-0 w-8 h-8 bg-white rounded-full -translate-y-4 translate-x-4"></div>
                 </div>
-                <div className="relative p-4">
+                <div className="relative p-3 sm:p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="p-1 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg">
                       <Share2 className="w-3 h-3 text-white" />
@@ -403,7 +378,7 @@ export function ModelProfileSidebar({
                       Platforms
                     </span>
                   </div>
-                  <p className="text-base font-black text-gray-900 dark:text-white break-words">
+                  <p className="text-sm sm:text-base font-black text-gray-900 dark:text-white break-words">
                     {[
                       dbCreator?.instagram,
                       dbCreator?.twitter,
@@ -425,13 +400,13 @@ export function ModelProfileSidebar({
       <SidebarSeparator />
 
       {/* Navigation */}
-      <SidebarContent className="px-6 py-4">
+      <SidebarContent className="px-3 sm:px-6 py-3 sm:py-4">
         <SidebarGroup>
           <SidebarGroupContent>
             {isLoadingCreator ? (
               <NavigationSkeleton />
             ) : (
-              <SidebarMenu className="space-y-8">
+              <SidebarMenu className="space-y-4 sm:space-y-6 lg:space-y-8">
                 {navigationItems.map((item, index) => {
                   const Icon = item.icon;
                   const isActive = activeTab === item.id;
@@ -490,7 +465,7 @@ export function ModelProfileSidebar({
                             }
                           }}
                           className={cn(
-                            "relative group w-full justify-start transition-all duration-300 rounded-xl border-0 overflow-hidden backdrop-blur-sm h-14",
+                            "relative group w-full justify-start transition-all duration-300 rounded-xl border-0 overflow-hidden backdrop-blur-sm h-12 sm:h-14",
                             isActive
                               ? `bg-gradient-to-br ${theme.bg} shadow-lg ${theme.shadow} scale-105 border border-white/50 dark:border-gray-700/50`
                               : "bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800/40 hover:scale-102 border border-gray-200 dark:border-transparent shadow-sm dark:shadow-none"
@@ -506,21 +481,21 @@ export function ModelProfileSidebar({
                             </div>
                           )}
 
-                          <div className="relative flex items-center w-full px-4 py-4">
+                          <div className="relative flex items-center w-full px-3 sm:px-4 py-3 sm:py-4">
                             <div
                               className={cn(
-                                "p-2.5 rounded-lg mr-4 transition-all duration-300",
+                                "p-2 sm:p-2.5 rounded-lg mr-3 sm:mr-4 transition-all duration-300",
                                 isActive
                                   ? `bg-gradient-to-r ${theme.gradient} shadow-lg text-white scale-110`
                                   : "bg-gray-100 dark:bg-gray-700 text-muted-foreground group-hover:bg-gray-200 dark:group-hover:bg-gray-600"
                               )}
                             >
-                              <Icon className="h-4 w-4" />
+                              <Icon className="h-3 w-3 sm:h-4 sm:w-4" />
                             </div>
-                            <div className="flex-1 text-left">
+                            <div className="flex-1 text-left min-w-0">
                               <div
                                 className={cn(
-                                  "font-semibold text-sm transition-colors",
+                                  "font-semibold text-xs sm:text-sm transition-colors truncate",
                                   isActive
                                     ? "text-gray-900 dark:text-white"
                                     : "text-gray-700 dark:text-gray-200 group-hover:text-gray-900 dark:group-hover:text-white"
@@ -530,7 +505,7 @@ export function ModelProfileSidebar({
                               </div>
                               <div
                                 className={cn(
-                                  "text-xs transition-colors",
+                                  "text-xs transition-colors truncate",
                                   isActive
                                     ? "text-gray-600 dark:text-gray-300"
                                     : "text-muted-foreground"
