@@ -225,6 +225,13 @@ export function ModelInformationTab({
     }).format(numeric);
   };
 
+  const formatDateSafely = (dateValue?: string | null) => {
+    if (!dateValue || dateValue.trim() === "") return "N/A";
+    const date = new Date(dateValue);
+    if (isNaN(date.getTime())) return "N/A";
+    return date.toLocaleDateString();
+  };
+
   const normalizePriceLabel = (value?: string) => {
     if (!value) return "N/A";
     const trimmed = value.trim();
@@ -450,7 +457,7 @@ export function ModelInformationTab({
                       <div className="text-sm text-muted-foreground">
                         {launchDateText && (
                           <span className="mr-2">
-                            {new Date(launchDateText).toLocaleDateString()}
+                            {formatDateSafely(launchDateText)}
                           </span>
                         )}
                         {referrerText && <span>• by {referrerText}</span>}
@@ -468,9 +475,7 @@ export function ModelInformationTab({
                     <div className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
                       Joined{" "}
-                      {new Date(
-                        modelData.profile.joinedDate
-                      ).toLocaleDateString()}
+                      {formatDateSafely(modelData.profile.joinedDate)}
                     </div>
                   </div>
                 </div>

@@ -51,6 +51,14 @@ import { useCreatorsDB } from "@/lib/hooks/useCreatorsDB";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 
+// Safe date helper to avoid Invalid Time Value errors
+const formatDateDistanceSafely = (dateValue?: string | null) => {
+  if (!dateValue || dateValue.trim() === "") return "Recently";
+  const date = new Date(dateValue);
+  if (isNaN(date.getTime())) return "Recently";
+  return formatDistanceToNow(date, { addSuffix: true });
+};
+
 interface ModelProfileSidebarProps {
   modelData: ExtendedModelDetails;
   activeTab: string;
@@ -372,11 +380,7 @@ export function ModelProfileSidebar({
                     </span>
                   </div>
                   <p className="text-base font-black text-gray-900 dark:text-white break-words">
-                    {dbCreator?.launchDate
-                      ? formatDistanceToNow(new Date(dbCreator.launchDate), {
-                          addSuffix: true,
-                        })
-                      : "Recently"}
+                    {formatDateDistanceSafely(dbCreator?.launchDate)}
                   </p>
                   <p className="text-xs text-purple-600 dark:text-purple-400 flex items-center gap-1 font-medium mt-1">
                     <Rocket className="w-3 h-3" />
