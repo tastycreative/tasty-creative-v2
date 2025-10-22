@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
-import { ChevronDown, Search, X, Sparkles, Edit2, Check, X as XIcon } from "lucide-react";
+import { ChevronDown, Search, X, Sparkles, Edit2, Check, X as XIcon, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { usePodStore } from "@/lib/stores/podStore";
 import ModelsDropdownList from "@/components/ModelsDropdownList";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface PricingItem {
   id: string;
@@ -39,43 +40,54 @@ interface EditingState {
   creatorRowId?: string; // Add row_id from ClientModel
 }
 
-// Retry helper function for API calls
-async function fetchWithRetry(url: string, retryCount = 0): Promise<Response> {
-  const maxRetries = 3;
-  const baseDelay = 1000; // 1 second
+// Query Keys for pricing data
+export const pricingQueryKeys = {
+  all: ['pricing'] as const,
+  creators: (creators?: Creator[]) => [...pricingQueryKeys.all, 'creators', creators] as const,
+};
 
-  try {
-    const response = await fetch(url);
+// API Helper Functions
+async function apiRequest<T>(url: string, options: RequestInit = {}): Promise<T> {
+  const response = await fetch(url, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+    ...options,
+  });
 
-    // If we get a 429 (quota exceeded) or 500 error, retry
-    if (
-      (response.status === 429 || response.status === 500) &&
-      retryCount < maxRetries
-    ) {
-      const delay = baseDelay * Math.pow(2, retryCount); // Exponential backoff: 1s, 2s, 4s
-      console.log(
-        `API request failed (${response.status}), retrying in ${delay}ms... (attempt ${retryCount + 1}/${maxRetries})`
-      );
-
-      await new Promise((resolve) => setTimeout(resolve, delay));
-      return fetchWithRetry(url, retryCount + 1);
-    }
-
-    return response;
-  } catch (error) {
-    // For network errors, also retry
-    if (retryCount < maxRetries) {
-      const delay = baseDelay * Math.pow(2, retryCount);
-      console.log(
-        `Network error, retrying in ${delay}ms... (attempt ${retryCount + 1}/${maxRetries})`
-      );
-
-      await new Promise((resolve) => setTimeout(resolve, delay));
-      return fetchWithRetry(url, retryCount + 1);
-    }
-
-    throw error;
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'Network error' }));
+    throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
   }
+
+  return response.json();
+}
+
+// Fetch Functions
+async function fetchPricingData(creators?: Creator[]): Promise<{
+  pricingData: PricingGroup[];
+  creators: Creator[];
+}> {
+  let apiUrl = "/api/creators-db";
+  if (creators && creators.length > 0) {
+    const creatorNames = creators.map(c => c.name).join(',');
+    apiUrl += `?creators=${encodeURIComponent(creatorNames)}`;
+  }
+  
+  return apiRequest(apiUrl);
+}
+
+async function updatePricing(data: {
+  creatorName: string;
+  itemName: string;
+  newPrice: string;
+  rowId?: string;
+}): Promise<any> {
+  return apiRequest('/api/creators-db/update-pricing', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
 
 const PricingAccordionRow: React.FC<{
@@ -89,6 +101,7 @@ const PricingAccordionRow: React.FC<{
   onEditSave: () => void;
   onEditCancel: () => void;
   onEditValueChange: (value: string) => void;
+  updatePricingMutation: any;
 }> = ({ 
   group, 
   creators, 
@@ -99,7 +112,8 @@ const PricingAccordionRow: React.FC<{
   onEditStart, 
   onEditSave, 
   onEditCancel, 
-  onEditValueChange 
+  onEditValueChange,
+  updatePricingMutation
 }) => {
   return (
     <div className="group">
@@ -111,10 +125,7 @@ const PricingAccordionRow: React.FC<{
         <div
           className={`grid grid-cols-1 gap-4 items-center`}
           style={{
-            gridTemplateColumns:
-              creators.length > 0
-                ? `minmax(0,1fr) repeat(${creators.length}, 120px)`
-                : "minmax(0,1fr)",
+            gridTemplateColumns: "minmax(0,1fr) 120px",
           }}
         >
           <div className="flex items-center space-x-4">
@@ -132,10 +143,8 @@ const PricingAccordionRow: React.FC<{
               </p>
             </div>
           </div>
-          {/* Empty columns for alignment with price columns */}
-          {Array.from({ length: creators.length }, (_, i) => (
-            <div key={i} className="hidden md:block"></div>
-          ))}
+          {/* Empty column for alignment with price column */}
+          <div className="hidden md:block"></div>
         </div>
       </button>
 
@@ -156,10 +165,7 @@ const PricingAccordionRow: React.FC<{
                 <div
                   className={`grid grid-cols-1 gap-4 items-center`}
                   style={{
-                    gridTemplateColumns:
-                      creators.length > 0
-                        ? `minmax(0,1fr) repeat(${creators.length}, 120px)`
-                        : "minmax(0,1fr)",
+                    gridTemplateColumns: "minmax(0,1fr) 120px",
                   }}
                 >
                   <div>
@@ -172,14 +178,16 @@ const PricingAccordionRow: React.FC<{
                       </p>
                     )}
                   </div>
-                  {creators.map((creator) => {
+                  {/* Single creator pricing column */}
+                  {creators.length > 0 && (() => {
+                    const creator = creators[0]; // Only use the first creator
                     const currentValue = group.pricing[creator.name]?.[item.name] || "—";
                     const isEditing = editingCell && 
                       editingCell.creatorName === creator.name && 
                       editingCell.itemName === item.name;
                     
                     return (
-                      <div key={creator.id} className="text-right">
+                      <div className="text-right">
                         {isAdmin && !isEditing ? (
                           <div className="group/price relative">
                             <div className="text-lg font-light text-gray-700 dark:text-gray-300 tabular-nums group-hover/price:bg-gray-50 dark:group-hover/price:bg-gray-700 px-2 py-1 rounded cursor-pointer"
@@ -203,13 +211,19 @@ const PricingAccordionRow: React.FC<{
                             />
                             <button 
                               onClick={onEditSave}
-                              className="p-1 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+                              disabled={updatePricingMutation.isPending}
+                              className="p-1 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              <Check className="h-3 w-3" />
+                              {updatePricingMutation.isPending ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Check className="h-3 w-3" />
+                              )}
                             </button>
                             <button 
                               onClick={onEditCancel}
-                              className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                              disabled={updatePricingMutation.isPending}
+                              className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <XIcon className="h-3 w-3" />
                             </button>
@@ -221,7 +235,7 @@ const PricingAccordionRow: React.FC<{
                         )}
                       </div>
                     );
-                  })}
+                  })()}
                 </div>
               </div>
             ))}
@@ -232,102 +246,81 @@ const PricingAccordionRow: React.FC<{
   );
 };
 
+// Custom Hooks for TanStack Query
+function usePricingData(creators?: Creator[]) {
+  return useQuery({
+    queryKey: pricingQueryKeys.creators(creators),
+    queryFn: () => fetchPricingData(creators),
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    refetchOnWindowFocus: false,
+  });
+}
+
+function useUpdatePricingMutation() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: updatePricing,
+    onSuccess: (data, variables) => {
+      // Invalidate and refetch pricing data
+      queryClient.invalidateQueries({ queryKey: pricingQueryKeys.all });
+    },
+  });
+}
+
 const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
   const { data: session } = useSession();
+  const queryClient = useQueryClient();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState("");
-  const [pricingData, setPricingData] = useState<PricingGroup[]>([]);
   const [displayCreators, setDisplayCreators] = useState<Creator[]>([]);
   const [allCreators, setAllCreators] = useState<Creator[]>([]);
   const [selectedCreator, setSelectedCreator] = useState<string>("all");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [editingCell, setEditingCell] = useState<EditingState | null>(null);
   const [updateStatus, setUpdateStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   
-  const isAdmin = session?.user?.role === 'ADMIN';
+  const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'MODERATOR';
 
-  // Fetch data from Prisma DB only if assigned creators are available
+  // TanStack Query hooks
+  const pricingQuery = usePricingData(creators.length > 0 ? creators : undefined);
+  const updatePricingMutation = useUpdatePricingMutation();
+
+  // Extract data from query
+  const pricingData = pricingQuery.data?.pricingData || [];
+  const loading = pricingQuery.isLoading;
+  const error = pricingQuery.error ? 'Failed to load pricing data from database.' : null;
+
+  // Update creators state when query data changes
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        // Build the API URL with creators filter if provided
-        let apiUrl = "/api/creators-db";
-        if (creators.length > 0) {
-          const creatorNames = creators.map(c => c.name).join(',');
-          apiUrl += `?creators=${encodeURIComponent(creatorNames)}`;
-          console.log('🎯 PricingGuide fetching specific creators from Prisma DB:', creatorNames);
-        } else {
-          console.log('🎯 PricingGuide fetching all creators from Prisma DB');
-        }
-        
-        const response = await fetchWithRetry(apiUrl);
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch pricing data from database");
-        }
-
-        const { pricingData: dbPricingData, creators: dbCreatorData } =
-          await response.json();
-
-        console.log("📊 Fetched pricing data from Prisma DB:", dbPricingData);
-        console.log("👥 Fetched creators from Prisma DB:", dbCreatorData);
-
-        if (dbPricingData && dbPricingData.length > 0) {
-          // Filter pricing data to only include data for assigned creators if provided
-          let filteredPricingData = dbPricingData;
-          if (creators.length > 0) {
-            const creatorNames = creators.map(c => c.name);
-            filteredPricingData = dbPricingData.map((group: any) => ({
-              ...group,
-              pricing: Object.keys(group.pricing)
-                .filter(creatorName => creatorNames.includes(creatorName))
-                .reduce((filteredPricing: any, creatorName: string) => {
-                  filteredPricing[creatorName] = group.pricing[creatorName];
-                  return filteredPricing;
-                }, {})
-            })).filter((group: any) => Object.keys(group.pricing).length > 0);
-          }
-          
-          setPricingData(filteredPricingData);
-          console.log("✅ Set filtered pricing data:", filteredPricingData);
-        }
-
-        if (creators.length > 0) {
-          // Use assigned creators from props
-          setDisplayCreators(creators);
-          setAllCreators(creators);
-          console.log("✅ Using assigned creators from props:", creators);
-        } else if (dbCreatorData && dbCreatorData.length > 0) {
-          // Convert database creators to match expected format only if no props provided
-          const formattedCreators = dbCreatorData.map((creator: any, index: number) => ({
-            id: creator.id,
-            name: creator.name,
-            rowNumber: index + 1
-          }));
-          setDisplayCreators(formattedCreators);
-          setAllCreators(formattedCreators);
-          console.log("✅ Set display creators from database:", formattedCreators);
-        }
-      } catch (err) {
-        console.error("❌ Failed to fetch data from Prisma database:", err);
-        setError("Failed to load pricing data from database.");
-      } finally {
-        setLoading(false);
+    if (pricingQuery.data) {
+      const { creators: dbCreatorData } = pricingQuery.data;
+      
+      if (creators.length > 0) {
+        // Use assigned creators from props
+        setDisplayCreators(creators);
+        setAllCreators(creators);
+        console.log("✅ Using assigned creators from props:", creators);
+      } else if (dbCreatorData && dbCreatorData.length > 0) {
+        // Convert database creators to match expected format only if no props provided
+        const formattedCreators = dbCreatorData.map((creator: any, index: number) => ({
+          id: creator.id,
+          name: creator.name,
+          rowNumber: index + 1
+        }));
+        setDisplayCreators(formattedCreators);
+        setAllCreators(formattedCreators);
+        console.log("✅ Set display creators from database:", formattedCreators);
       }
-    };
-
-    // Always load data, but filter based on assigned creators
-    loadData();
-  }, [creators]);
+    }
+  }, [pricingQuery.data, creators]);
 
   // Handle creator selection
   const handleCreatorSelection = (creatorName: string) => {
     setSelectedCreator(creatorName);
     if (creatorName === "all") {
-      setDisplayCreators(allCreators.slice(0, 3));
+      // Show only the first creator instead of 3
+      setDisplayCreators(allCreators.slice(0, 1));
     } else {
       const selectedCreatorObj = allCreators.find(c => c.name === creatorName);
       setDisplayCreators(selectedCreatorObj ? [selectedCreatorObj] : []);
@@ -368,7 +361,7 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
       });
       
       console.log("Merged creators with row numbers:", mergedCreators);
-      return mergedCreators.slice(0, 3);
+      return mergedCreators.slice(0, 1);
     }
 
     // Otherwise, use creators from Google Sheet that have pricing data
@@ -387,21 +380,38 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
 
     const result = displayCreators
       .filter((creator) => creatorsWithPricing.has(creator.name))
-      .slice(0, 3);
+      .slice(0, 1);
 
     console.log("Final available creators:", result);
     return result;
   }, [selectedCreator, creators, displayCreators, allCreators, pricingData]);
 
-  // Filter pricing data based on search query
+  // Filter pricing data based on creators and search query
   const filteredPricingData = useMemo(() => {
-    console.log("Filtering pricing data:", { searchQuery, pricingData });
-    if (!searchQuery.trim()) {
-      console.log("No search query, returning all pricing data:", pricingData);
-      return pricingData;
+    console.log("Filtering pricing data:", { searchQuery, pricingData, creators });
+    
+    // First filter by creators if provided
+    let dataToFilter = pricingData;
+    if (creators.length > 0) {
+      const creatorNames = creators.map(c => c.name);
+      dataToFilter = pricingData.map((group) => ({
+        ...group,
+        pricing: Object.keys(group.pricing)
+          .filter(creatorName => creatorNames.includes(creatorName))
+          .reduce((filteredPricing: any, creatorName: string) => {
+            filteredPricing[creatorName] = group.pricing[creatorName];
+            return filteredPricing;
+          }, {})
+      })).filter((group) => Object.keys(group.pricing).length > 0);
     }
 
-    return pricingData
+    // Then filter by search query
+    if (!searchQuery.trim()) {
+      console.log("No search query, returning filtered pricing data:", dataToFilter);
+      return dataToFilter;
+    }
+
+    return dataToFilter
       .map((group) => {
         const groupMatches = group.groupName
           .toLowerCase()
@@ -425,7 +435,7 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
         return null;
       })
       .filter(Boolean) as PricingGroup[];
-  }, [searchQuery, pricingData]);
+  }, [searchQuery, pricingData, creators]);
 
   // Debug logging after all variables are declared
   useEffect(() => {
@@ -483,7 +493,7 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
   };
 
   const handleEditSave = async () => {
-    if (!editingCell || !isAdmin) return;
+    if (!editingCell || !isAdmin || updatePricingMutation.isPending) return;
 
     try {
       setUpdateStatus(null);
@@ -494,53 +504,33 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
         newPrice: editingCell.newValue
       });
       
-      const response = await fetch('/api/creators-db/update-pricing', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          creatorName: editingCell.creatorName,
-          itemName: editingCell.itemName,
-          newPrice: editingCell.newValue,
-          rowId: editingCell.creatorRowId
-        })
+      await updatePricingMutation.mutateAsync({
+        creatorName: editingCell.creatorName,
+        itemName: editingCell.itemName,
+        newPrice: editingCell.newValue,
+        rowId: editingCell.creatorRowId
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update price in database');
-      }
+      console.log('✅ Price updated in database');
 
-      const result = await response.json();
-      console.log('✅ Price updated in database:', result);
-
-      // Update local state
-      setPricingData(prevData => 
-        prevData.map(group => ({
-          ...group,
-          pricing: {
-            ...group.pricing,
-            [editingCell.creatorName]: {
-              ...group.pricing[editingCell.creatorName],
-              [editingCell.itemName]: editingCell.newValue || '—'
-            }
-          }
-        }))
-      );
-
-      setUpdateStatus({ type: 'success', message: 'Price updated in database successfully!' });
+      setUpdateStatus({ 
+        type: 'success', 
+        message: `Price for "${editingCell.itemName}" updated successfully!` 
+      });
       setEditingCell(null);
       
-      // Clear success message after 3 seconds
-      setTimeout(() => setUpdateStatus(null), 3000);
+      // Clear success message after 4 seconds
+      setTimeout(() => setUpdateStatus(null), 4000);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error updating price in database:', error);
-      setUpdateStatus({ type: 'error', message: 'Failed to update price in database. Please try again.' });
+      setUpdateStatus({ 
+        type: 'error', 
+        message: error.message || 'Failed to update price. Please try again.' 
+      });
       
-      // Clear error message after 5 seconds
-      setTimeout(() => setUpdateStatus(null), 5000);
+      // Clear error message after 6 seconds
+      setTimeout(() => setUpdateStatus(null), 6000);
     }
   };
 
@@ -562,27 +552,42 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
                   <Sparkles className="h-5 w-5 text-pink-600 dark:text-pink-400" />
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-lg font-black bg-gradient-to-r from-gray-900 via-pink-600 to-purple-600 dark:from-gray-100 dark:via-pink-400 dark:to-purple-400 bg-clip-text text-transparent">
-                    Pricing Guide {isAdmin && <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full ml-2">Admin</span>}
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-lg font-black bg-gradient-to-r from-gray-900 via-pink-600 to-purple-600 dark:from-gray-100 dark:via-pink-400 dark:to-purple-400 bg-clip-text text-transparent">
+                      Pricing Guide
+                    </h3>
+                    {isAdmin && <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full">Admin/Mod</span>}
+                    {updatePricingMutation.isPending && (
+                      <div className="flex items-center gap-1 text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-1 rounded-full">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        Updating...
+                      </div>
+                    )}
+                  </div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     Transparent pricing for all creative contents
                     {loading && " (Loading latest data...)"}
                     {isAdmin && " • Click prices to edit"}
                   </p>
                   {error && (
-                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                    <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 mt-1">
+                      <AlertCircle className="h-3 w-3" />
                       {error}
-                    </p>
+                    </div>
                   )}
                   {updateStatus && (
-                    <p className={`text-xs mt-1 ${
+                    <div className={`flex items-center gap-1 text-xs mt-1 ${
                       updateStatus.type === 'success' 
                         ? 'text-green-600 dark:text-green-400' 
                         : 'text-red-600 dark:text-red-400'
                     }`}>
+                      {updateStatus.type === 'success' ? (
+                        <CheckCircle className="h-3 w-3" />
+                      ) : (
+                        <AlertCircle className="h-3 w-3" />
+                      )}
                       {updateStatus.message}
-                    </p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -622,16 +627,7 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
                 )}
               </div>
               
-              {/* Model Selection Dropdown */}
-              <div className="min-w-[200px]">
-                <ModelsDropdownList
-                  value={selectedCreator === "all" ? "" : selectedCreator}
-                  onValueChange={(value) => handleCreatorSelection(value || "all")}
-                  placeholder="All Models"
-                  className="w-full py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500/50 transition-all duration-200"
-                />
-              </div>
-              {/* Creator header (single column) */}
+              {/* Price header (single column) */}
               {loading ? (
                 <div className="text-right min-w-[120px] hidden sm:block">
                   <div className="animate-pulse">
@@ -641,7 +637,7 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
               ) : availableCreators.length > 0 ? (
                 <div className="text-right min-w-[120px] hidden sm:block">
                   <div className="text-sm font-semibold text-purple-700 dark:text-purple-300 truncate">
-                    {availableCreators[0]?.name || "Price"}
+                    Price
                   </div>
                 </div>
               ) : null}
@@ -713,6 +709,7 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
                   onEditSave={handleEditSave}
                   onEditCancel={handleEditCancel}
                   onEditValueChange={handleEditValueChange}
+                  updatePricingMutation={updatePricingMutation}
                 />
               ))}
             </div>

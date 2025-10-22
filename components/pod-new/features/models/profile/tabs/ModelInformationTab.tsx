@@ -47,6 +47,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
+import PricingGuide from "@/components/PricingGuide";
 
 interface ModelInformationTabProps {
   modelData: ExtendedModelDetails;
@@ -1002,8 +1003,11 @@ export function ModelInformationTab({
               </div>
             </div>
 
-            {/* Core Pricing (Context7) */}
-            <div className="relative group overflow-hidden bg-gradient-to-br from-white via-emerald-50/30 to-green-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-emerald-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:shadow-black/10 dark:hover:shadow-black/25">
+            {/* Integrated Pricing Guide */}
+            <PricingGuide creators={[{ id: resolvedCreatorName || '', name: resolvedCreatorName || '' }]} />
+
+            {/* Core Pricing (Context7) - COMMENTED OUT FOR PRICINGGUIDE INTEGRATION */}
+            {/* <div className="relative group overflow-hidden bg-gradient-to-br from-white via-emerald-50/30 to-green-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-emerald-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:shadow-black/10 dark:hover:shadow-black/25">
               <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
                 <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-emerald-400 to-green-400 rounded-full -translate-y-12 translate-x-12 blur-2xl"></div>
                 <div className="absolute bottom-0 left-0 w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-400 rounded-full translate-y-10 -translate-x-10 blur-xl"></div>
@@ -1031,48 +1035,6 @@ export function ModelInformationTab({
                   )}
                 </div>
                 <div className="space-y-3">
-                  {/* <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">
-                      Standard Content
-                    </span>
-                    {isAdmin && editingCell && editingCell.creatorName === (resolvedCreatorName || '') && editingCell.itemName === 'Standard Content' ? (
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="text"
-                          value={editingCell.newValue}
-                          onChange={(e) => handleEditValueChange(e.target.value)}
-                          className="w-32 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                          autoFocus
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') handleEditSave();
-                            if (e.key === 'Escape') handleEditCancel();
-                          }}
-                        />
-                        <button 
-                          onClick={handleEditSave}
-                          className="p-1 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
-                        >
-                          <Check className="h-3 w-3" />
-                        </button>
-                        <button 
-                          onClick={handleEditCancel}
-                          className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                        >
-                          <XIcon className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ) : isAdmin ? (
-                      <div className="group/price relative">
-                        <div className="font-semibold group-hover/price:bg-gray-50 dark:group-hover/price:bg-gray-700 px-2 py-1 rounded cursor-pointer"
-                             onClick={() => handleEditStart(resolvedCreatorName || '', 'Standard Content', standardRange)}>
-                          {standardRange}
-                        </div>
-                        <Edit2 className="absolute -top-1 -right-1 h-3 w-3 text-gray-400 opacity-0 group-hover/price:opacity-100 transition-opacity" />
-                      </div>
-                    ) : (
-                      <span className="font-semibold">{standardRange}</span>
-                    )}
-                  </div> */}
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">
                       Custom Videos
@@ -1171,10 +1133,10 @@ export function ModelInformationTab({
                   </div>
                 </div>
               </div>
-            </div>
+            </div> */}
 
-            {/* Collapsible: Content Price Ranges */}
-            <div className="relative group overflow-hidden bg-gradient-to-br from-white via-purple-50/30 to-blue-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-blue-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm">
+            {/* Collapsible: Content Price Ranges - COMMENTED OUT FOR PRICINGGUIDE INTEGRATION */}
+            {/* <div className="relative group overflow-hidden bg-gradient-to-br from-white via-purple-50/30 to-blue-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-blue-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm">
               <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
                 <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full -translate-y-10 translate-x-10 blur-2xl"></div>
               </div>
@@ -1303,7 +1265,7 @@ export function ModelInformationTab({
                   </CollapsibleContent>
                 </Collapsible>
               </div>
-            </div>
+            </div> */}
 
             {/* Collapsible: Platform Limitations */}
             <div className="relative group overflow-hidden bg-gradient-to-br from-white via-amber-50/30 to-yellow-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-yellow-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm">
@@ -1365,8 +1327,8 @@ export function ModelInformationTab({
               </div>
             </div>
 
-            {/* Collapsible: Bundle Pricing */}
-            <div className="relative group overflow-hidden bg-gradient-to-br from-white via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm">
+            {/* Collapsible: Bundle Pricing - COMMENTED OUT FOR PRICINGGUIDE INTEGRATION */}
+            {/* <div className="relative group overflow-hidden bg-gradient-to-br from-white via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm">
               <div className="relative p-4">
                 <Collapsible>
                   <CollapsibleTrigger asChild>
@@ -1445,7 +1407,7 @@ export function ModelInformationTab({
                   </CollapsibleContent>
                 </Collapsible>
               </div>
-            </div>
+            </div> */}
           </div>
 
           {/* Side Panel */}

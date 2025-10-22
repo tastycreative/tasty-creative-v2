@@ -107,9 +107,9 @@ export default function PodLayout({ children }: PodLayoutProps) {
     { id: "dashboard", label: "Dashboard", href: "/dashboard" },
     { id: "sheets", label: "Sheets Integration", href: "/sheets" },
     // { id: "board", label: "Board", href: "/board" },
-    { id: "pricing", label: "Pricing Guide", href: "/pricing" },
+    // { id: "pricing", label: "Pricing Guide", href: "/pricing" },
     { id: "forms", label: "Gallery", href: "/gallery" },
-    { id: "generative-ai", label: "Generative AI", href: "/generative-ai/voice" },
+    { id: "generative-ai", label: "Voice", href: "/generative-ai/voice" },
     // Only show POD-Admin to ADMIN and MODERATOR users
     ...(session?.user?.role === "ADMIN" || session?.user?.role === "MODERATOR" 
       ? [{ id: "pod-admin", label: "POD-Admin", href: "/pod-admin" }] 
