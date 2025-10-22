@@ -91,6 +91,7 @@ const TeamSettings: React.FC<TeamSettingsProps> = ({
   const [loadingTeamData, setLoadingTeamData] = useState(true);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(initialMembers || []);
   const [availableUsers, setAvailableUsers] = useState<SystemUser[]>([]);
+  const [loadingAvailableUsers, setLoadingAvailableUsers] = useState(false);
 
   // Creator assignment state
   const [teamCreators, setTeamCreators] = useState<{id: string, name: string, image?: string}[]>([]);
@@ -176,6 +177,7 @@ const TeamSettings: React.FC<TeamSettingsProps> = ({
   const fetchAvailableUsers = async () => {
     if (!isAdmin) return;
     
+    setLoadingAvailableUsers(true);
     try {
       const response = await fetch("/api/admin/users?limit=all");
       if (response.ok) {
@@ -190,6 +192,8 @@ const TeamSettings: React.FC<TeamSettingsProps> = ({
     } catch (error) {
       console.error("Error fetching available users:", error);
       setAvailableUsers([]); // Set empty array on error
+    } finally {
+      setLoadingAvailableUsers(false);
     }
   };
 
@@ -604,493 +608,437 @@ const TeamSettings: React.FC<TeamSettingsProps> = ({
   };
 
   // Skeleton loader component
-  const SkeletonCard = ({ children }: { children: React.ReactNode }) => (
-    <div className="relative overflow-hidden bg-gradient-to-br from-white via-gray-50/30 to-gray-100/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-gray-700/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm">
-      <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
-        <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full -translate-y-12 translate-x-12 blur-2xl"></div>
+  const SkeletonCard = () => (
+    <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm">
+      <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 animate-pulse">
+        <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-2"></div>
+        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-48"></div>
       </div>
-      <div className="relative p-6">{children}</div>
+      <div className="p-6 space-y-3 animate-pulse">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+          <div className="flex-1">
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-2"></div>
+            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-48"></div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+          <div className="flex-1">
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32 mb-2"></div>
+            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-48"></div>
+          </div>
+        </div>
+      </div>
     </div>
-  );
-
-  const SkeletonSection = () => (
-    <SkeletonCard>
-      <div className="animate-pulse">
-        <div className="flex items-center gap-2 mb-6">
-          <div className="p-2 bg-gray-200 dark:bg-gray-700 rounded-xl w-9 h-9"></div>
-          <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-32"></div>
-        </div>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-20"></div>
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
-          </div>
-        </div>
-      </div>
-    </SkeletonCard>
   );
 
   if (loadingTeamData) {
     return (
-      <div className="space-y-6">
-        <SkeletonSection />
-        <SkeletonSection />
-        <SkeletonSection />
-        <SkeletonSection />
+      <div className="min-h-screen">
+        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 mb-6">
+          <div className="max-w-5xl mx-auto px-6 py-6 animate-pulse">
+            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-48 mb-2"></div>
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-72"></div>
+          </div>
+        </div>
+        <div className="max-w-5xl mx-auto px-6 pb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <SkeletonCard />
+              <SkeletonCard />
+            </div>
+            <div className="lg:col-span-1">
+              <SkeletonCard />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Team Information */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-white via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-blue-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm">
-        <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full -translate-y-12 translate-x-12 blur-2xl"></div>
-        </div>
-
-        <div className="relative p-6">
-          <div className="flex items-center gap-2 mb-6">
-            <div className="p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 dark:from-blue-400/20 dark:to-purple-400/20 rounded-xl border border-blue-200/50 dark:border-blue-500/30">
-              <Settings className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <h3 className="text-lg font-black tracking-tight">
-              <span className="bg-gradient-to-r from-gray-900 via-blue-600 to-purple-600 dark:from-pink-100 dark:via-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-                Team Settings
-              </span>
-            </h3>
-          </div>
-
-          <div className="space-y-4">
-            {/* Team Name */}
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Team Name</label>
-              {editingTeamName ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={editingTeamNameValue}
-                    onChange={(e) => setEditingTeamNameValue(e.target.value)}
-                    className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') updateTeamName(editingTeamNameValue);
-                      if (e.key === 'Escape') {
-                        setEditingTeamName(false);
-                        setEditingTeamNameValue(teamName);
-                      }
-                    }}
-                    autoFocus
-                  />
-                  <button
-                    onClick={() => updateTeamName(editingTeamNameValue)}
-                    disabled={updatingTeamName}
-                    className="p-1 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 disabled:opacity-50"
-                  >
-                    {updatingTeamName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setEditingTeamName(false);
-                      setEditingTeamNameValue(teamName);
-                    }}
-                    className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{teamData?.name || editingTeamNameValue}</span>
-                  {isAdmin && (
-                    <button
-                      onClick={() => setEditingTeamName(true)}
-                      className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Team Prefix */}
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Project Prefix</label>
-              {editingTeamPrefix ? (
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={editingTeamPrefixValue}
-                    onChange={(e) => setEditingTeamPrefixValue(e.target.value.toUpperCase())}
-                    className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 w-20"
-                    maxLength={5}
-                    placeholder="ABC"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') updateTeamPrefix(editingTeamPrefixValue);
-                      if (e.key === 'Escape') {
-                        setEditingTeamPrefix(false);
-                        setEditingTeamPrefixValue(teamData?.projectPrefix || "");
-                      }
-                    }}
-                    autoFocus
-                  />
-                  <button
-                    onClick={() => updateTeamPrefix(editingTeamPrefixValue)}
-                    disabled={updatingTeamPrefix || editingTeamPrefixValue.length < 3}
-                    className="p-1 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 disabled:opacity-50"
-                  >
-                    {updatingTeamPrefix ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setEditingTeamPrefix(false);
-                      setEditingTeamPrefixValue(teamData?.projectPrefix || "");
-                    }}
-                    className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <span className="font-medium font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-sm">
-                    {teamData?.projectPrefix || editingTeamPrefixValue || "Not set"}
-                  </span>
-                  {isAdmin && (
-                    <button
-                      onClick={() => setEditingTeamPrefix(true)}
-                      className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
+    <div className="min-h-screen">
+      {/* Header */}
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 mb-6">
+        <div className="max-w-5xl mx-auto px-6 py-6">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Team Settings</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Manage your team configuration, members, and notifications
+          </p>
         </div>
       </div>
 
-      {/* Creator Assignment */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-white via-purple-50/30 to-pink-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm">
-        <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full -translate-y-12 translate-x-12 blur-2xl"></div>
-        </div>
-
-        <div className="relative p-6">
-          <div className="flex items-center gap-2 mb-6">
-            <div className="p-2 bg-gradient-to-br from-purple-500/10 to-pink-500/10 dark:from-purple-400/20 dark:to-pink-400/20 rounded-xl border border-purple-200/50 dark:border-purple-500/30">
-              <Star className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-            </div>
-            <h3 className="text-lg font-black tracking-tight">
-              <span className="bg-gradient-to-r from-gray-900 via-purple-600 to-pink-600 dark:from-pink-100 dark:via-purple-400 dark:to-pink-400 bg-clip-text text-transparent">
-                Creator Assignment
-              </span>
-            </h3>
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Assigned Creators ({teamCreators.length})
-                </span>
-                {creatorsSuccess && (
-                  <span className="text-pink-600 dark:text-pink-400 text-xs animate-pulse">
-                    ✓ Updated
-                  </span>
-                )}
-              </div>
-              {isAdmin && (
-                <button
-                  onClick={openCreatorModal}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white text-sm font-medium rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
-                >
-                  <Edit className="h-4 w-4" />
-                  Manage Creators
-                </button>
-              )}
-            </div>
+      {/* Main Content - Two Column Layout */}
+      <div className=" mx-auto pb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Left Column - Primary Settings */}
+          <div className="lg:col-span-2 space-y-6">
             
-            {teamCreators && teamCreators.length > 0 ? (
-              <div className="bg-gradient-to-br from-pink-50 via-purple-50 to-pink-100 dark:from-pink-900/20 dark:via-purple-900/30 dark:to-pink-800/20 rounded-xl p-4 border border-pink-200/50 dark:border-pink-500/30">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="w-6 h-6 bg-gradient-to-br from-pink-500 to-purple-500 rounded-lg flex items-center justify-center">
-                    <Star className="h-4 w-4 text-white" />
-                  </div>
-                  <span className="text-sm font-bold text-pink-700 dark:text-pink-300">
-                    {teamCreators.length} Creator{teamCreators.length !== 1 ? "s" : ""} Assigned
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {teamCreators.map((creator, index) => (
-                    <div
-                      key={creator.id || index}
-                      className="flex items-center gap-3 px-3 py-2 bg-white/60 dark:bg-gray-800/60 rounded-lg border border-pink-200/30 dark:border-pink-500/20"
-                    >
-                      {/* Creator Avatar */}
-                      <div className="flex-shrink-0">
-                        {processImageUrl(creator.image) ? (
-                          <img
-                            src={processImageUrl(creator.image)!}
-                            alt={creator.name}
-                            className="w-6 h-6 rounded-full object-cover border border-pink-200 dark:border-pink-400"
-                            onError={(e) => {
-                              // Fallback on error
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                              const fallback = target.nextElementSibling as HTMLElement;
-                              if (fallback) fallback.style.display = 'flex';
-                            }}
-                          />
-                        ) : null}
-                        <div 
-                          className={`w-6 h-6 rounded-full bg-pink-500 flex items-center justify-center text-white font-medium text-xs ${processImageUrl(creator.image) ? 'hidden' : ''}`}
-                        >
-                          {creator.name.charAt(0).toUpperCase()}
-                        </div>
-                      </div>
-                      <span className="text-sm font-medium text-pink-700 dark:text-pink-300 truncate">
-                        {creator.name}
-                      </span>
+            {/* General Settings Card */}
+            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+                <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">General</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Basic team information</p>
+              </div>
+
+              <div className="divide-y divide-gray-200 dark:divide-gray-800">
+                {/* Team Name */}
+                <div className="px-6 py-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Team Name</label>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">The display name for your team</p>
                     </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <div className="w-16 h-16 bg-gradient-to-br from-pink-100 to-purple-100 dark:from-pink-900/20 dark:to-purple-900/20 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                  <Star className="h-8 w-8 text-pink-400 dark:text-pink-500" />
-                </div>
-                <h4 className="font-medium text-gray-600 dark:text-gray-300 mb-1">No Creators Assigned</h4>
-                <p className="text-sm">Click "Manage Creators" to assign creators to this team</p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Column Notifications */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-white via-blue-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-blue-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm">
-        <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full -translate-y-12 translate-x-12 blur-2xl"></div>
-        </div>
-
-        <div className="relative p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-gradient-to-br from-blue-500/10 to-purple-500/10 dark:from-blue-400/20 dark:to-purple-400/20 rounded-xl border border-blue-200/50 dark:border-blue-500/30">
-                <Bell className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <h3 className="text-lg font-black tracking-tight">
-                <span className="bg-gradient-to-r from-gray-900 via-blue-600 to-purple-600 dark:from-pink-100 dark:via-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-                  Column Notifications
-                </span>
-              </h3>
-            </div>
-            {isAdmin && (
-              <button
-                onClick={() => setShowColumnNotifications(!showColumnNotifications)}
-                className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-              >
-                <Target className="w-4 h-4" />
-                {showColumnNotifications ? 'Hide Settings' : 'Manage Notifications'}
-              </button>
-            )}
-          </div>
-
-          {showColumnNotifications && (
-            <div className="space-y-4">
-              {successMessage && (
-                <div className="p-3 bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg text-green-700 dark:text-green-300 text-sm">
-                  {successMessage}
-                </div>
-              )}
-              
-              {loadingColumns ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-                </div>
-              ) : teamColumns.length === 0 ? (
-                <div className="text-center py-8">
-                  <Bell className="h-8 w-8 mx-auto mb-3 text-gray-400" />
-                  <h4 className="text-lg font-semibold text-gray-600 dark:text-gray-300 mb-2">
-                    No Board Columns
-                  </h4>
-                  <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto leading-relaxed">
-                    This team doesn't have any board columns set up yet. Create a board first to manage column notifications.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {teamColumns.map((column) => (
-                    <div key={column.id} className="bg-white/50 dark:bg-gray-800/50 rounded-lg border border-gray-200/50 dark:border-gray-700/50 p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
-                            <Target className="h-4 w-4 text-white" />
-                          </div>
-                          <div>
-                            <h4 className="font-medium text-gray-900 dark:text-gray-100">{column.label}</h4>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              {column.assignments.length} member{column.assignments.length !== 1 ? 's' : ''} receiving notifications
-                            </p>
-                          </div>
-                        </div>
-                        
-                        {getAvailableMembersForColumn(column.id).length > 0 && (
+                    {editingTeamName ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={editingTeamNameValue}
+                          onChange={(e) => setEditingTeamNameValue(e.target.value)}
+                          className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent min-w-[200px]"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') updateTeamName(editingTeamNameValue);
+                            if (e.key === 'Escape') {
+                              setEditingTeamName(false);
+                              setEditingTeamNameValue(teamName);
+                            }
+                          }}
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => updateTeamName(editingTeamNameValue)}
+                          disabled={updatingTeamName}
+                          className="p-2 text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20 rounded-lg disabled:opacity-50 transition-colors"
+                        >
+                          {updatingTeamName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingTeamName(false);
+                            setEditingTeamNameValue(teamName);
+                          }}
+                          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{teamData?.name || editingTeamNameValue}</span>
+                        {isAdmin && (
                           <button
-                            onClick={() => openNotificationModal(column.id, column.label)}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md"
+                            onClick={() => setEditingTeamName(true)}
+                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                           >
-                            <UserPlus className="h-4 w-4" />
-                            Add Members ({getAvailableMembersForColumn(column.id).length})
+                            <Edit2 className="h-4 w-4" />
                           </button>
                         )}
                       </div>
-                      
-                      <div className="space-y-2">
-                        {column.assignments.length === 0 ? (
-                          <div className="text-center py-4">
-                            <p className="text-gray-500 dark:text-gray-400 text-sm">
-                              No one is getting notifications for this column yet.
-                            </p>
-                          </div>
-                        ) : (
-                          column.assignments.map((assignment) => (
-                            <div key={assignment.id} className="group flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                              <div className="flex items-center space-x-3">
-                                {/* User Avatar */}
-                                <div className="flex-shrink-0">
-                                  {(assignment.user as any).image ? (
-                                    <img
-                                      src={(assignment.user as any).image}
-                                      alt={assignment.user.name || 'User'}
-                                      className="w-8 h-8 rounded-full object-cover border border-gray-200 dark:border-gray-600"
-                                    />
-                                  ) : (
-                                    <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-medium text-sm">
-                                      {(assignment.user.name || assignment.user.email || 'U').charAt(0).toUpperCase()}
-                                    </div>
-                                  )}
-                                </div>
-                                <div>
-                                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                    {assignment.user.name}
-                                  </div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                                    {assignment.user.email}
-                                  </div>
-                                  <div className="text-xs text-gray-400 dark:text-gray-500 flex items-center space-x-1 mt-1">
-                                    <span>Added by</span>
-                                    <span className="font-medium">{assignment.assignedBy.name}</span>
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              <button
-                                onClick={() => removeMemberFromColumn(assignment.id)}
-                                className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200 opacity-0 group-hover:opacity-100"
-                                title="Remove from notifications"
-                              >
-                                <X className="h-4 w-4" />
-                              </button>
-                            </div>
-                          ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Team Prefix */}
+                <div className="px-6 py-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Project Prefix</label>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">3-5 character code for project IDs</p>
+                    </div>
+                    {editingTeamPrefix ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={editingTeamPrefixValue}
+                          onChange={(e) => setEditingTeamPrefixValue(e.target.value.toUpperCase())}
+                          className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 w-28 font-mono focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          maxLength={5}
+                          placeholder="ABC"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') updateTeamPrefix(editingTeamPrefixValue);
+                            if (e.key === 'Escape') {
+                              setEditingTeamPrefix(false);
+                              setEditingTeamPrefixValue(teamData?.projectPrefix || "");
+                            }
+                          }}
+                          autoFocus
+                        />
+                        <button
+                          onClick={() => updateTeamPrefix(editingTeamPrefixValue)}
+                          disabled={updatingTeamPrefix || editingTeamPrefixValue.length < 3}
+                          className="p-2 text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-900/20 rounded-lg disabled:opacity-50 transition-colors"
+                        >
+                          {updatingTeamPrefix ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingTeamPrefix(false);
+                            setEditingTeamPrefixValue(teamData?.projectPrefix || "");
+                          }}
+                          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-mono bg-gray-100 dark:bg-gray-800 px-3 py-1.5 rounded-lg text-gray-900 dark:text-gray-100 font-medium">
+                          {teamData?.projectPrefix || editingTeamPrefixValue || "Not set"}
+                        </span>
+                        {isAdmin && (
+                          <button
+                            onClick={() => setEditingTeamPrefix(true)}
+                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
                         )}
-                        
-                        {getAvailableMembersForColumn(column.id).length === 0 && column.assignments.length > 0 && (
-                          <div className="text-center py-3">
-                            <p className="text-gray-500 dark:text-gray-400 text-xs">
-                              All team members are already getting notifications for this column.
-                            </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Team Members Card */}
+            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+                <div>
+                  <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Team Members</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{teamMembers.length} member{teamMembers.length !== 1 ? 's' : ''} in this team</p>
+                </div>
+                {isAdmin && (
+                  <button
+                    onClick={() => setShowAddMemberModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    Add Member
+                  </button>
+                )}
+              </div>
+
+              <div className="divide-y divide-gray-200 dark:divide-gray-800">
+                {teamMembers.map((member) => (
+                  <div key={member.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50 group transition-colors">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="flex-shrink-0">
+                        {member.image ? (
+                          <img src={member.image} alt={member.name} className="w-10 h-10 rounded-full" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
+                            <User className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                           </div>
                         )}
                       </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{member.name}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{member.email}</div>
+                      </div>
                     </div>
-                  ))}
+                    <div className="flex items-center gap-3">
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                        member.role === 'ADMIN' 
+                          ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                          : member.role === 'MODERATOR'
+                          ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                      }`}>
+                        {member.role}
+                      </span>
+                      {isAdmin && member.userId !== session?.user?.id && (
+                        <button
+                          onClick={() => setShowRemoveMemberConfirm({ memberId: member.id, memberName: member.name })}
+                          disabled={removingMember === member.id}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg opacity-0 group-hover:opacity-100 transition-all disabled:opacity-50"
+                        >
+                          {removingMember === member.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <UserMinus className="h-4 w-4" />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Column Notifications Card */}
+            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+                <div>
+                  <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Column Notifications</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage who gets notified for each board column</p>
+                </div>
+                {isAdmin && (
+                  <button
+                    onClick={() => setShowColumnNotifications(!showColumnNotifications)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  >
+                    {showColumnNotifications ? (
+                      <>
+                        <ChevronUp className="w-4 h-4" />
+                        Hide
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="w-4 h-4" />
+                        Manage
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+
+              {showColumnNotifications && (
+                <div className="p-6">
+                  {successMessage && (
+                    <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-green-700 dark:text-green-300 text-sm">
+                      {successMessage}
+                    </div>
+                  )}
+                  
+                  {loadingColumns ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                    </div>
+                  ) : teamColumns.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Bell className="h-12 w-12 mx-auto mb-3 text-gray-300 dark:text-gray-700" />
+                      <p className="text-sm text-gray-500 dark:text-gray-400">No board columns found</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {teamColumns.map((column) => (
+                        <div key={column.id} className="border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
+                          <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-between">
+                            <div>
+                              <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">{column.label}</h4>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                {column.assignments.length} member{column.assignments.length !== 1 ? 's' : ''} notified
+                              </p>
+                            </div>
+                            
+                            {getAvailableMembersForColumn(column.id).length > 0 && (
+                              <button
+                                onClick={() => openNotificationModal(column.id, column.label)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                              >
+                                <UserPlus className="w-3.5 h-3.5" />
+                                Add
+                              </button>
+                            )}
+                          </div>
+                          
+                          {column.assignments.length > 0 && (
+                            <div className="divide-y divide-gray-200 dark:divide-gray-800">
+                              {column.assignments.map((assignment) => (
+                                <div key={assignment.id} className="px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/30 group">
+                                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <div className="flex-shrink-0">
+                                      {(assignment.user as any).image ? (
+                                        <img
+                                          src={(assignment.user as any).image}
+                                          alt={assignment.user.name || 'User'}
+                                          className="w-8 h-8 rounded-full object-cover"
+                                        />
+                                      ) : (
+                                        <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center text-white text-xs font-medium">
+                                          {(assignment.user.name || assignment.user.email || 'U').charAt(0).toUpperCase()}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                                        {assignment.user.name}
+                                      </div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                        Added by {assignment.assignedBy.name}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  <button
+                                    onClick={() => removeMemberFromColumn(assignment.id)}
+                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
-        </div>
-      </div>
-
-      {/* Team Members */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-white via-green-50/30 to-emerald-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-emerald-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm">
-        <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-green-400 to-emerald-400 rounded-full -translate-y-12 translate-x-12 blur-2xl"></div>
-        </div>
-
-        <div className="relative p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-gradient-to-br from-green-500/10 to-emerald-500/10 dark:from-green-400/20 dark:to-emerald-400/20 rounded-xl border border-green-200/50 dark:border-green-500/30">
-                <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
-              </div>
-              <h3 className="text-lg font-black tracking-tight">
-                <span className="bg-gradient-to-r from-gray-900 via-green-600 to-emerald-600 dark:from-pink-100 dark:via-green-400 dark:to-emerald-400 bg-clip-text text-transparent">
-                  Team Members ({teamMembers.length})
-                </span>
-              </h3>
-            </div>
-            {isAdmin && (
-              <button
-                onClick={() => setShowAddMemberModal(true)}
-                className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
-              >
-                <UserPlus className="w-4 h-4" />
-                Add Member
-              </button>
-            )}
           </div>
 
-          <div className="space-y-3">
-            {teamMembers.map((member) => (
-              <div key={member.id} className="flex items-center justify-between p-4 bg-white/50 dark:bg-gray-800/50 rounded-lg border border-gray-200/50 dark:border-gray-700/50">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center">
-                    {member.image ? (
-                      <img src={member.image} alt={member.name} className="w-10 h-10 rounded-full" />
-                    ) : (
-                      <User className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                    )}
-                  </div>
-                  <div>
-                    <div className="font-medium text-gray-900 dark:text-gray-100">{member.name}</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">{member.email}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    member.role === 'ADMIN' 
-                      ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                      : member.role === 'MODERATOR'
-                      ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'
-                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                  }`}>
-                    {member.role}
-                  </span>
-                  {isAdmin && member.userId !== session?.user?.id && (
-                    <button
-                      onClick={() => setShowRemoveMemberConfirm({ memberId: member.id, memberName: member.name })}
-                      disabled={removingMember === member.id}
-                      className="p-1 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 disabled:opacity-50"
-                    >
-                      {removingMember === member.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <UserMinus className="h-4 w-4" />
-                      )}
-                    </button>
-                  )}
-                </div>
+          {/* Right Column - Secondary Info */}
+          <div className="lg:col-span-1">
+            {/* Creators Card */}
+            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm sticky top-6 overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-800">
+                <h2 className="text-base font-semibold text-gray-900 dark:text-gray-100">Assigned Creators</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{teamCreators.length} creator{teamCreators.length !== 1 ? 's' : ''}</p>
               </div>
-            ))}
+
+              <div className="p-5">
+                {teamCreators && teamCreators.length > 0 ? (
+                  <div className="space-y-2">
+                    {teamCreators.map((creator, index) => (
+                      <div
+                        key={creator.id || index}
+                        className="flex items-center gap-3 p-2.5 bg-gray-50 dark:bg-gray-800 rounded-lg"
+                      >
+                        <div className="flex-shrink-0">
+                          {processImageUrl(creator.image) ? (
+                            <img
+                              src={processImageUrl(creator.image)!}
+                              alt={creator.name}
+                              className="w-8 h-8 rounded-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const fallback = target.nextElementSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'flex';
+                              }}
+                            />
+                          ) : null}
+                          <div 
+                            className={`w-8 h-8 rounded-full bg-gray-400 dark:bg-gray-600 flex items-center justify-center text-white text-sm font-medium ${processImageUrl(creator.image) ? 'hidden' : ''}`}
+                          >
+                            {creator.name.charAt(0).toUpperCase()}
+                          </div>
+                        </div>
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{creator.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Star className="h-10 w-10 mx-auto mb-2 text-gray-300 dark:text-gray-700" />
+                    <p className="text-sm text-gray-500 dark:text-gray-400">No creators assigned</p>
+                  </div>
+                )}
+                
+                {isAdmin && (
+                  <button
+                    onClick={openCreatorModal}
+                    className="w-full mt-4 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm font-medium rounded-lg transition-colors"
+                  >
+                    Manage Creators
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1125,7 +1073,7 @@ const TeamSettings: React.FC<TeamSettingsProps> = ({
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
                   />
                 </div>
-                {userSearchQuery && (
+                {userSearchQuery && !loadingAvailableUsers && (
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                     {filteredAvailableUsers.length} user{filteredAvailableUsers.length !== 1 ? 's' : ''} found
                   </p>
@@ -1138,7 +1086,25 @@ const TeamSettings: React.FC<TeamSettingsProps> = ({
                   Select User
                 </label>
                 
-                {filteredAvailableUsers.length === 0 ? (
+                {loadingAvailableUsers ? (
+                  <div className="border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 overflow-hidden">
+                    {[...Array(3)].map((_, index) => (
+                      <div key={index} className="flex items-center gap-3 p-4 border-b border-gray-100 dark:border-gray-600 last:border-b-0 animate-pulse">
+                        <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-full"></div>
+                        <div className="flex-1">
+                          <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded w-24 mb-1"></div>
+                          <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-32"></div>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="text-center py-4">
+                      <div className="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Loading available users...
+                      </div>
+                    </div>
+                  </div>
+                ) : filteredAvailableUsers.length === 0 ? (
                   <div className="text-center py-8 bg-gray-50 dark:bg-gray-700 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600">
                     <div className="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-3">
                       <User className="h-6 w-6 text-gray-400" />

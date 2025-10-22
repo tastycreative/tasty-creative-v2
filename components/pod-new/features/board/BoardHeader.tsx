@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { KanbanSquare, BarChart3, Settings } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 interface BoardHeaderProps {
   teamName: string;
@@ -22,7 +23,15 @@ export default function BoardHeader({
   activeTab = 'board',
   onTabChange,
 }: BoardHeaderProps) {
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'MODERATOR';
+
   const handleTabChange = (tab: TabType) => {
+    // Prevent settings access for non-admin/moderator users
+    if (tab === 'settings' && !isAdmin) {
+      return;
+    }
+    
     if (onTabChange) {
       onTabChange(tab);
     }
@@ -89,15 +98,22 @@ export default function BoardHeader({
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
+              const isSettingsTab = tab.id === 'settings';
+              const isDisabled = isSettingsTab && !isAdmin;
+              
               return (
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
+                  disabled={isDisabled}
                   className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                    isActive
+                    isDisabled
+                      ? 'border-transparent text-gray-300 dark:text-gray-600 cursor-not-allowed opacity-50'
+                      : isActive
                       ? 'border-pink-500 text-pink-600 dark:text-pink-400'
                       : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
                   }`}
+                  title={isDisabled ? 'Settings access requires Admin or Moderator role' : undefined}
                 >
                   <Icon className="w-4 h-4" />
                   {tab.label}
