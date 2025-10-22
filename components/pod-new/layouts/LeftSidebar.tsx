@@ -96,10 +96,10 @@ const navigation: { title: string; items: NavItem[] }[] = [
         icon: Calendar,
       },
       {
-        title: "Live Stream",
-        href: "/live-stream",
+        title: "Live",
+        href: "/live",
         icon: PlayCircle,
-        badge: { text: "Live", variant: "success" },
+        // badge: { text: "Live", variant: "success" },
       },
       { title: "Calendar", href: "/calendar", icon: CalendarIcon },
     ],

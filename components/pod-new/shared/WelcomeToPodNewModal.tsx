@@ -103,7 +103,7 @@ const slides = [
             },
             {
               title: "CONTENT & SCHEDULE",
-              items: "Schedule Content, Live Stream, Calendar",
+              items: "Schedule Content, Live, Calendar",
               color: "blue",
             },
             {

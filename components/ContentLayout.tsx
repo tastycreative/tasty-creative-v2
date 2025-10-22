@@ -12,7 +12,7 @@ const ContentLayout = ({ children  }: { children: React.ReactNode}) => {
 
   return (
     <div className="flex flex-1 relative z-10">
-      <SideBar/>
+      {/* <SideBar/> */}
 
       {/* Desktop Main Content */}
       <div className="hidden lg:flex flex-1 relative transition-all duration-300 min-w-0 flex-col">
