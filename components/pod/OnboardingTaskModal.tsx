@@ -143,35 +143,49 @@ export default function OnboardingTaskModal({ task, isOpen, onClose, session }: 
   // Extract clientModelDetailsId from task title and auto-fetch on modal open using Zustand
   useEffect(() => {
     if (isOpen && task) {
+      console.log('🔍 Modal opened with task:', task.title);
+      
       // Extract from title (format: "Name - ONBOARDING - clientModelDetailsId")
       const titleParts = task.title.split(' - ');
       let extractedClientId = '';
+      
+      console.log('🔍 Title parts:', titleParts);
       
       if (titleParts.length >= 3) {
         // Check if second-to-last part is "ONBOARDING" and get the last part
         if (titleParts[titleParts.length - 2] === 'ONBOARDING') {
           extractedClientId = titleParts[titleParts.length - 1];
+          console.log('✅ Extracted client ID:', extractedClientId);
+        } else {
+          console.log('❌ Second-to-last part is not "ONBOARDING":', titleParts[titleParts.length - 2]);
         }
+      } else {
+        console.log('❌ Title parts length < 3:', titleParts.length);
       }
       
-      // Only fetch if we have an ID and it's different from current
-      if (extractedClientId && extractedClientId !== currentClientId) {
+      // Always update the local clientId state regardless of currentClientId
+      if (extractedClientId) {
+        console.log('🔄 Setting client ID:', extractedClientId);
         setClientId(extractedClientId);
         setCurrentClientId(extractedClientId);
-        fetchOnboardingData(extractedClientId);
+        // Force fetch even if it's the same ID to ensure fresh data
+        fetchOnboardingData(extractedClientId, true);
         setMessage("");
-      } else if (!extractedClientId) {
+      } else {
+        console.log('❌ No client ID extracted from title');
+        setClientId("");
         setMessage("No client ID found in task title");
       }
     }
     
     // Reset when modal closes
     if (!isOpen) {
+      console.log('🔄 Modal closed, clearing data');
       clearCurrentData();
       setClientId("");
       setMessage("");
     }
-  }, [isOpen, task?.id, task?.title, currentClientId, setCurrentClientId, fetchOnboardingData, clearCurrentData]);
+  }, [isOpen, task?.id, task?.title, setCurrentClientId, fetchOnboardingData, clearCurrentData]); // Added functions but removed currentClientId to prevent stale closures
 
   if (!isOpen) return null;
 
@@ -190,13 +204,17 @@ export default function OnboardingTaskModal({ task, isOpen, onClose, session }: 
                 </h3>
               </div>
 
-              {clientId && (
+              {clientId ? (
                 <div className="text-sm text-gray-600 dark:text-gray-400">
                   Client ID: <span className="font-mono text-blue-600 dark:text-blue-400">{clientId}</span>
                 </div>
+              ) : (
+                <div className="text-sm text-amber-600 dark:text-amber-400">
+                  ⚠️ No client ID found - checklist will be read-only
+                </div>
               )}
 
-              <div className="text-sm text-gray-500">{message}</div>
+              {message && <div className="text-sm text-gray-500">{message}</div>}
             </div>
 
             <div className="flex items-center space-x-2">
@@ -406,6 +424,14 @@ export default function OnboardingTaskModal({ task, isOpen, onClose, session }: 
                     </div>
                   ) : (
                     <div className="space-y-2">
+                      {!clientId && !isLoading && (
+                        <div className="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+                          <p className="text-sm text-amber-700 dark:text-amber-300">
+                            <strong>Checklist is read-only:</strong> This task doesn't have a valid client ID in the title format. 
+                            Expected format: "Name - ONBOARDING - clientId"
+                          </p>
+                        </div>
+                      )}
                       {(data?.steps ?? defaultChecklist).map((entry: any) => {
                       if (entry.onboardingList) {
                         const step = entry.onboardingList;
@@ -414,32 +440,49 @@ export default function OnboardingTaskModal({ task, isOpen, onClose, session }: 
                         return (
                           <div
                             key={step.id}
-                            className={`flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors cursor-pointer group ${isCompleted ? 'opacity-70' : ''}`}
-                            onClick={async (e) => {
-                              if ((e.target as HTMLElement).tagName === 'INPUT') return;
-                              if (clientId) {
-                                const next = !isCompleted;
-                                await updateOnboardingStep(step.id, next);
-                              }
-                            }}
+                            className={`flex items-center space-x-3 p-3 rounded-lg transition-colors group ${
+                              clientId ? 'hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer' : 'opacity-50 cursor-not-allowed'
+                            } ${isCompleted ? 'opacity-70' : ''}`}
                           >
                             <input
                               type="checkbox"
                               checked={isCompleted}
+                              disabled={!clientId || isLoading}
                               onChange={async (e) => {
                                 e.stopPropagation();
-                                if (clientId) {
+                                if (clientId && !isLoading) {
                                   const next = e.target.checked;
-                                  await updateOnboardingStep(step.id, next);
+                                  try {
+                                    await updateOnboardingStep(step.id, next);
+                                  } catch (error) {
+                                    console.error('Failed to update step:', error);
+                                    // Revert checkbox state on error
+                                    e.target.checked = !next;
+                                  }
                                 }
                               }}
-                              className="rounded border-gray-300 text-green-600 focus:ring-green-500 focus:ring-offset-0 focus:ring-2 accent-green-600"
+                              className={`rounded border-gray-300 text-green-600 focus:ring-green-500 focus:ring-offset-0 focus:ring-2 accent-green-600 ${
+                                !clientId || isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                              }`}
                             />
-                            <span className={`text-sm flex-1 transition-all duration-200 ${
-                              isCompleted 
-                                ? "text-gray-500 dark:text-gray-500 line-through" 
-                                : "text-gray-700 dark:text-gray-300"
-                            }`}>
+                            <span 
+                              className={`text-sm flex-1 transition-all duration-200 ${
+                                isCompleted 
+                                  ? "text-gray-500 dark:text-gray-500 line-through" 
+                                  : "text-gray-700 dark:text-gray-300"
+                              } ${!clientId ? 'text-gray-400 dark:text-gray-600' : ''}`}
+                              onClick={async (e) => {
+                                if (clientId && !isLoading) {
+                                  e.preventDefault();
+                                  const next = !isCompleted;
+                                  try {
+                                    await updateOnboardingStep(step.id, next);
+                                  } catch (error) {
+                                    console.error('Failed to update step:', error);
+                                  }
+                                }
+                              }}
+                            >
                               {step.stepNumber}. {step.title}
                             </span>
                           </div>
