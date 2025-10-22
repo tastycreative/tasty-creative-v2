@@ -10,11 +10,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    if (session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Admin role required" }, { status: 403 });
+    if (session.user.role !== "ADMIN" && session.user.role !== "MODERATOR") {
+      return NextResponse.json({ error: "Admin or Moderator role required" }, { status: 403 });
     }
 
-    const { teamId, creatorNames } = await request.json();
+    const { teamId, creators } = await request.json();
+    const creatorNames = creators || [];
 
     if (!teamId || !Array.isArray(creatorNames)) {
       return NextResponse.json(

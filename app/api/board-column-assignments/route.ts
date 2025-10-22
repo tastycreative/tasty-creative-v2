@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify user has access to this team - either global admin/pod or team member
-    const hasGlobalAccess = session.user.role === 'POD' || session.user.role === 'ADMIN';
+    const hasGlobalAccess = session.user.role === 'POD' || session.user.role === 'ADMIN' || session.user.role === 'MODERATOR';
     
     let hasTeamAccess = false;
     if (!hasGlobalAccess) {
@@ -70,7 +70,19 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    return NextResponse.json({ columns });
+    // Transform the response to match component expectations
+    const transformedColumns = columns.map(column => ({
+      id: column.id,
+      label: column.label,
+      position: column.position,
+      assignments: column.assignedMembers.map(assignment => ({
+        id: assignment.id,
+        user: assignment.user,
+        assignedBy: assignment.assignedBy
+      }))
+    }));
+
+    return NextResponse.json(transformedColumns);
 
   } catch (error) {
     console.error('Error fetching column assignments:', error);
@@ -100,7 +112,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify user has admin access - either global admin/pod or team admin/leader
-    const hasGlobalAdminAccess = session.user.role === 'POD' || session.user.role === 'ADMIN';
+    const hasGlobalAdminAccess = session.user.role === 'POD' || session.user.role === 'ADMIN' || session.user.role === 'MODERATOR';
     
     let hasTeamAdminAccess = false;
     if (!hasGlobalAdminAccess) {
@@ -207,7 +219,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Check if user has global admin access or team-specific admin access
-    const hasGlobalAccess = session.user.role === 'POD' || session.user.role === 'ADMIN';
+    const hasGlobalAccess = session.user.role === 'POD' || session.user.role === 'ADMIN' || session.user.role === 'MODERATOR';
     
     let hasTeamAccess = false;
     if (!hasGlobalAccess) {

@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 // PUT - Update a specific team
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
     const session = await auth();
@@ -14,11 +14,11 @@ export async function PUT(
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    if (session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Admin role required" }, { status: 403 });
+    if (session.user.role !== "ADMIN" && session.user.role !== "MODERATOR") {
+      return NextResponse.json({ error: "Admin or Moderator role required" }, { status: 403 });
     }
 
-    const { teamId } = params;
+    const { teamId } = await params;
     const data = await request.json();
 
     // Find the team first
@@ -162,7 +162,7 @@ export async function PUT(
 // GET - Get a specific team
 export async function GET(
   request: NextRequest,
-  { params }: { params: { teamId: string } }
+  { params }: { params: Promise<{ teamId: string }> }
 ) {
   try {
     const session = await auth();
@@ -171,11 +171,11 @@ export async function GET(
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    if (session.user.role !== "ADMIN") {
-      return NextResponse.json({ error: "Admin role required" }, { status: 403 });
+    if (session.user.role !== "ADMIN" && session.user.role !== "MODERATOR") {
+      return NextResponse.json({ error: "Admin or Moderator role required" }, { status: 403 });
     }
 
-    const { teamId } = params;
+    const { teamId } = await params;
 
     const team = await prisma.podTeam.findUnique({
       where: { id: teamId },
@@ -199,7 +199,18 @@ export async function GET(
             }
           }
         },
-        assignedClients: true
+        assignedClients: {
+          include: {
+            clientModel: {
+              select: {
+                id: true,
+                clientName: true,
+                profilePicture: true,
+                profileLink: true
+              }
+            }
+          }
+        }
       }
     });
 
@@ -212,7 +223,7 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      team: {
+      data: {
         id: team.id,
         name: team.name,
         description: team.description,
@@ -223,8 +234,14 @@ export async function GET(
         createdBy: team.createdBy,
         memberCount: team.members.length,
         clientCount: team.assignedClients.length,
-        members: team.members.map((member) => ({
-          id: member.user.id,
+        creators: team.assignedClients.map((assignment: any) => ({
+          id: assignment.clientModel.id,
+          name: assignment.clientModel.clientName,
+          image: assignment.clientModel.profileLink || assignment.clientModel.profilePicture
+        })),
+        teamMembers: team.members.map((member: any) => ({
+          id: member.id,
+          userId: member.user.id,
           name: member.user.name,
           email: member.user.email,
           image: member.user.image,

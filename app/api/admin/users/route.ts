@@ -6,8 +6,8 @@ export async function GET(request: Request) {
   try {
     const session = await auth();
 
-    // Check if user is admin
-    if (session?.user?.role !== "ADMIN") {
+    // Check if user is admin or moderator
+    if (session?.user?.role !== "ADMIN" && session?.user?.role !== "MODERATOR") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 

@@ -19,6 +19,7 @@ import EnhancedTaskDetailModal from './EnhancedTaskDetailModal';
 import NewTaskModal from './NewTaskModal';
 import OnboardingTaskModal from '@/components/pod/OnboardingTaskModal';
 import NoTeamSelected from '@/components/pod/NoTeamSelected';
+import TeamSettings from './TeamSettings';
 
 // Utility function to make links clickable
 const linkifyText = (text: string) => {
@@ -827,7 +828,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         onTabChange={setActiveTab}
       />
 
-      {/* Render Summary or Board based on active tab */}
+      {/* Render content based on active tab */}
       {activeTab === 'summary' ? (
         <Summary
           teamName={teamName}
@@ -836,6 +837,23 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           tasks={tasks}
           teamMembers={teamMembers}
           columns={columns}
+        />
+      ) : activeTab === 'settings' ? (
+        <TeamSettings
+          teamId={teamId}
+          teamName={teamName}
+          teamPrefix={""} // You might want to fetch this from your team data
+          teamMembers={teamMembers.concat(teamAdmins).map(member => ({
+            id: member.id,
+            name: member.name || member.email || 'Unknown',
+            role: teamAdmins.some(admin => admin.id === member.id) ? 'ADMIN' : 'MEMBER',
+            email: member.email,
+            userId: member.id,
+          }))}
+          onTeamUpdate={() => {
+            // Refresh team data after updates
+            fetchTeamMembers(teamId);
+          }}
         />
       ) : (
         <>

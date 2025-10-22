@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { KanbanSquare, BarChart3 } from "lucide-react";
+import { KanbanSquare, BarChart3, Settings } from "lucide-react";
 
 interface BoardHeaderProps {
   teamName: string;
@@ -12,7 +12,7 @@ interface BoardHeaderProps {
   onTabChange?: (tab: TabType) => void;
 }
 
-export type TabType = 'board' | 'summary';
+export type TabType = 'board' | 'summary' | 'settings';
 
 export default function BoardHeader({
   teamName,
@@ -38,6 +38,11 @@ export default function BoardHeader({
       id: 'board' as TabType,
       label: 'Board',
       icon: KanbanSquare,
+    },
+    {
+      id: 'settings' as TabType,
+      label: 'Settings',
+      icon: Settings,
     },
   ];
 
