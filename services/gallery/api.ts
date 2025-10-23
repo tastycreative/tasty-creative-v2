@@ -25,16 +25,16 @@ const API_CONFIG = {
 };
 
 /**
- * Fetch all gallery data from all tables
+ * Fetch all gallery data from combined_master_table
  */
 export async function fetchGalleryData(): Promise<GalleryApiResponse> {
   const timestamp = Date.now();
-  const response = await fetch(`/api/gallery-db?mode=all&t=${timestamp}&forceRefresh=true`, API_CONFIG);
-  
+  const response = await fetch(`/api/gallery-db?t=${timestamp}&forceRefresh=true`, API_CONFIG);
+
   if (!response.ok) {
     throw new Error('Failed to fetch gallery data');
   }
-  
+
   return await response.json();
 }
 
@@ -43,12 +43,12 @@ export async function fetchGalleryData(): Promise<GalleryApiResponse> {
  */
 export async function fetchFavoritesData(): Promise<GalleryApiResponse> {
   const timestamp = Date.now();
-  const response = await fetch(`/api/gallery-db?mode=all&type=favorites&t=${timestamp}`, API_CONFIG);
-  
+  const response = await fetch(`/api/gallery-db?type=favorites&t=${timestamp}`, API_CONFIG);
+
   if (!response.ok) {
     throw new Error('Failed to fetch favorites data');
   }
-  
+
   return await response.json();
 }
 
@@ -57,12 +57,12 @@ export async function fetchFavoritesData(): Promise<GalleryApiResponse> {
  */
 export async function fetchReleasesData(): Promise<GalleryApiResponse> {
   const timestamp = Date.now();
-  const response = await fetch(`/api/gallery-db?type=releases&mode=all&t=${timestamp}`, API_CONFIG);
-  
+  const response = await fetch(`/api/gallery-db?type=releases&t=${timestamp}`, API_CONFIG);
+
   if (!response.ok) {
     throw new Error('Failed to fetch releases data');
   }
-  
+
   return await response.json();
 }
 

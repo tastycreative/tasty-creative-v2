@@ -24,16 +24,34 @@ const GallerySkeleton = () => {
           <Skeleton className="h-12 w-full mb-4" />
         </div>
 
-        {/* Stats Cards Skeleton */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Skeleton className="h-6 w-16 mb-2" />
-                  <Skeleton className="h-4 w-20" />
+        {/* Filter Presets Skeleton */}
+        <div className="mb-6">
+          <Skeleton className="h-4 w-32 mb-3" />
+          <div className="flex flex-wrap gap-3">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-16 w-40 rounded-xl" />
+            ))}
+          </div>
+        </div>
+
+        {/* Stats Cards Skeleton - Updated to 6 cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div
+              key={i}
+              className="relative overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-2xl border border-gray-200/50 dark:border-gray-700/50 animate-pulse"
+            >
+              <div className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <Skeleton className="h-4 w-20 mb-2" />
+                    <Skeleton className="h-8 w-16 mb-1" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                  <Skeleton className="h-11 w-11 rounded-xl" />
                 </div>
-                <Skeleton className="h-8 w-8 rounded-lg" />
+                <Skeleton className="w-full h-2 rounded-full mb-2" />
+                <Skeleton className="h-3 w-28" />
               </div>
             </div>
           ))}

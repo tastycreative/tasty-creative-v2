@@ -355,9 +355,21 @@ export default function LeftSidebar({ collapsed = false }: LeftSidebarProps) {
                               </div>
                               {/* Only show plus icon for ADMIN users */}
                               {session?.user?.role === "ADMIN" && (
-                                <button
-                                  onClick={handleAddNewTeam}
-                                  className={`p-1 rounded-md absolute right-8 top-1/2 -translate-y-1/2 transition-colors hover:bg-white/10 dark:hover:bg-white/10 ${
+                                <div
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleAddNewTeam();
+                                  }}
+                                  role="button"
+                                  tabIndex={0}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      handleAddNewTeam();
+                                    }
+                                  }}
+                                  className={`p-1 rounded-md absolute right-8 top-1/2 -translate-y-1/2 transition-colors hover:bg-white/10 dark:hover:bg-white/10 cursor-pointer ${
                                     isAnyTeamActive
                                       ? "text-indigo-300 dark:text-indigo-300 hover:text-white dark:hover:text-white"
                                       : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
@@ -365,7 +377,7 @@ export default function LeftSidebar({ collapsed = false }: LeftSidebarProps) {
                                   title="Add new team"
                                 >
                                   <Plus className="w-4 h-4" />
-                                </button>
+                                </div>
                               )}
                             </AccordionTrigger>
                             <AccordionContent className="pb-1 pt-2 px-2">

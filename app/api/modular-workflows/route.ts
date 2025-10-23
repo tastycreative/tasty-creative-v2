@@ -121,11 +121,9 @@ async function createWorkflowColumns(teamId: string, contentStyle: string): Prom
 
   // If columns already exist, don't create duplicates
   if (existingColumns.length > 0) {
-    console.log('✅ Workflow columns already exist for team:', teamId);
     return;
   }
 
-  console.log('📋 Creating workflow columns for team:', teamId, 'style:', contentStyle);
 
   // Create columns in database
   for (const column of columns) {
@@ -144,7 +142,6 @@ async function createWorkflowColumns(teamId: string, contentStyle: string): Prom
     });
   }
 
-  console.log('✅ Created', columns.length, 'workflow columns for team:', teamId);
 }
 
 // Helper function to get team assignment (simplified to use existing team)
@@ -182,7 +179,6 @@ async function sendModularWorkflowNotifications({
   selectedComponents: string[];
 }) {
   try {
-    console.log('🔔 Starting modular workflow notifications for task:', task.id);
 
     // Fetch the creator's user profile first
     const createdByUser = await (prisma as any).user.findUnique({
@@ -196,17 +192,14 @@ async function sendModularWorkflowNotifications({
     });
 
     if (!createdByUser) {
-      console.error('❌ Creator user not found:', createdById);
       return { success: false, error: 'Creator user not found' };
     }
 
-    console.log('👤 Creator user found:', createdByUser);
 
     // Collect all teams to notify (primary + additional)
     const allTeams = [primaryTeam, ...additionalTeams];
     const allTeamIds = allTeams.map(t => t.id);
 
-    console.log('🔍 Notifying teams:', allTeams.map(t => t.name).join(', '));
 
     // Find members assigned to all teams
     const teamMembers = await (prisma as any).podTeamMember.findMany({
@@ -234,10 +227,8 @@ async function sendModularWorkflowNotifications({
       }
     });
 
-    console.log('🔍 Found team members across all teams:', teamMembers.length);
 
     const usersToNotify = teamMembers.map((member: any) => member.user);
-    console.log('🔔 Total users to notify:', usersToNotify.length);
 
     // Create task URL for notifications
     const taskUrl = await generateTaskUrl(task.id, primaryTeam.id);
@@ -340,7 +331,6 @@ async function sendModularWorkflowNotifications({
     const notificationResults = await Promise.allSettled(notificationPromises);
     const successfulNotifications = notificationResults.filter(result => result.status === 'fulfilled').length;
 
-    console.log('✅ In-app notifications created:', successfulNotifications);
 
     // Send email notifications with enhanced team context
     const emailPromises = uniqueUsers.map(async (user) => {
@@ -373,7 +363,6 @@ async function sendModularWorkflowNotifications({
     const successfulEmails = emailResults.filter(result => result.status === 'fulfilled').length;
     const failedEmails = emailResults.filter(result => result.status === 'rejected').length;
 
-    console.log('📧 Email notifications:', successfulEmails, 'sent,', failedEmails, 'failed');
 
     return {
       success: true,
@@ -386,7 +375,6 @@ async function sendModularWorkflowNotifications({
     };
 
   } catch (error) {
-    console.error('❌ Error sending modular workflow notifications:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -395,30 +383,23 @@ async function sendModularWorkflowNotifications({
 }
 
 export async function POST(request: NextRequest) {
-  console.log('🔥 API Route called: /api/modular-workflows');
 
   try {
-    console.log('🔐 Checking authentication...');
     const session = await auth();
 
     if (!session || !session.user) {
-      console.log('❌ Not authenticated');
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    console.log('✅ User authenticated:', session.user.id);
 
-    console.log('📥 Reading request data...');
     const data: ModularWorkflowData = await request.json();
-    console.log('📊 Received modular workflow data:', data);
 
-    // Validate required fields
-    if (!data.submissionType || !data.contentStyle || !data.selectedComponents ||
+    // Validate required fields (selectedComponents can be empty array, componentData is optional)
+    if (!data.submissionType || !data.contentStyle || data.selectedComponents === undefined ||
         !data.modelName || !data.priority || !data.driveLink || !data.contentDescription) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    console.log('📝 Processing modular workflow:', data);
 
     // Convert priority to enum format
     const priorityMap = {
@@ -442,31 +423,20 @@ export async function POST(request: NextRequest) {
 
     // Validate that all mappings succeeded
     if (!workflowPriority) {
-      console.error('❌ Invalid priority:', data.priority);
       return NextResponse.json({ error: `Invalid priority: ${data.priority}` }, { status: 400 });
     }
 
     if (!workflowContentStyle) {
-      console.error('❌ Invalid contentStyle:', data.contentStyle);
       return NextResponse.json({ error: `Invalid contentStyle: ${data.contentStyle}. Valid options: ${Object.keys(contentStyleMap).join(', ')}` }, { status: 400 });
     }
-
-    console.log('✅ Mapped values:', {
-      priority: `${data.priority} → ${workflowPriority}`,
-      submissionType: `${data.submissionType} → ${workflowSubmissionType}`,
-      contentStyle: `${data.contentStyle} → ${workflowContentStyle}`
-    });
 
     // Get workflow columns for this content style
     const workflowColumns = getWorkflowColumns(data.contentStyle);
     const firstColumn = workflowColumns[0];
 
-    console.log('📋 Workflow columns for', data.contentStyle, ':', workflowColumns.map(col => col.label).join(' → '));
 
     // Simplified team assignment - use existing OTP-PTR team for all workflows
     const targetTeamName = getTeamForWorkflow();
-    console.log('🎯 Assigning workflow to team:', targetTeamName);
-    console.log('📊 Submission Type:', data.submissionType, '| Content Style:', data.contentStyle);
 
     // Find the OTP-PTR team or use manual assignment
     let assignedTeam;
@@ -480,7 +450,6 @@ export async function POST(request: NextRequest) {
       if (!assignedTeam) {
         throw new Error(`Specified team with ID ${fallbackTeamId} not found`);
       }
-      console.log('✅ Using manually assigned team:', assignedTeam.name);
     } else {
       // Find OTP-PTR team or use first available team
       assignedTeam = await prisma.podTeam.findFirst({
@@ -502,9 +471,7 @@ export async function POST(request: NextRequest) {
         if (!assignedTeam) {
           throw new Error('No active teams found');
         }
-        console.log('📍 Using fallback team:', assignedTeam.name);
       } else {
-        console.log('✅ Found target team:', assignedTeam.name);
       }
     }
 
@@ -542,21 +509,23 @@ export async function POST(request: NextRequest) {
 
     // Use the first actual column's status instead of the theoretical one
     const firstColumnStatus = actualColumns.length > 0 ? actualColumns[0].status : firstColumn.status;
-    console.log('📋 Using actual first column status:', firstColumnStatus, 'for team:', assignedTeam.name);
 
-    console.log('✅ Primary team for workflow:', assignedTeam.name);
     if (additionalTeams.length > 0) {
-      console.log('✅ Additional teams:', additionalTeams.map(t => t.name).join(', '));
     }
 
-    // Process pricing data if included
+    // Process pricing data if included (now supports flexible text input)
     let pricingInfo = '';
     if (data.selectedComponents.includes('pricing') && data.componentData) {
       const pricingData = data.componentData as PricingComponentData;
       if (pricingData.pricingType || pricingData.basePrice) {
-        pricingInfo = `\nPricing: ${pricingData.pricingType || 'Custom'} - $${pricingData.basePrice || 'TBD'}`;
+        // Support flexible pricing formats: custom text, numbers, descriptions
+        const contentType = pricingData.pricingType ? `${pricingData.pricingType}` : 'Custom';
+        const priceValue = pricingData.basePrice ? pricingData.basePrice : 'TBD';
+        pricingInfo = `\nPricing: ${contentType} - ${priceValue}`;
         if (pricingData.pricingSource === 'dynamic') {
           pricingInfo += ' (from model database)';
+        } else if (pricingData.pricingSource === 'manual') {
+          pricingInfo += ' (manual entry)';
         }
       }
     }
@@ -585,19 +554,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Log the values being passed to Prisma before creation
-    console.log('🔍 Values being passed to Prisma ModularWorkflow.create:', {
-      submissionType: workflowSubmissionType,
-      contentStyle: workflowContentStyle,
-      priority: workflowPriority,
-      modelName: data.modelName
-    });
-
     // Validate that workflowContentStyle is not undefined
     if (!workflowContentStyle) {
-      console.error('❌ workflowContentStyle is undefined after mapping!');
-      console.error('Original contentStyle:', data.contentStyle);
-      console.error('ContentStyleMap:', contentStyleMap);
       return NextResponse.json({
         error: `ContentStyle mapping failed. Received: '${data.contentStyle}', Expected one of: ${Object.keys(contentStyleMap).join(', ')}`
       }, { status: 400 });
@@ -650,7 +608,6 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    console.log('✅ Modular workflow created:', workflow.id);
 
     // Convert workflow priority to task priority
     const taskPriorityMap = {
@@ -703,7 +660,6 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    console.log('📋 Task created:', task.id, 'for team:', assignedTeam.name);
 
     // Link task to workflow (if ModularWorkflow model exists in schema)
     let updatedWorkflow = workflow; // Default to original workflow
@@ -717,9 +673,7 @@ export async function POST(request: NextRequest) {
           updatedAt: new Date()
         }
       });
-      console.log('✅ Workflow linked to task:', updatedWorkflow.id);
     } catch (linkError) {
-      console.warn('⚠️ Could not link workflow to task (ModularWorkflow model may not exist):', linkError);
       // Continue without linking - the task was still created successfully
     }
 
@@ -736,7 +690,6 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    console.log('📝 Task activity history created for task:', task.id);
 
     // Send notifications to team members with enhanced team support
     await sendModularWorkflowNotifications({
@@ -752,16 +705,6 @@ export async function POST(request: NextRequest) {
       contentStyle: data.contentStyle,
       selectedComponents: data.selectedComponents
     });
-
-    // Log pricing data if present for debugging
-    if (data.selectedComponents.includes('pricing') && data.componentData) {
-      console.log('💰 Pricing data saved:', {
-        pricingType: (data.componentData as PricingComponentData).pricingType,
-        basePrice: (data.componentData as PricingComponentData).basePrice,
-        pricingSource: (data.componentData as PricingComponentData).pricingSource,
-        pricingItem: (data.componentData as PricingComponentData).pricingItem
-      });
-    }
 
     return NextResponse.json({
       success: true,
@@ -784,7 +727,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Error processing modular workflow:', error);
     return NextResponse.json(
       { error: 'Failed to process modular workflow' },
       { status: 500 }
@@ -833,7 +775,6 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error('❌ Error fetching modular workflows:', error);
     return NextResponse.json(
       { error: 'Failed to fetch modular workflows' },
       { status: 500 }

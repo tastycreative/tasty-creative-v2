@@ -41,8 +41,6 @@ function ModelImage({ model }: { model: ModelDetails }) {
     );
   }
 
-  console.log(model.id, 'model id');
-
   return (
     <div className="w-20 h-20 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 p-0.5 flex items-center justify-center">
       <img

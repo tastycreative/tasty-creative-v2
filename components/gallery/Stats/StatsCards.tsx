@@ -1,12 +1,14 @@
 "use client";
 
-import React from "react";
-import { Grid3X3, TrendingUp, DollarSign } from "lucide-react";
+import React, { useMemo } from "react";
+import { Grid3X3, TrendingUp, DollarSign, User, Award, Percent } from "lucide-react";
+import { GalleryItem } from "@/types/gallery";
 
 export interface StatsCardsProps {
   totalContent: number;
   totalSales: number;
   totalRevenue: number;
+  items?: GalleryItem[]; // New: pass items for calculations
   className?: string;
 }
 
@@ -14,8 +16,57 @@ const StatsCards: React.FC<StatsCardsProps> = ({
   totalContent,
   totalSales,
   totalRevenue,
+  items = [],
   className = "",
 }) => {
+  // Calculate enhanced metrics
+  const enhancedMetrics = useMemo(() => {
+    if (!items || items.length === 0) {
+      return {
+        avgRevenue: 0,
+        topCreator: "N/A",
+        successRate: 0,
+        avgPrice: 0,
+        totalEarnings: 0,
+        itemsWithRevenue: 0,
+      };
+    }
+
+    const itemsWithRevenue = items.filter((item) => (item.revenue || item.totalRevenue || 0) > 0);
+    const totalEarnings = items.reduce((sum, item) => sum + (item.revenue || item.totalRevenue || 0), 0);
+    const avgRevenue = itemsWithRevenue.length > 0 ? totalEarnings / itemsWithRevenue.length : 0;
+
+    const itemsWithPrice = items.filter((item) => item.price > 0);
+    const avgPrice = itemsWithPrice.length > 0
+      ? itemsWithPrice.reduce((sum, item) => sum + item.price, 0) / itemsWithPrice.length
+      : 0;
+
+    // Find top creator by revenue
+    const creatorRevenues: Record<string, number> = {};
+    items.forEach((item) => {
+      const creator = item.creatorName || "Unknown";
+      const revenue = item.revenue || item.totalRevenue || 0;
+      creatorRevenues[creator] = (creatorRevenues[creator] || 0) + revenue;
+    });
+    const topCreator = Object.entries(creatorRevenues).sort(([, a], [, b]) => b - a)[0]?.[0] || "N/A";
+
+    // Calculate success rate (Good outcomes)
+    const itemsWithOutcome = items.filter((item) => item.outcome);
+    const goodOutcomes = items.filter((item) => item.outcome?.toLowerCase() === "good");
+    const successRate = itemsWithOutcome.length > 0
+      ? (goodOutcomes.length / itemsWithOutcome.length) * 100
+      : 0;
+
+    return {
+      avgRevenue,
+      topCreator,
+      successRate,
+      avgPrice,
+      totalEarnings,
+      itemsWithRevenue: itemsWithRevenue.length,
+    };
+  }, [items]);
+
   const stats = [
     {
       label: "Total Content",
@@ -41,19 +92,52 @@ const StatsCards: React.FC<StatsCardsProps> = ({
     },
     {
       label: "Revenue",
-      value: `$${totalRevenue.toLocaleString()}`,
+      value: `$${enhancedMetrics.totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       subtitle: "Total earnings",
       icon: DollarSign,
       gradient: "from-amber-500 to-orange-500",
       bgGradient:
         "from-amber-50 to-orange-100 dark:from-amber-900/20 dark:to-orange-800/30",
       iconBg: "bg-gradient-to-br from-amber-500 to-orange-500",
-      trend: totalRevenue > 0 ? "+8.2%" : null,
+      trend: enhancedMetrics.totalEarnings > 0 ? `${enhancedMetrics.itemsWithRevenue} items` : null,
+    },
+    {
+      label: "Avg Revenue",
+      value: `$${enhancedMetrics.avgRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      subtitle: "Per performing item",
+      icon: TrendingUp,
+      gradient: "from-purple-500 to-pink-500",
+      bgGradient:
+        "from-purple-50 to-pink-100 dark:from-purple-900/20 dark:to-pink-800/30",
+      iconBg: "bg-gradient-to-br from-purple-500 to-pink-500",
+      trend: null,
+    },
+    {
+      label: "Top Creator",
+      value: enhancedMetrics.topCreator,
+      subtitle: "Highest earner",
+      icon: User,
+      gradient: "from-indigo-500 to-blue-500",
+      bgGradient:
+        "from-indigo-50 to-blue-100 dark:from-indigo-900/20 dark:to-blue-800/30",
+      iconBg: "bg-gradient-to-br from-indigo-500 to-blue-500",
+      trend: null,
+    },
+    {
+      label: "Success Rate",
+      value: `${enhancedMetrics.successRate.toFixed(1)}%`,
+      subtitle: "Good outcomes",
+      icon: Award,
+      gradient: "from-green-500 to-emerald-500",
+      bgGradient:
+        "from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-800/30",
+      iconBg: "bg-gradient-to-br from-green-500 to-emerald-500",
+      trend: enhancedMetrics.successRate > 50 ? "Above avg" : null,
     },
   ];
 
   return (
-    <div className={`grid grid-cols-1 md:grid-cols-3 gap-6  pb-8 ${className}`}>
+    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 pb-8 ${className}`}>
       {stats.map((stat, index) => {
         const IconComponent = stat.icon;
         return (

@@ -1,27 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { 
-  getAllTableNames, 
-  getTableData, 
-  searchTable,
-  getTableSchema,
-  DynamicTableRow,
+import {
+  getTableData,
   getUserFavorites,
   getReleases,
-  isFavorited
 } from '@/lib/supabase-dynamic'
+import { GalleryItem } from '@/types/gallery'
 
 /**
- * Extract purchase count from notes field like "0 Purchased", "5 Purchased", "11 Purchased", etc.
+ * Extract revenue from notes field like "Earned 79.96", "Earned 12.50", etc.
+ * Also supports legacy format "X Purchased"
  */
-function extractPurchasesFromNotes(notes: string): number {
+function extractRevenueFromNotes(notes: string): number {
   if (!notes) return 0
-  
-  // Look for patterns like "0 Purchased", "5 Purchased", "11 purchased", etc.
-  const match = notes.match(/(\d+)\s*purchased/i)
-  if (match) {
-    return parseInt(match[1], 10) || 0
+
+  // Primary pattern: "Earned X.XX" or "Earned X"
+  const earnedMatch = notes.match(/earned\s+([\d.]+)/i)
+  if (earnedMatch) {
+    return parseFloat(earnedMatch[1]) || 0
   }
-  
+
+  // Legacy pattern: "X Purchased" (not used in current data)
+  const purchasedMatch = notes.match(/(\d+)\s*purchased/i)
+  if (purchasedMatch) {
+    return parseInt(purchasedMatch[1], 10) || 0
+  }
+
   return 0
 }
 
@@ -31,6 +34,8 @@ function extractPurchasesFromNotes(notes: string): number {
 function parseNumber(value: any): number {
   if (typeof value === 'number') return value
   if (typeof value === 'string') {
+    // Handle empty strings explicitly
+    if (value.trim() === '') return 0
     // Remove any non-numeric characters except decimal points and negative signs
     const cleaned = value.replace(/[^0-9.-]/g, '')
     const parsed = parseFloat(cleaned)
@@ -93,7 +98,7 @@ class MemoryCache {
   has(key: string): boolean {
     const entry = this.cache.get(key)
     if (!entry) return false
-    
+
     const now = Date.now()
     if (now - entry.timestamp > entry.ttl) {
       this.cache.delete(key)
@@ -106,44 +111,26 @@ class MemoryCache {
 // Create singleton cache instance
 const memoryCache = new MemoryCache()
 
-// Helper function to paginate data
-function paginateData(data: any, page: number, limit: number) {
-  const totalItems = data.items.length
-  const totalPages = Math.ceil(totalItems / limit)
-  const startIndex = (page - 1) * limit
-  const endIndex = startIndex + limit
-  const paginatedItems = data.items.slice(startIndex, endIndex)
-
-  return {
-    ...data,
-    items: paginatedItems,
-    pagination: {
-      currentPage: page,
-      totalPages,
-      totalItems,
-      hasNextPage: page < totalPages,
-      hasPreviousPage: page > 1,
-      itemsPerPage: limit,
-      startIndex: startIndex + 1,
-      endIndex: Math.min(endIndex, totalItems)
-    }
-  }
+// Helper function to count by field
+function countByField(items: any[], field: string): Record<string, number> {
+  return items.reduce((acc, item) => {
+    const value = item[field] || 'Unknown'
+    acc[value] = (acc[value] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
 }
 
 /**
- * Gallery API that fetches data from Supabase database tables
- * instead of Google Sheets
+ * Gallery API that fetches data from combined_master_table
  */
 export async function GET(request: NextRequest) {
   const startTime = performance.now()
-  
+
   try {
     const searchParams = request.nextUrl.searchParams
-    
+
     // Get query parameters
-    const fetchMode = searchParams.get('mode') || 'single' // 'single' or 'all'
-    const tableName = searchParams.get('table') || 'gs_dakota_free' // For single mode
-    const type = searchParams.get('type') || 'all'
+    const type = searchParams.get('type') || 'all' // all, favorites, releases
     const category = searchParams.get('category')
     const creator = searchParams.get('creator')
     const minPrice = searchParams.get('minPrice')
@@ -151,500 +138,157 @@ export async function GET(request: NextRequest) {
     const minRevenue = searchParams.get('minRevenue')
     const messageType = searchParams.get('messageType')
     const outcome = searchParams.get('outcome')
-    const captionStyle = searchParams.get('captionStyle')
+    const contentStyle = searchParams.get('contentStyle')
+    const contentType = searchParams.get('contentType') // MM or Post
     const q = searchParams.get('q') // Search query
-    const page = parseInt(searchParams.get('page') || '1', 10)
     const limit = parseInt(searchParams.get('limit') || '20', 10)
 
-    // Create cache key based on all parameters (excluding timestamp for cache busting)
-    const cacheKey = fetchMode === 'all' 
-      ? `gallery-db:all:${JSON.stringify({
-          type, category, creator, minPrice, maxPrice, minRevenue, messageType, outcome, captionStyle, q
-        })}`
-      : `gallery-db:${tableName}:${JSON.stringify({
-          type, category, creator, minPrice, maxPrice, minRevenue, messageType, outcome, captionStyle, q
-        })}`
-    
+    // Create cache key based on all parameters
+    const cacheKey = `gallery:${JSON.stringify({
+      type, category, creator, minPrice, maxPrice, minRevenue,
+      messageType, outcome, contentStyle, contentType, q
+    })}`
 
     // Try to get from cache first (skip cache for favorites to ensure fresh data)
-    // Also skip cache if explicitly requested via query param
     const forceRefresh = searchParams.get('forceRefresh') === 'true'
     const skipCache = type === 'favorites' || forceRefresh
     const cachedData = skipCache ? null : memoryCache.get<any>(cacheKey)
+
     if (cachedData) {
       const endTime = performance.now()
-      
-      // Return cached data without pagination - frontend handles pagination
-      const response = {
-        ...cachedData,
-        pagination: {
-          currentPage: 1,
-          totalPages: Math.ceil((cachedData.items || []).length / limit),
-          totalItems: (cachedData.items || []).length,
-          hasNextPage: (cachedData.items || []).length > limit,
-          hasPreviousPage: false,
-          itemsPerPage: limit,
-          startIndex: 1,
-          endIndex: Math.min(limit, (cachedData.items || []).length)
-        }
-      }
-      
+
       const headers = new Headers()
       headers.set('X-Cache', 'HIT')
       headers.set('X-Response-Time', `${Math.round(endTime - startTime)}ms`)
       headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=86400')
-      
-      return NextResponse.json(response, { headers })
+
+      return NextResponse.json(cachedData, { headers })
     }
 
-    // Get all available tables
-    const allTables = await getAllTableNames()
+    // Build filters for Supabase query
+    const filters: Record<string, any> = {}
 
-    if (fetchMode === 'all') {
-      // Fetch data from ALL tables
-      const allTablesData: Record<string, any[]> = {}
-      const allItems: any[] = []
-      
-      
-      // Fetch favorites and releases data in parallel with table data
-      // Using shared 'current-user' for collaborative favorites/releases
-      const [favoritesResult, releasesResult] = await Promise.all([
-        getUserFavorites('current-user'),
-        getReleases()
-      ])
-      
-      const favorites = favoritesResult.data || []
-      const releases = releasesResult.data || []
-      
-      
-      // Create lookup sets for performance
-      const favoriteKeys = favorites.map(fav => `${fav.item_id}_${fav.table_name}`);
-      const favoritesSet = new Set(favoriteKeys);
-      const releasesSet = new Set(
-        releases.map(rel => `${rel.item_id}_${rel.table_name}`)
-      )
-      
-      
-      // Fetch data from each table in parallel
-      const tablePromises = allTables.map(async (table) => {
-        try {
-          // Build base filters for this table
-          const baseFilters: Record<string, any> = {
-            // Temporarily show all message types to debug
-            // 'message_type': ['PPV', 'PPV Follow Up']
-          }
-          
-          // If user has selected a specific message type, use that instead
-          if (messageType && messageType !== 'all') {
-            baseFilters['message_type'] = messageType
-          } else {
-          }
-          
-          // Add other filters
-          if (outcome && outcome !== 'all') {
-            baseFilters['outcome'] = outcome
-          }
-          if (captionStyle && captionStyle !== 'all') {
-            baseFilters['caption_style'] = captionStyle
-          }
-          
-          const { data, error } = await getTableData(table, {
-            filters: baseFilters,
-            limit: 1000
-            // Remove created_at ordering since tables don't have this column
-          })
-          
-          if (error) {
-            return { table, data: [] }
-          }
-          
-          
-          
-          return { table, data: data || [] }
-        } catch (err) {
-          return { table, data: [] }
-        }
-      })
-      
-      const tableResults = await Promise.all(tablePromises)
-      
-      // Process and categorize data by table
-      tableResults.forEach(({ table, data }) => {
-        const transformedItems = data.map((row, index) => {
-          const parseNumber = (value: any): number => {
-            if (typeof value === 'number') return value
-            if (typeof value === 'string') {
-              const cleaned = value.replace(/[$,]/g, '')
-              const num = parseFloat(cleaned)
-              return isNaN(num) ? 0 : num
-            }
-            return 0
-          }
+    if (messageType && messageType !== 'all') filters['message_type'] = messageType
+    if (outcome && outcome !== 'all') filters['outcome'] = outcome
+    if (contentStyle && contentStyle !== 'all') filters['content_style'] = contentStyle
+    if (contentType && contentType !== 'all') filters['type'] = contentType
+    if (creator && creator !== 'all') filters['page'] = creator
 
-          // Use table name prefix to ensure unique IDs across merged tables
-          const rawId = row.id || row.raw_row_index || `row_${index}`
-          const itemId = `${table}_${rawId}` // Unique ID format: tableName_rowId
-          
-          // Try multiple possible lookup keys to handle ID inconsistencies
-          // Including both old format (for backward compatibility) and new format
-          const possibleLookupKeys = [
-            `${itemId}_${table}`, // New format: tableName_rowId_tableName
-            `${rawId}_${table}`, // Old format: rowId_tableName (for existing favorites)
-            `${row.id}_${table}`,
-            `${row.raw_row_index}_${table}`,
-            `${table}_row_${index}_${table}`
-          ].filter(Boolean) // Remove any undefined/null entries
-          
-          const isFavorite = possibleLookupKeys.some(key => favoritesSet.has(key))
-          const isRelease = possibleLookupKeys.some(key => releasesSet.has(key))
-          
-          
-          
-          return {
-            id: itemId,
-            sheetRowId: row.raw_row_index || itemId,
-            title: row["content_style"] || row["message_type"] || `${table} Item ${index + 1}`,
-            captionText: row["caption"] || '',
-            price: parseNumber(row["price"]),
-            totalBuys: extractPurchasesFromNotes(row["notes"] || ''), // Parse from notes like "0 Purchased"
-            totalRevenue: parseNumber(row["price"]) * extractPurchasesFromNotes(row["notes"] || ''), // Calculate price * purchases
-            category: determineCategoryFromStyle(row["content_style"] || ''),
-            dateAdded: row.created_at || new Date().toISOString(),
-            contentStyle: row["content_style"] || '',
-            messageType: row["message_type"] || '',
-            gifUrl: row["content_preview_url"] || row["content_preview"] || '',
-            previewUrl: row["content_preview_url"] || row["content_preview"] || '',
-            contentType: "LIBRARY" as const,
-            notes: row["notes"] || '',
-            isFavorite: isFavorite,
-            isRelease: isRelease,
-            isPTR: isRelease,
-            creatorName: row["creator_name"] || getCreatorNameFromTable(table),
-            tableName: table,
-            // Additional fields from actual data
-            scheduleTab: row["Schedule Tab"] || '',
-            scheduledMM: row["Scheduled Date"] || '',
-            scheduledMMISO: row["Scheduled Date"] || '',
-            timePST: row["TIME PST"] || '',
-            contentPreview: row["Image URL"] || row["Video URL"] || '',
-            contentPreviewUrl: row["Image URL"] || row["Video URL"] || '',
-            paywallContent: row["PAYWALL CONTENT"] || '',
-            captionStyle: row["CAPTION STYLE"] || '',
-            outcome: row["OUTCOME"] || '',
-            addedAt: row.created_at || new Date().toISOString()
-          }
-        })
-        
-        allTablesData[table] = transformedItems
-        allItems.push(...transformedItems)
-      })
-      
-      
-      // Apply filters to combined data
-      let filteredItems = allItems
-      
-      // Apply all the same filters as single mode
-      if (messageType && messageType !== 'all') {
-        filteredItems = filteredItems.filter(item => 
-          item.messageType?.toLowerCase() === messageType.toLowerCase()
-        )
-      }
-      if (outcome && outcome !== 'all') {
-        filteredItems = filteredItems.filter(item => 
-          item.outcome?.toLowerCase() === outcome.toLowerCase()
-        )
-      }
-      if (captionStyle && captionStyle !== 'all') {
-        filteredItems = filteredItems.filter(item => 
-          item.captionStyle?.toLowerCase() === captionStyle.toLowerCase()
-        )
-      }
-      if (category && category !== 'all') {
-        filteredItems = filteredItems.filter(item => 
-          item.category.toLowerCase() === category.toLowerCase()
-        )
-      }
-      if (minPrice) {
-        const min = parseFloat(minPrice)
-        filteredItems = filteredItems.filter(item => item.price >= min)
-      }
-      if (maxPrice) {
-        const max = parseFloat(maxPrice)
-        filteredItems = filteredItems.filter(item => item.price <= max)
-      }
-      if (minRevenue) {
-        const min = parseFloat(minRevenue)
-        filteredItems = filteredItems.filter(item => item.totalRevenue >= min)
-      }
-      if (q) {
-        filteredItems = filteredItems.filter(item =>
-          item.title.toLowerCase().includes(q.toLowerCase()) ||
-          item.captionText.toLowerCase().includes(q.toLowerCase()) ||
-          item.contentStyle.toLowerCase().includes(q.toLowerCase()) ||
-          item.messageType.toLowerCase().includes(q.toLowerCase()) ||
-          (item.outcome || '').toLowerCase().includes(q.toLowerCase()) ||
-          (item.captionStyle || '').toLowerCase().includes(q.toLowerCase()) ||
-          item.tableName.toLowerCase().includes(q.toLowerCase()) ||
-          item.creatorName.toLowerCase().includes(q.toLowerCase())
-        )
-      }
-      
-      // Type filter
-      if (type === 'favorites') {
-        filteredItems = filteredItems.filter(item => item.isFavorite)
-      } else if (type === 'releases') {
-        filteredItems = filteredItems.filter(item => item.isRelease)
-      }
-      
-      // Calculate categories breakdown
-      const categories = filteredItems.reduce((acc: Record<string, number>, item) => {
-        acc[item.category] = (acc[item.category] || 0) + 1
-        return acc
-      }, {})
-      
-      const categoryBreakdown = Object.entries(categories).map(([name, count]) => ({
-        name,
-        count
-      }))
-      
-      // Calculate creators breakdown
-      const creators = filteredItems.reduce((acc: Record<string, number>, item) => {
-        if (item.creatorName) {
-          acc[item.creatorName] = (acc[item.creatorName] || 0) + 1
-        }
-        return acc
-      }, {})
+    // Fetch data from combined_master_table
+    const { data, error } = await getTableData('combined_master_table', {
+      filters,
+      limit: 1000,
+      orderBy: { column: 'created_at', ascending: false }
+    })
 
-      const creatorBreakdown = Object.entries(creators).map(([name, count]) => ({
-        name,
-        count
-      }))
-      
-      // Calculate table breakdown
-      const tableBreakdown = filteredItems.reduce((acc: Record<string, number>, item) => {
-        acc[item.tableName] = (acc[item.tableName] || 0) + 1
-        return acc
-      }, {})
-      
-      const responseData = {
-        items: filteredItems,
-        tableData: allTablesData, // Raw data organized by table
-        tableBreakdown, // Count of items per table after filtering
-        pagination: {
-          currentPage: 1,
-          totalPages: Math.ceil(filteredItems.length / limit),
-          totalItems: filteredItems.length,
-          hasNextPage: filteredItems.length > limit,
-          hasPreviousPage: false,
-          itemsPerPage: limit,
-          startIndex: 1,
-          endIndex: Math.min(limit, filteredItems.length)
-        },
-        breakdown: {
-          favorites: favoritesResult.data?.length || 0, // Use actual database count
-          releases: releasesResult.data?.length || 0, // Use actual database count
-          library: allItems.length
-        },
-        categories: categoryBreakdown,
-        creators: creatorBreakdown,
-        totalLibraryItems: allItems.length,
-        currentTable: 'ALL_TABLES',
-        availableTables: allTables,
-        fetchMode: 'all'
-      }
-      
-      // Cache the response data
-      memoryCache.set(cacheKey, responseData, 5 * 60 * 1000) // 5 minutes
-      
-      // Return full data without pagination for frontend caching
-      // Frontend will handle pagination client-side
-      const response = {
-        ...responseData,
-        pagination: {
-          currentPage: 1,
-          totalPages: Math.ceil(filteredItems.length / limit),
-          totalItems: filteredItems.length,
-          hasNextPage: filteredItems.length > limit,
-          hasPreviousPage: false,
-          itemsPerPage: limit,
-          startIndex: 1,
-          endIndex: Math.min(limit, filteredItems.length)
-        }
-      }
-      
-      const endTime = performance.now()
-      const duration = Math.round(endTime - startTime)
-      
-      
-      const headers = new Headers()
-      headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=86400')
-      headers.set('X-Cache', 'MISS')
-      headers.set('X-Response-Time', `${duration}ms`)
-      headers.set('X-Tables-Processed', allTables.length.toString())
-      headers.set('X-Total-Items', filteredItems.length.toString())
-      
-      return NextResponse.json(response, { headers })
-      
-    } else {
-      // SINGLE TABLE MODE (existing logic)
-      
-      // Check if requested table exists
-      if (!allTables.includes(tableName)) {
-        
-        return NextResponse.json({
+    if (error) {
+      console.error('Error fetching gallery data:', error)
+      return NextResponse.json(
+        {
+          error: 'Failed to fetch gallery data',
+          details: error,
           items: [],
-          pagination: {
-            currentPage: page,
-            totalPages: 0,
-            totalItems: 0,
-            hasNextPage: false,
-            hasPreviousPage: false
+          stats: {
+            total: 0,
+            byMessageType: {},
+            byPage: {},
+            byCategory: {},
+            byOutcome: {},
+            byType: {}
           },
           breakdown: {
             favorites: 0,
             releases: 0,
             library: 0
           },
-          availableTables: allTables,
-          message: `Table ${tableName} not found. Expected format: gs_tablename. Use 'availableTables' to see valid options.`
-        })
-      }
-
-      // Fetch favorites and releases data in parallel
-      // Using shared 'current-user' for collaborative favorites/releases
-      const [favoritesResult, releasesResult] = await Promise.all([
-        getUserFavorites('current-user'),
-        getReleases()
-      ])
-      
-      const favorites = favoritesResult.data || []
-      const releases = releasesResult.data || []
-      
-      // Create lookup sets for performance
-      const favoriteKeys = favorites.map(fav => `${fav.item_id}_${fav.table_name}`);
-      const favoritesSet = new Set(favoriteKeys);
-      const releasesSet = new Set(
-        releases.map(rel => `${rel.item_id}_${rel.table_name}`)
+          categories: [],
+          creators: [],
+          pagination: {
+            currentPage: 1,
+            totalPages: 0,
+            totalItems: 0,
+            hasNextPage: false,
+            hasPreviousPage: false,
+            itemsPerPage: limit
+          }
+        },
+        { status: 500 }
       )
-      
+    }
 
-      // Fetch data from single table
-      let items: DynamicTableRow[] = []
-      
-      if (q) {
-        // For search, we need to get all results first then filter for PPV
-        const { data, error } = await searchTable(tableName, q, 1000)
-        if (error) {
-          items = []
-        } else {
-          // Filter search results to only include PPV and PPV Follow Up
-          items = (data || []).filter((item: any) => {
-            const msgType = item['MESSAGE TYPE'] || ''
-            return msgType === 'PPV' || msgType === 'PPV Follow Up'
-          })
-        }
-      } else {
-        const filters: Record<string, any> = {
-          // Temporarily show all message types to debug
-          // 'message_type': ['PPV', 'PPV Follow Up']
-        }
-        
-        // Apply additional filters if provided
-        if (messageType && messageType !== 'all') {
-          // Override the PPV filter if user specifically selects a message type
-          filters['message_type'] = messageType
-        } else {
-        }
-        if (outcome && outcome !== 'all') {
-          filters['outcome'] = outcome
-        }
-        if (captionStyle && captionStyle !== 'all') {
-          filters['caption_style'] = captionStyle
-        }
-        
-        const { data, error } = await getTableData(tableName, {
-          filters,
-          limit: 1000
-          // Remove created_at ordering since tables don't have this column
-        })
-        
-        if (error) {
-        } else {
-          items = data
-        }
-      }
+    // Fetch favorites and releases data in parallel
+    const [favoritesResult, releasesResult] = await Promise.all([
+      getUserFavorites('current-user'),
+      getReleases()
+    ])
 
-    // Transform data to match gallery item structure
-    const transformedItems = items.map((row, index) => {
-      // Parse numeric values safely
-      const parseNumber = (value: any): number => {
-        if (typeof value === 'number') return value
-        if (typeof value === 'string') {
-          const cleaned = value.replace(/[$,]/g, '')
-          const num = parseFloat(cleaned)
-          return isNaN(num) ? 0 : num
-        }
-        return 0
-      }
+    const favorites = favoritesResult.data || []
+    const releases = releasesResult.data || []
 
-      // Use table name prefix to ensure unique IDs (consistent with multi-table mode)
-      const rawId = row.id || row.raw_row_index || `row_${index}`
-      const itemId = `${tableName}_${rawId}` // Unique ID format: tableName_rowId
-      
-      // Try multiple possible lookup keys to handle ID inconsistencies
-      // Including both old format (for backward compatibility) and new format
-      const possibleLookupKeys = [
-        `${itemId}_${tableName}`, // New format: tableName_rowId_tableName
-        `${rawId}_${tableName}`, // Old format: rowId_tableName (for existing favorites)
-        `${row.id}_${tableName}`,
-        `${row.raw_row_index}_${tableName}`,
-        `row_${index}_${tableName}`
-      ].filter(Boolean) // Remove any undefined/null entries
-      
-      const isFavorite = possibleLookupKeys.some(key => favoritesSet.has(key))
-      const isRelease = possibleLookupKeys.some(key => releasesSet.has(key))
-      
+    // Create lookup sets for performance
+    const favoritesSet = new Set(
+      favorites.map(fav => `${fav.item_id}`)
+    )
+    const releasesSet = new Set(
+      releases.map(rel => `${rel.item_id}`)
+    )
+
+    // Transform data to match GalleryItem structure
+    const items: GalleryItem[] = (data || []).map((row: any, index: number) => {
+      const itemId = row.id || `row_${index}`
+      const price = parseNumber(row.price)
+
+      // Extract revenue from notes (e.g., "Earned 79.96")
+      const revenueFromNotes = extractRevenueFromNotes(row.notes || '')
+
+      // Calculate total revenue: prioritize notes data, fallback to price × purchases
+      const totalRevenue = revenueFromNotes > 0 ? revenueFromNotes : 0
+
+      // Calculate purchases from revenue and price (reverse calculation)
+      const purchases = price > 0 && totalRevenue > 0 ? Math.round(totalRevenue / price) : 0
+
       return {
-        id: itemId,
-        sheetRowId: row.raw_row_index || (row.id || `row_${index}`),
-        title: row["content_style"] || row["message_type"] || `Item ${index + 1}`,
-        captionText: row["caption"] || '',
-        price: parseNumber(row["price"]),
-        totalBuys: extractPurchasesFromNotes(row["notes"] || ''), // Parse from notes like "0 Purchased"
-        totalRevenue: parseNumber(row["price"]) * extractPurchasesFromNotes(row["notes"] || ''), // Calculate price * purchases
-        category: determineCategoryFromStyle(row["content_style"] || ''),
+        id: itemId.toString(),
+        sheetRowId: itemId.toString(),
+        title: row.content_style || row.message_type || `Item ${index + 1}`,
+        captionText: row.caption || '',
+        caption: row.caption || '',
+        price: price,
+        totalBuys: purchases,
+        purchases: purchases,
+        totalRevenue: totalRevenue,
+        revenue: totalRevenue,
+        category: determineCategoryFromStyle(row.content_style || ''),
         dateAdded: row.created_at || new Date().toISOString(),
-        contentStyle: row["content_style"] || '',
-        messageType: row["message_type"] || '',
-        gifUrl: row["content_preview_url"] || row["content_preview"] || '',
-        previewUrl: row["content_preview_url"] || row["content_preview"] || '',
-        contentType: "LIBRARY" as const,
-        notes: row["notes"] || '',
-        isFavorite: isFavorite,
-        isRelease: isRelease,
-        isPTR: isRelease,
-        creatorName: row["creator_name"] || getCreatorNameFromTable(tableName),
-        tableName: tableName,
-        // Additional fields from actual data
-        scheduleTab: row["Schedule Tab"] || '',
-        scheduledMM: row["Scheduled Date"] || '',
-        scheduledMMISO: row["Scheduled Date"] || '',
-        timePST: row["TIME PST"] || '',
-        contentPreview: row["Image URL"] || row["Video URL"] || '',
-        contentPreviewUrl: row["Image URL"] || row["Video URL"] || '',
-        paywallContent: row["PAYWALL CONTENT"] || '',
-        captionStyle: row["CAPTION STYLE"] || '',
-        outcome: row["OUTCOME"] || '',
-        addedAt: row.created_at || new Date().toISOString()
+        contentStyle: row.content_style || '',
+        messageType: row.message_type || '',
+        gifUrl: row.content_preview || '',
+        previewUrl: row.content_preview || '',
+        mediaUrl: row.content_preview || '',
+        thumbnailUrl: row.content_preview || '',
+        contentType: 'LIBRARY',
+        notes: row.notes || '',
+        isFavorite: favoritesSet.has(itemId.toString()),
+        isRelease: releasesSet.has(itemId.toString()),
+        isPTR: releasesSet.has(itemId.toString()),
+        creatorName: row.page || 'Unknown',
+        tableName: 'combined_master_table',
+        scheduleTab: row.schedule_tab || '',
+        type: row.type || '',
+        timePST: row.time_pst || '',
+        paywallContent: row.paywall_content || '',
+        captionStyle: row.caption_style || '',
+        outcome: row.outcome || '',
+        scheduledDate: row.scheduled_date || ''
       }
     })
 
     // Apply client-side filters
-    let filteredItems = transformedItems
+    let filteredItems = items
 
     // Category filter
     if (category && category !== 'all') {
-      filteredItems = filteredItems.filter(item => 
+      filteredItems = filteredItems.filter(item =>
         item.category.toLowerCase() === category.toLowerCase()
       )
     }
@@ -659,10 +303,25 @@ export async function GET(request: NextRequest) {
       filteredItems = filteredItems.filter(item => item.price <= max)
     }
 
-    // Revenue filter (using calculated totalRevenue)
+    // Revenue filter
     if (minRevenue) {
       const min = parseFloat(minRevenue)
       filteredItems = filteredItems.filter(item => item.totalRevenue >= min)
+    }
+
+    // Search filter
+    if (q) {
+      const searchLower = q.toLowerCase()
+      filteredItems = filteredItems.filter(item =>
+        item.title.toLowerCase().includes(searchLower) ||
+        item.captionText.toLowerCase().includes(searchLower) ||
+        item.contentStyle?.toLowerCase().includes(searchLower) ||
+        item.messageType?.toLowerCase().includes(searchLower) ||
+        item.outcome?.toLowerCase().includes(searchLower) ||
+        item.captionStyle?.toLowerCase().includes(searchLower) ||
+        item.creatorName?.toLowerCase().includes(searchLower) ||
+        item.paywallContent?.toLowerCase().includes(searchLower)
+      )
     }
 
     // Type filter (all, favorites, releases)
@@ -672,71 +331,38 @@ export async function GET(request: NextRequest) {
       filteredItems = filteredItems.filter(item => item.isRelease)
     }
 
-    // Calculate categories breakdown
-    const categories = filteredItems.reduce((acc: Record<string, number>, item) => {
-      acc[item.category] = (acc[item.category] || 0) + 1
-      return acc
-    }, {})
-
-    const categoryBreakdown = Object.entries(categories).map(([name, count]) => ({
-      name,
-      count
-    }))
-
-    // Calculate creators breakdown
-    const creators = filteredItems.reduce((acc: Record<string, number>, item) => {
-      if (item.creatorName) {
-        acc[item.creatorName] = (acc[item.creatorName] || 0) + 1
-      }
-      return acc
-    }, {})
-
-    const creatorBreakdown = Object.entries(creators).map(([name, count]) => ({
-      name,
-      count
-    }))
-
-    // Pagination
-    const totalItems = filteredItems.length
-    const totalPages = Math.ceil(totalItems / limit)
-    const startIndex = (page - 1) * limit
-    const endIndex = startIndex + limit
-    const paginatedItems = filteredItems.slice(startIndex, endIndex)
-
-    // Get table schema for metadata
-    const schema = await getTableSchema(tableName)
-    
-    const responseData = {
-      items: filteredItems, // Store full filtered data for caching
-      pagination: {
-        currentPage: 1, // We'll paginate from cache
-        totalPages: Math.ceil(filteredItems.length / limit),
-        totalItems: filteredItems.length,
-        hasNextPage: filteredItems.length > limit,
-        hasPreviousPage: false,
-        itemsPerPage: limit,
-        startIndex: 1,
-        endIndex: Math.min(limit, filteredItems.length)
-      },
-      breakdown: {
-        favorites: favoritesResult.data?.length || 0, // Use actual database count
-        releases: releasesResult.data?.length || 0, // Use actual database count
-        library: transformedItems.length
-      },
-      categories: categoryBreakdown,
-      creators: creatorBreakdown,
-      totalLibraryItems: transformedItems.length,
-      currentTable: tableName,
-      availableTables: allTables,
-      tableSchema: schema
+    // Calculate stats
+    const stats = {
+      total: filteredItems.length,
+      byMessageType: countByField(filteredItems, 'messageType'),
+      byPage: countByField(filteredItems, 'creatorName'),
+      byCategory: countByField(filteredItems, 'category'),
+      byOutcome: countByField(filteredItems, 'outcome'),
+      byType: countByField(filteredItems, 'type')
     }
 
-    // Cache the response data (without pagination)
-    memoryCache.set(cacheKey, responseData, 5 * 60 * 1000) // 5 minutes
+    // Extract unique values for filters
+    const categories = Object.entries(stats.byCategory).map(([name, count]) => ({
+      name,
+      count: count as number
+    }))
 
-    // Return full data without pagination - frontend handles pagination
-    const response = {
-      ...responseData,
+    const creators = Object.entries(stats.byPage).map(([name, count]) => ({
+      name,
+      count: count as number
+    }))
+
+    // Prepare response
+    const responseData = {
+      items: filteredItems,
+      stats,
+      breakdown: {
+        favorites: favorites.length,
+        releases: releases.length,
+        library: items.length
+      },
+      categories,
+      creators,
       pagination: {
         currentPage: 1,
         totalPages: Math.ceil(filteredItems.length / limit),
@@ -749,40 +375,49 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Cache the response data
+    memoryCache.set(cacheKey, responseData, 5 * 60 * 1000) // 5 minutes
+
     const endTime = performance.now()
     const duration = Math.round(endTime - startTime)
 
-
-    // Add cache headers for performance
     const headers = new Headers()
     headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=86400')
     headers.set('X-Cache', 'MISS')
     headers.set('X-Response-Time', `${duration}ms`)
-    headers.set('X-Table', tableName)
     headers.set('X-Total-Items', filteredItems.length.toString())
 
-    return NextResponse.json(response, { headers })
-    
-    } // Close single table mode
-  
+    return NextResponse.json(responseData, { headers })
+
   } catch (error) {
-    
+    console.error('Gallery API error:', error)
     return NextResponse.json(
       {
         error: 'Failed to fetch gallery data from database',
         details: error instanceof Error ? error.message : 'Unknown error',
         items: [],
-        pagination: {
-          currentPage: 1,
-          totalPages: 0,
-          totalItems: 0,
-          hasNextPage: false,
-          hasPreviousPage: false
+        stats: {
+          total: 0,
+          byMessageType: {},
+          byPage: {},
+          byCategory: {},
+          byOutcome: {},
+          byType: {}
         },
         breakdown: {
           favorites: 0,
           releases: 0,
           library: 0
+        },
+        categories: [],
+        creators: [],
+        pagination: {
+          currentPage: 1,
+          totalPages: 0,
+          totalItems: 0,
+          hasNextPage: false,
+          hasPreviousPage: false,
+          itemsPerPage: 20
         }
       },
       { status: 500 }
@@ -791,31 +426,19 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST endpoint to switch between tables or manage data
+ * POST endpoint to manage cache
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { action, tableName } = body
+    const { action } = body
 
     switch (action) {
-      case 'listTables':
-        const tables = await getAllTableNames()
-        return NextResponse.json({ tables })
-
-      case 'getSchema':
-        if (!tableName) {
-          return NextResponse.json({ error: 'Table name required' }, { status: 400 })
-        }
-        const schema = await getTableSchema(tableName)
-        return NextResponse.json({ schema })
-
       case 'clearCache':
-        const pattern = tableName ? `gallery-db:${tableName}` : 'gallery-db'
-        memoryCache.invalidate(pattern)
-        return NextResponse.json({ 
-          success: true, 
-          message: `Cache cleared for pattern: ${pattern}` 
+        memoryCache.invalidate('gallery')
+        return NextResponse.json({
+          success: true,
+          message: 'Gallery cache cleared'
         })
 
       default:
@@ -832,7 +455,7 @@ export async function POST(request: NextRequest) {
 // Helper function to determine category from content style
 function determineCategoryFromStyle(contentStyle: string): string {
   const style = contentStyle.toLowerCase()
-  
+
   if (style.includes('sextape') || style.includes('sex tape') || style.includes('ptr')) {
     return 'PTR'
   }
@@ -848,21 +471,6 @@ function determineCategoryFromStyle(contentStyle: string): string {
   if (style.includes('tease') || style.includes('strip') || style.includes('dance')) {
     return 'Tease'
   }
-  
-  return 'Other'
-}
 
-// Helper function to extract creator name from table name
-function getCreatorNameFromTable(tableName: string): string {
-  if (!tableName.startsWith('gs_')) return tableName
-  
-  // Remove 'gs_' prefix and split by underscores
-  const parts = tableName.substring(3).split('_')
-  
-  // Convert to proper case
-  const creatorName = parts
-    .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-    .join(' ')
-  
-  return creatorName
+  return 'Other'
 }

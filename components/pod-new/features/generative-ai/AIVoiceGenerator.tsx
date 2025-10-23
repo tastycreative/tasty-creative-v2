@@ -929,27 +929,33 @@ const AIVoicePage = () => {
   }, [activeTab, selectedApiKeyProfile]);
 
   return (
-    <div className="min-h-screen bg-white/60 dark:bg-gray-900/80 backdrop-blur-sm p-6 transition-colors">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900 p-6 transition-colors relative overflow-hidden">
+      {/* Decorative circles */}
+      <div className="absolute top-20 right-20 w-72 h-72 bg-white/40 dark:bg-white/5 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute bottom-20 left-20 w-96 h-96 bg-purple-200/30 dark:bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div className="relative max-w-7xl mx-auto space-y-8 z-10">
         {/* Header Section */}
         <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-600 to-rose-600 dark:from-pink-400 dark:to-rose-400 mb-2">
-            Professional AI Voice Generation
+          <h1 className="text-4xl lg:text-5xl font-black tracking-tight">
+            <span className="bg-gradient-to-r from-gray-900 via-pink-600 to-purple-600 dark:from-gray-100 dark:via-pink-400 dark:to-purple-400 bg-clip-text text-transparent">
+              Professional AI Voice Generation
+            </span>
           </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto font-medium">
             Convert text to high-quality professional voices using ElevenLabs
           </p>
         </div>
 
         {/* Sub-Tab Navigation */}
         <div className="flex justify-center">
-          <div className="inline-flex gap-2 p-1 bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border border-pink-200 dark:border-pink-500/30 rounded-xl">
+          <div className="inline-flex gap-2 p-1 bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/60 rounded-xl shadow-lg">
             <button
               onClick={() => setActiveTab("generation")}
-              className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
                 activeTab === "generation"
-                  ? "bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-md"
-                  : "text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200"
+                  ? "bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 text-white shadow-lg shadow-pink-500/30"
+                  : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white hover:bg-white/50 dark:hover:bg-gray-800/50"
               }`}
             >
               <div className="flex items-center gap-2">
@@ -959,17 +965,17 @@ const AIVoicePage = () => {
             </button>
             <button
               onClick={() => setActiveTab("history")}
-              className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
                 activeTab === "history"
-                  ? "bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-md"
-                  : "text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200"
+                  ? "bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 text-white shadow-lg shadow-pink-500/30"
+                  : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white hover:bg-white/50 dark:hover:bg-gray-800/50"
               }`}
             >
               <div className="flex items-center gap-2">
                 <Clock size={18} />
                 <span>History & Sales</span>
                 {historyEntries.length > 0 && (
-                  <span className="ml-1 px-2 py-0.5 bg-pink-500 text-white text-xs rounded-full">
+                  <span className="ml-1 px-2 py-0.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs rounded-full font-bold">
                     {historyEntries.length}
                   </span>
                 )}
@@ -977,10 +983,10 @@ const AIVoicePage = () => {
             </button>
             <button
               onClick={() => setActiveTab("sales")}
-              className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+              className={`px-6 py-3 rounded-lg font-semibold transition-all duration-200 ${
                 activeTab === "sales"
-                  ? "bg-gradient-to-r from-pink-600 to-rose-600 text-white shadow-md"
-                  : "text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200"
+                  ? "bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 text-white shadow-lg shadow-pink-500/30"
+                  : "text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white hover:bg-white/50 dark:hover:bg-gray-800/50"
               }`}
             >
               <div className="flex items-center gap-2">
@@ -995,7 +1001,7 @@ const AIVoicePage = () => {
         {activeTab === "generation" && (
           <>
             {/* Status Guide */}
-            <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
+            <Card className="bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/60 rounded-2xl shadow-lg">
               <CardHeader className="pb-4">
                 <CardTitle className="text-gray-700 dark:text-gray-200">
                   💡 Status Guide
@@ -1044,7 +1050,7 @@ const AIVoicePage = () => {
             </Card>
 
         {/* API Profile & Balance Card */}
-        <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
+        <Card className="bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/60 rounded-2xl shadow-lg">
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Left side - API Profile */}
@@ -1141,7 +1147,7 @@ const AIVoicePage = () => {
           {/* Voice Generation Panel */}
           <div className="space-y-6">
             {/* Voice & Model Selection */}
-            <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
+            <Card className="bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/60 rounded-2xl shadow-lg">
               <CardHeader className="pb-4">
                 <CardTitle className="text-gray-700 dark:text-gray-200">
                   Voice Selection
@@ -1229,7 +1235,7 @@ const AIVoicePage = () => {
             </Card>
 
             {/* Text Input */}
-            <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
+            <Card className="bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/60 rounded-2xl shadow-lg">
               <CardHeader className="pb-4">
                 <CardTitle className="text-gray-700 dark:text-gray-200">
                   Voice Text
@@ -1279,7 +1285,7 @@ const AIVoicePage = () => {
             </Card>
 
             {/* Voice Parameters */}
-            <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
+            <Card className="bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/60 rounded-2xl shadow-lg">
               <CardHeader className="pb-4">
                 <CardTitle className="text-gray-700 dark:text-gray-200">
                   Voice Parameters
@@ -1504,7 +1510,7 @@ const AIVoicePage = () => {
           {/* Preview & History Panel */}
           <div className="space-y-6">
             {/* Voice Preview */}
-            <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
+            <Card className="bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/60 rounded-2xl shadow-lg">
               <CardHeader className="pb-4">
                 <CardTitle className="text-gray-700 dark:text-gray-200">
                   Voice Preview
@@ -1656,7 +1662,7 @@ const AIVoicePage = () => {
               </Card>
 
               {/* API Profile Selection for History */}
-              <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
+              <Card className="bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/60 rounded-2xl shadow-lg">
                 <CardHeader className="pb-4">
                   <CardTitle className="text-gray-700 dark:text-gray-200">
                     Select API Profile
@@ -1744,7 +1750,7 @@ const AIVoicePage = () => {
               {/* Voice Note Sale Submission - Always visible in history tab */}
               <Card
                 ref={saleFormRef}
-                className={`bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl transition-all duration-300 ${
+                className={`bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/60 rounded-2xl shadow-lg transition-all duration-300 ${
                   saleFormHighlighted
                     ? "ring-2 ring-green-500 ring-opacity-50 bg-green-900/10"
                     : ""
@@ -2044,7 +2050,7 @@ const AIVoicePage = () => {
               </Card>
 
             {/* Voice History - Show all history for the selected API profile */}
-            <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
+            <Card className="bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/60 rounded-2xl shadow-lg">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -2314,7 +2320,7 @@ const AIVoicePage = () => {
 
         {/* Status Section */}
         {generationStatus && !voiceError && (
-          <Card className="bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm border-pink-200 dark:border-pink-500/30 rounded-xl">
+          <Card className="bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/60 rounded-2xl shadow-lg">
             <CardContent className="p-6">
               <div className="flex items-center">
                 <div className="w-2 h-2 bg-pink-400 dark:bg-pink-500 rounded-full mr-3 animate-pulse"></div>

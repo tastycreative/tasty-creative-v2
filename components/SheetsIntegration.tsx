@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Progress } from "@/components/ui/progress";
 import ModelsDropdownList from "@/components/ModelsDropdownList";
 import PermissionGoogle from "@/components/PermissionGoogle";
 import { useSheetLinks, usePodStore } from "@/lib/stores/podStore";
@@ -17,8 +18,6 @@ import {
   AlertCircle,
   ExternalLink,
   ArrowLeftRight,
-  User,
-  Link,
   Save,
   Database,
   Edit,
@@ -53,6 +52,10 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
     null
   );
   const [rotationCount, setRotationCount] = useState(0);
+
+  // Progress tracking state
+  const [progress, setProgress] = useState(0);
+  const [progressStage, setProgressStage] = useState("");
 
   // Hook for sheet links store functionality
   const { fetchSheetLinks } = useSheetLinks();
@@ -344,6 +347,8 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
 
     setIsLoading(true);
     setNewSpreadsheetUrl(null);
+    setProgress(5);
+    setProgressStage("Validating permissions");
     setStatus({
       type: "info",
       message: "Checking spreadsheet permissions...",
@@ -387,6 +392,8 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
       return;
     }
 
+    setProgress(15);
+    setProgressStage("Reading spreadsheet data");
     setStatus({
       type: "info",
       message: "Processing spreadsheet data...",
@@ -396,11 +403,11 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
     let pollInterval: NodeJS.Timeout | null = null;
     let pollCount = 0;
     const maxPollAttempts = 60; // Poll for up to 5 minutes (60 * 5s = 5min)
-    
+
     const startPolling = () => {
       pollInterval = setInterval(async () => {
         pollCount++;
-        
+
         // Stop polling after max attempts or if request completes
         if (pollCount >= maxPollAttempts || !isLoading) {
           if (pollInterval) {
@@ -409,19 +416,27 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
           }
           return;
         }
-        
+
+        // Update progress based on time elapsed
+        const baseProgress = 20;
+        const timeProgress = Math.min(60, baseProgress + (pollCount * 2)); // Max 80% during processing
+        setProgress(timeProgress);
+
         // Show appropriate messages during long operations
         if (pollCount === 6 && status?.type === "info") { // After 30 seconds
+          setProgressStage("Processing sheets");
           setStatus({
             type: "info",
             message: "Processing sheets... This may take a moment if there are many sheets to process.",
           });
         } else if (pollCount === 12 && status?.type === "info") { // After 1 minute
+          setProgressStage("Handling quota limits");
           setStatus({
             type: "warning",
             message: "Processing is taking longer than usual. This may be due to Google Sheets quota limits. Retrying automatically...",
           });
         } else if (pollCount === 24 && (status?.type === "info" || status?.type === "warning")) { // After 2 minutes
+          setProgressStage("Retrying with backoff");
           setStatus({
             type: "warning",
             message: "Still processing... Google Sheets quota limits detected. The system is automatically retrying. Please wait...",
@@ -450,11 +465,16 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
       const result = await response.json();
 
       if (response.ok) {
+        setProgress(85);
+        setProgressStage("Saving to database");
+
         const successMessage =
           result.scheduleSheets && result.sheetsCount > 1
             ? `Successfully processed ${result.sheetsCount} Schedule #1 sheets with real-time sync! Created in model folder: ${selectedModel}`
             : `Successfully set up real-time sync for your spreadsheet! Created in model folder: ${selectedModel}`;
 
+        setProgress(100);
+        setProgressStage("Complete");
         setStatus({
           type: "success",
           message: successMessage,
@@ -549,6 +569,8 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
       }
     } catch (error) {
       console.error("Error:", error);
+      setProgress(0);
+      setProgressStage("");
       setStatus({
         type: "error",
         message: "Network error. Please try again.",
@@ -558,6 +580,13 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
       // Clean up polling
       if (pollInterval) {
         clearInterval(pollInterval);
+      }
+      // Reset progress after a delay on success
+      if (status?.type === "success") {
+        setTimeout(() => {
+          setProgress(0);
+          setProgressStage("");
+        }, 3000);
       }
     }
   };
@@ -723,6 +752,32 @@ const SheetsIntegration: React.FC<SheetsIntegrationProps> = ({
                   </>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Progress Bar */}
+          {isLoading && progress > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-semibold text-gray-700 dark:text-gray-300 flex items-center">
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin text-pink-500" />
+                  {progressStage || "Processing"}
+                </span>
+                <span className="font-bold text-pink-600 dark:text-pink-400">
+                  {progress}%
+                </span>
+              </div>
+              <Progress
+                value={progress}
+                className="h-3 bg-gray-200 dark:bg-gray-700"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                {progress < 20 ? "Starting process..." :
+                 progress < 40 ? "Reading spreadsheet data..." :
+                 progress < 60 ? "Processing sheets..." :
+                 progress < 80 ? "Creating sync spreadsheet..." :
+                 progress < 100 ? "Finalizing..." : "Complete! ✨"}
+              </p>
             </div>
           )}
 

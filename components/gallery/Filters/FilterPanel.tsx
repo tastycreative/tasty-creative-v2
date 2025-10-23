@@ -36,9 +36,10 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   // Calculate active filters count for badge
   const activeFiltersCount = [
     filters.category !== "all" ? 1 : 0,
-    filters.creator !== "all" ? 1 : 0, 
+    filters.creator !== "all" ? 1 : 0,
     filters.messageType !== "all" ? 1 : 0,
     filters.outcome !== "all" ? 1 : 0,
+    filters.contentTypeFilter && filters.contentTypeFilter !== "all" ? 1 : 0,
     filters.revenue ? 1 : 0,
   ].reduce((sum, val) => sum + val, 0);
 
@@ -163,7 +164,30 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
         </div>
 
         {/* Secondary Filters - Less Important */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-gray-100 dark:border-gray-700">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2 border-t border-gray-100 dark:border-gray-700">
+          {/* Type (MM/Post) */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+              Content Type
+            </label>
+            <Select
+              value={filters.contentTypeFilter || "all"}
+              onValueChange={(value) => onFiltersChange({ contentTypeFilter: value })}
+            >
+              <SelectTrigger className={cn(
+                "bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 transition-colors",
+                filters.contentTypeFilter && filters.contentTypeFilter !== "all" && "ring-1 ring-blue-500/20 border-blue-300 dark:border-blue-600"
+              )}>
+                <SelectValue placeholder="All Types" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">📋 All Types</SelectItem>
+                <SelectItem value="MM">📧 Mass Message</SelectItem>
+                <SelectItem value="Post">📱 Wall Post</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Message Type */}
           <div className="space-y-2">
             <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
@@ -181,8 +205,9 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">💰 All PPV Content</SelectItem>
-                <SelectItem value="PPV">💰 PPV Only</SelectItem>
-                <SelectItem value="PPV Follow Up">📞 PPV Follow up Only</SelectItem>
+                <SelectItem value="PPV">💵 PPV Only</SelectItem>
+                <SelectItem value="PPV Follow Up">📞 PPV Follow Up</SelectItem>
+                <SelectItem value="Sexting Set Bump">💬 Sexting Set Bump</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -251,18 +276,31 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
               )}
               
               {filters.creator !== "all" && (
-                <Badge 
+                <Badge
                   variant="outline"
                   className="bg-purple-50 border-purple-200 text-purple-700 dark:bg-purple-900/20 dark:border-purple-800 dark:text-purple-300"
                 >
                   👤 {filters.creator}
-                  <X 
-                    className="w-3 h-3 ml-1 cursor-pointer hover:text-purple-900 dark:hover:text-purple-100" 
+                  <X
+                    className="w-3 h-3 ml-1 cursor-pointer hover:text-purple-900 dark:hover:text-purple-100"
                     onClick={() => onFiltersChange({ creator: "all" })}
                   />
                 </Badge>
               )}
-              
+
+              {filters.contentTypeFilter && filters.contentTypeFilter !== "all" && (
+                <Badge
+                  variant="outline"
+                  className="bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-900/20 dark:border-indigo-800 dark:text-indigo-300"
+                >
+                  {filters.contentTypeFilter === "MM" ? "📧 Mass Message" : "📱 Wall Post"}
+                  <X
+                    className="w-3 h-3 ml-1 cursor-pointer hover:text-indigo-900 dark:hover:text-indigo-100"
+                    onClick={() => onFiltersChange({ contentTypeFilter: "all" })}
+                  />
+                </Badge>
+              )}
+
               {filters.messageType !== "all" && (
                 <Badge 
                   variant="outline"

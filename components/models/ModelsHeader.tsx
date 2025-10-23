@@ -1,5 +1,5 @@
 "use client";
-import { Search, Users, UserCheck, UserX, Sparkles } from "lucide-react";
+import { Search, Users, UserCheck, UserX, Sparkles, Download } from "lucide-react";
 
 interface ModelsHeaderProps {
   searchQuery: string;
@@ -11,6 +11,7 @@ interface ModelsHeaderProps {
   isLoading?: boolean;
   title?: string;
   subtitle?: string;
+  onExport?: () => void;
 }
 
 export default function ModelsHeader({
@@ -23,6 +24,7 @@ export default function ModelsHeader({
   isLoading,
   title = "Models Management",
   subtitle = "Manage your OnlyFans models and their content",
+  onExport,
 }: ModelsHeaderProps) {
   return (
     <div className="space-y-6 mb-8">
@@ -40,6 +42,15 @@ export default function ModelsHeader({
             {subtitle}
           </p>
         </div>
+        {onExport && (
+          <button
+            onClick={onExport}
+            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white rounded-2xl font-medium transition-all duration-300 shadow-lg shadow-pink-500/25 hover:shadow-pink-500/40"
+          >
+            <Download className="w-5 h-5 mr-2" />
+            Export CSV
+          </button>
+        )}
       </div>
 
       {/* Stats Cards */}
