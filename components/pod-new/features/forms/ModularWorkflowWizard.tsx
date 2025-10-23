@@ -65,6 +65,22 @@ export type SubmissionType = "otp" | "ptr";
 export type ContentStyle = "normal" | "poll" | "game" | "ppv" | "bundle";
 export type ComponentModule = "pricing" | "release" | "upload";
 
+// Workflow Routing Helper
+function getWorkflowRouting(contentStyle: ContentStyle | undefined, submissionType: SubmissionType | undefined) {
+  // Standard workflow for all content types
+  const standardWorkflow = [
+    { name: "Content Team", type: "primary" },
+    { name: "PGT", type: "secondary" },
+    { name: "Flyer Team", type: "secondary" },
+    { name: "OTP Manager/QA", type: "secondary" },
+    { name: "Posted", type: "final" }
+  ];
+
+  // Return standard workflow for all cases
+  // The actual workflow columns are created server-side based on contentStyle
+  return standardWorkflow;
+}
+
 // Form Data Interface
 interface ModularFormData {
   submissionType: SubmissionType;
@@ -195,7 +211,8 @@ const formTemplates: FormTemplate[] = [
 
 // Style Templates Configuration with submission type filtering
 const styleTemplates = [
-  // OTP-specific content styles (regular wall posts)
+  // All content styles work with both OTP and PTR
+  // OTP = flexible scheduling, PTR = model-requested deadline
   {
     id: "normal" as ContentStyle,
     name: "Wall Post",
@@ -205,7 +222,7 @@ const styleTemplates = [
     preview: "📝 Standard wall posts and updates",
     teams: ["Content Team", "PGT", "Flyer Team", "OTP Manager/QA"],
     priority: false,
-    submissionTypes: ["otp"] as SubmissionType[]
+    submissionTypes: ["otp", "ptr"] as SubmissionType[]
   },
   {
     id: "poll" as ContentStyle,
@@ -216,7 +233,7 @@ const styleTemplates = [
     preview: "📊 Interactive polls for engagement",
     teams: ["Content Team", "PGT", "Flyer Team", "OTP Manager/QA"],
     priority: false,
-    submissionTypes: ["otp"] as SubmissionType[]
+    submissionTypes: ["otp", "ptr"] as SubmissionType[]
   },
   {
     id: "game" as ContentStyle,
@@ -229,7 +246,7 @@ const styleTemplates = [
     priority: false,
     submissionTypes: ["otp", "ptr"] as SubmissionType[]
   },
-  // PTR-specific content styles (model-requested dates)
+  // Premium content styles (work with both OTP and PTR)
   {
     id: "ppv" as ContentStyle,
     name: "PPV (Pay Per View)",
@@ -239,7 +256,7 @@ const styleTemplates = [
     preview: "💰 Premium locked content",
     teams: ["Content Team", "PGT", "Flyer Team", "OTP Manager/QA"],
     priority: true,
-    submissionTypes: ["ptr"] as SubmissionType[]
+    submissionTypes: ["otp", "ptr"] as SubmissionType[]
   },
   {
     id: "bundle" as ContentStyle,
@@ -250,7 +267,7 @@ const styleTemplates = [
     preview: "📦 Multiple content pieces bundled",
     teams: ["Content Team", "PGT", "Flyer Team", "OTP Manager/QA"],
     priority: true,
-    submissionTypes: ["ptr"] as SubmissionType[]
+    submissionTypes: ["otp", "ptr"] as SubmissionType[]
   }
 ];
 
@@ -345,17 +362,8 @@ export default function ModularWorkflowWizard() {
   // Calculate progress
   const progress = ((currentStep + 1) / WIZARD_STEPS.length) * 100;
 
-  // Reset content style when submission type changes if current style is not compatible
-  useEffect(() => {
-    if (submissionType && contentStyle) {
-      const currentStyleTemplate = styleTemplates.find(style => style.id === contentStyle);
-      if (currentStyleTemplate && !currentStyleTemplate.submissionTypes.includes(submissionType)) {
-        console.log('Resetting content style due to submission type change');
-        setValue("contentStyle", "" as any);
-        toast.info(`Content style reset - please select a ${submissionType.toUpperCase()} compatible style`);
-      }
-    }
-  }, [submissionType, contentStyle, setValue]);
+  // Content style compatibility check (all styles now work with both OTP and PTR)
+  // Removed auto-reset logic - PPV/Bundle now available for both submission types
 
   // Update available pricing when model or content style changes
   useEffect(() => {
@@ -536,7 +544,7 @@ export default function ModularWorkflowWizard() {
     }
   };
 
-  // Step validation
+  // Step validation (relaxed for better UX - warnings instead of blockers)
   const validateCurrentStep = (): boolean => {
     switch (WIZARD_STEPS[currentStep].id) {
       case 'templates':
@@ -557,33 +565,34 @@ export default function ModularWorkflowWizard() {
         return true; // Optional
       case 'details':
         const formData = getValues();
-        if (!formData.model) {
-          toast.error("Please select a model");
-          return false;
-        }
-        if (!formData.driveLink) {
-          toast.error("Please provide a Drive link");
-          return false;
+
+        // Only block on truly required fields for final submission
+        if (currentStep === WIZARD_STEPS.length - 1) {
+          if (!formData.model) {
+            toast.error("Please select a model before submitting");
+            return false;
+          }
+          if (!formData.driveLink) {
+            toast.error("Please provide a Drive link before submitting");
+            return false;
+          }
         }
 
-        // Validate pricing component if selected
+        // Show warnings for optional fields (don't block navigation)
         if (selectedComponents.includes('pricing')) {
           if (!formData.pricingType && !formData.basePrice) {
-            toast.error("Please set pricing information or remove the pricing component");
-            return false;
-          }
-          // Allow non-numeric pricing for descriptive pricing from database
-          if (formData.basePrice && formData.basePrice.trim() === '') {
-            toast.error("Please enter a base price or select a pricing type");
-            return false;
+            toast.info("💡 Tip: Add pricing information or remove the pricing component", {
+              duration: 3000
+            });
           }
         }
 
-        // Validate release component if selected
-        if (selectedComponents.includes('release')) {
+        // Release date is now optional - just show a warning for PTR
+        if (selectedComponents.includes('release') && submissionType === 'ptr') {
           if (!formData.releaseDate) {
-            toast.error("Please set a release date or remove the release component");
-            return false;
+            toast.info("💡 PTR Tip: Consider adding a release date for model deadline tracking", {
+              duration: 3000
+            });
           }
         }
 
@@ -1197,45 +1206,81 @@ export default function ModularWorkflowWizard() {
                       )}
                     </div>
 
-                    {availablePricing.length > 0 && (
-                      <div>
-                        <Label htmlFor="pricingType">Content Type</Label>
-                        <Select
-                          onValueChange={(value) => {
-                            setSelectedPricingItem(value);
-                            setValue("pricingType", value);
-                          }}
-                          disabled={pricingLoading || availablePricing.length === 0}
-                        >
-                          <SelectTrigger className="mt-2">
-                            <SelectValue placeholder="Select content type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {availablePricing.map((item) => (
-                              <SelectItem key={item.id} value={item.name}>
-                                {item.name} {item.price && `- $${item.price}`}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {selectedPricingItem && (
-                          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                            {availablePricing.find(item => item.name === selectedPricingItem)?.description}
-                          </p>
-                        )}
-                      </div>
-                    )}
+                    {/* Content Type - Flexible Input (Dropdown OR Manual Text) */}
+                    <div>
+                      <Label htmlFor="pricingType">
+                        Content Type
+                        <span className="text-xs text-gray-500 ml-2">(Select from list OR type custom)</span>
+                      </Label>
 
+                      {availablePricing.length > 0 && (
+                        <>
+                          <Select
+                            onValueChange={(value) => {
+                              setSelectedPricingItem(value);
+                              setValue("pricingType", value);
+                            }}
+                            disabled={pricingLoading || availablePricing.length === 0}
+                          >
+                            <SelectTrigger className="mt-2">
+                              <SelectValue placeholder="Quick select from model pricing..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {availablePricing.map((item) => (
+                                <SelectItem key={item.id} value={item.name}>
+                                  {item.name} {item.price && `- $${item.price}`}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <div className="relative my-2">
+                            <div className="absolute inset-0 flex items-center">
+                              <span className="w-full border-t border-gray-300 dark:border-gray-600" />
+                            </div>
+                            <div className="relative flex justify-center text-xs">
+                              <span className="bg-white dark:bg-gray-950 px-2 text-gray-500">OR type custom</span>
+                            </div>
+                          </div>
+                        </>
+                      )}
+
+                      <Input
+                        id="pricingType"
+                        type="text"
+                        placeholder="Type custom content type (e.g., SOLO, BG/GG, Custom Bundle)"
+                        {...register("pricingType")}
+                        className="mt-2"
+                        onChange={(e) => {
+                          setValue("pricingType", e.target.value);
+                          if (e.target.value) {
+                            setSelectedPricingItem(""); // Clear dropdown selection when typing
+                          }
+                        }}
+                      />
+
+                      {selectedPricingItem && (
+                        <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                          ✓ Using: {availablePricing.find(item => item.name === selectedPricingItem)?.description}
+                        </p>
+                      )}
+                      {pricingType && !selectedPricingItem && (
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                          ✓ Custom content type: {pricingType}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Base Price - Always Editable */}
                     <div>
                       <Label htmlFor="basePrice">
-                        Base Price
+                        Base Price / Description
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger>
                               <HelpCircle className="w-4 h-4 text-gray-400 ml-2 inline" />
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Can be a price (e.g., $25.00) or content description (e.g., SOLO/BG/GG)</p>
+                              <p>Enter amount ($25), description (SOLO/BG/GG), or both. Always editable!</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
@@ -1243,18 +1288,17 @@ export default function ModularWorkflowWizard() {
                       <Input
                         id="basePrice"
                         type="text"
-                        placeholder={selectedPricingItem ? "Auto-populated from pricing data" : "Enter price or description"}
+                        placeholder="Enter price, description, or both (e.g., '$25 - SOLO/BG')"
                         {...register("basePrice")}
                         className="mt-2"
-                        readOnly={!!selectedPricingItem && !!getBasePriceForContent(selectedModel, selectedPricingItem)}
                       />
                       {selectedPricingItem && getBasePriceForContent(selectedModel, selectedPricingItem) && (
-                        <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                          ✓ Price/Content automatically set from model's pricing data
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                          💡 Suggested from model data: ${getBasePriceForContent(selectedModel, selectedPricingItem)} (You can override)
                         </p>
                       )}
                       <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                        Can include price amounts, content types, or descriptions (e.g., "$25" or "SOLO/BG/GG")
+                        Flexible field - type anything: "$25", "SOLO/BG/GG", "$32 PTR bundle", etc.
                       </p>
                     </div>
                   </div>
@@ -1343,6 +1387,58 @@ export default function ModularWorkflowWizard() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Team Assignment Card */}
+            <Card className="mt-6 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 border-blue-200 dark:border-blue-800">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  Team Assignment
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {currentTeam ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Current Team</p>
+                        <p className="font-semibold text-lg">{currentTeam.name}</p>
+                      </div>
+                      <Badge className="bg-blue-600 text-white">
+                        {submissionType === 'ptr' ? 'High Priority' : 'Standard'}
+                      </Badge>
+                    </div>
+
+                    <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <p className="text-xs font-medium text-blue-800 dark:text-blue-200 mb-2">
+                        Workflow Routing Preview:
+                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        {getWorkflowRouting(contentStyle, submissionType).slice(0, 4).map((route, index) => (
+                          <Badge
+                            key={index}
+                            variant={route.type === 'primary' ? 'default' : 'secondary'}
+                            className="text-xs"
+                          >
+                            {route.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      💡 Tip: You can change the team assignment in the right sidebar before submitting
+                    </p>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      ⚠️ No team selected. Please select a team from the right sidebar.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         );
 
@@ -1358,10 +1454,76 @@ export default function ModularWorkflowWizard() {
               </p>
             </div>
 
+            {/* Clear Visual Summary Card */}
+            <Card className="border-2 border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-purple-950 dark:via-pink-950 dark:to-blue-950">
+              <CardHeader>
+                <CardTitle className="text-center text-xl">
+                  📋 What You're Creating
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Main Type and Style */}
+                  <div className="text-center space-y-3">
+                    <div className="flex items-center justify-center gap-3">
+                      <Badge className={`px-4 py-2 text-lg ${
+                        formData.submissionType === 'ptr'
+                          ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white'
+                          : 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
+                      }`}>
+                        {formData.submissionType?.toUpperCase()}
+                      </Badge>
+                      <span className="text-2xl">+</span>
+                      <Badge variant="secondary" className="px-4 py-2 text-lg">
+                        {styleTemplates.find(s => s.id === formData.contentStyle)?.name}
+                      </Badge>
+                    </div>
+
+                    <p className="text-sm text-gray-700 dark:text-gray-300 italic">
+                      {formData.submissionType === 'ptr'
+                        ? '🚨 High Priority - Model-requested deadline'
+                        : '📅 Standard Scheduling - Flexible timing'
+                      }
+                    </p>
+                  </div>
+
+                  {/* Components Added */}
+                  {formData.selectedComponents?.length > 0 && (
+                    <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+                      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        ✨ Additional Components:
+                      </p>
+                      <div className="flex gap-2 flex-wrap justify-center">
+                        {formData.selectedComponents.map((comp) => (
+                          <Badge key={comp} variant="outline" className="capitalize">
+                            {comp}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Team Assignment */}
+                  {currentTeam && (
+                    <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+                      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        👥 Assigned Team:
+                      </p>
+                      <div className="text-center">
+                        <Badge className="bg-blue-600 text-white px-4 py-1">
+                          {currentTeam.name}
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
-                  Workflow Summary
+                  Detailed Summary
                   <Badge variant="outline" className="text-sm">
                     <Clock className="w-3 h-3 mr-1" />
                     Est. {estimatedTime}
@@ -1376,7 +1538,11 @@ export default function ModularWorkflowWizard() {
                     Workflow Path
                   </h4>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge className="bg-purple-600 text-white">
+                    <Badge className={
+                      formData.submissionType === 'ptr'
+                        ? 'bg-orange-600 text-white'
+                        : 'bg-purple-600 text-white'
+                    }>
                       {formData.submissionType?.toUpperCase()}
                     </Badge>
                     <ArrowRight className="w-4 h-4 text-gray-400" />

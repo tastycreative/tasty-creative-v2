@@ -117,16 +117,15 @@ const CardMetadata: React.FC<CardMetadataProps> = ({ content }) => {
             <TrendingUp className="w-3 h-3" />
             <span className="text-xs">Revenue</span>
           </div>
-          <span
-            className={cn(
-              "font-semibold text-sm",
-              (content.totalRevenue || content.revenue || 0) > 0
-                ? "text-green-600 dark:text-green-400"
-                : "text-gray-900 dark:text-white"
-            )}
-          >
-            {formatCurrency(content.totalRevenue || content.revenue || 0)}
-          </span>
+          {(content.totalRevenue || content.revenue || 0) > 0 ? (
+            <span className="font-semibold text-sm text-green-600 dark:text-green-400">
+              {formatCurrency(content.totalRevenue || content.revenue || 0)}
+            </span>
+          ) : (
+            <span className="text-xs text-gray-400 dark:text-gray-500 font-medium">
+              No data
+            </span>
+          )}
         </div>
 
         {/* Purchases */}

@@ -59,6 +59,7 @@ export interface FilterState {
   outcome: string;
   sortBy: string;
   revenue: string;
+  contentTypeFilter?: string; // MM or Post filter
 }
 
 export interface PaginationState {
