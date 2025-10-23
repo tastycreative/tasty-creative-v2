@@ -448,23 +448,70 @@ export function ModelInformationTab({
       }
 
       const result = await response.json();
-      console.log('✅ Price updated in database:', result);
+      console.log('✅ Successfully updated price:', result);
 
       setUpdateStatus({ type: 'success', message: 'Price updated successfully!' });
       setEditingCell(null);
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => setUpdateStatus(null), 3000);
-      
-      // Refetch creator data to update the UI
-      creatorQuery.refetch();
-      
+
+      // Refresh the data
+      queryClient.invalidateQueries({ queryKey: ['model-data'] });
+
     } catch (error) {
-      console.error('❌ Error updating price in database:', error);
-      setUpdateStatus({ type: 'error', message: 'Failed to update price. Please try again.' });
+      console.error('❌ Error updating price:', error);
+      setUpdateStatus({ 
+        type: 'error', 
+        message: error instanceof Error ? error.message : 'Failed to update price' 
+      });
+    }
+  };
+
+  const handleContentDetailsEditSave = async () => {
+    if (!editingCell || !isAdmin) return;
+
+    try {
+      setUpdateStatus(null);
       
-      // Clear error message after 5 seconds
-      setTimeout(() => setUpdateStatus(null), 5000);
+      console.log('💾 Updating content details in Prisma DB:', {
+        creatorName: editingCell.creatorName,
+        fieldName: editingCell.itemName,
+        newValue: editingCell.newValue
+      });
+      
+      const response = await fetch('/api/creators-db/update-content-details', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          creatorName: editingCell.creatorName,
+          fieldName: editingCell.itemName,
+          newValue: editingCell.newValue
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update content details in database');
+      }
+
+      const result = await response.json();
+      console.log('✅ Successfully updated content details:', result);
+
+      setUpdateStatus({ type: 'success', message: 'Content details updated successfully!' });
+      setEditingCell(null);
+
+      // Invalidate and refetch creator data (same as pricing updates)
+      queryClient.invalidateQueries({ queryKey: ['creators'] });
+      
+      // Also specifically refetch current creator query
+      creatorQuery.refetch();
+
+    } catch (error) {
+      console.error('❌ Error updating content details:', error);
+      setUpdateStatus({ 
+        type: 'error', 
+        message: error instanceof Error ? error.message : 'Failed to update content details' 
+      });
     }
   };
 
@@ -932,42 +979,194 @@ export function ModelInformationTab({
                 </div>
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Personality Type - Editable */}
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">
                         Personality Type
                       </label>
-                      <p className="font-semibold">{personalityText}</p>
+                      {isAdmin && editingCell && editingCell.creatorName === (resolvedCreatorName || '') && editingCell.itemName === 'Personality Type' ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            value={editingCell.newValue}
+                            onChange={(e) => handleEditValueChange(e.target.value)}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                            autoFocus
+                          />
+                          <button
+                            onClick={handleContentDetailsEditSave}
+                            className="p-1 text-green-600 hover:text-green-700 rounded"
+                          >
+                            <Check className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => setEditingCell(null)}
+                            className="p-1 text-red-600 hover:text-red-700 rounded"
+                          >
+                            <XIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <p 
+                          className={`font-semibold ${isAdmin ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 px-2 py-1 rounded' : ''}`}
+                          onClick={() => isAdmin && setEditingCell({
+                            creatorName: resolvedCreatorName || '',
+                            itemName: 'Personality Type',
+                            originalValue: personalityText || '',
+                            newValue: personalityText || ''
+                          })}
+                        >
+                          {personalityText}
+                          {isAdmin && <Edit2 className="inline ml-1 h-3 w-3 opacity-50" />}
+                        </p>
+                      )}
                     </div>
+                    
+                    {/* Referrer - NOT Editable */}
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">
                         Referrer
                       </label>
                       <p className="font-semibold">{referrerText}</p>
                     </div>
+                    
+                    {/* Restricted Terms or Emojis - Editable */}
                     <div>
                       <label className="text-sm font-medium text-muted-foreground">
-                        Timezone
+                        Restricted Terms or Emojis
                       </label>
-                      <p className="font-semibold">
-                        {modelData.profile.timezone}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">
-                        Languages
-                      </label>
-                      <div className="flex flex-wrap gap-1">
-                        {modelData.profile.languages.map((lang, idx) => (
-                          <Badge
-                            key={idx}
-                            variant="secondary"
-                            className="text-xs"
+                      {isAdmin && editingCell && editingCell.creatorName === (resolvedCreatorName || '') && editingCell.itemName === 'Restricted Terms or Emojis' ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            value={editingCell.newValue}
+                            onChange={(e) => handleEditValueChange(e.target.value)}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                            autoFocus
+                            placeholder="Enter restricted terms or emojis..."
+                          />
+                          <button
+                            onClick={handleContentDetailsEditSave}
+                            className="p-1 text-green-600 hover:text-green-700 rounded"
                           >
-                            {lang}
-                          </Badge>
-                        ))}
-                      </div>
+                            <Check className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => setEditingCell(null)}
+                            className="p-1 text-red-600 hover:text-red-700 rounded"
+                          >
+                            <XIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <p 
+                          className={`font-semibold ${isAdmin ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 px-2 py-1 rounded' : ''}`}
+                          onClick={() => isAdmin && setEditingCell({
+                            creatorName: resolvedCreatorName || '',
+                            itemName: 'Restricted Terms or Emojis',
+                            originalValue: runtimeContext?.contentDetails?.restrictedTerms || '',
+                            newValue: runtimeContext?.contentDetails?.restrictedTerms || ''
+                          })}
+                        >
+                          {runtimeContext?.contentDetails?.restrictedTerms || "N/A"}
+                          {isAdmin && <Edit2 className="inline ml-1 h-3 w-3 opacity-50" />}
+                        </p>
+                      )}
                     </div>
+                    
+                    {/* Notes - Editable */}
+                    <div>
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Notes
+                      </label>
+                      {isAdmin && editingCell && editingCell.creatorName === (resolvedCreatorName || '') && editingCell.itemName === 'Notes' ? (
+                        <div className="flex items-center gap-1">
+                          <textarea
+                            value={editingCell.newValue}
+                            onChange={(e) => handleEditValueChange(e.target.value)}
+                            className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                            autoFocus
+                            rows={3}
+                            placeholder="Enter notes..."
+                          />
+                          <div className="flex flex-col gap-1">
+                            <button
+                              onClick={handleContentDetailsEditSave}
+                              className="p-1 text-green-600 hover:text-green-700 rounded"
+                            >
+                              <Check className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => setEditingCell(null)}
+                              className="p-1 text-red-600 hover:text-red-700 rounded"
+                            >
+                              <XIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p 
+                          className={`font-semibold ${isAdmin ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 px-2 py-1 rounded' : ''}`}
+                          onClick={() => isAdmin && setEditingCell({
+                            creatorName: resolvedCreatorName || '',
+                            itemName: 'Notes',
+                            originalValue: runtimeContext?.contentDetails?.notes || '',
+                            newValue: runtimeContext?.contentDetails?.notes || ''
+                          })}
+                        >
+                          {runtimeContext?.contentDetails?.notes || "N/A"}
+                          {isAdmin && <Edit2 className="inline ml-1 h-3 w-3 opacity-50" />}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* General client notes/requests - Full width */}
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      General Client Notes/Requests
+                    </label>
+                    {isAdmin && editingCell && editingCell.creatorName === (resolvedCreatorName || '') && editingCell.itemName === 'General Client Notes/Requests' ? (
+                      <div className="flex items-start gap-1 mt-2">
+                        <textarea
+                          value={editingCell.newValue}
+                          onChange={(e) => handleEditValueChange(e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                          autoFocus
+                          rows={4}
+                          placeholder="Enter general client notes or requests..."
+                        />
+                        <div className="flex flex-col gap-1">
+                          <button
+                            onClick={handleContentDetailsEditSave}
+                            className="p-1 text-green-600 hover:text-green-700 rounded"
+                          >
+                            <Check className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => setEditingCell(null)}
+                            className="p-1 text-red-600 hover:text-red-700 rounded"
+                          >
+                            <XIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div 
+                        className={`mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg ${isAdmin ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700' : ''}`}
+                        onClick={() => isAdmin && setEditingCell({
+                          creatorName: resolvedCreatorName || '',
+                          itemName: 'General Client Notes/Requests',
+                          originalValue: runtimeContext?.contentDetails?.generalClientNotes || '',
+                          newValue: runtimeContext?.contentDetails?.generalClientNotes || ''
+                        })}
+                      >
+                        <p className="text-sm whitespace-pre-wrap">
+                          {runtimeContext?.contentDetails?.generalClientNotes || "No notes or requests yet..."}
+                          {isAdmin && <Edit2 className="inline ml-1 h-3 w-3 opacity-50" />}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <Separator />
@@ -976,28 +1175,110 @@ export function ModelInformationTab({
                     <label className="text-sm font-medium text-muted-foreground mb-2 block">
                       Common Terms
                     </label>
-                    <div className="flex flex-wrap gap-2">
-                      {derivedCommonTerms.map((term, idx) => (
-                        <Badge
-                          key={idx}
-                          variant="outline"
-                          className="bg-primary/5"
-                        >
-                          #{term}
-                        </Badge>
-                      ))}
-                    </div>
+                    {isAdmin && editingCell && editingCell.creatorName === (resolvedCreatorName || '') && editingCell.itemName === 'Common Terms' ? (
+                      <div className="flex items-start gap-1">
+                        <textarea
+                          value={editingCell.newValue}
+                          onChange={(e) => handleEditValueChange(e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                          autoFocus
+                          rows={3}
+                          placeholder="Enter common terms separated by spaces..."
+                        />
+                        <div className="flex flex-col gap-1">
+                          <button
+                            onClick={handleContentDetailsEditSave}
+                            className="p-1 text-green-600 hover:text-green-700 rounded"
+                          >
+                            <Check className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => setEditingCell(null)}
+                            className="p-1 text-red-600 hover:text-red-700 rounded"
+                          >
+                            <XIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div 
+                        className={`${isAdmin ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded' : ''}`}
+                        onClick={() => isAdmin && setEditingCell({
+                          creatorName: resolvedCreatorName || '',
+                          itemName: 'Common Terms',
+                          originalValue: runtimeContext?.commonTerms || '',
+                          newValue: runtimeContext?.commonTerms || ''
+                        })}
+                      >
+                        <div className="flex flex-wrap gap-2">
+                          {derivedCommonTerms.map((term, idx) => (
+                            <Badge
+                              key={idx}
+                              variant="outline"
+                              className="bg-primary/5"
+                            >
+                              #{term}
+                            </Badge>
+                          ))}
+                          {derivedCommonTerms.length === 0 && (
+                            <span className="text-muted-foreground text-sm">No common terms set</span>
+                          )}
+                          {isAdmin && <Edit2 className="inline ml-1 h-3 w-3 opacity-50" />}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div>
                     <label className="text-sm font-medium text-muted-foreground mb-2 block">
                       Common Emojis
                     </label>
-                    <div className="flex gap-2 text-2xl">
-                      {derivedCommonEmojis.map((emoji, idx) => (
-                        <span key={idx}>{emoji}</span>
-                      ))}
-                    </div>
+                    {isAdmin && editingCell && editingCell.creatorName === (resolvedCreatorName || '') && editingCell.itemName === 'Common Emojis' ? (
+                      <div className="flex items-start gap-1">
+                        <textarea
+                          value={editingCell.newValue}
+                          onChange={(e) => handleEditValueChange(e.target.value)}
+                          className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                          autoFocus
+                          rows={2}
+                          placeholder="Enter common emojis..."
+                        />
+                        <div className="flex flex-col gap-1">
+                          <button
+                            onClick={handleContentDetailsEditSave}
+                            className="p-1 text-green-600 hover:text-green-700 rounded"
+                          >
+                            <Check className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => setEditingCell(null)}
+                            className="p-1 text-red-600 hover:text-red-700 rounded"
+                          >
+                            <XIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div 
+                        className={`${isAdmin ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded' : ''}`}
+                        onClick={() => isAdmin && setEditingCell({
+                          creatorName: resolvedCreatorName || '',
+                          itemName: 'Common Emojis',
+                          originalValue: runtimeContext?.commonEmojis || '',
+                          newValue: runtimeContext?.commonEmojis || ''
+                        })}
+                      >
+                        <div className="flex gap-2 text-2xl">
+                          {derivedCommonEmojis.map((emoji, idx) => (
+                            <span key={idx}>{emoji}</span>
+                          ))}
+                          {derivedCommonEmojis.length === 0 && (
+                            <span className="text-muted-foreground text-sm">No common emojis set</span>
+                          )}
+                          {isAdmin && <Edit2 className="inline ml-1 h-3 w-3 opacity-50" />}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1285,41 +1566,191 @@ export function ModelInformationTab({
                   </CollapsibleTrigger>
                   <CollapsibleContent className="mt-3">
                     <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span>OnlyFans Wall</span>
-                        <span className="text-amber-600 font-medium">
-                          {runtimeContext?.contentDetails
-                            ?.onlyFansWallLimitations || "N/A"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Twitter Content</span>
-                        <span className="text-green-600 font-medium">
-                          {runtimeContext?.contentDetails?.twitterNudity ||
-                            "N/A"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Flyer Censorship</span>
-                        <span className="text-rose-600 font-medium">
-                          {runtimeContext?.contentDetails?.flyerCensorshipLimitations ||
-                            "N/A"}
-                        </span>
-                      </div>
+                      {/* OnlyFans Wall Limitations */}
                       <div className="flex justify-between items-center">
-                        <span>Live Streams</span>
-                        <Badge
-                          variant={
-                            runtimeContext?.contentDetails
-                              ?.openToLivestreams === "YES"
-                              ? "default"
-                              : "secondary"
-                          }
-                          className="text-xs"
-                        >
-                          {runtimeContext?.contentDetails?.openToLivestreams ||
-                            "N/A"}
-                        </Badge>
+                        <span>OnlyFans Wall Limitations</span>
+                        {isAdmin && editingCell && editingCell.creatorName === (resolvedCreatorName || '') && editingCell.itemName === 'OnlyFans Wall Limitations' ? (
+                          <div className="flex items-center gap-1">
+                            <select
+                              value={editingCell.newValue}
+                              onChange={(e) => handleEditValueChange(e.target.value)}
+                              className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                              autoFocus
+                            >
+                              <option value="">Select option...</option>
+                              <option value="No nudity">No nudity</option>
+                              <option value="Shows everything">Shows everything</option>
+                              <option value="Topless">Topless</option>
+                              <option value="Topless on VIP page">Topless on VIP page</option>
+                            </select>
+                            <button
+                              onClick={handleContentDetailsEditSave}
+                              className="p-1 text-green-600 hover:text-green-700 rounded"
+                            >
+                              <Check className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => setEditingCell(null)}
+                              className="p-1 text-red-600 hover:text-red-700 rounded"
+                            >
+                              <XIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span 
+                            className={`text-amber-600 font-medium ${isAdmin ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 px-2 py-1 rounded' : ''}`}
+                            onClick={() => isAdmin && setEditingCell({
+                              creatorName: resolvedCreatorName || '',
+                              itemName: 'OnlyFans Wall Limitations',
+                              originalValue: runtimeContext?.contentDetails?.onlyFansWallLimitations || '',
+                              newValue: runtimeContext?.contentDetails?.onlyFansWallLimitations || ''
+                            })}
+                          >
+                            {runtimeContext?.contentDetails?.onlyFansWallLimitations || "N/A"}
+                            {isAdmin && <Edit2 className="inline ml-1 h-3 w-3 opacity-50" />}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Twitter Nudity */}
+                      <div className="flex justify-between items-center">
+                        <span>Twitter Nudity</span>
+                        {isAdmin && editingCell && editingCell.creatorName === (resolvedCreatorName || '') && editingCell.itemName === 'Twitter Nudity' ? (
+                          <div className="flex items-center gap-1">
+                            <select
+                              value={editingCell.newValue}
+                              onChange={(e) => handleEditValueChange(e.target.value)}
+                              className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                              autoFocus
+                            >
+                              <option value="">Select option...</option>
+                              <option value="SFW">SFW</option>
+                              <option value="Nipples">Nipples</option>
+                              <option value="Full Nude">Full Nude</option>
+                              <option value="Sextapes">Sextapes</option>
+                            </select>
+                            <button
+                              onClick={handleContentDetailsEditSave}
+                              className="p-1 text-green-600 hover:text-green-700 rounded"
+                            >
+                              <Check className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => setEditingCell(null)}
+                              className="p-1 text-red-600 hover:text-red-700 rounded"
+                            >
+                              <XIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span 
+                            className={`text-green-600 font-medium ${isAdmin ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 px-2 py-1 rounded' : ''}`}
+                            onClick={() => isAdmin && setEditingCell({
+                              creatorName: resolvedCreatorName || '',
+                              itemName: 'Twitter Nudity',
+                              originalValue: runtimeContext?.contentDetails?.twitterNudity || '',
+                              newValue: runtimeContext?.contentDetails?.twitterNudity || ''
+                            })}
+                          >
+                            {runtimeContext?.contentDetails?.twitterNudity || "N/A"}
+                            {isAdmin && <Edit2 className="inline ml-1 h-3 w-3 opacity-50" />}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Flyer Censorship Limitations */}
+                      <div className="flex justify-between items-center">
+                        <span>Flyer Censorship Limitations</span>
+                        {isAdmin && editingCell && editingCell.creatorName === (resolvedCreatorName || '') && editingCell.itemName === 'Flyer Censorship Limitations' ? (
+                          <div className="flex items-center gap-1">
+                            <select
+                              value={editingCell.newValue}
+                              onChange={(e) => handleEditValueChange(e.target.value)}
+                              className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                              autoFocus
+                            >
+                              <option value="">Select option...</option>
+                              <option value="No nudity">No nudity</option>
+                              <option value="Shows everything">Shows everything</option>
+                              <option value="Topless">Topless</option>
+                              <option value="Topless on VIP page">Topless on VIP page</option>
+                            </select>
+                            <button
+                              onClick={handleContentDetailsEditSave}
+                              className="p-1 text-green-600 hover:text-green-700 rounded"
+                            >
+                              <Check className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => setEditingCell(null)}
+                              className="p-1 text-red-600 hover:text-red-700 rounded"
+                            >
+                              <XIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span 
+                            className={`text-rose-600 font-medium ${isAdmin ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 px-2 py-1 rounded' : ''}`}
+                            onClick={() => isAdmin && setEditingCell({
+                              creatorName: resolvedCreatorName || '',
+                              itemName: 'Flyer Censorship Limitations',
+                              originalValue: runtimeContext?.contentDetails?.flyerCensorshipLimitations || '',
+                              newValue: runtimeContext?.contentDetails?.flyerCensorshipLimitations || ''
+                            })}
+                          >
+                            {runtimeContext?.contentDetails?.flyerCensorshipLimitations || "N/A"}
+                            {isAdmin && <Edit2 className="inline ml-1 h-3 w-3 opacity-50" />}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Open to Livestreams */}
+                      <div className="flex justify-between items-center">
+                        <span>Open to Livestreams</span>
+                        {isAdmin && editingCell && editingCell.creatorName === (resolvedCreatorName || '') && editingCell.itemName === 'Open to Livestreams' ? (
+                          <div className="flex items-center gap-1">
+                            <select
+                              value={editingCell.newValue}
+                              onChange={(e) => handleEditValueChange(e.target.value)}
+                              className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                              autoFocus
+                            >
+                              <option value="YES">YES</option>
+                              <option value="NO">NO</option>
+                              <option value="MAYBE">MAYBE</option>
+                            </select>
+                            <button
+                              onClick={handleContentDetailsEditSave}
+                              className="p-1 text-green-600 hover:text-green-700 rounded"
+                            >
+                              <Check className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => setEditingCell(null)}
+                              className="p-1 text-red-600 hover:text-red-700 rounded"
+                            >
+                              <XIcon className="h-4 w-4" />
+                            </button>
+                          </div>
+                        ) : (
+                          <Badge
+                            variant={
+                              runtimeContext?.contentDetails?.openToLivestreams === "YES"
+                                ? "default"
+                                : "secondary"
+                            }
+                            className={`text-xs ${isAdmin ? 'cursor-pointer hover:opacity-80' : ''}`}
+                            onClick={() => isAdmin && setEditingCell({
+                              creatorName: resolvedCreatorName || '',
+                              itemName: 'Open to Livestreams',
+                              originalValue: runtimeContext?.contentDetails?.openToLivestreams || '',
+                              newValue: runtimeContext?.contentDetails?.openToLivestreams || ''
+                            })}
+                          >
+                            {runtimeContext?.contentDetails?.openToLivestreams || "N/A"}
+                            {isAdmin && <Edit2 className="inline ml-1 h-3 w-3 opacity-50" />}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </CollapsibleContent>

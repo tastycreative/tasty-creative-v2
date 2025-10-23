@@ -357,6 +357,11 @@ model ContentDetails {
   bundleContent25_30         String?
   bundleContent30Plus        String?
   contentOptionsForGames     String?
+    // Personal information fields
+  personalityType            String?
+  restrictedTerms            String?
+  notes                      String?
+  generalClientNotes         String?
   createdAt                  DateTime    @default(now())
   updatedAt                  DateTime    @updatedAt
   clientModelName            String      @unique
