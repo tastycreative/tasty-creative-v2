@@ -72,6 +72,8 @@ export function ModelInformationTab({
   const [editingCell, setEditingCell] = useState<EditingState | null>(null);
   const [updateStatus, setUpdateStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [updatingContent, setUpdatingContent] = useState(false);
+  const [updatingPricing, setUpdatingPricing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'MODERATOR';
@@ -341,7 +343,7 @@ export function ModelInformationTab({
       color: "text-gray-900 dark:text-white",
       url: handleToUrl("tiktok", modelData.tiktok ?? runtimeContext?.tiktok),
     },
-  ].filter((link) => link.username);
+  ]; // Always show all platforms for editing
 
   // Derived values from runtimeContext
   // const standardRange = normalizePriceLabel(
@@ -418,10 +420,11 @@ export function ModelInformationTab({
   };
 
   const handleEditSave = async () => {
-    if (!editingCell || !isAdmin) return;
+    if (!editingCell || !isAdmin || updatingPricing) return;
 
     try {
       setUpdateStatus(null);
+      setUpdatingPricing(true);
       
       console.log('💾 Updating price in Prisma DB:', {
         creatorName: editingCell.creatorName,
@@ -456,20 +459,29 @@ export function ModelInformationTab({
       // Refresh the data
       queryClient.invalidateQueries({ queryKey: ['model-data'] });
 
+      // Clear success message after 3 seconds
+      setTimeout(() => setUpdateStatus(null), 3000);
+
     } catch (error) {
       console.error('❌ Error updating price:', error);
       setUpdateStatus({ 
         type: 'error', 
         message: error instanceof Error ? error.message : 'Failed to update price' 
       });
+      
+      // Clear error message after 5 seconds
+      setTimeout(() => setUpdateStatus(null), 5000);
+    } finally {
+      setUpdatingPricing(false);
     }
   };
 
   const handleContentDetailsEditSave = async () => {
-    if (!editingCell || !isAdmin) return;
+    if (!editingCell || !isAdmin || updatingContent) return;
 
     try {
       setUpdateStatus(null);
+      setUpdatingContent(true);
       
       console.log('💾 Updating content details in Prisma DB:', {
         creatorName: editingCell.creatorName,
@@ -506,12 +518,20 @@ export function ModelInformationTab({
       // Also specifically refetch current creator query
       creatorQuery.refetch();
 
+      // Clear success message after 3 seconds
+      setTimeout(() => setUpdateStatus(null), 3000);
+
     } catch (error) {
       console.error('❌ Error updating content details:', error);
       setUpdateStatus({ 
         type: 'error', 
         message: error instanceof Error ? error.message : 'Failed to update content details' 
       });
+      
+      // Clear error message after 5 seconds
+      setTimeout(() => setUpdateStatus(null), 5000);
+    } finally {
+      setUpdatingContent(false);
     }
   };
 
@@ -995,13 +1015,19 @@ export function ModelInformationTab({
                           />
                           <button
                             onClick={handleContentDetailsEditSave}
-                            className="p-1 text-green-600 hover:text-green-700 rounded"
+                            disabled={updatingContent}
+                            className="p-1 text-green-600 hover:text-green-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <Check className="h-4 w-4" />
+                            {updatingContent ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Check className="h-4 w-4" />
+                            )}
                           </button>
                           <button
                             onClick={() => setEditingCell(null)}
-                            className="p-1 text-red-600 hover:text-red-700 rounded"
+                            disabled={updatingContent}
+                            className="p-1 text-red-600 hover:text-red-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <XIcon className="h-4 w-4" />
                           </button>
@@ -1047,13 +1073,19 @@ export function ModelInformationTab({
                           />
                           <button
                             onClick={handleContentDetailsEditSave}
-                            className="p-1 text-green-600 hover:text-green-700 rounded"
+                            disabled={updatingContent}
+                            className="p-1 text-green-600 hover:text-green-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <Check className="h-4 w-4" />
+                            {updatingContent ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Check className="h-4 w-4" />
+                            )}
                           </button>
                           <button
                             onClick={() => setEditingCell(null)}
-                            className="p-1 text-red-600 hover:text-red-700 rounded"
+                            disabled={updatingContent}
+                            className="p-1 text-red-600 hover:text-red-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <XIcon className="h-4 w-4" />
                           </button>
@@ -1092,13 +1124,19 @@ export function ModelInformationTab({
                           <div className="flex flex-col gap-1">
                             <button
                               onClick={handleContentDetailsEditSave}
-                              className="p-1 text-green-600 hover:text-green-700 rounded"
+                              disabled={updatingContent}
+                              className="p-1 text-green-600 hover:text-green-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              <Check className="h-4 w-4" />
+                              {updatingContent ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Check className="h-4 w-4" />
+                              )}
                             </button>
                             <button
                               onClick={() => setEditingCell(null)}
-                              className="p-1 text-red-600 hover:text-red-700 rounded"
+                              disabled={updatingContent}
+                              className="p-1 text-red-600 hover:text-red-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <XIcon className="h-4 w-4" />
                             </button>
@@ -1139,13 +1177,19 @@ export function ModelInformationTab({
                         <div className="flex flex-col gap-1">
                           <button
                             onClick={handleContentDetailsEditSave}
-                            className="p-1 text-green-600 hover:text-green-700 rounded"
+                            disabled={updatingContent}
+                            className="p-1 text-green-600 hover:text-green-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <Check className="h-4 w-4" />
+                            {updatingContent ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Check className="h-4 w-4" />
+                            )}
                           </button>
                           <button
                             onClick={() => setEditingCell(null)}
-                            className="p-1 text-red-600 hover:text-red-700 rounded"
+                            disabled={updatingContent}
+                            className="p-1 text-red-600 hover:text-red-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <XIcon className="h-4 w-4" />
                           </button>
@@ -1188,13 +1232,19 @@ export function ModelInformationTab({
                         <div className="flex flex-col gap-1">
                           <button
                             onClick={handleContentDetailsEditSave}
-                            className="p-1 text-green-600 hover:text-green-700 rounded"
+                            disabled={updatingContent}
+                            className="p-1 text-green-600 hover:text-green-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <Check className="h-4 w-4" />
+                            {updatingContent ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Check className="h-4 w-4" />
+                            )}
                           </button>
                           <button
                             onClick={() => setEditingCell(null)}
-                            className="p-1 text-red-600 hover:text-red-700 rounded"
+                            disabled={updatingContent}
+                            className="p-1 text-red-600 hover:text-red-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <XIcon className="h-4 w-4" />
                           </button>
@@ -1246,13 +1296,19 @@ export function ModelInformationTab({
                         <div className="flex flex-col gap-1">
                           <button
                             onClick={handleContentDetailsEditSave}
-                            className="p-1 text-green-600 hover:text-green-700 rounded"
+                            disabled={updatingContent}
+                            className="p-1 text-green-600 hover:text-green-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <Check className="h-4 w-4" />
+                            {updatingContent ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Check className="h-4 w-4" />
+                            )}
                           </button>
                           <button
                             onClick={() => setEditingCell(null)}
-                            className="p-1 text-red-600 hover:text-red-700 rounded"
+                            disabled={updatingContent}
+                            className="p-1 text-red-600 hover:text-red-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <XIcon className="h-4 w-4" />
                           </button>
@@ -1335,13 +1391,19 @@ export function ModelInformationTab({
                         />
                         <button 
                           onClick={handleEditSave}
-                          className="p-1 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+                          disabled={updatingPricing}
+                          className="p-1 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <Check className="h-3 w-3" />
+                          {updatingPricing ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Check className="h-3 w-3" />
+                          )}
                         </button>
                         <button 
                           onClick={handleEditCancel}
-                          className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                          disabled={updatingPricing}
+                          className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <XIcon className="h-3 w-3" />
                         </button>
@@ -1377,13 +1439,19 @@ export function ModelInformationTab({
                         />
                         <button 
                           onClick={handleEditSave}
-                          className="p-1 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+                          disabled={updatingPricing}
+                          className="p-1 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <Check className="h-3 w-3" />
+                          {updatingPricing ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Check className="h-3 w-3" />
+                          )}
                         </button>
                         <button 
                           onClick={handleEditCancel}
-                          className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                          disabled={updatingPricing}
+                          className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <XIcon className="h-3 w-3" />
                         </button>
@@ -1463,13 +1531,19 @@ export function ModelInformationTab({
                                   />
                                   <button 
                                     onClick={handleEditSave}
-                                    className="p-1 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300"
+                                    disabled={updatingPricing}
+                                    className="p-1 text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
-                                    <Check className="h-3 w-3" />
+                                    {updatingPricing ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      <Check className="h-3 w-3" />
+                                    )}
                                   </button>
                                   <button 
                                     onClick={handleEditCancel}
-                                    className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                                    disabled={updatingPricing}
+                                    className="p-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                     <XIcon className="h-3 w-3" />
                                   </button>
@@ -1585,13 +1659,19 @@ export function ModelInformationTab({
                             </select>
                             <button
                               onClick={handleContentDetailsEditSave}
-                              className="p-1 text-green-600 hover:text-green-700 rounded"
+                              disabled={updatingContent}
+                              className="p-1 text-green-600 hover:text-green-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              <Check className="h-4 w-4" />
+                              {updatingContent ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Check className="h-4 w-4" />
+                              )}
                             </button>
                             <button
                               onClick={() => setEditingCell(null)}
-                              className="p-1 text-red-600 hover:text-red-700 rounded"
+                              disabled={updatingContent}
+                              className="p-1 text-red-600 hover:text-red-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <XIcon className="h-4 w-4" />
                             </button>
@@ -1631,13 +1711,19 @@ export function ModelInformationTab({
                             </select>
                             <button
                               onClick={handleContentDetailsEditSave}
-                              className="p-1 text-green-600 hover:text-green-700 rounded"
+                              disabled={updatingContent}
+                              className="p-1 text-green-600 hover:text-green-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              <Check className="h-4 w-4" />
+                              {updatingContent ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Check className="h-4 w-4" />
+                              )}
                             </button>
                             <button
                               onClick={() => setEditingCell(null)}
-                              className="p-1 text-red-600 hover:text-red-700 rounded"
+                              disabled={updatingContent}
+                              className="p-1 text-red-600 hover:text-red-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <XIcon className="h-4 w-4" />
                             </button>
@@ -1677,13 +1763,19 @@ export function ModelInformationTab({
                             </select>
                             <button
                               onClick={handleContentDetailsEditSave}
-                              className="p-1 text-green-600 hover:text-green-700 rounded"
+                              disabled={updatingContent}
+                              className="p-1 text-green-600 hover:text-green-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              <Check className="h-4 w-4" />
+                              {updatingContent ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Check className="h-4 w-4" />
+                              )}
                             </button>
                             <button
                               onClick={() => setEditingCell(null)}
-                              className="p-1 text-red-600 hover:text-red-700 rounded"
+                              disabled={updatingContent}
+                              className="p-1 text-red-600 hover:text-red-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <XIcon className="h-4 w-4" />
                             </button>
@@ -1721,13 +1813,19 @@ export function ModelInformationTab({
                             </select>
                             <button
                               onClick={handleContentDetailsEditSave}
-                              className="p-1 text-green-600 hover:text-green-700 rounded"
+                              disabled={updatingContent}
+                              className="p-1 text-green-600 hover:text-green-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              <Check className="h-4 w-4" />
+                              {updatingContent ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Check className="h-4 w-4" />
+                              )}
                             </button>
                             <button
                               onClick={() => setEditingCell(null)}
-                              className="p-1 text-red-600 hover:text-red-700 rounded"
+                              disabled={updatingContent}
+                              className="p-1 text-red-600 hover:text-red-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                               <XIcon className="h-4 w-4" />
                             </button>
@@ -1864,23 +1962,73 @@ export function ModelInformationTab({
                 <div className="space-y-3">
                   {socialLinks.map((link, idx) => {
                     const Icon = link.icon;
+                    const fieldName = `Main ${link.platform}`;
+                    const currentUsername = link.username || '';
+                    
                     return (
-                      <a
-                        key={idx}
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors group"
-                      >
+                      <div key={idx} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 transition-colors">
                         <Icon className={cn("w-5 h-5", link.color)} />
                         <div className="flex-1">
-                          <p className="font-medium text-sm">{link.platform}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {link.username}
-                          </p>
+                          <div className="flex items-center gap-1">
+                            <p className="font-medium text-sm">{link.platform}</p>
+                            {currentUsername && (
+                              <a 
+                                href={link.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-muted-foreground hover:text-foreground"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
+                          {isAdmin && editingCell && editingCell.creatorName === (resolvedCreatorName || '') && editingCell.itemName === fieldName ? (
+                            <div className="flex items-center gap-1 mt-1">
+                              <input
+                                type="text"
+                                value={editingCell.newValue}
+                                onChange={(e) => handleEditValueChange(e.target.value)}
+                                className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                                autoFocus
+                                placeholder={`Enter ${link.platform} username...`}
+                              />
+                              <button
+                                onClick={handleContentDetailsEditSave}
+                                disabled={updatingContent}
+                                className="p-1 text-green-600 hover:text-green-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {updatingContent ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Check className="h-3 w-3" />
+                                )}
+                              </button>
+                              <button
+                                onClick={() => setEditingCell(null)}
+                                disabled={updatingContent}
+                                className="p-1 text-red-600 hover:text-red-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                <XIcon className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div 
+                              className={`flex items-center gap-1 mt-1 ${isAdmin ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 px-1 py-0.5 rounded' : ''}`}
+                              onClick={() => isAdmin && setEditingCell({
+                                creatorName: resolvedCreatorName || '',
+                                itemName: fieldName,
+                                originalValue: currentUsername,
+                                newValue: currentUsername
+                              })}
+                            >
+                              <p className="text-xs text-muted-foreground flex-1">
+                                {currentUsername || `No ${link.platform} set`}
+                              </p>
+                              {isAdmin && <Edit2 className="h-3 w-3 opacity-50" />}
+                            </div>
+                          )}
                         </div>
-                        <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-foreground" />
-                      </a>
+                      </div>
                     );
                   })}
                 </div>
@@ -1905,23 +2053,234 @@ export function ModelInformationTab({
                     </span>
                   </h3>
                 </div>
+                
+                {/* Chatting Managers List - User-Friendly Editable */}
                 <div className="space-y-3">
-                  {modelData.chattingManagers.map((manager, idx) => (
+                  {/* Current Managers */}
+                  {((runtimeContext as any)?.chattingManagers || []).map((manager: string, idx: number) => (
                     <div
                       key={idx}
-                      className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
+                      className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 group"
                     >
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                         <span className="text-sm font-medium text-primary">
-                          {manager.charAt(0)}
+                          {manager.charAt(0).toUpperCase()}
                         </span>
                       </div>
-                      <div>
-                        <p className="font-medium text-sm">{manager}</p>
-                        <p className="text-xs text-muted-foreground">Manager</p>
+                      <div className="flex-1">
+                        {isAdmin && editingCell && editingCell.creatorName === (resolvedCreatorName || '') && editingCell.itemName === `Manager-${idx}` ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={editingCell.newValue}
+                              onChange={(e) => handleEditValueChange(e.target.value)}
+                              className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                              autoFocus
+                              placeholder="Manager name..."
+                            />
+                            <button
+                              onClick={async () => {
+                                const currentManagers = [...((runtimeContext as any)?.chattingManagers || [])];
+                                currentManagers[idx] = editingCell.newValue;
+                                setEditingCell({
+                                  creatorName: resolvedCreatorName || '',
+                                  itemName: 'Chatting Managers',
+                                  originalValue: currentManagers.join('\n'),
+                                  newValue: currentManagers.join('\n')
+                                });
+                                await handleContentDetailsEditSave();
+                              }}
+                              disabled={updatingContent}
+                              className="p-1 text-green-600 hover:text-green-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {updatingContent ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Check className="h-3 w-3" />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => setEditingCell(null)}
+                              disabled={updatingContent}
+                              className="p-1 text-red-600 hover:text-red-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <XIcon className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium text-sm">{manager}</p>
+                              <p className="text-xs text-muted-foreground">Manager</p>
+                            </div>
+                            {isAdmin && (
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingCell({
+                                      creatorName: resolvedCreatorName || '',
+                                      itemName: `Manager-${idx}`,
+                                      originalValue: manager,
+                                      newValue: manager
+                                    });
+                                  }}
+                                  className="p-1 text-blue-600 hover:text-blue-700 rounded"
+                                  title="Edit manager"
+                                >
+                                  <Edit2 className="h-3 w-3" />
+                                </button>
+                                <button
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    const currentManagers = [...((runtimeContext as any)?.chattingManagers || [])];
+                                    currentManagers.splice(idx, 1);
+                                    setEditingCell({
+                                      creatorName: resolvedCreatorName || '',
+                                      itemName: 'Chatting Managers',
+                                      originalValue: currentManagers.join('\n'),
+                                      newValue: currentManagers.join('\n')
+                                    });
+                                    await handleContentDetailsEditSave();
+                                  }}
+                                  disabled={updatingContent}
+                                  className="p-1 text-red-600 hover:text-red-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                                  title="Remove manager"
+                                >
+                                  {updatingContent ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <XIcon className="h-3 w-3" />
+                                  )}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}
+
+                  {/* Add New Manager */}
+                  {isAdmin && (
+                    <div>
+                      {editingCell && editingCell.creatorName === (resolvedCreatorName || '') && editingCell.itemName === 'Add-Manager' ? (
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border-2 border-dashed border-primary/30">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Users className="w-4 h-4 text-primary" />
+                          </div>
+                          <div className="flex-1 flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={editingCell.newValue}
+                              onChange={(e) => handleEditValueChange(e.target.value)}
+                              className="flex-1 px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                              autoFocus
+                              placeholder="Enter manager name..."
+                            />
+                            <button
+                              onClick={async () => {
+                                if (editingCell.newValue.trim()) {
+                                  const currentManagers = [...((runtimeContext as any)?.chattingManagers || [])];
+                                  currentManagers.push(editingCell.newValue.trim());
+                                  
+                                  // Call the API directly with the correct data
+                                  try {
+                                    setUpdateStatus(null);
+                                    setUpdatingContent(true);
+                                    
+                                    const response = await fetch('/api/creators-db/update-content-details', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        creatorName: resolvedCreatorName || '',
+                                        fieldName: 'Chatting Managers',
+                                        newValue: currentManagers.join('\n')
+                                      })
+                                    });
+
+                                    if (!response.ok) {
+                                      const errorData = await response.json();
+                                      throw new Error(errorData.error || 'Failed to update');
+                                    }
+
+                                    const result = await response.json();
+                                    console.log('✅ Content details updated successfully:', result);
+                                    setUpdateStatus({ type: 'success', message: 'Manager added successfully!' });
+                                    
+                                    // Invalidate and refetch creator data
+                                    queryClient.invalidateQueries({ 
+                                      queryKey: ['creators'],
+                                      exact: false 
+                                    });
+                                    await creatorQuery.refetch();
+                                    
+                                    // Wait a bit for the user to see the success state, then hide input
+                                    setTimeout(() => {
+                                      setEditingCell(null);
+                                      setUpdateStatus(null);
+                                    }, 1500);
+                                  } catch (error) {
+                                    console.error('❌ Error updating content details:', error);
+                                    setUpdateStatus({ type: 'error', message: 'Failed to add manager' });
+                                    setTimeout(() => setUpdateStatus(null), 3000);
+                                  } finally {
+                                    setUpdatingContent(false);
+                                  }
+                                }
+                              }}
+                              disabled={updatingContent || !editingCell.newValue.trim()}
+                              className="p-1 text-green-600 hover:text-green-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {updatingContent ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Check className="h-3 w-3" />
+                              )}
+                            </button>
+                            <button
+                              onClick={() => setEditingCell(null)}
+                              disabled={updatingContent}
+                              className="p-1 text-red-600 hover:text-red-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              <XIcon className="h-3 w-3" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setEditingCell({
+                            creatorName: resolvedCreatorName || '',
+                            itemName: 'Add-Manager',
+                            originalValue: '',
+                            newValue: ''
+                          })}
+                          className="w-full flex items-center gap-3 p-3 rounded-lg bg-muted/30 border-2 border-dashed border-muted-foreground/30 hover:border-primary/50 hover:bg-primary/5 transition-colors group"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-muted-foreground/10 group-hover:bg-primary/10 flex items-center justify-center transition-colors">
+                            <Users className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                          </div>
+                          <div className="flex-1 text-left">
+                            <p className="text-sm text-muted-foreground group-hover:text-primary transition-colors">
+                              Add new manager
+                            </p>
+                          </div>
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Empty State */}
+                  {((runtimeContext as any)?.chattingManagers || []).length === 0 && !isAdmin && (
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                      <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                        <Users className="w-4 h-4 text-gray-400" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm text-muted-foreground">No chatting managers assigned</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

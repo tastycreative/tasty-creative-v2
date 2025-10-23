@@ -17,11 +17,21 @@ async function updateGoogleSheet(fieldName: string, newValue: string, rowId: str
     'Notes': 'Notes',
     'General Client Notes/Requests': 'General Client Notes/Requests',
     'Common Terms': 'Common Terms',
-    'Common Emojis': 'Common Emojis'
+    'Common Emojis': 'Common Emojis',
+    'Main Instagram': 'Main Instagram @',
+    'Main Twitter': 'Main Twitter @',
+    'Main TikTok': 'Main TikTok @'
+    // Note: 'Chatting Managers' intentionally excluded - database only, no sheet update
   };
   
+  // Check if this field should be synced to Google Sheets
+  if (!sheetColumnMapping[fieldName]) {
+    console.log(`⚠️ Field '${fieldName}' is database-only, skipping Google Sheets update`);
+    return;
+  }
+  
   // Use the sheet column name for the webhook
-  const sheetColumnName = sheetColumnMapping[fieldName] || fieldName;
+  const sheetColumnName = sheetColumnMapping[fieldName];
   try {
     const GOOGLE_DRIVE_SHEET_MODEL_NAMES = process.env.GOOGLE_DRIVE_SHEET_MODEL_NAMES;
     
@@ -150,7 +160,13 @@ export async function POST(request: Request) {
     const clientModelFields: Record<string, string> = {
       // Fields that belong to ClientModel table
       'Common Terms': 'commonTerms',
-      'Common Emojis': 'commonEmojis'
+      'Common Emojis': 'commonEmojis',
+      // Social media fields
+      'Main Instagram': 'mainInstagram',
+      'Main Twitter': 'mainTwitter',
+      'Main TikTok': 'mainTiktok',
+      // Chatting managers
+      'Chatting Managers': 'chattingManagers'
     };
 
     // Determine which table and field to update
@@ -173,13 +189,22 @@ export async function POST(request: Request) {
     console.log(`🔄 Updating ${isClientModelField ? 'ClientModel' : 'ContentDetails'} field ${dbFieldName} to "${newValue}"`);
 
     if (isClientModelField) {
+      // Handle array fields specially
+      let processedValue;
+      if (dbFieldName === 'chattingManagers') {
+        // Convert newline-separated string to array
+        processedValue = newValue ? newValue.split('\n').filter(Boolean).map(item => item.trim()) : [];
+      } else {
+        processedValue = newValue || null;
+      }
+
       // Update ClientModel table
       await prisma.clientModel.update({
         where: {
           id: clientModel.id
         },
         data: {
-          [dbFieldName]: newValue || null
+          [dbFieldName]: processedValue
         }
       });
     } else {

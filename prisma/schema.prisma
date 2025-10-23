@@ -301,6 +301,7 @@ model ClientModel {
   mainTwitter           String?
   mainTiktok            String?
   profileLink           String?
+  chattingManagers      String[]
   createdAt             DateTime                  @default(now())
   updatedAt             DateTime                  @updatedAt
   row_id                String?
