@@ -59,7 +59,6 @@ const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 const RESTRICTED_FOLDER_ID = "1rkz_XIQAb1ujr7YM6zJF5leLEYHlFUyI";
 
 const SCOPES = [
-  "https://www.googleapis.com/auth/drive.readonly",
   "https://www.googleapis.com/auth/userinfo.profile",
   "https://www.googleapis.com/auth/userinfo.email",
 ].join(" ");
