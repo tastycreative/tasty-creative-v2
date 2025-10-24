@@ -1,4 +1,5 @@
 import { ModelProfileLayout } from "@/components/pod-new/layouts/ModelProfileLayout";
+import { ModelAccessGuard } from "@/components/pod-new/features/models/ModelAccessGuard";
 import type { ExtendedModelDetails } from "@/lib/mock-data/model-profile";
 
 interface ModelProfilePageProps {
@@ -94,9 +95,11 @@ export default async function ModelProfilePage({ params }: ModelProfilePageProps
   const modelData = createSkeletonModel(decodedName);
 
   return (
-    <ModelProfileLayout
-      modelData={modelData}
-      creatorName={decodedName}
-    />
+    <ModelAccessGuard modelName={decodedName}>
+      <ModelProfileLayout
+        modelData={modelData}
+        creatorName={decodedName}
+      />
+    </ModelAccessGuard>
   );
 }

@@ -37,15 +37,25 @@ export async function GET(request: NextRequest) {
     }
 
     // Creators filter for non-admin users
-    if (session.user.role !== "ADMIN" && creators.length > 0) {
-      where.AND = [
-        ...(where.AND || []),
-        {
-          OR: creators.map((creatorName) => ({
-            clientName: { contains: creatorName, mode: "insensitive" },
-          })),
-        },
-      ];
+    if (session.user.role !== "ADMIN" && session.user.role !== "MODERATOR") {
+      if (creators.length > 0) {
+        where.AND = [
+          ...(where.AND || []),
+          {
+            OR: creators.map((creatorName) => ({
+              clientName: { contains: creatorName, mode: "insensitive" },
+            })),
+          },
+        ];
+      } else {
+        // No assigned creators means no access to any models
+        where.AND = [
+          ...(where.AND || []),
+          {
+            id: "non-existent-id" // This will ensure no models are counted
+          }
+        ];
+      }
     }
 
     const count = await prisma.clientModel.count({ where });

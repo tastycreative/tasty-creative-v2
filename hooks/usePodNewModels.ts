@@ -377,3 +377,27 @@ export function useModelsStats(options: UseModelsOptions = {}) {
     enabled: options.enabled !== false,
   });
 }
+
+// Hook for global stats (not filtered by user assignments)
+export function useGlobalModelsStats() {
+  return useQuery({
+    queryKey: [...modelsQueryKeys.all, "global-stats"] as const,
+    queryFn: async () => {
+      const response = await fetch('/api/pod-new/models/global-stats');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch global stats');
+      }
+      
+      return response.json() as Promise<{
+        totalModels: number;
+        activeModels: number;
+        droppedModels: number;
+        totalRevenue: number;
+        activePercentage: number;
+      }>;
+    },
+    ...CACHE_CONFIG,
+    staleTime: 5 * 60 * 1000, // Refresh global stats every 5 minutes
+  });
+}

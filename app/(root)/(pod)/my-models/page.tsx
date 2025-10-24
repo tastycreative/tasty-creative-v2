@@ -2,18 +2,16 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import EnhancedModelsPage from "@/components/pod-new/features/models/pages/EnhancedModelsPage";
 import { RefreshButton } from "@/components/pod-new/shared/ui/LoadingStates";
-import { Plus, Download, Users } from "lucide-react";
+import { Download, Users } from "lucide-react";
 import { PageLoadingState } from "@/components/pod-new/shared/ui/LoadingStates";
-import { useAvailableTeams, usePodStore } from "@/lib/stores/podStore";
+// import { useAvailableTeams, usePodStore } from "@/lib/stores/podStore";
 
 export default function PodNewMyModelsPage() {
   const { data: session } = useSession();
-  const router = useRouter();
-  const { teams, fetchAvailableTeams } = useAvailableTeams();
-  const { fetchPodData } = usePodStore();
+  // const { teams, fetchAvailableTeams } = useAvailableTeams();
+  // const { fetchPodData } = usePodStore();
 
   const [userAssignedCreators, setUserAssignedCreators] = useState<string[]>(
     []
@@ -23,77 +21,57 @@ export default function PodNewMyModelsPage() {
   // Fetch user assignments for non-admin users
   useEffect(() => {
     const fetchUserAssignments = async () => {
-      if (!session?.user?.email || session.user.role === "ADMIN") {
+      if (!session?.user?.email || session.user.role === "ADMIN" || session.user.role === "MODERATOR") {
         setIsLoadingAssignments(false);
         return;
       }
 
       setIsLoadingAssignments(true);
       try {
-        await fetchAvailableTeams();
-        const allUserCreators: string[] = [];
-
-        if (teams && teams.length > 0) {
-          for (const team of teams) {
-            try {
-              await fetchPodData(team.id);
-              const teamPodResponse = await fetch("/api/pod/fetch-db", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ row: team.id }),
-              });
-
-              if (teamPodResponse.ok) {
-                const teamData = await teamPodResponse.json();
-                if (teamData.data && teamData.data.length > 0) {
-                  const teamCreators = teamData.data
-                    .map((item: any) => item.name)
-                    .filter((name: string) => name && name.trim() !== "");
-                  allUserCreators.push(...teamCreators);
-                }
-              }
-            } catch (error) {
-              console.error(`Error fetching data for team ${team.name}:`, error);
-            }
-          }
+        const response = await fetch(`/api/pod/user-assigned-creators?userId=${session?.user?.id}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setUserAssignedCreators(data.assignedCreators || []);
+        } else {
+          console.error("Failed to fetch user assigned creators, status:", response.status);
+          setUserAssignedCreators([]);
         }
-
-        // Remove duplicates
-        const uniqueCreators = [...new Set(allUserCreators)];
-        setUserAssignedCreators(uniqueCreators);
       } catch (error) {
         console.error("Error fetching user assignments:", error);
+        setUserAssignedCreators([]);
       } finally {
         setIsLoadingAssignments(false);
       }
     };
 
     fetchUserAssignments();
-  }, [session?.user?.email, session?.user?.role, teams, fetchAvailableTeams, fetchPodData]);
+  }, [session?.user?.email, session?.user?.role, session?.user?.id]);
 
   const handleRefresh = useCallback(async () => {
-    if (session?.user?.role !== "ADMIN") {
-      // Re-fetch assignments for non-admin users
+    if (session?.user?.role !== "ADMIN" && session?.user?.role !== "MODERATOR") {
+      // Re-fetch assignments for non-admin/moderator users
       setIsLoadingAssignments(true);
       try {
-        await fetchAvailableTeams();
-        // The useEffect will handle the rest
+        const response = await fetch(`/api/pod/user-assigned-creators?userId=${session?.user?.id}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setUserAssignedCreators(data.assignedCreators || []);
+        }
       } catch (error) {
         console.error("Error refreshing data:", error);
       } finally {
         setIsLoadingAssignments(false);
       }
     }
-  }, [session?.user?.role, fetchAvailableTeams]);
+  }, [session?.user?.role, session?.user?.id]);
 
   const handleExport = useCallback(() => {
     // Export functionality can be implemented here
     console.log("Export models data");
   }, []);
 
-  const handleAddModel = useCallback(() => {
-    router.push("/onboarding");
-  }, [router]);
 
   if (!session) {
     return (
@@ -144,13 +122,6 @@ export default function PodNewMyModelsPage() {
                 >
                   <Download className="w-4 h-4" />
                   <span className="hidden sm:inline">Export</span>
-                </button>
-                <button
-                  onClick={handleAddModel}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-200 shadow-lg hover:shadow-xl"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span className="hidden sm:inline">Add Model</span>
                 </button>
               </div>
             </div>

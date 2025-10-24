@@ -28,6 +28,7 @@ import {
   EmptyState,
 } from "../../../shared/ui/LoadingStates";
 import { useOptimizedModelsData } from "@/hooks/useOptimizedModels";
+import { useGlobalModelsStats } from "@/hooks/usePodNewModels";
 import useSelectedModelStore from "@/store/useSelectedModelStore";
 
 // Stats dashboard component
@@ -274,8 +275,11 @@ const EnhancedModelsPage = ({
     search: searchQuery,
     status: effectiveStatus,
     sort: effectiveSort,
-    creators: userRole !== "ADMIN" ? assignedCreators : [],
+    creators: (userRole !== "ADMIN" && userRole !== "MODERATOR") ? assignedCreators : [],
   });
+
+  // Fetch global stats (all models, not filtered by user assignments)
+  const { data: globalStats } = useGlobalModelsStats();
 
   // Reset to page 1 on new queries
   useEffect(() => {
@@ -355,26 +359,22 @@ const EnhancedModelsPage = ({
 
   // Memoized dashboard stats
   const dashboardStats = useMemo(() => {
-    const totalRevenue = models.reduce(
+    // Use user's assigned models revenue for their personal stats
+    const assignedRevenue = models.reduce(
       (sum, model) => sum + (model.stats?.monthlyRevenue || 0),
       0
     );
-    const avgRevenue = models.length > 0 ? totalRevenue / models.length : 0;
-    const totalSubscribers = models.reduce(
-      (sum, model) => sum + (model.stats?.subscribers || 0),
-      0
-    );
+    const avgRevenue = models.length > 0 ? assignedRevenue / models.length : 0;
 
     return {
-      totalModels: models.length,
-      activeModels: modelStats.active,
-      totalRevenue,
+      totalModels: globalStats?.totalModels || 0, // Global count of all models
+      activeModels: globalStats?.activeModels || 0, // Global count of active models
+      totalRevenue: globalStats?.totalRevenue || 0, // Global revenue
       avgRevenue,
-      totalSubscribers,
-      activePercentage:
-        models.length > 0 ? (modelStats.active / models.length) * 100 : 0,
+      assignedToMe: models.length, // Show assigned models count
+      activePercentage: globalStats?.activePercentage || 0, // Global active percentage
     };
-  }, [models, modelStats]);
+  }, [models, globalStats]);
 
   // Loading state
   if (isLoading && models.length === 0) {
@@ -477,20 +477,19 @@ const EnhancedModelsPage = ({
           progressLabel="Average share"
         />
         <StatsCard
-          title="Total Subscribers"
-          value={dashboardStats.totalSubscribers.toLocaleString()}
-          change={{ value: 15, type: "increase" }}
-          icon={BarChart3}
+          title="Assigned to Me"
+          value={dashboardStats.assignedToMe.toLocaleString()}
+          change={{ value: 0, type: "increase" }}
+          icon={Users}
           color="info"
-          progressPercent={Math.min(
-            100,
-            Math.round(
-              (dashboardStats.totalSubscribers /
-                Math.max(1, dashboardStats.totalSubscribers)) *
-                100
-            )
-          )}
-          progressLabel="Subscribers"
+          progressPercent={
+            dashboardStats.totalModels > 0
+              ? Math.round(
+                  (dashboardStats.assignedToMe / dashboardStats.totalModels) * 100
+                )
+              : 0
+          }
+          progressLabel="Of total models"
         />
       </div>
 
@@ -512,16 +511,26 @@ const EnhancedModelsPage = ({
       <GridSection>
         {models.length === 0 ? (
           <GridEmptyState
-            title="No models found"
-            description="Try adjusting your search criteria or add your first model"
+            title={
+              (userRole !== "ADMIN" && userRole !== "MODERATOR") && assignedCreators.length === 0
+                ? "No models assigned to you"
+                : "No models found"
+            }
+            description={
+              (userRole !== "ADMIN" && userRole !== "MODERATOR") && assignedCreators.length === 0
+                ? "You don't have any creators assigned to your team yet. Contact your administrator to get assigned to models."
+                : "Try adjusting your search criteria or add your first model"
+            }
             icon={<Users className="w-12 h-12" />}
             action={
-              <button
-                onClick={handleAddModel}
-                className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors duration-200"
-              >
-                Add Your First Model
-              </button>
+              (userRole === "ADMIN" || userRole === "MODERATOR") ? (
+                <button
+                  onClick={handleAddModel}
+                  className="px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition-colors duration-200"
+                >
+                  Add Your First Model
+                </button>
+              ) : null
             }
           />
         ) : (
