@@ -116,13 +116,13 @@ export default function PodNewMyModelsPage() {
                   onClick={handleRefresh}
                   isLoading={isLoadingAssignments}
                 />
-                <button
+                {/* <button
                   onClick={handleExport}
                   className="flex items-center gap-2 px-4 py-2 bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-600/50 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors backdrop-blur-sm"
                 >
                   <Download className="w-4 h-4" />
                   <span className="hidden sm:inline">Export</span>
-                </button>
+                </button> */}
               </div>
             </div>
           </div>

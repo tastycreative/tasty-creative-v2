@@ -191,7 +191,7 @@ const QuickFilters = ({
 };
 
 // Sort options
-type SortOption = "name" | "date" | "revenue" | "subscribers";
+type SortOption = "name" | "date" | "revenue";
 type SortDirection = "asc" | "desc";
 
 interface SortControlProps {
@@ -215,7 +215,6 @@ const SortControl = ({
     { id: "name", label: "Name", icon: SortAsc },
     { id: "date", label: "Launch Date", icon: Calendar },
     { id: "revenue", label: "Revenue", icon: DollarSign },
-    { id: "subscribers", label: "Subscribers", icon: Users },
   ];
 
   const currentOption = sortOptions.find((opt) => opt.id === sortBy);
@@ -267,7 +266,9 @@ const SortControl = ({
                     )}
                   >
                     <OptionIcon className="w-4 h-4" />
-                    <span className="text-sm">{option.label} (A-Z)</span>
+                    <span className="text-sm">
+                      {option.label} ({option.id === "name" ? "A-Z" : "ASC"})
+                    </span>
                     <SortAsc className="w-3 h-3 ml-auto opacity-60" />
                   </button>
                   <button
@@ -283,7 +284,9 @@ const SortControl = ({
                     )}
                   >
                     <OptionIcon className="w-4 h-4" />
-                    <span className="text-sm">{option.label} (Z-A)</span>
+                    <span className="text-sm">
+                      {option.label} ({option.id === "name" ? "Z-A" : "DESC"})
+                    </span>
                     <SortDesc className="w-3 h-3 ml-auto opacity-60" />
                   </button>
                 </div>
@@ -323,7 +326,6 @@ const AdvancedFilters = ({
   if (!isOpen) return null;
 
   const statusOptions = ["active", "dropped", "pending"];
-  const referrerOptions = ["Instagram", "TikTok", "Direct", "Twitter", "Other"];
 
   return (
     <div
@@ -388,17 +390,17 @@ const AdvancedFilters = ({
             </div>
           </div>
 
-          {/* Revenue Range */}
+          {/* Guaranteed Range */}
           <div className="space-y-3">
             <label className="text-sm font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-              Monthly Revenue Range
+              Guaranteed Range
             </label>
             <div className="space-y-2">
               <input
                 type="range"
                 min="0"
-                max="50000"
-                step="1000"
+                max="300000"
+                step="5000"
                 value={filters.revenueRange[1]}
                 onChange={(e) =>
                   onFiltersChange({
@@ -460,7 +462,7 @@ const AdvancedFilters = ({
             onClick={() => {
               onFiltersChange({
                 statusFilter: [],
-                revenueRange: [0, 50000],
+                revenueRange: [0, 300000],
                 dateRange: [null, null],
                 referrerFilter: [],
                 socialFilter: {
@@ -572,7 +574,7 @@ const ModelsSearchAndFilter = ({
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState({
     statusFilter: [],
-    revenueRange: [0, 50000] as [number, number],
+    revenueRange: [0, 300000] as [number, number],
     dateRange: [null, null] as [Date | null, Date | null],
     referrerFilter: [],
     socialFilter: {
@@ -585,7 +587,7 @@ const ModelsSearchAndFilter = ({
   const hasActiveAdvancedFilters = useMemo(() => {
     return (
       advancedFilters.statusFilter.length > 0 ||
-      advancedFilters.revenueRange[1] < 50000 ||
+      advancedFilters.revenueRange[1] < 300000 ||
       advancedFilters.referrerFilter.length > 0 ||
       Object.values(advancedFilters.socialFilter).some(Boolean)
     );

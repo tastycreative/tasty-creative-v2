@@ -36,20 +36,30 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Calculate estimated total revenue based on percentTaken and guaranteed fields
-    // This is a simplified calculation - adjust based on your actual revenue calculation
-    const totalRevenue = allModels.reduce((sum, model) => {
-      const percent = parseFloat(model.percentTaken || "0");
-      const guaranteed = parseFloat(model.guaranteed || "0");
-      // Simple estimation - you may want to adjust this calculation
-      return sum + guaranteed + (percent * 1000); // Assuming some base calculation
+    // Calculate total guaranteed revenue from all models
+    const totalGuaranteedRevenue = allModels.reduce((sum, model) => {
+      const guaranteedStr = model.guaranteed;
+      if (!guaranteedStr || guaranteedStr.trim() === "" || guaranteedStr.trim() === "-") {
+        return sum;
+      }
+      
+      // Remove $ symbol and any other non-numeric characters except decimal point
+      const cleanValue = guaranteedStr.replace(/[^0-9.-]/g, "");
+      const guaranteed = parseFloat(cleanValue);
+      
+      // Only add if it's a valid positive number
+      if (!isNaN(guaranteed) && guaranteed > 0) {
+        return sum + guaranteed;
+      }
+      
+      return sum;
     }, 0);
 
     return NextResponse.json({
       totalModels,
       activeModels,
       droppedModels: totalModels - activeModels,
-      totalRevenue,
+      totalRevenue: totalGuaranteedRevenue,
       activePercentage: totalModels > 0 ? (activeModels / totalModels) * 100 : 0,
     });
   } catch (error) {

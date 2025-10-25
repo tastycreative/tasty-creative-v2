@@ -6,7 +6,6 @@ import {
   Calendar,
   Instagram,
   Twitter,
-  MoreVertical,
   TrendingUp,
   TrendingDown,
   Users,
@@ -58,8 +57,11 @@ const calculatePerformanceScore = (stats?: ModelDetails["stats"]): number => {
   return Math.round(revenueScore * 0.4 + subscriberScore * 0.6);
 };
 
-// Format large numbers with K/M suffix
+// Format large numbers with K/M/B suffix
 const formatCompactNumber = (num: number): string => {
+  if (num >= 1000000000) {
+    return `${(num / 1000000000).toFixed(1)}B`;
+  }
   if (num >= 1000000) {
     return `${(num / 1000000).toFixed(1)}M`;
   }
@@ -67,6 +69,24 @@ const formatCompactNumber = (num: number): string => {
     return `${(num / 1000).toFixed(1)}K`;
   }
   return num.toString();
+};
+
+// Format guaranteed amount with safe parsing (without $ prefix since we show dollar icon)
+const formatGuaranteedAmount = (guaranteedStr?: string): string => {
+  if (!guaranteedStr || guaranteedStr.trim() === "" || guaranteedStr.trim() === "-") {
+    return "0";
+  }
+  
+  // Remove $ symbol and any other non-numeric characters except decimal point
+  const cleanValue = guaranteedStr.replace(/[^0-9.-]/g, "");
+  const guaranteed = parseFloat(cleanValue);
+  
+  // Only show if it's a valid positive number
+  if (!isNaN(guaranteed) && guaranteed > 0) {
+    return formatCompactNumber(guaranteed);
+  }
+  
+  return "0";
 };
 
 // Enhanced image component with skeleton loading
@@ -481,51 +501,23 @@ const EnhancedModelCard = memo(
 
           {/* Content section */}
           <div className="p-4 space-y-4">
-            {/* Quick info */}
+            {/* Quick info with guaranteed amount */}
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                 <Calendar className="w-4 h-4" />
                 <span>{formattedDate}</span>
               </div>
-              {model.personalityType && (
-                <span className="px-2 py-1 rounded-full text-xs font-medium bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-300">
-                  {model.personalityType}
+              <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 min-w-0">
+                <DollarSign className="w-2.5 h-2.5 flex-shrink-0" />
+                <span className="text-[10px] font-semibold truncate leading-tight">
+                  {formatGuaranteedAmount((model as any).guaranteed)}
                 </span>
-              )}
+              </div>
             </div>
 
-            {/* Performance metrics */}
-            {model.stats && (
-              <div className="grid grid-cols-3 gap-3">
-                <StatCard
-                  icon={DollarSign}
-                  label="Monthly"
-                  value={formatCompactNumber(model.stats.monthlyRevenue)}
-                  trend={trends.revenue}
-                  color="success"
-                  compact
-                />
-                <StatCard
-                  icon={Users}
-                  label="Subs"
-                  value={formatCompactNumber(model.stats.subscribers)}
-                  trend={trends.subscribers}
-                  color="info"
-                  compact
-                />
-                <StatCard
-                  icon={Clock}
-                  label="Response"
-                  value={model.stats.avgResponseTime || "—"}
-                  color="default"
-                  compact
-                />
-              </div>
-            )}
-
-            {/* Social links and actions */}
-            <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-700">
-              <div className="flex items-center gap-1">
+            {/* Social links */}
+            <div className="flex items-center pt-3 border-t border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-1 h-8">
                 <SocialLinkButton
                   platform="instagram"
                   username={model.instagram}
@@ -541,40 +533,14 @@ const EnhancedModelCard = memo(
                   username={model.tiktok}
                   onStopPropagation={handleStopPropagation}
                 />
-              </div>
-
-              <button
-                onClick={handleStopPropagation}
-                className={cn(
-                  "p-2 rounded-lg transition-all duration-200",
-                  "text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300",
-                  "hover:bg-gray-50 dark:hover:bg-gray-700/50",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                {!model.instagram && !model.twitter && !model.tiktok && (
+                  <div className="p-2 flex items-center justify-center h-8">
+                    <span className="text-xs text-gray-400 dark:text-gray-500">No social links</span>
+                  </div>
                 )}
-                aria-label="More actions"
-              >
-                <MoreVertical className="w-4 h-4" />
-              </button>
+              </div>
             </div>
 
-            {/* Tags */}
-            {model.commonTerms && model.commonTerms.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 pt-2">
-                {model.commonTerms.slice(0, 3).map((term, idx) => (
-                  <span
-                    key={idx}
-                    className="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"
-                  >
-                    {term}
-                  </span>
-                ))}
-                {model.commonTerms.length > 3 && (
-                  <span className="px-2 py-0.5 rounded text-xs bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
-                    +{model.commonTerms.length - 3}
-                  </span>
-                )}
-              </div>
-            )}
           </div>
         </div>
       </div>

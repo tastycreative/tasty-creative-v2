@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 // Import our new components
 import { ModelsGrid, GridSection, GridEmptyState } from "../grids/ModelsGrid";
 import EnhancedModelCard from "../cards/EnhancedModelCard";
+import { ModelsTable } from "../tables/ModelsTable";
 import ModelsSearchAndFilter, {
   type QuickFilterType,
   type SortOption,
@@ -234,6 +235,20 @@ interface EnhancedModelsPageProps {
   showHeader?: boolean;
 }
 
+// Format large numbers with K/M/B suffix
+const formatCompactNumber = (num: number): string => {
+  if (num >= 1000000000) {
+    return `${(num / 1000000000).toFixed(1)}B`;
+  }
+  if (num >= 1000000) {
+    return `${(num / 1000000).toFixed(1)}M`;
+  }
+  if (num >= 1000) {
+    return `${(num / 1000).toFixed(1)}K`;
+  }
+  return num.toString();
+};
+
 const EnhancedModelsPage = ({
   userRole = "USER",
   assignedCreators = [],
@@ -263,7 +278,7 @@ const EnhancedModelsPage = ({
 
   // Optimized data fetching
   const {
-    models,
+    models: rawModels,
     stats,
     isLoading,
     isError,
@@ -277,6 +292,62 @@ const EnhancedModelsPage = ({
     sort: effectiveSort,
     creators: (userRole !== "ADMIN" && userRole !== "MODERATOR") ? assignedCreators : [],
   });
+
+  // Apply client-side filtering for non-status filters
+  const models = useMemo(() => {
+    if (quickFilter === "all" || quickFilter === "active" || quickFilter === "dropped") {
+      return rawModels; // Already filtered by status in the hook
+    }
+
+    if (quickFilter === "recent") {
+      return rawModels.filter((model) => {
+        if (!model.launchDate) return false;
+        const launchDate = new Date(model.launchDate);
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        return launchDate >= thirtyDaysAgo;
+      });
+    }
+
+    if (quickFilter === "high-revenue") {
+      console.log("🔍 Applying high-revenue filter to", rawModels.length, "models");
+      const filtered = rawModels.filter((model) => {
+        const guaranteedStr = (model as any).guaranteed;
+        if (!guaranteedStr || guaranteedStr.trim() === "" || guaranteedStr.trim() === "-") {
+          return false;
+        }
+        
+        const cleanValue = guaranteedStr.replace(/[^0-9.-]/g, "");
+        const guaranteed = parseFloat(cleanValue);
+        const qualifies = !isNaN(guaranteed) && guaranteed > 10000;
+        
+        if (qualifies) {
+          console.log("✅ Top performer:", model.name, "guaranteed:", guaranteedStr, "→", guaranteed);
+        }
+        
+        return qualifies;
+      });
+      
+      // Sort by guaranteed amount (highest to lowest)
+      const sorted = filtered.sort((a, b) => {
+        const getGuaranteedValue = (model: any) => {
+          const guaranteedStr = model.guaranteed;
+          if (!guaranteedStr || guaranteedStr.trim() === "" || guaranteedStr.trim() === "-") {
+            return 0;
+          }
+          const cleanValue = guaranteedStr.replace(/[^0-9.-]/g, "");
+          const guaranteed = parseFloat(cleanValue);
+          return !isNaN(guaranteed) ? guaranteed : 0;
+        };
+        
+        return getGuaranteedValue(b) - getGuaranteedValue(a); // Descending order
+      });
+      
+      console.log("🎯 High-revenue filter result:", sorted.length, "models, sorted by guaranteed amount");
+      return sorted;
+    }
+
+    return rawModels;
+  }, [rawModels, quickFilter]);
 
   // Fetch global stats (all models, not filtered by user assignments)
   const { data: globalStats } = useGlobalModelsStats();
@@ -337,17 +408,26 @@ const EnhancedModelsPage = ({
     []
   );
 
-  // Memoized stats for quick filters
+  // Memoized stats for quick filters (based on all models, not filtered)
   const modelStats = useMemo(() => {
-    const total = models.length;
-    const active = models.filter(
+    const total = rawModels.length;
+    const active = rawModels.filter(
       (m) => m.status.toLowerCase() === "active"
     ).length;
     const dropped = total - active;
-    const highRevenue = models.filter(
-      (m) => (m.stats?.monthlyRevenue || 0) > 10000
-    ).length;
-    const recent = models.filter((m) => {
+    const highRevenue = rawModels.filter((model) => {
+      const guaranteedStr = (model as any).guaranteed;
+      if (!guaranteedStr || guaranteedStr.trim() === "" || guaranteedStr.trim() === "-") {
+        return false;
+      }
+      
+      const cleanValue = guaranteedStr.replace(/[^0-9.-]/g, "");
+      const guaranteed = parseFloat(cleanValue);
+      
+      return !isNaN(guaranteed) && guaranteed > 10000;
+    }).length;
+    console.log("📊 High-revenue count for filter badge:", highRevenue);
+    const recent = rawModels.filter((m) => {
       if (!m.launchDate) return false;
       const launchDate = new Date(m.launchDate);
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -355,22 +435,38 @@ const EnhancedModelsPage = ({
     }).length;
 
     return { total, active, dropped, highRevenue, recent };
-  }, [models]);
+  }, [rawModels]);
 
   // Memoized dashboard stats
   const dashboardStats = useMemo(() => {
-    // Use user's assigned models revenue for their personal stats
-    const assignedRevenue = models.reduce(
-      (sum, model) => sum + (model.stats?.monthlyRevenue || 0),
+    // Use user's assigned models guaranteed amounts for their personal stats
+    const assignedGuaranteed = models.reduce(
+      (sum, model) => {
+        const guaranteedStr = (model as any).guaranteed;
+        if (!guaranteedStr || guaranteedStr.trim() === "" || guaranteedStr.trim() === "-") {
+          return sum;
+        }
+        
+        // Remove $ symbol and any other non-numeric characters except decimal point
+        const cleanValue = guaranteedStr.replace(/[^0-9.-]/g, "");
+        const guaranteed = parseFloat(cleanValue);
+        
+        // Only add if it's a valid positive number
+        if (!isNaN(guaranteed) && guaranteed > 0) {
+          return sum + guaranteed;
+        }
+        
+        return sum;
+      },
       0
     );
-    const avgRevenue = models.length > 0 ? assignedRevenue / models.length : 0;
+    const avgGuaranteed = models.length > 0 ? assignedGuaranteed / models.length : 0;
 
     return {
       totalModels: globalStats?.totalModels || 0, // Global count of all models
       activeModels: globalStats?.activeModels || 0, // Global count of active models
-      totalRevenue: globalStats?.totalRevenue || 0, // Global revenue
-      avgRevenue,
+      totalRevenue: globalStats?.totalRevenue || 0, // Global guaranteed revenue (sum of all guaranteed amounts)
+      avgRevenue: avgGuaranteed, // Average guaranteed for user's assigned models
       assignedToMe: models.length, // Show assigned models count
       activePercentage: globalStats?.activePercentage || 0, // Global active percentage
     };
@@ -457,8 +553,8 @@ const EnhancedModelsPage = ({
           progressLabel="Active percentage"
         />
         <StatsCard
-          title="Monthly Revenue"
-          value={`$${dashboardStats.totalRevenue.toLocaleString()}`}
+          title="Guaranteed Revenue"
+          value={`$${formatCompactNumber(dashboardStats.totalRevenue)}`}
           change={{ value: 23, type: "increase" }}
           icon={DollarSign}
           color="warning"
@@ -533,13 +629,14 @@ const EnhancedModelsPage = ({
               ) : null
             }
           />
+        ) : viewMode === "list" ? (
+          <ModelsTable
+            models={paginatedModels}
+            onModelClick={handleModelClick}
+            startIndex={startIndex}
+          />
         ) : (
-          <ModelsGrid
-            density="standard"
-            className={cn(
-              viewMode === "list" ? "grid-cols-1 lg:grid-cols-2" : ""
-            )}
-          >
+          <ModelsGrid density="standard">
             {paginatedModels.map((model, index) => (
               <EnhancedModelCard
                 key={model.id}
@@ -547,7 +644,7 @@ const EnhancedModelsPage = ({
                 index={startIndex + index}
                 onClick={() => handleModelClick(model)}
                 priority={index < 8} // First 8 are priority
-                variant={viewMode === "list" ? "compact" : "default"}
+                variant="default"
                 showPerformanceIndicator={true}
               />
             ))}
