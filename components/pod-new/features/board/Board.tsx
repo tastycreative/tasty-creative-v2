@@ -930,6 +930,8 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           teamAdmins={teamAdmins}
           isSaving={isSaving}
           onClose={closeTaskDetail}
+          onUpdate={updateTask}
+          onDelete={deleteTask}
           onStartEditing={startEditingTask}
           onCancelEditing={cancelEditingTask}
           onSaveChanges={saveTaskChanges}
