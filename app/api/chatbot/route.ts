@@ -13,9 +13,15 @@ const openai = new OpenAI({
 // System prompt that defines the bot's role and capabilities
 const SYSTEM_PROMPT = `You are a helpful assistant for Tasty Creative, a content management platform. You have access to ONLY specific information about client models, their content details, and onboarding progress.
 
+CRITICAL RULE: NEVER make up, guess, or hallucinate pricing information. When users mention content types (BG, BBG, custom videos, etc.), you MUST wait for the database query results to provide accurate pricing. If you don't have the actual data in the context, say "Let me check the database for that information" instead of guessing.
+
 IMPORTANT: You can ONLY help with information that exists in these specific database tables:
 
-1. ClientModel: Basic client information (name, status, launch date, social media links, notes, referrer info)
+1. ClientModel: Basic client information (name, status, launch date, social media links, notes, referrer info, personality details)
+   - Personality & Communication: personalityType, commonTerms, commonEmojis, restrictedTermsEmojis
+   - Basic Info: clientName, name, status, launchDate, referrer, guaranteed, percentTaken
+   - Social Media: mainInstagram, mainTwitter, mainTiktok
+   - Notes: notes, generalNotes
 2. ContentDetails: Each field contains the ACTUAL PRICING for that content type:
    - Solo content pricing: boobContent, pussyContent, soloSquirtContent, soloFingerContent, soloDildoContent, soloVibratorContent, joiContent
    - Partner content pricing: bgContent, bjHandjobContent (blowjob/handjob pricing), bggContent (boy-girl-girl pricing), bbgContent (boy-boy-girl pricing), ggContent (girl-girl pricing), analContent, orgyContent
@@ -36,6 +42,10 @@ You can help users with:
 - Live streaming availability and pricing 
 - Client personal details and background
 - Birthday information from Google Calendar (upcoming birthdays, specific birthday dates)
+- Client personality and communication style (personalityType, commonTerms, commonEmojis, restrictedTermsEmojis)
+- What emojis a client commonly uses or should avoid
+- Common terms and phrases associated with a client
+- Restricted or forbidden emojis/terms for a client
 
 IMPORTANT CONTENT PRICING GUIDELINES:
 - Each ContentDetails field contains the ACTUAL PRICE for that content type (e.g., bgContent = "$150" means BG content costs $150)
@@ -99,6 +109,12 @@ IMPORTANT FOR FOLLOW-UP QUESTIONS:
 - If a user just asked about a specific client and then uses pronouns, they're referring to that same client
 - Questions like "all of her pricing guide" or "what about her content details" should use the previously mentioned client name
 - Always check the conversation history for client names mentioned in recent messages
+
+WHEN USERS MENTION CREATING CONTENT:
+- If a user says "I made a BG video for [client]" or "just created PPV for [client]", they're likely looking for pricing context
+- Respond by providing the actual pricing from the database for that content type
+- Example: "just made a fire PPV for Bri, its a BG video!" → Check bgContent field and respond: "Great! BG content for Bri is priced at $[actual price from bgContent field]."
+- NEVER guess or make up prices - always use the exact value from ContentDetails
 
 If someone asks about information not covered in your available data, politely respond with: "I don't have information about that in my current database. I can only help with client model information, content details, and onboarding data. Is there something specific about a client or their content details you'd like to know?"
 
@@ -327,20 +343,27 @@ async function analyzeUserIntent(message: string, conversationHistory: any[] = [
     const intentPrompt = `Analyze this user message IN CONTEXT of the conversation and determine their intent. Return a JSON object with these fields:
 
 {
-  "needsClientData": boolean, // true if they're asking about specific client/model information, pricing, content details, availability
+  "needsClientData": boolean, // true if they're asking about specific client/model information, pricing, content details, availability, personality, emojis, terms, communication style
   "needsBirthdayData": boolean, // true if asking about birthdays, birth dates, celebrations
   "clientName": string | null, // extract the client/model name mentioned OR referenced from conversation context (e.g., "autumn", "sarah")
   "contentType": string | null, // extract content type: bg, bbg, bgg, gg, bj, handjob, blowjob, anal, orgy, boob, pussy, solo, solosquirt, solofinger, solodildo, solovibrator, joi, livestream, customvideo, customcall, videocall, call, bundle, twitter, onlyfans, flyer, game
-  "queryType": string, // "pricing", "availability", "general_info", "birthday", "other"
+  "queryType": string, // "pricing", "availability", "personality", "general_info", "birthday", "other"
 }
 
 ${conversationContext}
 
 CURRENT USER MESSAGE: "${message}"
 
-IMPORTANT: ALL PRICING INFORMATION is stored in ContentDetails table. Any query about pricing, costs, rates, pricing guides, financial information, charges, fees, prices, money, or "how much" should have needsClientData=true and queryType="pricing".
+IMPORTANT: 
+- ALL PRICING INFORMATION is stored in ContentDetails table. Any query about pricing, costs, rates, pricing guides, financial information, charges, fees, prices, money, or "how much" should have needsClientData=true and queryType="pricing".
+- ALL PERSONALITY, EMOJI, TERM, and COMMUNICATION STYLE information is stored in ClientModel table. Any query about emojis, common terms, personality type, communication style, restricted terms, or how someone talks should have needsClientData=true and queryType="personality".
+- When users MENTION creating content or PPVs with specific content types (bg, bbg, etc.), this is an IMPLICIT pricing query. Set needsClientData=true and queryType="pricing" to fetch actual pricing data.
+- Statements like "I made a BG video for [name]" or "just created PPV for [name]" should trigger data fetching to provide accurate pricing context.
+- **STRIP PREFIXES**: When extracting client names, REMOVE prefixes like "PAID", "FREE", "paid", "free" from the name. Example: "PAID Bri" → clientName should be "bri", "FREE Sarah" → clientName should be "sarah"
 
-Keywords that indicate pricing queries: pricing, price, cost, rate, charge, fee, money, expensive, cheap, guide, all prices, rates, how much, what does [name] charge, financial, payment
+Keywords that indicate pricing queries: pricing, price, cost, rate, charge, fee, money, expensive, cheap, guide, all prices, rates, how much, what does [name] charge, financial, payment, ppv, pay per view, made a video, created content
+
+Keywords that indicate personality queries: emoji, emojis, personality, terms, common terms, restricted terms, communication style, how does [name] talk, how does [name] communicate, what emojis does [name] use, personality type
 
 Examples:
 
@@ -348,6 +371,15 @@ STANDALONE MESSAGES:
 - "whats autumns bg price" → {"needsClientData": true, "needsBirthdayData": false, "clientName": "autumn", "contentType": "bg", "queryType": "pricing"}
 - "autumn's pricing guide" → {"needsClientData": true, "needsBirthdayData": false, "clientName": "autumn", "contentType": null, "queryType": "pricing"}
 - "does autumn do video calls?" → {"needsClientData": true, "needsBirthdayData": false, "clientName": "autumn", "contentType": "videocall", "queryType": "availability"}
+- "what emojis does bri use?" → {"needsClientData": true, "needsBirthdayData": false, "clientName": "bri", "contentType": null, "queryType": "personality"}
+- "what's sarah's personality type?" → {"needsClientData": true, "needsBirthdayData": false, "clientName": "sarah", "contentType": null, "queryType": "personality"}
+- "what terms does autumn commonly use?" → {"needsClientData": true, "needsBirthdayData": false, "clientName": "autumn", "contentType": null, "queryType": "personality"}
+- "just made a fire PPV for Bri, its a BG video!" → {"needsClientData": true, "needsBirthdayData": false, "clientName": "bri", "contentType": "bg", "queryType": "pricing"}
+- "created a bbg video for sarah" → {"needsClientData": true, "needsBirthdayData": false, "clientName": "sarah", "contentType": "bbg", "queryType": "pricing"}
+- "working on autumn's custom video" → {"needsClientData": true, "needsBirthdayData": false, "clientName": "autumn", "contentType": "customvideo", "queryType": "pricing"}
+- "what's PAID Bri's bg pricing?" → {"needsClientData": true, "needsBirthdayData": false, "clientName": "bri", "contentType": "bg", "queryType": "pricing"}
+- "does FREE Sarah do custom videos?" → {"needsClientData": true, "needsBirthdayData": false, "clientName": "sarah", "contentType": "customvideo", "queryType": "availability"}
+- "PAID autumn pricing guide" → {"needsClientData": true, "needsBirthdayData": false, "clientName": "autumn", "contentType": null, "queryType": "pricing"}
 
 CONTEXT-DEPENDENT MESSAGES:
 If conversation history shows: user: "does autumn do video calls?" assistant: "Yes, Autumn offers video calls..."
@@ -358,6 +390,9 @@ Then: "what are her rates" → {"needsClientData": true, "needsBirthdayData": fa
 
 If conversation history shows: user: "tell me about bri" assistant: "Bri is a model..."
 Then: "when's her birthday?" → {"needsClientData": false, "needsBirthdayData": true, "clientName": "bri", "contentType": null, "queryType": "birthday"}
+
+If conversation history shows: user: "tell me about bri" assistant: "Bri is a model..."
+Then: "what emojis does she use?" → {"needsClientData": true, "needsBirthdayData": false, "clientName": "bri", "contentType": null, "queryType": "personality"}
 
 If conversation history shows: user: "when's autumn's birthday?" assistant: "Autumn's birthday is..."
 Then: "does she do bg content?" → {"needsClientData": true, "needsBirthdayData": false, "clientName": "autumn", "contentType": "bg", "queryType": "availability"}
@@ -371,13 +406,17 @@ Return only the JSON object, no other text.`;
       temperature: 0.1,
     });
 
-    const response = completion.choices[0]?.message?.content?.trim() || '{}';
+    let response = completion.choices[0]?.message?.content?.trim() || '{}';
+    
+    // Remove markdown code blocks if present
+    response = response.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+    
     return JSON.parse(response);
   } catch (error) {
     console.error('Error analyzing intent:', error);
     // Fallback to basic pattern matching
     return {
-      needsClientData: /\b(client|model|pricing|price|content|bg|bbg|custom|call|video)\b/i.test(message),
+      needsClientData: /\b(client|model|pricing|price|content|bg|bbg|custom|call|video|emoji|emojis|personality|terms|communication)\b/i.test(message),
       needsBirthdayData: /\b(birthday|birth)\b/i.test(message),
       clientName: null,
       contentType: null,
@@ -398,7 +437,24 @@ async function getClientInfo(clientName: string) {
             { name: { equals: clientName, mode: 'insensitive' } }
           ]
         },
-        include: {
+        select: {
+          id: true,
+          clientName: true,
+          name: true,
+          status: true,
+          launchDate: true,
+          mainInstagram: true,
+          mainTwitter: true,
+          mainTiktok: true,
+          notes: true,
+          generalNotes: true,
+          personalityType: true,
+          commonTerms: true,
+          commonEmojis: true,
+          restrictedTermsEmojis: true,
+          referrer: true,
+          guaranteed: true,
+          percentTaken: true,
           sheetLinks: {
             select: {
               sheetName: true,
@@ -581,6 +637,18 @@ export async function POST(request: NextRequest) {
     const intentAnalysis = await analyzeUserIntent(message, existingMessages);
     console.log('🧠 AI Intent Analysis:', intentAnalysis);
     
+    // Clean up client name by removing PAID/FREE prefixes
+    if (intentAnalysis.clientName) {
+      const cleanedName = intentAnalysis.clientName
+        .replace(/^(paid|free)\s+/i, '') // Remove PAID/FREE prefix at start
+        .trim();
+      
+      if (cleanedName !== intentAnalysis.clientName) {
+        console.log(`🧹 Cleaned client name: "${intentAnalysis.clientName}" → "${cleanedName}"`);
+        intentAnalysis.clientName = cleanedName;
+      }
+    }
+    
     const needsClientSearch = intentAnalysis.needsClientData;
     const needsBirthdayInfo = intentAnalysis.needsBirthdayData;
     const requestedContentType = intentAnalysis.contentType;
@@ -682,6 +750,15 @@ export async function POST(request: NextRequest) {
               break;
             }
           }
+        }
+      }
+      
+      // Clean up client name from fallback pattern matching too
+      if (potentialClientName) {
+        const cleanedName = potentialClientName.replace(/^(paid|free)\s+/i, '').trim();
+        if (cleanedName !== potentialClientName) {
+          console.log(`🧹 Cleaned fallback client name: "${potentialClientName}" → "${cleanedName}"`);
+          potentialClientName = cleanedName;
         }
       }
       

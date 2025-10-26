@@ -46,30 +46,23 @@ const ModelsDropdownList: React.FC<ModelsDropdownListProps> = ({
       const data = await response.json();
       
       if (data.success && Array.isArray(data.clientModels)) {
-        // Filter out any models with empty clientName and ensure they have valid data
+        // Filter out models with empty clientName, dropped status, and ensure they have valid data
         const validModels = data.clientModels.filter(
-          (model: ClientModel) => model.clientName && model.clientName.trim() !== ''
+          (model: ClientModel) => 
+            model.clientName && 
+            model.clientName.trim() !== '' &&
+            model.status.toLowerCase() !== 'dropped'
         );
         setClientModels(validModels);
       } else {
         console.error('Failed to fetch client models:', data.error);
         setError('Failed to load models');
-        // Fallback to hardcoded models
-        setClientModels([
-          { id: 'fallback-1', clientName: 'Alanna', status: 'active' },
-          { id: 'fallback-2', clientName: 'Sarah', status: 'active' },
-          { id: 'fallback-3', clientName: 'Jessica', status: 'active' },
-        ]);
+        setClientModels([]);
       }
     } catch (error) {
       console.error('Error fetching client models:', error);
       setError('Failed to load models');
-      // Fallback to hardcoded models
-      setClientModels([
-        { id: 'fallback-1', clientName: 'Alanna', status: 'active' },
-        { id: 'fallback-2', clientName: 'Sarah', status: 'active' },
-        { id: 'fallback-3', clientName: 'Jessica', status: 'active' },
-      ]);
+      setClientModels([]);
     } finally {
       setIsLoading(false);
     }

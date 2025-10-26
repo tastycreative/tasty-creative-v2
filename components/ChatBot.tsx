@@ -290,7 +290,7 @@ const ChatBot: React.FC = () => {
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
-  <Card className={`transition-all gap-2 duration-300 py-0 pb-0 shadow-2xl overflow-hidden isolate backdrop-blur-none ${
+  <Card className={`transition-all duration-300 shadow-2xl overflow-hidden isolate backdrop-blur-none flex flex-col ${
         isMinimized 
           ? 'w-80 h-16' 
           : 'w-[420px] h-[600px]'
@@ -345,7 +345,7 @@ const ChatBot: React.FC = () => {
           <>
 
             {/* Messages */}
-            <CardContent className="p-0 flex-1 flex flex-col h-[560px] bg-[oklch(1_0_0)] dark:bg-[oklch(0.205_0_0)]">
+            <CardContent className="p-0 flex-1 flex flex-col overflow-hidden bg-[oklch(1_0_0)] dark:bg-[oklch(0.205_0_0)]">
               <ScrollArea ref={scrollAreaRef} className="flex-1 p-4 bg-[oklch(1_0_0)] dark:bg-[oklch(0.205_0_0)]">
                 <div className="space-y-4">
                   {isInitialLoading ? (
@@ -425,7 +425,7 @@ const ChatBot: React.FC = () => {
 
               {/* New Conversation Button - appears above input when conversation has messages */}
               {messages.length > 1 && (
-                <div className="px-4 py-3 border-t border-pink-200 dark:border-pink-900 bg-pink-50 dark:bg-gray-800">
+                <div className="px-4 py-2 border-t border-pink-200 dark:border-pink-900 bg-pink-50 dark:bg-gray-800 flex-shrink-0">
                   <div className="flex justify-center">
                     <Button
                       onClick={endConversation}
@@ -441,7 +441,7 @@ const ChatBot: React.FC = () => {
               )}
 
               {/* Input */}
-              <div className="p-4 border-t border-pink-200 dark:border-pink-900 bg-white dark:bg-gray-900">
+              <div className="p-4 border-t border-pink-200 dark:border-pink-900 bg-white dark:bg-gray-900 flex-shrink-0">
                 <div className="flex space-x-2">
                   <Input
                     ref={inputRef}
