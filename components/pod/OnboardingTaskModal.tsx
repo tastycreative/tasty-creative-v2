@@ -22,6 +22,7 @@ import { Session } from "next-auth";
 import TaskComments from "./TaskComments";
 import { formatForTaskDetail, formatDueDate } from "@/lib/dateUtils";
 import UserProfile from "@/components/ui/UserProfile";
+import UserDropdown from "@/components/UserDropdown";
 import { useOnboardingData, useOnboardingActions, useOnboardingUI } from "@/lib/stores/onboardingStore";
 
 const defaultChecklist = [
@@ -109,11 +110,15 @@ interface OnboardingTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   session?: Session | null;
+  onUpdate?: (taskId: string, updates: Partial<Task>) => Promise<void>;
+  onDelete?: (taskId: string) => void;
 }
 
-export default function OnboardingTaskModal({ task, isOpen, onClose, session }: OnboardingTaskModalProps) {
+export default function OnboardingTaskModal({ task, isOpen, onClose, session, onUpdate, onDelete }: OnboardingTaskModalProps) {
   const [withCheckbox] = useState(true);
   const [isEditingTask, setIsEditingTask] = useState(false);
+  const [editingTaskData, setEditingTaskData] = useState<Partial<Task>>({});
+  const [isSaving, setIsSaving] = useState(false);
   const [clientId, setClientId] = useState<string>("");
   const [message, setMessage] = useState("");
   
@@ -132,6 +137,44 @@ export default function OnboardingTaskModal({ task, isOpen, onClose, session }: 
   const totalCount = defaultChecklist.length;
   const completionPercentage = (completedCount / Math.max(1, totalCount)) * 100;
 
+  // Task editing functions
+  const startEditingTask = () => {
+    setEditingTaskData({
+      title: task.title,
+      description: task.description,
+      priority: task.priority,
+      assignedTo: task.assignedTo,
+      dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : "",
+    });
+    setIsEditingTask(true);
+  };
+
+  const cancelEditingTask = () => {
+    setIsEditingTask(false);
+    setEditingTaskData({});
+  };
+
+  const saveTaskChanges = async () => {
+    if (!onUpdate) return;
+    
+    setIsSaving(true);
+    try {
+      const updates: Partial<Task> = {
+        title: editingTaskData.title || task.title,
+        description: editingTaskData.description || task.description,
+        priority: editingTaskData.priority || task.priority,
+        dueDate: editingTaskData.dueDate ? new Date(editingTaskData.dueDate).toISOString() : null,
+        assignedTo: editingTaskData.assignedTo || null,
+      };
+      await onUpdate(task.id, updates);
+      setIsEditingTask(false);
+      setEditingTaskData({});
+    } catch (error) {
+      console.error('Error updating task:', error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Remove old toggleStep function - now handled by Zustand store
 
@@ -240,10 +283,31 @@ export default function OnboardingTaskModal({ task, isOpen, onClose, session }: 
                 {showChecklist ? <List className="h-4 w-4" /> : <List className="h-4 w-4" />}
                 <span className="hidden sm:inline">Checklist</span>
               </button>
-              <button onClick={() => setIsEditingTask(!isEditingTask)} className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
-                <Edit3 className="h-4 w-4" />
-                <span className="hidden sm:inline">Edit</span>
-              </button>
+              {!isEditingTask ? (
+                <button onClick={startEditingTask} className="flex items-center space-x-2 px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                  <Edit3 className="h-4 w-4" />
+                  <span className="hidden sm:inline">Edit</span>
+                </button>
+              ) : (
+                <div className="flex space-x-2">
+                  <button
+                    onClick={cancelEditingTask}
+                    className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100/50 dark:hover:bg-gray-700/50 rounded-lg transition-colors"
+                  >
+                    <span className="hidden sm:inline">Cancel</span>
+                    <span className="sm:hidden">✕</span>
+                  </button>
+                  <button
+                    onClick={saveTaskChanges}
+                    disabled={isSaving}
+                    className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    {isSaving && <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />}
+                    <span className="hidden sm:inline">{isSaving ? 'Saving...' : 'Save Changes'}</span>
+                    <span className="sm:hidden">{isSaving ? 'Saving...' : 'Save'}</span>
+                  </button>
+                </div>
+              )}
               <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg p-2 transition-colors"><X className="h-5 w-5" /></button>
             </div>
           </div>
@@ -254,10 +318,110 @@ export default function OnboardingTaskModal({ task, isOpen, onClose, session }: 
             <div className="space-y-8">
               <div>
                 <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">Description</h4>
-                <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap">{linkifyText(task.description || "Complete all necessary onboarding tasks for this model. Use Fetch to load live data.")}</p>
-                </div>
+                {isEditingTask ? (
+                  <textarea
+                    value={editingTaskData.description || ""}
+                    onChange={(e) =>
+                      setEditingTaskData(prev => ({ ...prev, description: e.target.value }))
+                    }
+                    rows={4}
+                    placeholder="Add a description..."
+                    className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all resize-none"
+                  />
+                ) : (
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <p className="text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap">{linkifyText(task.description || "Complete all necessary onboarding tasks for this model. Use Fetch to load live data.")}</p>
+                  </div>
+                )}
               </div>
+
+              {/* Task Assignment Section - Only show when editing */}
+              {isEditingTask && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Edit Priority */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                        Priority
+                      </label>
+                      <select
+                        value={editingTaskData.priority || "MEDIUM"}
+                        onChange={(e) =>
+                          setEditingTaskData(prev => ({
+                            ...prev,
+                            priority: e.target.value as Task["priority"],
+                          }))
+                        }
+                        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                      >
+                        <option value="LOW">🟢 Low</option>
+                        <option value="MEDIUM">🟡 Medium</option>
+                        <option value="HIGH">🔴 High</option>
+                        <option value="URGENT">🚨 Urgent</option>
+                      </select>
+                    </div>
+
+                    {/* Edit Due Date */}
+                    <div>
+                      <div className="flex items-center space-x-3 mb-3">
+                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                          Due Date
+                        </label>
+                        <input
+                          type="checkbox"
+                          id="has-due-date-edit"
+                          checked={!!editingTaskData.dueDate}
+                          onChange={(e) => {
+                            if (!e.target.checked) {
+                              setEditingTaskData(prev => ({ ...prev, dueDate: "" }));
+                            } else {
+                              const today = new Date().toISOString().split("T")[0];
+                              setEditingTaskData(prev => ({ ...prev, dueDate: today }));
+                            }
+                          }}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <label
+                          htmlFor="has-due-date-edit"
+                          className="text-sm text-gray-700 dark:text-gray-300"
+                        >
+                          Set due date
+                        </label>
+                      </div>
+                      {editingTaskData.dueDate ? (
+                        <input
+                          type="date"
+                          value={editingTaskData.dueDate || ""}
+                          onChange={(e) =>
+                            setEditingTaskData(prev => ({ ...prev, dueDate: e.target.value }))
+                          }
+                          className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                        />
+                      ) : (
+                        <div className="px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50/50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 text-sm italic">
+                          No deadline set
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Edit Assignee */}
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                      Assignee
+                    </label>
+                    <UserDropdown
+                      value={editingTaskData.assignedTo || ""}
+                      onChange={(email) =>
+                        setEditingTaskData(prev => ({ ...prev, assignedTo: email }))
+                      }
+                      placeholder="Search and select team member..."
+                      className=""
+                      teamId={task.podTeamId || undefined}
+                    />
+                  </div>
+                </div>
+              )}
 
               {showDetails && (
                 <div className="space-y-4">

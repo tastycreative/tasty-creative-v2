@@ -949,6 +949,8 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           isOpen={!!selectedTask}
           onClose={closeTaskDetail}
           session={session}
+          onUpdate={updateTask}
+          onDelete={deleteTask}
         />
       )}
 
