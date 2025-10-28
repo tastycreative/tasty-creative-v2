@@ -13,6 +13,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -59,6 +61,7 @@ import {
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { usePricingData } from "@/hooks/usePricingData";
+import { CONTENT_TYPE_OPTIONS } from "./modular-workflow/types";
 
 // Core Types
 export type SubmissionType = "otp" | "ptr";
@@ -93,6 +96,15 @@ interface ModularFormData {
   driveLink: string;
   caption?: string;
 
+  // Content Details fields (NEW)
+  contentType?: string;
+  contentLength?: string;
+  contentCount?: string;
+
+  // Tags fields
+  externalCreatorTags?: string;
+  internalModelTags?: string[];
+
   // PPV/Bundle specific fields
   originalPollReference?: string;
 
@@ -120,7 +132,6 @@ const WIZARD_STEPS = [
   { id: 'templates', title: 'Choose Template', icon: Layers, description: 'Start with a template or from scratch' },
   { id: 'type', title: 'Submission Type', icon: Package, description: 'Select OTP or PTR submission' },
   { id: 'style', title: 'Content Style', icon: Sparkles, description: 'Choose your content format' },
-  { id: 'components', title: 'Add Features', icon: Zap, description: 'Enhance with components' },
   { id: 'details', title: 'Content Details', icon: FileText, description: 'Add your content information' },
   { id: 'review', title: 'Review & Submit', icon: Check, description: 'Final review before submission' }
 ];
@@ -342,6 +353,9 @@ export default function ModularWorkflowWizard() {
   const [localFiles, setLocalFiles] = useState<LocalFilePreview[]>([]);
   const [models, setModels] = useState<any[]>([]);
   const [loadingModels, setLoadingModels] = useState(true);
+  const [internalModels, setInternalModels] = useState<any[]>([]);
+  const [showModelSelector, setShowModelSelector] = useState(false);
+  const [selectedInternalModels, setSelectedInternalModels] = useState<string[]>([]);
 
   // Pricing Integration
   const selectedModel = watch("model");
@@ -415,6 +429,22 @@ export default function ModularWorkflowWizard() {
       }
     };
     fetchModels();
+  }, []);
+
+  // Load internal models from database
+  useEffect(() => {
+    const fetchInternalModels = async () => {
+      try {
+        const response = await fetch("/api/client-models");
+        const data = await response.json();
+        if (data.success && Array.isArray(data.clientModels)) {
+          setInternalModels(data.clientModels);
+        }
+      } catch (error) {
+        console.error("Error fetching internal models:", error);
+      }
+    };
+    fetchInternalModels();
   }, []);
 
   // Auto-save draft functionality
@@ -520,6 +550,15 @@ export default function ModularWorkflowWizard() {
     return [...new Set(recommendations)];
   }, []);
 
+  // Auto-populate selectedComponents based on submission type and content style
+  useEffect(() => {
+    if (submissionType && contentStyle) {
+      const recommendedComponents = getSmartRecommendations(submissionType, contentStyle);
+      setValue("selectedComponents", recommendedComponents);
+      console.log('🎯 Auto-selected components:', recommendedComponents);
+    }
+  }, [submissionType, contentStyle, getSmartRecommendations, setValue]);
+
   // Navigation handlers
   const goToStep = (step: number) => {
     if (step < currentStep || completedSteps.includes(currentStep)) {
@@ -561,8 +600,6 @@ export default function ModularWorkflowWizard() {
           return false;
         }
         return true;
-      case 'components':
-        return true; // Optional
       case 'details':
         const formData = getValues();
 
@@ -608,8 +645,8 @@ export default function ModularWorkflowWizard() {
     setValue("submissionType", template.submissionType);
     setValue("contentStyle", template.contentStyle);
     setValue("selectedComponents", template.components);
-    setCompletedSteps([0, 1, 2, 3]);
-    setCurrentStep(4); // Jump to details
+    setCompletedSteps([0, 1, 2]); // Mark template, type, and style steps as complete
+    setCurrentStep(3); // Jump to Content Details (step 3 in 5-step wizard)
     toast.success(`Applied "${template.name}" template`);
   };
 
@@ -684,8 +721,14 @@ export default function ModularWorkflowWizard() {
         modelName: data.model,
         priority: data.priority,
         driveLink: data.driveLink,
-        contentDescription: data.caption || `${contentStyle} submission`,
         attachments: attachments,
+        // Content Details fields
+        contentType: data.contentType,
+        contentLength: data.contentLength,
+        contentCount: data.contentCount,
+        // Tags fields
+        externalCreatorTags: data.externalCreatorTags,
+        internalModelTags: data.internalModelTags || [],
         teamId: selectedTeamId,
         estimatedDuration: parseInt(estimatedTime)
       };
@@ -721,6 +764,22 @@ export default function ModularWorkflowWizard() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  // Handle internal model selection
+  const handleModelToggle = (modelName: string) => {
+    setSelectedInternalModels(prev => {
+      if (prev.includes(modelName)) {
+        return prev.filter(m => m !== modelName);
+      } else {
+        return [...prev, modelName];
+      }
+    });
+  };
+
+  const handleSaveModelSelection = () => {
+    setValue("internalModelTags", selectedInternalModels);
+    setShowModelSelector(false);
   };
 
   // Render current step content
@@ -978,106 +1037,6 @@ export default function ModularWorkflowWizard() {
           </div>
         );
 
-      case 'components':
-        const recommendations = getSmartRecommendations(submissionType, contentStyle);
-
-        return (
-          <div className="space-y-6 max-w-3xl mx-auto">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold mb-2">Add Optional Features</h2>
-              <p className="text-gray-600 dark:text-gray-300">
-                Enhance your workflow with additional components
-              </p>
-              {recommendations.length > 0 && (
-                <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg inline-block">
-                  <p className="text-sm text-amber-700 dark:text-amber-300 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4" />
-                    Smart recommendations based on your selections
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-4">
-              {componentModules.map((component) => {
-                const isSelected = selectedComponents.includes(component.id);
-                const isRecommended = recommendations.includes(component.id);
-
-                return (
-                  <motion.div
-                    key={component.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <Card
-                      className={cn(
-                        "cursor-pointer transition-all",
-                        isSelected
-                          ? "border-2 border-purple-500 shadow-lg bg-purple-50 dark:bg-purple-950"
-                          : "border-2 border-gray-200 hover:border-gray-300"
-                      )}
-                      onClick={() => toggleComponent(component.id)}
-                    >
-                      <CardHeader>
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-start gap-4">
-                            <div className={cn(
-                              "w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center",
-                              component.color
-                            )}>
-                              <component.icon className="w-6 h-6 text-white" />
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <CardTitle className="text-lg">
-                                  {component.name}
-                                </CardTitle>
-                                {isRecommended && (
-                                  <Badge className="bg-amber-500 text-white">
-                                    <Star className="w-3 h-3 mr-1" />
-                                    Recommended
-                                  </Badge>
-                                )}
-                              </div>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
-                                {component.description}
-                              </p>
-                              <div className="flex items-center gap-3 mt-2">
-                                <Badge variant="outline" className="text-xs">
-                                  <Clock className="w-3 h-3 mr-1" />
-                                  {component.estimatedTime}
-                                </Badge>
-                                {component.features.map((feature) => (
-                                  <Badge key={feature} variant="secondary" className="text-xs">
-                                    {feature}
-                                  </Badge>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="mt-1">
-                            <div className={cn(
-                              "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
-                              isSelected
-                                ? "bg-purple-500 border-purple-500"
-                                : "border-gray-300"
-                            )}>
-                              {isSelected && (
-                                <Check className="w-4 h-4 text-white" />
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </CardHeader>
-                    </Card>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </div>
-        );
-
       case 'details':
         return (
           <div className="space-y-6 max-w-2xl mx-auto">
@@ -1153,20 +1112,113 @@ export default function ModularWorkflowWizard() {
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="caption">Caption/Description</Label>
-                  <Textarea
-                    id="caption"
-                    placeholder="Add content description..."
-                    {...register("caption")}
-                    rows={3}
-                    className="mt-2"
-                  />
+                {/* Content Details Section - Content Type, Length, Count */}
+                <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <h4 className="font-semibold text-gray-900 dark:text-gray-100">Additional Content Details</h4>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Content Type */}
+                    <div>
+                      <Label htmlFor="contentType" className="block mb-2 font-medium">Content Type</Label>
+                      <Select onValueChange={(value) => setValue("contentType", value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select content type..." />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[300px] overflow-y-auto">
+                          {CONTENT_TYPE_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Select from standard content types
+                      </p>
+                    </div>
+
+                    {/* Content Length */}
+                    <div>
+                      <Label htmlFor="contentLength" className="block mb-2 font-medium">Content Length</Label>
+                      <Input
+                        id="contentLength"
+                        type="text"
+                        placeholder="8:43 or 8 mins 43 secs"
+                        {...register("contentLength")}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Format: "8:43" or "8 mins 43 secs"
+                      </p>
+                    </div>
+
+                    {/* Content Count */}
+                    <div>
+                      <Label htmlFor="contentCount" className="block mb-2 font-medium">Content Count</Label>
+                      <Input
+                        id="contentCount"
+                        type="text"
+                        placeholder="1 Video, 3 Photos"
+                        {...register("contentCount")}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Format: "1 Video" or "3 Photos"
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tags Section */}
+                <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <h4 className="font-semibold text-gray-900 dark:text-gray-100">Tags</h4>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* External Creator Tags */}
+                    <div>
+                      <Label htmlFor="externalCreatorTags" className="block mb-2 font-medium">
+                        Tags - External Creators
+                      </Label>
+                      <Input
+                        id="externalCreatorTags"
+                        type="text"
+                        placeholder="@johndoe @janedoe"
+                        {...register("externalCreatorTags")}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Enter @usernames separated by spaces
+                      </p>
+                    </div>
+
+                    {/* Internal Model Tags */}
+                    <div>
+                      <Label htmlFor="internalModelTags" className="block mb-2 font-medium">
+                        Tags - Internal Models
+                      </Label>
+                      <div
+                        className="border border-gray-300 dark:border-gray-700 rounded-md p-2 min-h-[40px] cursor-pointer hover:border-gray-400 dark:hover:border-gray-600 transition-colors"
+                        onClick={() => setShowModelSelector(true)}
+                      >
+                        {selectedInternalModels.length === 0 ? (
+                          <span className="text-gray-500 text-sm">Click to select models...</span>
+                        ) : (
+                          <div className="flex flex-wrap gap-1">
+                            {selectedInternalModels.map((modelName) => (
+                              <Badge key={modelName} variant="secondary" className="text-xs">
+                                {modelName}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Click to select internal models ({selectedInternalModels.length} selected)
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 {selectedComponents.includes("upload") && (
                   <div>
-                    <Label>File Attachments</Label>
+                    <Label>Reference Images (screenshots from OF vault)</Label>
                     <div className="mt-2">
                       <FileUpload
                         attachments={attachments}
@@ -1177,9 +1229,9 @@ export default function ModularWorkflowWizard() {
                         maxFiles={10}
                         maxFileSize={50}
                       />
-                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 flex items-center gap-1">
                         <Info className="w-3 h-3" />
-                        Note: File upload requires AWS S3 configuration. Files will be uploaded during submission.
+                        Upload screenshots from OnlyFans vault for team reference
                       </p>
                     </div>
                   </div>
@@ -1930,6 +1982,42 @@ export default function ModularWorkflowWizard() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Internal Model Selector Dialog */}
+      <Dialog open={showModelSelector} onOpenChange={setShowModelSelector}>
+        <DialogContent className="max-w-2xl max-h-[600px]">
+          <DialogHeader>
+            <DialogTitle>Select Internal Models</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto max-h-[400px] py-4">
+            <div className="grid grid-cols-2 gap-3">
+              {internalModels.map((model) => (
+                <div
+                  key={model.id}
+                  className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
+                  onClick={() => handleModelToggle(model.clientName || model.name)}
+                >
+                  <Checkbox
+                    checked={selectedInternalModels.includes(model.clientName || model.name)}
+                    onCheckedChange={() => handleModelToggle(model.clientName || model.name)}
+                  />
+                  <Label className="cursor-pointer flex-1">
+                    {model.clientName || model.name}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowModelSelector(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveModelSelection}>
+              Save Selection ({selectedInternalModels.length})
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

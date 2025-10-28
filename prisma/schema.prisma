@@ -301,10 +301,10 @@ model ClientModel {
   mainTwitter           String?
   mainTiktok            String?
   profileLink           String?
-  chattingManagers      String[]
   createdAt             DateTime                  @default(now())
   updatedAt             DateTime                  @updatedAt
   row_id                String?
+  chattingManagers      String[]
   sheetLinks            ClientModelSheetLinks[]
   contentDetails        ContentDetails?
   notifications         Notification[]
@@ -358,14 +358,13 @@ model ContentDetails {
   bundleContent25_30         String?
   bundleContent30Plus        String?
   contentOptionsForGames     String?
-    // Personal information fields
-  personalityType            String?
-  restrictedTerms            String?
-  notes                      String?
-  generalClientNotes         String?
   createdAt                  DateTime    @default(now())
   updatedAt                  DateTime    @updatedAt
   clientModelName            String      @unique
+  generalClientNotes         String?
+  notes                      String?
+  personalityType            String?
+  restrictedTerms            String?
   clientModel                ClientModel @relation(fields: [clientModelName], references: [clientName], onDelete: Cascade)
 }
 
@@ -562,34 +561,42 @@ model ContentSubmission {
 }
 
 model ModularWorkflow {
-  id                 String             @id @default(cuid())
-  submissionType     SubmissionType
-  contentStyle       ContentStyle
-  selectedComponents Json
-  componentData      Json?
-  workflowTemplate   String?
-  modelName          String
-  priority           SubmissionPriority
-  driveLink          String
-  contentDescription String
-  attachments        Json?
-  estimatedDuration  Int?
-  teamAssignments    Json?
-  createdById        String
-  teamId             String?
-  taskId             String?            @unique
-  status             WorkflowStatus     @default(PENDING)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  processedAt        DateTime?
-  timezone           String?
-  createdBy          User               @relation("ModularWorkflowCreator", fields: [createdById], references: [id])
-  task               Task?              @relation("ModularWorkflowTask", fields: [taskId], references: [id])
-  notifications      Notification[]
+  id                   String             @id @default(cuid())
+  submissionType       SubmissionType
+  contentStyle         ContentStyle
+  selectedComponents   Json
+  componentData        Json?
+  workflowTemplate     String?
+  modelName            String
+  priority             SubmissionPriority
+  driveLink            String
+  attachments          Json?
+  estimatedDuration    Int?
+  teamAssignments      Json?
+  createdById          String
+  teamId               String?
+  taskId               String?            @unique
+  status               WorkflowStatus     @default(PENDING)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  processedAt          DateTime?
+  timezone             String?
+  contentCount         String?            @db.VarChar(50)
+  contentLength        String?            @db.VarChar(20)
+  contentType          ContentType?
+  externalCreatorTags  String?            @db.VarChar(500)
+  internalModelTags    String[]
+  referenceAttachments Json?
+  releaseDate          String?            @db.VarChar(20)
+  releaseTime          String?            @db.VarChar(10)
+  createdBy            User               @relation("ModularWorkflowCreator", fields: [createdById], references: [id])
+  task                 Task?              @relation("ModularWorkflowTask", fields: [taskId], references: [id])
+  notifications        Notification[]
 
   @@index([createdAt])
   @@index([createdById])
   @@index([modelName])
+  @@index([contentType])
   @@index([priority])
   @@index([status])
   @@index([submissionType])
@@ -944,6 +951,22 @@ enum ContentStyle {
   POLL
   LIVESTREAM
   BUNDLE
+}
+
+enum ContentType {
+  BG
+  BGG
+  GG
+  GGG
+  ORGY
+  SOLO
+  COMPILATION
+  AHEGAO
+  JOI
+  THANK_YOU_VIDS
+  VIP_GIFTS
+  BJ
+  FEET
 }
 
 enum WorkflowStatus {

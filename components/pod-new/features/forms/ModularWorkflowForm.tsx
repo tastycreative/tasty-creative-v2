@@ -33,8 +33,27 @@ import {
   FileVideo,
   File,
   Users,
-  ArrowRight
+  ArrowRight,
+  Bell
 } from "lucide-react";
+
+// Import modular components
+import {
+  SubmissionTypeSelector,
+  ContentStyleSelector,
+  QuickTemplatesSection,
+  ContentDetailsSection,
+  TagsSection,
+  TeamNotificationPreview,
+  ReleaseScheduleSection,
+  ContentStyleFields,
+  ValidationErrors,
+  SuccessMessage,
+  styleTemplates,
+  formTemplates,
+  CONTENT_TYPE_OPTIONS,
+  type ModularFormData as ImportedModularFormData,
+} from "./modular-workflow";
 
 // Helper functions for file handling (kept for backward compatibility)
 const getFileIcon = (file: File) => {
@@ -51,10 +70,9 @@ const formatFileSize = (bytes: number): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
 
-// Core Types
-export type SubmissionType = "otp" | "ptr";
-export type ContentStyle = "normal" | "game" | "poll" | "livestream";
-export type ComponentModule = "pricing" | "release" | "upload";
+// Core Types (imported from modular components)
+import type { SubmissionType, ContentStyle, ComponentModule, FormTemplate, Model } from "./modular-workflow";
+export type { SubmissionType, ContentStyle, ComponentModule };
 
 // Component Definitions
 interface StyleTemplate {
@@ -100,82 +118,23 @@ interface ModularFormData {
   driveLink: string;
   caption?: string;
 
+  // NEW FIELDS - Content Details
+  contentType?: string;
+  contentLength?: string;
+  contentCount?: string;
+  externalCreatorTags?: string;
+  internalModelTags?: string[];
+
   // Team assignment fields
 
   // Component fields (dynamic based on selection)
   [key: string]: any;
 }
 
-// Style Templates
-const styleTemplates: StyleTemplate[] = [
-  {
-    id: "normal",
-    name: "Normal Post",
-    description: "Standard content posts",
-    icon: FileText,
-    color: "from-purple-500 to-blue-500",
-    defaultFields: ["caption"],
-    features: ["Basic", "Flexible"]
-  },
-  {
-    id: "game",
-    name: "Game Post",
-    description: "Interactive gaming content",
-    icon: Gamepad2,
-    color: "from-pink-500 to-rose-500",
-    defaultFields: ["gameType", "gameRules"],
-    features: ["Interactive", "Engaging"]
-  },
-  {
-    id: "poll",
-    name: "Poll Post",
-    description: "Engagement polling content",
-    icon: BarChart3,
-    color: "from-blue-500 to-cyan-500",
-    defaultFields: ["pollQuestion", "pollOptions"],
-    features: ["Voting", "Community"]
-  },
-  {
-    id: "livestream",
-    name: "Livestream",
-    description: "Live streaming content",
-    icon: Video,
-    color: "from-red-500 to-pink-500",
-    defaultFields: ["streamTitle", "streamDescription", "streamDuration"],
-    features: ["Live", "Interactive"]
-  }
-];
+// NOTE: styleTemplates now imported from modular-workflow/ContentStyleSelector
 
 // Component Modules with Dependencies
 const componentModules: ComponentDefinition[] = [
-  {
-    id: "pricing",
-    name: "Pricing",
-    description: "Add pricing tiers and monetization",
-    icon: DollarSign,
-    color: "from-green-500 to-emerald-500",
-    recommendedFor: ["game", "livestream"],
-    features: ["Monetization", "Tiers"],
-    fields: [
-      {
-        name: "pricingType",
-        label: "Pricing Type",
-        type: "select",
-        required: true,
-        options: [
-          { value: "single", label: "Single Price" },
-          { value: "tiers", label: "Pricing Tiers" }
-        ]
-      },
-      {
-        name: "basePrice",
-        label: "Base Price",
-        type: "number",
-        required: true,
-        placeholder: "25.00"
-      }
-    ]
-  },
   {
     id: "release",
     name: "Release Scheduling",
@@ -257,70 +216,8 @@ const componentModules: ComponentDefinition[] = [
   }
 ];
 
-// Template System - Common Combinations
-interface FormTemplate {
-  id: string;
-  name: string;
-  description: string;
-  submissionType: SubmissionType;
-  contentStyle: ContentStyle;
-  components: ComponentModule[];
-  icon: any;
-  color: string;
-}
-
-const formTemplates: FormTemplate[] = [
-  {
-    id: "simple-post",
-    name: "Simple Post",
-    description: "Basic content with flexible scheduling",
-    submissionType: "otp",
-    contentStyle: "normal",
-    components: ["upload"],
-    icon: FileText,
-    color: "from-blue-500 to-purple-500"
-  },
-  {
-    id: "priority-release",
-    name: "Priority Release",
-    description: "Model-scheduled content with specific timing",
-    submissionType: "ptr",
-    contentStyle: "normal",
-    components: ["release", "upload"],
-    icon: Calendar,
-    color: "from-orange-500 to-red-500"
-  },
-  {
-    id: "paid-game",
-    name: "Paid Game",
-    description: "Interactive game with pricing tiers",
-    submissionType: "otp",
-    contentStyle: "game",
-    components: ["pricing", "upload"],
-    icon: Gamepad2,
-    color: "from-pink-500 to-rose-500"
-  },
-  {
-    id: "engagement-poll",
-    name: "Engagement Poll",
-    description: "Poll with optional monetization",
-    submissionType: "otp",
-    contentStyle: "poll",
-    components: ["upload"],
-    icon: BarChart3,
-    color: "from-green-500 to-cyan-500"
-  },
-  {
-    id: "live-stream",
-    name: "Live Stream",
-    description: "Scheduled livestream with pricing",
-    submissionType: "ptr",
-    contentStyle: "livestream",
-    components: ["release", "pricing", "upload"],
-    icon: Video,
-    color: "from-red-500 to-pink-500"
-  }
-];
+// NOTE: formTemplates now imported from modular-workflow/QuickTemplatesSection
+// NOTE: FormTemplate interface defined in modular-workflow/types.ts
 
 // Enhanced validation function with dependency logic
 function validateFormData(data: ModularFormData): string[] {
@@ -359,17 +256,7 @@ function validateFormData(data: ModularFormData): string[] {
   }
 
   // Content style specific validation
-  if (data.contentStyle === "game") {
-    if (!data.selectedComponents?.includes("pricing")) {
-      errors.push("Game content typically requires Pricing component for game mechanics");
-    }
-  }
-
-  if (data.contentStyle === "poll") {
-    if (data.selectedComponents?.includes("pricing")) {
-      errors.push("Poll content cannot include Pricing component (polls should be free)");
-    }
-  }
+  // Removed pricing validation - pricing added by QA team later
 
   // Livestream specific validation
   if (data.contentStyle === "livestream") {
@@ -393,13 +280,13 @@ function getSmartRecommendations(submissionType: SubmissionType, contentStyle: C
   // Content style specific recommendations
   switch (contentStyle) {
     case "game":
-      recommendations.push("pricing", "upload");
+      recommendations.push("upload");
       break;
     case "poll":
-      recommendations.push("upload"); // No pricing for polls
+      recommendations.push("upload");
       break;
     case "livestream":
-      recommendations.push("upload", "pricing");
+      recommendations.push("upload");
       break;
     case "normal":
       recommendations.push("upload");
@@ -409,17 +296,11 @@ function getSmartRecommendations(submissionType: SubmissionType, contentStyle: C
   return [...new Set(recommendations)]; // Remove duplicates
 }
 
-interface Model {
-  name: string;
-  profile?: string;
-  status?: string;
-}
-
 export default function ModularWorkflowForm() {
   const router = useRouter();
   const { fetchTasks } = useBoardTasks();
 
-  const { register, control, handleSubmit, formState: { errors }, setValue, getValues } = useForm<ModularFormData>({
+  const { register, control, handleSubmit, formState: { errors }, setValue, getValues, watch } = useForm<ModularFormData>({
     mode: "onChange",
     defaultValues: {
       submissionType: "otp",
@@ -434,7 +315,6 @@ export default function ModularWorkflowForm() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [showTemplates, setShowTemplates] = useState(false);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   // S3 file upload state
   const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
@@ -451,8 +331,6 @@ export default function ModularWorkflowForm() {
   const submissionType = useWatch({ control, name: "submissionType" });
   const contentStyle = useWatch({ control, name: "contentStyle" });
   const selectedComponents = useWatch({ control, name: "selectedComponents" }) || [];
-
-  const selectedStyleTemplate = styleTemplates.find(style => style.id === contentStyle);
 
   // Get smart recommendations
   const smartRecommendations = getSmartRecommendations(submissionType, contentStyle);
@@ -559,14 +437,7 @@ export default function ModularWorkflowForm() {
     }
 
     // Component-specific validations
-    if (data.selectedComponents?.includes('pricing')) {
-      if (!data.pricingType) {
-        errors.push('Please select a pricing type');
-      }
-      if (!data.basePrice || data.basePrice === '') {
-        errors.push('Please enter a base price');
-      }
-    }
+    // Removed pricing validation - pricing added by QA team later
 
     if (data.selectedComponents?.includes('release')) {
       if (!data.priority) {
@@ -611,11 +482,13 @@ export default function ModularWorkflowForm() {
         contentStyle: data.contentStyle,
         selectedComponents: data.selectedComponents || [],
         componentData: {
+          // NEW FIELDS - Content Details
+          contentType: data.contentType,
+          contentLength: data.contentLength,
+          contentCount: data.contentCount,
+          externalCreatorTags: data.externalCreatorTags,
+          internalModelTags: data.internalModelTags,
           // Collect all component-specific data
-          ...(data.selectedComponents?.includes('pricing') && {
-            pricingType: data.pricingType,
-            basePrice: data.basePrice
-          }),
           ...(data.selectedComponents?.includes('release') && {
             releaseDate: data.releaseDate,
             releaseTime: data.releaseTime,
@@ -647,7 +520,7 @@ export default function ModularWorkflowForm() {
         modelName: data.model,
         priority: data.priority,
         driveLink: data.driveLink,
-        contentDescription: data.caption || `${selectedStyleTemplate?.name || 'Content'} submission with ${selectedComponents.length} components`,
+        contentDescription: data.caption || `${contentStyle.charAt(0).toUpperCase() + contentStyle.slice(1)} submission with ${selectedComponents.length} components`,
 
         // File attachments (S3 uploaded files)
         attachments: attachments,
@@ -735,135 +608,7 @@ export default function ModularWorkflowForm() {
     }
   };
 
-  const applyTemplate = (template: FormTemplate) => {
-    setValue("submissionType", template.submissionType);
-    setValue("contentStyle", template.contentStyle);
-    setValue("selectedComponents", template.components);
-    setShowTemplates(false);
-    setValidationErrors([]); // Clear validation errors when applying template
-  };
-
-  const getFilteredTemplates = () => {
-    return formTemplates.filter(template =>
-      template.submissionType === submissionType ||
-      template.contentStyle === contentStyle
-    );
-  };
-
-  const hasStyleSpecificFields = () => {
-    // Normal posts don't have additional fields, so hide the step
-    return contentStyle !== "normal";
-  };
-
-  const getFileIcon = (file: File) => {
-    if (file.type.startsWith('image/')) return FileImage;
-    if (file.type.startsWith('video/')) return FileVideo;
-    return File;
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-
-  const renderStyleSpecificFields = () => {
-    if (!selectedStyleTemplate) return null;
-
-    switch (contentStyle) {
-      case "normal":
-        return null; // Don't render anything for normal posts
-
-      case "game":
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="gameType" className="block mb-2 font-medium">Game Type</Label>
-              <Select onValueChange={(value) => setValue("gameType", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select game type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="quiz">Quiz Game</SelectItem>
-                  <SelectItem value="challenge">Challenge</SelectItem>
-                  <SelectItem value="contest">Contest</SelectItem>
-                  <SelectItem value="trivia">Trivia</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="gameRules" className="block mb-2 font-medium">Game Rules</Label>
-              <Textarea
-                id="gameRules"
-                placeholder="Explain how to play..."
-                {...register("gameRules")}
-                rows={4}
-              />
-            </div>
-          </div>
-        );
-
-      case "poll":
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="pollQuestion" className="block mb-2 font-medium">Poll Question</Label>
-              <Input
-                id="pollQuestion"
-                placeholder="What would you like to ask?"
-                {...register("pollQuestion")}
-              />
-            </div>
-            <div>
-              <Label htmlFor="pollOptions" className="block mb-2 font-medium">Poll Options (one per line)</Label>
-              <Textarea
-                id="pollOptions"
-                placeholder="Option 1&#10;Option 2&#10;Option 3"
-                {...register("pollOptions")}
-                rows={4}
-              />
-            </div>
-          </div>
-        );
-
-      case "livestream":
-        return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="streamTitle" className="block mb-2 font-medium">Stream Title</Label>
-              <Input
-                id="streamTitle"
-                placeholder="Your livestream title..."
-                {...register("streamTitle")}
-              />
-            </div>
-            <div>
-              <Label htmlFor="streamDescription" className="block mb-2 font-medium">Stream Description</Label>
-              <Textarea
-                id="streamDescription"
-                placeholder="Describe what viewers can expect..."
-                {...register("streamDescription")}
-                rows={3}
-              />
-            </div>
-            <div>
-              <Label htmlFor="scheduledTime" className="block mb-2 font-medium">Scheduled Time</Label>
-              <Input
-                id="scheduledTime"
-                type="datetime-local"
-                {...register("scheduledTime")}
-              />
-            </div>
-          </div>
-        );
-
-      default:
-        return null;
-    }
-  };
+  // All helper functions now replaced by modular components
 
   return (
     <Card className="w-full max-w-4xl mx-auto shadow-2xl border-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
@@ -878,47 +623,7 @@ export default function ModularWorkflowForm() {
         </div>
 
         {/* Template Quick Actions */}
-        <div className="flex flex-wrap gap-2 justify-center">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setShowTemplates(!showTemplates)}
-            className="border-purple-200 hover:border-purple-300 hover:bg-purple-50 dark:border-purple-700 dark:hover:bg-purple-950"
-          >
-            <Zap className="w-4 h-4 mr-2" />
-            Quick Templates
-          </Button>
-        </div>
-
-        {showTemplates && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 rounded-lg border border-purple-200 dark:border-purple-700">
-            {getFilteredTemplates().map((template) => (
-              <Button
-                key={template.id}
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => applyTemplate(template)}
-                className="text-left h-auto p-3 flex flex-col items-start space-y-1 hover:bg-white/50 dark:hover:bg-gray-800/50"
-              >
-                <div className="font-medium text-purple-700 dark:text-purple-300">
-                  {template.name}
-                </div>
-                <div className="text-xs text-gray-600 dark:text-gray-400">
-                  {template.description}
-                </div>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {template.components.map(comp => (
-                    <span key={comp} className="text-xs bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 px-1 py-0.5 rounded">
-                      {comp}
-                    </span>
-                  ))}
-                </div>
-              </Button>
-            ))}
-          </div>
-        )}
+        <QuickTemplatesSection setValue={setValue} />
 
         {/* Team Assignment Context */}
         {currentTeam && (
@@ -940,11 +645,14 @@ export default function ModularWorkflowForm() {
                   </span>
                 </div>
 
+                {/* PGT Team Notification Preview - Always shown */}
+                <TeamNotificationPreview />
+
                 {/* Workflow routing preview */}
                 {contentStyle && contentStyle !== 'normal' && (
                   <div className="mt-3 p-3 bg-blue-100/50 dark:bg-blue-900/20 rounded-lg border border-blue-200/50 dark:border-blue-800/50">
                     <h5 className="text-xs font-medium text-blue-800 dark:text-blue-200 mb-2">
-                      {submissionType === 'ptr' ? 'PTR' : 'OTP'} + {selectedStyleTemplate?.name} Workflow:
+                      {submissionType === 'ptr' ? 'PTR' : 'OTP'} + {contentStyle.charAt(0).toUpperCase() + contentStyle.slice(1)} Workflow:
                     </h5>
                     <div className="flex flex-wrap gap-1">
                       {getWorkflowRouting(contentStyle, submissionType).map((route, index) => (
@@ -973,173 +681,19 @@ export default function ModularWorkflowForm() {
         )}
 
         {/* Success Message */}
-        {isSubmitted && submissionResult && (
-          <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 border border-green-200 dark:border-green-800 rounded-lg">
-            <div className="flex items-start space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-500 text-white rounded-full flex items-center justify-center mt-0.5">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <h4 className="font-medium text-green-800 dark:text-green-200 mb-2">🎉 Workflow Created Successfully!</h4>
-                <div className="space-y-2 text-sm text-green-700 dark:text-green-300">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">Task ID:</span>
-                    <span className="bg-green-100 dark:bg-green-900 px-2 py-1 rounded font-mono text-xs">
-                      {submissionResult.task?.id}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">Assigned to:</span>
-                    <span className="bg-green-100 dark:bg-green-900 px-2 py-1 rounded">
-                      {submissionResult.task?.teamName}
-                    </span>
-                    <span className="text-xs">({submissionResult.task?.priority} priority)</span>
-                  </div>
-                  <div className="text-xs text-green-600 dark:text-green-400 mt-2">
-                    ✅ Teams have been notified via email and in-app notifications
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        {isSubmitted && submissionResult && <SuccessMessage result={submissionResult} />}
 
         {/* Validation Errors */}
-        {validationErrors.length > 0 && (
-          <div className="p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
-            <div className="flex items-start space-x-2">
-              <div className="w-5 h-5 text-red-500 mt-0.5">⚠️</div>
-              <div>
-                <h4 className="font-medium text-red-800 dark:text-red-200 mb-2">Please fix the following issues:</h4>
-                <ul className="space-y-1">
-                  {validationErrors.map((error, index) => (
-                    <li key={index} className="text-sm text-red-700 dark:text-red-300">
-                      • {error}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
-        )}
+        <ValidationErrors errors={validationErrors} />
       </CardHeader>
 
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
           {/* Step 1: Submission Type */}
-          <div className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-pink-500 to-purple-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                1
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                Choose Submission Type
-              </h3>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ml-11">
-              {[
-                { id: "otp", label: "OTP", desc: "One-Time Post - Flexible scheduling" },
-                { id: "ptr", label: "PTR", desc: "Priority Tape Release - Model-specified dates" }
-              ].map((type) => (
-                <label
-                  key={type.id}
-                  className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm transition-all hover:shadow-md ${
-                    submissionType === type.id
-                      ? "border-purple-300 bg-purple-50 dark:border-purple-600 dark:bg-purple-950"
-                      : "border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    value={type.id}
-                    {...register("submissionType", { required: "Please select a submission type" })}
-                    className="sr-only"
-                  />
-                  <div className="flex w-full items-center justify-between">
-                    <div className="flex items-center">
-                      <div className="text-sm">
-                        <div className="font-medium text-gray-900 dark:text-gray-100">
-                          {type.label}
-                        </div>
-                        <div className="text-gray-500 dark:text-gray-400">
-                          {type.desc}
-                        </div>
-                      </div>
-                    </div>
-                    {submissionType === type.id && (
-                      <div className="text-purple-600 dark:text-purple-400">
-                        <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                </label>
-              ))}
-            </div>
-          </div>
+          <SubmissionTypeSelector register={register} currentValue={submissionType} />
 
           {/* Step 2: Content Style */}
-          <div className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                2
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                Select Content Style
-              </h3>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 ml-11">
-              {styleTemplates.map((style) => (
-                <label
-                  key={style.id}
-                  className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm transition-all hover:shadow-md ${
-                    contentStyle === style.id
-                      ? "border-blue-300 bg-blue-50 dark:border-blue-600 dark:bg-blue-950"
-                      : "border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    value={style.id}
-                    {...register("contentStyle", { required: "Please select a content style" })}
-                    className="sr-only"
-                  />
-                  <div className="flex w-full flex-col">
-                    <div className="flex items-center justify-between">
-                      <div className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                        {style.name}
-                      </div>
-                      {contentStyle === style.id && (
-                        <div className="text-blue-600 dark:text-blue-400">
-                          <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                      )}
-                    </div>
-                    <div className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                      {style.description}
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {style.features.map((feature, index) => (
-                        <span
-                          key={index}
-                          className="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-1 text-xs font-medium text-gray-800 dark:text-gray-200"
-                        >
-                          {feature}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </label>
-              ))}
-            </div>
-          </div>
+          <ContentStyleSelector register={register} currentValue={contentStyle} />
 
           {/* Step 3: Component Modules */}
           <div className="space-y-4">
@@ -1251,6 +805,7 @@ export default function ModularWorkflowForm() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 ml-11">
+              {/* Row 1: Model, Priority, Drive Link */}
               <div>
                 <Label htmlFor="model" className="block mb-2 font-medium">Model *</Label>
                 <Select onValueChange={(value) => setValue("model", value)} disabled={loadingModels}>
@@ -1319,6 +874,9 @@ export default function ModularWorkflowForm() {
                   <p className="text-red-500 text-sm mt-1">{String(errors.driveLink.message)}</p>
                 )}
               </div>
+
+              {/* Row 2: Content Type, Content Length, Content Count */}
+              <ContentDetailsSection register={register} setValue={setValue} />
             </div>
 
             <div className="ml-11 space-y-4">
@@ -1332,8 +890,13 @@ export default function ModularWorkflowForm() {
                 />
               </div>
 
+              {/* Tags Section - Split into External and Internal */}
+              <TagsSection register={register} setValue={setValue} watch={watch} models={models} />
+
               <div>
-                <Label className="block mb-2 font-medium">Base Content Files *</Label>
+                <Label className="block mb-2 font-medium">
+                  Reference Images (screenshots from OF vault)
+                </Label>
                 <FileUpload
                   attachments={attachments}
                   onAttachmentsChange={setAttachments}
@@ -1351,27 +914,15 @@ export default function ModularWorkflowForm() {
                   ]}
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Upload content files (images, videos, documents). Files will be uploaded to S3 when you submit.
+                  Max 10 files, 50MB each. NOT actual content (that's in Drive Link). These are reference screenshots from OF vault for context.
                 </p>
               </div>
             </div>
           </div>
 
           {/* Style-specific fields */}
-          {selectedStyleTemplate && hasStyleSpecificFields() && (
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-pink-500 to-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                  5
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                  {selectedStyleTemplate.name} Configuration
-                </h3>
-              </div>
-              <div className="ml-11">
-                {renderStyleSpecificFields()}
-              </div>
-            </div>
+          {contentStyle !== "normal" && (
+            <ContentStyleFields contentStyle={contentStyle} register={register} />
           )}
 
           {/* Component-specific fields */}
@@ -1379,7 +930,7 @@ export default function ModularWorkflowForm() {
             <div className="space-y-4">
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-indigo-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                  {hasStyleSpecificFields() ? 6 : 5}
+                  {contentStyle !== "normal" ? 6 : 5}
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                   Component Configuration
@@ -1413,88 +964,8 @@ export default function ModularWorkflowForm() {
                   </div>
                 )}
 
-                {selectedComponents.includes("pricing") && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="pricingType" className="block mb-2 font-medium">Pricing Type</Label>
-                      <Select onValueChange={(value) => setValue("pricingType", value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select pricing type..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="single">Single Price</SelectItem>
-                          <SelectItem value="tiers">Pricing Tiers</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="basePrice" className="block mb-2 font-medium">Base Price ($)</Label>
-                      <Input
-                        id="basePrice"
-                        type="number"
-                        step="0.01"
-                        placeholder="25.00"
-                        {...register("basePrice")}
-                      />
-                    </div>
-                  </div>
-                )}
-
                 {selectedComponents.includes("release") && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <Label htmlFor="releaseDate" className="block mb-2 font-medium">Release Date</Label>
-                        <Input
-                          id="releaseDate"
-                          type="date"
-                          {...register("releaseDate")}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="releaseTime" className="block mb-2 font-medium">Release Time</Label>
-                        <Input
-                          id="releaseTime"
-                          type="time"
-                          {...register("releaseTime")}
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="releaseTimezone" className="block mb-2 font-medium">Timezone</Label>
-                        <Select onValueChange={(value) => setValue("releaseTimezone", value)}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select timezone..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="UTC">UTC (GMT+0)</SelectItem>
-                            <SelectItem value="EST">EST (GMT-5)</SelectItem>
-                            <SelectItem value="CST">CST (GMT-6)</SelectItem>
-                            <SelectItem value="MST">MST (GMT-7)</SelectItem>
-                            <SelectItem value="PST">PST (GMT-8)</SelectItem>
-                            <SelectItem value="GMT">GMT (GMT+0)</SelectItem>
-                            <SelectItem value="CET">CET (GMT+1)</SelectItem>
-                            <SelectItem value="EET">EET (GMT+2)</SelectItem>
-                            <SelectItem value="JST">JST (GMT+9)</SelectItem>
-                            <SelectItem value="AEST">AEST (GMT+10)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="priority" className="block mb-2 font-medium">Priority Level</Label>
-                      <Select onValueChange={(value) => setValue("priority", value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select priority..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="normal">Normal</SelectItem>
-                          <SelectItem value="high">High</SelectItem>
-                          <SelectItem value="urgent">Urgent</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+                  <ReleaseScheduleSection register={register} setValue={setValue} watch={watch} />
                 )}
               </div>
             </div>
