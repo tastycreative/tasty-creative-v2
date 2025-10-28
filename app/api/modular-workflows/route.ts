@@ -39,8 +39,14 @@ interface ModularWorkflowData {
   modelName: string;
   priority: 'low' | 'normal' | 'high' | 'urgent';
   driveLink: string;
-  contentDescription: string;
   attachments?: any[];
+
+  // NEW FIELDS - Content Details
+  contentType?: 'BG' | 'BGG' | 'GG' | 'GGG' | 'ORGY' | 'SOLO' | 'COMPILATION' | 'AHEGAO' | 'JOI' | 'THANK_YOU_VIDS' | 'VIP_GIFTS' | 'BJ' | 'FEET';
+  contentLength?: string;        // e.g., "8:43" or "8 mins 43 secs"
+  contentCount?: string;          // e.g., "1 Video" or "3 Photos"
+  externalCreatorTags?: string;   // e.g., "@johndoe @janedoe"
+  internalModelTags?: string[];   // Array of internal model names
 
   // Enhanced team assignment with manual overrides
   teamId?: string;
@@ -396,7 +402,7 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields (selectedComponents can be empty array, componentData is optional)
     if (!data.submissionType || !data.contentStyle || data.selectedComponents === undefined ||
-        !data.modelName || !data.priority || !data.driveLink || !data.contentDescription) {
+        !data.modelName || !data.priority || !data.driveLink) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -513,22 +519,9 @@ export async function POST(request: NextRequest) {
     if (additionalTeams.length > 0) {
     }
 
-    // Process pricing data if included (now supports flexible text input)
+    // NOTE: Pricing fields removed from submission form
+    // Pricing is now added by QA team during workflow (not at submission)
     let pricingInfo = '';
-    if (data.selectedComponents.includes('pricing') && data.componentData) {
-      const pricingData = data.componentData as PricingComponentData;
-      if (pricingData.pricingType || pricingData.basePrice) {
-        // Support flexible pricing formats: custom text, numbers, descriptions
-        const contentType = pricingData.pricingType ? `${pricingData.pricingType}` : 'Custom';
-        const priceValue = pricingData.basePrice ? pricingData.basePrice : 'TBD';
-        pricingInfo = `\nPricing: ${contentType} - ${priceValue}`;
-        if (pricingData.pricingSource === 'dynamic') {
-          pricingInfo += ' (from model database)';
-        } else if (pricingData.pricingSource === 'manual') {
-          pricingInfo += ' (manual entry)';
-        }
-      }
-    }
 
     // Process release schedule if included
     let releaseInfo = '';
@@ -573,11 +566,16 @@ export async function POST(request: NextRequest) {
         modelName: data.modelName,
         priority: workflowPriority as any,
         driveLink: data.driveLink,
-        contentDescription: data.contentDescription,
         attachments: data.attachments || [],
         estimatedDuration: data.estimatedDuration,
         timezone: data.selectedComponents.includes('release') && data.componentData ?
           (data.componentData as ReleaseComponentData).releaseTimezone : null,
+        // NEW FIELDS - Content Details
+        contentType: data.contentType || null,
+        contentLength: data.contentLength || null,
+        contentCount: data.contentCount || null,
+        externalCreatorTags: data.externalCreatorTags || null,
+        internalModelTags: data.internalModelTags || [],
         teamAssignments: {
           primaryTeamId: assignedTeam.id,
           additionalTeamIds: data.teamAssignments?.additionalTeamIds || [],
@@ -589,13 +587,7 @@ export async function POST(request: NextRequest) {
           components: data.selectedComponents,
           workflowColumns: workflowColumns,
           currentStep: 0,
-          // Store pricing metadata for analytics
-          pricingMetadata: data.selectedComponents.includes('pricing') ? {
-            pricingType: (data.componentData as PricingComponentData)?.pricingType,
-            basePrice: (data.componentData as PricingComponentData)?.basePrice,
-            pricingSource: (data.componentData as PricingComponentData)?.pricingSource,
-            pricingItem: (data.componentData as PricingComponentData)?.pricingItem
-          } : null,
+          // NOTE: Pricing metadata removed - pricing added by QA team later
           // Store PPV/Bundle metadata
           ppvBundleMetadata: (data.contentStyle === 'ppv' || data.contentStyle === 'bundle') ? {
             originalPollReference: (data.componentData as PPVBundleComponentData)?.originalPollReference
@@ -636,11 +628,6 @@ export async function POST(request: NextRequest) {
     // Add PPV/Bundle reference information
     if (ppvBundleInfo) {
       taskDescription += ppvBundleInfo + '\n';
-    }
-
-    // Add the user's description if provided
-    if (data.contentDescription && data.contentDescription.trim()) {
-      taskDescription += `\n${data.contentDescription}\n`;
     }
 
     taskDescription += `\nGoogle Drive: ${data.driveLink}`;
@@ -727,8 +714,12 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    console.error('❌ Error processing modular workflow:', error);
     return NextResponse.json(
-      { error: 'Failed to process modular workflow' },
+      {
+        error: 'Failed to process modular workflow',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
