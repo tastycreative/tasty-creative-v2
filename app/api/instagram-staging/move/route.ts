@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
 
     // Copy object to new location
     const copyCommand = new CopyObjectCommand({
-      Bucket: process.env.AWS_S3_BUCKET!,
-      CopySource: `${process.env.AWS_S3_BUCKET}/${sourceKey}`,
+      Bucket: process.env.AWS_S3_BUCKET1!,
+      CopySource: `${process.env.AWS_S3_BUCKET1}/${sourceKey}`,
       Key: targetKey,
     });
 
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     // Delete original object
     const deleteCommand = new DeleteObjectCommand({
-      Bucket: process.env.AWS_S3_BUCKET!,
+      Bucket: process.env.AWS_S3_BUCKET1!,
       Key: sourceKey,
     });
 
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       newKey: targetKey,
-      newUrl: `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${targetKey}`,
+      newUrl: `https://${process.env.AWS_S3_BUCKET1}.s3.${process.env.AWS_REGION}.amazonaws.com/${targetKey}`,
     });
   } catch (error) {
     console.error("Move file error:", error);

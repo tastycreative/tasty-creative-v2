@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand, ObjectCannedACL } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const s3Client = new S3Client({
@@ -21,18 +21,17 @@ export const uploadToS3 = async (
     : `instagram-staging/${userId}/${fileName}`;
 
   const command = new PutObjectCommand({
-    Bucket: process.env.AWS_S3_BUCKET!,
+    Bucket: process.env.AWS_S3_BUCKET1!,
     Key: key,
     Body: file,
     ContentType: contentType,
-    ACL: 'public-read', // Make the file publicly readable
   });
 
   await s3Client.send(command);
   
   return {
     key,
-    url: `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`,
+    url: `https://${process.env.AWS_S3_BUCKET1}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`,
   };
 };
 
@@ -42,7 +41,7 @@ export const listUserFiles = async (userId: string, folder?: string) => {
     : `instagram-staging/${userId}/`;
 
   const command = new ListObjectsV2Command({
-    Bucket: process.env.AWS_S3_BUCKET!,
+    Bucket: process.env.AWS_S3_BUCKET1!,
     Prefix: prefix,
   });
 
@@ -55,7 +54,7 @@ export const listUserFiles = async (userId: string, folder?: string) => {
     key: item.Key!,
     size: item.Size!,
     lastModified: item.LastModified!,
-    url: `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${item.Key}`,
+    url: `https://${process.env.AWS_S3_BUCKET1}.s3.${process.env.AWS_REGION}.amazonaws.com/${item.Key}`,
   })) || [];
 };
 
@@ -63,7 +62,7 @@ export const listAllFilesInFolder = async (userId: string, folder: string) => {
   const prefix = `instagram-staging/${userId}/${folder}/`;
 
   const command = new ListObjectsV2Command({
-    Bucket: process.env.AWS_S3_BUCKET!,
+    Bucket: process.env.AWS_S3_BUCKET1!,
     Prefix: prefix,
   });
 
@@ -74,13 +73,13 @@ export const listAllFilesInFolder = async (userId: string, folder: string) => {
     key: item.Key!,
     size: item.Size!,
     lastModified: item.LastModified!,
-    url: `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${item.Key}`,
+    url: `https://${process.env.AWS_S3_BUCKET1}.s3.${process.env.AWS_REGION}.amazonaws.com/${item.Key}`,
   })) || [];
 };
 
 export const deleteFromS3 = async (key: string) => {
   const command = new DeleteObjectCommand({
-    Bucket: process.env.AWS_S3_BUCKET!,
+    Bucket: process.env.AWS_S3_BUCKET1!,
     Key: key,
   });
 
@@ -91,7 +90,7 @@ export const listUserFolders = async (userId: string) => {
   const prefix = `instagram-staging/${userId}/`;
 
   const command = new ListObjectsV2Command({
-    Bucket: process.env.AWS_S3_BUCKET!,
+    Bucket: process.env.AWS_S3_BUCKET1!,
     Prefix: prefix,
     Delimiter: '/',
   });
