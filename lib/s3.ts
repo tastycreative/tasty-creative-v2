@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, ListObjectsV2Command, DeleteObjectCommand, ObjectCannedACL } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const s3Client = new S3Client({
@@ -25,6 +25,7 @@ export const uploadToS3 = async (
     Key: key,
     Body: file,
     ContentType: contentType,
+    ACL: 'public-read', // Make the file publicly readable
   });
 
   await s3Client.send(command);
