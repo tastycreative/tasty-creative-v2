@@ -26,6 +26,7 @@ import {
   X,
   User,
   LogOut,
+  Instagram,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/admin/ThemeToggle";
 import {
@@ -102,6 +103,12 @@ const navigation: { title: string; items: NavItem[] }[] = [
         // badge: { text: "Live", variant: "success" },
       },
       { title: "Calendar", href: "/calendar", icon: CalendarIcon },
+      {
+        title: "Instagram Staging",
+        href: "/instagram-staging",
+        icon: Instagram,
+        badge: { text: "New", variant: "primary" },
+      },
     ],
   },
   {

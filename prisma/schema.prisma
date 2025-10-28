@@ -26,6 +26,7 @@ model User {
   ContentSubmission          ContentSubmission[]
   forumComments              ForumComment[]
   forumVotes                 ForumVote[]
+  instagramPosts             InstagramPost[]
   ModerationLog              ModerationLog[]
   ModularWorkflow            ModularWorkflow[]             @relation("ModularWorkflowCreator")
   notifications              Notification[]
@@ -562,34 +563,43 @@ model ContentSubmission {
 }
 
 model ModularWorkflow {
-  id                 String             @id @default(cuid())
-  submissionType     SubmissionType
-  contentStyle       ContentStyle
-  selectedComponents Json
-  componentData      Json?
-  workflowTemplate   String?
-  modelName          String
-  priority           SubmissionPriority
-  driveLink          String
-  contentDescription String
-  attachments        Json?
-  estimatedDuration  Int?
-  teamAssignments    Json?
-  createdById        String
-  teamId             String?
-  taskId             String?            @unique
-  status             WorkflowStatus     @default(PENDING)
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-  processedAt        DateTime?
-  timezone           String?
-  createdBy          User               @relation("ModularWorkflowCreator", fields: [createdById], references: [id])
-  task               Task?              @relation("ModularWorkflowTask", fields: [taskId], references: [id])
-  notifications      Notification[]
+  id                   String             @id @default(cuid())
+  submissionType       SubmissionType
+  contentStyle         ContentStyle
+  selectedComponents   Json
+  componentData        Json?
+  workflowTemplate     String?
+  modelName            String
+  priority             SubmissionPriority
+  driveLink            String
+  contentDescription   String?
+  attachments          Json?
+  estimatedDuration    Int?
+  teamAssignments      Json?
+  createdById          String
+  teamId               String?
+  taskId               String?            @unique
+  status               WorkflowStatus     @default(PENDING)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  processedAt          DateTime?
+  timezone             String?
+  contentCount         String?            @db.VarChar(50)
+  contentLength        String?            @db.VarChar(20)
+  contentType          ContentType?
+  externalCreatorTags  String?            @db.VarChar(500)
+  internalModelTags    String[]
+  referenceAttachments Json?
+  releaseDate          String?            @db.VarChar(20)
+  releaseTime          String?            @db.VarChar(10)
+  createdBy            User               @relation("ModularWorkflowCreator", fields: [createdById], references: [id])
+  task                 Task?              @relation("ModularWorkflowTask", fields: [taskId], references: [id])
+  notifications        Notification[]
 
   @@index([createdAt])
   @@index([createdById])
   @@index([modelName])
+  @@index([contentType])
   @@index([priority])
   @@index([status])
   @@index([submissionType])
@@ -862,6 +872,27 @@ model ChatbotConversation {
   @@index([createdAt])
 }
 
+model InstagramPost {
+  id          String              @id @default(cuid())
+  userId      String
+  imageUrl    String
+  caption     String?
+  scheduledDate DateTime?
+  status      InstagramPostStatus @default(DRAFT)
+  postType    InstagramPostType   @default(FEED)
+  folder      String?
+  position    Int?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([scheduledDate])
+  @@index([createdAt])
+  @@index([position])
+}
+
 enum Role {
   USER
   ADMIN
@@ -946,6 +977,22 @@ enum ContentStyle {
   BUNDLE
 }
 
+enum ContentType {
+  BG
+  BGG
+  GG
+  GGG
+  ORGY
+  SOLO
+  COMPILATION
+  AHEGAO
+  JOI
+  THANK_YOU_VIDS
+  VIP_GIFTS
+  BJ
+  FEET
+}
+
 enum WorkflowStatus {
   PENDING
   PROCESSING
@@ -1022,4 +1069,17 @@ enum UserActivityType {
   ACCOUNT_DELETED
   PASSWORD_RESET
   EMAIL_VERIFIED
+}
+
+enum InstagramPostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum InstagramPostType {
+  FEED
+  REEL
+  STORY
 }
