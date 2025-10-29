@@ -60,7 +60,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { usePricingData } from "@/hooks/usePricingData";
 import { CONTENT_TYPE_OPTIONS } from "./modular-workflow/types";
 
 // Core Types
@@ -129,7 +128,7 @@ interface FormTemplate {
 
 // Wizard Steps Configuration
 const WIZARD_STEPS = [
-  { id: 'templates', title: 'Choose Template', icon: Layers, description: 'Start with a template or from scratch' },
+  // { id: 'templates', title: 'Choose Template', icon: Layers, description: 'Start with a template or from scratch' }, // Commented out - skipping template selection
   { id: 'type', title: 'Submission Type', icon: Package, description: 'Select OTP or PTR submission' },
   { id: 'style', title: 'Content Style', icon: Sparkles, description: 'Choose your content format' },
   { id: 'details', title: 'Content Details', icon: FileText, description: 'Add your content information' },
@@ -357,17 +356,10 @@ export default function ModularWorkflowWizard() {
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [selectedInternalModels, setSelectedInternalModels] = useState<string[]>([]);
 
-  // Pricing Integration
-  const selectedModel = watch("model");
-  const { pricingGroups, loading: pricingLoading, error: pricingError, getPricingForContent, getBasePriceForContent } = usePricingData(selectedModel);
-  const [availablePricing, setAvailablePricing] = useState<any[]>([]);
-  const [selectedPricingItem, setSelectedPricingItem] = useState<string>("");
-
   // Watch form values
   const submissionType = watch("submissionType");
   const contentStyle = watch("contentStyle");
   const selectedComponents = watch("selectedComponents") || [];
-  const pricingType = watch("pricingType");
   const originalPollReference = watch("originalPollReference");
 
   // Get current team
@@ -378,35 +370,6 @@ export default function ModularWorkflowWizard() {
 
   // Content style compatibility check (all styles now work with both OTP and PTR)
   // Removed auto-reset logic - PPV/Bundle now available for both submission types
-
-  // Update available pricing when model or content style changes
-  useEffect(() => {
-    if (selectedModel && contentStyle) {
-      const pricingOptions = getPricingForContent(selectedModel, contentStyle);
-      setAvailablePricing(pricingOptions);
-      console.log('📊 Available pricing options for', selectedModel, contentStyle, ':', pricingOptions);
-
-      // Only reset if we have the pricing component selected
-      if (selectedComponents.includes('pricing')) {
-        setSelectedPricingItem("");
-        setValue("pricingType", "");
-        setValue("basePrice", "");
-      }
-    } else {
-      setAvailablePricing([]);
-    }
-  }, [selectedModel, contentStyle, getPricingForContent, selectedComponents, setValue]);
-
-  // Auto-populate base price when pricing item is selected
-  useEffect(() => {
-    if (selectedModel && selectedPricingItem) {
-      const basePrice = getBasePriceForContent(selectedModel, selectedPricingItem);
-      if (basePrice) {
-        setValue("basePrice", basePrice);
-        console.log('💰 Auto-populated base price:', basePrice, 'for', selectedPricingItem);
-      }
-    }
-  }, [selectedModel, selectedPricingItem, getBasePriceForContent, setValue]);
 
   // Load models
   useEffect(() => {
@@ -586,8 +549,8 @@ export default function ModularWorkflowWizard() {
   // Step validation (relaxed for better UX - warnings instead of blockers)
   const validateCurrentStep = (): boolean => {
     switch (WIZARD_STEPS[currentStep].id) {
-      case 'templates':
-        return true; // Optional step
+      // case 'templates': // COMMENTED OUT - Template step removed
+      //   return true; // Optional step
       case 'type':
         if (!submissionType) {
           toast.error("Please select a submission type");
@@ -603,12 +566,14 @@ export default function ModularWorkflowWizard() {
       case 'details':
         const formData = getValues();
 
-        // Only block on truly required fields for final submission
+        // Always validate model selection (required field)
+        if (!formData.model) {
+          toast.error("Please select a model before continuing");
+          return false;
+        }
+
+        // Only block on other required fields for final submission
         if (currentStep === WIZARD_STEPS.length - 1) {
-          if (!formData.model) {
-            toast.error("Please select a model before submitting");
-            return false;
-          }
           if (!formData.driveLink) {
             toast.error("Please provide a Drive link before submitting");
             return false;
@@ -645,8 +610,8 @@ export default function ModularWorkflowWizard() {
     setValue("submissionType", template.submissionType);
     setValue("contentStyle", template.contentStyle);
     setValue("selectedComponents", template.components);
-    setCompletedSteps([0, 1, 2]); // Mark template, type, and style steps as complete
-    setCurrentStep(3); // Jump to Content Details (step 3 in 5-step wizard)
+    setCompletedSteps([0, 1]); // Mark type and style steps as complete (template step removed)
+    setCurrentStep(2); // Jump to Content Details (step 2 in 4-step wizard)
     toast.success(`Applied "${template.name}" template`);
   };
 
@@ -701,12 +666,6 @@ export default function ModularWorkflowWizard() {
         contentStyle: data.contentStyle,
         selectedComponents: data.selectedComponents || [],
         componentData: {
-          ...(data.selectedComponents?.includes('pricing') && {
-            pricingType: data.pricingType,
-            basePrice: data.basePrice,
-            pricingItem: selectedPricingItem,
-            pricingSource: selectedPricingItem ? 'dynamic' : 'manual'
-          }),
           ...(data.selectedComponents?.includes('release') && {
             releaseDate: data.releaseDate,
             releaseTime: data.releaseTime,
@@ -785,91 +744,21 @@ export default function ModularWorkflowWizard() {
   // Render current step content
   const renderStepContent = () => {
     switch (WIZARD_STEPS[currentStep].id) {
-      case 'templates':
-        return (
-          <div className="space-y-6">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Start Your Workflow
-              </h2>
-              <p className="text-gray-600 dark:text-gray-300">
-                Choose a template for quick setup or build from scratch
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {formTemplates.map((template) => (
-                <motion.div
-                  key={template.id}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="cursor-pointer"
-                  onClick={() => applyTemplate(template)}
-                >
-                  <Card className="h-full hover:shadow-xl transition-all border-2 hover:border-purple-300 overflow-hidden">
-                    <CardHeader className="pb-3">
-                      <div className="mb-2">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className={cn(
-                            "w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center flex-shrink-0",
-                            template.color
-                          )}>
-                            <template.icon className="w-6 h-6 text-white" />
-                          </div>
-                          <div className="flex flex-col items-end gap-1">
-                            <Badge variant="secondary" className="text-xs">
-                              <Clock className="w-3 h-3 mr-1" />
-                              {template.estimatedTime}
-                            </Badge>
-                            <Badge variant="outline" className="text-xs">
-                              <TrendingUp className="w-3 h-3 mr-1" />
-                              {template.popularity}%
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                      <CardTitle className="text-lg">{template.name}</CardTitle>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {template.description}
-                      </p>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex flex-wrap gap-1 mb-3">
-                        {template.tags.map(tag => (
-                          <Badge key={tag} variant="outline" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        <span className="font-medium block mb-1">Components:</span>
-                        <div className="flex flex-wrap gap-1">
-                          {template.components.map(comp => (
-                            <Badge key={comp} className="text-xs">
-                              {comp}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-
-            <div className="text-center pt-6">
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => nextStep()}
-                className="gap-2"
-              >
-                <Layers className="w-4 h-4" />
-                Start from Scratch
-              </Button>
-            </div>
-          </div>
-        );
+      // COMMENTED OUT - Template selection step removed from wizard
+      // case 'templates':
+      //   return (
+      //     <div className="space-y-6">
+      //       <div className="text-center mb-8">
+      //         <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+      //           Start Your Workflow
+      //         </h2>
+      //         <p className="text-gray-600 dark:text-gray-300">
+      //           Choose a template for quick setup or build from scratch
+      //         </p>
+      //       </div>
+      //       ...
+      //     </div>
+      //   );
 
       case 'type':
         return (
@@ -1054,14 +943,14 @@ export default function ModularWorkflowWizard() {
               <CardContent className="space-y-4">
                 <div>
                   <Label htmlFor="model" className="flex items-center gap-2">
-                    Model
+                    Model <span className="text-red-500">*</span>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger>
                           <HelpCircle className="w-4 h-4 text-gray-400" />
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>Select the model for this content</p>
+                          <p>Required: Select the model for this content</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -1232,125 +1121,6 @@ export default function ModularWorkflowWizard() {
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 flex items-center gap-1">
                         <Info className="w-3 h-3" />
                         Upload screenshots from OnlyFans vault for team reference
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {selectedComponents.includes("pricing") && (
-                  <div className="space-y-4">
-                    <div className="p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-lg">
-                      <h4 className="font-medium mb-2 flex items-center gap-2">
-                        <DollarSign className="w-4 h-4" />
-                        Dynamic Pricing {selectedModel ? `for ${selectedModel}` : ''}
-                      </h4>
-                      {pricingLoading && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Loading pricing data...</p>
-                      )}
-                      {pricingError && (
-                        <p className="text-sm text-red-600 dark:text-red-400">Error loading pricing: {pricingError}</p>
-                      )}
-                      {!selectedModel && (
-                        <p className="text-sm text-amber-600 dark:text-amber-400">Please select a model first to see pricing options</p>
-                      )}
-                      {selectedModel && !pricingLoading && availablePricing.length === 0 && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400">No pricing data available for this model and content style</p>
-                      )}
-                    </div>
-
-                    {/* Content Type - Flexible Input (Dropdown OR Manual Text) */}
-                    <div>
-                      <Label htmlFor="pricingType">
-                        Content Type
-                        <span className="text-xs text-gray-500 ml-2">(Select from list OR type custom)</span>
-                      </Label>
-
-                      {availablePricing.length > 0 && (
-                        <>
-                          <Select
-                            onValueChange={(value) => {
-                              setSelectedPricingItem(value);
-                              setValue("pricingType", value);
-                            }}
-                            disabled={pricingLoading || availablePricing.length === 0}
-                          >
-                            <SelectTrigger className="mt-2">
-                              <SelectValue placeholder="Quick select from model pricing..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availablePricing.map((item) => (
-                                <SelectItem key={item.id} value={item.name}>
-                                  {item.name} {item.price && `- $${item.price}`}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <div className="relative my-2">
-                            <div className="absolute inset-0 flex items-center">
-                              <span className="w-full border-t border-gray-300 dark:border-gray-600" />
-                            </div>
-                            <div className="relative flex justify-center text-xs">
-                              <span className="bg-white dark:bg-gray-950 px-2 text-gray-500">OR type custom</span>
-                            </div>
-                          </div>
-                        </>
-                      )}
-
-                      <Input
-                        id="pricingType"
-                        type="text"
-                        placeholder="Type custom content type (e.g., SOLO, BG/GG, Custom Bundle)"
-                        {...register("pricingType")}
-                        className="mt-2"
-                        onChange={(e) => {
-                          setValue("pricingType", e.target.value);
-                          if (e.target.value) {
-                            setSelectedPricingItem(""); // Clear dropdown selection when typing
-                          }
-                        }}
-                      />
-
-                      {selectedPricingItem && (
-                        <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                          ✓ Using: {availablePricing.find(item => item.name === selectedPricingItem)?.description}
-                        </p>
-                      )}
-                      {pricingType && !selectedPricingItem && (
-                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                          ✓ Custom content type: {pricingType}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Base Price - Always Editable */}
-                    <div>
-                      <Label htmlFor="basePrice">
-                        Base Price / Description
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <HelpCircle className="w-4 h-4 text-gray-400 ml-2 inline" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Enter amount ($25), description (SOLO/BG/GG), or both. Always editable!</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </Label>
-                      <Input
-                        id="basePrice"
-                        type="text"
-                        placeholder="Enter price, description, or both (e.g., '$25 - SOLO/BG')"
-                        {...register("basePrice")}
-                        className="mt-2"
-                      />
-                      {selectedPricingItem && getBasePriceForContent(selectedModel, selectedPricingItem) && (
-                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                          💡 Suggested from model data: ${getBasePriceForContent(selectedModel, selectedPricingItem)} (You can override)
-                        </p>
-                      )}
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                        Flexible field - type anything: "$25", "SOLO/BG/GG", "$32 PTR bundle", etc.
                       </p>
                     </div>
                   </div>
@@ -1651,33 +1421,6 @@ export default function ModularWorkflowWizard() {
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Caption</p>
                     <p className="text-sm">{formData.caption}</p>
-                  </div>
-                )}
-
-                {/* Pricing Information */}
-                {selectedComponents.includes('pricing') && (formData.pricingType || formData.basePrice) && (
-                  <div className="p-4 bg-green-50 dark:bg-green-950 rounded-lg">
-                    <h4 className="font-medium mb-2 flex items-center gap-2">
-                      <DollarSign className="w-4 h-4" />
-                      Pricing Details
-                    </h4>
-                    {formData.pricingType && (
-                      <div className="mb-2">
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Content Type</p>
-                        <p className="font-medium">{formData.pricingType}</p>
-                      </div>
-                    )}
-                    {formData.basePrice && (
-                      <div className="mb-2">
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Base Price</p>
-                        <p className="font-medium">${formData.basePrice}</p>
-                      </div>
-                    )}
-                    {selectedPricingItem && (
-                      <p className="text-xs text-green-600 dark:text-green-400">
-                        ✓ Pricing sourced from model's database
-                      </p>
-                    )}
                   </div>
                 )}
 
