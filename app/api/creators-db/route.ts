@@ -47,6 +47,17 @@ export async function GET(request: Request) {
       },
     });
     
+    // Debug: Check what ContentDetails records exist
+    const allContentDetails = await prisma.contentDetails.findMany({
+      select: {
+        clientModelName: true,
+        upsell_1: true,
+        upsell_2: true,
+        upsell_3: true
+      }
+    });
+    console.log('🔍 All ContentDetails with upsells:', allContentDetails);
+    
     console.log(`📊 Fetched ${clientModels.length} creators from database`);
 
     // Transform the data to match the expected format for POD
@@ -143,6 +154,30 @@ export async function GET(request: Request) {
           { id: 'content-options-games', name: 'Content Options For Games', description: 'Gaming content options' }
         ],
         pricing: {}
+      },
+      {
+        id: 'upsells',
+        groupName: 'Sexting Scripts',
+        items: [
+          { id: 'upsell-1', name: 'Upsell 1', description: 'First upsell option' },
+          { id: 'upsell-2', name: 'Upsell 2', description: 'Second upsell option' },
+          { id: 'upsell-3', name: 'Upsell 3', description: 'Third upsell option' },
+          { id: 'upsell-4', name: 'Upsell 4', description: 'Fourth upsell option' },
+          { id: 'upsell-5', name: 'Upsell 5', description: 'Fifth upsell option' },
+          { id: 'upsell-6', name: 'Upsell 6', description: 'Sixth upsell option' },
+          { id: 'upsell-7', name: 'Upsell 7', description: 'Seventh upsell option' },
+          { id: 'upsell-8', name: 'Upsell 8', description: 'Eighth upsell option' },
+          { id: 'upsell-9', name: 'Upsell 9', description: 'Ninth upsell option' },
+          { id: 'upsell-10', name: 'Upsell 10', description: 'Tenth upsell option' },
+          { id: 'upsell-11', name: 'Upsell 11', description: 'Eleventh upsell option' },
+          { id: 'upsell-12', name: 'Upsell 12', description: 'Twelfth upsell option' },
+          { id: 'upsell-13', name: 'Upsell 13', description: 'Thirteenth upsell option' },
+          { id: 'upsell-14', name: 'Upsell 14', description: 'Fourteenth upsell option' },
+          { id: 'upsell-15', name: 'Upsell 15', description: 'Fifteenth upsell option' },
+          { id: 'upsell-16', name: 'Upsell 16', description: 'Sixteenth upsell option' },
+          { id: 'upsell-17', name: 'Upsell 17', description: 'Seventeenth upsell option' }
+        ],
+        pricing: {}
       }
     ];
 
@@ -151,6 +186,23 @@ export async function GET(request: Request) {
       const creatorName = model.clientName;
       // ContentDetails is a singular object
       const content = model.contentDetails;
+      
+      // Debug: Log content details for first creator to check upsell data
+      if (model === clientModels[0]) {
+        console.log(`🔍 Model data for ${creatorName}:`, {
+          clientName: model.clientName,
+          hasContentDetails: !!content,
+          contentDetailsClientModelName: content?.clientModelName,
+          contentDetailsRaw: content,
+          modelKeys: Object.keys(model)
+        });
+        console.log(`🔍 ContentDetails for ${creatorName}:`, {
+          upsell_1: content?.upsell_1,
+          upsell_2: content?.upsell_2,
+          upsell_3: content?.upsell_3,
+          allUpsellFields: content ? Object.keys(content).filter(key => key.startsWith('upsell_')) : []
+        });
+      }
       
       // Always create pricing entries, even if content is null/empty
       
@@ -189,8 +241,32 @@ export async function GET(request: Request) {
         '$30+ Bundle Content': content?.bundleContent30Plus || '',
         'Content Options For Games': content?.contentOptionsForGames || ''
       };
+
+      // Upsells group (Group 4)
+  (pricingGroups[3].pricing as any)[creatorName] = {
+        'Upsell 1': content?.upsell_1 || '',
+        'Upsell 2': content?.upsell_2 || '',
+        'Upsell 3': content?.upsell_3 || '',
+        'Upsell 4': content?.upsell_4 || '',
+        'Upsell 5': content?.upsell_5 || '',
+        'Upsell 6': content?.upsell_6 || '',
+        'Upsell 7': content?.upsell_7 || '',
+        'Upsell 8': content?.upsell_8 || '',
+        'Upsell 9': content?.upsell_9 || '',
+        'Upsell 10': content?.upsell_10 || '',
+        'Upsell 11': content?.upsell_11 || '',
+        'Upsell 12': content?.upsell_12 || '',
+        'Upsell 13': content?.upsell_13 || '',
+        'Upsell 14': content?.upsell_14 || '',
+        'Upsell 15': content?.upsell_15 || '',
+        'Upsell 16': content?.upsell_16 || '',
+        'Upsell 17': content?.upsell_17 || ''
+      };
     });
 
+    // Debug: Log the upsells group data
+    console.log('🔍 Upsells group data:', JSON.stringify(pricingGroups[3], null, 2));
+    
     return NextResponse.json({
       creators,
       pricingData: pricingGroups

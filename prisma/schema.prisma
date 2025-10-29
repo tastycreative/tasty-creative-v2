@@ -302,10 +302,10 @@ model ClientModel {
   mainTwitter           String?
   mainTiktok            String?
   profileLink           String?
-  chattingManagers      String[]
   createdAt             DateTime                  @default(now())
   updatedAt             DateTime                  @updatedAt
   row_id                String?
+  chattingManagers      String[]
   sheetLinks            ClientModelSheetLinks[]
   contentDetails        ContentDetails?
   notifications         Notification[]
@@ -359,14 +359,30 @@ model ContentDetails {
   bundleContent25_30         String?
   bundleContent30Plus        String?
   contentOptionsForGames     String?
-    // Personal information fields
-  personalityType            String?
-  restrictedTerms            String?
-  notes                      String?
-  generalClientNotes         String?
+  upsell_1                   String?
+  upsell_2                   String?
+  upsell_3                   String?
+  upsell_4                   String?
+  upsell_5                   String?
+  upsell_6                   String?
+  upsell_7                   String?
+  upsell_8                   String?
+  upsell_9                   String?
+  upsell_10                  String?
+  upsell_11                  String?
+  upsell_12                  String?
+  upsell_13                  String?
+  upsell_14                  String?
+  upsell_15                  String?
+  upsell_16                  String?
+  upsell_17                  String?
   createdAt                  DateTime    @default(now())
   updatedAt                  DateTime    @updatedAt
   clientModelName            String      @unique
+  generalClientNotes         String?
+  notes                      String?
+  personalityType            String?
+  restrictedTerms            String?
   clientModel                ClientModel @relation(fields: [clientModelName], references: [clientName], onDelete: Cascade)
 }
 

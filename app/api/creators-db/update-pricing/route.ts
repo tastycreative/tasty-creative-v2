@@ -39,7 +39,26 @@ async function updateGoogleSheet(itemName: string, newPrice: string, rowId: stri
     '$20-25 Bundle Content': '$20-25 Bundle Content',
     '$25-30 Bundle Content': '$25-30 Bundle Content',
     '$30+ Bundle Content': '$30+ Bundle Content',
-    'Content Options For Games': 'Content Options For Games'
+    'Content Options For Games': 'Content Options For Games',
+    
+    // Upsell group - use sheet column names
+    'Upsell 1': 'Upsell 1',
+    'Upsell 2': 'Upsell 2',
+    'Upsell 3': 'Upsell 3',
+    'Upsell 4': 'Upsell 4',
+    'Upsell 5': 'Upsell 5',
+    'Upsell 6': 'Upsell 6',
+    'Upsell 7': 'Upsell 7',
+    'Upsell 8': 'Upsell 8',
+    'Upsell 9': 'Upsell 9',
+    'Upsell 10': 'Upsell 10',
+    'Upsell 11': 'Upsell 11',
+    'Upsell 12': 'Upsell 12',
+    'Upsell 13': 'Upsell 13',
+    'Upsell 14': 'Upsell 14',
+    'Upsell 15': 'Upsell 15',
+    'Upsell 16': 'Upsell 16',
+    'Upsell 17': 'Upsell 17'
   };
   
   // Use the sheet column name for the webhook
@@ -195,7 +214,26 @@ export async function POST(request: Request) {
       '$20-25 Bundle Content': 'bundleContent20_25',
       '$25-30 Bundle Content': 'bundleContent25_30',
       '$30+ Bundle Content': 'bundleContent30Plus',
-      'Content Options For Games': 'contentOptionsForGames'
+      'Content Options For Games': 'contentOptionsForGames',
+      
+      // Sexting Scripts group (Upsells)
+      'Upsell 1': 'upsell_1',
+      'Upsell 2': 'upsell_2',
+      'Upsell 3': 'upsell_3',
+      'Upsell 4': 'upsell_4',
+      'Upsell 5': 'upsell_5',
+      'Upsell 6': 'upsell_6',
+      'Upsell 7': 'upsell_7',
+      'Upsell 8': 'upsell_8',
+      'Upsell 9': 'upsell_9',
+      'Upsell 10': 'upsell_10',
+      'Upsell 11': 'upsell_11',
+      'Upsell 12': 'upsell_12',
+      'Upsell 13': 'upsell_13',
+      'Upsell 14': 'upsell_14',
+      'Upsell 15': 'upsell_15',
+      'Upsell 16': 'upsell_16',
+      'Upsell 17': 'upsell_17'
     };
 
     const dbFieldName = fieldMapping[itemName];

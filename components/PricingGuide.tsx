@@ -151,7 +151,7 @@ const PricingAccordionRow: React.FC<{
       {/* Accordion Content */}
       <div
         className={`overflow-hidden transition-all duration-500 ease-out ${
-          isOpen ? "max-h-[1200px] opacity-100" : "max-h-0 opacity-0"
+          isOpen ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
         }`}
       >
         <div className="px-6 pb-6">
@@ -192,7 +192,7 @@ const PricingAccordionRow: React.FC<{
                           <div className="group/price relative">
                             <div className="text-lg font-light text-gray-700 dark:text-gray-300 tabular-nums group-hover/price:bg-gray-50 dark:group-hover/price:bg-gray-700 px-2 py-1 rounded cursor-pointer"
                                  onClick={() => onEditStart(creator.name, item.name, currentValue, creator.rowNumber, creator.row_id)}>
-                              {currentValue}
+                              {currentValue && currentValue !== "—" && group.groupName === "Sexting Scripts" ? `$${currentValue}` : currentValue}
                             </div>
                             <Edit2 className="absolute -top-1 -right-1 h-3 w-3 text-gray-400 opacity-0 group-hover/price:opacity-100 transition-opacity" />
                           </div>
@@ -230,7 +230,7 @@ const PricingAccordionRow: React.FC<{
                           </div>
                         ) : (
                           <div className="text-lg font-light text-gray-700 dark:text-gray-300 tabular-nums">
-                            {currentValue}
+                            {currentValue && currentValue !== "—" && group.groupName === "Sexting Scripts" ? `$${currentValue}` : currentValue}
                           </div>
                         )}
                       </div>
