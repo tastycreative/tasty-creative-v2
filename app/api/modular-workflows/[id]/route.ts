@@ -16,12 +16,13 @@ export async function PATCH(
 
     const { id } = params;
     const body = await request.json();
-    const { pricing, basePriceDescription, gifUrl, notes } = body;
+    const { caption, pricing, basePriceDescription, gifUrl, notes } = body;
 
     // Update the workflow
     const workflow = await prisma.modularWorkflow.update({
       where: { id },
       data: {
+        caption: caption ?? undefined,
         pricing: pricing ?? undefined,
         basePriceDescription: basePriceDescription ?? undefined,
         gifUrl: gifUrl ?? undefined,

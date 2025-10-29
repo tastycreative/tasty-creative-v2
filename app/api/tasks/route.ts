@@ -154,6 +154,7 @@ export async function GET(request: NextRequest) {
             externalCreatorTags: true,
             internalModelTags: true,
             referenceAttachments: true,
+            caption: true,
             gifUrl: true,
             notes: true,
             pricing: true,

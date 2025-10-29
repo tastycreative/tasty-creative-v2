@@ -349,6 +349,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         assignedTo: selectedTask.assignedTo || '',
         attachments: selectedTask.attachments || [],
         ModularWorkflow: selectedTask.ModularWorkflow ? {
+          caption: selectedTask.ModularWorkflow.caption || '',
           pricing: selectedTask.ModularWorkflow.pricing || '',
           basePriceDescription: selectedTask.ModularWorkflow.basePriceDescription || '',
           gifUrl: selectedTask.ModularWorkflow.gifUrl || '',
@@ -370,6 +371,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         assignedTo: selectedTask.assignedTo || '',
         attachments: selectedTask.attachments || [],
         ModularWorkflow: selectedTask.ModularWorkflow ? {
+          caption: selectedTask.ModularWorkflow.caption || '',
           pricing: selectedTask.ModularWorkflow.pricing || '',
           basePriceDescription: selectedTask.ModularWorkflow.basePriceDescription || '',
           gifUrl: selectedTask.ModularWorkflow.gifUrl || '',
@@ -419,6 +421,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       let updatedWorkflow = null;
       if ((editingTaskData as any).ModularWorkflow && selectedTask.ModularWorkflow) {
         const workflowUpdates = {
+          caption: (editingTaskData as any).ModularWorkflow.caption,
           pricing: (editingTaskData as any).ModularWorkflow.pricing,
           basePriceDescription: (editingTaskData as any).ModularWorkflow.basePriceDescription,
           gifUrl: (editingTaskData as any).ModularWorkflow.gifUrl,

@@ -608,6 +608,7 @@ model ModularWorkflow {
   referenceAttachments Json?
   releaseDate          String?            @db.VarChar(20)
   releaseTime          String?            @db.VarChar(10)
+  caption              String?            @db.Text
   pricing              String?            @db.VarChar(100)
   basePriceDescription String?            @db.Text
   gifUrl               String?            @db.VarChar(500)
