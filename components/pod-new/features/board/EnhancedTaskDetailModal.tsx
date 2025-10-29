@@ -353,6 +353,123 @@ export default function EnhancedTaskDetailModal({
                     teamId={selectedTask.podTeamId || undefined}
                   />
                 </div>
+
+                {/* Flyer Team Fields - Only show if task has ModularWorkflow */}
+                {hasWorkflow && (
+                  <>
+                    <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+                      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 uppercase tracking-wide">
+                        Flyer Team Fields
+                      </h4>
+                    </div>
+
+                    {/* GIF URL */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                        GIF URL
+                        <span className="ml-2 text-xs font-normal text-gray-500 dark:text-gray-400">(External link to promotional GIF or media)</span>
+                      </label>
+                      <input
+                        type="url"
+                        value={(editingTaskData as any).ModularWorkflow?.gifUrl || ""}
+                        onChange={(e) =>
+                          onSetEditingTaskData?.({
+                            ModularWorkflow: {
+                              ...((editingTaskData as any).ModularWorkflow || {}),
+                              gifUrl: e.target.value
+                            }
+                          })
+                        }
+                        placeholder="https://giphy.com/... or https://i.imgur.com/..."
+                        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                      />
+                    </div>
+
+                    {/* Notes */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                        Notes
+                        <span className="ml-2 text-xs font-normal text-gray-500 dark:text-gray-400">(Optional, for context)</span>
+                      </label>
+                      <textarea
+                        value={(editingTaskData as any).ModularWorkflow?.notes || ""}
+                        onChange={(e) =>
+                          onSetEditingTaskData?.({
+                            ModularWorkflow: {
+                              ...((editingTaskData as any).ModularWorkflow || {}),
+                              notes: e.target.value
+                            }
+                          })
+                        }
+                        rows={3}
+                        placeholder="Add any additional notes or context..."
+                        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all resize-none"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* QA Team Fields - Only show if task has ModularWorkflow */}
+                {hasWorkflow && (
+                  <>
+                    <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+                      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 uppercase tracking-wide">
+                        QA Team Fields
+                      </h4>
+                    </div>
+
+                    {/* Pricing */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                        Pricing
+                        <span className="ml-2 text-xs font-normal text-gray-500 dark:text-gray-400">(Final price or range for this content)</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 font-medium">
+                          $
+                        </span>
+                        <input
+                          type="text"
+                          value={(editingTaskData as any).ModularWorkflow?.pricing || ""}
+                          onChange={(e) => {
+                            // Allow numbers, dash, and spaces for ranges like "25-40" or "25"
+                            const value = e.target.value.replace(/[^0-9\-\s]/g, '');
+                            onSetEditingTaskData?.({
+                              ModularWorkflow: {
+                                ...((editingTaskData as any).ModularWorkflow || {}),
+                                pricing: value
+                              }
+                            });
+                          }}
+                          placeholder="32 or 25-40"
+                          className="w-full pl-8 pr-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Base Price Description */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                        Pricing Details
+                        <span className="ml-2 text-xs font-normal text-gray-500 dark:text-gray-400">(Explain tiers, bundles, or special offers)</span>
+                      </label>
+                      <textarea
+                        value={(editingTaskData as any).ModularWorkflow?.basePriceDescription || ""}
+                        onChange={(e) =>
+                          onSetEditingTaskData?.({
+                            ModularWorkflow: {
+                              ...((editingTaskData as any).ModularWorkflow || {}),
+                              basePriceDescription: e.target.value
+                            }
+                          })
+                        }
+                        rows={3}
+                        placeholder="e.g., Basic tier at $25, Premium at $40 includes extra content..."
+                        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all resize-none"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             ) : (
               <div className="space-y-8 min-w-0">
@@ -449,30 +566,185 @@ export default function EnhancedTaskDetailModal({
                   </div>
 
                   {/* Release Date */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-                      Release Date
-                    </label>
-                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                      9/26/2025
+                  {(workflowData?.releaseDate || workflowData?.releaseTime) && (
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                        Release Date
+                      </label>
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                        {workflowData?.releaseDate || 'Not set'}
+                        {workflowData?.releaseTime && ` at ${workflowData.releaseTime}`}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Pricing */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-                      Pricing
-                    </label>
-                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                      $32
-                    </div>
-                  </div>
+                  {/* Content Details Section */}
+                  {(workflowData?.contentType || workflowData?.contentLength || workflowData?.contentCount || workflowData?.externalCreatorTags || (workflowData?.internalModelTags && workflowData.internalModelTags.length > 0)) && (
+                    <>
+                      <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                          Content Details
+                        </h4>
+                      </div>
 
-                  {/* Google Drive Link */}
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                      {/* Content Type (BG/Solo/GG/etc) */}
+                      {workflowData?.contentType && (
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                            Content Type
+                          </label>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {workflowData.contentType}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Content Length */}
+                      {workflowData?.contentLength && (
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                            Length
+                          </label>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {workflowData.contentLength}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Content Count */}
+                      {workflowData?.contentCount && (
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                            Count
+                          </label>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {workflowData.contentCount}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* External Creator Tags */}
+                      {workflowData?.externalCreatorTags && (
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                            External Creators
+                          </label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {workflowData.externalCreatorTags.split(' ').filter(tag => tag.trim()).map((tag, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Internal Model Tags */}
+                      {workflowData?.internalModelTags && workflowData.internalModelTags.length > 0 && (
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                            Internal Models
+                          </label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {workflowData.internalModelTags.map((tag, idx) => (
+                              <span
+                                key={idx}
+                                className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gradient-to-r from-pink-100 to-purple-100 text-purple-800 dark:from-pink-900/30 dark:to-purple-900/30 dark:text-purple-300"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* Flyer Team Section */}
+                  {(workflowData?.gifUrl || workflowData?.notes) && (
+                    <>
+                      <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                          Flyer Team
+                        </h4>
+                      </div>
+
+                      {/* GIF URL */}
+                      {workflowData?.gifUrl && (
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                            GIF URL
+                          </label>
+                          <a
+                            href={workflowData.gifUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline break-all"
+                          >
+                            {workflowData.gifUrl}
+                          </a>
+                        </div>
+                      )}
+
+                      {/* Notes */}
+                      {workflowData?.notes && (
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                            Notes
+                          </label>
+                          <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
+                            {workflowData.notes}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* QA Team Section */}
+                  {(workflowData?.pricing || workflowData?.basePriceDescription) && (
+                    <>
+                      <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                          QA Team
+                        </h4>
+                      </div>
+
+                      {/* Pricing */}
+                      {workflowData?.pricing && (
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                            Pricing
+                          </label>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                            {workflowData.pricing}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Base Price Description */}
+                      {workflowData?.basePriceDescription && (
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                            Pricing Details
+                          </label>
+                          <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
+                            {workflowData.basePriceDescription}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* Assets & Resources Section */}
+                  <div className="space-y-3">
+                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                       Assets & Resources
                     </label>
+
+                    {/* Google Drive Link */}
                     <button
                       onClick={() => {
                         if (workflowData?.driveLink) {
@@ -484,6 +756,33 @@ export default function EnhancedTaskDetailModal({
                       <ExternalLink className="h-4 w-4" />
                       <span>Open Google Drive Folder</span>
                     </button>
+
+                    {/* Reference Attachments */}
+                    {workflowData?.referenceAttachments && Array.isArray(workflowData.referenceAttachments) && workflowData.referenceAttachments.length > 0 && (
+                      <div className="mt-3">
+                        <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
+                          Reference Images ({workflowData.referenceAttachments.length})
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {workflowData.referenceAttachments.map((attachment: any, idx: number) => (
+                            <a
+                              key={idx}
+                              href={attachment.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="group relative aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 hover:ring-2 hover:ring-blue-500 transition-all"
+                            >
+                              <img
+                                src={attachment.url}
+                                alt={attachment.filename || `Reference ${idx + 1}`}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                              />
+                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </>
               )}

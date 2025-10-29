@@ -340,6 +340,22 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   };
 
   const startEditingTask = () => {
+    if (selectedTask) {
+      setEditingTaskData({
+        title: selectedTask.title,
+        description: selectedTask.description || '',
+        priority: selectedTask.priority,
+        dueDate: selectedTask.dueDate ? selectedTask.dueDate.split('T')[0] : '',
+        assignedTo: selectedTask.assignedTo || '',
+        attachments: selectedTask.attachments || [],
+        ModularWorkflow: selectedTask.ModularWorkflow ? {
+          pricing: selectedTask.ModularWorkflow.pricing || '',
+          basePriceDescription: selectedTask.ModularWorkflow.basePriceDescription || '',
+          gifUrl: selectedTask.ModularWorkflow.gifUrl || '',
+          notes: selectedTask.ModularWorkflow.notes || '',
+        } : undefined
+      });
+    }
     setIsEditingTask(true);
   };
 
@@ -352,7 +368,13 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         priority: selectedTask.priority,
         dueDate: selectedTask.dueDate ? selectedTask.dueDate.split('T')[0] : '',
         assignedTo: selectedTask.assignedTo || '',
-        attachments: selectedTask.attachments || []
+        attachments: selectedTask.attachments || [],
+        ModularWorkflow: selectedTask.ModularWorkflow ? {
+          pricing: selectedTask.ModularWorkflow.pricing || '',
+          basePriceDescription: selectedTask.ModularWorkflow.basePriceDescription || '',
+          gifUrl: selectedTask.ModularWorkflow.gifUrl || '',
+          notes: selectedTask.ModularWorkflow.notes || '',
+        } : undefined
       });
     }
   };
@@ -392,10 +414,43 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       };
 
       await updateTask(selectedTask.id, updates);
+
+      // Update ModularWorkflow QA fields if they exist
+      let updatedWorkflow = null;
+      if ((editingTaskData as any).ModularWorkflow && selectedTask.ModularWorkflow) {
+        const workflowUpdates = {
+          pricing: (editingTaskData as any).ModularWorkflow.pricing,
+          basePriceDescription: (editingTaskData as any).ModularWorkflow.basePriceDescription,
+          gifUrl: (editingTaskData as any).ModularWorkflow.gifUrl,
+          notes: (editingTaskData as any).ModularWorkflow.notes,
+        };
+
+        // Call API to update workflow
+        const response = await fetch(`/api/modular-workflows/${selectedTask.ModularWorkflow.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(workflowUpdates),
+        });
+
+        if (response.ok) {
+          updatedWorkflow = await response.json();
+        }
+      }
+
+      // Update the selected task with new workflow data
+      const updatedTask = {
+        ...selectedTask,
+        ...updates,
+        ModularWorkflow: updatedWorkflow || selectedTask.ModularWorkflow
+      };
+
+      // Update selected task state immediately
+      setSelectedTask(updatedTask);
+
       await broadcastTaskUpdate({
         type: 'TASK_UPDATED',
         taskId: selectedTask.id,
-        data: { ...selectedTask, ...updates }
+        data: updatedTask
       });
       setIsEditingTask(false);
       setEditingTaskData({});

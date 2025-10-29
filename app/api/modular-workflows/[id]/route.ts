@@ -1,0 +1,41 @@
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+
+// PATCH /api/modular-workflows/[id] - Update workflow pricing fields
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = params;
+    const body = await request.json();
+    const { pricing, basePriceDescription, gifUrl, notes } = body;
+
+    // Update the workflow
+    const workflow = await prisma.modularWorkflow.update({
+      where: { id },
+      data: {
+        pricing: pricing ?? undefined,
+        basePriceDescription: basePriceDescription ?? undefined,
+        gifUrl: gifUrl ?? undefined,
+        notes: notes ?? undefined,
+        updatedAt: new Date(),
+      },
+    });
+
+    return NextResponse.json(workflow);
+  } catch (error) {
+    console.error("Error updating workflow:", error);
+    return NextResponse.json(
+      { error: "Failed to update workflow" },
+      { status: 500 }
+    );
+  }
+}

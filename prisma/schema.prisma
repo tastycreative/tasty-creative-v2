@@ -608,6 +608,10 @@ model ModularWorkflow {
   referenceAttachments Json?
   releaseDate          String?            @db.VarChar(20)
   releaseTime          String?            @db.VarChar(10)
+  pricing              String?            @db.VarChar(100)
+  basePriceDescription String?            @db.Text
+  gifUrl               String?            @db.VarChar(500)
+  notes                String?            @db.Text
   createdBy            User               @relation("ModularWorkflowCreator", fields: [createdById], references: [id])
   task                 Task?              @relation("ModularWorkflowTask", fields: [taskId], references: [id])
   notifications        Notification[]
@@ -989,6 +993,7 @@ enum ContentStyle {
   NORMAL
   GAME
   POLL
+  PPV
   LIVESTREAM
   BUNDLE
 }
