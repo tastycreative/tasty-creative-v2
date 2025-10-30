@@ -106,6 +106,11 @@ export async function PUT(
       updateData.description = data.description?.trim() || null;
     }
 
+    // Handle column notifications toggle update
+    if (data.columnNotificationsEnabled !== undefined) {
+      updateData.columnNotificationsEnabled = Boolean(data.columnNotificationsEnabled);
+    }
+
     // Update the team
     const updatedTeam = await prisma.podTeam.update({
       where: { id: teamId },
@@ -141,6 +146,7 @@ export async function PUT(
         name: updatedTeam.name,
         description: updatedTeam.description,
         projectPrefix: updatedTeam.projectPrefix,
+        columnNotificationsEnabled: updatedTeam.columnNotificationsEnabled,
         isActive: updatedTeam.isActive,
         createdAt: updatedTeam.createdAt.toISOString(),
         updatedAt: updatedTeam.updatedAt.toISOString(),
@@ -228,6 +234,7 @@ export async function GET(
         name: team.name,
         description: team.description,
         projectPrefix: team.projectPrefix,
+        columnNotificationsEnabled: team.columnNotificationsEnabled,
         isActive: team.isActive,
         createdAt: team.createdAt.toISOString(),
         updatedAt: team.updatedAt.toISOString(),

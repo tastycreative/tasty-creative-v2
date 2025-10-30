@@ -233,12 +233,12 @@ model Task {
   taskNumber          Int                   @default(autoincrement())
   ModularWorkflow     ModularWorkflow?      @relation("ModularWorkflowTask")
   notifications       Notification[]
+  oftvTask            OFTVTask?
   ContentSubmission   ContentSubmission?    @relation(fields: [contentSubmissionId], references: [id])
   createdBy           User                  @relation("TaskCreator", fields: [createdById], references: [id])
   podTeam             PodTeam?              @relation(fields: [podTeamId], references: [id])
   activityHistory     TaskActivityHistory[]
   comments            TaskComment[]
-  oftvTask            OFTVTask?
 
   @@index([podTeamId])
   @@index([createdById])
@@ -249,20 +249,20 @@ model Task {
 }
 
 model OFTVTask {
-  id                     String         @id @default(cuid())
-  taskId                 String         @unique
-  model                  String
-  folderLink             String?
-  videoEditor            String?
-  videoEditorStatus      OFTVTaskStatus @default(NOT_STARTED)
-  thumbnailEditor        String?
-  thumbnailEditorStatus  OFTVTaskStatus @default(NOT_STARTED)
-  specialInstructions    String?
-  dateAssigned           DateTime       @default(now())
-  dateCompleted          DateTime?
-  createdAt              DateTime       @default(now())
-  updatedAt              DateTime       @updatedAt
-  task                   Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  id                    String         @id @default(cuid())
+  taskId                String         @unique
+  model                 String
+  folderLink            String?
+  videoEditor           String?
+  thumbnailEditor       String?
+  specialInstructions   String?
+  dateAssigned          DateTime       @default(now())
+  dateCompleted         DateTime?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  videoEditorStatus     OFTVTaskStatus @default(NOT_STARTED)
+  thumbnailEditorStatus OFTVTaskStatus @default(NOT_STARTED)
+  task                  Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@index([taskId])
   @@index([model])
@@ -486,19 +486,20 @@ model OnboardingProgress {
 }
 
 model PodTeam {
-  id              String                    @id @default(cuid())
-  createdAt       DateTime                  @default(now())
-  createdById     String?
-  description     String?
-  isActive        Boolean?                  @default(true)
-  name            String                    @unique
-  updatedAt       DateTime?                 @updatedAt
-  projectPrefix   String?                   @unique
-  notifications   Notification[]
-  createdBy       User?                     @relation("PodTeamCreator", fields: [createdById], references: [id])
-  assignedClients PodTeamClientAssignment[]
-  members         PodTeamMember[]
-  tasks           Task[]
+  id                         String                    @id @default(cuid())
+  createdAt                  DateTime                  @default(now())
+  createdById                String?
+  description                String?
+  isActive                   Boolean?                  @default(true)
+  name                       String                    @unique
+  updatedAt                  DateTime?                 @updatedAt
+  projectPrefix              String?                   @unique
+  columnNotificationsEnabled Boolean                   @default(true)
+  notifications              Notification[]
+  createdBy                  User?                     @relation("PodTeamCreator", fields: [createdById], references: [id])
+  assignedClients            PodTeamClientAssignment[]
+  members                    PodTeamMember[]
+  tasks                      Task[]
 
   @@index([createdById])
   @@index([isActive])
@@ -635,11 +636,10 @@ model ModularWorkflow {
   referenceAttachments Json?
   releaseDate          String?            @db.VarChar(20)
   releaseTime          String?            @db.VarChar(10)
-  caption              String?            @db.Text
-  pricing              String?            @db.VarChar(100)
-  basePriceDescription String?            @db.Text
   gifUrl               String?            @db.VarChar(500)
-  notes                String?            @db.Text
+  notes                String?
+  contentDescription   String?
+  caption              String?
   isFinal              Boolean?           @default(false)
   createdBy            User               @relation("ModularWorkflowCreator", fields: [createdById], references: [id])
   task                 Task?              @relation("ModularWorkflowTask", fields: [taskId], references: [id])
@@ -1025,7 +1025,7 @@ enum ContentStyle {
   LIVESTREAM
   BUNDLE
   PPV
-}4
+}
 
 enum ContentType {
   BG
