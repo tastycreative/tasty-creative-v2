@@ -306,6 +306,34 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     }
   };
 
+  const handleMarkAsFinal = async (taskId: string, isFinal: boolean) => {
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task?.ModularWorkflow) return;
+
+    try {
+      const response = await fetch(`/api/modular-workflows/${task.ModularWorkflow.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isFinal }),
+      });
+
+      if (response.ok) {
+        const updatedWorkflow = await response.json();
+
+        // Refresh tasks to get the latest data including isFinal
+        await fetchTasks(teamId);
+
+        // Show success toast
+        const toast = (await import('sonner')).toast;
+        toast.success(isFinal ? 'Marked as final!' : 'Unmarked as final');
+      }
+    } catch (error) {
+      console.error('Error updating isFinal status:', error);
+      const toast = (await import('sonner')).toast;
+      toast.error('Failed to update status');
+    }
+  };
+
   // Task detail and editing functions
   const openTaskDetail = (task: Task) => {
     // Update URL for both onboarding and regular tasks for consistency
@@ -349,6 +377,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         assignedTo: selectedTask.assignedTo || '',
         attachments: selectedTask.attachments || [],
         ModularWorkflow: selectedTask.ModularWorkflow ? {
+          caption: selectedTask.ModularWorkflow.caption || '',
           pricing: selectedTask.ModularWorkflow.pricing || '',
           basePriceDescription: selectedTask.ModularWorkflow.basePriceDescription || '',
           gifUrl: selectedTask.ModularWorkflow.gifUrl || '',
@@ -370,6 +399,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         assignedTo: selectedTask.assignedTo || '',
         attachments: selectedTask.attachments || [],
         ModularWorkflow: selectedTask.ModularWorkflow ? {
+          caption: selectedTask.ModularWorkflow.caption || '',
           pricing: selectedTask.ModularWorkflow.pricing || '',
           basePriceDescription: selectedTask.ModularWorkflow.basePriceDescription || '',
           gifUrl: selectedTask.ModularWorkflow.gifUrl || '',
@@ -419,6 +449,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       let updatedWorkflow = null;
       if ((editingTaskData as any).ModularWorkflow && selectedTask.ModularWorkflow) {
         const workflowUpdates = {
+          caption: (editingTaskData as any).ModularWorkflow.caption,
           pricing: (editingTaskData as any).ModularWorkflow.pricing,
           basePriceDescription: (editingTaskData as any).ModularWorkflow.basePriceDescription,
           gifUrl: (editingTaskData as any).ModularWorkflow.gifUrl,
@@ -962,6 +993,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         onDragEnd={handleDragEnd}
         onTaskClick={openTaskDetail}
         onDeleteTask={handleDeleteTask}
+        onMarkAsFinal={handleMarkAsFinal}
         onOpenNewTaskModal={openNewTaskModal}
         onSetShowNewTaskForm={setShowNewTaskForm}
         onSetNewTaskData={setNewTaskData}

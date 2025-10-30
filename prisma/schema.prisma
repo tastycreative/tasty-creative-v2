@@ -608,10 +608,12 @@ model ModularWorkflow {
   referenceAttachments Json?
   releaseDate          String?            @db.VarChar(20)
   releaseTime          String?            @db.VarChar(10)
+  caption              String?            @db.Text
   pricing              String?            @db.VarChar(100)
   basePriceDescription String?            @db.Text
   gifUrl               String?            @db.VarChar(500)
   notes                String?            @db.Text
+  isFinal              Boolean?           @default(false)
   createdBy            User               @relation("ModularWorkflowCreator", fields: [createdById], references: [id])
   task                 Task?              @relation("ModularWorkflowTask", fields: [taskId], references: [id])
   notifications        Notification[]

@@ -57,6 +57,12 @@ export interface Task {
     driveLink: string;
     status: string;
     createdAt: string;
+    caption?: string | null;
+    pricing?: string | null;
+    basePriceDescription?: string | null;
+    gifUrl?: string | null;
+    notes?: string | null;
+    isFinal?: boolean | null;
   } | null;
   // Content Submission information (legacy OTP/PTR)
   ContentSubmission?: {
@@ -491,49 +497,49 @@ export const useBoardStore = create<BoardStore>()(
         
         fetchTasks: async (teamId, forceRefresh = false) => {
           if (!teamId) return;
-          
+
           const cacheKey = `tasks-${teamId}`;
           const currentState = get();
-          
+
           // Check cache first unless force refresh
           if (!forceRefresh) {
             const cached = get().getCachedData<Task[]>(cacheKey);
             if (cached) {
               // Only show loading if we don't have tasks yet or switching teams
               const shouldShowLoading = currentState.tasks.length === 0 || currentState.currentTeamId !== teamId;
-              
+
               if (shouldShowLoading) {
                 set((state) => ({
                   ...state,
                   isLoading: true,
                   error: null
                 }));
-                
+
                 // Brief delay for smooth UX
                 await new Promise(resolve => setTimeout(resolve, 150));
               }
-              
-              set({ 
+
+              set({
                 tasks: cached,
-                isLoading: false 
+                isLoading: false
               });
               return;
             }
           }
-          
+
           set((state) => ({
             ...state,
             isLoading: true,
             error: null
           }));
-          
+
           try {
             const result = await apiCall<{ success: boolean; tasks: Task[] }>(`/api/tasks?teamId=${teamId}`);
-            
+
             if (result.success && result.tasks) {
               // Cache and set data
               get().setCachedData(cacheKey, result.tasks, CACHE_DURATIONS.TASKS);
-              
+
               set((state) => ({
                 ...state,
                 tasks: result.tasks,
@@ -548,7 +554,7 @@ export const useBoardStore = create<BoardStore>()(
               code: 'TASKS_FETCH_ERROR',
               timestamp: Date.now(),
             };
-            
+
             set((state) => ({
               ...state,
               error: apiError,
@@ -643,11 +649,15 @@ export const useBoardStore = create<BoardStore>()(
             });
             
             if (result.success && result.task) {
-              // Update with server response
+              // Update with server response, preserving ModularWorkflow data
               set((state) => ({
                 ...state,
-                tasks: state.tasks.map(task => 
-                  task.id === taskId ? result.task : task
+                tasks: state.tasks.map(task =>
+                  task.id === taskId ? {
+                    ...result.task,
+                    // Preserve the existing ModularWorkflow if it exists
+                    ModularWorkflow: result.task.ModularWorkflow || currentTask.ModularWorkflow
+                  } : task
                 )
               }));
               

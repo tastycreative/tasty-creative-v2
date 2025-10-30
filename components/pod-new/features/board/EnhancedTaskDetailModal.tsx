@@ -354,6 +354,39 @@ export default function EnhancedTaskDetailModal({
                   />
                 </div>
 
+                {/* PGT Team Fields - Only show if task has ModularWorkflow */}
+                {hasWorkflow && (
+                  <>
+                    <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
+                      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 uppercase tracking-wide">
+                        PGT Team Fields
+                      </h4>
+                    </div>
+
+                    {/* Caption */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                        Caption
+                        <span className="ml-2 text-xs font-normal text-gray-500 dark:text-gray-400">(Content caption for posts)</span>
+                      </label>
+                      <textarea
+                        value={(editingTaskData as any).ModularWorkflow?.caption || ""}
+                        onChange={(e) =>
+                          onSetEditingTaskData?.({
+                            ModularWorkflow: {
+                              ...((editingTaskData as any).ModularWorkflow || {}),
+                              caption: e.target.value
+                            }
+                          })
+                        }
+                        rows={4}
+                        placeholder="Write the caption for this content..."
+                        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all resize-none"
+                      />
+                    </div>
+                  </>
+                )}
+
                 {/* Flyer Team Fields - Only show if task has ModularWorkflow */}
                 {hasWorkflow && (
                   <>
@@ -660,6 +693,27 @@ export default function EnhancedTaskDetailModal({
                           </div>
                         </div>
                       )}
+                    </>
+                  )}
+
+                  {/* PGT Team Section */}
+                  {workflowData?.caption && (
+                    <>
+                      <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                          PGT Team
+                        </h4>
+                      </div>
+
+                      {/* Caption */}
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                          Caption
+                        </label>
+                        <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
+                          {workflowData.caption}
+                        </div>
+                      </div>
                     </>
                   )}
 

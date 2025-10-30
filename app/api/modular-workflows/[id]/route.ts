@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 // PATCH /api/modular-workflows/[id] - Update workflow pricing fields
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -14,18 +14,20 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
-    const { pricing, basePriceDescription, gifUrl, notes } = body;
+    const { caption, pricing, basePriceDescription, gifUrl, notes, isFinal } = body;
 
     // Update the workflow
     const workflow = await prisma.modularWorkflow.update({
       where: { id },
       data: {
+        caption: caption ?? undefined,
         pricing: pricing ?? undefined,
         basePriceDescription: basePriceDescription ?? undefined,
         gifUrl: gifUrl ?? undefined,
         notes: notes ?? undefined,
+        isFinal: isFinal !== undefined ? isFinal : undefined,
         updatedAt: new Date(),
       },
     });
