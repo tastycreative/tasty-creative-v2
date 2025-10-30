@@ -30,6 +30,7 @@ interface TaskColumnProps {
   onDragEnd: (e: React.DragEvent) => void;
   onTaskClick: (task: Task) => void;
   onDeleteTask: (taskId: string) => void;
+  onMarkAsFinal: (taskId: string, isFinal: boolean) => void;
   onOpenNewTaskModal: (status: string) => void;
   onSetShowNewTaskForm: (status: string | null) => void;
   onSetNewTaskData: (data: Partial<NewTaskData>) => void;
@@ -56,6 +57,7 @@ export default function TaskColumn({
   onDragEnd,
   onTaskClick,
   onDeleteTask,
+  onMarkAsFinal,
   onOpenNewTaskModal,
   onSetShowNewTaskForm,
   onSetNewTaskData,
@@ -215,6 +217,9 @@ export default function TaskColumn({
               onDragEnd={onDragEnd}
               onTaskClick={onTaskClick}
               onDeleteTask={onDeleteTask}
+              onMarkAsFinal={onMarkAsFinal}
+              columnName={config.label}
+              columnStatus={status}
               isMobile={isMobile}
             />
           ))}

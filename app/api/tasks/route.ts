@@ -159,6 +159,7 @@ export async function GET(request: NextRequest) {
             notes: true,
             pricing: true,
             basePriceDescription: true,
+            isFinal: true,
           },
         },
       },

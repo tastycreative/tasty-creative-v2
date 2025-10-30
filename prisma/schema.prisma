@@ -613,6 +613,7 @@ model ModularWorkflow {
   basePriceDescription String?            @db.Text
   gifUrl               String?            @db.VarChar(500)
   notes                String?            @db.Text
+  isFinal              Boolean?           @default(false)
   createdBy            User               @relation("ModularWorkflowCreator", fields: [createdById], references: [id])
   task                 Task?              @relation("ModularWorkflowTask", fields: [taskId], references: [id])
   notifications        Notification[]

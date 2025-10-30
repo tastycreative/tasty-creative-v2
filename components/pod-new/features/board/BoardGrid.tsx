@@ -19,6 +19,7 @@ interface BoardGridProps {
   onDragEnd: (e: React.DragEvent) => void;
   onTaskClick: (task: Task) => void;
   onDeleteTask: (taskId: string) => void;
+  onMarkAsFinal: (taskId: string, isFinal: boolean) => void;
   onOpenNewTaskModal: (status: string) => void;
   onSetShowNewTaskForm: (status: string | null) => void;
   onSetNewTaskData: (data: Partial<NewTaskData>) => void;
@@ -27,6 +28,7 @@ interface BoardGridProps {
   getTasksForStatus: (status: Task["status"]) => Task[];
   getGridClasses: () => string;
   getGridStyles: () => { gridTemplateColumns: string };
+  columns: any[];
 }
 
 export default function BoardGrid({
@@ -43,6 +45,7 @@ export default function BoardGrid({
   onDragEnd,
   onTaskClick,
   onDeleteTask,
+  onMarkAsFinal,
   onOpenNewTaskModal,
   onSetShowNewTaskForm,
   onSetNewTaskData,
@@ -51,6 +54,7 @@ export default function BoardGrid({
   getTasksForStatus,
   getGridClasses,
   getGridStyles,
+  columns,
 }: BoardGridProps) {
   return (
     <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden">
@@ -103,6 +107,7 @@ export default function BoardGrid({
                 onDragEnd={onDragEnd}
                 onTaskClick={onTaskClick}
                 onDeleteTask={onDeleteTask}
+                onMarkAsFinal={onMarkAsFinal}
                 onOpenNewTaskModal={onOpenNewTaskModal}
                 onSetShowNewTaskForm={onSetShowNewTaskForm}
                 onSetNewTaskData={onSetNewTaskData}
@@ -143,6 +148,7 @@ export default function BoardGrid({
                 onDragEnd={onDragEnd}
                 onTaskClick={onTaskClick}
                 onDeleteTask={onDeleteTask}
+                onMarkAsFinal={onMarkAsFinal}
                 onOpenNewTaskModal={onOpenNewTaskModal}
                 onSetShowNewTaskForm={onSetShowNewTaskForm}
                 onSetNewTaskData={onSetNewTaskData}
