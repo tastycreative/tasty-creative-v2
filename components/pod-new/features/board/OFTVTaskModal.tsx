@@ -5,7 +5,6 @@ import { X, Plus } from "lucide-react";
 import { Task } from "@/lib/stores/boardStore";
 import UserDropdown from "@/components/UserDropdown";
 import ModelsDropdownList from "@/components/ModelsDropdownList";
-import { toLocalDateTimeString } from "@/lib/dateUtils";
 
 const statusConfig = {
   NOT_STARTED: {
@@ -30,9 +29,11 @@ export interface OFTVTaskData {
   model: string;
   title: string;
   folderLink: string;
-  videoEditor: string;
+  videoEditor: string; // Keep for display purposes (email)
+  videoEditorUserId: string; // Add userId
   videoEditorStatus: string;
-  thumbnailEditor: string;
+  thumbnailEditor: string; // Keep for display purposes (email)
+  thumbnailEditorUserId: string; // Add userId
   thumbnailEditorStatus: string;
   dueDate: string;
   specialInstructions: string;
@@ -154,7 +155,7 @@ export default function OFTVTaskModal({
                 </label>
                 <UserDropdown
                   value={taskData.videoEditor}
-                  onChange={(email) => onSetTaskData({ videoEditor: email })}
+                  onChange={(userId, email) => onSetTaskData({ videoEditor: email, videoEditorUserId: userId })}
                   placeholder="Select video editor..."
                   teamId={teamId}
                   className=""
@@ -188,8 +189,8 @@ export default function OFTVTaskModal({
                 </label>
                 <UserDropdown
                   value={taskData.thumbnailEditor}
-                  onChange={(email) =>
-                    onSetTaskData({ thumbnailEditor: email })
+                  onChange={(userId, email) =>
+                    onSetTaskData({ thumbnailEditor: email, thumbnailEditorUserId: userId })
                   }
                   placeholder="Select thumbnail editor..."
                   teamId={teamId}

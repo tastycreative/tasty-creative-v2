@@ -146,9 +146,12 @@ export default function EnhancedTaskDetailModal({
   console.log('🎯 EnhancedTaskDetailModal Render:', {
     hasOFTVTask,
     oftvTaskData,
-    videoEditor: oftvTaskData?.videoEditor,
-    thumbnailEditor: oftvTaskData?.thumbnailEditor,
-    selectedTaskId: selectedTask.id
+    videoEditorUser: oftvTaskData?.videoEditorUser,
+    thumbnailEditorUser: oftvTaskData?.thumbnailEditorUser,
+    selectedTaskId: selectedTask.id,
+    isOFTVTeam,
+    podTeamName: selectedTask.podTeam?.name,
+    fullSelectedTask: selectedTask
   });
 
   // Helper to find user by email
@@ -163,9 +166,11 @@ export default function EnhancedTaskDetailModal({
       setEditingOFTVData({
         model: oftvTaskData.model || '',
         folderLink: oftvTaskData.folderLink || '',
-        videoEditor: oftvTaskData.videoEditor || '',
+        videoEditor: oftvTaskData.videoEditorUser?.email || '',
+        videoEditorUserId: oftvTaskData.videoEditorUserId || '',
         videoEditorStatus: oftvTaskData.videoEditorStatus || 'NOT_STARTED',
-        thumbnailEditor: oftvTaskData.thumbnailEditor || '',
+        thumbnailEditor: oftvTaskData.thumbnailEditorUser?.email || '',
+        thumbnailEditorUserId: oftvTaskData.thumbnailEditorUserId || '',
         thumbnailEditorStatus: oftvTaskData.thumbnailEditorStatus || 'NOT_STARTED',
         specialInstructions: oftvTaskData.specialInstructions || '',
       });
@@ -179,22 +184,10 @@ export default function EnhancedTaskDetailModal({
     // Save OFTV data if it exists
     if (hasOFTVTask && editingOFTVData && oftvTaskData?.id) {
       try {
-        const response = await fetch('/api/oftv-tasks', {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            id: oftvTaskData.id,
-            ...editingOFTVData,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to update OFTV task');
-        }
+        // Use zustand store action for optimistic update & persistence
+        await useBoardStore.getState().updateOFTVTask(selectedTask.id, { ...editingOFTVData, id: oftvTaskData.id });
       } catch (error) {
-        console.error('Error updating OFTV task:', error);
+        console.error('Error updating OFTV task via store:', error);
         alert('Failed to update OFTV task. Please try again.');
         return; // Don't proceed with regular save if OFTV save fails
       }
@@ -209,71 +202,12 @@ export default function EnhancedTaskDetailModal({
   // Handle OFTV status updates (for dropdown changes in view mode)
   const handleOFTVStatusUpdate = async (field: 'videoEditorStatus' | 'thumbnailEditorStatus', newStatus: string) => {
     if (!oftvTaskData?.id) return;
-
-    console.log('🔄 OFTV Status Update Started:', {
-      field,
-      newStatus,
-      currentOftvTaskData: oftvTaskData,
-      selectedTask: selectedTask
-    });
-
+    // Use zustand action to perform an optimistic update and persist to /api/oftv-tasks
     try {
-      // Optimistically update the local state to prevent UI flickering
-      const updatedOftvTask = {
-        ...oftvTaskData,
-        [field]: newStatus,
-      };
-      
-      console.log('📝 Updated OFTV Task:', updatedOftvTask);
-      
-      // Create a properly merged task object that preserves ALL existing properties
-      const updatedTask = {
-        ...selectedTask,
-        oftvTask: updatedOftvTask,
-        updatedAt: new Date().toISOString()
-      };
-      
-      console.log('📝 Updated Task:', updatedTask);
-      
-      // Update the store's tasks array and selectedTask directly
-      const currentTasks = useBoardStore.getState().tasks;
-      const updatedTasks = currentTasks.map((task: any) => 
-        task.id === selectedTask.id ? updatedTask : task
-      );
-      
-      useBoardStore.setState({
-        tasks: updatedTasks,
-        selectedTask: updatedTask as any
-      });
-      
-      console.log('✅ Store updated successfully');
-
-      // Then save to database in the background
-      const response = await fetch('/api/oftv-tasks', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id: oftvTaskData.id,
-          [field]: newStatus,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update OFTV status');
-      }
-      
-      console.log('✅ API update successful');
-      
+      await useBoardStore.getState().updateOFTVTask(selectedTask.id, { [field]: newStatus, id: oftvTaskData.id });
     } catch (error) {
-      console.error('❌ Error updating OFTV status:', error);
+      console.error('❌ Error updating OFTV status via store:', error);
       alert('Failed to update status. Please try again.');
-      
-      // Revert the optimistic update on error
-      useBoardStore.setState({
-        selectedTask: selectedTask as any
-      });
     }
   };
 
@@ -1167,31 +1101,27 @@ export default function EnhancedTaskDetailModal({
                     {isEditingTask ? (
                       <UserDropdown
                         value={editingOFTVData?.videoEditor || ''}
-                        onChange={(email) => setEditingOFTVData({ ...editingOFTVData, videoEditor: email })}
+                        onChange={(userId, email) => setEditingOFTVData({ ...editingOFTVData, videoEditor: email, videoEditorUserId: userId })}
                         placeholder="Select video editor..."
                         teamId={selectedTask.podTeamId || undefined}
                       />
                     ) : (
-                      oftvTaskData?.videoEditor ? (
-                        findUserByEmail(oftvTaskData.videoEditor) ? (
-                          <div className="flex items-center space-x-3 min-w-0">
-                            <UserProfile
-                              user={findUserByEmail(oftvTaskData.videoEditor)!}
-                              size="md"
-                              showTooltip
-                            />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                                {findUserByEmail(oftvTaskData.videoEditor)!.name || oftvTaskData.videoEditor}
-                              </p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                {oftvTaskData.videoEditor}
-                              </p>
-                            </div>
+                      oftvTaskData?.videoEditorUser ? (
+                        <div className="flex items-center space-x-3 min-w-0">
+                          <UserProfile
+                            user={oftvTaskData.videoEditorUser}
+                            size="md"
+                            showTooltip
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                              {oftvTaskData.videoEditorUser.name || oftvTaskData.videoEditorUser.email}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                              {oftvTaskData.videoEditorUser.email}
+                            </p>
                           </div>
-                        ) : (
-                          <div className="text-sm text-gray-900 dark:text-gray-100 truncate">{oftvTaskData.videoEditor}</div>
-                        )
+                        </div>
                       ) : (
                         <p className="text-sm text-gray-500 dark:text-gray-400 italic truncate">Unassigned</p>
                       )
@@ -1232,31 +1162,27 @@ export default function EnhancedTaskDetailModal({
                     {isEditingTask ? (
                       <UserDropdown
                         value={editingOFTVData?.thumbnailEditor || ''}
-                        onChange={(email) => setEditingOFTVData({ ...editingOFTVData, thumbnailEditor: email })}
+                        onChange={(userId, email) => setEditingOFTVData({ ...editingOFTVData, thumbnailEditor: email, thumbnailEditorUserId: userId })}
                         placeholder="Select thumbnail editor..."
                         teamId={selectedTask.podTeamId || undefined}
                       />
                     ) : (
-                      oftvTaskData?.thumbnailEditor ? (
-                        findUserByEmail(oftvTaskData.thumbnailEditor) ? (
-                          <div className="flex items-center space-x-3 min-w-0">
-                            <UserProfile
-                              user={findUserByEmail(oftvTaskData.thumbnailEditor)!}
-                              size="md"
-                              showTooltip
-                            />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                                {findUserByEmail(oftvTaskData.thumbnailEditor)!.name || oftvTaskData.thumbnailEditor}
-                              </p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                {oftvTaskData.thumbnailEditor}
-                              </p>
-                            </div>
+                      oftvTaskData?.thumbnailEditorUser ? (
+                        <div className="flex items-center space-x-3 min-w-0">
+                          <UserProfile
+                            user={oftvTaskData.thumbnailEditorUser}
+                            size="md"
+                            showTooltip
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                              {oftvTaskData.thumbnailEditorUser.name || oftvTaskData.thumbnailEditorUser.email}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                              {oftvTaskData.thumbnailEditorUser.email}
+                            </p>
                           </div>
-                        ) : (
-                          <div className="text-sm text-gray-900 dark:text-gray-100 truncate">{oftvTaskData.thumbnailEditor}</div>
-                        )
+                        </div>
                       ) : (
                         <p className="text-sm text-gray-500 dark:text-gray-400 italic truncate">Unassigned</p>
                       )

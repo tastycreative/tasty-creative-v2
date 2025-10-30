@@ -100,6 +100,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   const [teamAdmins, setTeamAdmins] = useState<Array<{id: string, email: string, name?: string}>>([]);
   const [isLoadingTeamMembers, setIsLoadingTeamMembers] = useState(false);
   
+  // Team settings state
+  const [teamSettings, setTeamSettings] = useState<{columnNotificationsEnabled: boolean} | null>(null);
+  
   // Tab state
   const [activeTab, setActiveTab] = useState<TabType>('board');
   
@@ -135,8 +138,10 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     title: '',
     folderLink: '',
     videoEditor: '',
+    videoEditorUserId: '',
     videoEditorStatus: 'NOT_STARTED',
     thumbnailEditor: '',
+    thumbnailEditorUserId: '',
     thumbnailEditorStatus: 'NOT_STARTED',
     dueDate: '',
     specialInstructions: '',
@@ -169,6 +174,26 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     }
   }, []);
 
+  // Fetch team settings including column notifications
+  const fetchTeamSettings = useCallback(async (teamId: string) => {
+    if (!teamId) return;
+    
+    try {
+      const response = await fetch(`/api/pod/teams/${teamId}/details`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setTeamSettings({
+            columnNotificationsEnabled: data.data.columnNotificationsEnabled
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch team settings:', error);
+      setTeamSettings(null);
+    }
+  }, []);
+
   // Effect to ensure skeleton shows for minimum time
   useEffect(() => {
     if (isLoading && tasks.length === 0) {
@@ -195,10 +220,11 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       fetchTasks(teamId);
       fetchColumns(teamId);
       fetchTeamMembers(teamId);
+      fetchTeamSettings(teamId);
     }, 100);
 
     return () => clearTimeout(timeoutId);
-  }, [teamId, currentTeamId, setCurrentTeamId, fetchTasks, fetchColumns, fetchTeamMembers]);
+  }, [teamId, currentTeamId, setCurrentTeamId, fetchTasks, fetchColumns, fetchTeamMembers, fetchTeamSettings]);
 
   // Handle URL parameter for task sharing - URL is the single source of truth
   useEffect(() => {
@@ -219,6 +245,12 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       }
       
       if (task && (!selectedTask || selectedTask.id !== task.id)) {
+        console.log('🔍 Setting selectedTask from URL/click:', {
+          taskId: task.id,
+          hasOftvTask: !!(task as any).oftvTask,
+          oftvTask: (task as any).oftvTask,
+          podTeamName: task.podTeam?.name
+        });
         setSelectedTask(task);
         setEditingTaskData({
           title: task.title,
@@ -518,15 +550,36 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         }
       }
 
-      // Update the selected task with new workflow data
-      const updatedTask = {
+      // Fetch the updated task from store (includes OFTV relations if updated)
+      // Small delay to ensure store updates have propagated
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const tasksInStore = useBoardStore.getState().tasks;
+      const updatedTaskFromStore = tasksInStore.find(t => t.id === selectedTask.id);
+      
+      console.log('📊 Task from store after save:', {
+        found: !!updatedTaskFromStore,
+        oftvTask: updatedTaskFromStore?.oftvTask,
+        oftvTaskFull: JSON.parse(JSON.stringify(updatedTaskFromStore?.oftvTask || {})),
+        hasVideoEditorUser: !!(updatedTaskFromStore as any)?.oftvTask?.videoEditorUser,
+        hasThumbnailEditorUser: !!(updatedTaskFromStore as any)?.oftvTask?.thumbnailEditorUser,
+        videoEditorUser: (updatedTaskFromStore as any)?.oftvTask?.videoEditorUser,
+        thumbnailEditorUser: (updatedTaskFromStore as any)?.oftvTask?.thumbnailEditorUser
+      });
+      
+      const updatedTask: any = updatedTaskFromStore ? {
+        ...selectedTask, // Keep original task data (includes podTeam relation)
+        ...updates, // Apply new updates
+        oftvTask: updatedTaskFromStore.oftvTask || selectedTask.oftvTask, // Use updated OFTV data from store
+        ModularWorkflow: updatedWorkflow || updatedTaskFromStore.ModularWorkflow || selectedTask.ModularWorkflow
+      } : {
         ...selectedTask,
         ...updates,
         ModularWorkflow: updatedWorkflow || selectedTask.ModularWorkflow
       };
 
       // Update selected task state immediately
-      setSelectedTask(updatedTask);
+      setSelectedTask(updatedTask as Task);
 
       await broadcastTaskUpdate({
         type: 'TASK_UPDATED',
@@ -564,8 +617,10 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       title: '',
       folderLink: '',
       videoEditor: '',
+      videoEditorUserId: '',
       videoEditorStatus: 'NOT_STARTED',
       thumbnailEditor: '',
+      thumbnailEditorUserId: '',
       thumbnailEditorStatus: 'NOT_STARTED',
       dueDate: '',
       specialInstructions: '',
@@ -583,7 +638,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
     setIsCreatingOFTVTask(true);
     try {
-      // Call the OFTV-specific API endpoint
+      // Call the OFTV-specific API endpoint with user IDs directly
       const response = await fetch('/api/oftv-tasks', {
         method: 'POST',
         headers: {
@@ -595,9 +650,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           model: oftvTaskData.model,
           title: oftvTaskData.title,
           folderLink: oftvTaskData.folderLink,
-          videoEditor: oftvTaskData.videoEditor,
+          videoEditorUserId: oftvTaskData.videoEditorUserId || null,
           videoEditorStatus: oftvTaskData.videoEditorStatus,
-          thumbnailEditor: oftvTaskData.thumbnailEditor,
+          thumbnailEditorUserId: oftvTaskData.thumbnailEditorUserId || null,
           thumbnailEditorStatus: oftvTaskData.thumbnailEditorStatus,
           dueDate: oftvTaskData.dueDate,
           specialInstructions: oftvTaskData.specialInstructions,
@@ -864,6 +919,12 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   // Function to send notifications to column members
   const sendColumnNotifications = async (task: Task, oldStatus: Task['status'], newStatus: Task['status']) => {
     try {
+      // Check if column notifications are enabled for this team
+      if (!teamSettings?.columnNotificationsEnabled) {
+        console.log('🔕 Column notifications are disabled for this team');
+        return;
+      }
+
       // Find the target column to get assigned members
       const targetColumn = columns.find(column => column.status === newStatus);
       
@@ -1194,6 +1255,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         onSetShowNewTaskForm={setShowNewTaskForm}
         onSetNewTaskData={setNewTaskData}
         onCreateTask={handleCreateTask}
+        teamName={teamName}
         getColumnConfig={getColumnConfig}
         getTasksForStatus={getTasksForStatus}
         getGridClasses={getGridClasses}

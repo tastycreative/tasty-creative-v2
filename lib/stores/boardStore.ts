@@ -64,6 +64,33 @@ export interface Task {
     notes?: string | null;
     isFinal?: boolean | null;
   } | null;
+  // OFTV Task information
+  oftvTask?: {
+    id: string;
+    model: string;
+    folderLink: string | null;
+    videoEditor: string | null;
+    thumbnailEditor: string | null;
+    videoEditorUser?: {
+      id: string;
+      name: string | null;
+      email: string | null;
+      image?: string | null;
+    } | null;
+    thumbnailEditorUser?: {
+      id: string;
+      name: string | null;
+      email: string | null;
+      image?: string | null;
+    } | null;
+    specialInstructions: string | null;
+    videoEditorStatus: 'NOT_STARTED' | 'IN_PROGRESS' | 'NEEDS_REVISION' | 'APPROVED' | 'HOLD' | 'WAITING_FOR_VO' | 'SENT' | 'PUBLISHED';
+    thumbnailEditorStatus: 'NOT_STARTED' | 'IN_PROGRESS' | 'NEEDS_REVISION' | 'APPROVED' | 'HOLD' | 'WAITING_FOR_VO' | 'SENT' | 'PUBLISHED';
+    dateAssigned: string;
+    dateCompleted: string | null;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
   // Content Submission information (legacy OTP/PTR)
   ContentSubmission?: {
     id: string;
@@ -257,6 +284,7 @@ export interface BoardStore {
   createTask: (taskData: NewTaskData, status: Task['status']) => Promise<void>;
   updateTaskStatus: (taskId: string, status: Task['status']) => Promise<void>;
   updateTask: (taskId: string, updates: Partial<Task>) => Promise<void>;
+  updateOFTVTask: (taskId: string, oftvUpdates: Partial<any>) => Promise<void>;
   deleteTask: (taskId: string) => Promise<void>;
   
   // Actions - Cache Management
@@ -693,6 +721,89 @@ export const useBoardStore = create<BoardStore>()(
           }
         },
         
+        // Optimistic update for OFTV-specific task fields (video/thumbnail editor statuses and assignments)
+        updateOFTVTask: async (taskId: any, oftvUpdates: any) => {
+          const currentTask = get().tasks.find((task: any) => task.id === taskId);
+          if (!currentTask) return;
+
+          const currentOftv = (currentTask as any).oftvTask || null;
+
+          // Optimistically merge OFTV fields
+          const updatedOftv = { ...(currentOftv || {}), ...oftvUpdates } as any;
+          const updatedTask = { ...currentTask, oftvTask: updatedOftv, updatedAt: new Date().toISOString() } as any;
+
+          // Apply optimistic update to store
+          set((state: any) => ({
+            tasks: state.tasks.map((t: any) => t.id === taskId ? updatedTask : t),
+            selectedTask: state.selectedTask?.id === taskId ? updatedTask : state.selectedTask
+          }));
+
+          try {
+            // Persist only OFTV table changes - does not call /api/tasks so it won't trigger broad broadcasts/refetches
+            const response = await fetch('/api/oftv-tasks', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: currentOftv?.id, ...oftvUpdates }),
+            });
+
+            if (!response.ok) {
+              throw new Error('Failed to update OFTV task');
+            }
+
+            const data = await response.json();
+
+            console.log('🔍 OFTV Update Response:', {
+              success: data?.success,
+              hasOftvTask: !!data?.oftvTask,
+              oftvTask: data?.oftvTask,
+              hasVideoEditorUser: !!data?.oftvTask?.videoEditorUser,
+              hasThumbnailEditorUser: !!data?.oftvTask?.thumbnailEditorUser
+            });
+
+            if (data?.success && data?.oftvTask) {
+              // Replace with authoritative oftvTask from server
+              const serverOftv = data.oftvTask as any;
+              
+              console.log('💾 About to store OFTV task:', {
+                serverOftv,
+                hasVideoEditorUser: !!serverOftv?.videoEditorUser,
+                hasThumbnailEditorUser: !!serverOftv?.thumbnailEditorUser,
+                videoEditorUser: serverOftv?.videoEditorUser,
+                thumbnailEditorUser: serverOftv?.thumbnailEditorUser
+              });
+              
+              set((state: any) => ({
+                tasks: state.tasks.map((t: any) => t.id === taskId ? { ...t, oftvTask: serverOftv } : t),
+                selectedTask: state.selectedTask?.id === taskId ? { ...state.selectedTask, oftvTask: serverOftv } : state.selectedTask
+              }));
+              
+              console.log('✅ Stored OFTV task. Verifying...');
+              const updatedState = get();
+              const updatedTask = updatedState.tasks.find((t: any) => t.id === taskId);
+              console.log('🔍 Verification - Task after store update:', {
+                hasOftvTask: !!updatedTask?.oftvTask,
+                oftvTask: updatedTask?.oftvTask,
+                hasVideoEditorUser: !!updatedTask?.oftvTask?.videoEditorUser,
+                hasThumbnailEditorUser: !!updatedTask?.oftvTask?.thumbnailEditorUser
+              });
+            }
+          } catch (error) {
+            // Revert optimistic update
+            set((state: any) => ({
+              tasks: state.tasks.map((t: any) => t.id === taskId ? currentTask : t),
+              selectedTask: state.selectedTask?.id === taskId ? currentTask : state.selectedTask
+            }));
+
+            const apiError: APIError = {
+              message: error instanceof Error ? error.message : 'Failed to update OFTV task',
+              code: 'OFTV_UPDATE_ERROR',
+              timestamp: Date.now(),
+            };
+            set({ error: apiError });
+            throw error;
+          }
+        },
+        
         updateTask: async (taskId, updates) => {
           const currentTask = get().tasks.find(task => task.id === taskId);
           if (!currentTask) return;
@@ -733,10 +844,22 @@ export const useBoardStore = create<BoardStore>()(
               
               set((state) => ({
                 ...state,
-                tasks: state.tasks.map(task => 
-                  task.id === taskId ? result.task : task
-                ),
-                selectedTask: result.task,
+                tasks: state.tasks.map(task => {
+                  if (task.id === taskId) {
+                    // Preserve oftvTask and podTeam relations if they exist
+                    return {
+                      ...result.task,
+                      oftvTask: task.oftvTask || result.task.oftvTask,
+                      podTeam: task.podTeam || result.task.podTeam
+                    };
+                  }
+                  return task;
+                }),
+                selectedTask: result.task.id === state.selectedTask?.id ? {
+                  ...result.task,
+                  oftvTask: state.selectedTask.oftvTask || result.task.oftvTask,
+                  podTeam: state.selectedTask.podTeam || result.task.podTeam
+                } : state.selectedTask,
                 // Don't close edit mode if it's just an attachment update
                 isEditingTask: isAttachmentOnlyUpdate ? state.isEditingTask : false,
                 editingTaskData: isAttachmentOnlyUpdate ? { ...state.editingTaskData, attachments: result.task.attachments } : {}

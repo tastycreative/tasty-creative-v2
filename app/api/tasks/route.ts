@@ -52,7 +52,27 @@ export async function POST(request: NextRequest) {
             projectPrefix: true,
           },
         },
-        oftvTask: true,
+        oftvTask: {
+          include: {
+            task: false, // Avoid circular reference
+            videoEditorUser: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+                image: true,
+              }
+            },
+            thumbnailEditorUser: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+                image: true,
+              }
+            }
+          }
+        },
       },
     });
 
@@ -163,7 +183,27 @@ export async function GET(request: NextRequest) {
             isFinal: true,
           },
         },
-        oftvTask: true,
+        oftvTask: {
+          include: {
+            task: false, // Avoid circular reference
+            videoEditorUser: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+                image: true,
+              }
+            },
+            thumbnailEditorUser: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+                image: true,
+              }
+            }
+          }
+        },
       },
       orderBy: {
         createdAt: 'desc',
@@ -187,7 +227,8 @@ export async function GET(request: NextRequest) {
             },
           });
         }
-        
+
+        // OFTV editor user data is already included via relations in the query
         return {
           ...task,
           assignedUser,

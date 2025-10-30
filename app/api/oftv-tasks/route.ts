@@ -20,9 +20,9 @@ export async function POST(req: NextRequest) {
       model,
       title,
       folderLink,
-      videoEditor,
+      videoEditorUserId,
       videoEditorStatus,
-      thumbnailEditor,
+      thumbnailEditorUserId,
       thumbnailEditorStatus,
       dueDate,
       specialInstructions,
@@ -39,8 +39,21 @@ export async function POST(req: NextRequest) {
     // Create task title combining model and title
     const taskTitle = `${model} - ${title}`;
 
-    // Determine assignedTo (prefer video editor, then thumbnail editor)
-    const assignedTo = videoEditor || thumbnailEditor || null;
+    // Determine assignedTo from user IDs (prefer video editor, then thumbnail editor)
+    let assignedTo = null;
+    if (videoEditorUserId) {
+      const videoUser = await prisma.user.findUnique({
+        where: { id: videoEditorUserId },
+        select: { email: true }
+      });
+      assignedTo = videoUser?.email || null;
+    } else if (thumbnailEditorUserId) {
+      const thumbnailUser = await prisma.user.findUnique({
+        where: { id: thumbnailEditorUserId },
+        select: { email: true }
+      });
+      assignedTo = thumbnailUser?.email || null;
+    }
 
     // Create both Task and OFTVTask in a transaction
     const result = await prisma.$transaction(async (tx) => {
@@ -69,12 +82,30 @@ export async function POST(req: NextRequest) {
           taskId: task.id,
           model: model,
           folderLink: folderLink || null,
-          videoEditor: videoEditor || null,
+          videoEditorUserId: videoEditorUserId,
           videoEditorStatus: videoEditorStatus || 'NOT_STARTED',
-          thumbnailEditor: thumbnailEditor || null,
+          thumbnailEditorUserId: thumbnailEditorUserId,
           thumbnailEditorStatus: thumbnailEditorStatus || 'NOT_STARTED',
           specialInstructions: specialInstructions || null,
         },
+        include: {
+          videoEditorUser: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              image: true,
+            }
+          },
+          thumbnailEditorUser: {
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              image: true,
+            }
+          }
+        }
       });
 
       return { task, oftvTask };
@@ -118,10 +149,59 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    // Update OFTVTask
+    // Look up user IDs if videoEditor or thumbnailEditor emails are provided
+    const dataToUpdate: any = { ...updates };
+
+    if (updates.videoEditor) {
+      const videoEditorUser = await prisma.user.findUnique({
+        where: { email: updates.videoEditor },
+        select: { id: true }
+      });
+      dataToUpdate.videoEditorUserId = videoEditorUser?.id || null;
+      // Remove email field as it doesn't exist in schema
+      delete dataToUpdate.videoEditor;
+    }
+
+    if (updates.thumbnailEditor) {
+      const thumbnailEditorUser = await prisma.user.findUnique({
+        where: { email: updates.thumbnailEditor },
+        select: { id: true }
+      });
+      dataToUpdate.thumbnailEditorUserId = thumbnailEditorUser?.id || null;
+      // Remove email field as it doesn't exist in schema
+      delete dataToUpdate.thumbnailEditor;
+    }
+
+    // Update OFTVTask with user relations included
     const oftvTask = await prisma.oFTVTask.update({
       where: { id: oftvTaskId },
-      data: updates,
+      data: dataToUpdate,
+      include: {
+        videoEditorUser: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            image: true,
+          }
+        },
+        thumbnailEditorUser: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            image: true,
+          }
+        }
+      }
+    });
+
+    console.log('✅ OFTV Task Updated:', {
+      id: oftvTask.id,
+      hasVideoEditorUser: !!oftvTask.videoEditorUser,
+      hasThumbnailEditorUser: !!oftvTask.thumbnailEditorUser,
+      videoEditorUser: oftvTask.videoEditorUser,
+      thumbnailEditorUser: oftvTask.thumbnailEditorUser
     });
 
     return NextResponse.json({

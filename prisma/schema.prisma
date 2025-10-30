@@ -30,6 +30,8 @@ model User {
   ModerationLog              ModerationLog[]
   ModularWorkflow            ModularWorkflow[]             @relation("ModularWorkflowCreator")
   notifications              Notification[]
+  oftvVideoEditorTasks       OFTVTask[]                    @relation("OFTVVideoEditor")
+  oftvThumbnailEditorTasks   OFTVTask[]                    @relation("OFTVThumbnailEditor")
   pageViews                  PageView[]
   createdPodTeams            PodTeam[]                     @relation("PodTeamCreator")
   podClientAssignments       PodTeamClientAssignment[]     @relation("PodClientAssignedBy")
@@ -253,8 +255,8 @@ model OFTVTask {
   taskId                String         @unique
   model                 String
   folderLink            String?
-  videoEditor           String?
-  thumbnailEditor       String?
+  videoEditorUserId     String?
+  thumbnailEditorUserId String?
   specialInstructions   String?
   dateAssigned          DateTime       @default(now())
   dateCompleted         DateTime?
@@ -263,11 +265,13 @@ model OFTVTask {
   videoEditorStatus     OFTVTaskStatus @default(NOT_STARTED)
   thumbnailEditorStatus OFTVTaskStatus @default(NOT_STARTED)
   task                  Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  videoEditorUser       User?          @relation("OFTVVideoEditor", fields: [videoEditorUserId], references: [id])
+  thumbnailEditorUser   User?          @relation("OFTVThumbnailEditor", fields: [thumbnailEditorUserId], references: [id])
 
   @@index([taskId])
   @@index([model])
-  @@index([videoEditor])
-  @@index([thumbnailEditor])
+  @@index([videoEditorUserId])
+  @@index([thumbnailEditorUserId])
   @@index([videoEditorStatus])
   @@index([thumbnailEditorStatus])
   @@index([dateAssigned])

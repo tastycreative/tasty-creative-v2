@@ -29,6 +29,7 @@ interface BoardGridProps {
   getGridClasses: () => string;
   getGridStyles: () => { gridTemplateColumns: string };
   columns: any[];
+  teamName?: string;
 }
 
 export default function BoardGrid({
@@ -55,6 +56,7 @@ export default function BoardGrid({
   getGridClasses,
   getGridStyles,
   columns,
+  teamName,
 }: BoardGridProps) {
   return (
     <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden">
@@ -112,6 +114,7 @@ export default function BoardGrid({
                 onSetShowNewTaskForm={onSetShowNewTaskForm}
                 onSetNewTaskData={onSetNewTaskData}
                 onCreateTask={onCreateTask}
+                teamName={teamName}
                 isMobile={true}
                 isLastColumn={index === getColumnConfig().length - 1}
               />
@@ -153,6 +156,7 @@ export default function BoardGrid({
                 onSetShowNewTaskForm={onSetShowNewTaskForm}
                 onSetNewTaskData={onSetNewTaskData}
                 onCreateTask={onCreateTask}
+                teamName={teamName}
                 isMobile={false}
                 isLastColumn={index === getColumnConfig().length - 1}
                 includeHeader={true}
