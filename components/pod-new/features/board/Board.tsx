@@ -17,6 +17,7 @@ import BoardSkeleton from './BoardSkeleton';
 import BoardGrid from './BoardGrid';
 import EnhancedTaskDetailModal from './EnhancedTaskDetailModal';
 import NewTaskModal from './NewTaskModal';
+import OFTVTaskModal, { OFTVTaskData } from './OFTVTaskModal';
 import OnboardingTaskModal from '@/components/pod/OnboardingTaskModal';
 import NoTeamSelected from '@/components/pod/NoTeamSelected';
 import TeamSettings from './TeamSettings';
@@ -126,6 +127,24 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   // Local state for minimum skeleton display time
   const [showMinimumSkeleton, setShowMinimumSkeleton] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isCreatingOFTVTask, setIsCreatingOFTVTask] = useState(false);
+
+  // OFTV-specific task state
+  const [oftvTaskData, setOftvTaskData] = useState<OFTVTaskData>({
+    model: '',
+    title: '',
+    folderLink: '',
+    videoEditor: '',
+    videoEditorStatus: 'NOT_STARTED',
+    thumbnailEditor: '',
+    thumbnailEditorStatus: 'NOT_STARTED',
+    dueDate: '',
+    specialInstructions: '',
+  });
+
+  const handleSetOftvTaskData = useCallback((data: Partial<OFTVTaskData>) => {
+    setOftvTaskData(prev => ({ ...prev, ...data }));
+  }, []);
 
   // Fetch team members and admins
   const fetchTeamMembers = useCallback(async (teamId: string) => {
@@ -222,6 +241,23 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     }
   }, [searchParams, tasks]);
 
+  // Update selected task when tasks are refetched (to preserve OFTV relation data)
+  useEffect(() => {
+    if (selectedTask && tasks.length > 0) {
+      const updatedTask = tasks.find(t => t.id === selectedTask.id);
+      if (updatedTask && updatedTask.title) {
+        // Only update if there's actual data difference (especially for relations like oftvTask)
+        const hasOFTVDataChange = teamName === "OFTV" && 
+          JSON.stringify((updatedTask as any).oftvTask) !== JSON.stringify((selectedTask as any).oftvTask);
+        const hasStatusChange = updatedTask.status !== selectedTask.status;
+        
+        if (hasOFTVDataChange || hasStatusChange) {
+          setSelectedTask(updatedTask as any);
+        }
+      }
+    }
+  }, [tasks]);
+
   // Synchronize scroll between header and body on desktop
   useEffect(() => {
     const headerScroll = document.getElementById('desktop-header-scroll');
@@ -251,9 +287,23 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   const { broadcastTaskUpdate } = useTaskUpdates({
     teamId: currentTeamId,
     onTaskUpdate: useCallback((update: any) => {
-      const timeoutId = setTimeout(() => {
+      const timeoutId = setTimeout(async () => {
         if (update.type === 'TASK_UPDATED' || update.type === 'TASK_CREATED' || update.type === 'TASK_DELETED') {
-          fetchTasks(currentTeamId, true);
+          await fetchTasks(currentTeamId, true);
+          
+          // If a task is currently selected and was updated, refresh it with new data from the store
+          if (update.taskId && update.type === 'TASK_UPDATED') {
+            setTimeout(() => {
+              const currentSelectedTask = useBoardStore.getState().selectedTask;
+              if (currentSelectedTask && currentSelectedTask.id === update.taskId) {
+                const freshTasks = useBoardStore.getState().tasks;
+                const updatedTask = freshTasks.find(t => t.id === update.taskId);
+                if (updatedTask) {
+                  useBoardStore.getState().setSelectedTask(updatedTask as any);
+                }
+              }
+            }, 100);
+          }
         }
       }, 200);
 
@@ -508,6 +558,66 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       assignedTo: '',
       dueDate: ''
     });
+    // Also reset OFTV task data when closing
+    setOftvTaskData({
+      model: '',
+      title: '',
+      folderLink: '',
+      videoEditor: '',
+      videoEditorStatus: 'NOT_STARTED',
+      thumbnailEditor: '',
+      thumbnailEditorStatus: 'NOT_STARTED',
+      dueDate: '',
+      specialInstructions: '',
+    });
+  };
+
+  const createOFTVTaskFromModal = async () => {
+    if (!oftvTaskData.model.trim() || !oftvTaskData.title.trim() || !newTaskStatus) return;
+
+    // Security check: ensure user has access to this team
+    if (!hasTeamAccess) {
+      console.error('Unauthorized: User cannot create tasks for this team');
+      return;
+    }
+
+    setIsCreatingOFTVTask(true);
+    try {
+      // Call the OFTV-specific API endpoint
+      const response = await fetch('/api/oftv-tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          teamId: currentTeamId,
+          status: newTaskStatus,
+          model: oftvTaskData.model,
+          title: oftvTaskData.title,
+          folderLink: oftvTaskData.folderLink,
+          videoEditor: oftvTaskData.videoEditor,
+          videoEditorStatus: oftvTaskData.videoEditorStatus,
+          thumbnailEditor: oftvTaskData.thumbnailEditor,
+          thumbnailEditorStatus: oftvTaskData.thumbnailEditorStatus,
+          dueDate: oftvTaskData.dueDate,
+          specialInstructions: oftvTaskData.specialInstructions,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create OFTV task');
+      }
+
+      // Refresh tasks to show the new task
+      await fetchTasks(currentTeamId, true);
+      closeNewTaskModal();
+    } catch (error) {
+      console.error('Error creating OFTV task:', error);
+    } finally {
+      setIsCreatingOFTVTask(false);
+    }
   };
 
   const createTaskFromModal = async () => {
@@ -608,7 +718,10 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
     try {
       await updateTaskStatus(selectedTask.id, newStatus);
-      setSelectedTask({ ...selectedTask, status: newStatus });
+      
+      // Refetch tasks to get the complete updated data including relations
+      await fetchTasks(currentTeamId, true);
+      
       await broadcastTaskUpdate({
         type: 'TASK_UPDATED',
         taskId: selectedTask.id,
@@ -661,8 +774,91 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     // Update the task status first
     await updateTaskStatus(draggedTask.id, newStatus);
 
+    // For OFTV team, update the description based on column label
+    if (teamName === "OFTV") {
+      await updateOFTVTaskDescription(draggedTask, newStatus);
+    }
+
     // Send notifications to assigned members
     await sendColumnNotifications(draggedTask, oldStatus, newStatus);
+    
+    // Refetch tasks to get complete data including relations
+    await fetchTasks(currentTeamId, true);
+  };
+
+  // Function to update OFTV task description based on column transitions
+  // This function is ONLY for OFTV team tasks
+  const updateOFTVTaskDescription = async (task: Task, newStatus: Task['status']) => {
+    // Safety check: only process for OFTV team
+    if (teamName !== "OFTV") {
+      return;
+    }
+
+    // Find the new column to get its label
+    const newColumn = columns.find(col => col.status === newStatus);
+    if (!newColumn) return;
+
+    const columnLabel = newColumn.label;
+    let updatedDescription = task.description || '';
+
+    // Parse the current description to extract the structured data
+    const videoEditorMatch = updatedDescription.match(/Video Editor: ([^\s]+) \(([^)]+)\)/);
+    const thumbnailEditorMatch = updatedDescription.match(/Thumbnail Editor: ([^\s]+) \(([^)]+)\)/);
+
+    if (!videoEditorMatch || !thumbnailEditorMatch) {
+      // If description doesn't match OFTV format, don't update
+      return;
+    }
+
+    const videoEditor = videoEditorMatch[1];
+    const thumbnailEditor = thumbnailEditorMatch[1];
+    let videoEditorStatus = videoEditorMatch[2];
+    let thumbnailEditorStatus = thumbnailEditorMatch[2];
+
+    // Update statuses based on column label (trim to handle extra spaces)
+    const trimmedLabel = columnLabel.trim();
+    
+    if (trimmedLabel === "Editing Team") {
+      videoEditorStatus = "IN_PROGRESS";
+    } else if (trimmedLabel === "Editing Completed") {
+      videoEditorStatus = "COMPLETED";
+    } else if (trimmedLabel === "Thumbnail In Progress") {
+      thumbnailEditorStatus = "IN_PROGRESS";
+    } else if (trimmedLabel === "Thumbnail Completed") {
+      thumbnailEditorStatus = "COMPLETED";
+    }
+
+    // Log for debugging (can be removed later)
+    console.log('🎬 OFTV Status Update:', {
+      columnLabel: trimmedLabel,
+      videoEditorStatus,
+      thumbnailEditorStatus
+    });
+
+    // Reconstruct the description with updated statuses
+    updatedDescription = updatedDescription
+      .replace(
+        /Video Editor: ([^\s]+) \(([^)]+)\)/,
+        `Video Editor: ${videoEditor} (${videoEditorStatus})`
+      )
+      .replace(
+        /Thumbnail Editor: ([^\s]+) \(([^)]+)\)/,
+        `Thumbnail Editor: ${thumbnailEditor} (${thumbnailEditorStatus})`
+      );
+
+    // Update the task with the new description
+    try {
+      await updateTask(task.id, { description: updatedDescription });
+      
+      // Broadcast the update
+      await broadcastTaskUpdate({
+        type: 'TASK_UPDATED',
+        taskId: task.id,
+        data: { ...task, description: updatedDescription, status: newStatus }
+      });
+    } catch (error) {
+      console.error('Error updating OFTV task description:', error);
+    }
   };
 
   // Function to send notifications to column members
@@ -1041,17 +1237,31 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         />
       )}
 
-      {/* New Task Modal */}
-      <NewTaskModal
-        isOpen={showNewTaskModal}
-        newTaskStatus={newTaskStatus}
-        newTaskData={newTaskData}
-        isCreatingTask={isCreatingTask}
-        columns={columns}
-        onClose={closeNewTaskModal}
-        onSetNewTaskData={setNewTaskData}
-        onCreateTask={createTaskFromModal}
-      />
+      {/* New Task Modal - OFTV or Standard */}
+      {teamName === "OFTV" ? (
+        <OFTVTaskModal
+          isOpen={showNewTaskModal}
+          newTaskStatus={newTaskStatus}
+          taskData={oftvTaskData}
+          isCreatingTask={isCreatingOFTVTask}
+          columns={columns}
+          teamId={teamId}
+          onClose={closeNewTaskModal}
+          onSetTaskData={handleSetOftvTaskData}
+          onCreateTask={createOFTVTaskFromModal}
+        />
+      ) : (
+        <NewTaskModal
+          isOpen={showNewTaskModal}
+          newTaskStatus={newTaskStatus}
+          newTaskData={newTaskData}
+          isCreatingTask={isCreatingTask}
+          columns={columns}
+          onClose={closeNewTaskModal}
+          onSetNewTaskData={setNewTaskData}
+          onCreateTask={createTaskFromModal}
+        />
+      )}
 
           {/* Column Settings Modal */}
           <ColumnSettings currentTeamId={currentTeamId} />

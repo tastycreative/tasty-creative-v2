@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
             projectPrefix: true,
           },
         },
+        oftvTask: true,
       },
     });
 
@@ -162,6 +163,7 @@ export async function GET(request: NextRequest) {
             isFinal: true,
           },
         },
+        oftvTask: true,
       },
       orderBy: {
         createdAt: 'desc',
@@ -273,6 +275,7 @@ export async function PUT(request: NextRequest) {
             image: true,
           },
         },
+        oftvTask: true,
       },
     });
 
