@@ -152,9 +152,9 @@ async function createWorkflowColumns(teamId: string, contentStyle: string): Prom
 
 // Helper function to get team assignment (simplified to use existing team)
 function getTeamForWorkflow(): string {
-  // For now, use the existing OTP-PTR team for all workflows
-  // Focus on OTP vs PTR functionality rather than team separation
-  return 'OTP-PTR'; // This will match your existing team name
+  // Use the OTP-PTR team for all wall post workflows (OTP/PTR submissions)
+  // OFTV team is for video editing tasks only, not content submissions
+  return 'OTP-PTR'; // This will match your OTP-PTR team name exactly
 }
 
 
@@ -457,7 +457,7 @@ export async function POST(request: NextRequest) {
         throw new Error(`Specified team with ID ${fallbackTeamId} not found`);
       }
     } else {
-      // Find OTP-PTR team or use first available team
+      // Find OTP-PTR team by name (case-insensitive)
       assignedTeam = await prisma.podTeam.findFirst({
         where: {
           name: {
@@ -468,16 +468,36 @@ export async function POST(request: NextRequest) {
         }
       });
 
+      console.log(`🔍 Team search for "${targetTeamName}":`, assignedTeam ? `Found: ${assignedTeam.name}` : 'Not found');
+
       if (!assignedTeam) {
-        // Fallback to first available team
+        // Try to find any team that's NOT OFTV (for content workflows)
         assignedTeam = await prisma.podTeam.findFirst({
-          where: { isActive: true },
+          where: {
+            isActive: true,
+            name: {
+              not: {
+                contains: 'OFTV',
+                mode: 'insensitive'
+              }
+            }
+          },
           orderBy: { createdAt: 'asc' }
         });
+
+        if (!assignedTeam) {
+          // Last resort: use any active team
+          assignedTeam = await prisma.podTeam.findFirst({
+            where: { isActive: true },
+            orderBy: { createdAt: 'asc' }
+          });
+        }
+
         if (!assignedTeam) {
           throw new Error('No active teams found');
         }
-      } else {
+
+        console.warn(`⚠️ OTP-PTR team not found, falling back to: ${assignedTeam.name}`);
       }
     }
 
