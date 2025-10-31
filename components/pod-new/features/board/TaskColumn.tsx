@@ -35,6 +35,7 @@ interface TaskColumnProps {
   onSetShowNewTaskForm: (status: string | null) => void;
   onSetNewTaskData: (data: Partial<NewTaskData>) => void;
   onCreateTask: (status: Task["status"]) => void;
+  teamName?: string;
   isMobile?: boolean;
   isLastColumn?: boolean;
   includeHeader?: boolean;
@@ -62,6 +63,7 @@ export default function TaskColumn({
   onSetShowNewTaskForm,
   onSetNewTaskData,
   onCreateTask,
+  teamName,
   isMobile = false,
   isLastColumn = false,
   includeHeader = false,
@@ -220,6 +222,7 @@ export default function TaskColumn({
               onMarkAsFinal={onMarkAsFinal}
               columnName={config.label}
               columnStatus={status}
+              teamName={teamName}
               isMobile={isMobile}
             />
           ))}

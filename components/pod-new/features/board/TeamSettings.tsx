@@ -48,6 +48,7 @@ interface TeamData {
   id: string;
   name: string;
   projectPrefix?: string;
+  columnNotificationsEnabled?: boolean;
   creators: { id: string; name: string }[];
   teamMembers: TeamMember[];
 }
@@ -153,6 +154,10 @@ const TeamSettings: React.FC<TeamSettingsProps> = ({
   const [editingTeamPrefix, setEditingTeamPrefix] = useState(false);
   const [editingTeamPrefixValue, setEditingTeamPrefixValue] = useState("");
   
+  // Column notifications toggle state
+  const [columnNotificationsEnabled, setColumnNotificationsEnabled] = useState(true);
+  const [updatingNotificationsToggle, setUpdatingNotificationsToggle] = useState(false);
+  
   // Loading states
   const [updatingTeamName, setUpdatingTeamName] = useState(false);
   const [updatingTeamPrefix, setUpdatingTeamPrefix] = useState(false);
@@ -216,12 +221,14 @@ const TeamSettings: React.FC<TeamSettingsProps> = ({
             id: data.id,
             name: data.name,
             projectPrefix: data.projectPrefix,
+            columnNotificationsEnabled: data.columnNotificationsEnabled,
             creators: data.creators || [],
             teamMembers: data.teamMembers || []
           });
           setTeamCreators(data.creators || []);
           setEditingTeamNameValue(data.name);
           setEditingTeamPrefixValue(data.projectPrefix || "");
+          setColumnNotificationsEnabled(data.columnNotificationsEnabled ?? true);
           setTeamMembers(data.teamMembers || initialMembers);
         }
       }
@@ -344,6 +351,37 @@ const TeamSettings: React.FC<TeamSettingsProps> = ({
       alert("Failed to update team prefix");
     } finally {
       setUpdatingTeamPrefix(false);
+    }
+  };
+
+  // Column notifications toggle update function
+  const updateColumnNotificationsToggle = async (enabled: boolean) => {
+    if (!isAdmin) return;
+
+    setUpdatingNotificationsToggle(true);
+    try {
+      const response = await fetch(`/api/pod/teams/${teamId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ columnNotificationsEnabled: enabled }),
+      });
+
+      if (response.ok) {
+        setColumnNotificationsEnabled(enabled);
+        // Update local teamData state immediately
+        setTeamData(prev => prev ? { ...prev, columnNotificationsEnabled: enabled } : null);
+        onTeamUpdate?.();
+        setSuccessMessage(enabled ? 'Column notifications enabled' : 'Column notifications disabled');
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to update notification settings: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error("Error updating notification settings:", error);
+      alert("Failed to update notification settings");
+    } finally {
+      setUpdatingNotificationsToggle(false);
     }
   };
 
@@ -797,6 +835,42 @@ const TeamSettings: React.FC<TeamSettingsProps> = ({
                         )}
                       </div>
                     )}
+                  </div>
+                </div>
+
+                {/* Column Notifications Toggle */}
+                <div className="px-6 py-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Column Notifications</label>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Enable or disable notifications when tasks move between columns</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`text-sm font-medium ${columnNotificationsEnabled ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                        {columnNotificationsEnabled ? 'Enabled' : 'Disabled'}
+                      </span>
+                      {isAdmin && (
+                        <button
+                          onClick={() => updateColumnNotificationsToggle(!columnNotificationsEnabled)}
+                          disabled={updatingNotificationsToggle}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
+                            columnNotificationsEnabled 
+                              ? 'bg-green-600' 
+                              : 'bg-gray-200 dark:bg-gray-700'
+                          }`}
+                        >
+                          {updatingNotificationsToggle ? (
+                            <Loader2 className="h-3 w-3 text-white animate-spin mx-auto" />
+                          ) : (
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                columnNotificationsEnabled ? 'translate-x-6' : 'translate-x-1'
+                              }`}
+                            />
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

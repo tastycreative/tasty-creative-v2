@@ -13,7 +13,7 @@ interface User {
 
 interface UserDropdownProps {
   value?: string;
-  onChange: (email: string) => void;
+  onChange: (userId: string, email: string) => void; // Changed to return both userId and email
   placeholder?: string;
   className?: string;
   teamId?: string; // New prop to filter users by team
@@ -165,14 +165,14 @@ export default function UserDropdown({
 
   const handleUserSelect = (user: User) => {
     setSelectedUser(user);
-    onChange(user.email);
+    onChange(user.id, user.email);
     setIsOpen(false);
     setSearchTerm('');
   };
 
   const handleClear = () => {
     setSelectedUser(null);
-    onChange('');
+    onChange('', '');
     setSearchTerm('');
   };
 

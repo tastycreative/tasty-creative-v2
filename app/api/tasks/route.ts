@@ -52,6 +52,27 @@ export async function POST(request: NextRequest) {
             projectPrefix: true,
           },
         },
+        oftvTask: {
+          include: {
+            task: false, // Avoid circular reference
+            videoEditorUser: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+                image: true,
+              }
+            },
+            thumbnailEditorUser: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+                image: true,
+              }
+            }
+          }
+        },
       },
     });
 
@@ -162,6 +183,27 @@ export async function GET(request: NextRequest) {
             isFinal: true,
           },
         },
+        oftvTask: {
+          include: {
+            task: false, // Avoid circular reference
+            videoEditorUser: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+                image: true,
+              }
+            },
+            thumbnailEditorUser: {
+              select: {
+                id: true,
+                email: true,
+                name: true,
+                image: true,
+              }
+            }
+          }
+        },
       },
       orderBy: {
         createdAt: 'desc',
@@ -190,7 +232,7 @@ export async function GET(request: NextRequest) {
     // Create email-to-user map for O(1) lookup
     const userMap = new Map(users.map(u => [u.email, u]));
 
-    // Map users to tasks
+    // Map users to tasks (OFTV editor user data already included via relations in the query above)
     const tasksWithAssignedUsers = tasks.map(task => ({
       ...task,
       assignedUser: task.assignedTo ? (userMap.get(task.assignedTo) || null) : null
@@ -276,6 +318,7 @@ export async function PUT(request: NextRequest) {
             image: true,
           },
         },
+        oftvTask: true,
       },
     });
 

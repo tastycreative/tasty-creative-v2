@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { Session } from "next-auth";
 import { X, Edit3, Calendar, Clock, Loader2, History, MessageCircle, Paperclip, Activity, ExternalLink } from "lucide-react";
-import { Task } from "@/lib/stores/boardStore";
+import { Task, useBoardStore } from "@/lib/stores/boardStore";
 import { formatForTaskDetail, formatDueDate, toLocalDateTimeString, utcNow } from "@/lib/dateUtils";
 import UserDropdown from "@/components/UserDropdown";
 import FileUpload from "@/components/ui/FileUpload";
@@ -32,6 +32,23 @@ const linkifyText = (text: string) => {
     }
     return part;
   });
+};
+
+// OFTV Task Status Options
+const oftvStatusOptions = [
+  { value: 'NOT_STARTED', label: 'Not Started', color: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300' },
+  { value: 'IN_PROGRESS', label: 'In Progress', color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300' },
+  { value: 'NEEDS_REVISION', label: 'Needs Revision', color: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300' },
+  { value: 'APPROVED', label: 'Approved', color: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' },
+  { value: 'HOLD', label: 'Hold', color: 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300' },
+  { value: 'WAITING_FOR_VO', label: 'Waiting for VO', color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300' },
+  { value: 'SENT', label: 'Sent', color: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300' },
+  { value: 'PUBLISHED', label: 'Published', color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300' },
+];
+
+// Helper function to get OFTV status config
+const getOFTVStatusConfig = (status: string) => {
+  return oftvStatusOptions.find(opt => opt.value === status) || oftvStatusOptions[0];
 };
 
 interface EnhancedTaskDetailModalProps {
@@ -79,6 +96,9 @@ export default function EnhancedTaskDetailModal({
 }: EnhancedTaskDetailModalProps) {
   const [showHistory, setShowHistory] = useState(false);
   const [showWorkflowDetails, setShowWorkflowDetails] = useState(true);
+  
+  // OFTV task editing state
+  const [editingOFTVData, setEditingOFTVData] = useState<any>(null);
 
   // Determine if user should have view-only access
   const isViewOnly = !session?.user?.role ||
@@ -87,6 +107,79 @@ export default function EnhancedTaskDetailModal({
   // Get workflow data
   const workflowData = selectedTask.ModularWorkflow;
   const hasWorkflow = !!workflowData;
+
+  // Get OFTV task data (only from database, no parsing)
+  const oftvTaskData = (selectedTask as any).oftvTask;
+  const isOFTVTeam = selectedTask.podTeam?.name === "OFTV";
+  const hasOFTVTask = !!oftvTaskData && isOFTVTeam;
+
+  console.log('🎯 EnhancedTaskDetailModal Render:', {
+    hasOFTVTask,
+    oftvTaskData,
+    videoEditorUser: oftvTaskData?.videoEditorUser,
+    thumbnailEditorUser: oftvTaskData?.thumbnailEditorUser,
+    selectedTaskId: selectedTask.id,
+    isOFTVTeam,
+    podTeamName: selectedTask.podTeam?.name,
+    fullSelectedTask: selectedTask
+  });
+
+  // Helper to find user by email
+  const findUserByEmail = (email: string | null) => {
+    if (!email) return null;
+    return teamMembers.find(m => m.email === email) || teamAdmins.find(a => a.email === email);
+  };
+
+  // Initialize OFTV editing data when edit mode starts
+  React.useEffect(() => {
+    if (isEditingTask && hasOFTVTask && !editingOFTVData) {
+      setEditingOFTVData({
+        model: oftvTaskData.model || '',
+        folderLink: oftvTaskData.folderLink || '',
+        videoEditor: oftvTaskData.videoEditorUser?.email || '',
+        videoEditorUserId: oftvTaskData.videoEditorUserId || '',
+        videoEditorStatus: oftvTaskData.videoEditorStatus || 'NOT_STARTED',
+        thumbnailEditor: oftvTaskData.thumbnailEditorUser?.email || '',
+        thumbnailEditorUserId: oftvTaskData.thumbnailEditorUserId || '',
+        thumbnailEditorStatus: oftvTaskData.thumbnailEditorStatus || 'NOT_STARTED',
+        specialInstructions: oftvTaskData.specialInstructions || '',
+      });
+    } else if (!isEditingTask) {
+      setEditingOFTVData(null);
+    }
+  }, [isEditingTask, hasOFTVTask, oftvTaskData, editingOFTVData]);
+
+  // Wrap the save function to handle OFTV data
+  const handleSaveWithOFTV = async () => {
+    // Save OFTV data if it exists
+    if (hasOFTVTask && editingOFTVData && oftvTaskData?.id) {
+      try {
+        // Use zustand store action for optimistic update & persistence
+        await useBoardStore.getState().updateOFTVTask(selectedTask.id, { ...editingOFTVData, id: oftvTaskData.id });
+      } catch (error) {
+        console.error('Error updating OFTV task via store:', error);
+        alert('Failed to update OFTV task. Please try again.');
+        return; // Don't proceed with regular save if OFTV save fails
+      }
+    }
+
+    // Call the regular save function
+    if (onSaveChanges) {
+      await onSaveChanges();
+    }
+  };
+
+  // Handle OFTV status updates (for dropdown changes in view mode)
+  const handleOFTVStatusUpdate = async (field: 'videoEditorStatus' | 'thumbnailEditorStatus', newStatus: string) => {
+    if (!oftvTaskData?.id) return;
+    // Use zustand action to perform an optimistic update and persist to /api/oftv-tasks
+    try {
+      await useBoardStore.getState().updateOFTVTask(selectedTask.id, { [field]: newStatus, id: oftvTaskData.id });
+    } catch (error) {
+      console.error('❌ Error updating OFTV status via store:', error);
+      alert('Failed to update status. Please try again.');
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center p-2 sm:p-4 z-[10000] overflow-y-auto">
@@ -172,7 +265,7 @@ export default function EnhancedTaskDetailModal({
                     <span className="sm:hidden">✕</span>
                   </button>
                   <button
-                    onClick={onSaveChanges}
+                    onClick={handleSaveWithOFTV}
                     disabled={isSaving}
                     className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                   >
@@ -209,21 +302,62 @@ export default function EnhancedTaskDetailModal({
           <div className="flex-1 min-w-0 p-4 sm:p-8 order-2 lg:order-1">
             {isEditingTask ? (
               <div className="space-y-6">
-                {/* Edit Description */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                    Description
-                  </label>
-                  <textarea
-                    value={editingTaskData.description || ""}
-                    onChange={(e) =>
-                      onSetEditingTaskData?.({ description: e.target.value })
-                    }
-                    rows={4}
-                    placeholder="Add a description..."
-                    className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all resize-none"
-                  />
-                </div>
+                {/* Edit Description - Hide for OFTV tasks */}
+                {!hasOFTVTask && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                      Description
+                    </label>
+                    <textarea
+                      value={editingTaskData.description || ""}
+                      onChange={(e) =>
+                        onSetEditingTaskData?.({ description: e.target.value })
+                      }
+                      rows={4}
+                      placeholder="Add a description..."
+                      className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all resize-none"
+                    />
+                  </div>
+                )}
+
+                {/* OFTV Task Fields in Edit Mode */}
+                {hasOFTVTask && (
+                  <div className="space-y-6">
+                    <div className="border-t border-gray-200 dark:border-gray-700 pt-2">
+                      <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 uppercase tracking-wide">
+                        OFTV Task Fields
+                      </h4>
+                    </div>
+
+                    {/* Folder Link */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                        Folder Link
+                      </label>
+                      <input
+                        type="url"
+                        value={editingOFTVData?.folderLink || ''}
+                        onChange={(e) => setEditingOFTVData({ ...editingOFTVData, folderLink: e.target.value })}
+                        placeholder="https://drive.google.com/..."
+                        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                      />
+                    </div>
+
+                    {/* Special Instructions */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                        Special Instructions
+                      </label>
+                      <textarea
+                        value={editingOFTVData?.specialInstructions || ''}
+                        onChange={(e) => setEditingOFTVData({ ...editingOFTVData, specialInstructions: e.target.value })}
+                        rows={4}
+                        placeholder="Add any special instructions or notes..."
+                        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all resize-none"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Attachments */}
                 <div>
@@ -308,21 +442,23 @@ export default function EnhancedTaskDetailModal({
                   </div>
                 </div>
 
-                {/* Edit Assignee */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                    Assignee
-                  </label>
-                  <UserDropdown
-                    value={editingTaskData.assignedTo || ""}
-                    onChange={(email) =>
-                      onSetEditingTaskData?.({ assignedTo: email })
-                    }
-                    placeholder="Search and select team member..."
-                    className=""
-                    teamId={selectedTask.podTeamId || undefined}
-                  />
-                </div>
+                {/* Edit Assignee - Hide for OFTV tasks */}
+                {!hasOFTVTask && (
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                      Assignee
+                    </label>
+                    <UserDropdown
+                      value={editingTaskData.assignedTo || ""}
+                      onChange={(email) =>
+                        onSetEditingTaskData?.({ assignedTo: email })
+                      }
+                      placeholder="Search and select team member..."
+                      className=""
+                      teamId={selectedTask.podTeamId || undefined}
+                    />
+                  </div>
+                )}
 
                 {/* PGT Team Fields - Only show if task has ModularWorkflow */}
                 {hasWorkflow && (
@@ -476,23 +612,81 @@ export default function EnhancedTaskDetailModal({
               </div>
             ) : (
               <div className="space-y-8 min-w-0">
-                {/* Description */}
-                <div className="min-w-0">
-                  <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">
-                    Description
-                  </h4>
-                  {selectedTask.description ? (
-                    <div className="prose prose-sm dark:prose-invert max-w-none min-w-0">
-                      <p className="text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere">
-                        {linkifyText(selectedTask.description)}
-                      </p>
+                {/* OFTV Task Details OR Description */}
+                {hasOFTVTask ? (
+                  <div className="min-w-0 space-y-6">
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">
+                      OFTV Task Details
+                    </h4>
+
+                    {/* Folder Link */}
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                        Folder Link
+                      </label>
+                      {isEditingTask ? (
+                        <input
+                          type="url"
+                          value={editingOFTVData?.folderLink || ''}
+                          onChange={(e) => setEditingOFTVData({ ...editingOFTVData, folderLink: e.target.value })}
+                          placeholder="https://drive.google.com/..."
+                          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                        />
+                      ) : oftvTaskData?.folderLink ? (
+                        <a
+                          href={oftvTaskData.folderLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 dark:text-blue-400 hover:underline break-all flex items-center gap-2"
+                        >
+                          <ExternalLink className="h-4 w-4 flex-shrink-0" />
+                          {oftvTaskData.folderLink}
+                        </a>
+                      ) : (
+                        <span className="text-sm text-gray-400 dark:text-gray-500 italic">No folder link</span>
+                      )}
                     </div>
-                  ) : (
-                    <p className="text-gray-400 dark:text-gray-500 italic">
-                      No description provided
-                    </p>
-                  )}
-                </div>
+
+                    {/* Special Instructions */}
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                        Special Instructions
+                      </label>
+                      {isEditingTask ? (
+                        <textarea
+                          value={editingOFTVData?.specialInstructions || ''}
+                          onChange={(e) => setEditingOFTVData({ ...editingOFTVData, specialInstructions: e.target.value })}
+                          rows={4}
+                          placeholder="Add any special instructions or notes..."
+                          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all resize-none"
+                        />
+                      ) : oftvTaskData?.specialInstructions ? (
+                        <div className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
+                          {oftvTaskData.specialInstructions}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400 dark:text-gray-500 italic">No special instructions</span>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="min-w-0">
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">
+                      Description
+                    </h4>
+                    {selectedTask.description ? (
+                      <div className="prose prose-sm dark:prose-invert max-w-none min-w-0">
+                        <p className="text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap break-words overflow-wrap-anywhere">
+                          {linkifyText(selectedTask.description)}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-gray-400 dark:text-gray-500 italic">
+                        No description provided
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {/* Attachments */}
                 <div className="min-w-0">
@@ -811,6 +1005,254 @@ export default function EnhancedTaskDetailModal({
                 </>
               )}
 
+              {/* Status - Show at top for OFTV tasks */}
+              {hasOFTVTask && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                    Status
+                  </label>
+                  {canEditTask(selectedTask) ? (
+                    <select
+                      value={selectedTask.status}
+                      onChange={(e) => {
+                        if (onUpdateTaskStatus) {
+                          onUpdateTaskStatus(e.target.value as Task["status"]);
+                        }
+                      }}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                    >
+                      {getColumnConfig && getColumnConfig().map(([status, config]) => (
+                        <option key={status} value={status}>
+                          {config.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                      {getColumnConfig 
+                        ? getColumnConfig().find(([status]) => status === selectedTask.status)?.[1]?.label || selectedTask.status
+                        : statusConfig[selectedTask.status as keyof typeof statusConfig]?.label || selectedTask.status
+                      }
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Model - OFTV Tasks Only */}
+              {hasOFTVTask && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                    Model
+                  </label>
+                  {isEditingTask ? (
+                    <input
+                      type="text"
+                      value={editingOFTVData?.model || ''}
+                      onChange={(e) => setEditingOFTVData({ ...editingOFTVData, model: e.target.value })}
+                      placeholder="Model name"
+                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500"
+                    />
+                  ) : (
+                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                      {oftvTaskData?.model || 'Not set'}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Video Editor - OFTV Tasks Only */}
+              {hasOFTVTask && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                    Video Editor
+                  </label>
+                  <div className="space-y-2">
+                    {/* User Display/Editor */}
+                    {isEditingTask ? (
+                      <UserDropdown
+                        value={editingOFTVData?.videoEditor || ''}
+                        onChange={(userId, email) => setEditingOFTVData({ ...editingOFTVData, videoEditor: email, videoEditorUserId: userId })}
+                        placeholder="Select video editor..."
+                        teamId={selectedTask.podTeamId || undefined}
+                      />
+                    ) : (
+                      oftvTaskData?.videoEditorUser ? (
+                        <div className="flex items-center space-x-3 min-w-0">
+                          <UserProfile
+                            user={oftvTaskData.videoEditorUser}
+                            size="md"
+                            showTooltip
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                              {oftvTaskData.videoEditorUser.name || oftvTaskData.videoEditorUser.email}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                              {oftvTaskData.videoEditorUser.email}
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 italic truncate">Unassigned</p>
+                      )
+                    )}
+                    
+                    {/* Status Dropdown - Always editable */}
+                    <select
+                      value={isEditingTask ? (editingOFTVData?.videoEditorStatus || 'NOT_STARTED') : oftvTaskData?.videoEditorStatus}
+                      onChange={(e) => {
+                        if (isEditingTask) {
+                          setEditingOFTVData({ ...editingOFTVData, videoEditorStatus: e.target.value });
+                        } else {
+                          handleOFTVStatusUpdate('videoEditorStatus', e.target.value);
+                        }
+                      }}
+                      className={`w-full px-3 py-2 text-sm rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${
+                        isEditingTask 
+                          ? 'border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                          : getOFTVStatusConfig(oftvTaskData?.videoEditorStatus || 'NOT_STARTED').color
+                      }`}
+                    >
+                      {oftvStatusOptions.map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Thumbnail Editor - OFTV Tasks Only */}
+              {hasOFTVTask && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                    Thumbnail Editor
+                  </label>
+                  <div className="space-y-2">
+                    {/* User Display/Editor */}
+                    {isEditingTask ? (
+                      <UserDropdown
+                        value={editingOFTVData?.thumbnailEditor || ''}
+                        onChange={(userId, email) => setEditingOFTVData({ ...editingOFTVData, thumbnailEditor: email, thumbnailEditorUserId: userId })}
+                        placeholder="Select thumbnail editor..."
+                        teamId={selectedTask.podTeamId || undefined}
+                      />
+                    ) : (
+                      oftvTaskData?.thumbnailEditorUser ? (
+                        <div className="flex items-center space-x-3 min-w-0">
+                          <UserProfile
+                            user={oftvTaskData.thumbnailEditorUser}
+                            size="md"
+                            showTooltip
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                              {oftvTaskData.thumbnailEditorUser.name || oftvTaskData.thumbnailEditorUser.email}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                              {oftvTaskData.thumbnailEditorUser.email}
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 italic truncate">Unassigned</p>
+                      )
+                    )}
+                    
+                    {/* Status Dropdown - Always editable */}
+                    <select
+                      value={isEditingTask ? (editingOFTVData?.thumbnailEditorStatus || 'NOT_STARTED') : oftvTaskData?.thumbnailEditorStatus}
+                      onChange={(e) => {
+                        if (isEditingTask) {
+                          setEditingOFTVData({ ...editingOFTVData, thumbnailEditorStatus: e.target.value });
+                        } else {
+                          handleOFTVStatusUpdate('thumbnailEditorStatus', e.target.value);
+                        }
+                      }}
+                      className={`w-full px-3 py-2 text-sm rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${
+                        isEditingTask 
+                          ? 'border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                          : getOFTVStatusConfig(oftvTaskData?.thumbnailEditorStatus || 'NOT_STARTED').color
+                      }`}
+                    >
+                      {oftvStatusOptions.map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {/* Date Assigned - OFTV Tasks Only */}
+              {hasOFTVTask && oftvTaskData?.dateAssigned && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                    Date Assigned
+                  </label>
+                  <div className="flex items-center space-x-2 min-w-0">
+                    <Calendar className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                    <span className="text-sm text-gray-900 dark:text-gray-100 truncate">
+                      {new Date(oftvTaskData.dateAssigned).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Date Completed - OFTV Tasks Only */}
+              {hasOFTVTask && oftvTaskData?.dateCompleted && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                    Date Completed
+                  </label>
+                  <div className="flex items-center space-x-2 min-w-0">
+                    <Calendar className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                    <span className="text-sm text-green-600 dark:text-green-400 truncate">
+                      {new Date(oftvTaskData.dateCompleted).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Status - For non-OFTV tasks */}
+              {!hasOFTVTask && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                    Status
+                  </label>
+                  {canEditTask(selectedTask) ? (
+                    <select
+                      value={selectedTask.status}
+                      onChange={(e) => {
+                        if (onUpdateTaskStatus) {
+                          onUpdateTaskStatus(e.target.value as Task["status"]);
+                        }
+                      }}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                    >
+                      {getColumnConfig && getColumnConfig().map(([status, config]) => (
+                        <option key={status} value={status}>
+                          {config.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                      {getColumnConfig 
+                        ? getColumnConfig().find(([status]) => status === selectedTask.status)?.[1]?.label || selectedTask.status
+                        : statusConfig[selectedTask.status as keyof typeof statusConfig]?.label || selectedTask.status
+                      }
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Priority */}
               <div>
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
@@ -832,37 +1274,39 @@ export default function EnhancedTaskDetailModal({
                 </div>
               </div>
 
-              {/* Assignee */}
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-                  Assignee
-                </label>
-                {selectedTask.assignedUser ? (
-                  <div className="flex items-center space-x-3 min-w-0">
-                    <UserProfile
-                      user={selectedTask.assignedUser}
-                      size="md"
-                      showTooltip
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                        {selectedTask.assignedUser.name ||
-                          selectedTask.assignedUser.email
-                            ?.split("@")[0]
-                            .replace(/[._-]/g, " ")
-                            .replace(/\b\w/g, (l) => l.toUpperCase())}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                        {selectedTask.assignedUser.email}
-                      </p>
+              {/* Assignee - Hidden for OFTV tasks */}
+              {!hasOFTVTask && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                    Assignee
+                  </label>
+                  {selectedTask.assignedUser ? (
+                    <div className="flex items-center space-x-3 min-w-0">
+                      <UserProfile
+                        user={selectedTask.assignedUser}
+                        size="md"
+                        showTooltip
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                          {selectedTask.assignedUser.name ||
+                            selectedTask.assignedUser.email
+                              ?.split("@")[0]
+                              .replace(/[._-]/g, " ")
+                              .replace(/\b\w/g, (l) => l.toUpperCase())}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          {selectedTask.assignedUser.email}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 italic truncate">
-                    Unassigned
-                  </p>
-                )}
-              </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 italic truncate">
+                      Unassigned
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* Due Date */}
               {selectedTask.dueDate && (

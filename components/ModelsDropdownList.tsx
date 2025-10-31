@@ -6,6 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Search } from 'lucide-react';
 
 interface ClientModel {
   id: string;
@@ -29,6 +30,8 @@ const ModelsDropdownList: React.FC<ModelsDropdownListProps> = ({
   className = ""
 }) => {
   const [clientModels, setClientModels] = useState<ClientModel[]>([]);
+  const [filteredModels, setFilteredModels] = useState<ClientModel[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,15 +57,18 @@ const ModelsDropdownList: React.FC<ModelsDropdownListProps> = ({
             model.status.toLowerCase() !== 'dropped'
         );
         setClientModels(validModels);
+        setFilteredModels(validModels);
       } else {
         console.error('Failed to fetch client models:', data.error);
         setError('Failed to load models');
         setClientModels([]);
+        setFilteredModels([]);
       }
     } catch (error) {
       console.error('Error fetching client models:', error);
       setError('Failed to load models');
       setClientModels([]);
+      setFilteredModels([]);
     } finally {
       setIsLoading(false);
     }
@@ -72,6 +78,22 @@ const ModelsDropdownList: React.FC<ModelsDropdownListProps> = ({
   useEffect(() => {
     fetchClientModels();
   }, []);
+
+  // Filter models based on search term
+  useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setFilteredModels(clientModels);
+    } else {
+      const filtered = clientModels.filter((model) => {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          model.clientName.toLowerCase().includes(searchLower) ||
+          (model.name && model.name.toLowerCase().includes(searchLower))
+        );
+      });
+      setFilteredModels(filtered);
+    }
+  }, [searchTerm, clientModels]);
 
   // Handle value change - we pass the clientName as the value
   const handleValueChange = (selectedClientName: string) => {
@@ -86,6 +108,22 @@ const ModelsDropdownList: React.FC<ModelsDropdownListProps> = ({
         />
       </SelectTrigger>
       <SelectContent className="rounded-lg border shadow-lg !bg-[oklch(1_0_0)] dark:!bg-[oklch(0.205_0_0)] z-50">
+        {/* Search Input */}
+        <div className="p-2 border-b border-gray-200 dark:border-gray-700">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search models..."
+              className="w-full pl-9 pr-3 py-2 border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+
+        {/* Model List */}
         {isLoading ? (
           <SelectItem value="loading" disabled className="text-sm py-2.5">
             <div className="flex items-center gap-2">
@@ -100,8 +138,8 @@ const ModelsDropdownList: React.FC<ModelsDropdownListProps> = ({
               Error loading models
             </div>
           </SelectItem>
-        ) : clientModels.length > 0 ? (
-          clientModels.map((model) => (
+        ) : filteredModels.length > 0 ? (
+          filteredModels.map((model) => (
             <SelectItem
               key={model.id}
               value={model.clientName} // Use clientName as the value
@@ -130,6 +168,13 @@ const ModelsDropdownList: React.FC<ModelsDropdownListProps> = ({
               </div>
             </SelectItem>
           ))
+        ) : searchTerm.trim() !== '' ? (
+          <SelectItem value="no-results" disabled className="text-sm py-2.5">
+            <div className="flex items-center gap-2 text-gray-500">
+              <span>🔍</span>
+              No models found matching "{searchTerm}"
+            </div>
+          </SelectItem>
         ) : (
           <SelectItem value="no-models" disabled className="text-sm py-2.5">
             <div className="flex items-center gap-2 text-gray-500">

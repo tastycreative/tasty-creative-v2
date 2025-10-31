@@ -90,6 +90,132 @@ const getWorkflowTypeIndicator = (task: Task) => {
   return null;
 };
 
+// Helper function to render assignment section for OFTV vs regular teams
+const renderAssignmentSection = (task: Task, teamName?: string) => {
+  if (teamName === "OFTV" && task.oftvTask) {
+    const { 
+      videoEditorStatus, 
+      thumbnailEditorStatus,
+      videoEditorUser,
+      thumbnailEditorUser
+    } = task.oftvTask;
+
+    // Helper to get status display text to match dropdown
+    const getStatusText = (status: string) => {
+      switch (status) {
+        case 'NOT_STARTED':
+          return 'Not Started';
+        case 'IN_PROGRESS':
+          return 'In Progress';
+        case 'NEEDS_REVISION':
+          return 'Needs Revision';
+        case 'APPROVED':
+          return 'Approved';
+        case 'HOLD':
+          return 'On Hold';
+        case 'WAITING_FOR_VO':
+          return 'Waiting';
+        case 'SENT':
+          return 'Sent';
+        case 'PUBLISHED':
+          return 'Published';
+        default:
+          return 'Not Started';
+      }
+    };
+
+    // Helper to get status color classes
+    const getStatusClasses = (status: string) => {
+      switch (status) {
+        case 'PUBLISHED':
+        case 'SENT':
+          return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-700';
+        case 'APPROVED':
+          return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700';
+        case 'IN_PROGRESS':
+          return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-700';
+        case 'NEEDS_REVISION':
+          return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-200 dark:border-yellow-700';
+        case 'HOLD':
+        case 'WAITING_FOR_VO':
+          return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border-orange-200 dark:border-orange-700';
+        default:
+          return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600';
+      }
+    };
+
+    return (
+      <div className="space-y-2">
+        {videoEditorUser && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2 flex-1 min-w-0">
+              <Video className="h-3 w-3 flex-shrink-0 text-blue-600 dark:text-blue-400" />
+              <UserProfile
+                user={videoEditorUser}
+                size="xs"
+                className="flex-shrink-0"
+              />
+              <span className="text-gray-900 dark:text-gray-100 text-xs truncate">
+                {videoEditorUser.name || videoEditorUser.email}
+              </span>
+            </div>
+            <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium border ${getStatusClasses(videoEditorStatus)}`}>
+              {getStatusText(videoEditorStatus)}
+            </span>
+          </div>
+        )}
+        {thumbnailEditorUser && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2 flex-1 min-w-0">
+              <FileText className="h-3 w-3 flex-shrink-0 text-purple-600 dark:text-purple-400" />
+              <UserProfile
+                user={thumbnailEditorUser}
+                size="xs"
+                className="flex-shrink-0"
+              />
+              <span className="text-gray-900 dark:text-gray-100 text-xs truncate">
+                {thumbnailEditorUser.name || thumbnailEditorUser.email}
+              </span>
+            </div>
+            <span className={`px-1.5 py-0.5 rounded-full text-xs font-medium border ${getStatusClasses(thumbnailEditorStatus)}`}>
+              {getStatusText(thumbnailEditorStatus)}
+            </span>
+          </div>
+        )}
+        {!videoEditorUser && !thumbnailEditorUser && (
+          <div className="flex items-center text-amber-600 dark:text-amber-400 text-xs">
+            <UserPlus className="h-3 w-3 mr-1 flex-shrink-0" />
+            <span>No editors assigned</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Regular team assignment display
+  if (task.assignedUser) {
+    return (
+      <div className="flex items-center text-xs">
+        <UserProfile
+          user={task.assignedUser}
+          size="xs"
+          className="mr-1 flex-shrink-0"
+        />
+        <span className="text-gray-900 dark:text-gray-100 truncate">
+          {task.assignedUser.name || task.assignedUser.email}
+        </span>
+      </div>
+    );
+  } else {
+    return (
+      <div className="flex items-center text-amber-600 dark:text-amber-400 text-xs">
+        <UserPlus className="h-3 w-3 mr-1 flex-shrink-0" />
+        <span>Unassigned</span>
+      </div>
+    );
+  }
+};
+
 interface TaskCardProps {
   task: Task;
   draggedTask: Task | null;
@@ -102,6 +228,7 @@ interface TaskCardProps {
   onMarkAsFinal: (taskId: string, isFinal: boolean) => void;
   columnName: string;
   columnStatus: string;
+  teamName?: string;
   isMobile?: boolean;
 }
 
@@ -117,6 +244,7 @@ function TaskCard({
   onMarkAsFinal,
   columnName,
   columnStatus,
+  teamName,
   isMobile = false,
 }: TaskCardProps) {
   // Show button if: 1) Task has ModularWorkflow, 2) Column name is "Ready to Deploy", 3) Task's status matches this column
@@ -238,23 +366,7 @@ function TaskCard({
                 Created: {formatForDisplay(task.createdAt)}
               </span>
             </div>
-            {task.assignedUser ? (
-              <div className="flex items-center">
-                <UserProfile
-                  user={task.assignedUser}
-                  size="xs"
-                  className="mr-1"
-                />
-                <span className="truncate">
-                  {task.assignedUser.name || task.assignedUser.email}
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-center text-amber-600 dark:text-amber-400">
-                <UserPlus className="h-3 w-3 mr-1" />
-                <span>Unassigned</span>
-              </div>
-            )}
+            {renderAssignmentSection(task, teamName)}
           </div>
         </>
       ) : (
@@ -288,23 +400,7 @@ function TaskCard({
               {formatForDisplay(task.createdAt)}
             </span>
           </div>
-          {task.assignedUser ? (
-            <div className="flex items-center">
-              <UserProfile
-                user={task.assignedUser}
-                size="xs"
-                className="mr-1 flex-shrink-0"
-              />
-              <span className="truncate">
-                {task.assignedUser.name || task.assignedUser.email}
-              </span>
-            </div>
-          ) : (
-            <div className="flex items-center text-amber-600 dark:text-amber-400">
-              <UserPlus className="h-3 w-3 mr-1 flex-shrink-0" />
-              <span>Unassigned</span>
-            </div>
-          )}
+          {renderAssignmentSection(task, teamName)}
         </div>
       )}
 

@@ -30,6 +30,8 @@ model User {
   ModerationLog              ModerationLog[]
   ModularWorkflow            ModularWorkflow[]             @relation("ModularWorkflowCreator")
   notifications              Notification[]
+  oftvVideoEditorTasks       OFTVTask[]                    @relation("OFTVVideoEditor")
+  oftvThumbnailEditorTasks   OFTVTask[]                    @relation("OFTVThumbnailEditor")
   pageViews                  PageView[]
   createdPodTeams            PodTeam[]                     @relation("PodTeamCreator")
   podClientAssignments       PodTeamClientAssignment[]     @relation("PodClientAssignedBy")
@@ -233,6 +235,7 @@ model Task {
   taskNumber          Int                   @default(autoincrement())
   ModularWorkflow     ModularWorkflow?      @relation("ModularWorkflowTask")
   notifications       Notification[]
+  oftvTask            OFTVTask?
   ContentSubmission   ContentSubmission?    @relation(fields: [contentSubmissionId], references: [id])
   createdBy           User                  @relation("TaskCreator", fields: [createdById], references: [id])
   podTeam             PodTeam?              @relation(fields: [podTeamId], references: [id])
@@ -245,6 +248,33 @@ model Task {
   @@index([assignedToTeam])
   @@index([contentSubmissionId])
   @@index([taskNumber])
+}
+
+model OFTVTask {
+  id                    String         @id @default(cuid())
+  taskId                String         @unique
+  model                 String
+  folderLink            String?
+  videoEditorUserId     String?
+  thumbnailEditorUserId String?
+  specialInstructions   String?
+  dateAssigned          DateTime       @default(now())
+  dateCompleted         DateTime?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  videoEditorStatus     OFTVTaskStatus @default(NOT_STARTED)
+  thumbnailEditorStatus OFTVTaskStatus @default(NOT_STARTED)
+  task                  Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  videoEditorUser       User?          @relation("OFTVVideoEditor", fields: [videoEditorUserId], references: [id])
+  thumbnailEditorUser   User?          @relation("OFTVThumbnailEditor", fields: [thumbnailEditorUserId], references: [id])
+
+  @@index([taskId])
+  @@index([model])
+  @@index([videoEditorUserId])
+  @@index([thumbnailEditorUserId])
+  @@index([videoEditorStatus])
+  @@index([thumbnailEditorStatus])
+  @@index([dateAssigned])
 }
 
 model TaskActivityHistory {
@@ -359,15 +389,14 @@ model ContentDetails {
   bundleContent25_30         String?
   bundleContent30Plus        String?
   contentOptionsForGames     String?
+  createdAt                  DateTime    @default(now())
+  updatedAt                  DateTime    @updatedAt
+  clientModelName            String      @unique
+  generalClientNotes         String?
+  notes                      String?
+  personalityType            String?
+  restrictedTerms            String?
   upsell_1                   String?
-  upsell_2                   String?
-  upsell_3                   String?
-  upsell_4                   String?
-  upsell_5                   String?
-  upsell_6                   String?
-  upsell_7                   String?
-  upsell_8                   String?
-  upsell_9                   String?
   upsell_10                  String?
   upsell_11                  String?
   upsell_12                  String?
@@ -376,13 +405,14 @@ model ContentDetails {
   upsell_15                  String?
   upsell_16                  String?
   upsell_17                  String?
-  createdAt                  DateTime    @default(now())
-  updatedAt                  DateTime    @updatedAt
-  clientModelName            String      @unique
-  generalClientNotes         String?
-  notes                      String?
-  personalityType            String?
-  restrictedTerms            String?
+  upsell_2                   String?
+  upsell_3                   String?
+  upsell_4                   String?
+  upsell_5                   String?
+  upsell_6                   String?
+  upsell_7                   String?
+  upsell_8                   String?
+  upsell_9                   String?
   clientModel                ClientModel @relation(fields: [clientModelName], references: [clientName], onDelete: Cascade)
 }
 
@@ -460,19 +490,20 @@ model OnboardingProgress {
 }
 
 model PodTeam {
-  id              String                    @id @default(cuid())
-  createdAt       DateTime                  @default(now())
-  createdById     String?
-  description     String?
-  isActive        Boolean?                  @default(true)
-  name            String                    @unique
-  updatedAt       DateTime?                 @updatedAt
-  projectPrefix   String?                   @unique
-  notifications   Notification[]
-  createdBy       User?                     @relation("PodTeamCreator", fields: [createdById], references: [id])
-  assignedClients PodTeamClientAssignment[]
-  members         PodTeamMember[]
-  tasks           Task[]
+  id                         String                    @id @default(cuid())
+  createdAt                  DateTime                  @default(now())
+  createdById                String?
+  description                String?
+  isActive                   Boolean?                  @default(true)
+  name                       String                    @unique
+  updatedAt                  DateTime?                 @updatedAt
+  projectPrefix              String?                   @unique
+  columnNotificationsEnabled Boolean                   @default(true)
+  notifications              Notification[]
+  createdBy                  User?                     @relation("PodTeamCreator", fields: [createdById], references: [id])
+  assignedClients            PodTeamClientAssignment[]
+  members                    PodTeamMember[]
+  tasks                      Task[]
 
   @@index([createdById])
   @@index([isActive])
@@ -588,7 +619,6 @@ model ModularWorkflow {
   modelName            String
   priority             SubmissionPriority
   driveLink            String
-  contentDescription   String?
   attachments          Json?
   estimatedDuration    Int?
   teamAssignments      Json?
@@ -600,19 +630,20 @@ model ModularWorkflow {
   updatedAt            DateTime           @updatedAt
   processedAt          DateTime?
   timezone             String?
+  basePriceDescription String?
   contentCount         String?            @db.VarChar(50)
   contentLength        String?            @db.VarChar(20)
   contentType          ContentType?
   externalCreatorTags  String?            @db.VarChar(500)
   internalModelTags    String[]
+  pricing              String?            @db.VarChar(100)
   referenceAttachments Json?
   releaseDate          String?            @db.VarChar(20)
   releaseTime          String?            @db.VarChar(10)
-  caption              String?            @db.Text
-  pricing              String?            @db.VarChar(100)
-  basePriceDescription String?            @db.Text
   gifUrl               String?            @db.VarChar(500)
-  notes                String?            @db.Text
+  notes                String?
+  contentDescription   String?
+  caption              String?
   isFinal              Boolean?           @default(false)
   createdBy            User               @relation("ModularWorkflowCreator", fields: [createdById], references: [id])
   task                 Task?              @relation("ModularWorkflowTask", fields: [taskId], references: [id])
@@ -895,18 +926,18 @@ model ChatbotConversation {
 }
 
 model InstagramPost {
-  id          String              @id @default(cuid())
-  userId      String
-  imageUrl    String
-  caption     String?
+  id            String              @id @default(cuid())
+  userId        String
+  imageUrl      String
+  caption       String?
   scheduledDate DateTime?
-  status      InstagramPostStatus @default(DRAFT)
-  postType    InstagramPostType   @default(FEED)
-  folder      String?
-  position    Int?
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
-  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status        InstagramPostStatus @default(DRAFT)
+  postType      InstagramPostType   @default(FEED)
+  folder        String?
+  position      Int?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([status])
@@ -995,9 +1026,9 @@ enum ContentStyle {
   NORMAL
   GAME
   POLL
-  PPV
   LIVESTREAM
   BUNDLE
+  PPV
 }
 
 enum ContentType {
@@ -1105,4 +1136,15 @@ enum InstagramPostType {
   FEED
   REEL
   STORY
+}
+
+enum OFTVTaskStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  NEEDS_REVISION
+  APPROVED
+  HOLD
+  WAITING_FOR_VO
+  SENT
+  PUBLISHED
 }
