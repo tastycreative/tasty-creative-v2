@@ -851,9 +851,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
     // Send notifications to assigned members
     await sendColumnNotifications(draggedTask, oldStatus, newStatus);
-    
-    // Refetch tasks to get complete data including relations
-    await fetchTasks(currentTeamId, true);
+
+    // No need to refetch - optimistic update in updateTaskStatus handles UI update
+    // Relations are preserved in the store update logic
   };
 
   // Function to update OFTV task description based on column transitions
