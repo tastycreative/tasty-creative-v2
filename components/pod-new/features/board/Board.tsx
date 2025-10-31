@@ -821,9 +821,8 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       e.target.style.transform = '';
       e.target.style.zIndex = '';
     }
-    setTimeout(() => {
-      setDraggedTask(null);
-    }, 100);
+    // Don't clear draggedTask here - it's cleared in handleDrop
+    // This prevents clearing it when drag is cancelled (dropped outside valid zone)
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -833,8 +832,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   const handleDrop = async (e: React.DragEvent, newStatus: Task['status']) => {
     e.preventDefault();
-    
+
     if (!draggedTask || draggedTask.status === newStatus) {
+      setDraggedTask(null); // Clear even if no action needed
       return;
     }
 
@@ -851,6 +851,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
     // Send notifications to assigned members
     await sendColumnNotifications(draggedTask, oldStatus, newStatus);
+
+    // Clear dragged task immediately to remove opacity effect
+    setDraggedTask(null);
 
     // No need to refetch - optimistic update in updateTaskStatus handles UI update
     // Relations are preserved in the store update logic
