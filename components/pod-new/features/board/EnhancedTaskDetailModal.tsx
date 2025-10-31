@@ -136,6 +136,7 @@ export default function EnhancedTaskDetailModal({
       setEditingOFTVData({
         model: oftvTaskData.model || '',
         folderLink: oftvTaskData.folderLink || '',
+        videoDescription: oftvTaskData.videoDescription || '',
         videoEditor: oftvTaskData.videoEditorUser?.email || '',
         videoEditorUserId: oftvTaskData.videoEditorUserId || '',
         videoEditorStatus: oftvTaskData.videoEditorStatus || 'NOT_STARTED',
@@ -340,6 +341,20 @@ export default function EnhancedTaskDetailModal({
                         onChange={(e) => setEditingOFTVData({ ...editingOFTVData, folderLink: e.target.value })}
                         placeholder="https://drive.google.com/..."
                         className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+                      />
+                    </div>
+
+                    {/* Video Description */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                        Video Description
+                      </label>
+                      <textarea
+                        value={editingOFTVData?.videoDescription || ''}
+                        onChange={(e) => setEditingOFTVData({ ...editingOFTVData, videoDescription: e.target.value })}
+                        rows={3}
+                        placeholder="Brief description of the video content..."
+                        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all resize-none"
                       />
                     </div>
 
@@ -644,6 +659,28 @@ export default function EnhancedTaskDetailModal({
                         </a>
                       ) : (
                         <span className="text-sm text-gray-400 dark:text-gray-500 italic">No folder link</span>
+                      )}
+                    </div>
+
+                    {/* Video Description */}
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                        Video Description
+                      </label>
+                      {isEditingTask ? (
+                        <textarea
+                          value={editingOFTVData?.videoDescription || ''}
+                          onChange={(e) => setEditingOFTVData({ ...editingOFTVData, videoDescription: e.target.value })}
+                          rows={3}
+                          placeholder="Brief description of the video content..."
+                          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all resize-none"
+                        />
+                      ) : oftvTaskData?.videoDescription ? (
+                        <div className="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
+                          {oftvTaskData.videoDescription}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400 dark:text-gray-500 italic">No video description</span>
                       )}
                     </div>
 

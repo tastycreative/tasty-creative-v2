@@ -255,6 +255,7 @@ model OFTVTask {
   taskId                String         @unique
   model                 String
   folderLink            String?
+  videoDescription      String?
   videoEditorUserId     String?
   thumbnailEditorUserId String?
   specialInstructions   String?

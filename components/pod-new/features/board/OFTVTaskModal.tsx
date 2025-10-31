@@ -29,6 +29,7 @@ export interface OFTVTaskData {
   model: string;
   title: string;
   folderLink: string;
+  videoDescription: string;
   videoEditor: string; // Keep for display purposes (email)
   videoEditorUserId: string; // Add userId
   videoEditorStatus: string;
@@ -144,6 +145,20 @@ export default function OFTVTaskModal({
                 onChange={(e) => onSetTaskData({ folderLink: e.target.value })}
                 placeholder="https://..."
                 className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all"
+              />
+            </div>
+
+            {/* Video Description */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                Video Description
+              </label>
+              <textarea
+                value={taskData.videoDescription}
+                onChange={(e) => onSetTaskData({ videoDescription: e.target.value })}
+                rows={3}
+                placeholder="Brief description of the video content..."
+                className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all resize-none"
               />
             </div>
 

@@ -13,9 +13,11 @@ import { getTaskErrorMessage } from '@/lib/utils/errorMessages';
 import ColumnSettings from './ColumnSettings';
 import BoardHeader, { TabType } from './BoardHeader';
 import BoardFilters from './BoardFilters';
+import OFTVListFilters, { OFTVFilters } from './OFTVListFilters';
 import Summary from './Summary';
 import BoardSkeleton from './BoardSkeleton';
 import BoardGrid from './BoardGrid';
+import BoardList from './BoardList';
 import EnhancedTaskDetailModal from './EnhancedTaskDetailModal';
 import NewTaskModal from './NewTaskModal';
 import OFTVTaskModal, { OFTVTaskData } from './OFTVTaskModal';
@@ -107,6 +109,15 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   // Tab state
   const [activeTab, setActiveTab] = useState<TabType>('board');
   
+  // OFTV Filters state
+  const [oftvFilters, setOftvFilters] = useState<OFTVFilters>({
+    weeklyDeadlines: false,
+    completed: false,
+    published: false,
+    onHold: false,
+    selectedModel: '',
+  });
+  
   // UI State from store
   const draggedTask = useBoardStore(state => state.draggedTask);
   const showNewTaskForm = useBoardStore(state => state.showNewTaskForm);
@@ -138,6 +149,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     model: '',
     title: '',
     folderLink: '',
+    videoDescription: '',
     videoEditor: '',
     videoEditorUserId: '',
     videoEditorStatus: 'NOT_STARTED',
@@ -631,6 +643,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       model: '',
       title: '',
       folderLink: '',
+      videoDescription: '',
       videoEditor: '',
       videoEditorUserId: '',
       videoEditorStatus: 'NOT_STARTED',
@@ -665,6 +678,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           model: oftvTaskData.model,
           title: oftvTaskData.title,
           folderLink: oftvTaskData.folderLink,
+          videoDescription: oftvTaskData.videoDescription,
           videoEditorUserId: oftvTaskData.videoEditorUserId || null,
           videoEditorStatus: oftvTaskData.videoEditorStatus,
           thumbnailEditorUserId: oftvTaskData.thumbnailEditorUserId || null,
@@ -1153,6 +1167,83 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     [tasks, searchTerm, priorityFilter, assigneeFilter, dueDateFilter, workflowFilter, sortBy, sortOrder]
   );
 
+  // OFTV-specific filtering
+  const applyOFTVFilters = (tasks: Task[]) => {
+    let filtered = tasks;
+
+    // Model filter
+    if (oftvFilters.selectedModel) {
+      filtered = filtered.filter(task => {
+        const oftvTask = (task as any).oftvTask;
+        return oftvTask?.model === oftvFilters.selectedModel;
+      });
+    }
+
+    // Weekly Deadlines - tasks due this week
+    if (oftvFilters.weeklyDeadlines) {
+      const now = new Date();
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday
+      startOfWeek.setHours(0, 0, 0, 0);
+      
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 7);
+      
+      filtered = filtered.filter(task => {
+        if (!task.dueDate) return false;
+        const dueDate = new Date(task.dueDate);
+        return dueDate >= startOfWeek && dueDate < endOfWeek;
+      });
+    }
+
+    // Completed - both video and thumbnail are Approved or Sent
+    if (oftvFilters.completed) {
+      filtered = filtered.filter(task => {
+        const oftvTask = (task as any).oftvTask;
+        if (!oftvTask) return false;
+        
+        const videoCompleted = oftvTask.videoEditorStatus === 'APPROVED' || oftvTask.videoEditorStatus === 'SENT';
+        const thumbnailCompleted = oftvTask.thumbnailEditorStatus === 'APPROVED' || oftvTask.thumbnailEditorStatus === 'SENT';
+        
+        return videoCompleted && thumbnailCompleted;
+      });
+    }
+
+    // Published - both statuses are Published
+    if (oftvFilters.published) {
+      filtered = filtered.filter(task => {
+        const oftvTask = (task as any).oftvTask;
+        if (!oftvTask) return false;
+        
+        return oftvTask.videoEditorStatus === 'PUBLISHED' && oftvTask.thumbnailEditorStatus === 'PUBLISHED';
+      });
+    }
+
+    // On Hold - either status has Hold or Waiting for VO
+    if (oftvFilters.onHold) {
+      filtered = filtered.filter(task => {
+        const oftvTask = (task as any).oftvTask;
+        if (!oftvTask) return false;
+        
+        const videoOnHold = oftvTask.videoEditorStatus === 'HOLD' || oftvTask.videoEditorStatus === 'WAITING_FOR_VO';
+        const thumbnailOnHold = oftvTask.thumbnailEditorStatus === 'HOLD' || oftvTask.thumbnailEditorStatus === 'WAITING_FOR_VO';
+        
+        return videoOnHold || thumbnailOnHold;
+      });
+    }
+
+    return filtered;
+  };
+
+  // Get the final filtered tasks for OFTV team
+  const displayTasks = useMemo(() => {
+    const isOFTVTeam = teamName === 'OFTV';
+    if (isOFTVTeam && activeTab === 'list') {
+      return applyOFTVFilters(filteredAndSortedTasks);
+    }
+    return filteredAndSortedTasks;
+  }, [filteredAndSortedTasks, teamName, activeTab, oftvFilters]);
+
   // Show unauthorized message if user doesn't have access to this team
   if (!hasTeamAccess && !isLoadingTeamMembers) {
     return (
@@ -1220,6 +1311,34 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
             fetchTeamMembers(teamId);
           }}
         />
+      ) : activeTab === 'list' ? (
+        <>
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-500/30 rounded-lg p-4">
+              <div className="flex items-center">
+                <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+                <p className="text-red-700 dark:text-red-400">{error.message}</p>
+              </div>
+            </div>
+          )}
+
+          {/* OFTV Filters */}
+          {teamName === 'OFTV' && (
+            <OFTVListFilters
+              onFilterChange={setOftvFilters}
+            />
+          )}
+
+          {/* List Table View */}
+          <BoardList
+            tasks={displayTasks}
+            columns={columns}
+            session={session}
+            onTaskClick={openTaskDetail}
+            teamName={teamName}
+          />
+        </>
       ) : (
         <>
           {/* Search, Filter, and Sort Controls */}

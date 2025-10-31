@@ -69,6 +69,7 @@ export interface Task {
     id: string;
     model: string;
     folderLink: string | null;
+    videoDescription: string | null;
     videoEditor: string | null;
     thumbnailEditor: string | null;
     videoEditorUser?: {
