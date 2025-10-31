@@ -210,31 +210,33 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Fetch assigned user information for each task
-    const tasksWithAssignedUsers = await Promise.all(
-      tasks.map(async (task) => {
-        let assignedUser = null;
-        
-        if (task.assignedTo) {
-          // Try to find user by email
-          assignedUser = await prisma.user.findUnique({
-            where: { email: task.assignedTo },
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-            },
-          });
-        }
+    // Batch fetch assigned users to avoid N+1 query problem
+    // Collect unique emails from all tasks
+    const uniqueEmails = [...new Set(
+      tasks.map(t => t.assignedTo).filter((email): email is string => Boolean(email))
+    )];
 
-        // OFTV editor user data is already included via relations in the query
-        return {
-          ...task,
-          assignedUser,
-        };
-      })
-    );
+    // Single batch query for all users
+    const users = uniqueEmails.length > 0
+      ? await prisma.user.findMany({
+          where: { email: { in: uniqueEmails } },
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            image: true,
+          },
+        })
+      : [];
+
+    // Create email-to-user map for O(1) lookup
+    const userMap = new Map(users.map(u => [u.email, u]));
+
+    // Map users to tasks (OFTV editor user data already included via relations in the query above)
+    const tasksWithAssignedUsers = tasks.map(task => ({
+      ...task,
+      assignedUser: task.assignedTo ? (userMap.get(task.assignedTo) || null) : null
+    }));
 
     return NextResponse.json({
       success: true,

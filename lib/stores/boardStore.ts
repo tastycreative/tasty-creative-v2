@@ -654,15 +654,12 @@ export const useBoardStore = create<BoardStore>()(
         updateTaskStatus: async (taskId, newStatus) => {
           const currentTask = get().tasks.find(task => task.id === taskId);
           if (!currentTask) return;
-          
-          // Add small delay to prevent rapid visual updates
-          await new Promise(resolve => setTimeout(resolve, 50));
-          
+
           // Optimistic update
           const updatedTask = { ...currentTask, status: newStatus, updatedAt: new Date().toISOString() };
           set((state) => ({
             ...state,
-            tasks: state.tasks.map(task => 
+            tasks: state.tasks.map(task =>
               task.id === taskId ? updatedTask : task
             )
           }));
