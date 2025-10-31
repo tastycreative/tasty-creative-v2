@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useCallback, useState, useMemo } from 'react';
+import React, { useEffect, useCallback, useState, useMemo, useRef } from 'react';
 import { Session } from 'next-auth';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
@@ -222,30 +222,44 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     }
   }, [searchParams, tasks]);
 
+  // Refs for scroll synchronization (prevents memory leaks)
+  const headerScrollRef = useRef<HTMLDivElement | null>(null);
+  const bodyScrollRef = useRef<HTMLDivElement | null>(null);
+
+  // Stable scroll handlers using refs
+  const headerToBodyScroll = useCallback(() => {
+    if (headerScrollRef.current && bodyScrollRef.current) {
+      bodyScrollRef.current.scrollLeft = headerScrollRef.current.scrollLeft;
+    }
+  }, []);
+
+  const bodyToHeaderScroll = useCallback(() => {
+    if (bodyScrollRef.current && headerScrollRef.current) {
+      headerScrollRef.current.scrollLeft = bodyScrollRef.current.scrollLeft;
+    }
+  }, []);
+
   // Synchronize scroll between header and body on desktop
   useEffect(() => {
-    const headerScroll = document.getElementById('desktop-header-scroll');
-    const bodyScroll = document.getElementById('desktop-body-scroll');
-    
-    if (!headerScroll || !bodyScroll) return;
+    const headerEl = document.getElementById('desktop-header-scroll') as HTMLDivElement;
+    const bodyEl = document.getElementById('desktop-body-scroll') as HTMLDivElement;
 
-    const syncScroll = (source: Element, target: Element) => {
-      return () => {
-        target.scrollLeft = source.scrollLeft;
-      };
-    };
+    if (!headerEl || !bodyEl) return;
 
-    const headerToBody = syncScroll(headerScroll, bodyScroll);
-    const bodyToHeader = syncScroll(bodyScroll, headerScroll);
+    // Store refs for cleanup
+    headerScrollRef.current = headerEl;
+    bodyScrollRef.current = bodyEl;
 
-    headerScroll.addEventListener('scroll', headerToBody);
-    bodyScroll.addEventListener('scroll', bodyToHeader);
+    // Attach listeners with stable callbacks
+    headerEl.addEventListener('scroll', headerToBodyScroll);
+    bodyEl.addEventListener('scroll', bodyToHeaderScroll);
 
     return () => {
-      headerScroll.removeEventListener('scroll', headerToBody);
-      bodyScroll.removeEventListener('scroll', bodyToHeader);
+      // Clean up with stable element references
+      headerEl.removeEventListener('scroll', headerToBodyScroll);
+      bodyEl.removeEventListener('scroll', bodyToHeaderScroll);
     };
-  }, [columns]);
+  }, [headerToBodyScroll, bodyToHeaderScroll]); // Stable dependencies
 
   // Real-time task updates with debouncing
   const { broadcastTaskUpdate } = useTaskUpdates({
@@ -872,7 +886,11 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     });
   };
 
-  const filteredAndSortedTasks = sortTasks(filterTasks(tasks));
+  // Memoize filtered and sorted tasks to prevent recalculation on every render
+  const filteredAndSortedTasks = useMemo(
+    () => sortTasks(filterTasks(tasks)),
+    [tasks, searchTerm, priorityFilter, assigneeFilter, dueDateFilter, workflowFilter, sortBy, sortOrder]
+  );
 
   // Show unauthorized message if user doesn't have access to this team
   if (!hasTeamAccess && !isLoadingTeamMembers) {

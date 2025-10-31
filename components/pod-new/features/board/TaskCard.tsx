@@ -105,7 +105,7 @@ interface TaskCardProps {
   isMobile?: boolean;
 }
 
-export default function TaskCard({
+function TaskCard({
   task,
   draggedTask,
   session,
@@ -339,3 +339,6 @@ export default function TaskCard({
     </div>
   );
 }
+
+// Memoize component to prevent unnecessary re-renders
+export default React.memo(TaskCard);
