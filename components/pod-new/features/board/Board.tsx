@@ -3,12 +3,13 @@
 import React, { useEffect, useCallback, useState, useMemo, useRef } from 'react';
 import { Session } from 'next-auth';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { 
+import {
   AlertCircle
 } from 'lucide-react';
 import { useTaskUpdates } from '@/hooks/useTaskUpdates';
 import { useBoardStore, useBoardTasks, useBoardFilters, useBoardTaskActions, useBoardColumns, type Task, type BoardColumn, type NewTaskData } from '@/lib/stores/boardStore';
 import { formatForDisplay, formatForTaskCard, formatDueDate, formatForTaskDetail, toLocalDateTimeString, parseUserDate } from '@/lib/dateUtils';
+import { getTaskErrorMessage } from '@/lib/utils/errorMessages';
 import ColumnSettings from './ColumnSettings';
 import BoardHeader, { TabType } from './BoardHeader';
 import BoardFilters from './BoardFilters';

@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { usePodStore, useAvailableTeams } from "@/lib/stores/podStore";
+import BoardErrorBoundary from "@/components/pod-new/features/board/BoardErrorBoundary";
 
 // Dynamic import for better performance
 const Board = dynamic(() => import("@/components/pod-new/features/board/Board"), {
@@ -68,26 +69,28 @@ export default function BoardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900">
-      <div className="container mx-auto px-4 py-8">
-        <Suspense fallback={
-          <div className="bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 border border-gray-200/60 dark:border-gray-700/60 rounded-2xl shadow-lg p-6 backdrop-blur-sm">
-            <div className="flex items-center space-x-3">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600 dark:border-pink-400"></div>
-              <span className="text-gray-700 dark:text-gray-300">Loading board...</span>
+    <BoardErrorBoundary>
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900">
+        <div className="container mx-auto px-4 py-8">
+          <Suspense fallback={
+            <div className="bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 border border-gray-200/60 dark:border-gray-700/60 rounded-2xl shadow-lg p-6 backdrop-blur-sm">
+              <div className="flex items-center space-x-3">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-pink-600 dark:border-pink-400"></div>
+                <span className="text-gray-700 dark:text-gray-300">Loading board...</span>
+              </div>
             </div>
-          </div>
-        }>
-          <Board
-            teamId={selectedTeamId}
-            teamName={currentTeam.name}
-            session={session}
-            availableTeams={teamOptions}
-            onTeamChange={handleTeamChange}
-            selectedRow={selectedRow}
-          />
-        </Suspense>
+          }>
+            <Board
+              teamId={selectedTeamId}
+              teamName={currentTeam.name}
+              session={session}
+              availableTeams={teamOptions}
+              onTeamChange={handleTeamChange}
+              selectedRow={selectedRow}
+            />
+          </Suspense>
+        </div>
       </div>
-    </div>
+    </BoardErrorBoundary>
   );
 }

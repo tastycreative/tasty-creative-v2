@@ -11,6 +11,7 @@ import AttachmentViewer from "@/components/ui/AttachmentViewer";
 import TaskCardHistory from "./TaskCardHistory";
 import TaskComments from "./TaskComments";
 import UserProfile from "@/components/ui/UserProfile";
+import { getStatusConfig } from "@/lib/config/boardConfig";
 
 // Utility function to make links clickable
 const linkifyText = (text: string) => {
@@ -31,37 +32,6 @@ const linkifyText = (text: string) => {
     }
     return part;
   });
-};
-
-const statusConfig = {
-  NOT_STARTED: {
-    label: "Not Started",
-    icon: Clock,
-    color: "bg-gray-100 text-gray-700 border-gray-200",
-    headerColor: "bg-gray-50 border-gray-200",
-    buttonColor: "bg-gray-600 hover:bg-gray-700",
-  },
-  IN_PROGRESS: {
-    label: "In Progress",
-    icon: Clock,
-    color: "bg-blue-100 text-blue-700 border-blue-200",
-    headerColor: "bg-blue-50 border-blue-200",
-    buttonColor: "bg-blue-600 hover:bg-blue-700",
-  },
-  COMPLETED: {
-    label: "Completed",
-    icon: Clock,
-    color: "bg-green-100 text-green-700 border-green-200",
-    headerColor: "bg-green-50 border-green-200",
-    buttonColor: "bg-green-600 hover:bg-green-700",
-  },
-  CANCELLED: {
-    label: "Cancelled",
-    icon: Clock,
-    color: "bg-red-100 text-red-700 border-red-200",
-    headerColor: "bg-red-50 border-red-200",
-    buttonColor: "bg-red-600 hover:bg-red-700",
-  },
 };
 
 interface EnhancedTaskDetailModalProps {
@@ -127,14 +97,14 @@ export default function EnhancedTaskDetailModal({
             <div className="flex-1 min-w-0">
               <div className="flex items-center space-x-3 mb-2">
                 <div
-                  className={`w-2 h-2 rounded-full ${(statusConfig as any)[selectedTask.status]?.color?.split(" ")[0] || "bg-gray-500"}`}
+                  className={`w-2 h-2 rounded-full ${getStatusConfig(selectedTask.status).bgColor.split(" ")[0] || "bg-gray-500"}`}
                 ></div>
                 <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">
                   Task •{" "}
                   {selectedTask.podTeam?.projectPrefix && selectedTask.taskNumber ? (
                     <span className="font-mono">{selectedTask.podTeam.projectPrefix}-{selectedTask.taskNumber}</span>
                   ) : (
-                    (statusConfig as any)[selectedTask.status]?.label ||
+                    getStatusConfig(selectedTask.status).label ||
                     selectedTask.status
                   )}
                 </span>

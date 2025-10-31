@@ -6,25 +6,7 @@ import { Task, NewTaskData } from "@/lib/stores/boardStore";
 import UserDropdown from "@/components/UserDropdown";
 import FileUpload from "@/components/ui/FileUpload";
 import { toLocalDateTimeString } from "@/lib/dateUtils";
-
-const statusConfig = {
-  NOT_STARTED: {
-    label: "Not Started",
-    color: "bg-gray-100 text-gray-700 border-gray-200",
-  },
-  IN_PROGRESS: {
-    label: "In Progress",
-    color: "bg-blue-100 text-blue-700 border-blue-200",
-  },
-  COMPLETED: {
-    label: "Completed",
-    color: "bg-green-100 text-green-700 border-green-200",
-  },
-  CANCELLED: {
-    label: "Cancelled",
-    color: "bg-red-100 text-red-700 border-red-200",
-  },
-};
+import { getStatusConfig } from "@/lib/config/boardConfig";
 
 interface NewTaskModalProps {
   isOpen: boolean;
@@ -51,10 +33,10 @@ export default function NewTaskModal({
 
   // Find the column data for the current status
   const currentColumn = columns.find(col => col.status === newTaskStatus);
-  const fallbackConfig = statusConfig[newTaskStatus as keyof typeof statusConfig];
-  
-  const columnLabel = currentColumn?.label || fallbackConfig?.label || newTaskStatus;
-  const columnColor = currentColumn?.color || fallbackConfig?.color || 'bg-gray-400';
+  const fallbackConfig = getStatusConfig(newTaskStatus);
+
+  const columnLabel = currentColumn?.label || fallbackConfig.label || newTaskStatus;
+  const columnColor = currentColumn?.color || fallbackConfig.bgColor || 'bg-gray-400';
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center p-2 sm:p-4 z-50 overflow-y-auto">
