@@ -30,8 +30,8 @@ model User {
   ModerationLog              ModerationLog[]
   ModularWorkflow            ModularWorkflow[]             @relation("ModularWorkflowCreator")
   notifications              Notification[]
-  oftvVideoEditorTasks       OFTVTask[]                    @relation("OFTVVideoEditor")
   oftvThumbnailEditorTasks   OFTVTask[]                    @relation("OFTVThumbnailEditor")
+  oftvVideoEditorTasks       OFTVTask[]                    @relation("OFTVVideoEditor")
   pageViews                  PageView[]
   createdPodTeams            PodTeam[]                     @relation("PodTeamCreator")
   podClientAssignments       PodTeamClientAssignment[]     @relation("PodClientAssignedBy")
@@ -255,8 +255,6 @@ model OFTVTask {
   taskId                String         @unique
   model                 String
   folderLink            String?
-  videoEditorUserId     String?
-  thumbnailEditorUserId String?
   specialInstructions   String?
   dateAssigned          DateTime       @default(now())
   dateCompleted         DateTime?
@@ -264,9 +262,13 @@ model OFTVTask {
   updatedAt             DateTime       @updatedAt
   videoEditorStatus     OFTVTaskStatus @default(NOT_STARTED)
   thumbnailEditorStatus OFTVTaskStatus @default(NOT_STARTED)
+  thumbnailEditorUserId String?
+  videoEditorUserId     String?
+  videoDescription      String?
+  attachments           Json?
   task                  Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  videoEditorUser       User?          @relation("OFTVVideoEditor", fields: [videoEditorUserId], references: [id])
   thumbnailEditorUser   User?          @relation("OFTVThumbnailEditor", fields: [thumbnailEditorUserId], references: [id])
+  videoEditorUser       User?          @relation("OFTVVideoEditor", fields: [videoEditorUserId], references: [id])
 
   @@index([taskId])
   @@index([model])
@@ -504,6 +506,7 @@ model PodTeam {
   assignedClients            PodTeamClientAssignment[]
   members                    PodTeamMember[]
   tasks                      Task[]
+  TeamResource               TeamResource[]
 
   @@index([createdById])
   @@index([isActive])
@@ -946,6 +949,39 @@ model InstagramPost {
   @@index([position])
 }
 
+model GalleryMasterList {
+  id              Int       @id(map: "gallerymasterlist_pkey") @default(autoincrement())
+  schedule_tab    String?
+  page            String?
+  type            String?
+  scheduled_date  String?
+  time_pst        String?
+  message_type    String?
+  content_preview String?
+  paywall_content String?
+  content_style   String?
+  caption         String?
+  caption_style   String?
+  price           String?
+  outcome         String?
+  notes           String?
+  created_at      DateTime? @default(now()) @db.Timestamp(6)
+
+  @@map("GalleryMasterList")
+}
+
+model TeamResource {
+  id        String   @id
+  podTeamId String
+  name      String
+  link      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  PodTeam   PodTeam  @relation(fields: [podTeamId], references: [id], onDelete: Cascade)
+
+  @@index([podTeamId])
+}
+
 enum Role {
   USER
   ADMIN
@@ -1147,28 +1183,6 @@ enum OFTVTaskStatus {
   WAITING_FOR_VO
   SENT
   PUBLISHED
-}
-
-// Gallery Master List - Content library for gallery feature
-model GalleryMasterList {
-  id              Int      @id @default(autoincrement())
-  schedule_tab    String?
-  page            String?
-  type            String?
-  scheduled_date  String?
-  time_pst        String?
-  message_type    String?
-  content_preview String?
-  paywall_content String?
-  content_style   String?
-  caption         String?
-  caption_style   String?
-  price           String?
-  outcome         String?
-  notes           String?
-  created_at      DateTime @default(now())
-
-  @@map("GalleryMasterList")
 }
 
 // Gallery user favorites
