@@ -63,9 +63,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       authorization: {
         params: {
           access_type: "offline",
-          prompt: "consent", // Forces Google to always ask for consent and return refresh token
+          prompt: "consent",
           scope:
-            "openid profile email https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/drive.file",
+            "openid profile email https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets",
         },
       },
     }),
