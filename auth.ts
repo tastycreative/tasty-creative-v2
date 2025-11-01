@@ -65,7 +65,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           access_type: "offline",
           prompt: "consent",
           scope:
-            "openid profile email https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/spreadsheets",
+            "openid profile email https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive",
         },
       },
     }),
