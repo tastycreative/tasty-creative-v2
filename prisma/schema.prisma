@@ -1148,3 +1148,48 @@ enum OFTVTaskStatus {
   SENT
   PUBLISHED
 }
+
+// Gallery Master List - Content library for gallery feature
+model GalleryMasterList {
+  id              Int      @id @default(autoincrement())
+  schedule_tab    String?
+  page            String?
+  type            String?
+  scheduled_date  String?
+  time_pst        String?
+  message_type    String?
+  content_preview String?
+  paywall_content String?
+  content_style   String?
+  caption         String?
+  caption_style   String?
+  price           String?
+  outcome         String?
+  notes           String?
+  created_at      DateTime @default(now())
+
+  @@map("GalleryMasterList")
+}
+
+// Gallery user favorites
+model GalleryFavorite {
+  id         Int      @id @default(autoincrement())
+  user_id    String
+  item_id    String
+  created_at DateTime @default(now())
+
+  @@unique([user_id, item_id])
+  @@index([user_id])
+  @@index([item_id])
+  @@map("GalleryFavorite")
+}
+
+// Gallery releases/PTR tracking
+model GalleryRelease {
+  id         Int      @id @default(autoincrement())
+  item_id    String   @unique
+  created_at DateTime @default(now())
+
+  @@index([item_id])
+  @@map("GalleryRelease")
+}

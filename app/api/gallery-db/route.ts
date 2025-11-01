@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import {
-  getTableData,
-  getUserFavorites,
-  getReleases,
-} from '@/lib/supabase-dynamic'
+import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
 import { GalleryItem } from '@/types/gallery'
 
 /**
@@ -121,12 +118,13 @@ function countByField(items: any[], field: string): Record<string, number> {
 }
 
 /**
- * Gallery API that fetches data from combined_master_table
+ * Gallery API that fetches data from GalleryMasterList (Neon PostgreSQL)
  */
 export async function GET(request: NextRequest) {
   const startTime = performance.now()
 
   try {
+    const session = await auth()
     const searchParams = request.nextUrl.searchParams
 
     // Get query parameters
@@ -165,65 +163,32 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(cachedData, { headers })
     }
 
-    // Build filters for Supabase query
-    const filters: Record<string, any> = {}
+    // Build Prisma query filters
+    const where: any = {}
 
-    if (messageType && messageType !== 'all') filters['message_type'] = messageType
-    if (outcome && outcome !== 'all') filters['outcome'] = outcome
-    if (contentStyle && contentStyle !== 'all') filters['content_style'] = contentStyle
-    if (contentType && contentType !== 'all') filters['type'] = contentType
-    if (creator && creator !== 'all') filters['page'] = creator
+    if (messageType && messageType !== 'all') where.message_type = messageType
+    if (outcome && outcome !== 'all') where.outcome = outcome
+    if (contentStyle && contentStyle !== 'all') where.content_style = contentStyle
+    if (contentType && contentType !== 'all') where.type = contentType
+    if (creator && creator !== 'all') where.page = creator
 
-    // Fetch data from combined_master_table
-    const { data, error } = await getTableData('combined_master_table', {
-      filters,
-      limit: 1000,
-      orderBy: { column: 'created_at', ascending: false }
+    // Fetch data from GalleryMasterList using Prisma
+    const data = await prisma.galleryMasterList.findMany({
+      where,
+      take: 1000,
+      orderBy: {
+        created_at: 'desc'
+      }
     })
 
-    if (error) {
-      console.error('Error fetching gallery data:', error)
-      return NextResponse.json(
-        {
-          error: 'Failed to fetch gallery data',
-          details: error,
-          items: [],
-          stats: {
-            total: 0,
-            byMessageType: {},
-            byPage: {},
-            byCategory: {},
-            byOutcome: {},
-            byType: {}
-          },
-          breakdown: {
-            favorites: 0,
-            releases: 0,
-            library: 0
-          },
-          categories: [],
-          creators: [],
-          pagination: {
-            currentPage: 1,
-            totalPages: 0,
-            totalItems: 0,
-            hasNextPage: false,
-            hasPreviousPage: false,
-            itemsPerPage: limit
-          }
-        },
-        { status: 500 }
-      )
-    }
-
     // Fetch favorites and releases data in parallel
-    const [favoritesResult, releasesResult] = await Promise.all([
-      getUserFavorites('current-user'),
-      getReleases()
+    const userId = session?.user?.id || 'guest'
+    const [favorites, releases] = await Promise.all([
+      prisma.galleryFavorite.findMany({
+        where: { user_id: userId }
+      }),
+      prisma.galleryRelease.findMany()
     ])
-
-    const favorites = favoritesResult.data || []
-    const releases = releasesResult.data || []
 
     // Create lookup sets for performance
     const favoritesSet = new Set(
@@ -234,8 +199,8 @@ export async function GET(request: NextRequest) {
     )
 
     // Transform data to match GalleryItem structure
-    const items: GalleryItem[] = (data || []).map((row: any, index: number) => {
-      const itemId = row.id || `row_${index}`
+    const items: GalleryItem[] = data.map((row, index) => {
+      const itemId = row.id.toString()
       const price = parseNumber(row.price)
 
       // Extract revenue from notes (e.g., "Earned 79.96")
@@ -248,8 +213,8 @@ export async function GET(request: NextRequest) {
       const purchases = price > 0 && totalRevenue > 0 ? Math.round(totalRevenue / price) : 0
 
       return {
-        id: itemId.toString(),
-        sheetRowId: itemId.toString(),
+        id: itemId,
+        sheetRowId: itemId,
         title: row.content_style || row.message_type || `Item ${index + 1}`,
         captionText: row.caption || '',
         caption: row.caption || '',
@@ -259,7 +224,7 @@ export async function GET(request: NextRequest) {
         totalRevenue: totalRevenue,
         revenue: totalRevenue,
         category: determineCategoryFromStyle(row.content_style || ''),
-        dateAdded: row.created_at || new Date().toISOString(),
+        dateAdded: row.created_at.toISOString(),
         contentStyle: row.content_style || '',
         messageType: row.message_type || '',
         gifUrl: row.content_preview || '',
@@ -268,11 +233,11 @@ export async function GET(request: NextRequest) {
         thumbnailUrl: row.content_preview || '',
         contentType: 'LIBRARY',
         notes: row.notes || '',
-        isFavorite: favoritesSet.has(itemId.toString()),
-        isRelease: releasesSet.has(itemId.toString()),
-        isPTR: releasesSet.has(itemId.toString()),
+        isFavorite: favoritesSet.has(itemId),
+        isRelease: releasesSet.has(itemId),
+        isPTR: releasesSet.has(itemId),
         creatorName: row.page || 'Unknown',
-        tableName: 'combined_master_table',
+        tableName: 'GalleryMasterList',
         scheduleTab: row.schedule_tab || '',
         type: row.type || '',
         timePST: row.time_pst || '',
