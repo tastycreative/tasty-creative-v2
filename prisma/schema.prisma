@@ -505,6 +505,7 @@ model PodTeam {
   assignedClients            PodTeamClientAssignment[]
   members                    PodTeamMember[]
   tasks                      Task[]
+  resources                  TeamResource[]
 
   @@index([createdById])
   @@index([isActive])
@@ -542,6 +543,18 @@ model PodTeamClientAssignment {
   @@index([podTeamId])
   @@index([clientModelId])
   @@index([assignedById])
+}
+
+model TeamResource {
+  id        String   @id @default(cuid())
+  podTeamId String
+  name      String
+  link      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  podTeam   PodTeam  @relation(fields: [podTeamId], references: [id], onDelete: Cascade)
+
+  @@index([podTeamId])
 }
 
 model BoardColumn {

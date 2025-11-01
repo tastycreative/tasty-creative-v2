@@ -15,6 +15,7 @@ import BoardHeader, { TabType } from './BoardHeader';
 import BoardFilters from './BoardFilters';
 import OFTVListFilters, { OFTVFilters } from './OFTVListFilters';
 import Summary from './Summary';
+import Resources from './Resources';
 import BoardSkeleton from './BoardSkeleton';
 import BoardGrid from './BoardGrid';
 import BoardList from './BoardList';
@@ -1293,6 +1294,11 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           tasks={tasks}
           teamMembers={teamMembers}
           columns={columns}
+        />
+      ) : activeTab === 'resources' ? (
+        <Resources
+          teamName={teamName}
+          teamId={teamId}
         />
       ) : activeTab === 'settings' ? (
         <TeamSettings
