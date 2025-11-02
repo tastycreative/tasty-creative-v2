@@ -183,8 +183,14 @@ export default function EnhancedTaskDetailModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center p-2 sm:p-4 z-[10000] overflow-y-auto">
-      <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-xl shadow-2xl w-full max-w-6xl border border-white/20 dark:border-gray-700/50 my-4 sm:my-8 min-w-0">
+    <div 
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center p-2 sm:p-4 z-[10000] overflow-y-auto"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-xl shadow-2xl w-full max-w-6xl border border-white/20 dark:border-gray-700/50 my-4 sm:my-8 min-w-0"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Modal Header */}
         <div className="relative px-4 sm:px-8 py-4 sm:py-6 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-r from-white/50 to-gray-50/50 dark:from-gray-800/50 dark:to-gray-900/50">
           <div className="flex items-start justify-between">

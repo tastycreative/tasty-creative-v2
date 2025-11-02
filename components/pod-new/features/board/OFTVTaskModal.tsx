@@ -79,7 +79,8 @@ export default function OFTVTaskModal({
       // Reset preview files when modal closes
       setPreviewFiles([]);
     }
-  }, [isOpen, previewFiles]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   // Handle task creation with file uploads
   const handleCreateTaskWithAttachments = async () => {
