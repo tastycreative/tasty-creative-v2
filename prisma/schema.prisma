@@ -255,17 +255,17 @@ model OFTVTask {
   taskId                String         @unique
   model                 String
   folderLink            String?
+  videoDescription      String?
+  videoEditorUserId     String?
+  thumbnailEditorUserId String?
   specialInstructions   String?
+  attachments           Json?
   dateAssigned          DateTime       @default(now())
   dateCompleted         DateTime?
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
   videoEditorStatus     OFTVTaskStatus @default(NOT_STARTED)
   thumbnailEditorStatus OFTVTaskStatus @default(NOT_STARTED)
-  thumbnailEditorUserId String?
-  videoEditorUserId     String?
-  videoDescription      String?
-  attachments           Json?
   task                  Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
   thumbnailEditorUser   User?          @relation("OFTVThumbnailEditor", fields: [thumbnailEditorUserId], references: [id])
   videoEditorUser       User?          @relation("OFTVVideoEditor", fields: [videoEditorUserId], references: [id])
@@ -506,7 +506,7 @@ model PodTeam {
   assignedClients            PodTeamClientAssignment[]
   members                    PodTeamMember[]
   tasks                      Task[]
-  TeamResource               TeamResource[]
+  resources                  TeamResource[]
 
   @@index([createdById])
   @@index([isActive])
@@ -544,6 +544,18 @@ model PodTeamClientAssignment {
   @@index([podTeamId])
   @@index([clientModelId])
   @@index([assignedById])
+}
+
+model TeamResource {
+  id        String   @id @default(cuid())
+  podTeamId String
+  name      String
+  link      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  podTeam   PodTeam  @relation(fields: [podTeamId], references: [id], onDelete: Cascade)
+
+  @@index([podTeamId])
 }
 
 model BoardColumn {

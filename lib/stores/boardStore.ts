@@ -7,8 +7,8 @@ import { devtools, persist, createJSONStorage } from 'zustand/middleware';
 export interface TaskAttachment {
   id: string;
   name: string;
-  url: string;
-  s3Key?: string; // S3 key for deletion
+  url?: string; // Optional - generated on-demand from s3Key
+  s3Key: string; // Required - permanent S3 identifier (used to generate presigned URLs)
   size: number;
   type: string; // mime type
   uploadedAt: string;
@@ -69,6 +69,7 @@ export interface Task {
     id: string;
     model: string;
     folderLink: string | null;
+    videoDescription: string | null;
     videoEditor: string | null;
     thumbnailEditor: string | null;
     videoEditorUser?: {

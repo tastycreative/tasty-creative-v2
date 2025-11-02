@@ -20,12 +20,14 @@ export async function POST(req: NextRequest) {
       model,
       title,
       folderLink,
+      videoDescription,
       videoEditorUserId,
       videoEditorStatus,
       thumbnailEditorUserId,
       thumbnailEditorStatus,
       dueDate,
       specialInstructions,
+      attachments, // Add attachments support
     } = body;
 
     // Validate required fields
@@ -57,7 +59,7 @@ export async function POST(req: NextRequest) {
 
     // Create both Task and OFTVTask in a transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Create the main task
+      // Create the main task with attachments
       const task = await tx.task.create({
         data: {
           title: taskTitle,
@@ -69,6 +71,7 @@ export async function POST(req: NextRequest) {
           podTeamId: teamId,
           status,
           assignedToTeam: false,
+          attachments: attachments || [], // Store attachments as JSON
         },
         include: {
           createdBy: true,
@@ -82,11 +85,13 @@ export async function POST(req: NextRequest) {
           taskId: task.id,
           model: model,
           folderLink: folderLink || null,
+          videoDescription: videoDescription || null,
           videoEditorUserId: videoEditorUserId,
           videoEditorStatus: videoEditorStatus || 'NOT_STARTED',
           thumbnailEditorUserId: thumbnailEditorUserId,
           thumbnailEditorStatus: thumbnailEditorStatus || 'NOT_STARTED',
           specialInstructions: specialInstructions || null,
+          attachments: attachments || null, // Store attachments with s3Key
         },
         include: {
           videoEditorUser: {

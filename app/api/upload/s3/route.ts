@@ -132,19 +132,14 @@ export async function POST(request: NextRequest) {
     const command = new PutObjectCommand(uploadParams);
     await s3Client.send(command);
 
-    // Generate signed URL for accessing the file (valid for 7 days)
-    const getObjectCommand = new GetObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: s3Key,
-    });
-    const signedUrl = await getSignedUrl(s3Client, getObjectCommand, { expiresIn: 7 * 24 * 60 * 60 }); // 7 days
-
-    // Return file information
+    // Don't generate presigned URL here - we'll generate it on-demand when needed
+    // This prevents URL expiration issues since we store only the s3Key in database
+    
+    // Return file information with s3Key (permanent) instead of presigned URL (temporary)
     const attachmentData = {
       id: uuidv4(),
       name: file.name,
-      url: signedUrl,
-      s3Key: s3Key,
+      s3Key: s3Key, // Store permanent S3 key, not temporary presigned URL
       size: file.size,
       type: file.type,
       uploadedAt: new Date().toISOString(),

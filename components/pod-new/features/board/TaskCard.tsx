@@ -5,7 +5,7 @@ import { Session } from "next-auth";
 import { MoreHorizontal, UserPlus, Trash2, Gamepad2, BarChart3, Video, FileText, Tag, DollarSign, Upload, Calendar, CheckCircle2, Circle } from "lucide-react";
 import { Task } from "@/lib/stores/boardStore";
 import UserProfile from "@/components/ui/UserProfile";
-import { formatForTaskCard, formatForDisplay } from "@/lib/dateUtils";
+import { formatForTaskCard, formatForDisplay, formatDueDate } from "@/lib/dateUtils";
 
 const priorityConfig = {
   LOW: { label: "Low", color: "bg-gray-100 text-gray-700" },
@@ -351,8 +351,8 @@ function TaskCard({
               {priorityConfig[task.priority || 'MEDIUM'].label}
             </span>
             {task.dueDate && (
-              <span className="text-xs text-gray-500 dark:text-gray-400">
-                {formatForTaskCard(task.dueDate)}
+              <span className={`text-xs font-medium ${formatDueDate(task.dueDate).className}`}>
+                {formatDueDate(task.dueDate).formatted}
               </span>
             )}
           </div>
@@ -382,8 +382,8 @@ function TaskCard({
 
           {/* Due Date */}
           {task.dueDate && (
-            <span className="text-xs text-gray-500 dark:text-gray-400">
-              {formatForTaskCard(task.dueDate)}
+            <span className={`text-xs font-medium ${formatDueDate(task.dueDate).className}`}>
+              {formatDueDate(task.dueDate).formatted}
             </span>
           )}
         </div>
