@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
 
     // Send email notification to the user
     try {
-      const teamUrl = `${process.env.NEXTAUTH_URL}/pod/${podTeamId}/board`;
+      const teamUrl = `${process.env.NEXTAUTH_URL}/board?team=${podTeamId}`;
       
       await sendStrikeNotificationEmail({
         to: targetUser.email,
