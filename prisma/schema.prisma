@@ -982,18 +982,6 @@ model GalleryMasterList {
   @@map("GalleryMasterList")
 }
 
-model TeamResource {
-  id        String   @id
-  podTeamId String
-  name      String
-  link      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime
-  PodTeam   PodTeam  @relation(fields: [podTeamId], references: [id], onDelete: Cascade)
-
-  @@index([podTeamId])
-}
-
 enum Role {
   USER
   ADMIN
