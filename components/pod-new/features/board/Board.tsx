@@ -686,6 +686,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           thumbnailEditorStatus: oftvTaskData.thumbnailEditorStatus,
           dueDate: oftvTaskData.dueDate,
           specialInstructions: oftvTaskData.specialInstructions,
+          attachments: (oftvTaskData as any).attachments || [], // Include attachments
         }),
       });
 

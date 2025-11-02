@@ -1,10 +1,11 @@
 "use client";
 
-import React from "react";
-import { X, Plus } from "lucide-react";
-import { Task } from "@/lib/stores/boardStore";
+import React, { useState, useEffect } from "react";
+import { X, Plus, Loader2 } from "lucide-react";
+import { Task, TaskAttachment } from "@/lib/stores/boardStore";
 import UserDropdown from "@/components/UserDropdown";
 import ModelsDropdownList from "@/components/ModelsDropdownList";
+import CommentFilePreview, { type PreviewFile } from "@/components/ui/CommentFilePreview";
 
 const statusConfig = {
   NOT_STARTED: {
@@ -63,6 +64,81 @@ export default function OFTVTaskModal({
   onSetTaskData,
   onCreateTask,
 }: OFTVTaskModalProps) {
+  const [previewFiles, setPreviewFiles] = useState<PreviewFile[]>([]);
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false);
+
+  // Clean up preview URLs when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      // Clean up preview URLs
+      previewFiles.forEach(file => {
+        if (file.previewUrl) {
+          URL.revokeObjectURL(file.previewUrl);
+        }
+      });
+      // Reset preview files when modal closes
+      setPreviewFiles([]);
+    }
+  }, [isOpen, previewFiles]);
+
+  // Handle task creation with file uploads
+  const handleCreateTaskWithAttachments = async () => {
+    if (!taskData.model.trim() || !taskData.title.trim()) return;
+
+    try {
+      setIsUploadingFiles(true);
+      
+      let uploadedAttachments: TaskAttachment[] = [];
+      
+      // Upload preview files to S3 if any
+      if (previewFiles.length > 0) {
+        for (const previewFile of previewFiles) {
+          try {
+            const formData = new FormData();
+            formData.append('file', previewFile.file);
+
+            const response = await fetch('/api/upload/s3', {
+              method: 'POST',
+              body: formData,
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || 'Upload failed');
+            }
+
+            const responseData = await response.json();
+            const { attachment } = responseData;
+            uploadedAttachments.push(attachment);
+            
+          } catch (uploadError) {
+            console.error(`Failed to upload ${previewFile.name}:`, uploadError);
+            alert(`Failed to upload ${previewFile.name}. Task will be created without this file.`);
+          }
+        }
+      }
+      
+      // Add attachments to task data
+      if (uploadedAttachments.length > 0) {
+        // Store attachments in a way the parent can access
+        (taskData as any).attachments = uploadedAttachments;
+      }
+      
+      setIsUploadingFiles(false);
+      
+      // Call the original create task handler (this will trigger task creation)
+      onCreateTask();
+      
+      // Clean up will happen when modal closes (onClose effect)
+      // Don't reset preview files here - keep them visible until modal closes
+      
+    } catch (error) {
+      console.error('Error uploading attachments:', error);
+      alert('Failed to upload some attachments. Please try again.');
+      setIsUploadingFiles(false);
+    }
+  };
+
   if (!isOpen || !newTaskStatus) return null;
 
   // Find the column data for the current status
@@ -261,6 +337,22 @@ export default function OFTVTaskModal({
               />
             </div>
 
+            {/* File Attachments */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                Attachments
+              </label>
+              <CommentFilePreview
+                previewFiles={previewFiles}
+                onPreviewFilesChange={setPreviewFiles}
+                maxFiles={5}
+                maxFileSize={10}
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                Upload reference images, documents, or other files (max 5 files, 10MB each)
+              </p>
+            </div>
+
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200/50 dark:border-gray-700/50">
               <button
@@ -271,18 +363,19 @@ export default function OFTVTaskModal({
                 Cancel
               </button>
               <button
-                onClick={onCreateTask}
+                onClick={handleCreateTaskWithAttachments}
                 disabled={
                   !taskData.model.trim() ||
                   !taskData.title.trim() ||
-                  isCreatingTask
+                  isCreatingTask ||
+                  isUploadingFiles
                 }
                 className="w-full sm:w-auto px-4 sm:px-6 py-3 text-sm font-medium bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 order-1 sm:order-2"
               >
-                {isCreatingTask ? (
+                {isCreatingTask || isUploadingFiles ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>Creating...</span>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>{isUploadingFiles ? 'Uploading...' : 'Creating...'}</span>
                   </>
                 ) : (
                   <>
