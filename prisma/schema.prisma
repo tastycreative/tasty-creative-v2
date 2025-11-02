@@ -49,6 +49,8 @@ model User {
   verificationTokens         VerificationToken[]
   voiceNoteHistory           VoiceNoteHistory[]
   voiceNoteSales             VoiceNoteSale[]
+  strikes                    Strike[]                      @relation("StrikeUser")
+  issuedStrikes              Strike[]                      @relation("StrikeIssuedBy")
 }
 
 model Account {
@@ -507,6 +509,7 @@ model PodTeam {
   members                    PodTeamMember[]
   tasks                      Task[]
   resources                  TeamResource[]
+  strikes                    Strike[]
 
   @@index([createdById])
   @@index([isActive])
@@ -556,6 +559,30 @@ model TeamResource {
   podTeam   PodTeam  @relation(fields: [podTeamId], references: [id], onDelete: Cascade)
 
   @@index([podTeamId])
+}
+
+model Strike {
+  id          String   @id @default(cuid())
+  userId      String
+  podTeamId   String
+  reason      String
+  issuedById  String
+  isActive    Boolean  @default(true)
+  notes       String?
+  attachments Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  resolvedAt  DateTime?
+  issuedBy    User     @relation("StrikeIssuedBy", fields: [issuedById], references: [id])
+  podTeam     PodTeam  @relation(fields: [podTeamId], references: [id], onDelete: Cascade)
+  user        User     @relation("StrikeUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([podTeamId])
+  @@index([issuedById])
+  @@index([isActive])
+  @@index([createdAt])
+  @@index([userId, podTeamId])
 }
 
 model BoardColumn {

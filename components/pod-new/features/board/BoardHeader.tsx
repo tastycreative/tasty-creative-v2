@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { KanbanSquare, BarChart3, Settings, List, BookOpen } from "lucide-react";
+import { KanbanSquare, BarChart3, Settings, List, BookOpen, AlertTriangle } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 interface BoardHeaderProps {
@@ -13,7 +13,7 @@ interface BoardHeaderProps {
   onTabChange?: (tab: TabType) => void;
 }
 
-export type TabType = 'board' | 'list' | 'summary' | 'settings' | 'resources';
+export type TabType = 'board' | 'list' | 'summary' | 'settings' | 'resources' | 'strikes';
 
 export default function BoardHeader({
   teamName,
@@ -57,6 +57,11 @@ export default function BoardHeader({
       id: 'resources' as TabType,
       label: 'Resources',
       icon: BookOpen,
+    },
+    {
+      id: 'strikes' as TabType,
+      label: 'Strike System',
+      icon: AlertTriangle,
     },
     {
       id: 'settings' as TabType,

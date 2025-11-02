@@ -1299,6 +1299,227 @@ export async function sendOTPPTRTaskNotificationEmail({
   });
 }
 
+export async function sendStrikeNotificationEmail({
+  to,
+  userName,
+  reason,
+  issuedByName,
+  teamName,
+  notes,
+  strikeCount,
+  teamUrl,
+}: {
+  to: string;
+  userName: string;
+  reason: string;
+  issuedByName: string;
+  teamName: string;
+  notes?: string | null;
+  strikeCount: number;
+  teamUrl: string;
+}) {
+  // Strike severity based on count
+  const strikeConfig: Record<number, { bg: string; text: string; emoji: string; severity: string }> = {
+    1: { bg: '#fef3c7', text: '#d97706', emoji: '⚠️', severity: 'First Strike - Warning' },
+    2: { bg: '#fee2e2', text: '#dc2626', emoji: '🔴', severity: 'Second Strike - Serious' },
+    3: { bg: '#fef2f2', text: '#991b1b', emoji: '🚨', severity: 'Third Strike - Critical' },
+  };
+  
+  const strikeLevel = strikeConfig[strikeCount] || { 
+    bg: '#fef2f2', 
+    text: '#991b1b', 
+    emoji: '🚨', 
+    severity: `${strikeCount} Strikes - Critical` 
+  };
+
+  await transporter.sendMail({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject: `⚠️ Strike Issued - ${reason} - ${teamName}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Strike Notification</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f9fafb;">
+          <div style="background-color: #f9fafb; padding: 40px 20px;">
+            <!-- Main Container -->
+            <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);">
+              
+              <!-- Header -->
+              <div style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); padding: 48px 40px; text-align: center; border-bottom: 1px solid #fecaca;">
+                <svg
+                  style="margin: 0 auto 16px; height: 48px; width: 48px; color: #dc2626;"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+                <h1 style="margin: 0 0 8px 0; font-size: 32px; font-weight: 800; color: #111827; letter-spacing: -0.5px;">
+                  Strike Issued
+                </h1>
+                <p style="margin: 0; font-size: 16px; color: #6b7280;">
+                  You have received a strike in <span style="font-weight: 600; color: #dc2626;">${teamName}</span>
+                </p>
+              </div>
+              
+              <!-- Body Content -->
+              <div style="padding: 48px 40px;">
+                <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #374151;">
+                  Hello <strong>${userName}</strong>,
+                </p>
+                <p style="margin: 0 0 24px 0; font-size: 16px; line-height: 24px; color: #374151;">
+                  This is an official notification that a strike has been issued to your account in the <strong>${teamName}</strong> team by <strong>${issuedByName}</strong>.
+                </p>
+                
+                <!-- Strike Severity Badge -->
+                <div style="background-color: ${strikeLevel.bg}; border: 2px solid ${strikeLevel.text}; border-radius: 12px; padding: 24px; margin: 32px 0; text-align: center;">
+                  <div style="font-size: 48px; margin-bottom: 12px;">
+                    ${strikeLevel.emoji}
+                  </div>
+                  <h3 style="margin: 0 0 8px 0; font-size: 24px; color: ${strikeLevel.text}; font-weight: 800;">
+                    ${strikeLevel.severity}
+                  </h3>
+                  <p style="margin: 0; font-size: 14px; color: ${strikeLevel.text}; font-weight: 600;">
+                    Total Active Strikes: ${strikeCount}
+                  </p>
+                </div>
+                
+                <!-- Strike Details -->
+                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px; margin: 32px 0;">
+                  <h3 style="margin: 0 0 20px 0; font-size: 18px; color: #111827; font-weight: 700;">
+                    Strike Details
+                  </h3>
+                  
+                  <!-- Reason -->
+                  <div style="margin-bottom: 20px;">
+                    <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                      Violation Reason
+                    </p>
+                    <p style="margin: 0; font-size: 16px; color: #dc2626; font-weight: 700;">
+                      ${reason}
+                    </p>
+                  </div>
+                  
+                  ${notes ? `
+                  <!-- Notes -->
+                  <div style="margin-bottom: 20px; padding: 16px; background-color: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 8px;">
+                    <p style="margin: 0 0 8px 0; font-size: 12px; color: #92400e; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                      Additional Notes
+                    </p>
+                    <p style="margin: 0; font-size: 14px; color: #78350f; line-height: 20px;">
+                      ${notes}
+                    </p>
+                  </div>
+                  ` : ''}
+                  
+                  <!-- Issued By -->
+                  <div style="margin-bottom: 20px;">
+                    <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                      Issued By
+                    </p>
+                    <p style="margin: 0; font-size: 14px; color: #111827; font-weight: 600;">
+                      ${issuedByName}
+                    </p>
+                  </div>
+                  
+                  <!-- Team -->
+                  <div>
+                    <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                      Team
+                    </p>
+                    <p style="margin: 0; font-size: 14px; color: #111827; font-weight: 600;">
+                      ${teamName}
+                    </p>
+                  </div>
+                </div>
+                
+                <!-- Important Notice -->
+                <div style="background-color: #fef2f2; border: 2px solid #fecaca; border-radius: 12px; padding: 24px; margin: 32px 0;">
+                  <h3 style="margin: 0 0 12px 0; font-size: 16px; color: #991b1b; font-weight: 700;">
+                    ⚠️ Important Notice
+                  </h3>
+                  <p style="margin: 0 0 12px 0; font-size: 14px; color: #7f1d1d; line-height: 20px;">
+                    Strikes are issued for violations of team policies and standards. Accumulating multiple strikes may result in:
+                  </p>
+                  <ul style="margin: 0; padding-left: 20px; color: #7f1d1d; font-size: 14px; line-height: 24px;">
+                    <li>Temporary suspension from certain team activities</li>
+                    <li>Reduced privileges or access</li>
+                    <li>Removal from the team</li>
+                  </ul>
+                </div>
+                
+                <!-- CTA Button -->
+                <div style="text-align: center; margin: 32px 0;">
+                  <a href="${teamUrl}" style="display: inline-block; padding: 14px 32px; background-color: #dc2626; color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 16px; font-weight: 600; transition: all 0.3s ease;">
+                    View Team Board
+                  </a>
+                </div>
+                
+                <!-- Divider -->
+                <div style="margin: 40px 0; border-top: 1px solid #e5e7eb;"></div>
+                
+                <!-- Additional Information -->
+                <div style="background-color: #f9fafb; padding: 24px; border-radius: 8px; margin-bottom: 24px;">
+                  <p style="margin: 0 0 12px 0; font-size: 14px; color: #6b7280;">
+                    <strong>What should I do next?</strong>
+                  </p>
+                  <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 20px;">
+                    Please review the violation reason carefully and ensure you understand the team policies. If you believe this strike was issued in error, contact your team administrator to discuss the matter. Moving forward, please ensure compliance with all team standards to avoid additional strikes.
+                  </p>
+                </div>
+                
+                <!-- Footer text -->
+                <p style="margin: 0 0 12px 0; font-size: 14px; color: #6b7280; line-height: 20px;">
+                  You're receiving this notification because a strike was issued to your account. This is an official record and will be tracked in the team's strike system.
+                </p>
+                
+                <p style="margin: 0; font-size: 14px; color: #6b7280; line-height: 20px;">
+                  <strong>Note:</strong> This strike is specific to the ${teamName} team. For questions or appeals, please contact the team administrator.
+                </p>
+              </div>
+              
+              <!-- Footer -->
+              <div style="background-color: #f9fafb; padding: 32px 40px; text-align: center; border-top: 1px solid #e5e7eb;">
+                <p style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #111827;">
+                  Tasty Creative
+                </p>
+                <p style="margin: 0; font-size: 14px; color: #6b7280;">
+                  Maintaining team standards and accountability
+                </p>
+                
+                <!-- Social links placeholder -->
+                <div style="margin-top: 20px;">
+                  <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+                    © ${new Date().getFullYear()} Tasty Creative. All rights reserved.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Email footer -->
+            <div style="text-align: center; margin-top: 32px;">
+              <p style="margin: 0; font-size: 12px; color: #9ca3af; line-height: 18px;">
+                This email was sent to ${to}<br>
+                You received this notification because a strike was issued to your account.
+              </p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+  });
+}
+
 export async function sendTaskAssignmentNotificationEmail({
   to,
   assigneeName,
