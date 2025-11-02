@@ -247,7 +247,7 @@ export function NotificationProvider({
       const teamParam = notification.data.teamId
         ? `team=${notification.data.teamId}&`
         : "";
-      window.location.href = `/apps/pod/board?${teamParam}task=${notification.data.taskId}`;
+      window.location.href = `/board?${teamParam}task=${notification.data.taskId}`;
     }
   };
 

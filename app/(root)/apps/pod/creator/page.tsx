@@ -253,7 +253,7 @@ export default function CreatorPage() {
     } else if (pathname && pathname.includes("/sheets")) {
       router.push("/apps/pod/sheets");
     } else if (pathname && pathname.includes("/board")) {
-      router.push("/apps/pod/board");
+      router.push("/board");
     } else if (pathname && pathname.includes("/pricing")) {
       router.push("/apps/pod/pricing");
     } else if (pathname && pathname.includes("/admin")) {

@@ -129,7 +129,7 @@ export default function NotificationsPage() {
       window.location.href = notification.data.taskUrl;
     } else if (notification.task?.id) {
       const teamParam = notification.podTeam?.id || notification.data?.teamId || notification.data?.podTeamId;
-      const baseUrl = `/apps/pod/board`;
+      const baseUrl = `/board`;
       if (teamParam) {
         window.location.href = `${baseUrl}?team=${teamParam}&task=${notification.task.id}`;
       } else {

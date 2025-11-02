@@ -32,12 +32,12 @@ export async function generateTaskUrl(taskId: string, teamId?: string): Promise<
       ? `${task.podTeam.projectPrefix}-${task.taskNumber}`
       : task.id;
 
-    return `${baseUrl}/apps/pod/board?team=${teamParam}&task=${taskIdentifier}`;
+    return `${baseUrl}/board?team=${teamParam}&task=${taskIdentifier}`;
   } catch (error) {
     console.error('Error generating task URL:', error);
     // Fallback to basic URL with task ID
     const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-    return `${baseUrl}/apps/pod/board?team=${teamId}&task=${taskId}`;
+    return `${baseUrl}/board?team=${teamId}&task=${taskId}`;
   }
 }
 
