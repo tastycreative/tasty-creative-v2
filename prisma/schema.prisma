@@ -30,8 +30,8 @@ model User {
   ModerationLog              ModerationLog[]
   ModularWorkflow            ModularWorkflow[]             @relation("ModularWorkflowCreator")
   notifications              Notification[]
-  oftvVideoEditorTasks       OFTVTask[]                    @relation("OFTVVideoEditor")
   oftvThumbnailEditorTasks   OFTVTask[]                    @relation("OFTVThumbnailEditor")
+  oftvVideoEditorTasks       OFTVTask[]                    @relation("OFTVVideoEditor")
   pageViews                  PageView[]
   createdPodTeams            PodTeam[]                     @relation("PodTeamCreator")
   podClientAssignments       PodTeamClientAssignment[]     @relation("PodClientAssignedBy")
@@ -267,8 +267,8 @@ model OFTVTask {
   videoEditorStatus     OFTVTaskStatus @default(NOT_STARTED)
   thumbnailEditorStatus OFTVTaskStatus @default(NOT_STARTED)
   task                  Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  videoEditorUser       User?          @relation("OFTVVideoEditor", fields: [videoEditorUserId], references: [id])
   thumbnailEditorUser   User?          @relation("OFTVThumbnailEditor", fields: [thumbnailEditorUserId], references: [id])
+  videoEditorUser       User?          @relation("OFTVVideoEditor", fields: [videoEditorUserId], references: [id])
 
   @@index([taskId])
   @@index([model])
@@ -961,6 +961,27 @@ model InstagramPost {
   @@index([position])
 }
 
+model GalleryMasterList {
+  id              Int       @id(map: "gallerymasterlist_pkey") @default(autoincrement())
+  schedule_tab    String?
+  page            String?
+  type            String?
+  scheduled_date  String?
+  time_pst        String?
+  message_type    String?
+  content_preview String?
+  paywall_content String?
+  content_style   String?
+  caption         String?
+  caption_style   String?
+  price           String?
+  outcome         String?
+  notes           String?
+  created_at      DateTime? @default(now()) @db.Timestamp(6)
+
+  @@map("GalleryMasterList")
+}
+
 enum Role {
   USER
   ADMIN
@@ -1162,4 +1183,27 @@ enum OFTVTaskStatus {
   WAITING_FOR_VO
   SENT
   PUBLISHED
+}
+
+// Gallery user favorites
+model GalleryFavorite {
+  id         Int      @id @default(autoincrement())
+  user_id    String
+  item_id    String
+  created_at DateTime @default(now())
+
+  @@unique([user_id, item_id])
+  @@index([user_id])
+  @@index([item_id])
+  @@map("GalleryFavorite")
+}
+
+// Gallery releases/PTR tracking
+model GalleryRelease {
+  id         Int      @id @default(autoincrement())
+  item_id    String   @unique
+  created_at DateTime @default(now())
+
+  @@index([item_id])
+  @@map("GalleryRelease")
 }

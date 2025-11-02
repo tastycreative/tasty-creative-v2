@@ -7,6 +7,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useTaskUpdates } from '@/hooks/useTaskUpdates';
+import { useMarkAsFinal } from '@/hooks/useMarkAsFinal';
 import { useBoardStore, useBoardTasks, useBoardFilters, useBoardTaskActions, useBoardColumns, type Task, type BoardColumn, type NewTaskData } from '@/lib/stores/boardStore';
 import { formatForDisplay, formatForTaskCard, formatDueDate, formatForTaskDetail, toLocalDateTimeString, parseUserDate } from '@/lib/dateUtils';
 import { getTaskErrorMessage } from '@/lib/utils/errorMessages';
@@ -159,6 +160,14 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     thumbnailEditorStatus: 'NOT_STARTED',
     dueDate: '',
     specialInstructions: '',
+  });
+
+  // Mark as Final hook
+  const { markAsFinal, isLoading: isMarkingFinal } = useMarkAsFinal({
+    teamId,
+    teamName,
+    session,
+    onSuccess: () => fetchTasks(teamId),
   });
 
   const handleSetOftvTaskData = useCallback((data: Partial<OFTVTaskData>) => {
@@ -417,30 +426,15 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   };
 
   const handleMarkAsFinal = async (taskId: string, isFinal: boolean) => {
-    const task = tasks.find((t) => t.id === taskId);
-    if (!task?.ModularWorkflow) return;
-
-    try {
-      const response = await fetch(`/api/modular-workflows/${task.ModularWorkflow.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isFinal }),
-      });
-
-      if (response.ok) {
-        const updatedWorkflow = await response.json();
-
-        // Refresh tasks to get the latest data including isFinal
-        await fetchTasks(teamId);
-
-        // Show success toast
-        const toast = (await import('sonner')).toast;
-        toast.success(isFinal ? 'Marked as final!' : 'Unmarked as final');
-      }
-    } catch (error) {
-      console.error('Error updating isFinal status:', error);
+    if (!isFinal) {
       const toast = (await import('sonner')).toast;
-      toast.error('Failed to update status');
+      toast.error('Unmarking as final is not supported');
+      return;
+    }
+
+    const task = tasks.find((t) => t.id === taskId);
+    if (task) {
+      await markAsFinal(task);
     }
   };
 
