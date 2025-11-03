@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Plus, ExternalLink, Trash2, Edit2, Save, X, Loader2, Search } from "lucide-react";
+import { useTeamResourcesQuery, useCreateTeamResourceMutation, useUpdateTeamResourceMutation, useDeleteTeamResourceMutation } from '@/hooks/useBoardQueries';
 
 interface Resource {
   id: string;
@@ -17,8 +18,12 @@ interface ResourcesProps {
 }
 
 export default function Resources({ teamName, teamId }: ResourcesProps) {
-  const [resources, setResources] = useState<Resource[]>([]);
-  const [loading, setLoading] = useState(true);
+  const resourcesQuery = useTeamResourcesQuery(teamId);
+  const createResource = useCreateTeamResourceMutation(teamId);
+  const updateResource = useUpdateTeamResourceMutation(teamId);
+  const deleteResource = useDeleteTeamResourceMutation(teamId);
+  const resources = (resourcesQuery.data ?? []) as Resource[];
+  const loading = resourcesQuery.isLoading;
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newResource, setNewResource] = useState({ name: "", link: "" });
@@ -50,50 +55,12 @@ export default function Resources({ teamName, teamId }: ResourcesProps) {
     );
   }, [resources, searchQuery]);
 
-  // Fetch resources on mount
-  useEffect(() => {
-    fetchResources();
-  }, [teamId]);
-
-  const fetchResources = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch(`/api/team-resources?teamId=${teamId}`);
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch resources");
-      }
-      
-      const data = await response.json();
-      setResources(data);
-    } catch (err) {
-      console.error("Error fetching resources:", err);
-      setError(err instanceof Error ? err.message : "Failed to load resources");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const refetchResources = () => resourcesQuery.refetch();
 
   const handleAdd = async () => {
     if (newResource.name.trim() && newResource.link.trim()) {
       try {
-        const response = await fetch("/api/team-resources", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            teamId,
-            name: newResource.name.trim(),
-            link: newResource.link.trim(),
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to create resource");
-        }
-
-        const createdResource = await response.json();
-        setResources([...resources, createdResource]);
+        await createResource.mutateAsync({ name: newResource.name.trim(), link: newResource.link.trim() });
         setNewResource({ name: "", link: "" });
         setIsAdding(false);
       } catch (err) {
@@ -114,21 +81,7 @@ export default function Resources({ teamName, teamId }: ResourcesProps) {
   const handleSaveEdit = async (id: string) => {
     if (editResource.name.trim() && editResource.link.trim()) {
       try {
-        const response = await fetch(`/api/team-resources/${id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: editResource.name.trim(),
-            link: editResource.link.trim(),
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to update resource");
-        }
-
-        const updatedResource = await response.json();
-        setResources(resources.map(r => r.id === id ? updatedResource : r));
+        await updateResource.mutateAsync({ id, name: editResource.name.trim(), link: editResource.link.trim() });
         setEditingId(null);
         setEditResource({ name: "", link: "" });
       } catch (err) {
@@ -146,15 +99,7 @@ export default function Resources({ teamName, teamId }: ResourcesProps) {
   const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this resource?")) {
       try {
-        const response = await fetch(`/api/team-resources/${id}`, {
-          method: "DELETE",
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to delete resource");
-        }
-
-        setResources(resources.filter(r => r.id !== id));
+        await deleteResource.mutateAsync({ id });
       } catch (err) {
         console.error("Error deleting resource:", err);
         alert("Failed to delete resource. Please try again.");
@@ -223,11 +168,11 @@ export default function Resources({ teamName, teamId }: ResourcesProps) {
       </div>
 
       {/* Error Message */}
-      {error && (
+      {(resourcesQuery.isError || error) && (
         <div className="mx-6 mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+          <p className="text-sm text-red-600 dark:text-red-400">{error || (resourcesQuery.error as any)?.message || 'Failed to load resources'}</p>
           <button
-            onClick={fetchResources}
+            onClick={refetchResources}
             className="mt-2 text-sm text-red-700 dark:text-red-300 underline hover:no-underline"
           >
             Try again

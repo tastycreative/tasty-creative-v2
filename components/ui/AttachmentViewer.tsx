@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { TaskAttachment } from '@/lib/stores/boardStore';
 import { Download, File, Image, ExternalLink, X, ZoomIn, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useAttachmentUrlsQueries } from '@/hooks/useBoardQueries';
 
 interface AttachmentViewerProps {
   attachments: TaskAttachment[];
@@ -21,63 +22,14 @@ export default function AttachmentViewer({
   const [fullscreenAttachments, setFullscreenAttachments] = useState<TaskAttachment[] | null>(null);
   const [currentAttachmentIndex, setCurrentAttachmentIndex] = useState(0);
   const [mounted, setMounted] = useState(false);
-  const [attachmentUrls, setAttachmentUrls] = useState<Map<string, string>>(new Map());
-  const [isLoadingUrls, setIsLoadingUrls] = useState(false);
+  // Use TanStack Query's resolved URL map directly (avoid local mirroring state to prevent loops)
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Generate presigned URLs for attachments on-demand
-  useEffect(() => {
-    const generateUrls = async () => {
-      if (attachments.length === 0) return;
-
-      setIsLoadingUrls(true);
-      const urlMap = new Map<string, string>();
-
-      try {
-        // Generate presigned URLs for all attachments in parallel
-        const urlPromises = attachments.map(async (attachment) => {
-          // If attachment already has a URL, use it
-          if (attachment.url) {
-            urlMap.set(attachment.id, attachment.url);
-            return;
-          }
-
-          // Otherwise, generate presigned URL from s3Key
-          if (attachment.s3Key) {
-            try {
-              const response = await fetch('/api/upload/s3/presigned-url', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                  s3Key: attachment.s3Key,
-                  expiresIn: 3600 // 1 hour
-                }),
-              });
-
-              if (response.ok) {
-                const data = await response.json();
-                urlMap.set(attachment.id, data.url);
-              }
-            } catch (error) {
-              console.error(`Failed to generate URL for ${attachment.name}:`, error);
-            }
-          }
-        });
-
-        await Promise.all(urlPromises);
-        setAttachmentUrls(urlMap);
-      } catch (error) {
-        console.error('Error generating presigned URLs:', error);
-      } finally {
-        setIsLoadingUrls(false);
-      }
-    };
-
-    generateUrls();
-  }, [attachments]);
+  // Resolve URLs via TanStack Query
+  const { urlMap: attachmentUrls, isLoading: isLoadingUrls } = useAttachmentUrlsQueries(attachments, 3600);
 
   // Handle fullscreen modal keyboard navigation
   useEffect(() => {
@@ -185,6 +137,9 @@ export default function AttachmentViewer({
       <div className={`grid gap-2 ${compact ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2'}`}>
         {attachments.map((attachment) => {
           const attachmentUrl = attachmentUrls.get(attachment.id) || attachment.url;
+          const isImg = isImage(attachment.type);
+          const showThumbSkeleton = isImg && !attachmentUrl;
+          const actionDisabled = isImg && !attachmentUrl;
           
           return (
             <div
@@ -193,7 +148,7 @@ export default function AttachmentViewer({
             >
               {/* Thumbnail/Icon */}
               <div className="flex-shrink-0">
-                {isImage(attachment.type) && attachmentUrl ? (
+                {isImg && attachmentUrl ? (
                   <div 
                     className={`rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 cursor-pointer hover:opacity-80 transition-opacity ${compact ? 'w-8 h-8' : 'w-10 h-10'}`}
                     onClick={() => handleView(attachment)}
@@ -205,6 +160,8 @@ export default function AttachmentViewer({
                       className="w-full h-full object-cover"
                     />
                   </div>
+                ) : showThumbSkeleton ? (
+                  <div className={`${compact ? 'w-8 h-8' : 'w-10 h-10'} rounded-lg bg-gray-200 dark:bg-gray-700 animate-pulse`} />
                 ) : (
                   <div className={`rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center ${compact ? 'w-8 h-8' : 'w-10 h-10'}`}>
                     <File className={`text-gray-500 dark:text-gray-400 ${compact ? 'w-4 h-4' : 'w-5 h-5'}`} />
@@ -226,10 +183,11 @@ export default function AttachmentViewer({
 
               {/* Actions */}
               <div className="flex items-center gap-1">
-                {isImage(attachment.type) && (
+                {isImg && (
                   <button
-                    onClick={() => handleView(attachment)}
-                    className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                    onClick={() => !actionDisabled && handleView(attachment)}
+                    disabled={actionDisabled}
+                    className={`p-1.5 rounded transition-colors ${actionDisabled ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' : 'text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20'}`}
                     title="View full screen"
                   >
                     <ZoomIn className="w-4 h-4" />

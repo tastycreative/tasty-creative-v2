@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useCallback, useState, useMemo, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Session } from 'next-auth';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -9,6 +10,7 @@ import {
 import { useTaskUpdates } from '@/hooks/useTaskUpdates';
 import { useMarkAsFinal } from '@/hooks/useMarkAsFinal';
 import { useBoardStore, useBoardTasks, useBoardFilters, useBoardTaskActions, useBoardColumns, type Task, type BoardColumn, type NewTaskData } from '@/lib/stores/boardStore';
+import { useTasksQuery, useColumnsQuery, useTeamMembersQuery, useTeamSettingsQuery, boardQueryKeys, useUpdateTaskMutation, useUpdateTaskStatusMutation, useUpdateOFTVTaskMutation } from '@/hooks/useBoardQueries';
 import { formatForDisplay, formatForTaskCard, formatDueDate, formatForTaskDetail, toLocalDateTimeString, parseUserDate } from '@/lib/dateUtils';
 import { getTaskErrorMessage } from '@/lib/utils/errorMessages';
 import ColumnSettings from './ColumnSettings';
@@ -89,22 +91,29 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   // Navigation hooks
   const router = useRouter();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
 
   // Zustand store hooks
-  const { tasks, isLoading, error, currentTeamId, fetchTasks, setCurrentTeamId } = useBoardTasks();
+  const { tasks: storeTasks, isLoading: storeLoading, error, currentTeamId, fetchTasks, setCurrentTeamId } = useBoardTasks();
   const {
     searchTerm, priorityFilter, assigneeFilter, dueDateFilter, workflowFilter, sortBy, sortOrder, showFilters,
     setSearchTerm, setPriorityFilter, setAssigneeFilter, setDueDateFilter, setWorkflowFilter, setSortBy, setSortOrder, setShowFilters
   } = useBoardFilters();
   const { createTask, updateTaskStatus, updateTask, deleteTask } = useBoardTaskActions();
   const { 
-    columns, isLoadingColumns, showColumnSettings, fetchColumns, setShowColumnSettings 
+    columns: storeColumns, isLoadingColumns: storeLoadingColumns, showColumnSettings, fetchColumns, setShowColumnSettings 
   } = useBoardColumns();
+
+  // TanStack Query data sources
+  const tasksQuery = useTasksQuery(teamId);
+  const columnsQuery = useColumnsQuery(teamId);
+  const membersQuery = useTeamMembersQuery(teamId);
+  const settingsQuery = useTeamSettingsQuery(teamId);
   
   // Team membership state
   const [teamMembers, setTeamMembers] = useState<Array<{id: string, email: string, name?: string}>>([]);
   const [teamAdmins, setTeamAdmins] = useState<Array<{id: string, email: string, name?: string}>>([]);
-  const [isLoadingTeamMembers, setIsLoadingTeamMembers] = useState(false);
+  const isLoadingTeamMembers = membersQuery.isLoading;
   
   // Team settings state
   const [teamSettings, setTeamSettings] = useState<{columnNotificationsEnabled: boolean} | null>(null);
@@ -146,6 +155,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   const [showMinimumSkeleton, setShowMinimumSkeleton] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isCreatingOFTVTask, setIsCreatingOFTVTask] = useState(false);
+  const updateTaskMutation = useUpdateTaskMutation(teamId);
+  const updateTaskStatusMutation = useUpdateTaskStatusMutation(teamId);
+  const updateOFTVTaskMutation = useUpdateOFTVTaskMutation(teamId);
 
   // OFTV-specific task state
   const [oftvTaskData, setOftvTaskData] = useState<OFTVTaskData>({
@@ -176,85 +188,63 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   }, []);
 
   // Fetch team members and admins
-  const fetchTeamMembers = useCallback(async (teamId: string) => {
-    if (!teamId) return;
-    
-    try {
-      setIsLoadingTeamMembers(true);
-      const response = await fetch(`/api/pod/teams/${teamId}/members`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setTeamMembers(data.members || []);
-          setTeamAdmins(data.admins || []);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch team members:', error);
+  // Wire TanStack members query into local state to avoid large refactor
+  useEffect(() => {
+    if (membersQuery.data?.success) {
+      setTeamMembers(membersQuery.data.members || []);
+      setTeamAdmins(membersQuery.data.admins || []);
+    } else if (membersQuery.isError) {
       setTeamMembers([]);
       setTeamAdmins([]);
-    } finally {
-      setIsLoadingTeamMembers(false);
     }
-  }, []);
+  }, [membersQuery.data, membersQuery.isError]);
 
   // Fetch team settings including column notifications
-  const fetchTeamSettings = useCallback(async (teamId: string) => {
-    if (!teamId) return;
-    
-    try {
-      const response = await fetch(`/api/pod/teams/${teamId}/details`);
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setTeamSettings({
-            columnNotificationsEnabled: data.data.columnNotificationsEnabled
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch team settings:', error);
+  // Wire TanStack settings query into local state
+  useEffect(() => {
+    if (settingsQuery.data?.success) {
+      setTeamSettings({ columnNotificationsEnabled: settingsQuery.data.data.columnNotificationsEnabled });
+    } else if (settingsQuery.isError) {
       setTeamSettings(null);
     }
-  }, []);
+  }, [settingsQuery.data, settingsQuery.isError]);
 
   // Effect to ensure skeleton shows for minimum time
+  // Use tasks/columns loading states from queries
+  const qIsLoadingTasks = tasksQuery.isLoading;
+  const qTasks = (tasksQuery.data?.tasks ?? []) as Task[];
+  const qIsLoadingColumns = columnsQuery.isLoading;
+  const qColumns = (columnsQuery.data?.columns ?? []) as BoardColumn[];
+
   useEffect(() => {
-    if (isLoading && tasks.length === 0) {
+    if ((qIsLoadingTasks || qIsLoadingColumns) && qTasks.length === 0) {
       setShowMinimumSkeleton(true);
       const timer = setTimeout(() => {
-        if (!isLoading || tasks.length > 0) {
+        if (!(qIsLoadingTasks || qIsLoadingColumns) || qTasks.length > 0) {
           setShowMinimumSkeleton(false);
         }
       }, 300);
       return () => clearTimeout(timer);
     } else {
-      if (!isLoading) {
+      if (!(qIsLoadingTasks || qIsLoadingColumns)) {
         setShowMinimumSkeleton(false);
       }
     }
-  }, [isLoading, tasks.length]);
+  }, [qIsLoadingTasks, qIsLoadingColumns, qTasks.length]);
 
   // Consolidated team initialization and data fetching
   useEffect(() => {
     if (teamId !== currentTeamId) {
       setCurrentTeamId(teamId);
     }
-    const timeoutId = setTimeout(() => {
-      fetchTasks(teamId);
-      fetchColumns(teamId);
-      fetchTeamMembers(teamId);
-      fetchTeamSettings(teamId);
-    }, 100);
-
-    return () => clearTimeout(timeoutId);
-  }, [teamId, currentTeamId, setCurrentTeamId, fetchTasks, fetchColumns, fetchTeamMembers, fetchTeamSettings]);
+    // Queries auto-fetch on key change; keep slight delay parity for UX if needed
+  }, [teamId, currentTeamId, setCurrentTeamId]);
 
   // Handle URL parameter for task sharing - URL is the single source of truth
   useEffect(() => {
     const taskParam = searchParams?.get('task');
     
-    if (taskParam && tasks.length > 0) {
+    if (taskParam && qTasks.length > 0) {
       // URL has a task parameter - find task by ID or podTeam.projectPrefix-taskNumber
       let task: Task | undefined;
       
@@ -262,10 +252,10 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       if (taskParam.includes('-') && /^[A-Z0-9]{3,5}-\d+$/.test(taskParam)) {
         const [projectPrefix, taskNumberStr] = taskParam.split('-');
         const taskNumber = parseInt(taskNumberStr, 10);
-        task = tasks.find(t => t.podTeam?.projectPrefix === projectPrefix && t.taskNumber === taskNumber);
+        task = qTasks.find(t => t.podTeam?.projectPrefix === projectPrefix && t.taskNumber === taskNumber);
       } else {
         // Fall back to finding by task ID
-        task = tasks.find(t => t.id === taskParam);
+        task = qTasks.find(t => t.id === taskParam);
       }
       
       if (task && (!selectedTask || selectedTask.id !== task.id)) {
@@ -276,6 +266,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           podTeamName: task.podTeam?.name
         });
         setSelectedTask(task);
+        // Initialize editing data only when selection changes
         setEditingTaskData({
           title: task.title,
           description: task.description || '',
@@ -284,6 +275,19 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           assignedTo: task.assignedTo || '',
           attachments: task.attachments || []
         });
+      } else if (task) {
+        // If a task is already selected and matches, avoid resetting editing data unless it's empty
+        const isEditingEmpty = !editingTaskData || Object.keys(editingTaskData).length === 0;
+        if (isEditingEmpty) {
+          setEditingTaskData({
+            title: task.title,
+            description: task.description || '',
+            priority: task.priority,
+            dueDate: task.dueDate ? task.dueDate.split('T')[0] : '',
+            assignedTo: task.assignedTo || '',
+            attachments: task.attachments || []
+          });
+        }
       }
     } else if (!taskParam) {
       // No URL parameter - always clear the selection regardless of current state
@@ -293,9 +297,13 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       if (isEditingTask) {
         setIsEditingTask(false);
       }
-      setEditingTaskData({});
+      // Only clear editing data if it's not already empty to avoid infinite loops
+      if (editingTaskData && Object.keys(editingTaskData).length > 0) {
+        setEditingTaskData({});
+      }
     }
-  }, [searchParams, tasks]);
+    // Depend on the actual query string value to avoid reruns on stable renders
+  }, [searchParams?.toString(), qTasks, selectedTask, isEditingTask]);
 
   // Refs for scroll synchronization (prevents memory leaks)
   const headerScrollRef = useRef<HTMLDivElement | null>(null);
@@ -316,8 +324,8 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   // Update selected task when tasks are refetched (to preserve OFTV relation data)
   useEffect(() => {
-    if (selectedTask && tasks.length > 0) {
-      const updatedTask = tasks.find(t => t.id === selectedTask.id);
+    if (selectedTask && qTasks.length > 0) {
+      const updatedTask = qTasks.find(t => t.id === selectedTask.id);
       if (updatedTask && updatedTask.title) {
         // Only update if there's actual data difference (especially for relations like oftvTask)
         const hasOFTVDataChange = teamName === "OFTV" &&
@@ -329,7 +337,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         }
       }
     }
-  }, [tasks]);
+  }, [qTasks]);
 
   // Synchronize scroll between header and body on desktop
   useEffect(() => {
@@ -359,15 +367,16 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     onTaskUpdate: useCallback((update: any) => {
       const timeoutId = setTimeout(async () => {
         if (update.type === 'TASK_UPDATED' || update.type === 'TASK_CREATED' || update.type === 'TASK_DELETED') {
-          await fetchTasks(currentTeamId, true);
+          // Invalidate tasks to refetch
+          await queryClient.invalidateQueries({ queryKey: boardQueryKeys.tasks(currentTeamId) });
           
           // If a task is currently selected and was updated, refresh it with new data from the store
           if (update.taskId && update.type === 'TASK_UPDATED') {
             setTimeout(() => {
               const currentSelectedTask = useBoardStore.getState().selectedTask;
               if (currentSelectedTask && currentSelectedTask.id === update.taskId) {
-                const freshTasks = useBoardStore.getState().tasks;
-                const updatedTask = freshTasks.find(t => t.id === update.taskId);
+                const freshTasks: Task[] = ((queryClient.getQueryData(boardQueryKeys.tasks(currentTeamId)) as any)?.tasks || []) as Task[];
+                const updatedTask = freshTasks.find((t: Task) => t.id === update.taskId);
                 if (updatedTask) {
                   useBoardStore.getState().setSelectedTask(updatedTask as any);
                 }
@@ -399,8 +408,8 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     }
 
     try {
-      await createTask(newTaskData, status);
-      await fetchTasks(currentTeamId, true);
+  await createTask(newTaskData, status);
+  await queryClient.invalidateQueries({ queryKey: boardQueryKeys.tasks(currentTeamId) });
     } catch (error) {
       console.error('Error creating task:', error);
     }
@@ -416,11 +425,12 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     }
 
     try {
-      await deleteTask(taskId);
+  await deleteTask(taskId);
       await broadcastTaskUpdate({
         type: 'TASK_DELETED',
         taskId: taskId
       });
+  await queryClient.invalidateQueries({ queryKey: boardQueryKeys.tasks(currentTeamId) });
     } catch (error) {
       console.error('Error deleting task:', error);
     }
@@ -433,7 +443,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       return;
     }
 
-    const task = tasks.find((t) => t.id === taskId);
+  const task = qTasks.find((t) => t.id === taskId);
     if (task) {
       await markAsFinal(task);
     }
@@ -481,13 +491,13 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         dueDate: selectedTask.dueDate ? selectedTask.dueDate.split('T')[0] : '',
         assignedTo: selectedTask.assignedTo || '',
         attachments: selectedTask.attachments || [],
-        ModularWorkflow: selectedTask.ModularWorkflow ? {
+        ModularWorkflow: selectedTask.ModularWorkflow ? ({
           caption: selectedTask.ModularWorkflow.caption || '',
           pricing: selectedTask.ModularWorkflow.pricing || '',
           basePriceDescription: selectedTask.ModularWorkflow.basePriceDescription || '',
           gifUrl: selectedTask.ModularWorkflow.gifUrl || '',
           notes: selectedTask.ModularWorkflow.notes || '',
-        } : undefined
+        } as any) : undefined
       });
     }
     setIsEditingTask(true);
@@ -503,13 +513,13 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         dueDate: selectedTask.dueDate ? selectedTask.dueDate.split('T')[0] : '',
         assignedTo: selectedTask.assignedTo || '',
         attachments: selectedTask.attachments || [],
-        ModularWorkflow: selectedTask.ModularWorkflow ? {
+        ModularWorkflow: selectedTask.ModularWorkflow ? ({
           caption: selectedTask.ModularWorkflow.caption || '',
           pricing: selectedTask.ModularWorkflow.pricing || '',
           basePriceDescription: selectedTask.ModularWorkflow.basePriceDescription || '',
           gifUrl: selectedTask.ModularWorkflow.gifUrl || '',
           notes: selectedTask.ModularWorkflow.notes || '',
-        } : undefined
+        } as any) : undefined
       });
     }
   };
@@ -518,7 +528,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     if (!selectedTask) return;
 
     try {
-      await updateTask(selectedTask.id, { attachments: newAttachments });
+      await updateTaskMutation.mutateAsync({ taskId: selectedTask.id, updates: { attachments: newAttachments } });
       setSelectedTask({
         ...selectedTask,
         attachments: newAttachments
@@ -548,7 +558,8 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         attachments: editingTaskData.attachments || [],
       };
 
-      await updateTask(selectedTask.id, updates);
+      // Use TanStack mutation for task updates
+      await updateTaskMutation.mutateAsync({ taskId: selectedTask.id, updates });
 
       // Update ModularWorkflow QA fields if they exist
       let updatedWorkflow = null;
@@ -575,10 +586,10 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
       // Fetch the updated task from store (includes OFTV relations if updated)
       // Small delay to ensure store updates have propagated
-      await new Promise(resolve => setTimeout(resolve, 100));
+  await new Promise(resolve => setTimeout(resolve, 100));
       
-      const tasksInStore = useBoardStore.getState().tasks;
-      const updatedTaskFromStore = tasksInStore.find(t => t.id === selectedTask.id);
+  const fresh: Task[] = ((queryClient.getQueryData(boardQueryKeys.tasks(currentTeamId)) as any)?.tasks || []) as Task[];
+  const updatedTaskFromStore = fresh.find((t: any) => t.id === selectedTask.id);
       
       console.log('📊 Task from store after save:', {
         found: !!updatedTaskFromStore,
@@ -604,11 +615,12 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       // Update selected task state immediately
       setSelectedTask(updatedTask as Task);
 
-      await broadcastTaskUpdate({
+  await broadcastTaskUpdate({
         type: 'TASK_UPDATED',
         taskId: selectedTask.id,
         data: updatedTask
       });
+  await queryClient.invalidateQueries({ queryKey: boardQueryKeys.tasks(currentTeamId) });
       setIsEditingTask(false);
       setEditingTaskData({});
     } catch (error) {
@@ -692,7 +704,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       }
 
       // Refresh tasks to show the new task
-      await fetchTasks(currentTeamId, true);
+  await queryClient.invalidateQueries({ queryKey: boardQueryKeys.tasks(currentTeamId) });
       closeNewTaskModal();
     } catch (error) {
       console.error('Error creating OFTV task:', error);
@@ -798,11 +810,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     if (!selectedTask) return;
 
     try {
-      await updateTaskStatus(selectedTask.id, newStatus);
-      
-      // Refetch tasks to get the complete updated data including relations
-      await fetchTasks(currentTeamId, true);
-      
+      await updateTaskStatusMutation.mutateAsync({ taskId: selectedTask.id, status: newStatus });
+
+      // Keep broadcasting for real-time collaborators
       await broadcastTaskUpdate({
         type: 'TASK_UPDATED',
         taskId: selectedTask.id,
@@ -810,6 +820,17 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       });
     } catch (error) {
       console.error('Error updating task status:', error);
+    }
+  };
+
+  // Centralized OFTV updates routed through Board for consistent invalidation/broadcast
+  const updateOFTVTaskViaBoard = async (taskId: string, updates: any) => {
+    try {
+      await updateOFTVTaskMutation.mutateAsync({ taskId, updates });
+      await broadcastTaskUpdate({ type: 'TASK_UPDATED', taskId, data: updates });
+    } catch (error) {
+      console.error('Error updating OFTV task via mutation:', error);
+      throw error;
     }
   };
 
@@ -852,8 +873,15 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     // Store the old status for notification purposes
     const oldStatus = draggedTask.status;
 
-    // Update the task status first
-    await updateTaskStatus(draggedTask.id, newStatus);
+    // Update the task status via TanStack mutation (handles cache invalidation)
+    try {
+      await updateTaskStatusMutation.mutateAsync({ taskId: draggedTask.id, status: newStatus });
+    } catch (err) {
+      console.error('Error updating task status on drop:', err);
+      // Still clear drag state to avoid UI being stuck
+      setDraggedTask(null);
+      return;
+    }
 
     // For OFTV team, update the description based on column label
     if (teamName === "OFTV") {
@@ -866,8 +894,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     // Clear dragged task immediately to remove opacity effect
     setDraggedTask(null);
 
-    // No need to refetch - optimistic update in updateTaskStatus handles UI update
-    // Relations are preserved in the store update logic
+    // Cache will refresh via mutation's invalidation; relations stay consistent after refetch
   };
 
   // Function to update OFTV task description based on column transitions
@@ -879,7 +906,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     }
 
     // Find the new column to get its label
-    const newColumn = columns.find(col => col.status === newStatus);
+  const newColumn = qColumns.find(col => col.status === newStatus);
     if (!newColumn) return;
 
     const columnLabel = newColumn.label;
@@ -930,9 +957,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         `Thumbnail Editor: ${thumbnailEditor} (${thumbnailEditorStatus})`
       );
 
-    // Update the task with the new description
+    // Update the task with the new description via mutation for consistency
     try {
-      await updateTask(task.id, { description: updatedDescription });
+      await updateTaskMutation.mutateAsync({ taskId: task.id, updates: { description: updatedDescription } });
       
       // Broadcast the update
       await broadcastTaskUpdate({
@@ -955,14 +982,14 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       }
 
       // Find the target column to get assigned members
-      const targetColumn = columns.find(column => column.status === newStatus);
+    const targetColumn = qColumns.find(column => column.status === newStatus);
       
       if (!targetColumn || !targetColumn.assignedMembers || targetColumn.assignedMembers.length === 0) {
         return;
       }
 
-      // Get source column name for better logging
-      const sourceColumn = columns.find(col => col.status === oldStatus);
+  // Get source column name for better logging
+  const sourceColumn = qColumns.find(col => col.status === oldStatus);
 
       // Prepare notification data
       const notificationData = {
@@ -1012,17 +1039,17 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   const getColumnConfig = useMemo(() => {
     const columnConfig = () => {
       // If columns are still loading, return empty array to prevent using wrong status values
-      if (isLoadingColumns) {
+      if (qIsLoadingColumns) {
         return [];
       }
       
-      if (columns.length === 0) {
+      if (qColumns.length === 0) {
         // Only use default config if explicitly no columns are configured
-        console.log('Using default statusConfig, columns.length:', columns.length);
+        console.log('Using default statusConfig, columns.length:', qColumns.length);
         return Object.entries(statusConfig);
       }
       
-      return columns
+      return qColumns
         .sort((a, b) => a.position - b.position) // Ensure correct order
         .map(column => [
           column.status,
@@ -1035,7 +1062,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         ] as [string, any]);
     };
     return columnConfig;
-  }, [columns, isLoadingColumns]); // Dependency array ensures this updates when columns change
+  }, [qColumns, qIsLoadingColumns]); // Dependency array ensures this updates when columns change
 
   // Helper function to get grid classes and styles based on column count
   const getGridClasses = () => {
@@ -1043,7 +1070,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   };
 
   const getGridStyles = () => {
-    const columnCount = columns.length || 4;
+    const columnCount = qColumns.length || 4;
     return {
       gridTemplateColumns: `repeat(${columnCount}, minmax(300px, 1fr))`
     };
@@ -1160,8 +1187,8 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   // Memoize filtered and sorted tasks to prevent recalculation on every render
   const filteredAndSortedTasks = useMemo(
-    () => sortTasks(filterTasks(tasks)),
-    [tasks, searchTerm, priorityFilter, assigneeFilter, dueDateFilter, workflowFilter, sortBy, sortOrder]
+    () => sortTasks(filterTasks(qTasks)),
+    [qTasks, searchTerm, priorityFilter, assigneeFilter, dueDateFilter, workflowFilter, sortBy, sortOrder]
   );
 
   // OFTV-specific filtering
@@ -1241,6 +1268,20 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     return filteredAndSortedTasks;
   }, [filteredAndSortedTasks, teamName, activeTab, oftvFilters]);
 
+  // Summary component expects Date objects for date fields
+  const summaryTasks = useMemo(() => {
+    return qTasks.map(t => ({
+      id: t.id,
+      status: t.status as string,
+      priority: t.priority as string,
+      assignedBy: (t as any).assignedBy ?? null,
+      assignedTo: t.assignedTo ?? null,
+      createdAt: new Date(t.createdAt as any),
+      dueDate: t.dueDate ? new Date(t.dueDate as any) : null,
+      completedAt: (t as any).completedAt ? new Date((t as any).completedAt) : null,
+    }));
+  }, [qTasks]);
+
   // Show unauthorized message if user doesn't have access to this team
   if (!hasTeamAccess && !isLoadingTeamMembers) {
     return (
@@ -1258,7 +1299,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   // Using Luxon dateUtils now instead of local formatDate function
 
-  if (showMinimumSkeleton || (isLoading && tasks.length === 0) || isLoadingColumns) {
+  if (showMinimumSkeleton || ((qIsLoadingTasks || qIsLoadingColumns) && qTasks.length === 0)) {
     return (
       <BoardSkeleton
         teamName={teamName}
@@ -1274,9 +1315,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       {/* Board Header */}
       <BoardHeader
         teamName={teamName}
-        totalTasks={tasks.length}
+  totalTasks={qTasks.length}
         filteredTasksCount={filteredAndSortedTasks.length}
-        isLoading={isLoading}
+  isLoading={qIsLoadingTasks}
         activeTab={activeTab}
         onTabChange={setActiveTab}
       />
@@ -1285,11 +1326,11 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       {activeTab === 'summary' ? (
         <Summary
           teamName={teamName}
-          totalTasks={tasks.length}
+          totalTasks={qTasks.length}
           filteredTasksCount={filteredAndSortedTasks.length}
-          tasks={tasks}
+          tasks={summaryTasks}
           teamMembers={teamMembers}
-          columns={columns}
+          columns={qColumns}
         />
       ) : activeTab === 'resources' ? (
         <Resources
@@ -1304,7 +1345,6 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         <TeamSettings
           teamId={teamId}
           teamName={teamName}
-          teamPrefix={""} // You might want to fetch this from your team data
           teamMembers={teamMembers.concat(teamAdmins).map(member => ({
             id: member.id,
             name: member.name || member.email || 'Unknown',
@@ -1313,8 +1353,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
             userId: member.id,
           }))}
           onTeamUpdate={() => {
-            // Refresh team data after updates
-            fetchTeamMembers(teamId);
+            // Refresh team data after updates via invalidation
+            queryClient.invalidateQueries({ queryKey: boardQueryKeys.members(teamId) });
+            queryClient.invalidateQueries({ queryKey: boardQueryKeys.settings(teamId) });
           }}
         />
       ) : activeTab === 'list' ? (
@@ -1339,7 +1380,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           {/* List Table View */}
           <BoardList
             tasks={displayTasks}
-            columns={columns}
+            columns={qColumns}
             session={session}
             onTaskClick={openTaskDetail}
             teamName={teamName}
@@ -1358,7 +1399,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         sortOrder={sortOrder}
         showFilters={showFilters}
         filteredTasksCount={filteredAndSortedTasks.length}
-        totalTasks={tasks.length}
+  totalTasks={qTasks.length}
         setSearchTerm={setSearchTerm}
         setPriorityFilter={setPriorityFilter}
         setAssigneeFilter={setAssigneeFilter}
@@ -1382,13 +1423,12 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
       {/* Responsive Kanban Board */}
       <BoardGrid
-        columns={columns}
-        tasks={filteredAndSortedTasks}
+        columns={qColumns}
         session={session}
         draggedTask={draggedTask}
         showNewTaskForm={showNewTaskForm}
         newTaskData={newTaskData}
-        isLoading={isLoading}
+        isLoading={qIsLoadingTasks}
         showMinimumSkeleton={showMinimumSkeleton}
         canMoveTask={canMoveTask}
         onDragOver={handleDragOver}
@@ -1431,6 +1471,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           onUpdateTaskStatus={updateTaskStatusInModal}
           onAutoSaveAttachments={autoSaveAttachments}
           getColumnConfig={getColumnConfig}
+          onUpdateOFTVTask={updateOFTVTaskViaBoard}
         />
       )}
 
@@ -1453,7 +1494,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           newTaskStatus={newTaskStatus}
           taskData={oftvTaskData}
           isCreatingTask={isCreatingOFTVTask}
-          columns={columns}
+          columns={qColumns}
           teamId={teamId}
           onClose={closeNewTaskModal}
           onSetTaskData={handleSetOftvTaskData}
@@ -1465,7 +1506,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           newTaskStatus={newTaskStatus}
           newTaskData={newTaskData}
           isCreatingTask={isCreatingTask}
-          columns={columns}
+          columns={qColumns}
           onClose={closeNewTaskModal}
           onSetNewTaskData={setNewTaskData}
           onCreateTask={createTaskFromModal}

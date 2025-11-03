@@ -5,7 +5,6 @@ import { Send, MessageSquare, Loader2, AlertCircle, Edit2, Trash2, Check, X } fr
 import UserProfile from '@/components/ui/UserProfile';
 import CommentFilePreview from '@/components/ui/CommentFilePreview';
 import MentionsInput, { type MentionUser, type Mention } from '@/components/ui/MentionsInput';
-import { useTaskComments } from '@/lib/stores/boardStore';
 import { useNotifications } from '@/contexts/NotificationContext';
 import type { TaskComment, TaskAttachment } from '@/lib/stores/boardStore';
 import type { PreviewFile } from '@/components/ui/CommentFilePreview';
@@ -13,6 +12,15 @@ import { formatForDisplay } from '@/lib/dateUtils';
 
 
 import AttachmentViewer from "@/components/ui/AttachmentViewer";
+import {
+  useTaskCommentsQuery,
+  useCreateTaskCommentMutation,
+  useUpdateTaskCommentMutation,
+  useDeleteTaskCommentMutation,
+  useTeamMembersQuery,
+  boardQueryKeys,
+} from '@/hooks/useBoardQueries';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface UserData {
   id: string;
@@ -207,15 +215,13 @@ const formatTimeAgo = (dateString: string) => {
 };
 
 export default function TaskComments({ taskId, teamId, currentUser, isViewOnly = false }: TaskCommentsProps) {
-  const {
-    comments,
-    isLoading,
-    error,
-    fetchTaskComments,
-    createTaskComment,
-    updateTaskComment,
-    deleteTaskComment,
-  } = useTaskComments(taskId);
+  const qc = useQueryClient();
+  const commentsQuery = useTaskCommentsQuery(teamId || 'unknown', taskId);
+  const createComment = useCreateTaskCommentMutation(teamId || 'unknown', taskId);
+  const updateComment = useUpdateTaskCommentMutation(teamId || 'unknown', taskId);
+  const deleteComment = useDeleteTaskCommentMutation(teamId || 'unknown', taskId);
+  const membersQuery = useTeamMembersQuery(teamId || '');
+  const comments: TaskComment[] = (commentsQuery.data?.comments as TaskComment[]) || [];
 
   // Subscribe to real-time notifications for comment updates
   const { notifications } = useNotifications();
@@ -238,42 +244,20 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
   const [editCommentMentions, setEditCommentMentions] = useState<Mention[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
 
-  // Fetch team members and admins
+  // Fetch team members and admins via query
   useEffect(() => {
-    const fetchTeamMembers = async () => {
-      if (!teamId) {
-        return;
-      }
-      
-      setIsLoadingMembers(true);
-      try {
-        const response = await fetch(`/api/pod/teams/${teamId}/members`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            if (data.members) {
-              setTeamMembers(data.members);
-            }
-            if (data.admins) {
-              setTeamAdmins(data.admins);
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch team members:', error);
-      } finally {
-        setIsLoadingMembers(false);
-      }
-    };
-
-    fetchTeamMembers();
-  }, [teamId]);
-
-  useEffect(() => {
-    if (taskId) {
-      fetchTaskComments(taskId);
+    if (!teamId) return;
+    setIsLoadingMembers(true);
+    if (membersQuery.data?.success) {
+      setTeamMembers((membersQuery.data.members || []) as MentionUser[]);
+      setTeamAdmins((membersQuery.data.admins || []) as MentionUser[]);
+      setIsLoadingMembers(false);
+    } else if (membersQuery.isError) {
+      setTeamMembers([]);
+      setTeamAdmins([]);
+      setIsLoadingMembers(false);
     }
-  }, [taskId, fetchTaskComments]);
+  }, [teamId, membersQuery.data, membersQuery.isError]);
 
   // Listen for real-time comment notifications and refresh comments
   useEffect(() => {
@@ -300,13 +284,13 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
       // Add a small delay to ensure the comment is saved to database
       setTimeout(async () => {
         try {
-          await fetchTaskComments(taskId, true); // Force refresh to bypass cache
+          await qc.invalidateQueries({ queryKey: boardQueryKeys.comments(teamId || 'unknown', taskId) });
         } catch (error) {
-          console.error('Error refreshing comments:', error);
+          console.error('Error invalidating comments:', error);
         }
       }, 500); // 500ms delay
     }
-  }, [notifications, taskId, fetchTaskComments]);
+  }, [notifications, taskId, teamId, qc]);
 
   // Send comment notifications to team members
   const sendCommentNotifications = async (commentId?: string, action: string = 'ADDED') => {
@@ -391,8 +375,8 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
         }
       }
       
-      const commentText = newComment.trim() || ' ';
-      await createTaskComment(taskId, commentText, uploadedAttachments);
+  const commentText = newComment.trim() || ' ';
+  await createComment.mutateAsync({ content: commentText, attachments: uploadedAttachments });
       
       // Send mention notifications
       if (newCommentMentions.length > 0) {
@@ -483,8 +467,8 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
         }
       }
       
-      const commentText = editContent.trim();
-      await updateTaskComment(taskId, commentId, commentText, finalAttachments);
+  const commentText = editContent.trim();
+  await updateComment.mutateAsync({ commentId, content: commentText, attachments: finalAttachments });
       
       // Send mention notifications for edited comments
       if (editCommentMentions.length > 0) {
@@ -518,8 +502,8 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
     if (!confirm('Are you sure you want to delete this comment?')) return;
 
     try {
-      setIsDeletingComment(commentId);
-      await deleteTaskComment(taskId, commentId);
+  setIsDeletingComment(commentId);
+  await deleteComment.mutateAsync({ commentId });
       
       // Send comment deletion notifications to team members
       await sendCommentNotifications(commentId, 'DELETED');
@@ -538,7 +522,7 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
     return currentUser && currentUser.id === comment.user.id && !isViewOnly;
   };
 
-  if (isLoading) {
+  if (commentsQuery.isLoading) {
     return (
       <div className="space-y-4">
         <div className="flex items-center space-x-2">
@@ -561,18 +545,19 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
           <MessageSquare className="h-5 w-5 text-gray-500" />
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Comments</h3>
           <span className="text-sm text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
-            {comments.length}
+            {(commentsQuery.data?.comments || []).length}
           </span>
         </div>
       </div>
 
       {/* Error Display */}
-      {error && (
+      {commentsQuery.isError && (
         <div className="flex items-center space-x-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
           <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-          <span className="text-sm text-red-700 dark:text-red-300">{error.message}</span>
+          <span className="text-sm text-red-700 dark:text-red-300">{(commentsQuery.error as any)?.message || 'Failed to load comments'}</span>
         </div>
       )}
+
 
       {/* View-only message */}
       {isViewOnly && (
@@ -636,7 +621,7 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
             <p className="text-sm">No comments yet. Be the first to comment!</p>
           </div>
         ) : (
-          comments.map((comment) => (
+          comments.map((comment: TaskComment) => (
             <div key={comment.id} className="flex space-x-3 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
               <UserProfile user={comment.user} size="sm" showTooltip />
               <div className="flex-1 min-w-0">

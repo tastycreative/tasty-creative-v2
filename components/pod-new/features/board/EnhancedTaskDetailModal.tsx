@@ -71,6 +71,7 @@ interface EnhancedTaskDetailModalProps {
   onUpdateTaskStatus?: (status: Task["status"]) => void;
   onAutoSaveAttachments?: (attachments: any[]) => void;
   getColumnConfig?: () => Array<[string, any]>;
+  onUpdateOFTVTask?: (taskId: string, updates: any) => Promise<void>;
 }
 
 export default function EnhancedTaskDetailModal({
@@ -93,6 +94,7 @@ export default function EnhancedTaskDetailModal({
   onUpdateTaskStatus,
   onAutoSaveAttachments,
   getColumnConfig,
+  onUpdateOFTVTask,
 }: EnhancedTaskDetailModalProps) {
   const [showHistory, setShowHistory] = useState(false);
   const [showWorkflowDetails, setShowWorkflowDetails] = useState(true);
@@ -105,7 +107,8 @@ export default function EnhancedTaskDetailModal({
     (session.user.role !== 'ADMIN' && !isUserInTeam && !canEditTask(selectedTask));
 
   // Get workflow data
-  const workflowData = selectedTask.ModularWorkflow;
+  // Cast to any to allow accessing optional fields that aren't in the strict type
+  const workflowData = selectedTask.ModularWorkflow as any;
   const hasWorkflow = !!workflowData;
 
   // Get OFTV task data (only from database, no parsing)
@@ -155,8 +158,10 @@ export default function EnhancedTaskDetailModal({
     // Save OFTV data if it exists
     if (hasOFTVTask && editingOFTVData && oftvTaskData?.id) {
       try {
-        // Use zustand store action for optimistic update & persistence
-        await useBoardStore.getState().updateOFTVTask(selectedTask.id, { ...editingOFTVData, id: oftvTaskData.id });
+        // Delegate to Board so it can invalidate queries
+        if (onUpdateOFTVTask) {
+          await onUpdateOFTVTask(selectedTask.id, { ...editingOFTVData, id: oftvTaskData.id });
+        }
       } catch (error) {
         console.error('Error updating OFTV task via store:', error);
         alert('Failed to update OFTV task. Please try again.');
@@ -173,9 +178,10 @@ export default function EnhancedTaskDetailModal({
   // Handle OFTV status updates (for dropdown changes in view mode)
   const handleOFTVStatusUpdate = async (field: 'videoEditorStatus' | 'thumbnailEditorStatus', newStatus: string) => {
     if (!oftvTaskData?.id) return;
-    // Use zustand action to perform an optimistic update and persist to /api/oftv-tasks
     try {
-      await useBoardStore.getState().updateOFTVTask(selectedTask.id, { [field]: newStatus, id: oftvTaskData.id });
+      if (onUpdateOFTVTask) {
+        await onUpdateOFTVTask(selectedTask.id, { [field]: newStatus, id: oftvTaskData.id });
+      }
     } catch (error) {
       console.error('❌ Error updating OFTV status via store:', error);
       alert('Failed to update status. Please try again.');
@@ -870,7 +876,7 @@ export default function EnhancedTaskDetailModal({
                             External Creators
                           </label>
                           <div className="flex flex-wrap gap-1.5">
-                            {workflowData.externalCreatorTags.split(' ').filter(tag => tag.trim()).map((tag, idx) => (
+                            {workflowData.externalCreatorTags.split(' ').filter((tag: string) => tag.trim()).map((tag: string, idx: number) => (
                               <span
                                 key={idx}
                                 className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
@@ -889,7 +895,7 @@ export default function EnhancedTaskDetailModal({
                             Internal Models
                           </label>
                           <div className="flex flex-wrap gap-1.5">
-                            {workflowData.internalModelTags.map((tag, idx) => (
+                            {workflowData.internalModelTags.map((tag: string, idx: number) => (
                               <span
                                 key={idx}
                                 className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gradient-to-r from-pink-100 to-purple-100 text-purple-800 dark:from-pink-900/30 dark:to-purple-900/30 dark:text-purple-300"
@@ -1074,7 +1080,7 @@ export default function EnhancedTaskDetailModal({
                     <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                       {getColumnConfig 
                         ? getColumnConfig().find(([status]) => status === selectedTask.status)?.[1]?.label || selectedTask.status
-                        : statusConfig[selectedTask.status as keyof typeof statusConfig]?.label || selectedTask.status
+                        : getStatusConfig(selectedTask.status as any).label || selectedTask.status
                       }
                     </div>
                   )}
@@ -1289,7 +1295,7 @@ export default function EnhancedTaskDetailModal({
                     <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                       {getColumnConfig 
                         ? getColumnConfig().find(([status]) => status === selectedTask.status)?.[1]?.label || selectedTask.status
-                        : statusConfig[selectedTask.status as keyof typeof statusConfig]?.label || selectedTask.status
+                        : getStatusConfig(selectedTask.status as any).label || selectedTask.status
                       }
                     </div>
                   )}

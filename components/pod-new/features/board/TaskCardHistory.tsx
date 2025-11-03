@@ -1,24 +1,14 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from 'react';
-import {
-  Clock,
-  Edit3,
-  ArrowRight,
-  User,
-  Plus,
-  Trash2,
-  Calendar,
-  Tag,
-  Loader2,
-  AlertCircle,
-  GitCommit
-} from 'lucide-react';
+import { Clock, Edit3, ArrowRight, User, Plus, Trash2, Calendar, Tag, Loader2, AlertCircle, GitCommit } from 'lucide-react';
 import Image from 'next/image';
-import { useTaskActivities } from '@/lib/stores/boardStore';
 import type { TaskActivity } from '@/lib/stores/boardStore';
 import UserProfile from '@/components/ui/UserProfile';
 import { formatForDisplay } from '@/lib/dateUtils';
+import { useColumnsQuery, useTaskActivitiesQuery, boardQueryKeys } from '@/hooks/useBoardQueries';
+import { useQueryClient } from '@tanstack/react-query';
+import { useNotifications } from '@/contexts/NotificationContext';
 
 interface TaskCardHistoryProps {
   taskId: string;
@@ -62,33 +52,51 @@ const formatTimeAgo = (dateString: string) => {
 };
 
 export default function TaskCardHistory({ taskId, teamId, isModal = false }: TaskCardHistoryProps) {
-  const {
-    activities,
-    isLoading,
-    error,
-    columns,
-    fetchTaskActivities,
-  } = useTaskActivities(taskId);
+  const qc = useQueryClient();
+  const { notifications } = useNotifications();
+  const activitiesQuery = useTaskActivitiesQuery(teamId, taskId);
+  const columnsQuery = useColumnsQuery(teamId);
+  const activities: TaskActivity[] = (activitiesQuery.data?.activities as TaskActivity[]) || [];
   
   const [visibleCount, setVisibleCount] = useState(4); // Start with 4 activities
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  // Invalidate on recent activity notifications for this task
   useEffect(() => {
-    if (taskId && teamId) {
-      fetchTaskActivities(taskId, teamId);
+    if (!taskId) return;
+    const recent = notifications.filter(n => {
+      const isActivityRelated = [
+        'TASK_CREATED',
+        'TASK_UPDATED',
+        'TASK_STATUS_CHANGED',
+        'TASK_PRIORITY_CHANGED',
+        'TASK_ASSIGNED',
+        'TASK_UNASSIGNED',
+        'TASK_DUE_DATE_CHANGED',
+      ].includes(n.type);
+      const isThisTask = n.data?.taskId === taskId;
+      const isRecent = new Date(n.createdAt).getTime() > Date.now() - 5000;
+      return isActivityRelated && isThisTask && isRecent;
+    });
+    if (recent.length > 0) {
+      setTimeout(() => {
+        qc.invalidateQueries({ queryKey: boardQueryKeys.activities(teamId, taskId) });
+        qc.invalidateQueries({ queryKey: boardQueryKeys.tasks(teamId) });
+      }, 300);
     }
-  }, [taskId, teamId, fetchTaskActivities]);
+  }, [notifications, taskId, teamId, qc]);
 
   const loadMoreActivities = () => {
     setVisibleCount(prev => Math.min(prev + 5, activities.length));
   };
 
   const resolveStatusLabel = (value: string): string => {
-    const column = columns.find(col => col.status === value);
-    return column ? column.label : value;
+    const cols = columnsQuery.data?.columns || [];
+    const column = cols.find((col) => col.status === value);
+    return column ? (column as any).label : value;
   };
 
-  if (isLoading) {
+  if (activitiesQuery.isLoading) {
     return (
       <div className="w-full p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
         <div className="flex items-center justify-center">
@@ -99,12 +107,12 @@ export default function TaskCardHistory({ taskId, teamId, isModal = false }: Tas
     );
   }
 
-  if (error) {
+  if (activitiesQuery.isError) {
     return (
       <div className="w-full p-6 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
         <div className="flex items-center text-red-600 dark:text-red-400">
           <AlertCircle className="h-4 w-4" />
-          <span className="ml-2 text-sm">{error.message || 'Failed to load activity history'}</span>
+    <span className="ml-2 text-sm">{(activitiesQuery.error as any)?.message || 'Failed to load activity history'}</span>
         </div>
       </div>
     );

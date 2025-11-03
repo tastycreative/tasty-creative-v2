@@ -14,6 +14,14 @@ import {
 } from 'lucide-react';
 import { useBoardColumns } from '@/lib/stores/boardStore';
 import type { BoardColumn } from '@/lib/stores/boardStore';
+import {
+  useColumnsQuery,
+  useCreateColumnMutation,
+  useUpdateColumnMutation,
+  useDeleteColumnMutation,
+  useReorderColumnsMutation,
+  useResetColumnsMutation,
+} from '@/hooks/useBoardQueries';
 
 interface ColumnSettingsProps {
   currentTeamId: string;
@@ -40,17 +48,20 @@ const PREDEFINED_COLORS = [
 
 const ColumnSettings = React.memo<ColumnSettingsProps>(({ currentTeamId }) => {
   const {
-    columns,
-    isLoadingColumns,
     showColumnSettings,
-    fetchColumns,
-    createColumn,
-    updateColumn,
-    deleteColumn,
-    reorderColumns,
-    resetToDefaultColumns,
     setShowColumnSettings,
   } = useBoardColumns();
+
+  // TanStack Query for columns data and mutations
+  const columnsQuery = useColumnsQuery(currentTeamId);
+  const createColumnMutation = useCreateColumnMutation(currentTeamId);
+  const updateColumnMutation = useUpdateColumnMutation(currentTeamId);
+  const deleteColumnMutation = useDeleteColumnMutation(currentTeamId);
+  const reorderColumnsMutation = useReorderColumnsMutation(currentTeamId);
+  const resetColumnsMutation = useResetColumnsMutation(currentTeamId);
+
+  const columns: BoardColumn[] = (columnsQuery.data?.columns as BoardColumn[]) || [];
+  const isLoadingColumns = columnsQuery.isLoading;
 
   const [editingColumn, setEditingColumn] = useState<EditingColumn | null>(null);
   const [newColumnLabel, setNewColumnLabel] = useState('');
@@ -67,12 +78,7 @@ const ColumnSettings = React.memo<ColumnSettingsProps>(({ currentTeamId }) => {
     }
   }, [columns, draggedColumn]);
 
-  // Load columns when component mounts or team changes (only if not already loaded)
-  React.useEffect(() => {
-    if (currentTeamId && showColumnSettings && columns.length === 0 && !isLoadingColumns) {
-      fetchColumns(currentTeamId);
-    }
-  }, [currentTeamId, showColumnSettings, columns.length, isLoadingColumns, fetchColumns]);
+  // Columns load via Query automatically when modal is open
 
   const handleSaveEdit = async () => {
     if (!editingColumn) return;
@@ -94,7 +100,7 @@ const ColumnSettings = React.memo<ColumnSettingsProps>(({ currentTeamId }) => {
       
     }
     
-    await updateColumn(editingColumn.id, updateData);
+  await updateColumnMutation.mutateAsync({ id: editingColumn.id, updates: updateData });
     setEditingColumn(null);
   };
 
@@ -104,7 +110,7 @@ const ColumnSettings = React.memo<ColumnSettingsProps>(({ currentTeamId }) => {
 
   const handleDeleteColumn = async (columnId: string) => {
     if (window.confirm('Are you sure you want to delete this column?')) {
-      await deleteColumn(columnId);
+      await deleteColumnMutation.mutateAsync({ id: columnId });
     }
   };
 
@@ -112,7 +118,8 @@ const ColumnSettings = React.memo<ColumnSettingsProps>(({ currentTeamId }) => {
     if (!newColumnLabel.trim()) return;
 
     const newStatus = `CUSTOM_${Date.now()}`;
-    await createColumn({
+    await createColumnMutation.mutateAsync({
+      // Cast to any for flexibility; API will ignore extra fields
       teamId: currentTeamId,
       label: newColumnLabel.trim(),
       status: newStatus,
@@ -120,7 +127,7 @@ const ColumnSettings = React.memo<ColumnSettingsProps>(({ currentTeamId }) => {
       color: newColumnColor,
       isDefault: false,
       isActive: true,
-    });
+    } as unknown as any);
 
     setNewColumnLabel('');
     setNewColumnColor('#6B7280');
@@ -129,7 +136,7 @@ const ColumnSettings = React.memo<ColumnSettingsProps>(({ currentTeamId }) => {
 
   const handleResetColumns = async () => {
     if (window.confirm('This will reset all columns to the default 4-column layout. Are you sure?')) {
-      await resetToDefaultColumns(currentTeamId);
+      await resetColumnsMutation.mutateAsync();
     }
   };
 
@@ -176,8 +183,8 @@ const ColumnSettings = React.memo<ColumnSettingsProps>(({ currentTeamId }) => {
         position: index
       }));
 
-      // Store will handle optimistic updates
-      await reorderColumns(updatedColumns);
+  // Apply reorder via mutation (backend will persist and cache will invalidate)
+  await reorderColumnsMutation.mutateAsync({ columnIds: updatedColumns.map(c => c.id) });
     }
     
     setDraggedColumn(null);

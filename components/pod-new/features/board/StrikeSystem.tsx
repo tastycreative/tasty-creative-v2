@@ -8,6 +8,7 @@ import UserDropdown from "@/components/UserDropdown";
 import CommentFilePreview, { type PreviewFile } from "@/components/ui/CommentFilePreview";
 import AttachmentViewer from "@/components/ui/AttachmentViewer";
 import { TaskAttachment } from "@/lib/stores/boardStore";
+import { useStrikesQuery, useAddStrikeMutation } from '@/hooks/useBoardQueries';
 
 interface EditorStrike {
   id: string;
@@ -46,6 +47,8 @@ export default function StrikeSystem({ teamId }: StrikeSystemProps) {
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'MODERATOR';
   
+  const strikesQuery = useStrikesQuery(teamId);
+  const addStrike = useAddStrikeMutation(teamId);
   const [editorStrikes, setEditorStrikes] = useState<EditorStrike[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddStrikeModal, setShowAddStrikeModal] = useState(false);
@@ -62,59 +65,47 @@ export default function StrikeSystem({ teamId }: StrikeSystemProps) {
   const [isUploadingFiles, setIsUploadingFiles] = useState(false);
 
   // Function to fetch strikes
-  const fetchStrikes = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(`/api/strikes?teamId=${teamId}`);
-      if (response.ok) {
-        const data = await response.json();
-        // Transform strikes data to match EditorStrike interface
-        const groupedStrikes: Record<string, EditorStrike> = {};
-        
-        data.strikes.forEach((strike: any) => {
-          const userKey = strike.user.email;
-          if (!groupedStrikes[userKey]) {
-            groupedStrikes[userKey] = {
-              id: strike.user.id,
-              editorName: strike.user.name || strike.user.email,
-              editorEmail: strike.user.email,
-              editorImage: strike.user.image,
-              strikes: 0,
-              reasons: [],
-            };
-          }
-          
-          groupedStrikes[userKey].strikes += 1;
-          groupedStrikes[userKey].reasons.push({
-            id: strike.id,
-            reason: strike.reason,
-            date: new Date(strike.createdAt).toLocaleDateString(),
-            createdAt: strike.createdAt,
-            notes: strike.notes,
-            issuedBy: {
-              name: strike.issuedBy.name || strike.issuedBy.email,
-              email: strike.issuedBy.email,
-              image: strike.issuedBy.image,
-            },
-            attachments: strike.attachments ? JSON.parse(strike.attachments) : undefined,
-          });
+  // Map strikes query to EditorStrike structure
+  useEffect(() => {
+    setIsLoading(strikesQuery.isLoading);
+    if (strikesQuery.data?.strikes) {
+      const grouped: Record<string, EditorStrike> = {};
+      for (const strike of strikesQuery.data.strikes as any[]) {
+        const userKey = strike.user.email;
+        if (!grouped[userKey]) {
+          grouped[userKey] = {
+            id: strike.user.id,
+            editorName: strike.user.name || strike.user.email,
+            editorEmail: strike.user.email,
+            editorImage: strike.user.image,
+            strikes: 0,
+            reasons: [],
+          };
+        }
+        grouped[userKey].strikes += 1;
+        grouped[userKey].reasons.push({
+          id: strike.id,
+          reason: strike.reason,
+          date: new Date(strike.createdAt).toLocaleDateString(),
+          createdAt: strike.createdAt,
+          notes: strike.notes,
+          issuedBy: {
+            name: strike.issuedBy.name || strike.issuedBy.email,
+            email: strike.issuedBy.email,
+            image: strike.issuedBy.image,
+          },
+          attachments: strike.attachments ? JSON.parse(strike.attachments) : undefined,
         });
-        
-        setEditorStrikes(Object.values(groupedStrikes));
-      } else {
-        console.error('Failed to fetch strikes');
-        setEditorStrikes([]);
       }
-    } catch (error) {
-      console.error('Error fetching strikes:', error);
+      setEditorStrikes(Object.values(grouped));
+    } else if (strikesQuery.isError) {
       setEditorStrikes([]);
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [strikesQuery.data, strikesQuery.isLoading, strikesQuery.isError]);
 
   useEffect(() => {
-    fetchStrikes();
+    // Trigger refetch when team changes
+    if (teamId) strikesQuery.refetch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamId]);
 
@@ -175,26 +166,7 @@ export default function StrikeSystem({ teamId }: StrikeSystemProps) {
       const reason = selectedReason === "custom" ? customReason : STRIKE_RULES[parseInt(selectedReason)];
       
       // Call the API to add strike
-      const response = await fetch('/api/strikes', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: selectedEditorId,
-          podTeamId: teamId,
-          reason: reason,
-          notes: strikeNotes.trim() || null,
-          attachments: uploadedAttachments,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to add strike');
-      }
-
-      const result = await response.json();
+  const result = await addStrike.mutateAsync({ userId: selectedEditorId, reason, notes: strikeNotes.trim() || null, attachments: uploadedAttachments });
       console.log('Strike added successfully:', result);
       
       // Show success message
@@ -217,7 +189,7 @@ export default function StrikeSystem({ teamId }: StrikeSystemProps) {
       });
       
       // Refresh strikes list
-      await fetchStrikes();
+  await strikesQuery.refetch();
       
       // Refresh strikes list
       // fetchStrikes();
