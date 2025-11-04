@@ -233,7 +233,7 @@ export function useDeleteStrikeMutation(teamId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (params: { id: string }) => {
-      const res = await fetch(`/api/strikes/${encodeURIComponent(params.id)}`, {
+  const res = await fetch(`/api/strikes?strikeId=${encodeURIComponent(params.id)}`, {
         method: 'DELETE',
       });
       if (!res.ok) {
