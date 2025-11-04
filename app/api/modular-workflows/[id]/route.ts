@@ -37,7 +37,10 @@ export async function PATCH(
   } catch (error) {
     console.error("Error updating workflow:", error);
     return NextResponse.json(
-      { error: "Failed to update workflow" },
+      {
+        error: "Failed to update workflow",
+        details: error instanceof Error ? error.message : String(error)
+      },
       { status: 500 }
     );
   }

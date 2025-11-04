@@ -1047,7 +1047,10 @@ export default function EnhancedTaskDetailModal({
 
                                         if (!response.ok) {
                                           const errorData = await response.json().catch(() => ({}));
-                                          throw new Error(errorData.error || 'Failed to update content tags');
+                                          const errorMsg = errorData.details
+                                            ? `${errorData.error}: ${errorData.details}`
+                                            : (errorData.error || 'Failed to update content tags');
+                                          throw new Error(errorMsg);
                                         }
 
                                         // Successfully saved - reload to refresh UI
