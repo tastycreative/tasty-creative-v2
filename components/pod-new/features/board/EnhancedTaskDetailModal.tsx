@@ -1046,19 +1046,15 @@ export default function EnhancedTaskDetailModal({
                                         });
 
                                         if (!response.ok) {
-                                          throw new Error('Failed to update content tags');
+                                          const errorData = await response.json().catch(() => ({}));
+                                          throw new Error(errorData.error || 'Failed to update content tags');
                                         }
 
-                                        // Update parent component if needed
-                                        if (onUpdate) {
-                                          await onUpdate(selectedTask.id, {
-                                            ...selectedTask,
-                                            ModularWorkflow: updatedWorkflow
-                                          } as any);
-                                        }
+                                        // Successfully saved - reload to refresh UI
+                                        window.location.reload();
                                       } catch (error) {
                                         console.error('Error updating content tags:', error);
-                                        alert('Failed to update content tags. Please try again.');
+                                        alert(`Failed to update content tags: ${error instanceof Error ? error.message : 'Unknown error'}`);
                                       }
                                     }}
                                     disabled={isViewOnly}
