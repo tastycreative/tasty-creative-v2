@@ -404,64 +404,6 @@ export default function EnhancedTaskDetailModal({
                   />
                 </div>
 
-                {/* Content Tags - QA Team Section (Only for ModularWorkflow tasks) */}
-                {hasWorkflow && (
-                  <div>
-                    <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mb-3">
-                      <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
-                        QA Team
-                      </h4>
-                    </div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                      Content Tags
-                    </label>
-                    <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-white/50 dark:bg-gray-800/50 max-h-[280px] overflow-y-auto">
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {CONTENT_TAGS.map((tag) => {
-                          const currentTags = (editingTaskData as any).ModularWorkflow?.contentTags || workflowData?.contentTags || [];
-                          const isSelected = currentTags.includes(tag);
-
-                          return (
-                            <label
-                              key={tag}
-                              className={`flex items-center space-x-2 p-2.5 rounded-lg cursor-pointer transition-all ${
-                                isSelected
-                                  ? 'bg-purple-100 dark:bg-purple-900/30 border-2 border-purple-500 dark:border-purple-400'
-                                  : 'bg-gray-50 dark:bg-gray-700/50 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
-                              }`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={(e) => {
-                                  const newTags = e.target.checked
-                                    ? [...currentTags, tag]
-                                    : currentTags.filter((t: string) => t !== tag);
-
-                                  onSetEditingTaskData?.({
-                                    ...editingTaskData,
-                                    ModularWorkflow: {
-                                      ...(editingTaskData as any).ModularWorkflow,
-                                      contentTags: newTags
-                                    }
-                                  } as any);
-                                }}
-                                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 focus:ring-2"
-                              />
-                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100 select-none">
-                                {tag}
-                              </span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                      Select all tags that apply to this content
-                    </p>
-                  </div>
-                )}
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Edit Priority */}
                   <div>
@@ -1062,24 +1004,78 @@ export default function EnhancedTaskDetailModal({
                         </div>
                       )}
 
-                      {/* Content Tags */}
-                      {workflowData?.contentTags && workflowData.contentTags.length > 0 && (
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-                            Content Tags
-                          </label>
-                          <div className="flex flex-wrap gap-2">
-                            {workflowData.contentTags.map((tag: string, index: number) => (
-                              <span
-                                key={index}
-                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-                              >
-                                {tag}
-                              </span>
-                            ))}
+                      {/* Content Tags - Editable */}
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                          Content Tags
+                        </label>
+                        <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-white/50 dark:bg-gray-800/50 max-h-[240px] overflow-y-auto">
+                          <div className="grid grid-cols-2 gap-2">
+                            {CONTENT_TAGS.map((tag) => {
+                              const currentTags = workflowData?.contentTags || [];
+                              const isSelected = currentTags.includes(tag);
+
+                              return (
+                                <label
+                                  key={tag}
+                                  className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all ${
+                                    isSelected
+                                      ? 'bg-purple-100 dark:bg-purple-900/30 border border-purple-500 dark:border-purple-400'
+                                      : 'bg-gray-50 dark:bg-gray-700/50 border border-transparent hover:border-gray-300 dark:hover:border-gray-600'
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={async (e) => {
+                                      if (!selectedTask.ModularWorkflow?.id) return;
+
+                                      const newTags = e.target.checked
+                                        ? [...currentTags, tag]
+                                        : currentTags.filter((t: string) => t !== tag);
+
+                                      // Optimistic update
+                                      const updatedWorkflow = { ...workflowData, contentTags: newTags };
+
+                                      // Save to API
+                                      try {
+                                        const response = await fetch(`/api/modular-workflows/${selectedTask.ModularWorkflow.id}`, {
+                                          method: 'PATCH',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ contentTags: newTags }),
+                                        });
+
+                                        if (!response.ok) {
+                                          throw new Error('Failed to update content tags');
+                                        }
+
+                                        // Update parent component if needed
+                                        if (onUpdate) {
+                                          await onUpdate(selectedTask.id, {
+                                            ...selectedTask,
+                                            ModularWorkflow: updatedWorkflow
+                                          } as any);
+                                        }
+                                      } catch (error) {
+                                        console.error('Error updating content tags:', error);
+                                        alert('Failed to update content tags. Please try again.');
+                                      }
+                                    }}
+                                    disabled={isViewOnly}
+                                    className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  />
+                                  <span className="text-xs font-medium text-gray-900 dark:text-gray-100 select-none">
+                                    {tag}
+                                  </span>
+                                </label>
+                              );
+                            })}
                           </div>
                         </div>
-                      )}
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
+                          Select all tags that apply to this content
+                        </p>
+                      </div>
                     </>
                   )}
 
