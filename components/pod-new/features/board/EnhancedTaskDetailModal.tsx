@@ -12,6 +12,7 @@ import TaskCardHistory from "./TaskCardHistory";
 import TaskComments from "./TaskComments";
 import UserProfile from "@/components/ui/UserProfile";
 import { getStatusConfig } from "@/lib/config/boardConfig";
+import { CONTENT_TAGS } from "@/lib/constants/contentTags";
 
 // Utility function to make links clickable
 const linkifyText = (text: string) => {
@@ -416,12 +417,7 @@ export default function EnhancedTaskDetailModal({
                     </label>
                     <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-white/50 dark:bg-gray-800/50 max-h-[280px] overflow-y-auto">
                       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {[
-                          'Dildo', 'Fingering', 'Vibrator', 'Squirting', 'Blowjob', 'Handjob',
-                          'Pussy Eating', 'Rim Job', 'Double Penetration', 'Cream Pie', 'POV',
-                          'Creaming', 'Rough', 'Toys', 'Anal', 'BBC', 'Drooling', 'Footjob',
-                          'Doggy', 'Missionary', 'Cowgirl', 'Reversed Cowgirl'
-                        ].map((tag) => {
+                        {CONTENT_TAGS.map((tag) => {
                           const currentTags = (editingTaskData as any).ModularWorkflow?.contentTags || workflowData?.contentTags || [];
                           const isSelected = currentTags.includes(tag);
 
