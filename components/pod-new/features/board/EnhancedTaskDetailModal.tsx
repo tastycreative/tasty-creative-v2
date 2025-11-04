@@ -403,6 +403,69 @@ export default function EnhancedTaskDetailModal({
                   />
                 </div>
 
+                {/* Content Tags - QA Team Section (Only for ModularWorkflow tasks) */}
+                {hasWorkflow && (
+                  <div>
+                    <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mb-3">
+                      <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
+                        QA Team
+                      </h4>
+                    </div>
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                      Content Tags
+                    </label>
+                    <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-white/50 dark:bg-gray-800/50 max-h-[280px] overflow-y-auto">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {[
+                          'Dildo', 'Fingering', 'Vibrator', 'Squirting', 'Blowjob', 'Handjob',
+                          'Pussy Eating', 'Rim Job', 'Double Penetration', 'Cream Pie', 'POV',
+                          'Creaming', 'Rough', 'Toys', 'Anal', 'BBC', 'Drooling', 'Footjob',
+                          'Doggy', 'Missionary', 'Cowgirl', 'Reversed Cowgirl'
+                        ].map((tag) => {
+                          const currentTags = (editingTaskData as any).ModularWorkflow?.contentTags || workflowData?.contentTags || [];
+                          const isSelected = currentTags.includes(tag);
+
+                          return (
+                            <label
+                              key={tag}
+                              className={`flex items-center space-x-2 p-2.5 rounded-lg cursor-pointer transition-all ${
+                                isSelected
+                                  ? 'bg-purple-100 dark:bg-purple-900/30 border-2 border-purple-500 dark:border-purple-400'
+                                  : 'bg-gray-50 dark:bg-gray-700/50 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-600'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  const newTags = e.target.checked
+                                    ? [...currentTags, tag]
+                                    : currentTags.filter((t: string) => t !== tag);
+
+                                  onSetEditingTaskData?.({
+                                    ...editingTaskData,
+                                    ModularWorkflow: {
+                                      ...(editingTaskData as any).ModularWorkflow,
+                                      contentTags: newTags
+                                    }
+                                  } as any);
+                                }}
+                                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 focus:ring-2"
+                              />
+                              <span className="text-sm font-medium text-gray-900 dark:text-gray-100 select-none">
+                                {tag}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                      Select all tags that apply to this content
+                    </p>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Edit Priority */}
                   <div>

@@ -570,6 +570,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           basePriceDescription: (editingTaskData as any).ModularWorkflow.basePriceDescription,
           gifUrl: (editingTaskData as any).ModularWorkflow.gifUrl,
           notes: (editingTaskData as any).ModularWorkflow.notes,
+          contentTags: (editingTaskData as any).ModularWorkflow.contentTags,
         };
 
         // Call API to update workflow

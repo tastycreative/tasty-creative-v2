@@ -101,7 +101,6 @@ interface ModularFormData {
   contentCount?: string;
 
   // Tags fields
-  contentTags?: string[];
   externalCreatorTags?: string;
   internalModelTags?: string[];
 
@@ -687,7 +686,6 @@ export default function ModularWorkflowWizard() {
         contentLength: data.contentLength,
         contentCount: data.contentCount,
         // Tags fields
-        contentTags: data.contentTags || [],
         externalCreatorTags: data.externalCreatorTags,
         internalModelTags: data.internalModelTags || [],
         teamId: selectedTeamId,
