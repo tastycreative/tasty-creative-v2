@@ -45,6 +45,7 @@ interface ModularWorkflowData {
   contentType?: 'BG' | 'BGG' | 'GG' | 'GGG' | 'ORGY' | 'SOLO' | 'COMPILATION' | 'AHEGAO' | 'JOI' | 'THANK_YOU_VIDS' | 'VIP_GIFTS' | 'BJ' | 'FEET';
   contentLength?: string;        // e.g., "8:43" or "8 mins 43 secs"
   contentCount?: string;          // e.g., "1 Video" or "3 Photos"
+  contentTags?: string[];         // QA Team content tags (Dildo, Fingering, etc.)
   externalCreatorTags?: string;   // e.g., "@johndoe @janedoe"
   internalModelTags?: string[];   // Array of internal model names
 
@@ -594,6 +595,7 @@ export async function POST(request: NextRequest) {
         contentType: data.contentType || null,
         contentLength: data.contentLength || null,
         contentCount: data.contentCount || null,
+        contentTags: data.contentTags || [],
         externalCreatorTags: data.externalCreatorTags || null,
         internalModelTags: data.internalModelTags || [],
         teamAssignments: {

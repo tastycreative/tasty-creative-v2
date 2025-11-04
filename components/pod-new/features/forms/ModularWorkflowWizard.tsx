@@ -101,6 +101,7 @@ interface ModularFormData {
   contentCount?: string;
 
   // Tags fields
+  contentTags?: string[];
   externalCreatorTags?: string;
   internalModelTags?: string[];
 
@@ -686,6 +687,7 @@ export default function ModularWorkflowWizard() {
         contentLength: data.contentLength,
         contentCount: data.contentCount,
         // Tags fields
+        contentTags: data.contentTags || [],
         externalCreatorTags: data.externalCreatorTags,
         internalModelTags: data.internalModelTags || [],
         teamId: selectedTeamId,
@@ -1102,6 +1104,45 @@ export default function ModularWorkflowWizard() {
                         Click to select internal models ({selectedInternalModels.length} selected)
                       </p>
                     </div>
+                  </div>
+
+                  {/* Content Tags - QA Team Section */}
+                  <div>
+                    <Label htmlFor="contentTags" className="block mb-2 font-medium">
+                      Content Tags (QA Team)
+                    </Label>
+                    <select
+                      id="contentTags"
+                      multiple
+                      className="w-full border border-gray-300 dark:border-gray-700 rounded-md p-2 min-h-[120px] text-sm"
+                      {...register("contentTags")}
+                    >
+                      <option value="Dildo">Dildo</option>
+                      <option value="Fingering">Fingering</option>
+                      <option value="Vibrator">Vibrator</option>
+                      <option value="Squirting">Squirting</option>
+                      <option value="Blowjob">Blowjob</option>
+                      <option value="Handjob">Handjob</option>
+                      <option value="Pussy Eating">Pussy Eating</option>
+                      <option value="Rim Job">Rim Job</option>
+                      <option value="Double Penetration">Double Penetration</option>
+                      <option value="Cream Pie">Cream Pie</option>
+                      <option value="POV">POV</option>
+                      <option value="Creaming">Creaming</option>
+                      <option value="Rough">Rough</option>
+                      <option value="Toys">Toys</option>
+                      <option value="Anal">Anal</option>
+                      <option value="BBC">BBC</option>
+                      <option value="Drooling">Drooling</option>
+                      <option value="Footjob">Footjob</option>
+                      <option value="Doggy">Doggy</option>
+                      <option value="Missionary">Missionary</option>
+                      <option value="Cowgirl">Cowgirl</option>
+                      <option value="Reversed Cowgirl">Reversed Cowgirl</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Hold Ctrl/Cmd to select multiple tags (QA Team will review)
+                    </p>
                   </div>
                 </div>
 

@@ -59,20 +59,20 @@ export async function POST(request: NextRequest) {
     // Map ModularWorkflow data to GalleryMasterList format
     const galleryEntry = await prisma.galleryMasterList.create({
       data: {
-        page: workflow.modelName || null,                    // Creator/model name
-        content_style: workflow.contentStyle || null,        // NORMAL/GAME/POLL
-        price: workflow.pricing || null,                     // Price as string
+        page: workflow.modelName || null,                    // Creator/model name (e.g., "BENTLEE PAID")
+        type: "MM",                                          // Always "MM" for modular workflow
+        scheduled_date: workflow.releaseDate || null,        // Release date (e.g., "9/18/2025")
+        time_pst: workflow.releaseTime || null,              // Release time (e.g., "11:40:00 PM")
+        message_type: workflow.contentStyle || null,         // Content style (NORMAL/GAME/POLL/BUNDLE/PPV)
         content_preview: workflow.gifUrl || null,            // GIF/preview URL
+        paywall_content: workflow.contentCount || null,      // Content count (e.g., "1 Video, 3 Photos")
+        content_style: null,                                 // Not mapped yet
         caption: workflow.caption || null,                   // Caption text
-        notes: workflow.notes || null,                       // Additional notes
-        type: workflow.contentType || null,                  // Content type (BG/Solo/etc)
-        scheduled_date: workflow.releaseDate || null,        // Release date
-        time_pst: workflow.releaseTime || null,              // Release time
-        paywall_content: workflow.contentDescription || null,
-        message_type: workflow.submissionType || null,       // OTP/PTR
+        caption_style: workflow.contentType || null,         // Video category (BG/BGG/GG/SOLO/etc)
+        price: workflow.pricing || null,                     // Price as string
         outcome: null,                                        // Can be updated later
-        schedule_tab: null,
-        caption_style: null,
+        notes: workflow.notes || null,                       // Additional notes
+        schedule_tab: null,                                   // Auto-generate later
       }
     })
 
