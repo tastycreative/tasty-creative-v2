@@ -18,20 +18,28 @@ export async function PATCH(
     const body = await request.json();
     const { caption, pricing, basePriceDescription, gifUrl, notes, isFinal, contentTags } = body;
 
+    console.log('Updating workflow with contentTags:', contentTags);
+
+    // Build update data object
+    const updateData: any = {
+      updatedAt: new Date(),
+    };
+
+    if (caption !== undefined) updateData.caption = caption;
+    if (pricing !== undefined) updateData.pricing = pricing;
+    if (basePriceDescription !== undefined) updateData.basePriceDescription = basePriceDescription;
+    if (gifUrl !== undefined) updateData.gifUrl = gifUrl;
+    if (notes !== undefined) updateData.notes = notes;
+    if (isFinal !== undefined) updateData.isFinal = isFinal;
+    if (contentTags !== undefined) updateData.contentTags = contentTags;
+
     // Update the workflow
     const workflow = await prisma.modularWorkflow.update({
       where: { id },
-      data: {
-        caption: caption ?? undefined,
-        pricing: pricing ?? undefined,
-        basePriceDescription: basePriceDescription ?? undefined,
-        gifUrl: gifUrl ?? undefined,
-        notes: notes ?? undefined,
-        isFinal: isFinal !== undefined ? isFinal : undefined,
-        contentTags: contentTags ?? undefined,
-        updatedAt: new Date(),
-      },
+      data: updateData,
     });
+
+    console.log('Updated workflow contentTags:', workflow.contentTags);
 
     return NextResponse.json(workflow);
   } catch (error) {

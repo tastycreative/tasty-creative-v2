@@ -99,9 +99,14 @@ export default function EnhancedTaskDetailModal({
 }: EnhancedTaskDetailModalProps) {
   const [showHistory, setShowHistory] = useState(false);
   const [showWorkflowDetails, setShowWorkflowDetails] = useState(true);
-  
+
   // OFTV task editing state
   const [editingOFTVData, setEditingOFTVData] = useState<any>(null);
+
+  // Local state for content tags to enable real-time updates
+  const [localContentTags, setLocalContentTags] = useState<string[]>(
+    selectedTask.ModularWorkflow?.contentTags || []
+  );
 
   // Determine if user should have view-only access
   const isViewOnly = !session?.user?.role ||
@@ -1012,8 +1017,7 @@ export default function EnhancedTaskDetailModal({
                         <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-white/50 dark:bg-gray-800/50 max-h-[240px] overflow-y-auto">
                           <div className="grid grid-cols-2 gap-2">
                             {CONTENT_TAGS.map((tag) => {
-                              const currentTags = workflowData?.contentTags || [];
-                              const isSelected = currentTags.includes(tag);
+                              const isSelected = localContentTags.includes(tag);
 
                               return (
                                 <label
@@ -1031,13 +1035,13 @@ export default function EnhancedTaskDetailModal({
                                       if (!selectedTask.ModularWorkflow?.id) return;
 
                                       const newTags = e.target.checked
-                                        ? [...currentTags, tag]
-                                        : currentTags.filter((t: string) => t !== tag);
+                                        ? [...localContentTags, tag]
+                                        : localContentTags.filter((t: string) => t !== tag);
 
-                                      // Optimistic update
-                                      const updatedWorkflow = { ...workflowData, contentTags: newTags };
+                                      // Update local state immediately for instant UI feedback
+                                      setLocalContentTags(newTags);
 
-                                      // Save to API
+                                      // Save to API in background
                                       try {
                                         const response = await fetch(`/api/modular-workflows/${selectedTask.ModularWorkflow.id}`, {
                                           method: 'PATCH',
@@ -1050,11 +1054,21 @@ export default function EnhancedTaskDetailModal({
                                           const errorMsg = errorData.details
                                             ? `${errorData.error}: ${errorData.details}`
                                             : (errorData.error || 'Failed to update content tags');
+
+                                          // Revert local state on error
+                                          setLocalContentTags(localContentTags);
                                           throw new Error(errorMsg);
                                         }
 
-                                        // Successfully saved - reload to refresh UI
-                                        window.location.reload();
+                                        const updatedWorkflow = await response.json();
+
+                                        // Update the selectedTask with new contentTags
+                                        if (onUpdate) {
+                                          await onUpdate(selectedTask.id, {
+                                            ...selectedTask,
+                                            ModularWorkflow: updatedWorkflow
+                                          } as any);
+                                        }
                                       } catch (error) {
                                         console.error('Error updating content tags:', error);
                                         alert(`Failed to update content tags: ${error instanceof Error ? error.message : 'Unknown error'}`);
