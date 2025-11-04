@@ -8,7 +8,7 @@ import UserDropdown from "@/components/UserDropdown";
 import CommentFilePreview, { type PreviewFile } from "@/components/ui/CommentFilePreview";
 import AttachmentViewer from "@/components/ui/AttachmentViewer";
 import { TaskAttachment } from "@/lib/stores/boardStore";
-import { useStrikesQuery, useAddStrikeMutation } from '@/hooks/useBoardQueries';
+import { useStrikesQuery, useAddStrikeMutation, useDeleteStrikeMutation } from '@/hooks/useBoardQueries';
 
 interface EditorStrike {
   id: string;
@@ -49,6 +49,7 @@ export default function StrikeSystem({ teamId }: StrikeSystemProps) {
   
   const strikesQuery = useStrikesQuery(teamId);
   const addStrike = useAddStrikeMutation(teamId);
+  const deleteStrike = useDeleteStrikeMutation(teamId);
   const [editorStrikes, setEditorStrikes] = useState<EditorStrike[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddStrikeModal, setShowAddStrikeModal] = useState(false);
@@ -424,6 +425,26 @@ export default function StrikeSystem({ teamId }: StrikeSystemProps) {
                                   showTitle={false}
                                   compact={true}
                                 />
+                              </div>
+                            )}
+                            {/* Delete button for admins */}
+                            {isAdmin && (
+                              <div className="flex justify-end mt-3">
+                                <button
+                                  onClick={async () => {
+                                    if (!confirm('Delete this strike? This action cannot be undone.')) return;
+                                    try {
+                                      await deleteStrike.mutateAsync({ id: reason.id });
+                                      await strikesQuery.refetch();
+                                    } catch (err) {
+                                      console.error('Failed to delete strike:', err);
+                                      alert('Failed to delete strike.');
+                                    }
+                                  }}
+                                  className="text-xs text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                                >
+                                  Delete Strike
+                                </button>
                               </div>
                             )}
                           </div>

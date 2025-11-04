@@ -229,6 +229,25 @@ export function useAddStrikeMutation(teamId: string) {
   });
 }
 
+export function useDeleteStrikeMutation(teamId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { id: string }) => {
+      const res = await fetch(`/api/strikes/${encodeURIComponent(params.id)}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `Failed to delete strike: ${res.statusText}`);
+      }
+      return { success: true } as const;
+    },
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: boardQueryKeys.strikes(teamId) });
+    }
+  });
+}
+
 // Column mutations
 export function useCreateColumnMutation(teamId: string) {
   const qc = useQueryClient();
