@@ -304,8 +304,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Column ID is required" }, { status: 400 });
     }
 
-    // Check if this is a default column
-    const column = await prisma.boardColumn.findUnique({
+  // Find the column
+  const column = await prisma.boardColumn.findUnique({
       where: { id }
     });
 
@@ -313,12 +313,38 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Column not found" }, { status: 404 });
     }
 
-    if (column.isDefault) {
+    // Find replacement column (nearest by position) to move tasks into
+    const siblings = await prisma.boardColumn.findMany({
+      where: {
+        teamId: column.teamId,
+        isActive: true,
+        NOT: { id },
+      },
+      orderBy: { position: 'asc' }
+    });
+
+    if (siblings.length === 0) {
       return NextResponse.json(
-        { error: "Cannot delete default columns" },
+        { error: 'Cannot delete the last remaining column. Create another column first or use reset.' },
         { status: 400 }
       );
     }
+
+    // Pick nearest column by position (prefer previous, else next)
+    const prev = siblings.filter(c => c.position < column.position).slice(-1)[0] || null;
+    const next = siblings.find(c => c.position > column.position) || null;
+    const replacement = prev || next || siblings[0];
+
+    // Reassign tasks currently in this column to the replacement column status
+    await prisma.task.updateMany({
+      where: {
+        status: column.status,
+        podTeamId: column.teamId,
+      },
+      data: {
+        status: replacement.status,
+      },
+    });
 
     // Soft delete by setting isActive to false
     await prisma.boardColumn.update({
