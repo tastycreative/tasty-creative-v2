@@ -128,9 +128,18 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
   const allFolders = galleryData?.folders || [];
   const publishedFolders = galleryData?.publishedFolders || [];
   const files = galleryData?.files || [];
-  const displayFolders = showPublished ? publishedFolders : allFolders;
+  
+  // Apply search filter
+  const filteredFolders = (showPublished ? publishedFolders : allFolders).filter((folder: GalleryFolder) =>
+    folder.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const filteredFiles = files.filter((file: GalleryFile) =>
+    file.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  
+  const displayFolders = filteredFolders;
 
-  const currentFolderData = displayFolders.find((f: GalleryFolder) => f.id === currentFolder);
+  const currentFolderData = allFolders.find((f: GalleryFolder) => f.id === currentFolder);
 
   // Handle ESC key to close preview
   useEffect(() => {
@@ -227,7 +236,7 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
             {isLoading ? (
               <span className="inline-block h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></span>
             ) : currentFolder ? (
-              `${displayFolders.length} folders, ${files.length} files`
+              `${displayFolders.length} folders, ${filteredFiles.length} files`
             ) : (
               `${displayFolders.length} folders${showPublished ? ' (Published)' : ''}`
             )}
@@ -458,7 +467,7 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
           ))}
 
           {/* Files - show when in a subfolder */}
-          {currentFolder && files.map((file: GalleryFile) => {
+          {currentFolder && filteredFiles.map((file: GalleryFile) => {
             const isImage = file.mimeType?.startsWith('image/');
             const isVideo = file.mimeType?.startsWith('video/');
             const thumbnailUrl = file.thumbnailLink 
@@ -651,7 +660,7 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
           ))}
 
           {/* Files - show when in a subfolder */}
-          {currentFolder && files.map((file: GalleryFile) => {
+          {currentFolder && filteredFiles.map((file: GalleryFile) => {
             const isImage = file.mimeType?.startsWith('image/');
             const isVideo = file.mimeType?.startsWith('video/');
             const thumbnailUrl = file.thumbnailLink 
@@ -756,7 +765,7 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
       )}
 
       {/* Empty State */}
-      {!isLoading && displayFolders.length === 0 && files.length === 0 && (
+      {!isLoading && displayFolders.length === 0 && filteredFiles.length === 0 && (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
             <Image className="h-8 w-8 text-gray-400" />
@@ -765,10 +774,13 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
             No {currentFolder ? 'content' : 'folders'} found
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md">
-            {currentFolder 
-              ? 'This folder is empty.'
-              : 'No folders found in the parent Google Drive folder. Make sure the parent folder link is configured correctly.'
-            }
+            {searchQuery ? (
+              `No results found for "${searchQuery}"`
+            ) : currentFolder ? (
+              'This folder is empty.'
+            ) : (
+              'No folders found in the parent Google Drive folder. Make sure the parent folder link is configured correctly.'
+            )}
           </p>
         </div>
       )}
