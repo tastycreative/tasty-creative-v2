@@ -114,8 +114,8 @@ export default function BoardHeader({
         </div>
 
         {/* Tabs */}
-        <div className="mt-6 border-b border-gray-200/50 dark:border-gray-700/50">
-          <nav className="flex space-x-8">
+        <div className="mt-6 border-b border-gray-200/50 dark:border-gray-700/50 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+          <nav className="flex space-x-4 sm:space-x-8 min-w-max">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -127,7 +127,7 @@ export default function BoardHeader({
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
                   disabled={isDisabled}
-                  className={`flex items-center gap-2 py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  className={`flex items-center gap-1.5 sm:gap-2 py-2 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ${
                     isDisabled
                       ? 'border-transparent text-gray-300 dark:text-gray-600 cursor-not-allowed opacity-50'
                       : isActive
@@ -136,8 +136,8 @@ export default function BoardHeader({
                   }`}
                   title={isDisabled ? 'Settings access requires Admin or Moderator role' : undefined}
                 >
-                  <Icon className="w-4 h-4" />
-                  {tab.label}
+                  <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="hidden xs:inline sm:inline">{tab.label}</span>
                 </button>
               );
             })}
