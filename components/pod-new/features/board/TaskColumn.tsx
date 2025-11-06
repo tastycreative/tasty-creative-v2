@@ -31,6 +31,7 @@ interface TaskColumnProps {
   onTaskClick: (task: Task) => void;
   onDeleteTask: (taskId: string) => void;
   onMarkAsFinal: (taskId: string, isFinal: boolean) => void;
+  loadingTaskId: string | null;
   onOpenNewTaskModal: (status: string) => void;
   onSetShowNewTaskForm: (status: string | null) => void;
   onSetNewTaskData: (data: Partial<NewTaskData>) => void;
@@ -59,6 +60,7 @@ export default function TaskColumn({
   onTaskClick,
   onDeleteTask,
   onMarkAsFinal,
+  loadingTaskId,
   onOpenNewTaskModal,
   onSetShowNewTaskForm,
   onSetNewTaskData,
@@ -220,6 +222,7 @@ export default function TaskColumn({
               onTaskClick={onTaskClick}
               onDeleteTask={onDeleteTask}
               onMarkAsFinal={onMarkAsFinal}
+              loadingTaskId={loadingTaskId}
               columnName={config.label}
               columnStatus={status}
               teamName={teamName}

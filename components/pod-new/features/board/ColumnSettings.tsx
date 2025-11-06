@@ -109,7 +109,7 @@ const ColumnSettings = React.memo<ColumnSettingsProps>(({ currentTeamId }) => {
   };
 
   const handleDeleteColumn = async (columnId: string) => {
-    if (window.confirm('Are you sure you want to delete this column?')) {
+    if (window.confirm('Delete this column? All tasks in it will be moved to a nearby column.')) {
       await deleteColumnMutation.mutateAsync({ id: columnId });
     }
   };
@@ -327,14 +327,12 @@ const ColumnSettings = React.memo<ColumnSettingsProps>(({ currentTeamId }) => {
                           >
                             <Edit3 className="h-4 w-4" />
                           </button>
-                          {!column.isDefault && (
-                            <button
-                              onClick={() => handleDeleteColumn(column.id)}
-                              className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          )}
+                          <button
+                            onClick={() => handleDeleteColumn(column.id)}
+                            className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </>
                       )}
                     </div>

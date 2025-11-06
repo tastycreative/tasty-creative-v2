@@ -13,7 +13,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
@@ -28,7 +34,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import FileUpload, { uploadAllLocalFiles, LocalFilePreview } from "@/components/ui/FileUpload";
+import FileUpload, {
+  uploadAllLocalFiles,
+  LocalFilePreview,
+} from "@/components/ui/FileUpload";
 import { TaskAttachment } from "@/lib/stores/boardStore";
 import {
   FileText,
@@ -56,11 +65,13 @@ import {
   Play,
   BookOpen,
   Command,
-  Info
+  Info,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { CONTENT_TYPE_OPTIONS } from "./modular-workflow/types";
+import { CONTENT_TAGS } from "@/lib/constants/contentTags";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 // Core Types
 export type SubmissionType = "otp" | "ptr";
@@ -68,14 +79,17 @@ export type ContentStyle = "normal" | "poll" | "game" | "ppv" | "bundle";
 export type ComponentModule = "pricing" | "release" | "upload";
 
 // Workflow Routing Helper
-function getWorkflowRouting(contentStyle: ContentStyle | undefined, submissionType: SubmissionType | undefined) {
+function getWorkflowRouting(
+  contentStyle: ContentStyle | undefined,
+  submissionType: SubmissionType | undefined
+) {
   // Standard workflow for all content types
   const standardWorkflow = [
     { name: "Content Team", type: "primary" },
     { name: "PGT", type: "secondary" },
     { name: "Flyer Team", type: "secondary" },
     { name: "OTP Manager/QA", type: "secondary" },
-    { name: "Posted", type: "final" }
+    { name: "Posted", type: "final" },
   ];
 
   // Return standard workflow for all cases
@@ -101,6 +115,7 @@ interface ModularFormData {
   contentCount?: string;
 
   // Tags fields
+  contentTags?: string[];
   externalCreatorTags?: string;
   internalModelTags?: string[];
 
@@ -129,10 +144,30 @@ interface FormTemplate {
 // Wizard Steps Configuration
 const WIZARD_STEPS = [
   // { id: 'templates', title: 'Choose Template', icon: Layers, description: 'Start with a template or from scratch' }, // Commented out - skipping template selection
-  { id: 'type', title: 'Submission Type', icon: Package, description: 'Select OTP or PTR submission' },
-  { id: 'style', title: 'Content Style', icon: Sparkles, description: 'Choose your content format' },
-  { id: 'details', title: 'Content Details', icon: FileText, description: 'Add your content information' },
-  { id: 'review', title: 'Review & Submit', icon: Check, description: 'Final review before submission' }
+  {
+    id: "type",
+    title: "Submission Type",
+    icon: Package,
+    description: "Select OTP or PTR submission",
+  },
+  {
+    id: "style",
+    title: "Content Style",
+    icon: Sparkles,
+    description: "Choose your content format",
+  },
+  {
+    id: "details",
+    title: "Content Details",
+    icon: FileText,
+    description: "Add your content information",
+  },
+  {
+    id: "review",
+    title: "Review & Submit",
+    icon: Check,
+    description: "Final review before submission",
+  },
 ];
 
 // Enhanced Templates with Metadata
@@ -149,7 +184,7 @@ const formTemplates: FormTemplate[] = [
     color: "from-blue-500 to-purple-500",
     popularity: 90,
     estimatedTime: "2 min",
-    tags: ["wall", "standard", "regular"]
+    tags: ["wall", "standard", "regular"],
   },
   {
     id: "otp-poll",
@@ -162,7 +197,7 @@ const formTemplates: FormTemplate[] = [
     color: "from-green-500 to-cyan-500",
     popularity: 75,
     estimatedTime: "3 min",
-    tags: ["poll", "engagement", "interactive"]
+    tags: ["poll", "engagement", "interactive"],
   },
   {
     id: "otp-game",
@@ -175,7 +210,7 @@ const formTemplates: FormTemplate[] = [
     color: "from-pink-500 to-rose-500",
     popularity: 70,
     estimatedTime: "4 min",
-    tags: ["game", "tips", "interactive"]
+    tags: ["game", "tips", "interactive"],
   },
   // PTR Templates (Model-Requested Dates)
   {
@@ -189,7 +224,7 @@ const formTemplates: FormTemplate[] = [
     color: "from-purple-500 to-pink-500",
     popularity: 85,
     estimatedTime: "3 min",
-    tags: ["ppv", "premium", "scheduled"]
+    tags: ["ppv", "premium", "scheduled"],
   },
   {
     id: "ptr-game",
@@ -202,7 +237,7 @@ const formTemplates: FormTemplate[] = [
     color: "from-pink-500 to-rose-500",
     popularity: 75,
     estimatedTime: "4 min",
-    tags: ["game", "scheduled", "interactive"]
+    tags: ["game", "scheduled", "interactive"],
   },
   {
     id: "ptr-bundle",
@@ -215,8 +250,8 @@ const formTemplates: FormTemplate[] = [
     color: "from-orange-500 to-red-500",
     popularity: 80,
     estimatedTime: "4 min",
-    tags: ["bundle", "collection", "scheduled"]
-  }
+    tags: ["bundle", "collection", "scheduled"],
+  },
 ];
 
 // Style Templates Configuration with submission type filtering
@@ -232,7 +267,7 @@ const styleTemplates = [
     preview: "📝 Standard wall posts and updates",
     teams: ["Content Team", "PGT", "Flyer Team", "OTP Manager/QA"],
     priority: false,
-    submissionTypes: ["otp", "ptr"] as SubmissionType[]
+    submissionTypes: ["otp", "ptr"] as SubmissionType[],
   },
   {
     id: "poll" as ContentStyle,
@@ -243,7 +278,7 @@ const styleTemplates = [
     preview: "📊 Interactive polls for engagement",
     teams: ["Content Team", "PGT", "Flyer Team", "OTP Manager/QA"],
     priority: false,
-    submissionTypes: ["otp", "ptr"] as SubmissionType[]
+    submissionTypes: ["otp", "ptr"] as SubmissionType[],
   },
   {
     id: "game" as ContentStyle,
@@ -254,7 +289,7 @@ const styleTemplates = [
     preview: "🎮 Gamified tipping experiences",
     teams: ["Content Team", "PGT", "Flyer Team", "OTP Manager/QA"],
     priority: false,
-    submissionTypes: ["otp", "ptr"] as SubmissionType[]
+    submissionTypes: ["otp", "ptr"] as SubmissionType[],
   },
   // Premium content styles (work with both OTP and PTR)
   {
@@ -266,7 +301,7 @@ const styleTemplates = [
     preview: "💰 Premium locked content",
     teams: ["Content Team", "PGT", "Flyer Team", "OTP Manager/QA"],
     priority: true,
-    submissionTypes: ["otp", "ptr"] as SubmissionType[]
+    submissionTypes: ["otp", "ptr"] as SubmissionType[],
   },
   {
     id: "bundle" as ContentStyle,
@@ -277,8 +312,8 @@ const styleTemplates = [
     preview: "📦 Multiple content pieces bundled",
     teams: ["Content Team", "PGT", "Flyer Team", "OTP Manager/QA"],
     priority: true,
-    submissionTypes: ["otp", "ptr"] as SubmissionType[]
-  }
+    submissionTypes: ["otp", "ptr"] as SubmissionType[],
+  },
 ];
 
 // Component Modules Configuration
@@ -292,7 +327,7 @@ const componentModules = [
     recommended: ["game", "livestream"],
     required: false,
     features: ["Revenue", "Tiers", "Premium"],
-    estimatedTime: "+1 min"
+    estimatedTime: "+1 min",
   },
   {
     id: "release" as ComponentModule,
@@ -303,7 +338,7 @@ const componentModules = [
     recommended: ["ptr"],
     required: false,
     features: ["Scheduled", "Priority", "Timed"],
-    estimatedTime: "+30 sec"
+    estimatedTime: "+30 sec",
   },
   {
     id: "upload" as ComponentModule,
@@ -314,8 +349,8 @@ const componentModules = [
     recommended: ["normal", "game", "poll", "livestream"],
     required: false,
     features: ["Media", "Attachments", "Files"],
-    estimatedTime: "+2 min"
-  }
+    estimatedTime: "+2 min",
+  },
 ];
 
 export default function ModularWorkflowWizard() {
@@ -325,7 +360,15 @@ export default function ModularWorkflowWizard() {
   const { teams: availableTeams } = useAvailableTeams();
 
   // Form Management
-  const { register, control, handleSubmit, formState: { errors }, setValue, getValues, watch } = useForm<ModularFormData>({
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+    getValues,
+    watch,
+  } = useForm<ModularFormData>({
     mode: "onChange",
     defaultValues: {
       submissionType: "otp",
@@ -334,8 +377,8 @@ export default function ModularWorkflowWizard() {
       model: "",
       priority: "normal",
       driveLink: "",
-      caption: ""
-    }
+      caption: "",
+    },
   });
 
   // Wizard State
@@ -343,7 +386,9 @@ export default function ModularWorkflowWizard() {
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(
+    null
+  );
   const [draftSaved, setDraftSaved] = useState(false);
   const [estimatedTime, setEstimatedTime] = useState("3 min");
 
@@ -354,7 +399,9 @@ export default function ModularWorkflowWizard() {
   const [loadingModels, setLoadingModels] = useState(true);
   const [internalModels, setInternalModels] = useState<any[]>([]);
   const [showModelSelector, setShowModelSelector] = useState(false);
-  const [selectedInternalModels, setSelectedInternalModels] = useState<string[]>([]);
+  const [selectedInternalModels, setSelectedInternalModels] = useState<
+    string[]
+  >([]);
 
   // Watch form values
   const submissionType = watch("submissionType");
@@ -363,7 +410,7 @@ export default function ModularWorkflowWizard() {
   const originalPollReference = watch("originalPollReference");
 
   // Get current team
-  const currentTeam = availableTeams.find(team => team.id === selectedTeamId);
+  const currentTeam = availableTeams.find((team) => team.id === selectedTeamId);
 
   // Calculate progress
   const progress = ((currentStep + 1) / WIZARD_STEPS.length) * 100;
@@ -379,8 +426,9 @@ export default function ModularWorkflowWizard() {
         const response = await fetch("/api/models");
         const data = await response.json();
         if (Array.isArray(data.models)) {
-          const uniqueModels = data.models.filter((model: any, index: number, arr: any[]) =>
-            arr.findIndex((m: any) => m.name === model.name) === index
+          const uniqueModels = data.models.filter(
+            (model: any, index: number, arr: any[]) =>
+              arr.findIndex((m: any) => m.name === model.name) === index
           );
           setModels(uniqueModels);
         }
@@ -423,37 +471,41 @@ export default function ModularWorkflowWizard() {
   // Save draft to localStorage
   const saveDraft = useCallback(() => {
     const formData = getValues();
-    localStorage.setItem('workflow_draft', JSON.stringify({
-      ...formData,
-      currentStep,
-      savedAt: new Date().toISOString()
-    }));
+    localStorage.setItem(
+      "workflow_draft",
+      JSON.stringify({
+        ...formData,
+        currentStep,
+        savedAt: new Date().toISOString(),
+      })
+    );
     setDraftSaved(true);
     setTimeout(() => setDraftSaved(false), 2000);
   }, [getValues, currentStep]);
 
   // Load draft on mount
   useEffect(() => {
-    const draft = localStorage.getItem('workflow_draft');
+    const draft = localStorage.getItem("workflow_draft");
     if (draft) {
       try {
         const parsed = JSON.parse(draft);
         const savedTime = new Date(parsed.savedAt);
-        const hoursSince = (Date.now() - savedTime.getTime()) / (1000 * 60 * 60);
+        const hoursSince =
+          (Date.now() - savedTime.getTime()) / (1000 * 60 * 60);
 
         if (hoursSince < 24) {
           toast.info("Draft restored from " + savedTime.toLocaleTimeString(), {
             action: {
               label: "Clear",
               onClick: () => {
-                localStorage.removeItem('workflow_draft');
+                localStorage.removeItem("workflow_draft");
                 window.location.reload();
-              }
-            }
+              },
+            },
           });
 
-          Object.keys(parsed).forEach(key => {
-            if (key !== 'currentStep' && key !== 'savedAt') {
+          Object.keys(parsed).forEach((key) => {
+            if (key !== "currentStep" && key !== "savedAt") {
               setValue(key as any, parsed[key]);
             }
           });
@@ -473,52 +525,58 @@ export default function ModularWorkflowWizard() {
     let baseTime = 2;
     // Content style specific time adjustments
     // Note: 'urgent' is not a valid ContentStyle, removing this condition
-    if (contentStyle === 'game') baseTime += 2;
-    if (contentStyle === 'ppv') baseTime += 2;
-    if (contentStyle === 'poll') baseTime += 1;
+    if (contentStyle === "game") baseTime += 2;
+    if (contentStyle === "ppv") baseTime += 2;
+    if (contentStyle === "poll") baseTime += 1;
 
     // Component specific time adjustments
-    selectedComponents.forEach(comp => {
-      if (comp === 'pricing') baseTime += 1;
-      if (comp === 'upload') baseTime += 2;
-      if (comp === 'release') baseTime += 0.5;
+    selectedComponents.forEach((comp) => {
+      if (comp === "pricing") baseTime += 1;
+      if (comp === "upload") baseTime += 2;
+      if (comp === "release") baseTime += 0.5;
     });
     setEstimatedTime(`${Math.ceil(baseTime)} min`);
   }, [contentStyle, selectedComponents]);
 
   // Smart recommendations
-  const getSmartRecommendations = useCallback((type: SubmissionType, style: ContentStyle) => {
-    const recommendations: ComponentModule[] = [];
+  const getSmartRecommendations = useCallback(
+    (type: SubmissionType, style: ContentStyle) => {
+      const recommendations: ComponentModule[] = [];
 
-    // PTR types always get release schedule
-    if (type === "ptr") recommendations.push("release");
+      // PTR types always get release schedule
+      if (type === "ptr") recommendations.push("release");
 
-    // Style-specific recommendations
-    switch (style) {
-      // Removed 'urgent' case as it's not a valid ContentStyle
-      case "game":
-        recommendations.push("pricing", "upload");
-        break;
-      case "ppv":
-        recommendations.push("pricing", "upload");
-        break;
-      case "poll":
-        recommendations.push("upload");
-        break;
-      case "normal":
-        recommendations.push("upload");
-        break;
-    }
+      // Style-specific recommendations
+      switch (style) {
+        // Removed 'urgent' case as it's not a valid ContentStyle
+        case "game":
+          recommendations.push("pricing", "upload");
+          break;
+        case "ppv":
+          recommendations.push("pricing", "upload");
+          break;
+        case "poll":
+          recommendations.push("upload");
+          break;
+        case "normal":
+          recommendations.push("upload");
+          break;
+      }
 
-    return [...new Set(recommendations)];
-  }, []);
+      return [...new Set(recommendations)];
+    },
+    []
+  );
 
   // Auto-populate selectedComponents based on submission type and content style
   useEffect(() => {
     if (submissionType && contentStyle) {
-      const recommendedComponents = getSmartRecommendations(submissionType, contentStyle);
+      const recommendedComponents = getSmartRecommendations(
+        submissionType,
+        contentStyle
+      );
       setValue("selectedComponents", recommendedComponents);
-      console.log('🎯 Auto-selected components:', recommendedComponents);
+      console.log("🎯 Auto-selected components:", recommendedComponents);
     }
   }, [submissionType, contentStyle, getSmartRecommendations, setValue]);
 
@@ -551,19 +609,19 @@ export default function ModularWorkflowWizard() {
     switch (WIZARD_STEPS[currentStep].id) {
       // case 'templates': // COMMENTED OUT - Template step removed
       //   return true; // Optional step
-      case 'type':
+      case "type":
         if (!submissionType) {
           toast.error("Please select a submission type");
           return false;
         }
         return true;
-      case 'style':
+      case "style":
         if (!contentStyle) {
           toast.error("Please select a content style");
           return false;
         }
         return true;
-      case 'details':
+      case "details":
         const formData = getValues();
 
         // Always validate model selection (required field)
@@ -581,20 +639,29 @@ export default function ModularWorkflowWizard() {
         }
 
         // Show warnings for optional fields (don't block navigation)
-        if (selectedComponents.includes('pricing')) {
+        if (selectedComponents.includes("pricing")) {
           if (!formData.pricingType && !formData.basePrice) {
-            toast.info("💡 Tip: Add pricing information or remove the pricing component", {
-              duration: 3000
-            });
+            toast.info(
+              "💡 Tip: Add pricing information or remove the pricing component",
+              {
+                duration: 3000,
+              }
+            );
           }
         }
 
         // Release date is now optional - just show a warning for PTR
-        if (selectedComponents.includes('release') && submissionType === 'ptr') {
+        if (
+          selectedComponents.includes("release") &&
+          submissionType === "ptr"
+        ) {
           if (!formData.releaseDate) {
-            toast.info("💡 PTR Tip: Consider adding a release date for model deadline tracking", {
-              duration: 3000
-            });
+            toast.info(
+              "💡 PTR Tip: Consider adding a release date for model deadline tracking",
+              {
+                duration: 3000,
+              }
+            );
           }
         }
 
@@ -621,7 +688,10 @@ export default function ModularWorkflowWizard() {
     const isSelected = current.includes(componentId);
 
     if (isSelected) {
-      setValue("selectedComponents", current.filter(id => id !== componentId));
+      setValue(
+        "selectedComponents",
+        current.filter((id) => id !== componentId)
+      );
     } else {
       setValue("selectedComponents", [...current, componentId]);
     }
@@ -640,16 +710,25 @@ export default function ModularWorkflowWizard() {
       // Upload files first (with error handling for missing AWS config)
       if (localFiles.length > 0) {
         try {
-          await uploadAllLocalFiles(localFiles, attachments, setAttachments, setLocalFiles);
+          await uploadAllLocalFiles(
+            localFiles,
+            attachments,
+            setAttachments,
+            setLocalFiles
+          );
         } catch (uploadError: any) {
-          console.error('File upload failed:', uploadError);
+          console.error("File upload failed:", uploadError);
 
           // Check if this is the AWS configuration error
-          if (uploadError.message?.includes('Server configuration error')) {
-            toast.error('File upload unavailable: AWS S3 not configured. Proceeding without files.', {
-              description: 'Contact admin to configure AWS environment variables for file uploads.',
-              duration: 5000
-            });
+          if (uploadError.message?.includes("Server configuration error")) {
+            toast.error(
+              "File upload unavailable: AWS S3 not configured. Proceeding without files.",
+              {
+                description:
+                  "Contact admin to configure AWS environment variables for file uploads.",
+                duration: 5000,
+              }
+            );
 
             // Clear local files and continue without attachments
             setLocalFiles([]);
@@ -666,16 +745,17 @@ export default function ModularWorkflowWizard() {
         contentStyle: data.contentStyle,
         selectedComponents: data.selectedComponents || [],
         componentData: {
-          ...(data.selectedComponents?.includes('release') && {
+          ...(data.selectedComponents?.includes("release") && {
             releaseDate: data.releaseDate,
             releaseTime: data.releaseTime,
             releaseTimezone: data.releaseTimezone,
-            priority: data.priority
+            priority: data.priority,
           }),
           // Include PPV/Bundle specific fields
-          ...((data.contentStyle === 'ppv' || data.contentStyle === 'bundle') && data.originalPollReference && {
-            originalPollReference: data.originalPollReference
-          })
+          ...((data.contentStyle === "ppv" || data.contentStyle === "bundle") &&
+            data.originalPollReference && {
+              originalPollReference: data.originalPollReference,
+            }),
         },
         modelName: data.model,
         priority: data.priority,
@@ -686,26 +766,27 @@ export default function ModularWorkflowWizard() {
         contentLength: data.contentLength,
         contentCount: data.contentCount,
         // Tags fields
+        contentTags: data.contentTags || [],
         externalCreatorTags: data.externalCreatorTags,
         internalModelTags: data.internalModelTags || [],
         teamId: selectedTeamId,
-        estimatedDuration: parseInt(estimatedTime)
+        estimatedDuration: parseInt(estimatedTime),
       };
 
-      const response = await fetch('/api/modular-workflows', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/modular-workflows", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(workflowPayload),
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to create workflow');
+        throw new Error(result.error || "Failed to create workflow");
       }
 
       // Clear draft
-      localStorage.removeItem('workflow_draft');
+      localStorage.removeItem("workflow_draft");
 
       toast.success("Workflow created successfully!");
 
@@ -716,10 +797,11 @@ export default function ModularWorkflowWizard() {
           router.push(`/board?team=${selectedTeamId}`);
         }, 1500);
       }
-
     } catch (error) {
-      console.error('Error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create workflow');
+      console.error("Error:", error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create workflow"
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -727,9 +809,9 @@ export default function ModularWorkflowWizard() {
 
   // Handle internal model selection
   const handleModelToggle = (modelName: string) => {
-    setSelectedInternalModels(prev => {
+    setSelectedInternalModels((prev) => {
       if (prev.includes(modelName)) {
-        return prev.filter(m => m !== modelName);
+        return prev.filter((m) => m !== modelName);
       } else {
         return [...prev, modelName];
       }
@@ -760,11 +842,13 @@ export default function ModularWorkflowWizard() {
       //     </div>
       //   );
 
-      case 'type':
+      case "type":
         return (
           <div className="space-y-6 max-w-2xl mx-auto">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold mb-2">Choose Submission Type</h2>
+              <h2 className="text-2xl font-bold mb-2">
+                Choose Submission Type
+              </h2>
               <p className="text-gray-600 dark:text-gray-300">
                 This determines the priority and routing of your workflow
               </p>
@@ -779,7 +863,11 @@ export default function ModularWorkflowWizard() {
                   desc: "Flexible scheduling for regular content",
                   icon: Package,
                   color: "from-blue-500 to-purple-500",
-                  features: ["Standard priority", "Flexible timing", "Regular workflow"]
+                  features: [
+                    "Standard priority",
+                    "Flexible timing",
+                    "Regular workflow",
+                  ],
                 },
                 {
                   id: "ptr" as SubmissionType,
@@ -788,8 +876,12 @@ export default function ModularWorkflowWizard() {
                   desc: "Model-specified dates with high priority",
                   icon: Clock,
                   color: "from-orange-500 to-red-500",
-                  features: ["High priority", "Fixed deadlines", "Expedited routing"]
-                }
+                  features: [
+                    "High priority",
+                    "Fixed deadlines",
+                    "Expedited routing",
+                  ],
+                },
               ].map((type) => (
                 <motion.div
                   key={type.id}
@@ -806,10 +898,12 @@ export default function ModularWorkflowWizard() {
                     onClick={() => setValue("submissionType", type.id)}
                   >
                     <CardHeader>
-                      <div className={cn(
-                        "w-16 h-16 rounded-2xl bg-gradient-to-br flex items-center justify-center mb-4",
-                        type.color
-                      )}>
+                      <div
+                        className={cn(
+                          "w-16 h-16 rounded-2xl bg-gradient-to-br flex items-center justify-center mb-4",
+                          type.color
+                        )}
+                      >
                         <type.icon className="w-8 h-8 text-white" />
                       </div>
                       <CardTitle className="text-xl flex items-center gap-2">
@@ -828,7 +922,10 @@ export default function ModularWorkflowWizard() {
                     <CardContent>
                       <div className="space-y-2">
                         {type.features.map((feature, index) => (
-                          <div key={index} className="flex items-center gap-2 text-sm">
+                          <div
+                            key={index}
+                            className="flex items-center gap-2 text-sm"
+                          >
                             <Check className="w-4 h-4 text-green-500" />
                             <span>{feature}</span>
                           </div>
@@ -842,9 +939,9 @@ export default function ModularWorkflowWizard() {
           </div>
         );
 
-      case 'style':
+      case "style":
         // Filter content styles based on submission type selection
-        const availableStyles = styleTemplates.filter(style =>
+        const availableStyles = styleTemplates.filter((style) =>
           style.submissionTypes.includes(submissionType)
         );
 
@@ -853,11 +950,14 @@ export default function ModularWorkflowWizard() {
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold mb-2">Select Content Style</h2>
               <p className="text-gray-600 dark:text-gray-300">
-                Choose the format for your {submissionType?.toUpperCase()} content
+                Choose the format for your {submissionType?.toUpperCase()}{" "}
+                content
               </p>
               {submissionType && (
                 <div className="mt-2 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                  {submissionType === 'ptr' ? '🔥 PTR: High Priority Content' : '📝 OTP: Standard Content'}
+                  {submissionType === "ptr"
+                    ? "🔥 PTR: High Priority Content"
+                    : "📝 OTP: Standard Content"}
                 </div>
               )}
             </div>
@@ -880,10 +980,12 @@ export default function ModularWorkflowWizard() {
                   >
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between mb-3">
-                        <div className={cn(
-                          "w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center flex-shrink-0",
-                          style.color
-                        )}>
+                        <div
+                          className={cn(
+                            "w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center flex-shrink-0",
+                            style.color
+                          )}
+                        >
                           <style.icon className="w-6 h-6 text-white" />
                         </div>
                         {contentStyle === style.id && (
@@ -899,7 +1001,9 @@ export default function ModularWorkflowWizard() {
                     </CardHeader>
                     <CardContent className="pt-0">
                       <div className="p-2.5 bg-gray-50 dark:bg-gray-800 rounded-lg mb-3">
-                        <p className="text-xs font-medium leading-relaxed">{style.preview}</p>
+                        <p className="text-xs font-medium leading-relaxed">
+                          {style.preview}
+                        </p>
                       </div>
                       <div className="space-y-1.5">
                         <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
@@ -907,12 +1011,19 @@ export default function ModularWorkflowWizard() {
                         </p>
                         <div className="flex flex-wrap gap-1">
                           {style.teams.slice(0, 3).map((team, idx) => (
-                            <Badge key={idx} variant="outline" className="text-xs py-0.5 px-2">
+                            <Badge
+                              key={idx}
+                              variant="outline"
+                              className="text-xs py-0.5 px-2"
+                            >
                               {team}
                             </Badge>
                           ))}
                           {style.teams.length > 3 && (
-                            <Badge variant="outline" className="text-xs py-0.5 px-2">
+                            <Badge
+                              variant="outline"
+                              className="text-xs py-0.5 px-2"
+                            >
                               +{style.teams.length - 3}
                             </Badge>
                           )}
@@ -926,7 +1037,7 @@ export default function ModularWorkflowWizard() {
           </div>
         );
 
-      case 'details':
+      case "details":
         return (
           <div className="space-y-6 max-w-2xl mx-auto">
             <div className="text-center mb-8">
@@ -960,7 +1071,11 @@ export default function ModularWorkflowWizard() {
                     disabled={loadingModels}
                   >
                     <SelectTrigger className="mt-2">
-                      <SelectValue placeholder={loadingModels ? "Loading..." : "Select model"} />
+                      <SelectValue
+                        placeholder={
+                          loadingModels ? "Loading..." : "Select model"
+                        }
+                      />
                     </SelectTrigger>
                     <SelectContent>
                       {models.map((model, idx) => (
@@ -1003,13 +1118,24 @@ export default function ModularWorkflowWizard() {
 
                 {/* Content Details Section - Content Type, Length, Count */}
                 <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <h4 className="font-semibold text-gray-900 dark:text-gray-100">Additional Content Details</h4>
+                  <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+                    Additional Content Details
+                  </h4>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* Content Type */}
                     <div>
-                      <Label htmlFor="contentType" className="block mb-2 font-medium">Content Type</Label>
-                      <Select onValueChange={(value) => setValue("contentType", value)}>
+                      <Label
+                        htmlFor="contentType"
+                        className="block mb-2 font-medium"
+                      >
+                        Content Type
+                      </Label>
+                      <Select
+                        onValueChange={(value) =>
+                          setValue("contentType", value)
+                        }
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Select content type..." />
                         </SelectTrigger>
@@ -1028,7 +1154,12 @@ export default function ModularWorkflowWizard() {
 
                     {/* Content Length */}
                     <div>
-                      <Label htmlFor="contentLength" className="block mb-2 font-medium">Content Length</Label>
+                      <Label
+                        htmlFor="contentLength"
+                        className="block mb-2 font-medium"
+                      >
+                        Content Length
+                      </Label>
                       <Input
                         id="contentLength"
                         type="text"
@@ -1042,7 +1173,12 @@ export default function ModularWorkflowWizard() {
 
                     {/* Content Count */}
                     <div>
-                      <Label htmlFor="contentCount" className="block mb-2 font-medium">Content Count</Label>
+                      <Label
+                        htmlFor="contentCount"
+                        className="block mb-2 font-medium"
+                      >
+                        Content Count
+                      </Label>
                       <Input
                         id="contentCount"
                         type="text"
@@ -1058,12 +1194,17 @@ export default function ModularWorkflowWizard() {
 
                 {/* Tags Section */}
                 <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <h4 className="font-semibold text-gray-900 dark:text-gray-100">Tags</h4>
+                  <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+                    Tags
+                  </h4>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* External Creator Tags */}
                     <div>
-                      <Label htmlFor="externalCreatorTags" className="block mb-2 font-medium">
+                      <Label
+                        htmlFor="externalCreatorTags"
+                        className="block mb-2 font-medium"
+                      >
                         Tags - External Creators
                       </Label>
                       <Input
@@ -1079,7 +1220,10 @@ export default function ModularWorkflowWizard() {
 
                     {/* Internal Model Tags */}
                     <div>
-                      <Label htmlFor="internalModelTags" className="block mb-2 font-medium">
+                      <Label
+                        htmlFor="internalModelTags"
+                        className="block mb-2 font-medium"
+                      >
                         Tags - Internal Models
                       </Label>
                       <div
@@ -1087,11 +1231,17 @@ export default function ModularWorkflowWizard() {
                         onClick={() => setShowModelSelector(true)}
                       >
                         {selectedInternalModels.length === 0 ? (
-                          <span className="text-gray-500 text-sm">Click to select models...</span>
+                          <span className="text-gray-500 text-sm">
+                            Click to select models...
+                          </span>
                         ) : (
                           <div className="flex flex-wrap gap-1">
                             {selectedInternalModels.map((modelName) => (
-                              <Badge key={modelName} variant="secondary" className="text-xs">
+                              <Badge
+                                key={modelName}
+                                variant="secondary"
+                                className="text-xs"
+                              >
                                 {modelName}
                               </Badge>
                             ))}
@@ -1099,7 +1249,8 @@ export default function ModularWorkflowWizard() {
                         )}
                       </div>
                       <p className="text-xs text-gray-500 mt-1">
-                        Click to select internal models ({selectedInternalModels.length} selected)
+                        Click to select internal models (
+                        {selectedInternalModels.length} selected)
                       </p>
                     </div>
                   </div>
@@ -1120,53 +1271,37 @@ export default function ModularWorkflowWizard() {
                       />
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 flex items-center gap-1">
                         <Info className="w-3 h-3" />
-                        Upload screenshots from OnlyFans vault for team reference
+                        Upload screenshots from OnlyFans vault for team
+                        reference
                       </p>
                     </div>
                   </div>
                 )}
 
                 {/* Content Tags - QA Team Section */}
-                <div>
-                  <Label htmlFor="contentTags" className="block mb-2 font-medium">
-                    Content Tags (QA Team)
-                  </Label>
-                  <select
-                    id="contentTags"
-                    multiple
-                    className="w-full border border-gray-300 dark:border-gray-700 rounded-md p-2 min-h-[120px] text-sm"
-                    {...register("contentTags")}
-                  >
-                    <option value="Dildo">Dildo</option>
-                    <option value="Fingering">Fingering</option>
-                    <option value="Vibrator">Vibrator</option>
-                    <option value="Squirting">Squirting</option>
-                    <option value="Blowjob">Blowjob</option>
-                    <option value="Handjob">Handjob</option>
-                    <option value="Pussy Eating">Pussy Eating</option>
-                    <option value="Rim Job">Rim Job</option>
-                    <option value="Double Penetration">Double Penetration</option>
-                    <option value="Cream Pie">Cream Pie</option>
-                    <option value="POV">POV</option>
-                    <option value="Creaming">Creaming</option>
-                    <option value="Rough">Rough</option>
-                    <option value="Toys">Toys</option>
-                    <option value="Anal">Anal</option>
-                    <option value="BBC">BBC</option>
-                    <option value="Drooling">Drooling</option>
-                    <option value="Footjob">Footjob</option>
-                    <option value="Doggy">Doggy</option>
-                    <option value="Missionary">Missionary</option>
-                    <option value="Cowgirl">Cowgirl</option>
-                    <option value="Reversed Cowgirl">Reversed Cowgirl</option>
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Hold Ctrl/Cmd to select multiple tags (QA Team will review)
+                <div className="space-y-2">
+                  <MultiSelect
+                    options={CONTENT_TAGS.map((tag) => ({
+                      label: tag,
+                      value: tag,
+                    }))}
+                    onValueChange={(values) => {
+                      setValue("contentTags", values);
+                    }}
+                    defaultValue={watch("contentTags") || []}
+                    placeholder="Select content tags..."
+                    variant="secondary"
+                    maxCount={4}
+                    className="w-full"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Select all tags that apply to this content. QA team will
+                    review.
                   </p>
                 </div>
 
                 {/* PPV/Bundle Specific Fields */}
-                {(contentStyle === 'ppv' || contentStyle === 'bundle') && (
+                {(contentStyle === "ppv" || contentStyle === "bundle") && (
                   <Card className="bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800">
                     <CardHeader className="pb-3">
                       <CardTitle className="text-base flex items-center gap-2">
@@ -1184,7 +1319,10 @@ export default function ModularWorkflowWizard() {
                                 <HelpCircle className="w-4 h-4 text-gray-400 ml-2 inline" />
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Reference to original poll this PPV/Bundle is based on</p>
+                                <p>
+                                  Reference to original poll this PPV/Bundle is
+                                  based on
+                                </p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
@@ -1197,7 +1335,8 @@ export default function ModularWorkflowWizard() {
                           className="mt-2"
                         />
                         <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                          Include any poll IDs, dates, or references that connect this PPV/Bundle to the original poll content
+                          Include any poll IDs, dates, or references that
+                          connect this PPV/Bundle to the original poll content
                         </p>
                       </div>
                     </CardContent>
@@ -1226,7 +1365,11 @@ export default function ModularWorkflowWizard() {
                     </div>
                     <div>
                       <Label htmlFor="releaseTimezone">Timezone</Label>
-                      <Select onValueChange={(value) => setValue("releaseTimezone", value)}>
+                      <Select
+                        onValueChange={(value) =>
+                          setValue("releaseTimezone", value)
+                        }
+                      >
                         <SelectTrigger className="mt-2">
                           <SelectValue placeholder="Select timezone..." />
                         </SelectTrigger>
@@ -1262,11 +1405,17 @@ export default function ModularWorkflowWizard() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-lg border border-blue-200 dark:border-blue-800">
                       <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Current Team</p>
-                        <p className="font-semibold text-lg">{currentTeam.name}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Current Team
+                        </p>
+                        <p className="font-semibold text-lg">
+                          {currentTeam.name}
+                        </p>
                       </div>
                       <Badge className="bg-blue-600 text-white">
-                        {submissionType === 'ptr' ? 'High Priority' : 'Standard'}
+                        {submissionType === "ptr"
+                          ? "High Priority"
+                          : "Standard"}
                       </Badge>
                     </div>
 
@@ -1275,26 +1424,34 @@ export default function ModularWorkflowWizard() {
                         Workflow Routing Preview:
                       </p>
                       <div className="flex flex-wrap gap-1">
-                        {getWorkflowRouting(contentStyle, submissionType).slice(0, 4).map((route, index) => (
-                          <Badge
-                            key={index}
-                            variant={route.type === 'primary' ? 'default' : 'secondary'}
-                            className="text-xs"
-                          >
-                            {route.name}
-                          </Badge>
-                        ))}
+                        {getWorkflowRouting(contentStyle, submissionType)
+                          .slice(0, 4)
+                          .map((route, index) => (
+                            <Badge
+                              key={index}
+                              variant={
+                                route.type === "primary"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                              className="text-xs"
+                            >
+                              {route.name}
+                            </Badge>
+                          ))}
                       </div>
                     </div>
 
                     <p className="text-xs text-gray-600 dark:text-gray-400">
-                      💡 Tip: You can change the team assignment in the right sidebar before submitting
+                      💡 Tip: You can change the team assignment in the right
+                      sidebar before submitting
                     </p>
                   </div>
                 ) : (
                   <div className="p-4 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">
                     <p className="text-sm text-amber-800 dark:text-amber-200">
-                      ⚠️ No team selected. Please select a team from the right sidebar.
+                      ⚠️ No team selected. Please select a team from the right
+                      sidebar.
                     </p>
                   </div>
                 )}
@@ -1303,7 +1460,7 @@ export default function ModularWorkflowWizard() {
           </div>
         );
 
-      case 'review':
+      case "review":
         const formData = getValues();
 
         return (
@@ -1327,24 +1484,29 @@ export default function ModularWorkflowWizard() {
                   {/* Main Type and Style */}
                   <div className="text-center space-y-3">
                     <div className="flex items-center justify-center gap-3">
-                      <Badge className={`px-4 py-2 text-lg ${
-                        formData.submissionType === 'ptr'
-                          ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white'
-                          : 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                      }`}>
+                      <Badge
+                        className={`px-4 py-2 text-lg ${
+                          formData.submissionType === "ptr"
+                            ? "bg-gradient-to-r from-orange-500 to-red-500 text-white"
+                            : "bg-gradient-to-r from-blue-500 to-purple-500 text-white"
+                        }`}
+                      >
                         {formData.submissionType?.toUpperCase()}
                       </Badge>
                       <span className="text-2xl">+</span>
                       <Badge variant="secondary" className="px-4 py-2 text-lg">
-                        {styleTemplates.find(s => s.id === formData.contentStyle)?.name}
+                        {
+                          styleTemplates.find(
+                            (s) => s.id === formData.contentStyle
+                          )?.name
+                        }
                       </Badge>
                     </div>
 
                     <p className="text-sm text-gray-700 dark:text-gray-300 italic">
-                      {formData.submissionType === 'ptr'
-                        ? '🚨 High Priority - Model-requested deadline'
-                        : '📅 Standard Scheduling - Flexible timing'
-                      }
+                      {formData.submissionType === "ptr"
+                        ? "🚨 High Priority - Model-requested deadline"
+                        : "📅 Standard Scheduling - Flexible timing"}
                     </p>
                   </div>
 
@@ -1356,7 +1518,11 @@ export default function ModularWorkflowWizard() {
                       </p>
                       <div className="flex gap-2 flex-wrap justify-center">
                         {formData.selectedComponents.map((comp) => (
-                          <Badge key={comp} variant="outline" className="capitalize">
+                          <Badge
+                            key={comp}
+                            variant="outline"
+                            className="capitalize"
+                          >
                             {comp}
                           </Badge>
                         ))}
@@ -1399,16 +1565,22 @@ export default function ModularWorkflowWizard() {
                     Workflow Path
                   </h4>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge className={
-                      formData.submissionType === 'ptr'
-                        ? 'bg-orange-600 text-white'
-                        : 'bg-purple-600 text-white'
-                    }>
+                    <Badge
+                      className={
+                        formData.submissionType === "ptr"
+                          ? "bg-orange-600 text-white"
+                          : "bg-purple-600 text-white"
+                      }
+                    >
                       {formData.submissionType?.toUpperCase()}
                     </Badge>
                     <ArrowRight className="w-4 h-4 text-gray-400" />
                     <Badge variant="secondary">
-                      {styleTemplates.find(s => s.id === formData.contentStyle)?.name}
+                      {
+                        styleTemplates.find(
+                          (s) => s.id === formData.contentStyle
+                        )?.name
+                      }
                     </Badge>
                     {formData.selectedComponents?.map((comp, idx) => (
                       <React.Fragment key={comp}>
@@ -1430,80 +1602,122 @@ export default function ModularWorkflowWizard() {
                 {/* Details Summary */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Type</p>
-                    <p className="font-medium">{formData.submissionType?.toUpperCase()}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Style</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Type
+                    </p>
                     <p className="font-medium">
-                      {styleTemplates.find(s => s.id === formData.contentStyle)?.name}
+                      {formData.submissionType?.toUpperCase()}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Model</p>
-                    <p className="font-medium">{formData.model || 'Not selected'}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Style
+                    </p>
+                    <p className="font-medium">
+                      {
+                        styleTemplates.find(
+                          (s) => s.id === formData.contentStyle
+                        )?.name
+                      }
+                    </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Priority</p>
-                    <p className="font-medium capitalize">{formData.priority}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Model
+                    </p>
+                    <p className="font-medium">
+                      {formData.model || "Not selected"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Priority
+                    </p>
+                    <p className="font-medium capitalize">
+                      {formData.priority}
+                    </p>
                   </div>
                 </div>
 
                 {formData.driveLink && (
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Drive Link</p>
-                    <p className="font-medium text-sm break-all">{formData.driveLink}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                      Drive Link
+                    </p>
+                    <p className="font-medium text-sm break-all">
+                      {formData.driveLink}
+                    </p>
                   </div>
                 )}
 
                 {formData.caption && (
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Caption</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                      Caption
+                    </p>
                     <p className="text-sm">{formData.caption}</p>
                   </div>
                 )}
 
                 {/* PPV/Bundle Reference Information */}
-                {(contentStyle === 'ppv' || contentStyle === 'bundle') && formData.originalPollReference && (
-                  <div className="p-4 bg-purple-50 dark:bg-purple-950 rounded-lg">
-                    <h4 className="font-medium mb-2 flex items-center gap-2">
-                      <Package className="w-4 h-4" />
-                      PPV/Bundle Reference
-                    </h4>
-                    <div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Original Poll Reference</p>
-                      <p className="text-sm">{formData.originalPollReference}</p>
+                {(contentStyle === "ppv" || contentStyle === "bundle") &&
+                  formData.originalPollReference && (
+                    <div className="p-4 bg-purple-50 dark:bg-purple-950 rounded-lg">
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        <Package className="w-4 h-4" />
+                        PPV/Bundle Reference
+                      </h4>
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Original Poll Reference
+                        </p>
+                        <p className="text-sm">
+                          {formData.originalPollReference}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
                 {/* Release Schedule Information */}
-                {selectedComponents.includes('release') && (formData.releaseDate || formData.releaseTime) && (
-                  <div className="p-4 bg-orange-50 dark:bg-orange-950 rounded-lg">
-                    <h4 className="font-medium mb-2 flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      Release Schedule
-                    </h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      {formData.releaseDate && (
-                        <div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Date</p>
-                          <p className="font-medium">{new Date(formData.releaseDate).toLocaleDateString()}</p>
-                        </div>
-                      )}
-                      {formData.releaseTime && (
-                        <div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Time</p>
-                          <p className="font-medium">{formData.releaseTime}</p>
-                        </div>
-                      )}
+                {selectedComponents.includes("release") &&
+                  (formData.releaseDate || formData.releaseTime) && (
+                    <div className="p-4 bg-orange-50 dark:bg-orange-950 rounded-lg">
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        Release Schedule
+                      </h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        {formData.releaseDate && (
+                          <div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              Date
+                            </p>
+                            <p className="font-medium">
+                              {new Date(
+                                formData.releaseDate
+                              ).toLocaleDateString()}
+                            </p>
+                          </div>
+                        )}
+                        {formData.releaseTime && (
+                          <div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              Time
+                            </p>
+                            <p className="font-medium">
+                              {formData.releaseTime}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
 
                 {(attachments.length > 0 || localFiles.length > 0) && (
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Files</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                      Files
+                    </p>
                     <p className="font-medium">
                       {attachments.length + localFiles.length} files attached
                     </p>
@@ -1518,12 +1732,13 @@ export default function ModularWorkflowWizard() {
                       Team Assignment
                     </h4>
                     <p className="text-sm">
-                      This workflow will be assigned to <strong>{currentTeam.name}</strong>
+                      This workflow will be assigned to{" "}
+                      <strong>{currentTeam.name}</strong>
                     </p>
                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                      {formData.submissionType === 'ptr'
-                        ? '🔥 High priority - PTR deadline enforced'
-                        : '📋 Standard workflow routing'}
+                      {formData.submissionType === "ptr"
+                        ? "🔥 High priority - PTR deadline enforced"
+                        : "📋 Standard workflow routing"}
                     </p>
                   </div>
                 )}
@@ -1574,18 +1789,24 @@ export default function ModularWorkflowWizard() {
                   onClick={() => goToStep(index)}
                   className={cn(
                     "flex items-center gap-2 px-3 py-2 rounded-lg transition-all whitespace-nowrap",
-                    isActive ? "bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300" :
-                    isCompleted ? "bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 cursor-pointer hover:bg-green-100" :
-                    "text-gray-500 dark:text-gray-400"
+                    isActive
+                      ? "bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300"
+                      : isCompleted
+                        ? "bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300 cursor-pointer hover:bg-green-100"
+                        : "text-gray-500 dark:text-gray-400"
                   )}
                   disabled={!isCompleted && index > currentStep}
                 >
-                  <div className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center transition-all",
-                    isActive ? "bg-purple-600 text-white" :
-                    isCompleted ? "bg-green-600 text-white" :
-                    "bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300"
-                  )}>
+                  <div
+                    className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center transition-all",
+                      isActive
+                        ? "bg-purple-600 text-white"
+                        : isCompleted
+                          ? "bg-green-600 text-white"
+                          : "bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300"
+                    )}
+                  >
                     {isCompleted ? (
                       <Check className="w-4 h-4" />
                     ) : (
@@ -1630,11 +1851,7 @@ export default function ModularWorkflowWizard() {
           </Button>
 
           <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              onClick={saveDraft}
-              className="gap-2"
-            >
+            <Button variant="outline" onClick={saveDraft} className="gap-2">
               <Save className="w-4 h-4" />
               Save Draft
             </Button>
@@ -1727,15 +1944,21 @@ export default function ModularWorkflowWizard() {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span>Next step</span>
-                        <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">→</kbd>
+                        <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">
+                          →
+                        </kbd>
                       </div>
                       <div className="flex justify-between">
                         <span>Previous step</span>
-                        <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">←</kbd>
+                        <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">
+                          ←
+                        </kbd>
                       </div>
                       <div className="flex justify-between">
                         <span>Save draft</span>
-                        <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">Ctrl+S</kbd>
+                        <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">
+                          Ctrl+S
+                        </kbd>
                       </div>
                     </div>
                   </CardContent>
@@ -1777,11 +2000,17 @@ export default function ModularWorkflowWizard() {
                 <div
                   key={model.id}
                   className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer"
-                  onClick={() => handleModelToggle(model.clientName || model.name)}
+                  onClick={() =>
+                    handleModelToggle(model.clientName || model.name)
+                  }
                 >
                   <Checkbox
-                    checked={selectedInternalModels.includes(model.clientName || model.name)}
-                    onCheckedChange={() => handleModelToggle(model.clientName || model.name)}
+                    checked={selectedInternalModels.includes(
+                      model.clientName || model.name
+                    )}
+                    onCheckedChange={() =>
+                      handleModelToggle(model.clientName || model.name)
+                    }
                   />
                   <Label className="cursor-pointer flex-1">
                     {model.clientName || model.name}
@@ -1791,7 +2020,10 @@ export default function ModularWorkflowWizard() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowModelSelector(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowModelSelector(false)}
+            >
               Cancel
             </Button>
             <Button onClick={handleSaveModelSelection}>

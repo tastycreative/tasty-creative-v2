@@ -12,7 +12,6 @@ import TaskCardHistory from "./TaskCardHistory";
 import TaskComments from "./TaskComments";
 import UserProfile from "@/components/ui/UserProfile";
 import { getStatusConfig } from "@/lib/config/boardConfig";
-import { CONTENT_TAGS } from "@/lib/constants/contentTags";
 
 // Utility function to make links clickable
 const linkifyText = (text: string) => {
@@ -102,11 +101,6 @@ export default function EnhancedTaskDetailModal({
 
   // OFTV task editing state
   const [editingOFTVData, setEditingOFTVData] = useState<any>(null);
-
-  // Local state for content tags to enable real-time updates
-  const [localContentTags, setLocalContentTags] = useState<string[]>(
-    selectedTask.ModularWorkflow?.contentTags || []
-  );
 
   // Determine if user should have view-only access
   const isViewOnly = !session?.user?.role ||
@@ -1009,86 +1003,24 @@ export default function EnhancedTaskDetailModal({
                         </div>
                       )}
 
-                      {/* Content Tags - Editable */}
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
-                          Content Tags
-                        </label>
-                        <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-white/50 dark:bg-gray-800/50 max-h-[240px] overflow-y-auto">
-                          <div className="grid grid-cols-2 gap-2">
-                            {CONTENT_TAGS.map((tag) => {
-                              const isSelected = localContentTags.includes(tag);
-
-                              return (
-                                <label
-                                  key={tag}
-                                  className={`flex items-center space-x-2 p-2 rounded-md cursor-pointer transition-all ${
-                                    isSelected
-                                      ? 'bg-purple-100 dark:bg-purple-900/30 border border-purple-500 dark:border-purple-400'
-                                      : 'bg-gray-50 dark:bg-gray-700/50 border border-transparent hover:border-gray-300 dark:hover:border-gray-600'
-                                  }`}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={isSelected}
-                                    onChange={async (e) => {
-                                      if (!selectedTask.ModularWorkflow?.id) return;
-
-                                      const newTags = e.target.checked
-                                        ? [...localContentTags, tag]
-                                        : localContentTags.filter((t: string) => t !== tag);
-
-                                      // Update local state immediately for instant UI feedback
-                                      setLocalContentTags(newTags);
-
-                                      // Save to API in background
-                                      try {
-                                        const response = await fetch(`/api/modular-workflows/${selectedTask.ModularWorkflow.id}`, {
-                                          method: 'PATCH',
-                                          headers: { 'Content-Type': 'application/json' },
-                                          body: JSON.stringify({ contentTags: newTags }),
-                                        });
-
-                                        if (!response.ok) {
-                                          const errorData = await response.json().catch(() => ({}));
-                                          const errorMsg = errorData.details
-                                            ? `${errorData.error}: ${errorData.details}`
-                                            : (errorData.error || 'Failed to update content tags');
-
-                                          // Revert local state on error
-                                          setLocalContentTags(localContentTags);
-                                          throw new Error(errorMsg);
-                                        }
-
-                                        const updatedWorkflow = await response.json();
-
-                                        // Update the selectedTask with new contentTags
-                                        if (onUpdate) {
-                                          await onUpdate(selectedTask.id, {
-                                            ...selectedTask,
-                                            ModularWorkflow: updatedWorkflow
-                                          } as any);
-                                        }
-                                      } catch (error) {
-                                        console.error('Error updating content tags:', error);
-                                        alert(`Failed to update content tags: ${error instanceof Error ? error.message : 'Unknown error'}`);
-                                      }
-                                    }}
-                                    disabled={isViewOnly}
-                                    className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                                  />
-                                  <span className="text-xs font-medium text-gray-900 dark:text-gray-100 select-none">
-                                    {tag}
-                                  </span>
-                                </label>
-                              );
-                            })}
+                      {/* Content Tags - Read Only */}
+                      {workflowData?.contentTags && workflowData.contentTags.length > 0 && (
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                            Content Tags
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            {workflowData.contentTags.map((tag: string, index: number) => (
+                              <span
+                                key={index}
+                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                              >
+                                {tag}
+                              </span>
+                            ))}
                           </div>
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
-                          Select all tags that apply to this content
-                        </p>
-                      </div>
+                      )}
                     </>
                   )}
 

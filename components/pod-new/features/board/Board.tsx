@@ -176,7 +176,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   });
 
   // Mark as Final hook
-  const { markAsFinal, isLoading: isMarkingFinal } = useMarkAsFinal({
+  const { markAsFinal, loadingTaskId } = useMarkAsFinal({
     teamId,
     teamName,
     session,
@@ -704,6 +704,52 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         throw new Error(result.error || 'Failed to create OFTV task');
       }
 
+      // Notify assigned editors (video/thumbnail) on successful creation
+      try {
+        const createdTask: Task = result.task as Task;
+        const createdOftv = result.oftvTask as any;
+        const taskId = createdTask.id;
+        const taskTitle = createdTask.title;
+        const taskDescription = createdTask.description || '';
+        const priority = createdTask.priority || 'MEDIUM';
+        const dueDate = createdTask.dueDate || null;
+
+        // Helper to post assignment notifications via API
+        const notifyAssignment = async (assignedToUserId: string, previousAssigneeId: string | null = null) => {
+          if (!assignedToUserId || !session?.user?.id) return;
+          try {
+            await fetch('/api/notifications/assignment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                taskId,
+                taskTitle,
+                taskDescription,
+                assignedToUserId,
+                teamId: currentTeamId,
+                teamName,
+                assignedBy: session.user.name || session.user.email,
+                assignedById: session.user.id,
+                priority,
+                dueDate,
+                previousAssigneeId,
+              })
+            });
+          } catch (e) {
+            console.error('Failed to send OFTV assignment notification:', e);
+          }
+        };
+
+        if (createdOftv?.videoEditorUserId) {
+          await notifyAssignment(createdOftv.videoEditorUserId, null);
+        }
+        if (createdOftv?.thumbnailEditorUserId) {
+          await notifyAssignment(createdOftv.thumbnailEditorUserId, null);
+        }
+      } catch (notifyErr) {
+        console.warn('OFTV create: notification step failed (continuing):', notifyErr);
+      }
+
       // Refresh tasks to show the new task
   await queryClient.invalidateQueries({ queryKey: boardQueryKeys.tasks(currentTeamId) });
       closeNewTaskModal();
@@ -827,8 +873,86 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   // Centralized OFTV updates routed through Board for consistent invalidation/broadcast
   const updateOFTVTaskViaBoard = async (taskId: string, updates: any) => {
     try {
+      // Capture previous editor assignments for notification diffing
+      const prev = (qTasks.find(t => t.id === taskId) as any) || null;
+      const prevOftv = prev?.oftvTask || null;
+      const prevVideoId: string | null = prevOftv?.videoEditorUserId || null;
+      const prevThumbId: string | null = prevOftv?.thumbnailEditorUserId || null;
+  const prevVideoStatus: string | null = prevOftv?.videoEditorStatus || null;
+  const prevThumbStatus: string | null = prevOftv?.thumbnailEditorStatus || null;
+
       await updateOFTVTaskMutation.mutateAsync({ taskId, updates });
       await broadcastTaskUpdate({ type: 'TASK_UPDATED', taskId, data: updates });
+
+  // After successful update, send notifications if editor assignment or status changed
+      try {
+        const task = qTasks.find(t => t.id === taskId) as Task | undefined;
+        const taskTitle = task?.title || updates?.title || 'Task';
+        const taskDescription = task?.description || '';
+        const priority = task?.priority || 'MEDIUM';
+        const dueDate = task?.dueDate || null;
+
+        const notifyAssignment = async (assignedToUserId: string, previousAssigneeId: string | null) => {
+          if (!assignedToUserId || !session?.user?.id) return;
+          try {
+            await fetch('/api/notifications/assignment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                taskId,
+                taskTitle,
+                taskDescription,
+                assignedToUserId,
+                teamId: currentTeamId,
+                teamName,
+                assignedBy: session.user.name || session.user.email,
+                assignedById: session.user.id,
+                priority,
+                dueDate,
+                previousAssigneeId,
+              })
+            });
+          } catch (e) {
+            console.error('Failed to send OFTV reassignment notification:', e);
+          }
+        };
+
+        // Updates may include direct userIds or emails; prefer userIds when present
+        if (typeof updates?.videoEditorUserId !== 'undefined' && updates.videoEditorUserId !== prevVideoId) {
+          await notifyAssignment(updates.videoEditorUserId, prevVideoId);
+        }
+        if (typeof updates?.thumbnailEditorUserId !== 'undefined' && updates.thumbnailEditorUserId !== prevThumbId) {
+          await notifyAssignment(updates.thumbnailEditorUserId, prevThumbId);
+        }
+
+        // Notify task creator when OFTV editor statuses change
+        const notifyCreatorOnStatus = async (editorType: 'video' | 'thumbnail', newStatus: string) => {
+          try {
+            await fetch('/api/notifications/oftv-status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                taskId,
+                teamId: currentTeamId,
+                teamName,
+                editorType,
+                newStatus,
+              })
+            });
+          } catch (e) {
+            console.error('Failed to notify creator about OFTV status change:', e);
+          }
+        };
+
+        if (typeof updates?.videoEditorStatus === 'string' && updates.videoEditorStatus !== prevVideoStatus) {
+          await notifyCreatorOnStatus('video', updates.videoEditorStatus);
+        }
+        if (typeof updates?.thumbnailEditorStatus === 'string' && updates.thumbnailEditorStatus !== prevThumbStatus) {
+          await notifyCreatorOnStatus('thumbnail', updates.thumbnailEditorStatus);
+        }
+      } catch (notifyErr) {
+        console.warn('OFTV update: notification step failed (continuing):', notifyErr);
+      }
     } catch (error) {
       console.error('Error updating OFTV task via mutation:', error);
       throw error;
@@ -877,6 +1001,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     // Update the task status via TanStack mutation (handles cache invalidation)
     try {
       await updateTaskStatusMutation.mutateAsync({ taskId: draggedTask.id, status: newStatus });
+
+      // Force refetch tasks from Zustand store to sync with React Query
+      await fetchTasks(teamId, true);
     } catch (err) {
       console.error('Error updating task status on drop:', err);
       // Still clear drag state to avoid UI being stuck
@@ -1439,6 +1566,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         onTaskClick={openTaskDetail}
         onDeleteTask={handleDeleteTask}
         onMarkAsFinal={handleMarkAsFinal}
+        loadingTaskId={loadingTaskId}
         onOpenNewTaskModal={openNewTaskModal}
         onSetShowNewTaskForm={setShowNewTaskForm}
         onSetNewTaskData={setNewTaskData}

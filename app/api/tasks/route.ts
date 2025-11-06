@@ -2,9 +2,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { PrismaClient } from '@prisma/client';
 import { trackTaskChanges, createTaskActivity } from '@/lib/taskActivityHelper';
+import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { parseUserDate } from '@/lib/dateUtils';
 
 const prisma = new PrismaClient();
+
+// Configure S3 client for task/comment attachments (primary bucket)
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION!,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+});
+const BUCKET_NAME = process.env.AWS_S3_BUCKET!;
+
+async function deleteFromS3(s3Key: string): Promise<void> {
+  try {
+    const command = new DeleteObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: s3Key,
+    });
+    await s3Client.send(command);
+  } catch (err) {
+    console.error('Error deleting from S3:', err);
+    // Don't throw here; upstream callers may choose to ignore failures
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -390,6 +414,41 @@ export async function DELETE(request: NextRequest) {
       actionType: 'DELETED',
       description: `${session.user.name || session.user.email} deleted this task`
     });
+
+    // Best-effort: delete S3 files for task attachments and its comments' attachments
+    try {
+      // Get task attachments
+      const existingTask = await prisma.task.findUnique({
+        where: { id: taskId },
+        select: { attachments: true },
+      } as any);
+
+      const taskAttachments: any[] = (existingTask?.attachments as any[]) || [];
+      const taskKeys = taskAttachments
+        .map((att) => (att && typeof att === 'object' ? (att as any).s3Key : null))
+        .filter((k): k is string => !!k);
+
+      // Get comment attachments under this task
+      const commentRecords = await (prisma as any).taskComment.findMany({
+        where: { taskId },
+        select: { attachments: true },
+      });
+      const commentKeys: string[] = [];
+      for (const rec of commentRecords) {
+        const atts: any[] = (rec?.attachments as any[]) || [];
+        for (const att of atts) {
+          if (att?.s3Key) commentKeys.push(att.s3Key);
+        }
+      }
+
+      const allKeys = [...taskKeys, ...commentKeys];
+      if (allKeys.length > 0) {
+        await Promise.allSettled(allKeys.map((k) => deleteFromS3(k)));
+      }
+    } catch (cleanupErr) {
+      // Log and continue; do not block task deletion on cleanup failures
+      console.error('Error during S3 cleanup for task deletion:', cleanupErr);
+    }
 
     await prisma.task.delete({
       where: { id: taskId },
