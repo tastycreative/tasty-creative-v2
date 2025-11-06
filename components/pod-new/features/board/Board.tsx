@@ -20,6 +20,7 @@ import OFTVListFilters, { OFTVFilters } from './OFTVListFilters';
 import Summary from './Summary';
 import Resources from './Resources';
 import StrikeSystem from './StrikeSystem';
+import Gallery from './Gallery';
 import BoardSkeleton from './BoardSkeleton';
 import BoardGrid from './BoardGrid';
 import BoardList from './BoardList';
@@ -1458,6 +1459,11 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         />
       ) : activeTab === 'resources' ? (
         <Resources
+          teamName={teamName}
+          teamId={teamId}
+        />
+      ) : activeTab === 'gallery' ? (
+        <Gallery
           teamName={teamName}
           teamId={teamId}
         />

@@ -39,6 +39,8 @@ model User {
   Post                       Post[]
   PostReaction               PostReaction[]
   sessions                   Session[]
+  issuedStrikes              Strike[]                      @relation("StrikeIssuedBy")
+  strikes                    Strike[]                      @relation("StrikeUser")
   createdTasks               Task[]                        @relation("TaskCreator")
   taskActivities             TaskActivityHistory[]         @relation("TaskActivityUser")
   taskComments               TaskComment[]                 @relation("TaskCommentUser")
@@ -49,8 +51,6 @@ model User {
   verificationTokens         VerificationToken[]
   voiceNoteHistory           VoiceNoteHistory[]
   voiceNoteSales             VoiceNoteSale[]
-  strikes                    Strike[]                      @relation("StrikeUser")
-  issuedStrikes              Strike[]                      @relation("StrikeIssuedBy")
 }
 
 model Account {
@@ -257,17 +257,17 @@ model OFTVTask {
   taskId                String         @unique
   model                 String
   folderLink            String?
-  videoDescription      String?
-  videoEditorUserId     String?
-  thumbnailEditorUserId String?
   specialInstructions   String?
-  attachments           Json?
   dateAssigned          DateTime       @default(now())
   dateCompleted         DateTime?
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
   videoEditorStatus     OFTVTaskStatus @default(NOT_STARTED)
   thumbnailEditorStatus OFTVTaskStatus @default(NOT_STARTED)
+  thumbnailEditorUserId String?
+  videoEditorUserId     String?
+  videoDescription      String?
+  attachments           Json?
   task                  Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
   thumbnailEditorUser   User?          @relation("OFTVThumbnailEditor", fields: [thumbnailEditorUserId], references: [id])
   videoEditorUser       User?          @relation("OFTVVideoEditor", fields: [videoEditorUserId], references: [id])
@@ -336,6 +336,7 @@ model ClientModel {
   mainTwitter           String?
   mainTiktok            String?
   profileLink           String?
+  oftvGallery           OFTVGallery?
   createdAt             DateTime                  @default(now())
   updatedAt             DateTime                  @updatedAt
   row_id                String?
@@ -507,9 +508,9 @@ model PodTeam {
   createdBy                  User?                     @relation("PodTeamCreator", fields: [createdById], references: [id])
   assignedClients            PodTeamClientAssignment[]
   members                    PodTeamMember[]
+  strikes                    Strike[]
   tasks                      Task[]
   resources                  TeamResource[]
-  strikes                    Strike[]
 
   @@index([createdById])
   @@index([isActive])
@@ -562,20 +563,20 @@ model TeamResource {
 }
 
 model Strike {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   userId      String
   podTeamId   String
   reason      String
   issuedById  String
-  isActive    Boolean  @default(true)
+  isActive    Boolean   @default(true)
   notes       String?
   attachments Json?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   resolvedAt  DateTime?
-  issuedBy    User     @relation("StrikeIssuedBy", fields: [issuedById], references: [id])
-  podTeam     PodTeam  @relation(fields: [podTeamId], references: [id], onDelete: Cascade)
-  user        User     @relation("StrikeUser", fields: [userId], references: [id], onDelete: Cascade)
+  issuedBy    User      @relation("StrikeIssuedBy", fields: [issuedById], references: [id])
+  podTeam     PodTeam   @relation(fields: [podTeamId], references: [id], onDelete: Cascade)
+  user        User      @relation("StrikeUser", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([podTeamId])
@@ -687,6 +688,7 @@ model ModularWorkflow {
   contentDescription   String?
   caption              String?
   isFinal              Boolean?           @default(false)
+  contentTags          String[]
   createdBy            User               @relation("ModularWorkflowCreator", fields: [createdById], references: [id])
   task                 Task?              @relation("ModularWorkflowTask", fields: [taskId], references: [id])
   notifications        Notification[]
@@ -1009,6 +1011,25 @@ model GalleryMasterList {
   @@map("GalleryMasterList")
 }
 
+model GalleryFavorite {
+  id         Int      @id @default(autoincrement())
+  user_id    String
+  item_id    String
+  created_at DateTime @default(now())
+
+  @@unique([user_id, item_id])
+  @@index([item_id])
+  @@index([user_id])
+}
+
+model GalleryRelease {
+  id         Int      @id @default(autoincrement())
+  item_id    String   @unique
+  created_at DateTime @default(now())
+
+  @@index([item_id])
+}
+
 enum Role {
   USER
   ADMIN
@@ -1212,25 +1233,80 @@ enum OFTVTaskStatus {
   PUBLISHED
 }
 
-// Gallery user favorites
-model GalleryFavorite {
-  id         Int      @id @default(autoincrement())
-  user_id    String
-  item_id    String
-  created_at DateTime @default(now())
 
-  @@unique([user_id, item_id])
-  @@index([user_id])
-  @@index([item_id])
-  @@map("GalleryFavorite")
+
+// OFTV Gallery - Main gallery for each client model
+model OFTVGallery {
+  id                String              @id @default(cuid())
+  clientModelId     String              @unique
+  parentFolderLink  String?             // Google Drive parent folder link (optional, for migration reference)
+  publishedFolderLink String?           // Google Drive published folder link (optional, for migration reference)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  clientModel       ClientModel         @relation(fields: [clientModelId], references: [id], onDelete: Cascade)
+  folders           OFTVGalleryFolder[]
+
+  @@index([clientModelId])
+  @@map("OFTVGallery")
 }
 
-// Gallery releases/PTR tracking
-model GalleryRelease {
-  id         Int      @id @default(autoincrement())
-  item_id    String   @unique
-  created_at DateTime @default(now())
+// OFTV Gallery Folders - Represents individual content folders
+model OFTVGalleryFolder {
+  id                String                 @id @default(cuid())
+  galleryId         String
+  parentFolderId    String?                // Self-referential for nested folders (null = root level)
+  name              String                 // Folder name (e.g., "Video Title")
+  description       String?                // Optional description of the content
+  isPublished       Boolean                @default(false) // Whether this folder is in the "Published" section
+  publishedAt       DateTime?              // When it was moved to published
+  originalDriveLink String?                // Original Google Drive folder link (for migration reference)
+  position          Int?                   // For custom ordering
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  gallery           OFTVGallery            @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+  parentFolder      OFTVGalleryFolder?     @relation("FolderHierarchy", fields: [parentFolderId], references: [id], onDelete: Cascade)
+  subfolders        OFTVGalleryFolder[]    @relation("FolderHierarchy")
+  items             OFTVGalleryItem[]
 
-  @@index([item_id])
-  @@map("GalleryRelease")
+  @@unique([galleryId, parentFolderId, name])
+  @@index([galleryId])
+  @@index([parentFolderId])
+  @@index([isPublished])
+  @@index([position])
+  @@map("OFTVGalleryFolder")
+}
+
+// OFTV Gallery Items - Individual files (video, thumbnail, etc.)
+model OFTVGalleryItem {
+  id               String            @id @default(cuid())
+  folderId         String
+  fileName         String            // Original file name
+  fileType         OFTVFileType ?     // VIDEO, THUMBNAIL, IMAGE, etc.
+  fileUrl          String            // URL to the stored file (S3, Cloudflare, etc.)
+  thumbnailUrl     String?           // Thumbnail URL (for videos, or compressed version for images)
+  fileSize         Int?              // File size in bytes
+  duration         Int?              // Duration in seconds (for videos)
+  width            Int?              // Width in pixels
+  height           Int?              // Height in pixels
+  mimeType         String?           // MIME type (video/mp4, image/jpeg, etc.)
+  originalDriveLink String?          // Original Google Drive file link (for migration reference)
+  uploadedById     String?           // User who uploaded/migrated this file
+  position         Int?               @default(0) // Order within the folder
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  folder           OFTVGalleryFolder @relation(fields: [folderId], references: [id], onDelete: Cascade)
+
+  @@index([folderId])
+  @@index([fileType])
+  @@index([position])
+  @@map("OFTVGalleryItem")
+}
+
+// File types for OFTV gallery items
+enum OFTVFileType {
+  VIDEO
+  THUMBNAIL
+  IMAGE
+  GIF
+  OTHER
 }

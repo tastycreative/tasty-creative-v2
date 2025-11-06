@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { KanbanSquare, BarChart3, Settings, List, BookOpen, AlertTriangle } from "lucide-react";
+import { KanbanSquare, BarChart3, Settings, List, BookOpen, AlertTriangle, Image } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 interface BoardHeaderProps {
@@ -13,7 +13,7 @@ interface BoardHeaderProps {
   onTabChange?: (tab: TabType) => void;
 }
 
-export type TabType = 'board' | 'list' | 'summary' | 'settings' | 'resources' | 'strikes';
+export type TabType = 'board' | 'list' | 'summary' | 'settings' | 'resources' | 'strikes' | 'gallery';
 
 export default function BoardHeader({
   teamName,
@@ -25,6 +25,7 @@ export default function BoardHeader({
 }: BoardHeaderProps) {
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'MODERATOR';
+  const isOFTVTeam = teamName === 'OFTV';
 
   const handleTabChange = (tab: TabType) => {
     // Prevent settings access for non-admin/moderator users
@@ -53,6 +54,11 @@ export default function BoardHeader({
       label: 'List',
       icon: List,
     },
+    ...(isOFTVTeam ? [{
+      id: 'gallery' as TabType,
+      label: 'Gallery',
+      icon: Image,
+    }] : []),
     {
       id: 'resources' as TabType,
       label: 'Resources',
