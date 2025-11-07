@@ -18,6 +18,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing fileId or thumbnailLink' }, { status: 400 });
     }
 
+    // Extract file ID from thumbnail link if provided
+    if (thumbnailLink && !fileId) {
+      // Extract file ID from Google Drive storage URL
+      // Format: https://lh3.googleusercontent.com/drive-storage/...
+      // We need to get the file metadata to get the actual file ID
+      // For now, we'll skip thumbnailLink and require fileId
+      return NextResponse.json({ error: 'thumbnailLink not supported, use fileId instead' }, { status: 400 });
+    }
+
     // Extract file ID from Google Drive URL if full URL is provided
     if (fileId && fileId.includes('drive.google.com')) {
       const match = fileId.match(/\/d\/([a-zA-Z0-9_-]+)/);
@@ -40,30 +49,7 @@ export async function GET(request: NextRequest) {
 
     const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
-    // If thumbnailLink is provided, fetch it directly
-    if (thumbnailLink) {
-      const response = await fetch(thumbnailLink, {
-        headers: {
-          Authorization: `Bearer ${session.accessToken}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch thumbnail');
-      }
-
-      const imageBuffer = await response.arrayBuffer();
-      const contentType = response.headers.get('content-type') || 'image/jpeg';
-
-      return new NextResponse(imageBuffer, {
-        headers: {
-          'Content-Type': contentType,
-          'Cache-Control': 'public, max-age=86400', // Cache for 24 hours
-        },
-      });
-    }
-
-    // Otherwise, get thumbnail via Drive API
+    // Always use Drive API to get file (ignore thumbnailLink as it requires browser auth)
     if (fileId) {
       const response = await drive.files.get(
         {
@@ -84,7 +70,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ error: 'No valid parameters' }, { status: 400 });
+    return NextResponse.json({ error: 'No valid file ID provided' }, { status: 400 });
   } catch (error: any) {
     console.error('Error fetching thumbnail:', error);
     return NextResponse.json(

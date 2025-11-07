@@ -413,11 +413,7 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
                             {item.thumbnailUrl || (isImage && item.fileUrl) ? (
                               <div className="w-full h-full relative">
                           <NextImage
-                            src={
-                              item.thumbnailUrl 
-                                ? `/api/oftv-gallery/thumbnail?thumbnailLink=${encodeURIComponent(item.thumbnailUrl)}`
-                                : `/api/oftv-gallery/thumbnail?fileId=${item.fileUrl}`
-                            }
+                            src={`/api/oftv-gallery/thumbnail?fileId=${item.fileUrl}`}
                             alt={item.fileName}
                             fill
                             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
@@ -570,11 +566,7 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
                       {item.thumbnailUrl || (isImage && item.fileUrl) ? (
                         <div className="w-full h-full relative">
                           <NextImage
-                            src={
-                              item.thumbnailUrl 
-                                ? `/api/oftv-gallery/thumbnail?thumbnailLink=${encodeURIComponent(item.thumbnailUrl)}`
-                                : `/api/oftv-gallery/thumbnail?fileId=${item.fileUrl}`
-                            }
+                            src={`/api/oftv-gallery/thumbnail?fileId=${item.fileUrl}`}
                             alt={item.fileName}
                             fill
                             sizes="80px"
