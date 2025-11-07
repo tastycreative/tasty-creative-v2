@@ -1259,10 +1259,6 @@ model OFTVGalleryItem {
   folderName        String?            // Folder name from Google Drive (for reference)
   fileUrl           String             // URL to the stored file (S3, Cloudflare, etc.)
   thumbnailUrl      String?            // Thumbnail URL (for videos, or compressed version for images)
-  fileSize          Int?               // File size in bytes
-  duration          Int?               // Duration in seconds (for videos)
-  width             Int?               // Width in pixels
-  height            Int?               // Height in pixels
   mimeType          String?            // MIME type (video/mp4, image/jpeg, etc.)
   folderDriveLink   String?            // Original Google Drive file link (for migration reference)
   position          Int?               @default(0) // Order within the gallery
