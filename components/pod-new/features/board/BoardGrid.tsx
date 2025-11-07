@@ -20,6 +20,7 @@ interface BoardGridProps {
   onTaskClick: (task: Task) => void;
   onDeleteTask: (taskId: string) => void;
   onMarkAsFinal: (taskId: string, isFinal: boolean) => void;
+  loadingTaskId: string | null;
   onOpenNewTaskModal: (status: string) => void;
   onSetShowNewTaskForm: (status: string | null) => void;
   onSetNewTaskData: (data: Partial<NewTaskData>) => void;
@@ -47,6 +48,7 @@ export default function BoardGrid({
   onTaskClick,
   onDeleteTask,
   onMarkAsFinal,
+  loadingTaskId,
   onOpenNewTaskModal,
   onSetShowNewTaskForm,
   onSetNewTaskData,
@@ -110,6 +112,7 @@ export default function BoardGrid({
                 onTaskClick={onTaskClick}
                 onDeleteTask={onDeleteTask}
                 onMarkAsFinal={onMarkAsFinal}
+                loadingTaskId={loadingTaskId}
                 onOpenNewTaskModal={onOpenNewTaskModal}
                 onSetShowNewTaskForm={onSetShowNewTaskForm}
                 onSetNewTaskData={onSetNewTaskData}
@@ -152,6 +155,7 @@ export default function BoardGrid({
                 onTaskClick={onTaskClick}
                 onDeleteTask={onDeleteTask}
                 onMarkAsFinal={onMarkAsFinal}
+                loadingTaskId={loadingTaskId}
                 onOpenNewTaskModal={onOpenNewTaskModal}
                 onSetShowNewTaskForm={onSetShowNewTaskForm}
                 onSetNewTaskData={onSetNewTaskData}

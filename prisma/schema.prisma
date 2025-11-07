@@ -687,6 +687,7 @@ model ModularWorkflow {
   notes                String?
   contentDescription   String?
   caption              String?
+  contentTags          String[]
   isFinal              Boolean?           @default(false)
   contentTags          String[]
   createdBy            User               @relation("ModularWorkflowCreator", fields: [createdById], references: [id])

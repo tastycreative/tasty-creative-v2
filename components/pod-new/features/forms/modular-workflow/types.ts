@@ -19,6 +19,7 @@ export interface ModularFormData {
   contentType?: string;
   contentLength?: string;
   contentCount?: string;
+  contentTags?: string[];
   externalCreatorTags?: string;
   internalModelTags?: string[];
 

@@ -177,7 +177,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   });
 
   // Mark as Final hook
-  const { markAsFinal, isLoading: isMarkingFinal } = useMarkAsFinal({
+  const { markAsFinal, loadingTaskId } = useMarkAsFinal({
     teamId,
     teamName,
     session,
@@ -571,6 +571,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
           basePriceDescription: (editingTaskData as any).ModularWorkflow.basePriceDescription,
           gifUrl: (editingTaskData as any).ModularWorkflow.gifUrl,
           notes: (editingTaskData as any).ModularWorkflow.notes,
+          contentTags: (editingTaskData as any).ModularWorkflow.contentTags,
         };
 
         // Call API to update workflow
@@ -1001,6 +1002,9 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     // Update the task status via TanStack mutation (handles cache invalidation)
     try {
       await updateTaskStatusMutation.mutateAsync({ taskId: draggedTask.id, status: newStatus });
+
+      // Force refetch tasks from Zustand store to sync with React Query
+      await fetchTasks(teamId, true);
     } catch (err) {
       console.error('Error updating task status on drop:', err);
       // Still clear drag state to avoid UI being stuck
@@ -1568,6 +1572,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         onTaskClick={openTaskDetail}
         onDeleteTask={handleDeleteTask}
         onMarkAsFinal={handleMarkAsFinal}
+        loadingTaskId={loadingTaskId}
         onOpenNewTaskModal={openNewTaskModal}
         onSetShowNewTaskForm={setShowNewTaskForm}
         onSetNewTaskData={setNewTaskData}

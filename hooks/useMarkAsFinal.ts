@@ -9,7 +9,7 @@ interface MarkAsFinalOptions {
 }
 
 export function useMarkAsFinal({ teamId, teamName, session, onSuccess }: MarkAsFinalOptions) {
-  const [isLoading, setIsLoading] = useState(false)
+  const [loadingTaskId, setLoadingTaskId] = useState<string | null>(null)
 
   const markAsFinal = async (task: any) => {
     if (!task?.ModularWorkflow) {
@@ -17,7 +17,7 @@ export function useMarkAsFinal({ teamId, teamName, session, onSuccess }: MarkAsF
       return
     }
 
-    setIsLoading(true)
+    setLoadingTaskId(task.id)
 
     try {
       // Step 1: Update isFinal = true in ModularWorkflow
@@ -100,6 +100,48 @@ export function useMarkAsFinal({ teamId, teamName, session, onSuccess }: MarkAsF
         console.error('Failed to send notification (non-critical):', notifError)
       }
 
+      // Step 5: Trigger n8n webhook for Google Sheets sync (non-critical)
+      try {
+        const workflow = task.ModularWorkflow
+
+        // Format video title: {modelName}_{contentType}_{description}_{releaseDate}
+        const videoTitle = `${workflow.modelName}_${workflow.contentType || 'CONTENT'}_${workflow.contentDescription || ''}_${workflow.releaseDate || 'TBD'}`.replace(/\s+/g, ' ').trim()
+
+        // Format creation date: "Month Day, Year"
+        const creationDate = new Date().toLocaleDateString('en-US', {
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric'
+        })
+
+        // Prepare n8n payload
+        const n8nPayload = {
+          videoTitle: videoTitle,
+          videoCategory: workflow.contentType || 'N/A',
+          featuredEvents: workflow.contentTags?.join(', ') || '',
+          status: 'UNUSED',
+          caption: workflow.caption || '',
+          linkDrop: '',
+          priceSet: workflow.pricing || '',
+          additionalNotes: workflow.notes || '',
+          videoLink: workflow.driveLink || '',
+          creationDate: creationDate,
+          creatorAt: workflow.modelName || 'N/A',
+          videoLength: '', // Not available in POD system
+          results: ''
+        }
+
+        await fetch('/api/webhook/mark-as-final', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(n8nPayload)
+        })
+
+        console.log('n8n Google Sheets sync triggered successfully')
+      } catch (webhookError) {
+        console.error('Failed to trigger n8n webhook (non-critical):', webhookError)
+      }
+
       // Success!
       toast.success('Content marked as final and added to gallery!')
 
@@ -112,12 +154,12 @@ export function useMarkAsFinal({ teamId, teamName, session, onSuccess }: MarkAsF
       console.error('Error marking as final:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to mark as final')
     } finally {
-      setIsLoading(false)
+      setLoadingTaskId(null)
     }
   }
 
   return {
     markAsFinal,
-    isLoading,
+    loadingTaskId,
   }
 }

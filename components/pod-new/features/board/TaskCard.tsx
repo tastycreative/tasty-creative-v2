@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Session } from "next-auth";
-import { MoreHorizontal, UserPlus, Trash2, Gamepad2, BarChart3, Video, FileText, Tag, DollarSign, Upload, Calendar, CheckCircle2, Circle } from "lucide-react";
+import { MoreHorizontal, UserPlus, Trash2, Gamepad2, BarChart3, Video, FileText, Tag, DollarSign, Upload, Calendar, CheckCircle2, Circle, Loader2 } from "lucide-react";
 import { Task } from "@/lib/stores/boardStore";
 import UserProfile from "@/components/ui/UserProfile";
 import { formatForTaskCard, formatForDisplay, formatDueDate } from "@/lib/dateUtils";
@@ -226,6 +226,7 @@ interface TaskCardProps {
   onTaskClick: (task: Task) => void;
   onDeleteTask: (taskId: string) => void;
   onMarkAsFinal: (taskId: string, isFinal: boolean) => void;
+  loadingTaskId: string | null;
   columnName: string;
   columnStatus: string;
   teamName?: string;
@@ -242,6 +243,7 @@ function TaskCard({
   onTaskClick,
   onDeleteTask,
   onMarkAsFinal,
+  loadingTaskId,
   columnName,
   columnStatus,
   teamName,
@@ -250,6 +252,7 @@ function TaskCard({
   // Show button if: 1) Task has ModularWorkflow, 2) Column name is "Ready to Deploy", 3) Task's status matches this column
   const showMarkAsFinalButton = task.ModularWorkflow && columnName === "Ready to Deploy" && task.status === columnStatus;
   const isFinal = task.ModularWorkflow?.isFinal || false;
+  const isThisTaskLoading = loadingTaskId === task.id;
   return (
     <div
       key={task.id}
@@ -412,13 +415,19 @@ function TaskCard({
               e.stopPropagation();
               onMarkAsFinal(task.id, !isFinal);
             }}
-            className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+            disabled={isThisTaskLoading}
+            className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${
               isFinal
                 ? "bg-gradient-to-r from-emerald-50 to-green-100 dark:from-emerald-900/30 dark:to-green-800/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700 hover:shadow-md hover:shadow-emerald-500/20"
                 : "bg-gradient-to-r from-pink-50 to-purple-100 dark:from-pink-900/30 dark:to-purple-800/30 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-700 hover:shadow-md hover:shadow-pink-500/20"
             }`}
           >
-            {isFinal ? (
+            {isThisTaskLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Processing...</span>
+              </>
+            ) : isFinal ? (
               <>
                 <CheckCircle2 className="w-4 h-4" />
                 <span>✓ Final</span>

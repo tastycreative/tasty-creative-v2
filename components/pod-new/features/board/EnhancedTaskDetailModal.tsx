@@ -98,7 +98,7 @@ export default function EnhancedTaskDetailModal({
 }: EnhancedTaskDetailModalProps) {
   const [showHistory, setShowHistory] = useState(false);
   const [showWorkflowDetails, setShowWorkflowDetails] = useState(true);
-  
+
   // OFTV task editing state
   const [editingOFTVData, setEditingOFTVData] = useState<any>(null);
 
@@ -971,7 +971,7 @@ export default function EnhancedTaskDetailModal({
                   )}
 
                   {/* QA Team Section */}
-                  {(workflowData?.pricing || workflowData?.basePriceDescription) && (
+                  {(workflowData?.pricing || workflowData?.basePriceDescription || workflowData?.contentTags) && (
                     <>
                       <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                         <h4 className="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">
@@ -999,6 +999,25 @@ export default function EnhancedTaskDetailModal({
                           </label>
                           <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
                             {workflowData.basePriceDescription}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Content Tags - Read Only */}
+                      {workflowData?.contentTags && workflowData.contentTags.length > 0 && (
+                        <div>
+                          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
+                            Content Tags
+                          </label>
+                          <div className="flex flex-wrap gap-2">
+                            {workflowData.contentTags.map((tag: string, index: number) => (
+                              <span
+                                key={index}
+                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                              >
+                                {tag}
+                              </span>
+                            ))}
                           </div>
                         </div>
                       )}
