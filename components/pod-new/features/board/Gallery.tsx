@@ -197,7 +197,7 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
                 className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500 transition-all"
               >
                 <option value="">All Models ({items.length})</option>
-                {clientModels.map((model) => (
+                {[...clientModels].sort((a, b) => a.name.localeCompare(b.name)).map((model) => (
                   <option key={model.id} value={model.name}>
                     {model.name} ({model.itemCount})
                   </option>
@@ -332,8 +332,11 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
                             <span className="truncate">{item.folderName}</span>
                             <ExternalLink className="h-3 w-3 flex-shrink-0" />
                           </a>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 pl-4">
-                            {item.clientModel}
+                          <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 pl-4">
+                            <svg className="h-3 w-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                            </svg>
+                            <span>{item.clientModel}</span>
                           </div>
                         </div>
                       )}
