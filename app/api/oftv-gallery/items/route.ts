@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const foldersPerPage = 5; // Number of folders per page instead of items
     const search = searchParams.get('search');
+    const sortBy = searchParams.get('sortBy') || 'newest';
     
     // We don't use skip/take at database level anymore
     // Instead, we'll fetch all items and paginate by folders
@@ -102,12 +103,84 @@ export async function GET(request: NextRequest) {
       folderMap.get(folderKey)!.push(item);
     });
 
-    // Convert to array and sort folders by most recent item in each folder
-    const folders = Array.from(folderMap.entries()).map(([folderName, items]) => ({
-      folderName,
-      items,
-      mostRecentUpdate: Math.max(...items.map((item: any) => new Date(item.updatedAt).getTime()))
-    })).sort((a, b) => b.mostRecentUpdate - a.mostRecentUpdate);
+    // Convert to array and sort folders based on sortBy parameter
+    const folders = Array.from(folderMap.entries()).map(([folderName, items]) => {
+      const dates = items.map((item: any) => new Date(item.updatedAt).getTime());
+      const sizes = items.map((item: any) => item.fileSize || 0);
+      const durations = items.map((item: any) => item.durationMillis || 0);
+      
+      return {
+        folderName,
+        items,
+        mostRecentUpdate: Math.max(...dates),
+        oldestUpdate: Math.min(...dates),
+        totalSize: sizes.reduce((sum, size) => sum + size, 0),
+        totalDuration: durations.reduce((sum, duration) => sum + duration, 0)
+      };
+    }).sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          // Sort folders by most recent item (newest first)
+          return b.mostRecentUpdate - a.mostRecentUpdate;
+        
+        case 'oldest':
+          // Sort folders by oldest item (oldest first)
+          return a.oldestUpdate - b.oldestUpdate;
+        
+        case 'name-asc':
+          // Sort folders alphabetically A-Z
+          return (a.folderName || 'Uncategorized').localeCompare(b.folderName || 'Uncategorized');
+        
+        case 'name-desc':
+          // Sort folders alphabetically Z-A
+          return (b.folderName || 'Uncategorized').localeCompare(a.folderName || 'Uncategorized');
+        
+        case 'size-desc':
+          // Sort folders by total size (largest first)
+          return b.totalSize - a.totalSize;
+        
+        case 'size-asc':
+          // Sort folders by total size (smallest first)
+          return a.totalSize - b.totalSize;
+        
+        case 'duration-desc':
+          // Sort folders by total duration (longest first)
+          return b.totalDuration - a.totalDuration;
+        
+        case 'duration-asc':
+          // Sort folders by total duration (shortest first)
+          return a.totalDuration - b.totalDuration;
+        
+        default:
+          return b.mostRecentUpdate - a.mostRecentUpdate;
+      }
+    });
+
+    // Sort items within each folder based on sortBy parameter
+    folders.forEach(folder => {
+      folder.items.sort((a: any, b: any) => {
+        switch (sortBy) {
+          case 'newest':
+            return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+          case 'oldest':
+            return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+          case 'name-asc':
+            return a.fileName.localeCompare(b.fileName);
+          case 'name-desc':
+            return b.fileName.localeCompare(a.fileName);
+          case 'size-desc':
+            return (b.fileSize || 0) - (a.fileSize || 0);
+          case 'size-asc':
+            return (a.fileSize || 0) - (b.fileSize || 0);
+          case 'duration-desc':
+            return (b.durationMillis || 0) - (a.durationMillis || 0);
+          case 'duration-asc':
+            return (a.durationMillis || 0) - (b.durationMillis || 0);
+          default:
+            return 0;
+        }
+      });
+    });
 
     const totalFolders = folders.length;
     const totalPages = Math.ceil(totalFolders / foldersPerPage);

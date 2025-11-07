@@ -146,10 +146,11 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
 
   // Fetch paginated gallery items (now paginated by folders, not items)
   const { data: galleryData, isLoading, error } = useQuery({
-    queryKey: ['oftv-gallery-items', selectedClientModel, debouncedSearch, currentPage],
+    queryKey: ['oftv-gallery-items', selectedClientModel, debouncedSearch, currentPage, sortOption],
     queryFn: async () => {
       const params = new URLSearchParams({
-        page: currentPage.toString()
+        page: currentPage.toString(),
+        sortBy: sortOption
       });
       
       if (selectedClientModel) {
@@ -173,7 +174,7 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
   const clientModels: ClientModelFilter[] = galleryData?.clientModels || [];
   const pagination: PaginationInfo | undefined = galleryData?.pagination;
 
-  // Apply client-side filtering and sorting
+  // Apply client-side file type filtering only (sorting is done server-side)
   const filteredItems = items.filter(item => {
     // File type filter based on mime type
     if (fileTypeFilter !== 'ALL') {
@@ -190,32 +191,8 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
     return true;
   });
 
-  // Sort items
-  const sortedItems = [...filteredItems].sort((a, b) => {
-    switch (sortOption) {
-      case 'newest':
-        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-      case 'oldest':
-        return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
-      case 'name-asc':
-        return a.fileName.localeCompare(b.fileName);
-      case 'name-desc':
-        return b.fileName.localeCompare(a.fileName);
-      case 'size-desc':
-        return (b.fileSize || 0) - (a.fileSize || 0);
-      case 'size-asc':
-        return (a.fileSize || 0) - (b.fileSize || 0);
-      case 'duration-desc':
-        return (b.durationMillis || 0) - (a.durationMillis || 0);
-      case 'duration-asc':
-        return (a.durationMillis || 0) - (b.durationMillis || 0);
-      default:
-        return 0;
-    }
-  });
-
-  // Group items by folder name after filtering and sorting
-  const groupedByFolder = sortedItems.reduce((acc, item) => {
+  // Group items by folder name (already sorted by server)
+  const groupedByFolder = filteredItems.reduce((acc, item) => {
     const folderKey = item.folderName || 'Uncategorized';
     if (!acc[folderKey]) {
       acc[folderKey] = {
@@ -229,14 +206,11 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
     return acc;
   }, {} as Record<string, { folderName: string | null; folderDriveId: string | null; clientModel: string; items: GalleryItem[] }>);
 
-  // Convert to array and sort folders by most recent item in each folder
-  const folderGroups = Object.values(groupedByFolder).sort((a, b) => {
-    // Get the most recent updatedAt from each folder
-    const maxDateA = Math.max(...a.items.map(item => new Date(item.updatedAt).getTime()));
-    const maxDateB = Math.max(...b.items.map(item => new Date(item.updatedAt).getTime()));
-    // Sort by most recent first (descending)
-    return maxDateB - maxDateA;
-  });
+  // Convert to array (preserve server order)
+  const folderGroups = Object.values(groupedByFolder);
+
+  // Flatten for total count
+  const sortedItems = filteredItems;
 
   // Handle ESC key to close preview
   useEffect(() => {
