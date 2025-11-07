@@ -11,11 +11,19 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const fileId = searchParams.get('fileId');
+    let fileId = searchParams.get('fileId');
     const thumbnailLink = searchParams.get('thumbnailLink');
 
     if (!fileId && !thumbnailLink) {
       return NextResponse.json({ error: 'Missing fileId or thumbnailLink' }, { status: 400 });
+    }
+
+    // Extract file ID from Google Drive URL if full URL is provided
+    if (fileId && fileId.includes('drive.google.com')) {
+      const match = fileId.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if (match) {
+        fileId = match[1];
+      }
     }
 
     const oauth2Client = new google.auth.OAuth2(

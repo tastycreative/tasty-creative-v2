@@ -1255,12 +1255,20 @@ model OFTVGalleryItem {
   id                String             @id @default(cuid())
   galleryId         String
   fileName          String             // Original file name
+  
   fileType          OFTVFileType?      // VIDEO, THUMBNAIL, IMAGE, etc.
   folderName        String?            // Folder name from Google Drive (for reference)
-  fileUrl           String             // URL to the stored file (S3, Cloudflare, etc.)
+  fileUrl           String             
   thumbnailUrl      String?            // Thumbnail URL (for videos, or compressed version for images)
   mimeType          String?            // MIME type (video/mp4, image/jpeg, etc.)
   folderDriveLink   String?            // Original Google Drive file link (for migration reference)
+  
+  // Media metadata
+  fileSize          String?               // File size in bytes
+  durationMillis    String?               // Duration in milliseconds (for precise timing)
+  width             String?               // Width in pixels (for images/videos)
+  height            String?               // Height in pixels (for images/videos)
+  
   position          Int?               @default(0) // Order within the gallery
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
