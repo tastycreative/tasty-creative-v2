@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import NextImage from 'next/image';
-import { Image, Grid3x3, List, Search, Eye, X, Folder, ExternalLink } from 'lucide-react';
+import { Image, Grid3x3, List, Search, Eye, X, Folder, ExternalLink, Filter, SlidersHorizontal, ArrowUpDown } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 
 interface GalleryProps {
@@ -11,6 +11,8 @@ interface GalleryProps {
 }
 
 type ViewMode = 'grid' | 'list';
+type FileTypeFilter = 'ALL' | 'VIDEO' | 'IMAGE';
+type SortOption = 'newest' | 'oldest' | 'name-asc' | 'name-desc' | 'size-desc' | 'size-asc' | 'duration-desc' | 'duration-asc';
 
 interface GalleryItem {
   id: string;
@@ -120,6 +122,9 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedClientModel, setSelectedClientModel] = useState<string | null>(null);
+  const [fileTypeFilter, setFileTypeFilter] = useState<FileTypeFilter>('ALL');
+  const [sortOption, setSortOption] = useState<SortOption>('newest');
+  const [showFilters, setShowFilters] = useState(false);
   const [previewFile, setPreviewFile] = useState<GalleryItem | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -137,7 +142,7 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
   // Reset page when filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedClientModel]);
+  }, [selectedClientModel, fileTypeFilter, sortOption]);
 
   // Fetch paginated gallery items (now paginated by folders, not items)
   const { data: galleryData, isLoading, error } = useQuery({
@@ -168,8 +173,49 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
   const clientModels: ClientModelFilter[] = galleryData?.clientModels || [];
   const pagination: PaginationInfo | undefined = galleryData?.pagination;
 
-  // Group items by folder name (no client-side filtering needed, already paginated)
-  const groupedByFolder = items.reduce((acc, item) => {
+  // Apply client-side filtering and sorting
+  const filteredItems = items.filter(item => {
+    // File type filter based on mime type
+    if (fileTypeFilter !== 'ALL') {
+      const isImage = item.mimeType?.startsWith('image/') || item.fileType === 'IMAGE' || item.fileType === 'THUMBNAIL' || item.fileType === 'GIF';
+      const isVideo = item.mimeType?.startsWith('video/') || item.fileType === 'VIDEO';
+      
+      if (fileTypeFilter === 'IMAGE' && !isImage) {
+        return false;
+      }
+      if (fileTypeFilter === 'VIDEO' && !isVideo) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  // Sort items
+  const sortedItems = [...filteredItems].sort((a, b) => {
+    switch (sortOption) {
+      case 'newest':
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      case 'oldest':
+        return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+      case 'name-asc':
+        return a.fileName.localeCompare(b.fileName);
+      case 'name-desc':
+        return b.fileName.localeCompare(a.fileName);
+      case 'size-desc':
+        return (b.fileSize || 0) - (a.fileSize || 0);
+      case 'size-asc':
+        return (a.fileSize || 0) - (b.fileSize || 0);
+      case 'duration-desc':
+        return (b.durationMillis || 0) - (a.durationMillis || 0);
+      case 'duration-asc':
+        return (a.durationMillis || 0) - (b.durationMillis || 0);
+      default:
+        return 0;
+    }
+  });
+
+  // Group items by folder name after filtering and sorting
+  const groupedByFolder = sortedItems.reduce((acc, item) => {
     const folderKey = item.folderName || 'Uncategorized';
     if (!acc[folderKey]) {
       acc[folderKey] = {
@@ -224,65 +270,191 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
             {isLoading ? (
               <span className="inline-block h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></span>
             ) : pagination ? (
-              `${pagination.totalItems} ${pagination.totalItems === 1 ? 'item' : 'items'}${selectedClientModel ? ` for ${selectedClientModel}` : ''}`
+              <>
+                {sortedItems.length !== pagination.totalItems && (
+                  <span className="text-pink-600 dark:text-pink-400 font-medium">
+                    {sortedItems.length} of {pagination.totalItems} items
+                  </span>
+                )}
+                {sortedItems.length === pagination.totalItems && (
+                  <span>
+                    {pagination.totalItems} {pagination.totalItems === 1 ? 'item' : 'items'}
+                  </span>
+                )}
+                {selectedClientModel && <span> for {selectedClientModel}</span>}
+                {(fileTypeFilter !== 'ALL' || sortOption !== 'newest') && (
+                  <span className="text-pink-600 dark:text-pink-400"> • Filtered</span>
+                )}
+              </>
             ) : (
-              `${items.length} ${items.length === 1 ? 'item' : 'items'}${selectedClientModel ? ` for ${selectedClientModel}` : ''}`
+              <>
+                {sortedItems.length !== items.length && (
+                  <span className="text-pink-600 dark:text-pink-400 font-medium">
+                    {sortedItems.length} of {items.length} items
+                  </span>
+                )}
+                {sortedItems.length === items.length && (
+                  <span>
+                    {items.length} {items.length === 1 ? 'item' : 'items'}
+                  </span>
+                )}
+                {selectedClientModel && <span> for {selectedClientModel}</span>}
+              </>
             )}
           </p>
         </div>
       </div>
 
       {/* Filters & Search - Always visible */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        {/* Client Model Filter */}
-        <select
-          value={selectedClientModel || ''}
-          onChange={(e) => setSelectedClientModel(e.target.value || null)}
-          className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500 transition-all"
-        >
-          <option value="">All Models</option>
-          {clientModels.length > 0 && [...clientModels].sort((a, b) => a.name.localeCompare(b.name)).map((model) => (
-            <option key={model.id} value={model.name}>
-              {model.name} ({model.itemCount})
-            </option>
-          ))}
-        </select>
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row gap-3">
+          {/* Client Model Filter */}
+          <select
+            value={selectedClientModel || ''}
+            onChange={(e) => setSelectedClientModel(e.target.value || null)}
+            className="px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500 transition-all"
+          >
+            <option value="">All Models</option>
+            {clientModels.length > 0 && [...clientModels].sort((a, b) => a.name.localeCompare(b.name)).map((model) => (
+              <option key={model.id} value={model.name}>
+                {model.name} ({model.itemCount})
+              </option>
+            ))}
+          </select>
 
-        {/* Search */}
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search files..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500 transition-all"
-          />
-        </div>
+          {/* Search */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search files..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500 transition-all"
+            />
+          </div>
 
-        {/* View Mode Toggle */}
-        <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+          {/* Advanced Filters Toggle */}
           <button
-            onClick={() => setViewMode('grid')}
-            className={`p-2 rounded-md transition-all ${
-              viewMode === 'grid'
-                ? 'bg-white dark:bg-gray-800 text-pink-600 dark:text-pink-400 shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg transition-all ${
+              showFilters || fileTypeFilter !== 'ALL' || sortOption !== 'newest'
+                ? 'bg-pink-50 dark:bg-pink-900/20 border-pink-300 dark:border-pink-700 text-pink-700 dark:text-pink-300'
+                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
             }`}
           >
-            <Grid3x3 className="h-4 w-4" />
+            <SlidersHorizontal className="h-4 w-4" />
+            <span className="hidden sm:inline">Filters</span>
+            {(fileTypeFilter !== 'ALL' || sortOption !== 'newest') && (
+              <span className="w-2 h-2 rounded-full bg-pink-500"></span>
+            )}
           </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={`p-2 rounded-md transition-all ${
-              viewMode === 'list'
-                ? 'bg-white dark:bg-gray-800 text-pink-600 dark:text-pink-400 shadow-sm'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-            }`}
-          >
-            <List className="h-4 w-4" />
-          </button>
+
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded-md transition-all ${
+                viewMode === 'grid'
+                  ? 'bg-white dark:bg-gray-800 text-pink-600 dark:text-pink-400 shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              <Grid3x3 className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded-md transition-all ${
+                viewMode === 'list'
+                  ? 'bg-white dark:bg-gray-800 text-pink-600 dark:text-pink-400 shadow-sm'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              <List className="h-4 w-4" />
+            </button>
+          </div>
         </div>
+
+        {/* Advanced Filters Panel */}
+        {showFilters && (
+          <div className="p-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* File Type Filter */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  File Type
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {(['ALL', 'IMAGE', 'VIDEO'] as FileTypeFilter[]).map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => setFileTypeFilter(type)}
+                      className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all ${
+                        fileTypeFilter === type
+                          ? 'bg-pink-500 text-white shadow-sm'
+                          : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600 hover:border-pink-300 dark:hover:border-pink-700'
+                      }`}
+                    >
+                      {type === 'ALL' ? 'All Types' : type === 'IMAGE' ? 'Images' : 'Videos'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Sort Options */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Sort By
+                </label>
+                <select
+                  value={sortOption}
+                  onChange={(e) => setSortOption(e.target.value as SortOption)}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500 transition-all"
+                >
+                  <optgroup label="Date">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                  </optgroup>
+                  <optgroup label="Name">
+                    <option value="name-asc">Name (A-Z)</option>
+                    <option value="name-desc">Name (Z-A)</option>
+                  </optgroup>
+                  <optgroup label="Size">
+                    <option value="size-desc">Largest First</option>
+                    <option value="size-asc">Smallest First</option>
+                  </optgroup>
+                  <optgroup label="Duration">
+                    <option value="duration-desc">Longest First</option>
+                    <option value="duration-asc">Shortest First</option>
+                  </optgroup>
+                </select>
+              </div>
+            </div>
+
+            {/* Active Filters Summary & Reset */}
+            {(fileTypeFilter !== 'ALL' || sortOption !== 'newest') && (
+              <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <Filter className="h-4 w-4" />
+                  <span>
+                    {fileTypeFilter !== 'ALL' && `Type: ${fileTypeFilter}`}
+                    {fileTypeFilter !== 'ALL' && sortOption !== 'newest' && ' • '}
+                    {sortOption !== 'newest' && `Sort: ${sortOption.replace('-', ' ')}`}
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    setFileTypeFilter('ALL');
+                    setSortOption('newest');
+                  }}
+                  className="text-sm text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 font-medium transition-colors"
+                >
+                  Reset Filters
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Loading State */}
@@ -645,7 +817,7 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
           )}
 
           {/* Empty State */}
-          {items.length === 0 && !isLoading && (
+          {sortedItems.length === 0 && !isLoading && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
                 <Image className="h-8 w-8 text-gray-400" />
@@ -653,13 +825,30 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                 No items found
               </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md">
+              <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md mb-4">
                 {searchQuery ? (
                   `No results found for "${searchQuery}"`
+                ) : fileTypeFilter !== 'ALL' ? (
+                  `No ${fileTypeFilter.toLowerCase()}s found`
+                ) : selectedClientModel ? (
+                  `No items found for ${selectedClientModel}`
                 ) : (
                   'No gallery items available.'
                 )}
               </p>
+              {(fileTypeFilter !== 'ALL' || selectedClientModel || searchQuery) && (
+                <button
+                  onClick={() => {
+                    setFileTypeFilter('ALL');
+                    setSelectedClientModel(null);
+                    setSearchQuery('');
+                    setSortOption('newest');
+                  }}
+                  className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg transition-colors text-sm font-medium"
+                >
+                  Clear All Filters
+                </button>
+              )}
             </div>
           )}
 

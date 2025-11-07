@@ -49,8 +49,40 @@ export async function GET(request: NextRequest) {
 
     const drive = google.drive({ version: 'v3', auth: oauth2Client });
 
-    // Always use Drive API to get file (ignore thumbnailLink as it requires browser auth)
+    // Get file metadata first to determine type and get thumbnail link
     if (fileId) {
+      // Get file metadata
+      const metadata = await drive.files.get({
+        fileId,
+        fields: 'mimeType,thumbnailLink',
+        supportsAllDrives: true,
+      });
+
+      const mimeType = metadata.data.mimeType || '';
+      const thumbnailLinkFromMetadata = metadata.data.thumbnailLink;
+
+      // For videos, use the thumbnail link from metadata
+      if (mimeType.startsWith('video/') && thumbnailLinkFromMetadata) {
+        const thumbnailResponse = await fetch(thumbnailLinkFromMetadata, {
+          headers: {
+            Authorization: `Bearer ${session.accessToken}`,
+          },
+        });
+
+        if (thumbnailResponse.ok) {
+          const imageBuffer = await thumbnailResponse.arrayBuffer();
+          const contentType = thumbnailResponse.headers.get('content-type') || 'image/jpeg';
+
+          return new NextResponse(imageBuffer, {
+            headers: {
+              'Content-Type': contentType,
+              'Cache-Control': 'public, max-age=86400',
+            },
+          });
+        }
+      }
+
+      // For images and other files, get the file content directly
       const response = await drive.files.get(
         {
           fileId,

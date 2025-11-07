@@ -98,15 +98,44 @@ export default function BoardSkeleton({
           </div>
 
           {/* Tabs Skeleton */}
-          <div className="mt-6 border-b border-gray-200/50 dark:border-gray-700/50">
-            <nav className="flex space-x-8">
-              <div className="flex items-center gap-2 py-2 px-1 border-b-2 border-transparent">
-                <div className="w-4 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
-                <div className="w-16 h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+          <div className="mt-6 border-b border-gray-200/50 dark:border-gray-700/50 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent">
+            <nav className="flex space-x-4 sm:space-x-8 min-w-max">
+              {/* Summary Tab */}
+              <div className="flex items-center gap-1.5 sm:gap-2 py-2 px-2 sm:px-1 border-b-2 border-transparent">
+                <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse flex-shrink-0"></div>
+                <div className="w-14 sm:w-16 h-3.5 sm:h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
               </div>
-              <div className="flex items-center gap-2 py-2 px-1 border-b-2 border-pink-500">
-                <div className="w-4 h-4 bg-pink-300 dark:bg-pink-600 rounded animate-pulse"></div>
-                <div className="w-12 h-4 bg-pink-300 dark:bg-pink-600 rounded animate-pulse"></div>
+              {/* Board Tab (Active) */}
+              <div className="flex items-center gap-1.5 sm:gap-2 py-2 px-2 sm:px-1 border-b-2 border-pink-500">
+                <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 bg-pink-300 dark:bg-pink-600 rounded animate-pulse flex-shrink-0"></div>
+                <div className="w-10 sm:w-12 h-3.5 sm:h-4 bg-pink-300 dark:bg-pink-600 rounded animate-pulse"></div>
+              </div>
+              {/* List Tab */}
+              <div className="flex items-center gap-1.5 sm:gap-2 py-2 px-2 sm:px-1 border-b-2 border-transparent">
+                <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse flex-shrink-0"></div>
+                <div className="w-8 sm:w-10 h-3.5 sm:h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+              </div>
+              {/* Gallery Tab (for OFTV) */}
+              {teamName === 'OFTV' && (
+                <div className="flex items-center gap-1.5 sm:gap-2 py-2 px-2 sm:px-1 border-b-2 border-transparent">
+                  <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse flex-shrink-0"></div>
+                  <div className="w-12 sm:w-14 h-3.5 sm:h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+                </div>
+              )}
+              {/* Resources Tab */}
+              <div className="flex items-center gap-1.5 sm:gap-2 py-2 px-2 sm:px-1 border-b-2 border-transparent">
+                <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse flex-shrink-0"></div>
+                <div className="w-16 sm:w-18 h-3.5 sm:h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+              </div>
+              {/* Strike System Tab */}
+              <div className="flex items-center gap-1.5 sm:gap-2 py-2 px-2 sm:px-1 border-b-2 border-transparent">
+                <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse flex-shrink-0"></div>
+                <div className="w-20 sm:w-24 h-3.5 sm:h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
+              </div>
+              {/* Settings Tab */}
+              <div className="flex items-center gap-1.5 sm:gap-2 py-2 px-2 sm:px-1 border-b-2 border-transparent">
+                <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse flex-shrink-0"></div>
+                <div className="w-14 sm:w-16 h-3.5 sm:h-4 bg-gray-300 dark:bg-gray-600 rounded animate-pulse"></div>
               </div>
             </nav>
           </div>
