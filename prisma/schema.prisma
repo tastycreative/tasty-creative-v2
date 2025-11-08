@@ -689,7 +689,6 @@ model ModularWorkflow {
   caption              String?
   contentTags          String[]
   isFinal              Boolean?           @default(false)
-  contentTags          String[]
   createdBy            User               @relation("ModularWorkflowCreator", fields: [createdById], references: [id])
   task                 Task?              @relation("ModularWorkflowTask", fields: [taskId], references: [id])
   notifications        Notification[]
