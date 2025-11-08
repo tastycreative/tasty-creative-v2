@@ -118,6 +118,7 @@ export default function GalleryNew({ teamName, teamId }: GalleryProps) {
   const [featuredItem, setFeaturedItem] = useState<GalleryItem | null>(null);
   const [previewFile, setPreviewFile] = useState<GalleryItem | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
+  const [featuredImageLoading, setFeaturedImageLoading] = useState(false);
 
   // Debounce search query
   useEffect(() => {
@@ -187,8 +188,16 @@ export default function GalleryNew({ teamName, teamId }: GalleryProps) {
         : folderItems[0]; // Fallback to first item if no videos
       
       setFeaturedItem(latestVideo);
+      setFeaturedImageLoading(true); // Start loading state
     }
   }, [folderItems, featuredItem]);
+
+  // Set loading state when featured item changes
+  useEffect(() => {
+    if (featuredItem) {
+      setFeaturedImageLoading(true);
+    }
+  }, [featuredItem?.id]); // Only trigger when the ID changes
 
   const folders: GalleryItem[] = galleryData?.items || [];
   const clientModels: ClientModelFilter[] = galleryData?.clientModels || [];
@@ -785,14 +794,38 @@ export default function GalleryNew({ teamName, teamId }: GalleryProps) {
               {featuredItem && (
                 <div className="flex-1 flex flex-col">
                   <div className="relative aspect-video rounded-lg overflow-hidden bg-gray-900 shadow-2xl group mb-4">
+                    {/* Loading Skeleton with Spinner */}
+                    {featuredImageLoading && (
+                      <div className="absolute inset-0 bg-gray-800 animate-pulse z-10 flex items-center justify-center">
+                        <div className="flex flex-col items-center gap-3">
+                          <div className="animate-spin h-12 w-12 border-4 border-pink-600 border-t-transparent rounded-full"></div>
+                          <p className="text-white text-sm">Loading preview...</p>
+                        </div>
+                      </div>
+                    )}
+                    
                     {featuredItem.thumbnailUrl || featuredItem.fileUrl ? (
-                      <NextImage
-                        src={`/api/oftv-gallery/thumbnail?fileId=${featuredItem.fileUrl}`}
-                        alt={featuredItem.fileName}
-                        fill
-                        className="object-contain"
-                        unoptimized
-                      />
+                      <>
+                        {(() => {
+                          const isVideo = featuredItem.mimeType?.startsWith('video/') || featuredItem.fileType === 'VIDEO';
+                          const thumbnailUrl = isVideo 
+                            ? `/api/oftv-gallery/thumbnail?fileId=${featuredItem.fileUrl}&size=large`
+                            : `/api/oftv-gallery/thumbnail?fileId=${featuredItem.fileUrl}`;
+                          
+                          return (
+                            <NextImage
+                              src={thumbnailUrl}
+                              alt={featuredItem.fileName}
+                              fill
+                              className="object-contain"
+                              quality={100}
+                              priority
+                              unoptimized
+                              onLoad={() => setFeaturedImageLoading(false)}
+                            />
+                          );
+                        })()}
+                      </>
                     ) : (
                       <div className="flex items-center justify-center h-full">
                         <svg className="h-20 w-20 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
@@ -887,6 +920,7 @@ export default function GalleryNew({ teamName, teamId }: GalleryProps) {
                               fill
                               className="object-cover"
                               sizes="128px"
+                              quality={95}
                               unoptimized
                             />
                           ) : (

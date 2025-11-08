@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     let fileId = searchParams.get('fileId');
     const thumbnailLink = searchParams.get('thumbnailLink');
+    const size = searchParams.get('size') || 'default'; // 'default', 'large', or pixel size like '1920'
 
     if (!fileId && !thumbnailLink) {
       return NextResponse.json({ error: 'Missing fileId or thumbnailLink' }, { status: 400 });
@@ -61,9 +62,22 @@ export async function GET(request: NextRequest) {
       const mimeType = metadata.data.mimeType || '';
       const thumbnailLinkFromMetadata = metadata.data.thumbnailLink;
 
-      // For videos, use the thumbnail link from metadata
+      // For videos, use the thumbnail link from metadata with enhanced size
       if (mimeType.startsWith('video/') && thumbnailLinkFromMetadata) {
-        const thumbnailResponse = await fetch(thumbnailLinkFromMetadata, {
+        // Modify thumbnail URL to request larger size
+        // Google Drive thumbnail URLs have format: ...=s220 or =w220-h140
+        // We can replace with larger sizes for better quality
+        let enhancedThumbnailUrl = thumbnailLinkFromMetadata;
+        
+        if (size === 'large') {
+          // Request 1920px wide thumbnail for high quality
+          enhancedThumbnailUrl = thumbnailLinkFromMetadata.replace(/=s\d+/, '=s1920').replace(/=w\d+-h\d+/, '=w1920');
+        } else if (size !== 'default' && !isNaN(parseInt(size))) {
+          // Custom size specified
+          enhancedThumbnailUrl = thumbnailLinkFromMetadata.replace(/=s\d+/, `=s${size}`).replace(/=w\d+-h\d+/, `=w${size}`);
+        }
+
+        const thumbnailResponse = await fetch(enhancedThumbnailUrl, {
           headers: {
             Authorization: `Bearer ${session.accessToken}`,
           },
