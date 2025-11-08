@@ -12,7 +12,7 @@ interface GalleryProps {
 
 type ViewMode = 'grid' | 'list';
 type FileTypeFilter = 'ALL' | 'VIDEO' | 'IMAGE';
-type SortOption = 'newest' | 'oldest' | 'name-asc' | 'name-desc' | 'size-desc' | 'size-asc' | 'duration-desc' | 'duration-asc';
+type SortOption = 'video-number-asc' | 'video-number-desc' | 'newest' | 'oldest' | 'name-asc' | 'name-desc' | 'size-desc' | 'size-asc' | 'duration-desc' | 'duration-asc';
 
 interface GalleryItem {
   id: string;
@@ -123,7 +123,7 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [selectedClientModel, setSelectedClientModel] = useState<string | null>(null);
   const [fileTypeFilter, setFileTypeFilter] = useState<FileTypeFilter>('ALL');
-  const [sortOption, setSortOption] = useState<SortOption>('newest');
+  const [sortOption, setSortOption] = useState<SortOption>('video-number-asc');
   const [showFilters, setShowFilters] = useState(false);
   const [previewFile, setPreviewFile] = useState<GalleryItem | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
@@ -191,7 +191,7 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
     return true;
   });
 
-  // Group items by folder name (already sorted by server)
+  // Group items by folder name while preserving the order from the server
   const groupedByFolder = filteredItems.reduce((acc, item) => {
     const folderKey = item.folderName || 'Uncategorized';
     if (!acc[folderKey]) {
@@ -199,15 +199,16 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
         folderName: item.folderName,
         folderDriveId: item.folderDriveId,
         clientModel: item.clientModel,
-        items: []
+        items: [],
+        firstIndex: filteredItems.indexOf(item) // Track the order from server
       };
     }
     acc[folderKey].items.push(item);
     return acc;
-  }, {} as Record<string, { folderName: string | null; folderDriveId: string | null; clientModel: string; items: GalleryItem[] }>);
+  }, {} as Record<string, { folderName: string | null; folderDriveId: string | null; clientModel: string; items: GalleryItem[]; firstIndex: number }>);
 
-  // Convert to array (preserve server order)
-  const folderGroups = Object.values(groupedByFolder);
+  // Convert to array and sort by the original order from server
+  const folderGroups = Object.values(groupedByFolder).sort((a, b) => a.firstIndex - b.firstIndex);
 
   // Flatten for total count
   const sortedItems = filteredItems;
@@ -256,7 +257,7 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
                   </span>
                 )}
                 {selectedClientModel && <span> for {selectedClientModel}</span>}
-                {(fileTypeFilter !== 'ALL' || sortOption !== 'newest') && (
+                {(fileTypeFilter !== 'ALL' || sortOption !== 'video-number-asc') && (
                   <span className="text-pink-600 dark:text-pink-400"> • Filtered</span>
                 )}
               </>
@@ -312,14 +313,14 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`flex items-center gap-2 px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg transition-all ${
-              showFilters || fileTypeFilter !== 'ALL' || sortOption !== 'newest'
+              showFilters || fileTypeFilter !== 'ALL' || sortOption !== 'video-number-asc'
                 ? 'bg-pink-50 dark:bg-pink-900/20 border-pink-300 dark:border-pink-700 text-pink-700 dark:text-pink-300'
                 : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
             }`}
           >
             <SlidersHorizontal className="h-4 w-4" />
             <span className="hidden sm:inline">Filters</span>
-            {(fileTypeFilter !== 'ALL' || sortOption !== 'newest') && (
+            {(fileTypeFilter !== 'ALL' || sortOption !== 'video-number-asc') && (
               <span className="w-2 h-2 rounded-full bg-pink-500"></span>
             )}
           </button>
@@ -385,6 +386,10 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
                   onChange={(e) => setSortOption(e.target.value as SortOption)}
                   className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500/50 focus:border-pink-500 transition-all"
                 >
+                  <optgroup label="Video Number">
+                    <option value="video-number-desc">Newest Video (Highest #)</option>
+                    <option value="video-number-asc">Oldest Video (Lowest #)</option>
+                  </optgroup>
                   <optgroup label="Date">
                     <option value="newest">Newest First</option>
                     <option value="oldest">Oldest First</option>
@@ -406,20 +411,20 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
             </div>
 
             {/* Active Filters Summary & Reset */}
-            {(fileTypeFilter !== 'ALL' || sortOption !== 'newest') && (
+            {(fileTypeFilter !== 'ALL' || sortOption !== 'video-number-asc') && (
               <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                   <Filter className="h-4 w-4" />
                   <span>
                     {fileTypeFilter !== 'ALL' && `Type: ${fileTypeFilter}`}
-                    {fileTypeFilter !== 'ALL' && sortOption !== 'newest' && ' • '}
-                    {sortOption !== 'newest' && `Sort: ${sortOption.replace('-', ' ')}`}
+                    {fileTypeFilter !== 'ALL' && sortOption !== 'video-number-asc' && ' • '}
+                    {sortOption !== 'video-number-asc' && `Sort: ${sortOption.replace('-', ' ')}`}
                   </span>
                 </div>
                 <button
                   onClick={() => {
                     setFileTypeFilter('ALL');
-                    setSortOption('newest');
+                    setSortOption('video-number-asc');
                   }}
                   className="text-sm text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 font-medium transition-colors"
                 >
@@ -623,6 +628,14 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
                         {item.fileName}
                       </h3>
 
+                      {/* Model name */}
+                      <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 mb-1">
+                        <svg className="h-3 w-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                        </svg>
+                        <span className="truncate">{item.clientModel}</span>
+                      </div>
+
                       {/* YouTube-style metadata */}
                       <div className="flex flex-col gap-1 text-xs text-gray-600 dark:text-gray-400">
                         {/* First line: dimensions and file size */}
@@ -764,21 +777,32 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
                         {item.fileName}
                       </h3>
                       
-                      {/* YouTube-style metadata */}
-                      <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
-                        {item.width && item.height && (
-                          <span>{item.width} × {item.height}</span>
-                        )}
-                        {item.width && item.height && item.fileSize && (
-                          <span>•</span>
-                        )}
-                        {item.fileSize && (
-                          <span>{formatFileSize(item.fileSize)}</span>
-                        )}
-                        {(item.width && item.height || item.fileSize) && (
-                          <span>•</span>
-                        )}
-                        <span className="text-gray-500 dark:text-gray-500">{formatRelativeTime(item.updatedAt)}</span>
+                      {/* Model name and metadata */}
+                      <div className="flex flex-col gap-1">
+                        {/* Model name */}
+                        <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+                          <svg className="h-3 w-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                          </svg>
+                          <span className="truncate">{item.clientModel}</span>
+                        </div>
+
+                        {/* YouTube-style metadata */}
+                        <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                          {item.width && item.height && (
+                            <span>{item.width} × {item.height}</span>
+                          )}
+                          {item.width && item.height && item.fileSize && (
+                            <span>•</span>
+                          )}
+                          {item.fileSize && (
+                            <span>{formatFileSize(item.fileSize)}</span>
+                          )}
+                          {(item.width && item.height || item.fileSize) && (
+                            <span>•</span>
+                          )}
+                          <span className="text-gray-500 dark:text-gray-500">{formatRelativeTime(item.updatedAt)}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -816,7 +840,7 @@ export default function Gallery({ teamName, teamId }: GalleryProps) {
                     setFileTypeFilter('ALL');
                     setSelectedClientModel(null);
                     setSearchQuery('');
-                    setSortOption('newest');
+                    setSortOption('video-number-asc');
                   }}
                   className="px-4 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg transition-colors text-sm font-medium"
                 >

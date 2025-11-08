@@ -19,7 +19,29 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const foldersPerPage = 5; // Number of folders per page instead of items
     const search = searchParams.get('search');
-    const sortBy = searchParams.get('sortBy') || 'newest';
+    const sortBy = searchParams.get('sortBy') || 'video-number-asc';
+    
+    // Helper function to extract video number from folder name or filename
+    const extractVideoNumber = (name: string): number => {
+      // Try to match patterns like "Video 123", "video123", "123", etc.
+      const patterns = [
+        /video[_\s-]*(\d+)/i,  // Matches "Video 123", "video_123", "Video-123"
+        /(\d+)[_\s-]*video/i,  // Matches "123 Video", "123_video"
+        /^(\d+)/,              // Matches leading number "123-something"
+        /\((\d+)\)/,           // Matches "(123)"
+        /#(\d+)/,              // Matches "#123"
+      ];
+      
+      for (const pattern of patterns) {
+        const match = name.match(pattern);
+        if (match && match[1]) {
+          return parseInt(match[1], 10);
+        }
+      }
+      
+      // If no number found, return 0 (will be sorted last)
+      return 0;
+    };
     
     // We don't use skip/take at database level anymore
     // Instead, we'll fetch all items and paginate by folders
@@ -75,6 +97,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Fetch ALL items that match the criteria (we'll paginate by folders on the server)
+    // Order by folderName first so "Video 1" comes before "Video 10" (natural sort)
     const allItems = await prisma.oFTVGalleryItem.findMany({
       where: whereClause,
       include: {
@@ -88,9 +111,11 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      orderBy: {
-        updatedAt: 'desc'
-      }
+      orderBy: [
+        { folderName: 'asc' },  // Sort by folder name first (Video 1, Video 10, Video 2...)
+        { position: 'asc' },     // Then by position within folder
+        { fileName: 'asc' }      // Then by filename as fallback
+      ]
     });
 
     // Group items by folder
@@ -108,10 +133,12 @@ export async function GET(request: NextRequest) {
       const dates = items.map((item: any) => new Date(item.updatedAt).getTime());
       const sizes = items.map((item: any) => item.fileSize || 0);
       const durations = items.map((item: any) => item.durationMillis || 0);
+      const folderVideoNumber = extractVideoNumber(folderName || '');
       
       return {
         folderName,
         items,
+        folderVideoNumber,
         mostRecentUpdate: Math.max(...dates),
         oldestUpdate: Math.min(...dates),
         totalSize: sizes.reduce((sum, size) => sum + size, 0),
@@ -119,6 +146,30 @@ export async function GET(request: NextRequest) {
       };
     }).sort((a, b) => {
       switch (sortBy) {
+        case 'video-number-desc':
+          // Sort folders by video number in folder name (highest/newest first)
+          // If video numbers are equal, sort by full folder name alphabetically (case-insensitive)
+          if (b.folderVideoNumber !== a.folderVideoNumber) {
+            return b.folderVideoNumber - a.folderVideoNumber;
+          }
+          return (a.folderName || 'Uncategorized').localeCompare(
+            b.folderName || 'Uncategorized',
+            undefined,
+            { sensitivity: 'base' }
+          );
+        
+        case 'video-number-asc':
+          // Sort folders by video number in folder name (lowest/oldest first)
+          // If video numbers are equal, sort by full folder name alphabetically (case-insensitive)
+          if (a.folderVideoNumber !== b.folderVideoNumber) {
+            return a.folderVideoNumber - b.folderVideoNumber;
+          }
+          return (a.folderName || 'Uncategorized').localeCompare(
+            b.folderName || 'Uncategorized',
+            undefined,
+            { sensitivity: 'base' }
+          );
+        
         case 'newest':
           // Sort folders by most recent item (newest first)
           return b.mostRecentUpdate - a.mostRecentUpdate;
@@ -152,7 +203,16 @@ export async function GET(request: NextRequest) {
           return a.totalDuration - b.totalDuration;
         
         default:
-          return b.mostRecentUpdate - a.mostRecentUpdate;
+          // Default: sort by video number ascending (Video 1, Video 2, Video 3...)
+          // If video numbers are equal, sort by full folder name alphabetically (case-insensitive)
+          if (a.folderVideoNumber !== b.folderVideoNumber) {
+            return a.folderVideoNumber - b.folderVideoNumber;
+          }
+          return (a.folderName || 'Uncategorized').localeCompare(
+            b.folderName || 'Uncategorized',
+            undefined,
+            { sensitivity: 'base' }
+          );
       }
     });
 
@@ -160,6 +220,14 @@ export async function GET(request: NextRequest) {
     folders.forEach(folder => {
       folder.items.sort((a: any, b: any) => {
         switch (sortBy) {
+          case 'video-number-desc':
+          case 'video-number-asc':
+            // For video number sorting, keep items in their natural order within folder
+            // Or sort by position if available, otherwise by filename
+            if (a.position !== null && b.position !== null) {
+              return a.position - b.position;
+            }
+            return a.fileName.localeCompare(b.fileName);
           case 'newest':
             return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
           case 'oldest':
@@ -177,7 +245,10 @@ export async function GET(request: NextRequest) {
           case 'duration-asc':
             return (a.durationMillis || 0) - (b.durationMillis || 0);
           default:
-            return 0;
+            if (a.position !== null && b.position !== null) {
+              return a.position - b.position;
+            }
+            return a.fileName.localeCompare(b.fileName);
         }
       });
     });
