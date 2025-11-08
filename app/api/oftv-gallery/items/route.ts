@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const clientModel = searchParams.get('clientModel');
     const page = parseInt(searchParams.get('page') || '1');
-    const foldersPerPage = 5; // Number of folders per page instead of items
+    const foldersPerPage = 20; // Number of folders per page instead of items
     const search = searchParams.get('search');
     const sortBy = searchParams.get('sortBy') || 'video-number-asc';
     
@@ -135,9 +135,39 @@ export async function GET(request: NextRequest) {
       const durations = items.map((item: any) => item.durationMillis || 0);
       const folderVideoNumber = extractVideoNumber(folderName || '');
       
+      // Find the latest modified image to use as thumbnail
+      const imageItems = items.filter((item: any) => 
+        item.mimeType?.startsWith('image/') || 
+        item.fileType === 'IMAGE' || 
+        item.fileType === 'THUMBNAIL' || 
+        item.fileType === 'GIF'
+      );
+      
+      // Get the most recently updated image, or fall back to any item
+      const latestImage = imageItems.length > 0
+        ? imageItems.reduce((latest: any, current: any) => 
+            new Date(current.updatedAt) > new Date(latest.updatedAt) ? current : latest
+          )
+        : items[0]; // Fallback to first item if no images
+      
+      // Find the latest modified video to get its duration
+      const videoItems = items.filter((item: any) => 
+        item.mimeType?.startsWith('video/') || 
+        item.fileType === 'VIDEO'
+      );
+      
+      const latestVideo = videoItems.length > 0
+        ? videoItems.reduce((latest: any, current: any) => 
+            new Date(current.updatedAt) > new Date(latest.updatedAt) ? current : latest
+          )
+        : null;
+      
       return {
         folderName,
         items,
+        latestImage, // This will be used as the thumbnail
+        latestVideoDuration: latestVideo?.durationMillis || null, // Duration of the latest video
+        itemCount: items.length,
         folderVideoNumber,
         mostRecentUpdate: Math.max(...dates),
         oldestUpdate: Math.min(...dates),
@@ -261,8 +291,8 @@ export async function GET(request: NextRequest) {
     const endFolderIndex = startFolderIndex + foldersPerPage;
     const paginatedFolders = folders.slice(startFolderIndex, endFolderIndex);
 
-    // Flatten the items from paginated folders
-    const items = paginatedFolders.flatMap(folder => folder.items);
+    // Return only the latest image per folder (not all items)
+    const items = paginatedFolders.map(folder => folder.latestImage);
 
     // Get all client models with item counts (not paginated)
     const clientModels = await prisma.oFTVGallery.findMany({
@@ -280,26 +310,33 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Transform the data
-    const transformedItems = items.map((item: any) => ({
-      id: item.id,
-      fileName: item.fileName,
-      fileType: item.fileType,
-      folderName: item.folderName,
-      folderDriveId: item.folderDriveLink,
-      fileUrl: item.fileUrl,
-      thumbnailUrl: item.thumbnailUrl,
-      fileSize: item.fileSize,
-      durationMillis: item.durationMillis,
-      width: item.width,
-      height: item.height,
-      mimeType: item.mimeType,
-      position: item.position,
-      createdAt: item.createdAt.toISOString(),
-      updatedAt: item.updatedAt.toISOString(),
-      clientModel: item.gallery.clientModel.clientName,
-      galleryId: item.galleryId
-    }));
+    // Transform the data - include folder metadata
+    const transformedItems = paginatedFolders.map((folder: any) => {
+      const item = folder.latestImage;
+      return {
+        id: item.id,
+        fileName: item.fileName,
+        fileType: item.fileType,
+        folderName: item.folderName,
+        folderDriveId: item.folderDriveLink,
+        fileUrl: item.fileUrl,
+        thumbnailUrl: item.thumbnailUrl,
+        fileSize: item.fileSize,
+        durationMillis: item.durationMillis,
+        width: item.width,
+        height: item.height,
+        mimeType: item.mimeType,
+        position: item.position,
+        createdAt: item.createdAt.toISOString(),
+        updatedAt: item.updatedAt.toISOString(),
+        clientModel: item.gallery.clientModel.clientName,
+        galleryId: item.galleryId,
+        // Add folder-level metadata
+        itemCount: folder.itemCount,
+        latestVideoDuration: folder.latestVideoDuration, // Duration of latest video in folder
+        isFolderView: true // Flag to indicate this represents a whole folder
+      };
+    });
 
     const transformedClientModels = clientModels.map((gallery: any) => ({
       id: gallery.id,
