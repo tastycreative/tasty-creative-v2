@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useTaskUpdates } from '@/hooks/useTaskUpdates';
 import { useMarkAsFinal } from '@/hooks/useMarkAsFinal';
+import { useMarkAsPublished } from '@/hooks/useMarkAsPublished';
 import { useBoardStore, useBoardTasks, useBoardFilters, useBoardTaskActions, useBoardColumns, type Task, type BoardColumn, type NewTaskData } from '@/lib/stores/boardStore';
 import { useTasksQuery, useColumnsQuery, useTeamMembersQuery, useTeamSettingsQuery, boardQueryKeys, useUpdateTaskMutation, useUpdateTaskStatusMutation, useUpdateOFTVTaskMutation } from '@/hooks/useBoardQueries';
 import { formatForDisplay, formatForTaskCard, formatDueDate, formatForTaskDetail, toLocalDateTimeString, parseUserDate } from '@/lib/dateUtils';
@@ -181,8 +182,27 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     teamId,
     teamName,
     session,
-    onSuccess: () => fetchTasks(teamId),
+    onSuccess: async () => {
+      // Force immediate refetch of tasks to update UI
+      await queryClient.invalidateQueries({ queryKey: ['tasks', teamId] });
+      await queryClient.refetchQueries({ queryKey: ['tasks', teamId] });
+    },
   });
+
+  // Mark as Published hook (for OFTV)
+  const { markAsPublished, loadingTaskId: loadingPublishedTaskId } = useMarkAsPublished({
+    teamId,
+    teamName,
+    session,
+    onSuccess: async () => {
+      // Force immediate refetch of tasks to update UI
+      await queryClient.invalidateQueries({ queryKey: ['tasks', teamId] });
+      await queryClient.refetchQueries({ queryKey: ['tasks', teamId] });
+    },
+  });
+
+  // Combined loading state for both operations
+  const combinedLoadingTaskId = loadingTaskId || loadingPublishedTaskId;
 
   const handleSetOftvTaskData = useCallback((data: Partial<OFTVTaskData>) => {
     setOftvTaskData(prev => ({ ...prev, ...data }));
@@ -447,6 +467,19 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   const task = qTasks.find((t) => t.id === taskId);
     if (task) {
       await markAsFinal(task);
+    }
+  };
+
+  const handleMarkAsPublished = async (taskId: string, isPublished: boolean) => {
+    if (!isPublished) {
+      const toast = (await import('sonner')).toast;
+      toast.error('Unmarking as published is not supported');
+      return;
+    }
+
+    const task = qTasks.find((t) => t.id === taskId);
+    if (task) {
+      await markAsPublished(task);
     }
   };
 
@@ -1572,7 +1605,8 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         onTaskClick={openTaskDetail}
         onDeleteTask={handleDeleteTask}
         onMarkAsFinal={handleMarkAsFinal}
-        loadingTaskId={loadingTaskId}
+        onMarkAsPublished={handleMarkAsPublished}
+        loadingTaskId={combinedLoadingTaskId}
         onOpenNewTaskModal={openNewTaskModal}
         onSetShowNewTaskForm={setShowNewTaskForm}
         onSetNewTaskData={setNewTaskData}
