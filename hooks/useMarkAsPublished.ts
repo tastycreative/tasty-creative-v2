@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
+import { boardQueryKeys } from './useBoardQueries'
 
 interface MarkAsPublishedOptions {
   teamId: string
@@ -10,6 +12,7 @@ interface MarkAsPublishedOptions {
 
 export function useMarkAsPublished({ teamId, teamName, session, onSuccess }: MarkAsPublishedOptions) {
   const [loadingTaskId, setLoadingTaskId] = useState<string | null>(null)
+  const queryClient = useQueryClient()
 
   const markAsPublished = async (task: any) => {
     if (!task?.oftvTask) {
@@ -95,7 +98,31 @@ export function useMarkAsPublished({ teamId, teamName, session, onSuccess }: Mar
         console.error('Failed to trigger n8n webhook (non-critical):', webhookError)
       }
 
-      // Step 3: Update both video and thumbnail editor statuses to PUBLISHED
+      // Step 3: Optimistically update the cache FIRST
+      console.log('🔵 Optimistically updating cache for published status...')
+      queryClient.setQueryData(boardQueryKeys.tasks(teamId), (old: any) => {
+        if (!old?.tasks) return old
+        
+        return {
+          ...old,
+          tasks: old.tasks.map((t: any) => {
+            if (t.id === task.id && t.oftvTask) {
+              return {
+                ...t,
+                oftvTask: {
+                  ...t.oftvTask,
+                  videoEditorStatus: 'PUBLISHED',
+                  thumbnailEditorStatus: 'PUBLISHED',
+                },
+                updatedAt: new Date().toISOString(),
+              }
+            }
+            return t
+          }),
+        }
+      })
+
+      // Step 4: Update both video and thumbnail editor statuses to PUBLISHED
       const updateResponse = await fetch('/api/oftv-tasks', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -114,7 +141,7 @@ export function useMarkAsPublished({ teamId, teamName, session, onSuccess }: Mar
       const updateData = await updateResponse.json()
       console.log('✅ Task status updated to PUBLISHED:', updateData)
 
-      // Step 4: Send team notification (don't fail if this errors)
+      // Step 5: Send team notification (don't fail if this errors)
       try {
         await fetch('/api/notifications/column-movement', {
           method: 'POST',
@@ -142,7 +169,13 @@ export function useMarkAsPublished({ teamId, teamName, session, onSuccess }: Mar
       // Success!
       toast.success('Folder moved to published location and task marked as published!')
 
-      // Call onSuccess callback to refresh tasks
+      // Step 6: Refetch after a delay to sync with server
+      setTimeout(async () => {
+        console.log('🟣 Refetching tasks to sync with server...')
+        await queryClient.invalidateQueries({ queryKey: boardQueryKeys.tasks(teamId) })
+      }, 800)
+
+      // Call onSuccess callback
       if (onSuccess) {
         onSuccess()
       }
@@ -150,6 +183,9 @@ export function useMarkAsPublished({ teamId, teamName, session, onSuccess }: Mar
     } catch (error) {
       console.error('Error marking as published:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to mark as published')
+      
+      // Rollback optimistic update on error
+      await queryClient.invalidateQueries({ queryKey: boardQueryKeys.tasks(teamId) })
     } finally {
       setLoadingTaskId(null)
     }
