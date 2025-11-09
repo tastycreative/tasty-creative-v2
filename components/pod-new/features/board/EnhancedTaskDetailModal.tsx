@@ -101,10 +101,6 @@ export default function EnhancedTaskDetailModal({
 
   // OFTV task editing state
   const [editingOFTVData, setEditingOFTVData] = useState<any>(null);
-  
-  // Optimistic UI state for OFTV status updates
-  const [optimisticVideoStatus, setOptimisticVideoStatus] = useState<string | null>(null);
-  const [optimisticThumbnailStatus, setOptimisticThumbnailStatus] = useState<string | null>(null);
 
   // Determine if user should have view-only access
   const isViewOnly = !session?.user?.role ||
@@ -157,16 +153,6 @@ export default function EnhancedTaskDetailModal({
     }
   }, [isEditingTask, hasOFTVTask, oftvTaskData, editingOFTVData]);
 
-  // Clear optimistic state when actual data matches the optimistic update
-  React.useEffect(() => {
-    if (optimisticVideoStatus && oftvTaskData?.videoEditorStatus === optimisticVideoStatus) {
-      setOptimisticVideoStatus(null);
-    }
-    if (optimisticThumbnailStatus && oftvTaskData?.thumbnailEditorStatus === optimisticThumbnailStatus) {
-      setOptimisticThumbnailStatus(null);
-    }
-  }, [oftvTaskData?.videoEditorStatus, oftvTaskData?.thumbnailEditorStatus, optimisticVideoStatus, optimisticThumbnailStatus]);
-
   // Wrap the save function to handle OFTV data
   const handleSaveWithOFTV = async () => {
     // Save OFTV data if it exists
@@ -193,38 +179,13 @@ export default function EnhancedTaskDetailModal({
   const handleOFTVStatusUpdate = async (field: 'videoEditorStatus' | 'thumbnailEditorStatus', newStatus: string) => {
     if (!oftvTaskData?.id) return;
     
-    // Store old status for rollback
-    const oldStatus = field === 'videoEditorStatus' 
-      ? oftvTaskData.videoEditorStatus 
-      : oftvTaskData.thumbnailEditorStatus;
-    
-    // OPTIMISTIC UPDATE: Immediately update the UI
-    if (field === 'videoEditorStatus') {
-      setOptimisticVideoStatus(newStatus);
-    } else {
-      setOptimisticThumbnailStatus(newStatus);
-    }
-    
     try {
       if (onUpdateOFTVTask) {
+        // The mutation handles optimistic updates, so we don't need local state here
         await onUpdateOFTVTask(selectedTask.id, { [field]: newStatus, id: oftvTaskData.id });
       }
-      
-      // Don't clear optimistic state immediately - let it persist until the actual data updates
-      // This prevents the revert issue when the parent refetches data
-      // The optimistic state will be cleared when the component receives updated data
     } catch (error) {
-      console.error('❌ Error updating OFTV status via store:', error);
-      
-      // ROLLBACK: Revert optimistic update on error
-      if (field === 'videoEditorStatus') {
-        setOptimisticVideoStatus(oldStatus);
-        // Reset back to original after showing the error
-        setTimeout(() => setOptimisticVideoStatus(null), 100);
-      } else {
-        setOptimisticThumbnailStatus(oldStatus);
-        setTimeout(() => setOptimisticThumbnailStatus(null), 100);
-      }
+      console.error('❌ Error updating OFTV status:', error);
       
       // Show error toast
       const toast = (await import('sonner')).toast;
@@ -1213,7 +1174,7 @@ export default function EnhancedTaskDetailModal({
                     <select
                       value={isEditingTask 
                         ? (editingOFTVData?.videoEditorStatus || 'NOT_STARTED') 
-                        : (optimisticVideoStatus || oftvTaskData?.videoEditorStatus)
+                        : (oftvTaskData?.videoEditorStatus || 'NOT_STARTED')
                       }
                       onChange={(e) => {
                         if (isEditingTask) {
@@ -1225,7 +1186,7 @@ export default function EnhancedTaskDetailModal({
                       className={`w-full px-3 py-2 text-sm rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${
                         isEditingTask 
                           ? 'border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-                          : getOFTVStatusConfig(optimisticVideoStatus || oftvTaskData?.videoEditorStatus || 'NOT_STARTED').color
+                          : getOFTVStatusConfig(oftvTaskData?.videoEditorStatus || 'NOT_STARTED').color
                       }`}
                     >
                       {oftvStatusOptions.map(option => (
@@ -1277,7 +1238,7 @@ export default function EnhancedTaskDetailModal({
                     <select
                       value={isEditingTask 
                         ? (editingOFTVData?.thumbnailEditorStatus || 'NOT_STARTED') 
-                        : (optimisticThumbnailStatus || oftvTaskData?.thumbnailEditorStatus)
+                        : (oftvTaskData?.thumbnailEditorStatus || 'NOT_STARTED')
                       }
                       onChange={(e) => {
                         if (isEditingTask) {
@@ -1289,7 +1250,7 @@ export default function EnhancedTaskDetailModal({
                       className={`w-full px-3 py-2 text-sm rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${
                         isEditingTask 
                           ? 'border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-                          : getOFTVStatusConfig(optimisticThumbnailStatus || oftvTaskData?.thumbnailEditorStatus || 'NOT_STARTED').color
+                          : getOFTVStatusConfig(oftvTaskData?.thumbnailEditorStatus || 'NOT_STARTED').color
                       }`}
                     >
                       {oftvStatusOptions.map(option => (

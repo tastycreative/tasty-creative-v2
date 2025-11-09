@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient, useQueries } from "@tanstack/react-query";
-import { Task, BoardColumn, type TaskComment, type TaskAttachment, useBoardStore } from "@/lib/stores/boardStore";
+import { Task, BoardColumn, type TaskComment, type TaskAttachment } from "@/lib/stores/boardStore";
 
 export const boardQueryKeys = {
   all: ["board"] as const,
@@ -502,10 +502,32 @@ export function useUpdateTaskMutation(teamId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (params: { taskId: string; updates: Partial<Task> }) => {
-      await useBoardStore.getState().updateTask(params.taskId, params.updates);
-      return { success: true } as const;
+      console.log('🟡 useUpdateTaskMutation - Calling API directly:', params);
+      
+      // Call the API directly
+      const response = await fetch('/api/tasks', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: params.taskId,
+          ...params.updates,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to update task: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log('🟢 useUpdateTaskMutation - API response:', result);
+      
+      return result;
     },
     onSuccess: async () => {
+      // Wait for database to commit
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
       // Invalidate and wait for refetch to complete before returning
       await qc.invalidateQueries({ queryKey: boardQueryKeys.tasks(teamId) });
       await qc.refetchQueries({ queryKey: boardQueryKeys.tasks(teamId) });
@@ -518,13 +540,88 @@ export function useUpdateTaskStatusMutation(teamId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (params: { taskId: string; status: Task['status'] }) => {
-      await useBoardStore.getState().updateTaskStatus(params.taskId, params.status);
-      return { success: true } as const;
+      console.log('🟡 useUpdateTaskStatusMutation - Starting mutation:', params);
+      console.log('🟡 Calling API directly instead of through Zustand store...');
+      
+      // Call the API directly instead of going through Zustand store
+      const response = await fetch('/api/tasks', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: params.taskId,
+          status: params.status,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to update task: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      
+      console.log('🟢 API response:', { 
+        success: result.success, 
+        taskId: result.task?.id,
+        newStatus: result.task?.status
+      });
+      
+      return result;
     },
-    onSuccess: async () => {
-      // Invalidate and wait for refetch to complete before returning
+    onMutate: async (params) => {
+      console.log('🔵 onMutate - Setting optimistic update for:', params);
+      
+      // Cancel any outgoing refetches to prevent them from overwriting our optimistic update
+      await qc.cancelQueries({ queryKey: boardQueryKeys.tasks(teamId) });
+
+      // Snapshot the previous value for rollback
+      const previousTasks = qc.getQueryData(boardQueryKeys.tasks(teamId));
+
+      // Optimistically update the cache
+      qc.setQueryData(boardQueryKeys.tasks(teamId), (old: any) => {
+        if (!old?.tasks) return old;
+        
+        const updatedData = {
+          ...old,
+          tasks: old.tasks.map((task: Task) =>
+            task.id === params.taskId
+              ? { ...task, status: params.status, updatedAt: new Date().toISOString() }
+              : task
+          ),
+        };
+        
+        console.log('🔵 onMutate - Cache updated, task new status:', 
+          updatedData.tasks.find((t: Task) => t.id === params.taskId)?.status
+        );
+        
+        return updatedData;
+      });
+
+      return { previousTasks };
+    },
+    onError: (err, params, context) => {
+      // Rollback to previous state on error
+      if (context?.previousTasks) {
+        qc.setQueryData(boardQueryKeys.tasks(teamId), context.previousTasks);
+      }
+    },
+    onSettled: async () => {
+      console.log('🟣 onSettled (useUpdateTaskStatusMutation) - Waiting 800ms before refetch...');
+      
+      // Wait longer for database to commit (increased to 800ms for reliability)
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      console.log('🟣 onSettled (useUpdateTaskStatusMutation) - Invalidating cache and refetching...');
+      
+      // Invalidate and refetch to sync with server
       await qc.invalidateQueries({ queryKey: boardQueryKeys.tasks(teamId) });
-      await qc.refetchQueries({ queryKey: boardQueryKeys.tasks(teamId) });
+      
+      // Get the updated data from cache after refetch
+      const updatedCache = qc.getQueryData(boardQueryKeys.tasks(teamId));
+      console.log('🟣 onSettled (useUpdateTaskStatusMutation) - Refetch complete. Cache now contains:', {
+        taskCount: (updatedCache as any)?.tasks?.length,
+        sample: (updatedCache as any)?.tasks?.[0]
+      });
     },
   });
 }
@@ -534,13 +631,78 @@ export function useUpdateOFTVTaskMutation(teamId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (params: { taskId: string; updates: any }) => {
-      await useBoardStore.getState().updateOFTVTask(params.taskId, params.updates);
-      return { success: true } as const;
+      console.log('🟡 useUpdateOFTVTaskMutation - Starting mutation:', params);
+      
+      // First, get the OFTV task ID from React Query cache
+      const cachedData: any = qc.getQueryData(boardQueryKeys.tasks(teamId));
+      const task = cachedData?.tasks?.find((t: Task) => t.id === params.taskId);
+      const oftvTaskId = (task as any)?.oftvTask?.id;
+      
+      if (!oftvTaskId) {
+        throw new Error('OFTV task not found');
+      }
+      
+      console.log('🟡 Calling /api/oftv-tasks PATCH with:', { id: oftvTaskId, ...params.updates });
+      
+      // Call the API directly
+      const response = await fetch('/api/oftv-tasks', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: oftvTaskId, ...params.updates }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update OFTV task');
+      }
+
+      const result = await response.json();
+      
+      console.log('🟢 /api/oftv-tasks PATCH response:', result);
+      
+      return result;
     },
-    onSuccess: async () => {
-      // Invalidate and wait for refetch to complete before returning
+    onMutate: async (params) => {
+      // Cancel any outgoing refetches to prevent them from overwriting our optimistic update
+      await qc.cancelQueries({ queryKey: boardQueryKeys.tasks(teamId) });
+
+      // Snapshot the previous value for rollback
+      const previousTasks = qc.getQueryData(boardQueryKeys.tasks(teamId));
+
+      // Optimistically update the cache
+      qc.setQueryData(boardQueryKeys.tasks(teamId), (old: any) => {
+        if (!old?.tasks) return old;
+        return {
+          ...old,
+          tasks: old.tasks.map((task: Task) => {
+            if (task.id === params.taskId && (task as any).oftvTask) {
+              return {
+                ...task,
+                oftvTask: {
+                  ...(task as any).oftvTask,
+                  ...params.updates,
+                },
+                updatedAt: new Date().toISOString()
+              };
+            }
+            return task;
+          }),
+        };
+      });
+
+      return { previousTasks };
+    },
+    onError: (err, params, context) => {
+      // Rollback to previous state on error
+      if (context?.previousTasks) {
+        qc.setQueryData(boardQueryKeys.tasks(teamId), context.previousTasks);
+      }
+    },
+    onSettled: async () => {
+      // Wait longer for database to commit (increased to 800ms for reliability)
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Invalidate and refetch to sync with server
       await qc.invalidateQueries({ queryKey: boardQueryKeys.tasks(teamId) });
-      await qc.refetchQueries({ queryKey: boardQueryKeys.tasks(teamId) });
     },
   });
 }

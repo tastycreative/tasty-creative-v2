@@ -1033,29 +1033,34 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     const oldStatus = draggedTask.status;
     const taskToUpdate = draggedTask;
 
+    // Find column names for debug logging
+    const fromColumn = qColumns.find((col: BoardColumn) => col.status === oldStatus);
+    const toColumn = qColumns.find((col: BoardColumn) => col.status === newStatus);
+    
+    console.log('🎯 DRAG & DROP DEBUG:', {
+      taskId: taskToUpdate.id,
+      taskTitle: taskToUpdate.title,
+      fromColumn: {
+        status: oldStatus,
+        label: fromColumn?.label || 'Unknown',
+        position: fromColumn?.position
+      },
+      toColumn: {
+        status: newStatus,
+        label: toColumn?.label || 'Unknown',
+        position: toColumn?.position
+      },
+      timestamp: new Date().toISOString()
+    });
+
     // Clear dragged task immediately to remove opacity effect
     setDraggedTask(null);
 
-    // OPTIMISTIC UPDATE: Immediately update the UI
-    queryClient.setQueryData(
-      boardQueryKeys.tasks(teamId),
-      (oldData: any) => {
-        if (!oldData?.tasks) return oldData;
-        
-        return {
-          ...oldData,
-          tasks: oldData.tasks.map((task: Task) =>
-            task.id === taskToUpdate.id
-              ? { ...task, status: newStatus }
-              : task
-          ),
-        };
-      }
-    );
-
-    // Update the task status via TanStack mutation (handles cache invalidation)
+    // Update the task status via TanStack mutation (handles optimistic update and cache invalidation)
     try {
       await updateTaskStatusMutation.mutateAsync({ taskId: taskToUpdate.id, status: newStatus });
+
+      console.log('✅ Mutation completed successfully');
 
       // For OFTV team, update the description based on column label
       if (teamName === "OFTV") {
@@ -1065,28 +1070,13 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       // Send notifications to assigned members
       await sendColumnNotifications(taskToUpdate, oldStatus, newStatus);
 
-      // Don't invalidate here - the mutation's onSuccess already handles it
+      // Don't invalidate here - the mutation's onSettled already handles it
       // This prevents double refetches and race conditions
     } catch (err) {
       console.error('Error updating task status on drop:', err);
       
-      // ROLLBACK: Revert the optimistic update on error
-      queryClient.setQueryData(
-        boardQueryKeys.tasks(teamId),
-        (oldData: any) => {
-          if (!oldData?.tasks) return oldData;
-          
-          return {
-            ...oldData,
-            tasks: oldData.tasks.map((task: Task) =>
-              task.id === taskToUpdate.id
-                ? { ...task, status: oldStatus }
-                : task
-            ),
-          };
-        }
-      );
-
+      // Mutation's onError handles rollback automatically
+      
       // Show error toast
       const toast = (await import('sonner')).toast;
       toast.error('Failed to move task. Please try again.');

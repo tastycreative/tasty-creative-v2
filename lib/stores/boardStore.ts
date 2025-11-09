@@ -653,8 +653,16 @@ export const useBoardStore = create<BoardStore>()(
         },
         
         updateTaskStatus: async (taskId, newStatus) => {
+          console.log('🟠 updateTaskStatus called with:', { taskId, newStatus });
+          
           const currentTask = get().tasks.find(task => task.id === taskId);
-          if (!currentTask) return;
+          
+          console.log('🟠 Found task?:', !!currentTask, 'Total tasks:', get().tasks.length);
+          
+          if (!currentTask) {
+            console.log('❌ Task not found in store! Returning early.');
+            return;
+          }
 
           // Optimistic update
           const updatedTask = { ...currentTask, status: newStatus, updatedAt: new Date().toISOString() };
@@ -666,12 +674,21 @@ export const useBoardStore = create<BoardStore>()(
           }));
           
           try {
+            console.log('🔵 Calling /api/tasks PUT with:', { taskId, newStatus });
+            
             const result = await apiCall<{ success: boolean; task: Task }>('/api/tasks', {
               method: 'PUT',
               body: JSON.stringify({
                 id: taskId,
                 status: newStatus,
               }),
+            });
+            
+            console.log('🟢 /api/tasks PUT response:', { 
+              success: result.success, 
+              taskId: result.task?.id,
+              newStatus: result.task?.status,
+              fullTask: result.task 
             });
             
             if (result.success && result.task) {
