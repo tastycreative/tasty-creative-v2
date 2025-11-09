@@ -226,6 +226,7 @@ interface TaskCardProps {
   onTaskClick: (task: Task) => void;
   onDeleteTask: (taskId: string) => void;
   onMarkAsFinal: (taskId: string, isFinal: boolean) => void;
+  onMarkAsPublished?: (taskId: string, isPublished: boolean) => void;
   loadingTaskId: string | null;
   columnName: string;
   columnStatus: string;
@@ -243,6 +244,7 @@ function TaskCard({
   onTaskClick,
   onDeleteTask,
   onMarkAsFinal,
+  onMarkAsPublished,
   loadingTaskId,
   columnName,
   columnStatus,
@@ -252,6 +254,11 @@ function TaskCard({
   // Show button if: 1) Task has ModularWorkflow, 2) Column name is "Ready to Deploy", 3) Task's status matches this column
   const showMarkAsFinalButton = task.ModularWorkflow && columnName === "Ready to Deploy" && task.status === columnStatus;
   const isFinal = task.ModularWorkflow?.isFinal || false;
+  
+  // Show "Mark as Published" button if: 1) Team is OFTV, 2) Column name is "Posted", 3) Task has oftvTask
+  const showMarkAsPublishedButton = teamName === "OFTV" && columnName === "Posted" && task.status === columnStatus && task.oftvTask;
+  const isPublished = task.oftvTask?.videoEditorStatus === 'PUBLISHED' && task.oftvTask?.thumbnailEditorStatus === 'PUBLISHED';
+  
   const isThisTaskLoading = loadingTaskId === task.id;
   return (
     <div
@@ -436,6 +443,41 @@ function TaskCard({
               <>
                 <Circle className="w-4 h-4" />
                 <span>Mark as Final</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Mark as Published Button - Only in Posted column for OFTV */}
+      {showMarkAsPublishedButton && onMarkAsPublished && (
+        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onMarkAsPublished(task.id, !isPublished);
+            }}
+            disabled={isThisTaskLoading}
+            className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${
+              isPublished
+                ? "bg-gradient-to-r from-emerald-50 to-green-100 dark:from-emerald-900/30 dark:to-green-800/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700 hover:shadow-md hover:shadow-emerald-500/20"
+                : "bg-gradient-to-r from-blue-50 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-800/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 hover:shadow-md hover:shadow-blue-500/20"
+            }`}
+          >
+            {isThisTaskLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Processing...</span>
+              </>
+            ) : isPublished ? (
+              <>
+                <CheckCircle2 className="w-4 h-4" />
+                <span>✓ Published</span>
+              </>
+            ) : (
+              <>
+                <Circle className="w-4 h-4" />
+                <span>Mark as Published</span>
               </>
             )}
           </button>

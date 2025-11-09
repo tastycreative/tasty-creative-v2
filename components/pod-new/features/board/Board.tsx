@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useTaskUpdates } from '@/hooks/useTaskUpdates';
 import { useMarkAsFinal } from '@/hooks/useMarkAsFinal';
+import { useMarkAsPublished } from '@/hooks/useMarkAsPublished';
 import { useBoardStore, useBoardTasks, useBoardFilters, useBoardTaskActions, useBoardColumns, type Task, type BoardColumn, type NewTaskData } from '@/lib/stores/boardStore';
 import { useTasksQuery, useColumnsQuery, useTeamMembersQuery, useTeamSettingsQuery, boardQueryKeys, useUpdateTaskMutation, useUpdateTaskStatusMutation, useUpdateOFTVTaskMutation } from '@/hooks/useBoardQueries';
 import { formatForDisplay, formatForTaskCard, formatDueDate, formatForTaskDetail, toLocalDateTimeString, parseUserDate } from '@/lib/dateUtils';
@@ -181,8 +182,27 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     teamId,
     teamName,
     session,
-    onSuccess: () => fetchTasks(teamId),
+    onSuccess: async () => {
+      // Force immediate refetch of tasks to update UI
+      await queryClient.invalidateQueries({ queryKey: ['tasks', teamId] });
+      await queryClient.refetchQueries({ queryKey: ['tasks', teamId] });
+    },
   });
+
+  // Mark as Published hook (for OFTV)
+  const { markAsPublished, loadingTaskId: loadingPublishedTaskId } = useMarkAsPublished({
+    teamId,
+    teamName,
+    session,
+    onSuccess: async () => {
+      // Force immediate refetch of tasks to update UI
+      await queryClient.invalidateQueries({ queryKey: ['tasks', teamId] });
+      await queryClient.refetchQueries({ queryKey: ['tasks', teamId] });
+    },
+  });
+
+  // Combined loading state for both operations
+  const combinedLoadingTaskId = loadingTaskId || loadingPublishedTaskId;
 
   const handleSetOftvTaskData = useCallback((data: Partial<OFTVTaskData>) => {
     setOftvTaskData(prev => ({ ...prev, ...data }));
@@ -447,6 +467,19 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   const task = qTasks.find((t) => t.id === taskId);
     if (task) {
       await markAsFinal(task);
+    }
+  };
+
+  const handleMarkAsPublished = async (taskId: string, isPublished: boolean) => {
+    if (!isPublished) {
+      const toast = (await import('sonner')).toast;
+      toast.error('Unmarking as published is not supported');
+      return;
+    }
+
+    const task = qTasks.find((t) => t.id === taskId);
+    if (task) {
+      await markAsPublished(task);
     }
   };
 
@@ -996,34 +1029,68 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       return;
     }
 
-    // Store the old status for notification purposes
+    // Store the old status for rollback purposes
     const oldStatus = draggedTask.status;
-
-    // Update the task status via TanStack mutation (handles cache invalidation)
-    try {
-      await updateTaskStatusMutation.mutateAsync({ taskId: draggedTask.id, status: newStatus });
-
-      // Force refetch tasks from Zustand store to sync with React Query
-      await fetchTasks(teamId, true);
-    } catch (err) {
-      console.error('Error updating task status on drop:', err);
-      // Still clear drag state to avoid UI being stuck
-      setDraggedTask(null);
-      return;
-    }
-
-    // For OFTV team, update the description based on column label
-    if (teamName === "OFTV") {
-      await updateOFTVTaskDescription(draggedTask, newStatus);
-    }
-
-    // Send notifications to assigned members
-    await sendColumnNotifications(draggedTask, oldStatus, newStatus);
+    const taskToUpdate = draggedTask;
 
     // Clear dragged task immediately to remove opacity effect
     setDraggedTask(null);
 
-    // Cache will refresh via mutation's invalidation; relations stay consistent after refetch
+    // OPTIMISTIC UPDATE: Immediately update the UI
+    queryClient.setQueryData(
+      boardQueryKeys.tasks(teamId),
+      (oldData: any) => {
+        if (!oldData?.tasks) return oldData;
+        
+        return {
+          ...oldData,
+          tasks: oldData.tasks.map((task: Task) =>
+            task.id === taskToUpdate.id
+              ? { ...task, status: newStatus }
+              : task
+          ),
+        };
+      }
+    );
+
+    // Update the task status via TanStack mutation (handles cache invalidation)
+    try {
+      await updateTaskStatusMutation.mutateAsync({ taskId: taskToUpdate.id, status: newStatus });
+
+      // For OFTV team, update the description based on column label
+      if (teamName === "OFTV") {
+        await updateOFTVTaskDescription(taskToUpdate, newStatus);
+      }
+
+      // Send notifications to assigned members
+      await sendColumnNotifications(taskToUpdate, oldStatus, newStatus);
+
+      // Force refetch to ensure we have the latest data from server
+      await queryClient.invalidateQueries({ queryKey: boardQueryKeys.tasks(teamId) });
+    } catch (err) {
+      console.error('Error updating task status on drop:', err);
+      
+      // ROLLBACK: Revert the optimistic update on error
+      queryClient.setQueryData(
+        boardQueryKeys.tasks(teamId),
+        (oldData: any) => {
+          if (!oldData?.tasks) return oldData;
+          
+          return {
+            ...oldData,
+            tasks: oldData.tasks.map((task: Task) =>
+              task.id === taskToUpdate.id
+                ? { ...task, status: oldStatus }
+                : task
+            ),
+          };
+        }
+      );
+
+      // Show error toast
+      const toast = (await import('sonner')).toast;
+      toast.error('Failed to move task. Please try again.');
+    }
   };
 
   // Function to update OFTV task description based on column transitions
@@ -1572,7 +1639,8 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
         onTaskClick={openTaskDetail}
         onDeleteTask={handleDeleteTask}
         onMarkAsFinal={handleMarkAsFinal}
-        loadingTaskId={loadingTaskId}
+        onMarkAsPublished={handleMarkAsPublished}
+        loadingTaskId={combinedLoadingTaskId}
         onOpenNewTaskModal={openNewTaskModal}
         onSetShowNewTaskForm={setShowNewTaskForm}
         onSetNewTaskData={setNewTaskData}
