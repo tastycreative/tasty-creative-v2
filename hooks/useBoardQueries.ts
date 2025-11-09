@@ -506,7 +506,9 @@ export function useUpdateTaskMutation(teamId: string) {
       return { success: true } as const;
     },
     onSuccess: async () => {
+      // Invalidate and wait for refetch to complete before returning
       await qc.invalidateQueries({ queryKey: boardQueryKeys.tasks(teamId) });
+      await qc.refetchQueries({ queryKey: boardQueryKeys.tasks(teamId) });
     },
   });
 }
@@ -520,7 +522,9 @@ export function useUpdateTaskStatusMutation(teamId: string) {
       return { success: true } as const;
     },
     onSuccess: async () => {
+      // Invalidate and wait for refetch to complete before returning
       await qc.invalidateQueries({ queryKey: boardQueryKeys.tasks(teamId) });
+      await qc.refetchQueries({ queryKey: boardQueryKeys.tasks(teamId) });
     },
   });
 }
@@ -534,7 +538,9 @@ export function useUpdateOFTVTaskMutation(teamId: string) {
       return { success: true } as const;
     },
     onSuccess: async () => {
+      // Invalidate and wait for refetch to complete before returning
       await qc.invalidateQueries({ queryKey: boardQueryKeys.tasks(teamId) });
+      await qc.refetchQueries({ queryKey: boardQueryKeys.tasks(teamId) });
     },
   });
 }

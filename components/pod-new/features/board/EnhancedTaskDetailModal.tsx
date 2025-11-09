@@ -157,6 +157,16 @@ export default function EnhancedTaskDetailModal({
     }
   }, [isEditingTask, hasOFTVTask, oftvTaskData, editingOFTVData]);
 
+  // Clear optimistic state when actual data matches the optimistic update
+  React.useEffect(() => {
+    if (optimisticVideoStatus && oftvTaskData?.videoEditorStatus === optimisticVideoStatus) {
+      setOptimisticVideoStatus(null);
+    }
+    if (optimisticThumbnailStatus && oftvTaskData?.thumbnailEditorStatus === optimisticThumbnailStatus) {
+      setOptimisticThumbnailStatus(null);
+    }
+  }, [oftvTaskData?.videoEditorStatus, oftvTaskData?.thumbnailEditorStatus, optimisticVideoStatus, optimisticThumbnailStatus]);
+
   // Wrap the save function to handle OFTV data
   const handleSaveWithOFTV = async () => {
     // Save OFTV data if it exists
@@ -200,12 +210,9 @@ export default function EnhancedTaskDetailModal({
         await onUpdateOFTVTask(selectedTask.id, { [field]: newStatus, id: oftvTaskData.id });
       }
       
-      // Clear optimistic state after successful update
-      if (field === 'videoEditorStatus') {
-        setOptimisticVideoStatus(null);
-      } else {
-        setOptimisticThumbnailStatus(null);
-      }
+      // Don't clear optimistic state immediately - let it persist until the actual data updates
+      // This prevents the revert issue when the parent refetches data
+      // The optimistic state will be cleared when the component receives updated data
     } catch (error) {
       console.error('❌ Error updating OFTV status via store:', error);
       

@@ -1065,8 +1065,8 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       // Send notifications to assigned members
       await sendColumnNotifications(taskToUpdate, oldStatus, newStatus);
 
-      // Force refetch to ensure we have the latest data from server
-      await queryClient.invalidateQueries({ queryKey: boardQueryKeys.tasks(teamId) });
+      // Don't invalidate here - the mutation's onSuccess already handles it
+      // This prevents double refetches and race conditions
     } catch (err) {
       console.error('Error updating task status on drop:', err);
       
