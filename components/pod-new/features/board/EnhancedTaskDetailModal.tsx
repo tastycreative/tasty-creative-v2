@@ -101,6 +101,10 @@ export default function EnhancedTaskDetailModal({
 
   // OFTV task editing state
   const [editingOFTVData, setEditingOFTVData] = useState<any>(null);
+  
+  // Optimistic UI state for OFTV status updates
+  const [optimisticVideoStatus, setOptimisticVideoStatus] = useState<string | null>(null);
+  const [optimisticThumbnailStatus, setOptimisticThumbnailStatus] = useState<string | null>(null);
 
   // Determine if user should have view-only access
   const isViewOnly = !session?.user?.role ||
@@ -178,13 +182,46 @@ export default function EnhancedTaskDetailModal({
   // Handle OFTV status updates (for dropdown changes in view mode)
   const handleOFTVStatusUpdate = async (field: 'videoEditorStatus' | 'thumbnailEditorStatus', newStatus: string) => {
     if (!oftvTaskData?.id) return;
+    
+    // Store old status for rollback
+    const oldStatus = field === 'videoEditorStatus' 
+      ? oftvTaskData.videoEditorStatus 
+      : oftvTaskData.thumbnailEditorStatus;
+    
+    // OPTIMISTIC UPDATE: Immediately update the UI
+    if (field === 'videoEditorStatus') {
+      setOptimisticVideoStatus(newStatus);
+    } else {
+      setOptimisticThumbnailStatus(newStatus);
+    }
+    
     try {
       if (onUpdateOFTVTask) {
         await onUpdateOFTVTask(selectedTask.id, { [field]: newStatus, id: oftvTaskData.id });
       }
+      
+      // Clear optimistic state after successful update
+      if (field === 'videoEditorStatus') {
+        setOptimisticVideoStatus(null);
+      } else {
+        setOptimisticThumbnailStatus(null);
+      }
     } catch (error) {
       console.error('❌ Error updating OFTV status via store:', error);
-      alert('Failed to update status. Please try again.');
+      
+      // ROLLBACK: Revert optimistic update on error
+      if (field === 'videoEditorStatus') {
+        setOptimisticVideoStatus(oldStatus);
+        // Reset back to original after showing the error
+        setTimeout(() => setOptimisticVideoStatus(null), 100);
+      } else {
+        setOptimisticThumbnailStatus(oldStatus);
+        setTimeout(() => setOptimisticThumbnailStatus(null), 100);
+      }
+      
+      // Show error toast
+      const toast = (await import('sonner')).toast;
+      toast.error('Failed to update status. Please try again.');
     }
   };
 
@@ -1167,7 +1204,10 @@ export default function EnhancedTaskDetailModal({
                     
                     {/* Status Dropdown - Always editable */}
                     <select
-                      value={isEditingTask ? (editingOFTVData?.videoEditorStatus || 'NOT_STARTED') : oftvTaskData?.videoEditorStatus}
+                      value={isEditingTask 
+                        ? (editingOFTVData?.videoEditorStatus || 'NOT_STARTED') 
+                        : (optimisticVideoStatus || oftvTaskData?.videoEditorStatus)
+                      }
                       onChange={(e) => {
                         if (isEditingTask) {
                           setEditingOFTVData({ ...editingOFTVData, videoEditorStatus: e.target.value });
@@ -1178,7 +1218,7 @@ export default function EnhancedTaskDetailModal({
                       className={`w-full px-3 py-2 text-sm rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${
                         isEditingTask 
                           ? 'border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-                          : getOFTVStatusConfig(oftvTaskData?.videoEditorStatus || 'NOT_STARTED').color
+                          : getOFTVStatusConfig(optimisticVideoStatus || oftvTaskData?.videoEditorStatus || 'NOT_STARTED').color
                       }`}
                     >
                       {oftvStatusOptions.map(option => (
@@ -1228,7 +1268,10 @@ export default function EnhancedTaskDetailModal({
                     
                     {/* Status Dropdown - Always editable */}
                     <select
-                      value={isEditingTask ? (editingOFTVData?.thumbnailEditorStatus || 'NOT_STARTED') : oftvTaskData?.thumbnailEditorStatus}
+                      value={isEditingTask 
+                        ? (editingOFTVData?.thumbnailEditorStatus || 'NOT_STARTED') 
+                        : (optimisticThumbnailStatus || oftvTaskData?.thumbnailEditorStatus)
+                      }
                       onChange={(e) => {
                         if (isEditingTask) {
                           setEditingOFTVData({ ...editingOFTVData, thumbnailEditorStatus: e.target.value });
@@ -1239,7 +1282,7 @@ export default function EnhancedTaskDetailModal({
                       className={`w-full px-3 py-2 text-sm rounded-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${
                         isEditingTask 
                           ? 'border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-                          : getOFTVStatusConfig(oftvTaskData?.thumbnailEditorStatus || 'NOT_STARTED').color
+                          : getOFTVStatusConfig(optimisticThumbnailStatus || oftvTaskData?.thumbnailEditorStatus || 'NOT_STARTED').color
                       }`}
                     >
                       {oftvStatusOptions.map(option => (
