@@ -46,6 +46,7 @@ import {
   Share2,
   Globe,
   ArrowLeft,
+  FileSpreadsheet,
 } from "lucide-react";
 import { ExtendedModelDetails } from "@/lib/mock-data/model-profile";
 import { cn } from "@/lib/utils";

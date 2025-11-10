@@ -6,6 +6,7 @@ import { ExtendedModelDetails } from "@/lib/mock-data/model-profile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { ModelSheetLinksTab } from "./ModelSheetLinksTab";
 import {
   Collapsible,
   CollapsibleContent,
@@ -40,6 +41,7 @@ import {
   Camera,
   Upload,
   Loader2,
+  FileSpreadsheet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCreator } from "@/hooks/useCreatorsQuery";
@@ -74,6 +76,7 @@ export function ModelInformationTab({
   const [uploadingImage, setUploadingImage] = useState(false);
   const [updatingContent, setUpdatingContent] = useState(false);
   const [updatingPricing, setUpdatingPricing] = useState(false);
+  const [showSheetLinks, setShowSheetLinks] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'MODERATOR';
@@ -770,9 +773,13 @@ export function ModelInformationTab({
                     <Heart className="w-4 h-4 mr-2" />
                     Favorite
                   </Button>
-                  <Button variant="outline">
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                    Message
+                  <Button 
+                    variant="outline"
+                    onClick={() => setShowSheetLinks(!showSheetLinks)}
+                    className={showSheetLinks ? "bg-pink-100 dark:bg-pink-900/30 border-pink-500" : ""}
+                  >
+                    <FileSpreadsheet className="w-4 h-4 mr-2" />
+                    {showSheetLinks ? "Back to Info" : "Sheet Links"}
                   </Button>
                   <Button variant="outline">
                     <Target className="w-4 h-4 mr-2" />
@@ -804,8 +811,14 @@ export function ModelInformationTab({
           </div>
         </div>
 
-        {/* Stats Grid - Gallery Style */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Conditional Content: Show Sheet Links OR Regular Information */}
+        {showSheetLinks ? (
+          /* Sheet Links View - Import the component */
+          <ModelSheetLinksTab modelName={resolvedCreatorName || modelData.name} />
+        ) : (
+          <>
+            {/* Stats Grid - Gallery Style */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Monthly Revenue */}
           {hasRevenue ? (
             <div className="relative group overflow-hidden bg-gradient-to-br from-emerald-50 to-green-100 dark:from-emerald-900/20 dark:to-green-800/30 rounded-2xl border border-white/50 dark:border-gray-700/50 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-black/10 dark:hover:shadow-black/25">
@@ -2286,6 +2299,8 @@ export function ModelInformationTab({
             </div>
           </div>
         </div>
+          </>
+        )}
       </div>
     </div>
   );

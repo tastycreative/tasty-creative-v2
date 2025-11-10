@@ -340,6 +340,7 @@ model ClientModel {
   createdAt             DateTime                  @default(now())
   updatedAt             DateTime                  @updatedAt
   row_id                String?
+  launchesPodFolderId   String?
   chattingManagers      String[]
   sheetLinks            ClientModelSheetLinks[]
   contentDetails        ContentDetails?
@@ -355,7 +356,9 @@ model ClientModelSheetLinks {
   clientModelId String
   sheetUrl      String
   sheetName     String?
-  sheetType     String
+  sheetType     String?
+  folderName    String?
+  folderId      String?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
   clientModel   ClientModel @relation(fields: [clientModelId], references: [id], onDelete: Cascade)

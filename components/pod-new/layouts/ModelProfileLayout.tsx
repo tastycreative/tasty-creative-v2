@@ -26,7 +26,7 @@ export function ModelProfileLayout({
 
   useEffect(() => {
     if (searchParams) {
-      const tab = searchParams.get('tab');
+      const tab = searchParams.get("tab");
       if (tab) {
         setActiveTab(tab);
       }
