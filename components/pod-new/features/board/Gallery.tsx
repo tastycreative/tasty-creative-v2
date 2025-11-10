@@ -389,7 +389,10 @@ export default function GalleryNew({ teamName, teamId }: GalleryProps) {
             <div key={i} className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800">
               <div className="aspect-video bg-gray-200 dark:bg-gray-700 animate-pulse"></div>
               <div className="p-3 space-y-2">
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                <div className="flex items-center gap-1 mb-1 min-w-0">
+                  <div className="h-4 flex-1 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                  <div className="h-3.5 w-3.5 bg-gray-300 dark:bg-gray-600 rounded animate-pulse flex-shrink-0"></div>
+                </div>
                 <div className="h-3 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
               </div>
             </div>
@@ -481,9 +484,23 @@ export default function GalleryNew({ teamName, teamId }: GalleryProps) {
 
                     {/* Info */}
                     <div className="p-3">
-                      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate mb-1">
-                        {folder.folderName || 'Uncategorized'}
-                      </h3>
+                      <div className="flex items-center gap-1 mb-1 min-w-0">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                          {folder.folderName || 'Uncategorized'}
+                        </h3>
+                        {folder.folderDriveId && (
+                          <a
+                            href={`https://drive.google.com/drive/folders/${folder.folderDriveId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 transition-colors flex-shrink-0"
+                            title="Open in Google Drive"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                      </div>
 
                       {/* Model name */}
                       <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400 mb-1">
@@ -547,9 +564,23 @@ export default function GalleryNew({ teamName, teamId }: GalleryProps) {
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate mb-1">
-                        {folder.folderName || 'Uncategorized'}
-                      </h3>
+                      <div className="flex items-center gap-1 mb-1 min-w-0">
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                          {folder.folderName || 'Uncategorized'}
+                        </h3>
+                        {folder.folderDriveId && (
+                          <a
+                            href={`https://drive.google.com/drive/folders/${folder.folderDriveId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 transition-colors flex-shrink-0"
+                            title="Open in Google Drive"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                      </div>
                       
                       <div className="flex flex-col gap-1">
                         {/* Model name */}
@@ -711,7 +742,21 @@ export default function GalleryNew({ teamName, teamId }: GalleryProps) {
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-800">
             <div className="text-white">
-              <h2 className="text-2xl font-bold">{selectedFolder || 'Uncategorized'}</h2>
+              <h2 className="text-2xl font-bold flex items-center gap-2">
+                {selectedFolder || 'Uncategorized'}
+                {folderItems.length > 0 && folderItems[0].folderDriveId && (
+                  <a
+                    href={`https://drive.google.com/drive/folders/${folderItems[0].folderDriveId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center text-pink-400 hover:text-pink-300 transition-colors"
+                    title="Open in Google Drive"
+                  >
+                    <ExternalLink className="h-5 w-5" />
+                  </a>
+                )}
+              </h2>
               <p className="text-sm text-gray-400 mt-1">
                 {loadingFolder ? 'Loading...' : `${folderItems.length} ${folderItems.length === 1 ? 'item' : 'items'}`}
               </p>
