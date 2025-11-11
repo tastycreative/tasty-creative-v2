@@ -45,6 +45,19 @@ export async function GET(
     free: searchParams.get('free') === 'true',
     paid: searchParams.get('paid') === 'true',
   };
+  
+  // Get scheduler sheet URLs from query params
+  const schedulerUrls = {
+    free: searchParams.get('freeSchedulerUrl') || undefined,
+    paid: searchParams.get('paidSchedulerUrl') || undefined,
+  };
+  
+  // Helper function to extract spreadsheet ID from Google Sheets URL
+  function extractSpreadsheetId(url: string): string | null {
+    if (!url) return null;
+    const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+    return match ? match[1] : null;
+  }
 
   // Create a ReadableStream for SSE
   const stream = new ReadableStream({
@@ -161,6 +174,9 @@ export async function GET(
         const selectedTypes = [];
         if (captionBankOptions.free) selectedTypes.push('FREE');
         if (captionBankOptions.paid) selectedTypes.push('PAID');
+        
+        console.log('🎯 Caption Bank Options:', captionBankOptions);
+        console.log('📑 Selected Types:', selectedTypes);
 
         if (selectedTypes.length > 0) {
           sendEvent('progress', { 
@@ -191,16 +207,22 @@ export async function GET(
             });
           }
 
+          console.log('📋 Sending duplicate requests:', JSON.stringify(duplicateRequests, null, 2));
+          
           const batchUpdateResponse = await sheets.spreadsheets.batchUpdate({
             spreadsheetId: sheetId,
             requestBody: { requests: duplicateRequests }
           });
+
+          console.log('✅ Batch update response:', JSON.stringify(batchUpdateResponse.data, null, 2));
 
           // Step 5: Update merged cell A-E with model name and tab type
           sendEvent('progress', { step: 'update', message: 'Updating tab headers with model name' });
 
           const updateRequests: any[] = [];
           const replies = batchUpdateResponse.data.replies || [];
+          
+          console.log('📝 Replies received:', replies.length, JSON.stringify(replies, null, 2));
 
           for (let i = 0; i < replies.length; i++) {
             const reply = replies[i];
@@ -240,7 +262,87 @@ export async function GET(
             });
           }
 
-          // Step 6: Protect cells
+          // Step 6: Add IMPORTRANGE formulas for scheduler sheets (BEFORE protecting)
+          if (schedulerUrls.free || schedulerUrls.paid) {
+            sendEvent('progress', { step: 'formulas', message: 'Adding scheduler import formulas' });
+            
+            const importRangeRequests: any[] = [];
+            
+            for (const reply of replies) {
+              if (reply.duplicateSheet) {
+                const newSheetId = reply.duplicateSheet.properties?.sheetId;
+                const tabName = reply.duplicateSheet.properties?.title;
+                
+                if (newSheetId !== undefined && tabName) {
+                  let schedulerUrl: string | undefined;
+                  
+                  // Determine which scheduler URL to use
+                  if (tabName === 'FREE' && schedulerUrls.free && schedulerUrls.free !== 'AUTO' && schedulerUrls.free !== 'GENERATE_NEW') {
+                    schedulerUrl = schedulerUrls.free;
+                  } else if (tabName === 'PAID' && schedulerUrls.paid && schedulerUrls.paid !== 'AUTO' && schedulerUrls.paid !== 'GENERATE_NEW') {
+                    schedulerUrl = schedulerUrls.paid;
+                  }
+                  
+                  if (schedulerUrl) {
+                    const schedulerId = extractSpreadsheetId(schedulerUrl);
+                    
+                    if (schedulerId) {
+                      // Add formula for D3 (SCHEDULE TAB)
+                      importRangeRequests.push({
+                        updateCells: {
+                          range: {
+                            sheetId: newSheetId,
+                            startRowIndex: 2, // Row 3
+                            endRowIndex: 3,
+                            startColumnIndex: 3, // Column D
+                            endColumnIndex: 4
+                          },
+                          rows: [{
+                            values: [{
+                              userEnteredValue: {
+                                formulaValue: `=IF(IFERROR(IMPORTRANGE("https://docs.google.com/spreadsheets/d/${schedulerId}", "'Linking Sheet (MM)'!A3"), "") = "", "No schedule yet", IMPORTRANGE("https://docs.google.com/spreadsheets/d/${schedulerId}", "'Linking Sheet (MM)'!A3:J"))`
+                              }
+                            }]
+                          }],
+                          fields: 'userEnteredValue'
+                        }
+                      });
+                      
+                      // Add formula for T3 (POST SCHEDULE)
+                      importRangeRequests.push({
+                        updateCells: {
+                          range: {
+                            sheetId: newSheetId,
+                            startRowIndex: 2, // Row 3
+                            endRowIndex: 3,
+                            startColumnIndex: 19, // Column T
+                            endColumnIndex: 20
+                          },
+                          rows: [{
+                            values: [{
+                              userEnteredValue: {
+                                formulaValue: `=IF(IFERROR(IMPORTRANGE("https://docs.google.com/spreadsheets/d/${schedulerId}", "'Linking Sheet (Post)'!A3"), "") = "", "No schedule yet", IMPORTRANGE("https://docs.google.com/spreadsheets/d/${schedulerId}", "'Linking Sheet (Post)'!A3:J"))`
+                              }
+                            }]
+                          }],
+                          fields: 'userEnteredValue'
+                        }
+                      });
+                    }
+                  }
+                }
+              }
+            }
+            
+            if (importRangeRequests.length > 0) {
+              await sheets.spreadsheets.batchUpdate({
+                spreadsheetId: sheetId,
+                requestBody: { requests: importRangeRequests }
+              });
+            }
+          }
+
+          // Step 7: Protect cells (AFTER adding formulas)
           sendEvent('progress', { step: 'protect', message: 'Protecting cells in new tabs' });
 
           const protectionRequests: any[] = [];
@@ -293,7 +395,7 @@ export async function GET(
             });
           }
 
-          // Step 7: Update MasterSheet DB formulas
+          // Step 8: Update MasterSheet DB formulas
           sendEvent('progress', { step: 'formulas', message: 'Updating MasterSheet DB formulas' });
 
           // Get sheet IDs for MasterSheet DB tabs
