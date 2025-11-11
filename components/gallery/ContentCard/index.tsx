@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import MediaDisplay from "./MediaDisplay";
 import CardActions from "./CardActions";
 import CardMetadata from "./CardMetadata";
+import ContentDetailModal from "./ContentDetailModal";
 import { ContentCardProps } from "@/types/gallery";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
   onMarkPTRAsSent,
 }) => {
   const [useProxy, setUseProxy] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // Determine if media is a GIF
   const isGif = useMemo(() => {
@@ -124,17 +126,19 @@ const ContentCard: React.FC<ContentCardProps> = ({
   }, [content, onMarkPTRAsSent]);
 
   return (
-    <Card
-      className={cn(
-        "group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden",
-        "hover:shadow-xl dark:hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]",
-        "h-[380px] flex flex-col",
-        // Override default Card padding and gap
-        "p-0 gap-0",
-        content.isPTR && "ring-2 ring-purple-500/20",
-        content.ptrSent && "ring-2 ring-green-500/20"
-      )}
-    >
+    <>
+      <Card
+        onClick={() => setIsDetailModalOpen(true)}
+        className={cn(
+          "group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden",
+          "hover:shadow-xl dark:hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]",
+          "h-[380px] flex flex-col cursor-pointer",
+          // Override default Card padding and gap
+          "p-0 gap-0",
+          content.isPTR && "ring-2 ring-purple-500/20",
+          content.ptrSent && "ring-2 ring-green-500/20"
+        )}
+      >
       {/* Media Preview */}
       <div className="relative h-48 bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500 overflow-hidden">
         <MediaDisplay
@@ -155,7 +159,10 @@ const ContentCard: React.FC<ContentCardProps> = ({
         )}
 
         {/* Action Buttons - Positioned over media */}
-        <div className="absolute top-2 right-2 z-10">
+        <div
+          className="absolute top-2 right-2 z-10"
+          onClick={(e) => e.stopPropagation()} // Prevent card click when clicking action buttons
+        >
           <CardActions
             content={content}
             onToggleFavorite={handleToggleFavorite}
@@ -168,6 +175,17 @@ const ContentCard: React.FC<ContentCardProps> = ({
       {/* Metadata Section */}
       <CardMetadata content={content} />
     </Card>
+
+      {/* Detail Modal */}
+      <ContentDetailModal
+        content={content}
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        onToggleFavorite={handleToggleFavorite}
+        onTogglePTR={handleTogglePTR}
+        onMarkPTRAsSent={handleMarkPTRAsSent}
+      />
+    </>
   );
 };
 
