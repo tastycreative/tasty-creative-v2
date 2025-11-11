@@ -225,11 +225,11 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
 
     setIsSubmitting(true);
     
-    // Initialize progress for Caption Bank generation
+    // Handle Caption Bank generation with SSE for real-time progress
     if (sheetInputMethod === 'generate' && selectedSheetType === 'caption-bank') {
       // Build dynamic progress steps based on selections
       const baseSteps = [
-        { label: 'Validating model configuration', status: 'in-progress' as const },
+        { label: 'Validating model configuration', status: 'pending' as const },
         { label: 'Searching for CAPTION BANK folder', status: 'pending' as const },
         { label: 'Copying template sheet', status: 'pending' as const },
       ];
@@ -245,7 +245,15 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
           status: 'pending' as const
         });
         baseSteps.push({
+          label: 'Updating tab headers with model name',
+          status: 'pending' as const
+        });
+        baseSteps.push({
           label: 'Protecting cells in new tabs',
+          status: 'pending' as const
+        });
+        baseSteps.push({
+          label: 'Updating MasterSheet DB formulas',
           status: 'pending' as const
         });
       }
@@ -256,31 +264,121 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
       );
       
       setGenerationProgress({ currentStep: 0, steps: baseSteps });
-      
-      // Simulate progress updates (this will be replaced by actual backend progress)
-      const progressInterval = setInterval(() => {
-        setGenerationProgress(prev => {
-          if (!prev) return null;
-          const nextStep = prev.currentStep + 1;
-          if (nextStep >= prev.steps.length) {
-            clearInterval(progressInterval);
-            return prev;
-          }
-          
-          const updatedSteps = [...prev.steps];
-          updatedSteps[prev.currentStep] = { ...updatedSteps[prev.currentStep], status: 'completed' };
-          if (nextStep < updatedSteps.length) {
-            updatedSteps[nextStep] = { ...updatedSteps[nextStep], status: 'in-progress' };
-          }
-          
-          return { currentStep: nextStep, steps: updatedSteps };
+
+      try {
+        // Connect to SSE endpoint for real-time progress
+        const params = new URLSearchParams({
+          free: captionBankOptions.free.toString(),
+          paid: captionBankOptions.paid.toString(),
         });
-      }, 800); // Update every 800ms
-      
-      // Store interval ID to clear it later
-      (window as any)._progressInterval = progressInterval;
+        
+        const eventSource = new EventSource(
+          `/api/models/${encodeURIComponent(modelName)}/sheet-links/generate-stream?${params}`
+        );
+
+        // Map backend step names to frontend step indices
+        const stepMap: Record<string, number> = {
+          'validate': 0,
+          'folder': 1,
+          'copy': 2,
+          'duplicate': 3,
+          'update': selectedTypes.length > 0 ? 4 : -1,
+          'protect': selectedTypes.length > 0 ? 5 : -1,
+          'formulas': selectedTypes.length > 0 ? 6 : -1,
+          'save': selectedTypes.length > 0 ? 7 : 3,
+          'complete': selectedTypes.length > 0 ? 8 : 4,
+        };
+
+        eventSource.addEventListener('progress', (e) => {
+          const data = JSON.parse(e.data);
+          const stepIndex = stepMap[data.step];
+          
+          if (stepIndex >= 0 && stepIndex < baseSteps.length) {
+            setGenerationProgress(prev => {
+              if (!prev) return null;
+              const updatedSteps = [...prev.steps];
+              
+              // Mark previous steps as completed
+              for (let i = 0; i < stepIndex; i++) {
+                if (updatedSteps[i].status !== 'completed') {
+                  updatedSteps[i].status = 'completed';
+                }
+              }
+              
+              // Mark current step as in-progress
+              updatedSteps[stepIndex].status = 'in-progress';
+              
+              return { currentStep: stepIndex, steps: updatedSteps };
+            });
+          }
+        });
+
+        eventSource.addEventListener('complete', (e) => {
+          const data = JSON.parse(e.data);
+          
+          // Mark all steps as completed
+          setGenerationProgress(prev => {
+            if (!prev) return null;
+            const updatedSteps = prev.steps.map(step => ({ ...step, status: 'completed' as const }));
+            return { currentStep: prev.steps.length - 1, steps: updatedSteps };
+          });
+
+          eventSource.close();
+          
+          // Refresh the sheet links list
+          queryClient.invalidateQueries({ queryKey: ['model-sheet-links', modelName] });
+          
+          // Close modal and show success
+          handleCloseAddModal();
+          setIsSubmitting(false);
+          
+          // Open the new sheet in a new tab
+          if (data.sheetLink?.sheetUrl) {
+            window.open(data.sheetLink.sheetUrl, '_blank');
+          }
+
+          toast.success(data.message || "Sheet generated successfully");
+        });
+
+        eventSource.addEventListener('error', (e: any) => {
+          const data = e.data ? JSON.parse(e.data) : { message: 'Unknown error' };
+          
+          // Mark current step as error
+          setGenerationProgress(prev => {
+            if (!prev) return null;
+            const updatedSteps = [...prev.steps];
+            if (prev.currentStep < updatedSteps.length) {
+              updatedSteps[prev.currentStep].status = 'error';
+            }
+            return { ...prev, steps: updatedSteps };
+          });
+
+          eventSource.close();
+          setIsSubmitting(false);
+
+          toast.error(data.message);
+        });
+
+        eventSource.onerror = () => {
+          eventSource.close();
+          setIsSubmitting(false);
+          setGenerationProgress(null);
+          
+          toast.error("Lost connection to server");
+        };
+
+        return; // Exit early since SSE handles everything
+      } catch (error: any) {
+        console.error("Error setting up SSE:", error);
+        setIsSubmitting(false);
+        setGenerationProgress(null);
+        
+        toast.error(error.message || "Failed to start generation");
+        return;
+      }
     }
 
+    // Handle non-Caption Bank generation (existing logic)
     try {
       const response = await fetch(`/api/models/${encodeURIComponent(modelName)}/sheet-links`, {
         method: 'POST',
