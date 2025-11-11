@@ -166,11 +166,12 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { sheetUrl, sheetType, subType, generateNew } = body;
+    const { sheetUrl, sheetType, subType, generateNew, captionBankOptions } = body;
 
-    console.log('Received sheet link request:', { sheetUrl, sheetType, subType, generateNew });
+    console.log('Received sheet link request:', { sheetUrl, sheetType, subType, generateNew, captionBankOptions });
 
-    if (!sheetUrl) {
+    // Validate required fields based on operation type
+    if (!generateNew && !sheetUrl) {
       return NextResponse.json(
         { error: "Sheet URL is required" },
         { status: 400 }
@@ -225,35 +226,271 @@ export async function POST(
     const drive = google.drive({ version: "v3", auth: oauth2Client });
     const sheets = google.sheets({ version: "v4", auth: oauth2Client });
 
-    // Extract sheet ID from URL
-    const sheetId = extractSheetId(sheetUrl);
-    if (!sheetId) {
-      return NextResponse.json(
-        { error: "Invalid sheet URL" },
-        { status: 400 }
-      );
-    }
-
-    // Get sheet details from Google Sheets API
+    let sheetId: string | null = null;
     let sheetName = "";
-    try {
-      const sheetMetadata = await sheets.spreadsheets.get({
-        spreadsheetId: sheetId,
-      });
-      sheetName = sheetMetadata.data.properties?.title || "Untitled Sheet";
-    } catch (error: any) {
-      console.error("Error fetching sheet metadata:", error);
-      return NextResponse.json(
-        { error: "Failed to fetch sheet details. Make sure the sheet is accessible." },
-        { status: 400 }
-      );
-    }
-
     let targetFolderId: string | null = null;
     let targetFolderName: string | null = null;
+    const createdSheets: Array<{ id: string; name: string; url: string; folderName: string }> = [];
 
-    // Only process Scheduler sheets with subType
-    if (sheetType === 'Scheduler' && subType) {
+    // Handle Caption Bank generation
+    if (generateNew && sheetType === 'Caption Bank') {
+      console.log('🎯 Generating new Caption Bank sheet(s)...');
+
+      // Validate caption bank options
+      if (!captionBankOptions || (!captionBankOptions.free && !captionBankOptions.paid)) {
+        return NextResponse.json(
+          { error: "Please select at least one content type (FREE or PAID)" },
+          { status: 400 }
+        );
+      }
+
+      // Check if model has launchesPodFolderId
+      if (!clientModel.launchesPodFolderId) {
+        return NextResponse.json(
+          { error: "Model does not have a launches pod folder configured" },
+          { status: 400 }
+        );
+      }
+
+      const launchesFolderId = extractFolderId(clientModel.launchesPodFolderId);
+      if (!launchesFolderId) {
+        return NextResponse.json(
+          { error: "Invalid launches pod folder ID" },
+          { status: 400 }
+        );
+      }
+
+      // Search for existing "CAPTION BANK" folder
+      let captionBankFolderId: string | null = null;
+      try {
+        const folderSearchResponse = await drive.files.list({
+          q: `name='CAPTION BANK' and '${launchesFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
+          fields: 'files(id, name)',
+          supportsAllDrives: true,
+          includeItemsFromAllDrives: true,
+        });
+
+        if (folderSearchResponse.data.files && folderSearchResponse.data.files.length > 0) {
+          captionBankFolderId = folderSearchResponse.data.files[0].id || null;
+          console.log(`✅ Found existing CAPTION BANK folder: ${captionBankFolderId}`);
+        } else {
+          // Create CAPTION BANK folder
+          const folderMetadata = {
+            name: 'CAPTION BANK',
+            mimeType: 'application/vnd.google-apps.folder',
+            parents: [launchesFolderId],
+          };
+
+          const folder = await drive.files.create({
+            requestBody: folderMetadata,
+            fields: 'id, name',
+            supportsAllDrives: true,
+          });
+
+          captionBankFolderId = folder.data.id || null;
+          console.log(`✅ Created new CAPTION BANK folder: ${captionBankFolderId}`);
+        }
+      } catch (error: any) {
+        console.error("Error searching/creating CAPTION BANK folder:", error);
+        return NextResponse.json(
+          { error: "Failed to search or create CAPTION BANK folder in Google Drive" },
+          { status: 500 }
+        );
+      }
+
+      if (!captionBankFolderId) {
+        return NextResponse.json(
+          { error: "Failed to get CAPTION BANK folder ID" },
+          { status: 500 }
+        );
+      }
+
+      // Copy the template sheet (just one sheet regardless of checkboxes)
+      const templateSheetId = '1zleCtSDIiTRyI_KyGVVzx7JXgRwH3WJ5MwVsrnKVrrQ';
+      const newSheetName = `🔴 ${clientModel.clientName} - The Schedule Library`;
+
+      try {
+        const copiedFile = await drive.files.copy({
+          fileId: templateSheetId,
+          requestBody: {
+            name: newSheetName,
+            parents: [captionBankFolderId],
+          },
+          fields: 'id, name',
+          supportsAllDrives: true,
+        });
+
+        sheetId = copiedFile.data.id || null;
+        sheetName = copiedFile.data.name || newSheetName;
+        targetFolderId = captionBankFolderId;
+        targetFolderName = 'CAPTION BANK';
+
+        console.log(`✅ Created Caption Bank sheet: ${sheetName} (${sheetId})`);
+
+        // Now duplicate tabs within the sheet based on checkbox selections
+        if (sheetId) {
+          const sourceSheetId = 17850419; // The TEMPLATE tab ID
+          const duplicateRequests: any[] = [];
+
+          // Build duplicate requests based on selections
+          if (captionBankOptions.free) {
+            duplicateRequests.push({
+              duplicateSheet: {
+                sourceSheetId: sourceSheetId,
+                insertSheetIndex: 6,
+                newSheetName: "FREE"
+              }
+            });
+          }
+
+          if (captionBankOptions.paid) {
+            duplicateRequests.push({
+              duplicateSheet: {
+                sourceSheetId: sourceSheetId,
+                insertSheetIndex: captionBankOptions.free ? 7 : 6, // Adjust index if FREE was created
+                newSheetName: "PAID"
+              }
+            });
+          }
+
+          // Execute tab duplication
+          if (duplicateRequests.length > 0) {
+            try {
+              const batchUpdateResponse = await sheets.spreadsheets.batchUpdate({
+                spreadsheetId: sheetId,
+                requestBody: {
+                  requests: duplicateRequests
+                }
+              });
+
+              console.log(`✅ Duplicated ${duplicateRequests.length} tab(s) in Caption Bank sheet`);
+
+              // Now protect cells on each duplicated tab
+              const protectionRequests: any[] = [];
+              
+              // Get the new sheet IDs from the response
+              const replies = batchUpdateResponse.data.replies || [];
+              
+              for (const reply of replies) {
+                if (reply.duplicateSheet) {
+                  const newSheetId = reply.duplicateSheet.properties?.sheetId;
+                  
+                  if (newSheetId !== undefined) {
+                    // Protect D3 cell
+                    protectionRequests.push({
+                      addProtectedRange: {
+                        protectedRange: {
+                          range: {
+                            sheetId: newSheetId,
+                            startRowIndex: 2,
+                            endRowIndex: 3,
+                            startColumnIndex: 3,
+                            endColumnIndex: 4
+                          },
+                          description: "Protect D3",
+                          warningOnly: false
+                        }
+                      }
+                    });
+
+                    // Protect T3 cell
+                    protectionRequests.push({
+                      addProtectedRange: {
+                        protectedRange: {
+                          range: {
+                            sheetId: newSheetId,
+                            startRowIndex: 2,
+                            endRowIndex: 3,
+                            startColumnIndex: 19,
+                            endColumnIndex: 20
+                          },
+                          description: "Protect T3",
+                          warningOnly: false
+                        }
+                      }
+                    });
+                  }
+                }
+              }
+
+              // Apply cell protections
+              if (protectionRequests.length > 0) {
+                await sheets.spreadsheets.batchUpdate({
+                  spreadsheetId: sheetId,
+                  requestBody: {
+                    requests: protectionRequests
+                  }
+                });
+
+                console.log(`✅ Protected cells (D3 and T3) on ${replies.length} tab(s)`);
+              }
+            } catch (tabError: any) {
+              console.error("Error duplicating/protecting tabs:", tabError);
+              // Don't fail the entire operation, just log the error
+              console.warn("Sheet created but tab duplication/protection failed");
+            }
+          }
+        }
+      } catch (error: any) {
+        console.error("Error copying template sheet:", error);
+        return NextResponse.json(
+          { error: "Failed to copy Caption Bank template. You may not have permission." },
+          { status: 403 }
+        );
+      }
+
+      if (!sheetId) {
+        return NextResponse.json(
+          { error: "Failed to generate Caption Bank sheet" },
+          { status: 500 }
+        );
+      }
+
+      // Create database record for the generated sheet
+      const newSheetLink = await prisma.clientModelSheetLinks.create({
+        data: {
+          clientModelId: clientModel.id,
+          sheetUrl: `https://docs.google.com/spreadsheets/d/${sheetId}`,
+          sheetName,
+          sheetType: 'Caption Bank',
+          folderName: targetFolderName,
+          folderId: targetFolderId,
+        },
+      });
+
+      return NextResponse.json({
+        ...newSheetLink,
+        message: `Caption Bank sheet "${sheetName}" successfully generated`,
+        sheetUrl: newSheetLink.sheetUrl,
+      });
+    } else {
+      // Handle existing sheet link
+      // Extract sheet ID from URL
+      sheetId = extractSheetId(sheetUrl);
+      if (!sheetId) {
+        return NextResponse.json(
+          { error: "Invalid sheet URL" },
+          { status: 400 }
+        );
+      }
+
+      // Get sheet details from Google Sheets API
+      try {
+        const sheetMetadata = await sheets.spreadsheets.get({
+          spreadsheetId: sheetId,
+        });
+        sheetName = sheetMetadata.data.properties?.title || "Untitled Sheet";
+      } catch (error: any) {
+        console.error("Error fetching sheet metadata:", error);
+        return NextResponse.json(
+          { error: "Failed to fetch sheet details. Make sure the sheet is accessible." },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Only process Scheduler sheets with subType (and not already handled by Caption Bank generation)
+    if (sheetType === 'Scheduler' && subType && !generateNew) {
       // Check if model has launchesPodFolderId
       if (!clientModel.launchesPodFolderId) {
         return NextResponse.json(
@@ -359,9 +596,12 @@ export async function POST(
 
     return NextResponse.json({
       ...newSheetLink,
-      message: targetFolderId 
-        ? `Sheet "${sheetName}" successfully linked and moved to ${targetFolderName} folder` 
-        : `Sheet "${sheetName}" successfully linked`,
+      message: generateNew
+        ? `Caption Bank sheet "${sheetName}" successfully generated and linked`
+        : targetFolderId 
+          ? `Sheet "${sheetName}" successfully linked and moved to ${targetFolderName} folder` 
+          : `Sheet "${sheetName}" successfully linked`,
+      sheetUrl: newSheetLink.sheetUrl, // Make sure to return the URL for opening in new tab
     });
   } catch (error: any) {
     console.error("Error creating sheet link:", error);

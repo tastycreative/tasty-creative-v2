@@ -13,6 +13,8 @@ import {
   Trash2,
   Edit2,
   Sparkles,
+  CheckCircle2,
+  Circle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +30,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 
@@ -52,6 +55,10 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
   const [isAddingLink, setIsAddingLink] = useState(false);
   const [selectedSheetType, setSelectedSheetType] = useState<string | null>(null);
   const [sheetInputMethod, setSheetInputMethod] = useState<'existing' | 'generate' | null>(null);
+  const [captionBankOptions, setCaptionBankOptions] = useState({
+    free: false,
+    paid: false,
+  });
   const [newSheetData, setNewSheetData] = useState({
     sheetUrl: '',
     sheetName: '',
@@ -59,6 +66,10 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
     folderId: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState<{
+    currentStep: number;
+    steps: Array<{ label: string; status: 'pending' | 'in-progress' | 'completed' | 'error' }>;
+  } | null>(null);
   const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'MODERATOR';
 
   const sheetTypeOptions = [
@@ -141,6 +152,8 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
     setIsAddingLink(true);
     setSelectedSheetType(null);
     setSheetInputMethod(null);
+    setCaptionBankOptions({ free: false, paid: false });
+    setGenerationProgress(null);
     setNewSheetData({
       sheetUrl: '',
       sheetName: '',
@@ -153,6 +166,8 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
     setIsAddingLink(false);
     setSelectedSheetType(null);
     setSheetInputMethod(null);
+    setCaptionBankOptions({ free: false, paid: false });
+    setGenerationProgress(null);
     setNewSheetData({
       sheetUrl: '',
       sheetName: '',
@@ -174,7 +189,13 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
         return;
       }
     } else if (sheetInputMethod === 'generate') {
-      if (!newSheetData.sheetName) {
+      // For Caption Bank, validate checkbox selection
+      if (selectedSheetType === 'caption-bank') {
+        if (!captionBankOptions.free && !captionBankOptions.paid) {
+          toast.error('Please select at least one content type (FREE or PAID)');
+          return;
+        }
+      } else if (!newSheetData.sheetName) {
         toast.error('Please provide a sheet name');
         return;
       }
@@ -200,9 +221,66 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
 
     const backendSheetType = sheetTypeMap[selectedSheetType] || selectedSheetType;
 
-    console.log('Frontend sending:', { selectedSheetType, backendSheetType, subType });
+    console.log('Frontend sending:', { selectedSheetType, backendSheetType, subType, captionBankOptions });
 
     setIsSubmitting(true);
+    
+    // Initialize progress for Caption Bank generation
+    if (sheetInputMethod === 'generate' && selectedSheetType === 'caption-bank') {
+      // Build dynamic progress steps based on selections
+      const baseSteps = [
+        { label: 'Validating model configuration', status: 'in-progress' as const },
+        { label: 'Searching for CAPTION BANK folder', status: 'pending' as const },
+        { label: 'Copying template sheet', status: 'pending' as const },
+      ];
+
+      // Add duplication steps based on checkbox selections
+      const selectedTypes = [];
+      if (captionBankOptions.free) selectedTypes.push('FREE');
+      if (captionBankOptions.paid) selectedTypes.push('PAID');
+
+      if (selectedTypes.length > 0) {
+        baseSteps.push({
+          label: `Duplicating ${selectedTypes.join(' and ')} tab${selectedTypes.length > 1 ? 's' : ''}`,
+          status: 'pending' as const
+        });
+        baseSteps.push({
+          label: 'Protecting cells in new tabs',
+          status: 'pending' as const
+        });
+      }
+
+      baseSteps.push(
+        { label: 'Saving to database', status: 'pending' as const },
+        { label: 'Finalizing', status: 'pending' as const }
+      );
+      
+      setGenerationProgress({ currentStep: 0, steps: baseSteps });
+      
+      // Simulate progress updates (this will be replaced by actual backend progress)
+      const progressInterval = setInterval(() => {
+        setGenerationProgress(prev => {
+          if (!prev) return null;
+          const nextStep = prev.currentStep + 1;
+          if (nextStep >= prev.steps.length) {
+            clearInterval(progressInterval);
+            return prev;
+          }
+          
+          const updatedSteps = [...prev.steps];
+          updatedSteps[prev.currentStep] = { ...updatedSteps[prev.currentStep], status: 'completed' };
+          if (nextStep < updatedSteps.length) {
+            updatedSteps[nextStep] = { ...updatedSteps[nextStep], status: 'in-progress' };
+          }
+          
+          return { currentStep: nextStep, steps: updatedSteps };
+        });
+      }, 800); // Update every 800ms
+      
+      // Store interval ID to clear it later
+      (window as any)._progressInterval = progressInterval;
+    }
+
     try {
       const response = await fetch(`/api/models/${encodeURIComponent(modelName)}/sheet-links`, {
         method: 'POST',
@@ -214,15 +292,47 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
           sheetType: backendSheetType,
           subType, // Pass the subtype for folder organization
           generateNew: sheetInputMethod === 'generate',
+          captionBankOptions: selectedSheetType === 'caption-bank' ? captionBankOptions : undefined,
         }),
       });
 
+      // Clear progress interval
+      if ((window as any)._progressInterval) {
+        clearInterval((window as any)._progressInterval);
+        delete (window as any)._progressInterval;
+      }
+
       if (!response.ok) {
         const errorData = await response.json();
+        
+        // Mark current step as error
+        if (generationProgress) {
+          setGenerationProgress(prev => {
+            if (!prev) return null;
+            const updatedSteps = [...prev.steps];
+            updatedSteps[prev.currentStep] = { ...updatedSteps[prev.currentStep], status: 'error' };
+            return { ...prev, steps: updatedSteps };
+          });
+        }
+        
         throw new Error(errorData.error || 'Failed to add sheet link');
       }
 
       const result = await response.json();
+      
+      // Mark all steps as completed
+      if (generationProgress) {
+        setGenerationProgress(prev => {
+          if (!prev) return null;
+          const updatedSteps = prev.steps.map(step => ({ ...step, status: 'completed' as const }));
+          return { currentStep: prev.steps.length, steps: updatedSteps };
+        });
+        
+        // Keep progress visible for a moment before closing
+        setTimeout(() => {
+          setGenerationProgress(null);
+        }, 1500);
+      }
       
       if (result.message) {
         toast.success(result.message);
@@ -238,7 +348,15 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
       }
       
       queryClient.invalidateQueries({ queryKey: ['model-sheet-links', modelName] });
-      handleCloseAddModal();
+      
+      // Close modal after a brief delay if showing progress
+      if (generationProgress) {
+        setTimeout(() => {
+          handleCloseAddModal();
+        }, 2000);
+      } else {
+        handleCloseAddModal();
+      }
     } catch (error: any) {
       console.error('Error adding sheet link:', error);
       toast.error(error.message || 'Failed to add sheet link');
@@ -422,15 +540,15 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
 
         {/* Add Sheet Link Modal */}
         <Dialog open={isAddingLink} onOpenChange={setIsAddingLink}>
-          <DialogContent className="sm:max-w-[600px]">
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Add Sheet Link</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-lg sm:text-xl">Add Sheet Link</DialogTitle>
+              <DialogDescription className="text-sm">
                 Select a sheet type and provide the details to link a new sheet to {modelName}.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-6 py-4">
+            <div className="space-y-4 sm:space-y-6 py-2 sm:py-4">
               {!selectedSheetType ? (
                 /* Step 1: Select Sheet Type */
                 <div className="space-y-3">
@@ -592,7 +710,102 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
                         The sheet name and details will be automatically extracted from the URL
                       </p>
                     </div>
+                  ) : selectedSheetType === 'caption-bank' ? (
+                    /* Caption Bank Generation Options */
+                    <div className="space-y-3 sm:space-y-4">
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">
+                          Select Content Types <span className="text-red-500">*</span>
+                        </Label>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Choose which types of caption banks to generate
+                        </p>
+                        
+                        <div className="space-y-2 sm:space-y-3">
+                          <div className="flex items-start space-x-2 sm:space-x-3 p-3 sm:p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                            <Checkbox
+                              id="caption-free"
+                              checked={captionBankOptions.free}
+                              onCheckedChange={(checked) => 
+                                setCaptionBankOptions({ ...captionBankOptions, free: checked as boolean })
+                              }
+                              className="mt-0.5"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <Label 
+                                htmlFor="caption-free" 
+                                className="text-sm font-medium cursor-pointer flex flex-wrap items-center gap-2"
+                              >
+                                <span>FREE Content</span>
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 text-xs">
+                                  Free
+                                </Badge>
+                              </Label>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                Caption bank for free content scheduling
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-start space-x-2 sm:space-x-3 p-3 sm:p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                            <Checkbox
+                              id="caption-paid"
+                              checked={captionBankOptions.paid}
+                              onCheckedChange={(checked) => 
+                                setCaptionBankOptions({ ...captionBankOptions, paid: checked as boolean })
+                              }
+                              className="mt-0.5"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <Label 
+                                htmlFor="caption-paid" 
+                                className="text-sm font-medium cursor-pointer flex flex-wrap items-center gap-2"
+                              >
+                                <span>PAID Content</span>
+                                <Badge variant="outline" className="bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs">
+                                  Paid
+                                </Badge>
+                              </Label>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                Caption bank for paid content scheduling
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {!captionBankOptions.free && !captionBankOptions.paid && (
+                          <p className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                            <span>Please select at least one content type</span>
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="p-3 sm:p-4 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg">
+                        <div className="flex gap-2 sm:gap-3">
+                          <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <h5 className="text-sm font-semibold text-green-900 dark:text-green-100 mb-1">
+                              Auto-Generate Caption Bank
+                            </h5>
+                            <p className="text-xs text-green-700 dark:text-green-300">
+                              A caption bank sheet will be created from the template.
+                              {(captionBankOptions.free || captionBankOptions.paid) && (
+                                <>
+                                  {' '}The following tab{(captionBankOptions.free && captionBankOptions.paid) ? 's' : ''} will be duplicated: {[
+                                    captionBankOptions.free && 'FREE',
+                                    captionBankOptions.paid && 'PAID'
+                                  ].filter(Boolean).join(' and ')}.
+                                  {' '}Cells D3 and T3 will be protected on each tab.
+                                </>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   ) : (
+                    /* POD Sheets Generation (placeholder for future) */
                     <>
                       <div className="space-y-2">
                         <Label htmlFor="sheetName">
@@ -630,48 +843,112 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
                       </div>
                     </>
                   )}
-
-                  {sheetInputMethod === 'generate' && (
-                    <div className="p-4 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800 rounded-lg">
-                      <div className="flex gap-3">
-                        <Sparkles className="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <h5 className="text-sm font-semibold text-green-900 dark:text-green-100 mb-1">
-                            Auto-Generate Sheet
-                          </h5>
-                          <p className="text-xs text-green-700 dark:text-green-300">
-                            A new Google Sheet will be created with pre-configured columns and formatting based on the sheet type you selected.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
             </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={handleCloseAddModal} disabled={isSubmitting}>
+            {/* Progress Indicator for Caption Bank Generation */}
+            {generationProgress && (
+              <div className="border-t pt-4 px-2 sm:px-0">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-green-600 dark:text-green-400 flex-shrink-0" />
+                    <h4 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-gray-100">
+                      Generating Caption Bank Sheets
+                    </h4>
+                  </div>
+                  
+                  <div className="space-y-2 max-h-[300px] sm:max-h-[400px] overflow-y-auto">
+                    {generationProgress.steps.map((step, index) => (
+                      <div 
+                        key={index}
+                        className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg transition-all ${
+                          step.status === 'completed' 
+                            ? 'bg-green-50 dark:bg-green-900/20' 
+                            : step.status === 'in-progress'
+                            ? 'bg-blue-50 dark:bg-blue-900/20'
+                            : step.status === 'error'
+                            ? 'bg-red-50 dark:bg-red-900/20'
+                            : 'bg-gray-50 dark:bg-gray-800/50'
+                        }`}
+                      >
+                        {step.status === 'completed' ? (
+                          <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                        ) : step.status === 'in-progress' ? (
+                          <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                        ) : step.status === 'error' ? (
+                          <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 dark:text-red-400 flex-shrink-0" />
+                        ) : (
+                          <Circle className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 dark:text-gray-600 flex-shrink-0" />
+                        )}
+                        
+                        <span className={`text-xs sm:text-sm flex-1 ${
+                          step.status === 'completed'
+                            ? 'text-green-900 dark:text-green-100 font-medium'
+                            : step.status === 'in-progress'
+                            ? 'text-blue-900 dark:text-blue-100 font-medium'
+                            : step.status === 'error'
+                            ? 'text-red-900 dark:text-red-100 font-medium'
+                            : 'text-gray-600 dark:text-gray-400'
+                        }`}>
+                          {step.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="mt-3 sm:mt-4 pt-3 border-t">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-gray-500 dark:text-gray-400">
+                      <span className="font-medium">
+                        Step {Math.min(generationProgress.currentStep + 1, generationProgress.steps.length)} of {generationProgress.steps.length}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />
+                        Please wait...
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+              <Button 
+                variant="outline" 
+                onClick={handleCloseAddModal} 
+                disabled={isSubmitting}
+                className="w-full sm:w-auto"
+              >
                 Cancel
               </Button>
-              {selectedSheetType && sheetInputMethod && (
-                <Button onClick={handleAddSheetLink} disabled={isSubmitting}>
+              {selectedSheetType && sheetInputMethod && !generationProgress && (
+                <Button 
+                  onClick={handleAddSheetLink} 
+                  disabled={
+                    isSubmitting || 
+                    (sheetInputMethod === 'generate' && 
+                     selectedSheetType === 'caption-bank' && 
+                     !captionBankOptions.free && 
+                     !captionBankOptions.paid)
+                  }
+                  className="w-full sm:w-auto"
+                >
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      {sheetInputMethod === 'generate' ? 'Generating...' : 'Adding...'}
+                      <span className="truncate">{sheetInputMethod === 'generate' ? 'Generating...' : 'Adding...'}</span>
                     </>
                   ) : (
                     <>
                       {sheetInputMethod === 'generate' ? (
                         <>
-                          <Sparkles className="w-4 h-4 mr-2" />
-                          Generate Sheet
+                          <Sparkles className="w-4 h-4 mr-2 flex-shrink-0" />
+                          <span className="truncate">Generate Sheet</span>
                         </>
                       ) : (
                         <>
-                          <Plus className="w-4 h-4 mr-2" />
-                          Add Sheet Link
+                          <Plus className="w-4 h-4 mr-2 flex-shrink-0" />
+                          <span className="truncate">Add Sheet Link</span>
                         </>
                       )}
                     </>
