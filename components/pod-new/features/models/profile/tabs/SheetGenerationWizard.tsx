@@ -231,46 +231,133 @@ export function SheetGenerationWizard({ isOpen, onClose, modelName }: SheetGener
 
   const handleGenerate = async () => {
     setIsGenerating(true);
-    
     try {
       let podSheetLinks: any[] = [];
-      
-      // Step 1: Generate POD Sheets first if selected (they provide scheduler URLs for Caption Bank)
-      if (config.podSheets.free || config.podSheets.paid || config.podSheets.oftv) {
-        podSheetLinks = await generatePODSheets();
-        
+
+      // Determine if we need to generate POD Sheets for scheduler (even if not selected in step 1)
+      // This happens if only Caption Bank is selected, and 'generate new' scheduler sheet is chosen for free/paid
+      const needFreeSchedulerPod = config.captionBank.enabled && config.captionBank.free && !config.podSheets.free && config.schedulerSheets.free.generateNew;
+      const needPaidSchedulerPod = config.captionBank.enabled && config.captionBank.paid && !config.podSheets.paid && config.schedulerSheets.paid.generateNew;
+
+      // Build POD Sheet generation config
+      const podConfig = {
+        free: config.podSheets.free || needFreeSchedulerPod,
+        paid: config.podSheets.paid || needPaidSchedulerPod,
+        oftv: config.podSheets.oftv,
+      };
+
+      // If any POD Sheet needs to be generated, do it first
+      if (podConfig.free || podConfig.paid || podConfig.oftv) {
+        podSheetLinks = await generatePODSheetsCustom(podConfig);
         // Reset progress state before starting Caption Bank generation
         if (config.captionBank.enabled) {
           await new Promise(resolve => setTimeout(resolve, 500));
           setGenerationProgress(null);
         }
       }
-      
+
       // Step 2: Generate Caption Bank if enabled
       if (config.captionBank.enabled) {
         await generateCaptionBank(podSheetLinks);
       }
-      
+
       // If neither was selected (shouldn't happen due to validation), show error
-      if (!config.captionBank.enabled && !config.podSheets.free && !config.podSheets.paid && !config.podSheets.oftv) {
+      if (!config.captionBank.enabled && !podConfig.free && !podConfig.paid && !podConfig.oftv) {
         toast.error('Please select at least one sheet type to generate');
         setIsGenerating(false);
         return;
       }
-      
+
       // All generation complete
       setTimeout(() => {
         setIsGenerating(false);
         setGenerationProgress(null);
         onClose();
       }, 1500);
-      
     } catch (error: any) {
       console.error('Error generating sheets:', error);
       setIsGenerating(false);
       setGenerationProgress(null);
       toast.error(error.message || 'Failed to generate sheets');
     }
+  };
+
+  // Custom POD Sheet generator to accept podConfig
+  const generatePODSheetsCustom = (podConfig: { free: boolean; paid: boolean; oftv: boolean }): Promise<any[]> => {
+    return new Promise((resolve, reject) => {
+      const params = new URLSearchParams();
+      params.append('free', podConfig.free.toString());
+      params.append('paid', podConfig.paid.toString());
+      params.append('oftv', podConfig.oftv.toString());
+
+      const eventSource = new EventSource(
+        `/api/models/${encodeURIComponent(modelName)}/sheet-links/generate-pod-sheets?${params}`
+      );
+
+      // Map backend step names to frontend step IDs
+      const stepMap: Record<string, string> = {
+        'validate': 'validate',
+        'folder': 'folder',
+        'copy': 'copy',
+        'save': 'save',
+        'complete': 'complete',
+      };
+
+      let lastStepId: string | null = null;
+
+      eventSource.addEventListener('progress', (e) => {
+        const data = JSON.parse(e.data);
+        const stepId = stepMap[data.step] || data.step.toLowerCase();
+        setGenerationProgress((prev) => {
+          const completedSteps = prev?.completedSteps || [];
+          if (lastStepId && lastStepId !== stepId && !completedSteps.includes(lastStepId)) {
+            completedSteps.push(lastStepId);
+          }
+          if (stepId !== lastStepId) {
+            lastStepId = stepId;
+          }
+          return {
+            currentSheet: 'POD Sheets',
+            currentStep: data.step,
+            progress: data.progress || 50,
+            completedSteps: [...completedSteps],
+            message: data.message,
+          };
+        });
+      });
+
+      eventSource.addEventListener('complete', (e) => {
+        const data = JSON.parse(e.data);
+        setGenerationProgress({
+          currentSheet: 'POD Sheets',
+          currentStep: 'Complete',
+          progress: 100,
+          completedSteps: ['validate', 'folder', 'copy', 'save', 'complete'],
+        });
+        eventSource.close();
+        queryClient.invalidateQueries({ queryKey: ['model-sheet-links', modelName] });
+        toast.success(data.message || 'POD Sheets generated successfully!');
+        if (data.sheetLinks && data.sheetLinks.length > 0 && data.sheetLinks[0].sheetUrl) {
+          window.open(data.sheetLinks[0].sheetUrl, '_blank');
+        }
+        resolve(data.sheetLinks || []);
+      });
+
+      eventSource.addEventListener('error', (e: any) => {
+        const data = e.data ? JSON.parse(e.data) : { message: 'Unknown error' };
+        eventSource.close();
+        setGenerationProgress(null);
+        toast.error(data.message || 'Failed to generate POD Sheets');
+        reject(new Error(data.message || 'Failed to generate POD Sheets'));
+      });
+
+      eventSource.onerror = () => {
+        eventSource.close();
+        setGenerationProgress(null);
+        toast.error('Lost connection to server');
+        reject(new Error('Lost connection to server'));
+      };
+    });
   };
 
   const generatePODSheets = (): Promise<any[]> => {
